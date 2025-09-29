@@ -324,20 +324,23 @@ public class UnionQueryImpl implements Query {
             rightIter = ((MeasuringIterator) rightRows).getDelegate();
         }
         if (orderBy == null) {
-            boolean sortByScoreEnabled = settings.isSortUnionQueryByScoreEnabled();
-            boolean leftHasScore = isScorePresent(left);
-            boolean rightHasScore = isScorePresent(right);
-
-            if (sortByScoreEnabled && leftHasScore && rightHasScore) {
-                // Both sides have scores => merge
-                Comparator<ResultRowImpl> scoreComparator = createScoreBasedComparator();
-                it = IteratorUtils.mergeSorted(List.of(leftIter, rightIter), scoreComparator);
-            } else if (sortByScoreEnabled && rightHasScore) {
-                // Only right has score => start with right
-                it = IteratorUtils.chainedIterator(rightIter, leftIter);
-            } else {
-                // Default old behavior, only left has score, or neither has scores => start with left
+            if(!settings.isSortUnionQueryByScoreEnabled()) {
+                // Default old behavior
                 it = IteratorUtils.chainedIterator(leftIter, rightIter);
+            } else {
+                boolean leftHasScore = isScorePresent(left);
+                boolean rightHasScore = isScorePresent(right);
+                if (leftHasScore && rightHasScore) {
+                    // Both sides have scores => merge
+                    Comparator<ResultRowImpl> scoreComparator = createScoreBasedComparator();
+                    it = IteratorUtils.mergeSorted(List.of(leftIter, rightIter), scoreComparator);
+                } else if (rightHasScore) {
+                    // Only right has score => start with right
+                    it = IteratorUtils.chainedIterator(rightIter, leftIter);
+                } else {
+                    // only left has score, or neither has scores => start with left
+                    it = IteratorUtils.chainedIterator(leftIter, rightIter);
+                }
             }
         } else {
             // This would suggest either the sub queries are sorted by index or explicitly by QueryImpl (in case of traversing index)

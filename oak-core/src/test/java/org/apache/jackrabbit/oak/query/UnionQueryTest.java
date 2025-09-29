@@ -54,11 +54,11 @@ import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.ast.SourceImpl;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsData;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.apache.jackrabbit.oak.spi.toggle.Feature;
 
 public class UnionQueryTest extends AbstractQueryTest {
 
@@ -443,6 +443,22 @@ public class UnionQueryTest extends AbstractQueryTest {
         QueryEngineSettings disabledSettings = new QueryEngineSettings();
         Feature sortFeature = createFeature(false);
         disabledSettings.setSortUnionQueryByScoreFeature(sortFeature);
+        MockQueryBuilder leftQuery = new MockQueryBuilder(true)
+                .addResult("/left/doc1", 0.8)
+                .addResult("/left/doc2", 0.7);
+        MockQueryBuilder rightQuery = new MockQueryBuilder(true)
+                .addResult("/right/doc1", 0.9)
+                .addResult("/right/doc2", 0.6);
+
+        UnionQueryImpl unionQuery = new UnionQueryImpl(true, leftQuery.build(), rightQuery.build(), disabledSettings);
+        List<ScoredResult> results = executeUnionAndGetScoredResults(unionQuery);
+        assertPathOrder(results, new String[]{"/left/doc1", "/left/doc2", "/right/doc1", "/right/doc2"});
+    }
+
+    @Test
+    public void testSortUnionQueryScoreFlagIsNull() throws Exception {
+        QueryEngineSettings disabledSettings = new QueryEngineSettings();
+        disabledSettings.setSortUnionQueryByScoreFeature(null);
         MockQueryBuilder leftQuery = new MockQueryBuilder(true)
                 .addResult("/left/doc1", 0.8)
                 .addResult("/left/doc2", 0.7);
