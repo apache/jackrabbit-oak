@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.22.22
+Release Notes -- Apache Jackrabbit Oak -- Version 1.22.23
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.22.22 is a patch release that contains fixes and
+Jackrabbit Oak 1.22.23 is a patch release that contains fixes and
 improvements over Oak 1.22. Jackrabbit Oak 1.22.x releases are
 considered stable and targeted for production use.
 
@@ -15,38 +15,19 @@ The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
 
-Changes in Oak 1.22.22
+Changes in Oak 1.22.23
 ----------------------
-
-Bug
-
-    [OAK-10653] - BasicDocumentStoreTest: handle DocumentStoreException on ds.create
-    [OAK-10838] - oak-lucene: maven install fails in oak-lucene due to baseline check
-    [OAK-10957] - oak-run datastorecheck broken for AWS since 1.22.14
-    [OAK-11279] - Backport CVE fixes for oak-solr-osgi to 1.22
-
-Improvement
-
-    [OAK-10760] - oak-core should check namespace registry consistency on startup
 
 Task
 
-    [OAK-10103] - oak-store-document: remove deprecated SystemPropertySupplier
-    [OAK-10694] - Remove oak-search-mt
-    [OAK-10755] - commons: deprecate use of slf4j.event.Level in SystemPropertySupplier API (and make it 'internal')
-    [OAK-11126] - Upgrade maven-versions-plugin to 2.17.1
-    [OAK-11168] - update mongo-driver version to 3.12.14
-    [OAK-11196] - oak-auth-ldap: update mina dependency to 2.1.8
-    [OAK-11217] - Fix issue with CopyObject Request
-    [OAK-11265] - Datastore checkConsistency() via JMX is not working
-    [OAK-11266] - Create a new mode GCP for Blob cloud
-    [OAK-11286] - blob-cloud, segment: update netty version to 4.1.115
-    [OAK-11305] - Use single delete call for renaming keys in GCP
-    [OAK-11306] - GCP bucket cleanup post test not working
-    [OAK-11310] - Fix S3 test cases in oak-blob-cloud
-    [OAK-11329] - oak-auth-ldap: update mina dependency to 2.1.10
-    [OAK-11419] - oak-store-document - persistent cache: remove unused UDP/TCP broadcasters
-    [OAK-11611] - blob-cloud, segment: update netty version to 4.1.119
+    [OAK-11456] - oak-solr-osgi embeds vulnerable Zookeeper 3.9.2
+    [OAK-11745] - examples: update commons-beanutils to version 1.11.0
+    [OAK-11803] - Update commons-lang3 dependency to 3.18.0
+    [OAK-11805] - Update Oak 1.22 to Jackrabbit 2.20.17
+    [OAK-11819] - Update commons-codec dependency to 1.19.0
+    [OAK-11820] - Update commons-io dependency to 2.20.0
+    [OAK-11947] - oak-solr-osgi embeds vulnerable Zookeeper 3.9.2 (branch 1.22)
+    [OAK-11961] - Update commons-fileupload in oak-solr-*
 
 
 In addition to the above-mentioned changes, this release contains
