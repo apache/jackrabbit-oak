@@ -33,7 +33,7 @@
     <name>Oak Segment AWS</name>
 
     <properties>
-        <aws.version>1.12.761</aws.version>
+        <aws.version>1.12.791</aws.version>
         <sqlite4java.version>1.0.392</sqlite4java.version>
     </properties>
 
@@ -51,10 +51,30 @@
                             *
                         </Import-Package>
                         <Export-Package>
-                            com.amazonaws.metrics.internal.cloudwatch,
-                            com.amazonaws.services.securitytoken.internal,
-                            com.amazonaws*,
-                            com.fasterxml.jackson.dataformat.cbor,
+                            com.amazonaws.metrics.internal.cloudwatch;version=0.1.0,
+                            com.amazonaws.services.securitytoken.internal;version=0.1.0,
+                            com.amazonaws;version=0.1.0,
+                            com.amazonaws.arn;version=0.1.0,
+                            com.amazonaws.auth;version=0.1.0,
+                            com.amazonaws.auth.profile.internal;version=0.1.0,
+                            com.amazonaws.handlers;version=0.1.0,
+                            com.amazonaws.http;version=0.1.0,
+                            com.amazonaws.http.apache.request.impl;version=0.1.0,
+                            com.amazonaws.internal;version=0.1.0,
+                            com.amazonaws.internal.config;version=0.1.0,
+                            com.amazonaws.protocol;version=0.1.0,
+                            com.amazonaws.protocol.json;version=0.1.0,
+                            com.amazonaws.protocol.json.internal;version=1.0.0,
+                            com.amazonaws.regions;version=0.1.0,
+                            com.amazonaws.services.dynamodbv2;version=1.0.0,
+                            com.amazonaws.services.dynamodbv2.util;version=0.1.0,
+                            com.amazonaws.services.s3;version=1.0.0,
+                            com.amazonaws.services.s3.internal;version=0.1.0,
+                            com.amazonaws.services.s3.model;version=1.0.0,
+                            com.amazonaws.services.s3.model.transform;version=0.1.0,
+                            com.amazonaws.services.s3.transfer;version=0.1.0,
+                            com.amazonaws.util;version=1.0.0,
+                            com.fasterxml.jackson.dataformat.cbor;version=3.0.0,
                             com.sun.org.apache.xpath.internal,
                             kotlin,
                             org.bouncycastle.jce.provider,

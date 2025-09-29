@@ -57,7 +57,6 @@ import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
 import java.util.function.Function;
 
 import com.google.common.base.Strings;

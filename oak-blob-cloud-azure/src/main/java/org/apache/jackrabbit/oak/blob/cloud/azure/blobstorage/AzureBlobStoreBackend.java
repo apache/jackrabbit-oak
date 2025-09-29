@@ -72,7 +72,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import java.util.concurrent.atomic.AtomicReference;
-
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
@@ -121,7 +120,6 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
     public void setProperties(final Properties properties) {
         this.properties = properties;
     }
-
     private final AtomicReference<BlobContainerClient> azureContainerReference = new AtomicReference<>();
 
     protected BlobContainerClient getAzureContainer() throws DataStoreException {
@@ -237,6 +235,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
         String key = getKeyName(identifier);
         long start = System.currentTimeMillis();
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+        InputStream is = null;
         try {
             Thread.currentThread().setContextClassLoader(
                     getClass().getClassLoader());
@@ -245,7 +244,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
                 throw new DataStoreException(String.format("Trying to read missing blob. identifier=%s", key));
             }
 
-            InputStream is = blob.openInputStream();
+            is = blob.openInputStream();
             LOG.debug("Got input stream for blob. identifier={} duration={}", key, (System.currentTimeMillis() - start));
             if (LOG_STREAMS_DOWNLOAD.isDebugEnabled()) {
                 // Log message, with exception, so we can get a trace to see where the call came from
@@ -254,10 +253,21 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
             return is;
         } catch (BlobStorageException e) {
             LOG.info("Error reading blob. identifier={}", key);
+            tryClose(is);
             throw new DataStoreException(String.format("Cannot read blob. identifier=%s", key), e);
         } finally {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
+            }
+        }
+    }
+
+    private void tryClose(InputStream is) {
+        if (is != null) {
+            try {
+                is.close();
+            } catch (IOException ioe) {
+                LOG.warn("Failed to close the InputStream {}", is, ioe);
             }
         }
     }

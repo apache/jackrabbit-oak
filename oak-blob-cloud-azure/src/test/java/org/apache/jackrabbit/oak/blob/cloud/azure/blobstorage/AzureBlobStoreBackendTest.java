@@ -316,7 +316,6 @@ public class AzureBlobStoreBackendTest {
 
             // Verify azureContainer is null
             BlobContainerClient containerBeforeCall = azureContainerReference.get();
-
             assertNull("azureContainer should be null before getAzureContainer call", containerBeforeCall);
 
             // Call getAzureContainer - this should initialize the container
@@ -328,7 +327,6 @@ public class AzureBlobStoreBackendTest {
 
             // Verify azureContainer field is now set
             BlobContainerClient containerAfterCall = azureContainerReference.get();
-
             assertNotNull("azureContainer field should be set after getAzureContainer call", containerAfterCall);
             assertSame("Returned container should be same as stored in field", container, containerAfterCall);
 
@@ -370,7 +368,6 @@ public class AzureBlobStoreBackendTest {
             azureContainerField.setAccessible(true);
             @SuppressWarnings("unchecked")
             BlobContainerClient containerAfterException = ((AtomicReference<BlobContainerClient>) azureContainerField.get(testBackend)).get();
-
             assertNull("azureContainer should remain null after exception", containerAfterException);
         } finally {
             testBackend.close();
