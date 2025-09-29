@@ -93,19 +93,19 @@ public class AzureDataRecordAccessProviderTest extends AbstractDataRecordAccessP
 
     @Override
     protected long getProviderMinPartSize() {
-        return Math.max(0L, AzureBlobStoreBackend.MIN_MULTIPART_UPLOAD_PART_SIZE);
+        return Math.max(0L, AzureConstants.AZURE_BLOB_MIN_MULTIPART_UPLOAD_PART_SIZE);
     }
 
     @Override
     protected long getProviderMaxPartSize() {
-        return AzureBlobStoreBackend.MAX_MULTIPART_UPLOAD_PART_SIZE;
+        return AzureConstants.AZURE_BLOB_MAX_MULTIPART_UPLOAD_PART_SIZE;
     }
 
     @Override
-    protected long getProviderMaxSinglePutSize() { return AzureBlobStoreBackend.MAX_SINGLE_PUT_UPLOAD_SIZE; }
+    protected long getProviderMaxSinglePutSize() { return AzureConstants.AZURE_BLOB_MAX_SINGLE_PUT_UPLOAD_SIZE; }
 
     @Override
-    protected long getProviderMaxBinaryUploadSize() { return AzureBlobStoreBackend.MAX_BINARY_UPLOAD_SIZE; }
+    protected long getProviderMaxBinaryUploadSize() { return AzureConstants.AZURE_BLOB_MAX_BINARY_UPLOAD_SIZE; }
 
     @Override
     protected boolean isSinglePutURI(URI uri) {
