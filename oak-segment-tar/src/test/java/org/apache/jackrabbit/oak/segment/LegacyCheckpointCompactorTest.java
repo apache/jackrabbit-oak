@@ -18,42 +18,22 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import org.apache.jackrabbit.oak.segment.file.CompactionWriter;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.GCIncrement;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
-import org.apache.jackrabbit.oak.segment.file.CompactionWriter;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.jetbrains.annotations.NotNull;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.SimpleCompactorFactory;
+import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 
 @RunWith(Parameterized.class)
-public class ParallelCompactorTest extends AbstractCompactorTest {
-
-    private final int concurrency;
-
-    @Parameterized.Parameters(name = "{index}: {0} concurrency={2}")
-    public static List<Object[]> parameters() {
-        Integer[] concurrencyLevels = {1, 2, 4, 8, 16};
-
-        List<Object[]> parameters = new ArrayList<>();
-        for (Object[] args : AbstractCompactorTest.compactorFactories()) {
-            for (int concurrency : concurrencyLevels) {
-                parameters.add(new Object[]{args[0], args[1], concurrency});
-            }
-        }
-        return parameters;
-    }
-
-    public ParallelCompactorTest(String name, @NotNull SimpleCompactorFactory compactorFactory, int concurrency) {
+public class LegacyCheckpointCompactorTest extends AbstractCompactorTest {
+    public LegacyCheckpointCompactorTest(String name, @NotNull SimpleCompactorFactory compactorFactory) {
         super(name, compactorFactory);
-        this.concurrency = concurrency;
     }
 
     @Override
@@ -62,12 +42,10 @@ public class ParallelCompactorTest extends AbstractCompactorTest {
             @NotNull GCIncrement increment,
             @NotNull GCNodeWriteMonitor compactionMonitor
     ) {
-        SegmentWriterFactory writerFactory = generation -> defaultSegmentWriterBuilder("c")
+        SegmentWriterFactory writerFactory = generation ->  defaultSegmentWriterBuilder("c")
                 .withGeneration(generation)
-                .withWriterPool(SegmentBufferWriterPool.PoolType.THREAD_SPECIFIC)
                 .build(fileStore);
         CompactionWriter compactionWriter = new CompactionWriter(fileStore.getReader(), fileStore.getBlobStore(), increment, writerFactory);
-        return new CheckpointCompactor(GCMonitor.EMPTY,
-                new ParallelCompactor(GCMonitor.EMPTY, compactionWriter, compactionMonitor, concurrency));
+        return new LegacyCheckpointCompactor(GCMonitor.EMPTY, new ClassicCompactor(compactionWriter, compactionMonitor));
     }
 }
