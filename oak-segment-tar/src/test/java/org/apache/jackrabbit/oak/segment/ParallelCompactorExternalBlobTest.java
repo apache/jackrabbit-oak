@@ -57,12 +57,13 @@ public class ParallelCompactorExternalBlobTest extends AbstractCompactorExternal
     }
 
     @Override
-    protected ParallelCompactor createCompactor(@NotNull FileStore fileStore, @NotNull GCGeneration generation) {
+    protected Compactor createCompactor(@NotNull FileStore fileStore, @NotNull GCGeneration generation) {
         SegmentWriter writer = defaultSegmentWriterBuilder("c")
                 .withGeneration(generation)
                 .withWriterPool(SegmentBufferWriterPool.PoolType.THREAD_SPECIFIC)
                 .build(fileStore);
         CompactionWriter compactionWriter = new CompactionWriter(fileStore.getReader(), fileStore.getBlobStore(), generation, writer);
-        return new ParallelCompactor(GCMonitor.EMPTY, compactionWriter, GCNodeWriteMonitor.EMPTY, concurrency);
+        return new CheckpointCompactor(GCMonitor.EMPTY,
+                new ParallelCompactor(GCMonitor.EMPTY, compactionWriter, GCNodeWriteMonitor.EMPTY, concurrency));
     }
 }
