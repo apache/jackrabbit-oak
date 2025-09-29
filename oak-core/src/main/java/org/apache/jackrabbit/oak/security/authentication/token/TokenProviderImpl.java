@@ -133,10 +133,10 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         this.root = root;
         this.options = options;
         this.credentialsSupport = credentialsSupport;
-        this.tokenExpiration = getConfigValueOrDefault(PARAM_TOKEN_EXPIRATION, DEFAULT_TOKEN_EXPIRATION);
+        this.tokenExpiration = options.getConfigValueOrDefault(PARAM_TOKEN_EXPIRATION, DEFAULT_TOKEN_EXPIRATION);
         this.userManager = userConfiguration.getUserManager(root, NamePathMapper.DEFAULT);
         this.identifierManager = new IdentifierManager(root);
-        this.cleanupThreshold = getConfigValueOrDefault(PARAM_TOKEN_CLEANUP_THRESHOLD, NO_TOKEN_CLEANUP);
+        this.cleanupThreshold = options.getConfigValueOrDefault(PARAM_TOKEN_CLEANUP_THRESHOLD, NO_TOKEN_CLEANUP);
     }
 
     //------------------------------------------------------< TokenProvider >---
@@ -298,15 +298,6 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         tree.setProperty(TOKEN_ATTRIBUTE_EXPIRY, ISO8601.format(calendar), DATE);
     }
 
-    private <T> T getConfigValueOrDefault(@NotNull String configName, final T defaultValue) {
-        try {
-            return options.getConfigValue(configName, defaultValue);
-        } catch (IllegalArgumentException e) {
-            log.warn("Invalid config value for '{}': {}. Returning default value {}", configName, e.getMessage(), defaultValue);
-            return defaultValue;
-        }
-    }
-
     @Nullable
     private Credentials extractCredentials(@NotNull Credentials credentials) {
         Credentials creds = credentials;
@@ -441,7 +432,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         Tree tokenNode = TreeUtil.addChild(parent, tokenName, TOKEN_NT_NAME);
         tokenNode.setProperty(JcrConstants.JCR_UUID, uuid);
 
-        String key = generateKey(getConfigValueOrDefault(PARAM_TOKEN_LENGTH, DEFAULT_KEY_SIZE));
+        String key = generateKey(options.getConfigValueOrDefault(PARAM_TOKEN_LENGTH, DEFAULT_KEY_SIZE));
         String nodeId = getIdentifier(tokenNode);
         String token = nodeId + DELIM + key;
 
@@ -584,7 +575,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         @Override
         public boolean resetExpiration(long loginTime) {
             // for backwards compatibility use true as default value for the 'tokenRefresh' configuration
-            if (getConfigValueOrDefault(PARAM_TOKEN_REFRESH, true)) {
+            if (options.getConfigValueOrDefault(PARAM_TOKEN_REFRESH, true)) {
                 Tree tokenTree = getTokenTree(this);
                 if (tokenTree.exists()) {
                     if (isExpired(loginTime)) {

@@ -245,6 +245,33 @@ public final class ConfigurationParameters implements Map<String, Object> {
         }
     }
 
+    /**
+     * Returns the value of the configuration entry with the given {@code key}
+     * applying the following rules:
+     *
+     * <ul>
+     *     <li>If this instance doesn't contain a configuration entry with that
+     *     key, or if the entry is {@code null}, the specified {@code defaultValue} will be returned.</li>
+     *     <li>If the configured value is not {@code null} an attempt is made to convert the configured value to
+     *     match the type of the default value.</li>
+     *     <li>If the configured value can not be converted to the default value type the default value is returned.</li>
+     * </ul>
+     *
+     * @param key The name of the configuration option.
+     * @param defaultValue The default value to return if no such entry exists
+     * or to use for conversion.
+     * @return The original or converted configuration value or {@code defaultValue} if no entry for the given key exists
+     * or if a conversion error occurred.
+     */
+    @NotNull
+    public <T> T getConfigValueOrDefault(@NotNull String key, @NotNull T defaultValue) {
+        try {
+            return getConfigValue(key, defaultValue);
+        } catch (IllegalArgumentException e) {
+            return defaultValue;
+        }
+    }
+
     //--------------------------------------------------------< private >---
     @NotNull
     private static Class<?>  getTargetClass(@NotNull Object configProperty, @Nullable Object defaultValue, @Nullable Class<?> targetClass) {
