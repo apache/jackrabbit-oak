@@ -143,7 +143,7 @@ public class ClassicCompactor extends Compactor {
 
         private void updated() throws IOException {
             if (++modCount % UPDATE_LIMIT == 0) {
-                SegmentNodeState newBase = writeNodeState(builder.getNodeState(), null, false);
+                SegmentNodeState newBase = writeNodeState(builder.getNodeState(), null, true);
                 requireNonNull(newBase);
                 builder = new MemoryNodeBuilder(newBase);
             }
