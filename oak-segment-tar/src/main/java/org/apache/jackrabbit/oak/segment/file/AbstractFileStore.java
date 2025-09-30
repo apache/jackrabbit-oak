@@ -31,6 +31,8 @@ import java.util.function.Consumer;
 
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
 import org.apache.jackrabbit.oak.segment.RecordType;
 import org.apache.jackrabbit.oak.segment.Revisions;
@@ -48,6 +50,7 @@ import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.segment.file.preloader.SegmentPreloader;
 import org.apache.jackrabbit.oak.segment.file.tar.EntryRecovery;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
@@ -55,6 +58,8 @@ import org.apache.jackrabbit.oak.segment.file.tar.TarRecovery;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.PersistentCache;
+import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.PersistentCachePreloadingConfiguration;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.jetbrains.annotations.NotNull;
@@ -88,6 +93,8 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
      * than zero and greater than or equal to the minimum store version.
      */
     private static final int MAX_STORE_VERSION = 2;
+
+    protected final @Nullable PersistentCache persistentCache;
 
     static ManifestChecker newManifestChecker(SegmentNodeStorePersistence persistence, boolean strictVersionCheck) throws IOException {
         return ManifestChecker.newManifestChecker(
@@ -130,7 +137,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     protected final IOMonitor ioMonitor;
 
     protected final RemoteStoreMonitor remoteStoreMonitor;
-    
+
     protected final int binariesInlineThreshold;
 
     AbstractFileStore(final FileStoreBuilder builder) {
@@ -156,6 +163,15 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         this.remoteStoreMonitor = builder.getRemoteStoreMonitor();
         this.segmentBufferMonitor = new SegmentBufferMonitor(builder.getStatsProvider());
         this.binariesInlineThreshold = builder.getBinariesInlineThreshold();
+        PersistentCache persistentCache = builder.getPersistentCache();
+        PersistentCachePreloadingConfiguration preloadingConfig = builder.getPreloadingConfiguration();
+        if (preloadingConfig != null) {
+            Validate.checkState(persistentCache != null,
+                    "PersistentCache must be configured when using a PersistentCachePreloadConfiguration");
+            this.persistentCache = SegmentPreloader.decorate(persistentCache, preloadingConfig, this::getTarFiles);
+        } else {
+            this.persistentCache = persistentCache;
+        }
     }
 
     static SegmentNotFoundException asSegmentNotFoundException(Exception e, SegmentId id) {
@@ -164,6 +180,8 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         }
         return new SegmentNotFoundException(id, e);
     }
+
+    abstract TarFiles getTarFiles();
 
     @NotNull
     public CacheStatsMBean getSegmentCacheStats() {
@@ -192,7 +210,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     public SegmentIdProvider getSegmentIdProvider() {
         return tracker;
     }
-    
+
     public int getBinariesInlineThreshold() {
         return binariesInlineThreshold;
     }
@@ -281,6 +299,25 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         return binaryReferences;
     }
 
+    @Override
+    public void close() {
+        doClose();
+        System.gc(); // for any memory-mappings that are no longer used
+        log.info("TarMK closed: {}", directory);
+    }
+
+    protected void doClose() {
+        Closer closer = Closer.create();
+        registerCloseables(closer);
+        closeAndLogOnFail(closer);
+    }
+
+    protected void registerCloseables(Closer closer) {
+        if (persistentCache instanceof Closeable) {
+            closer.register((Closeable) persistentCache);
+        }
+    }
+
     static void closeAndLogOnFail(Closeable closeable) {
         if (closeable != null) {
             try {
@@ -292,11 +329,19 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         }
     }
 
-    Segment readSegmentUncached(TarFiles tarFiles, SegmentId id) {
-        Buffer buffer = tarFiles.readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits());
+    Segment readSegmentUncached(SegmentId id) {
+        Buffer buffer;
+        if (persistentCache != null) {
+            buffer = persistentCache.readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits(),
+                    () -> getTarFiles().readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits()));
+        } else {
+            buffer = getTarFiles().readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits());
+        }
+
         if (buffer == null) {
             throw new SegmentNotFoundException(id);
         }
+
         segmentBufferMonitor.trackAllocation(buffer);
         return new Segment(tracker, id, buffer);
     }

@@ -249,6 +249,11 @@ public class FileStore extends AbstractFileStore {
         }
     }
 
+    @Override
+    TarFiles getTarFiles() {
+        return tarFiles;
+    }
+
     @NotNull
     private Supplier<RecordId> initialNode() {
         return new Supplier<RecordId>() {
@@ -483,19 +488,21 @@ public class FileStore extends AbstractFileStore {
                 log.warn("Unable to flush the store", e);
             }
 
-            Closer closer = Closer.create();
-            closer.register(repositoryLock::unlock);
-            closer.register(tarFiles) ;
-            closer.register(revisions);
-
-            closeAndLogOnFail(closer);
+            doClose();
         }
 
         // Try removing pending files in case the scheduler didn't have a chance to run yet
         System.gc(); // for any memory-mappings that are no longer used
         fileReaper.reap();
-
         log.info("TarMK closed: {}", directory);
+    }
+
+    @Override
+    protected void registerCloseables(Closer closer) {
+        closer.register(repositoryLock::unlock);
+        closer.register(tarFiles) ;
+        closer.register(revisions);
+        super.registerCloseables(closer);
     }
 
     @Override
@@ -509,7 +516,7 @@ public class FileStore extends AbstractFileStore {
     @NotNull
     public Segment readSegment(final SegmentId id) {
         try (ShutDownCloser ignored = shutDown.keepAlive()) {
-            return segmentCache.getSegment(id, () -> readSegmentUncached(tarFiles, id));
+            return segmentCache.getSegment(id, () -> readSegmentUncached(id));
         } catch (ExecutionException | UncheckedExecutionException e) {
             if (e.getCause() instanceof RepositoryNotReachableException) {
                 RepositoryNotReachableException re = (RepositoryNotReachableException) e.getCause();
@@ -572,6 +579,10 @@ public class FileStore extends AbstractFileStore {
             // Keep this data segment in memory as it's likely to be accessed soon.
             if (!eagerSegmentCaching && segment != null) {
                 segmentCache.putSegment(segment);
+            }
+
+            if (persistentCache != null) {
+                persistentCache.writeSegment(id.getMostSignificantBits(), id.getLeastSignificantBits(), Buffer.wrap(buffer, offset, length));
             }
         }
     }
