@@ -230,7 +230,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
 
     @Override
     public InputStream read(DataIdentifier identifier) throws DataStoreException {
-        if (null == identifier) throw new NullPointerException("identifier");
+        Objects.requireNonNull(identifier, "identifier");
 
         String key = getKeyName(identifier);
         long start = System.currentTimeMillis();
@@ -303,12 +303,9 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
 
     @Override
     public void write(DataIdentifier identifier, File file) throws DataStoreException {
-        if (identifier == null) {
-            throw new NullPointerException("identifier");
-        }
-        if (file == null) {
-            throw new NullPointerException("file");
-        }
+        Objects.requireNonNull(identifier, "identifier");
+        Objects.requireNonNull(file, "file");
+
         String key = getKeyName(identifier);
         long start = System.currentTimeMillis();
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
@@ -351,9 +348,8 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
 
     @Override
     public DataRecord getRecord(DataIdentifier identifier) throws DataStoreException {
-        if (identifier == null) {
-            throw new NullPointerException("identifier");
-        }
+        Objects.requireNonNull(identifier, "identifier");
+
         String key = getKeyName(identifier);
         long start = System.currentTimeMillis();
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
@@ -433,7 +429,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
 
     @Override
     public void deleteRecord(DataIdentifier identifier) throws DataStoreException {
-        if (null == identifier) throw new NullPointerException("identifier");
+        Objects.requireNonNull(identifier, "identifier");
 
         String key = getKeyName(identifier);
         long start = System.currentTimeMillis();
@@ -457,9 +453,8 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
 
     @Override
     public void addMetadataRecord(InputStream input, String name) throws DataStoreException {
-        if (input == null) {
-            throw new NullPointerException("input");
-        }
+        Objects.requireNonNull(input, "input");
+
         if (StringUtils.isEmpty(name)) {
             throw new IllegalArgumentException("name");
         }
@@ -480,9 +475,8 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
 
     @Override
     public void addMetadataRecord(File input, String name) throws DataStoreException {
-        if (input == null) {
-            throw new NullPointerException("input");
-        }
+        Objects.requireNonNull(input, "input");
+
         if (StringUtils.isEmpty(name)) {
             throw new IllegalArgumentException("name");
         }
@@ -557,9 +551,8 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
 
     @Override
     public List<DataRecord> getAllMetadataRecords(String prefix) {
-        if (null == prefix) {
-            throw new NullPointerException("prefix");
-        }
+        Objects.requireNonNull(prefix, "prefix");
+
         long start = System.currentTimeMillis();
         final List<DataRecord> records = new ArrayList<>();
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
@@ -620,9 +613,8 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
 
     @Override
     public void deleteAllMetadataRecords(String prefix) {
-        if (null == prefix) {
-            throw new NullPointerException("prefix");
-        }
+        Objects.requireNonNull(prefix, "prefix");
+
         long start = System.currentTimeMillis();
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
@@ -744,16 +736,13 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
                                         @NotNull DataRecordDownloadOptions downloadOptions) {
         URI uri = null;
 
-        // When running unit test from Maven, it doesn't always honor the @NotNull decorators
-        if (identifier == null) throw new NullPointerException("identifier");
-        if (downloadOptions == null) throw new NullPointerException("downloadOptions");
+        Objects.requireNonNull(identifier, "identifier");
+        Objects.requireNonNull(downloadOptions, "downloadOptions");
 
         if (httpDownloadURIExpirySeconds > 0) {
 
             String domain = getDirectDownloadBlobStorageDomain(downloadOptions.isDomainOverrideIgnored());
-            if (domain == null) {
-                throw new NullPointerException("Could not determine domain for direct download");
-            }
+            Objects.requireNonNull(domain, "Could not determine domain for direct download");
 
             String cacheKey = identifier
                     + domain
@@ -875,9 +864,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
 
             String key = getKeyName(newIdentifier);
             String domain = getDirectUploadBlobStorageDomain(options.isDomainOverrideIgnored());
-            if (null == domain) {
-                throw new NullPointerException("Could not determine domain for direct upload");
-            }
+            Objects.requireNonNull(domain, "Could not determine domain for direct upload");
 
             BlobSasPermission perms = new BlobSasPermission()
                     .setWritePermission(true);
