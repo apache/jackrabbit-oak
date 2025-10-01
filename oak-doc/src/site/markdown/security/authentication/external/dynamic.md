@@ -240,4 +240,4 @@ is subsequent login attempts, see [OAK-11171] for benchmark results.
 [OAK-9462]: https://issues.apache.org/jira/browse/OAK-9462
 [OAK-9463]: https://issues.apache.org/jira/browse/OAK-9463
 [OAK-11026]: https://issues.apache.org/jira/browse/OAK-11026
-[OAK-11171] https://issues.apache.org/jira/browse/OAK-11171
+[OAK-11171]: https://issues.apache.org/jira/browse/OAK-11171
