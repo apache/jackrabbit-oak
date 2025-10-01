@@ -101,10 +101,12 @@ public class AzureDataStoreFixture implements DataStoreFixture {
             Object container;
             
             if (useSDK12) {
+                log.info("Starting blob store using azure sdk 12");
                 BlobContainerClient containerClient = Utils.getBlobContainer(connectionString, containerName, null, azProps);
                 containerClient.createIfNotExists();
                 container = containerClient;
             } else {
+                log.info("Starting blob store using azure sdk 8");
                 CloudBlobContainer blobContainer = UtilsV8.getBlobContainer(connectionString, containerName);
                 blobContainer.createIfNotExists();
                 container = blobContainer;

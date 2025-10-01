@@ -37,8 +37,13 @@ import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AzureDataStore extends AbstractSharedCachingDataStore implements ConfigurableDataRecordAccessProvider {
+
+    private static final Logger log = LoggerFactory.getLogger(AzureHttpRequestLoggingPolicy.class);
+
     private int minRecordLength = 16*1024;
 
     protected Properties properties;
@@ -50,8 +55,10 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
     @Override
     protected AbstractSharedBackend createBackend() {
         if (useAzureSdkV12) {
+            log.info("Starting blob store using Azure SDK 12");
             azureBlobStoreBackend = new AzureBlobStoreBackend();
         } else {
+            log.info("Starting blob store using Azure SDK 8");
             azureBlobStoreBackend = new AzureBlobStoreBackendV8();
         }
 

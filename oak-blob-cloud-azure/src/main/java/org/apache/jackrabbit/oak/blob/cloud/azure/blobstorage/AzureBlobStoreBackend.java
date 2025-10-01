@@ -22,7 +22,6 @@ import com.azure.core.http.rest.Response;
 import com.azure.core.util.BinaryData;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.models.BlobContainerProperties;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobProperties;
 import com.azure.storage.blob.models.BlobStorageException;
@@ -62,6 +61,7 @@ import java.security.InvalidKeyException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -320,8 +320,8 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
             LOG.debug("Blob write started. identifier={} length={}", key, len);
             BlockBlobClient blob = getAzureContainer().getBlobClient(key).getBlockBlobClient();
             if (!blob.exists()) {
-                updateLastModifiedMetadata(blob);
                 uploadBlob(blob, file, len, start, key);
+                updateLastModifiedMetadata(blob);
                 return;
             }
 
@@ -509,8 +509,8 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
     private void addMetadataRecordImpl(final InputStream input, String name, long recordLength) throws DataStoreException {
         try {
             BlockBlobClient blockBlobClient = getMetaBlobClient(name);
+            blockBlobClient.upload(BinaryData.fromBytes(input.readAllBytes()), true);
             updateLastModifiedMetadata(blockBlobClient);
-            blockBlobClient.upload(BinaryData.fromBytes(input.readAllBytes()));
         } catch (BlobStorageException e) {
             LOG.info("Error adding metadata record. metadataName={} length={}", name, recordLength, e);
             throw new DataStoreException(e);
@@ -705,18 +705,20 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
     }
 
     private static void updateLastModifiedMetadata(BlockBlobClient blockBlobClient) {
-        BlobContainerClient blobContainerClient = blockBlobClient.getContainerClient();
-        Map<String, String> metadata = blobContainerClient.getProperties().getMetadata();
+        Map<String, String> metadata = blockBlobClient.getProperties().getMetadata();
+        if (metadata == null) {
+            metadata = new HashMap<>();
+        }
         metadata.put(AZURE_BLOB_LAST_MODIFIED_KEY, String.valueOf(System.currentTimeMillis()));
-        blobContainerClient.setMetadata(metadata);
+        blockBlobClient.setMetadata(metadata);
     }
 
-    private static long getLastModified(BlockBlobClient blobClient) {
-        BlobContainerProperties blobProperties = blobClient.getContainerClient().getProperties();
-        if (blobProperties.getMetadata().containsKey(AZURE_BLOB_LAST_MODIFIED_KEY)) {
-            return Long.parseLong(blobProperties.getMetadata().get(AZURE_BLOB_LAST_MODIFIED_KEY));
+    private static long getLastModified(BlockBlobClient blockBlobClient) {
+        Map<String, String> metadata = blockBlobClient.getProperties().getMetadata();
+        if (metadata == null || !metadata.containsKey(AZURE_BLOB_LAST_MODIFIED_KEY)) {
+            return blockBlobClient.getProperties().getLastModified().toInstant().toEpochMilli();
         }
-        return blobProperties.getLastModified().toInstant().toEpochMilli();
+        return Long.parseLong(metadata.get(AZURE_BLOB_LAST_MODIFIED_KEY));
     }
 
     protected void setHttpDownloadURIExpirySeconds(int seconds) {
@@ -930,11 +932,11 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
 
     private Long getUncommittedBlocksListSize(BlockBlobClient client) throws DataStoreException {
         List<Block> blocks = client.listBlocks(BlockListType.UNCOMMITTED).getUncommittedBlocks();
-        updateLastModifiedMetadata(client);
         client.commitBlockList(blocks.stream().map(Block::getName).collect(Collectors.toList()));
+        updateLastModifiedMetadata(client);
         long size = 0L;
         for (Block block : blocks) {
-            size += block.getSize();
+            size += block.getSizeLong();
         }
         return size;
     }
