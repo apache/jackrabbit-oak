@@ -53,7 +53,7 @@ public class AzureHttpRequestLoggingPolicy implements HttpPipelinePolicy {
 
         return next.process().flatMap(httpResponse -> {
             if (verboseEnabled) {
-                log.info("HTTP Request: {} {} {} {}ms", 
+                log.info("HTTP Blob Request: {} {} {} {} ms",
                     context.getHttpRequest().getHttpMethod(), 
                     context.getHttpRequest().getUrl(), 
                     httpResponse.getStatusCode(), 
