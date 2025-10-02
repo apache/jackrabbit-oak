@@ -407,7 +407,7 @@ public class AzureBlobStoreBackendTest {
             backend.write(null, testFile);
             fail("Expected NullPointerException for null identifier");
         } catch (NullPointerException e) {
-            assertEquals("identifier", e.getMessage());
+            assertEquals("identifier must not be null", e.getMessage());
         } finally {
             testFile.delete();
         }
@@ -422,7 +422,7 @@ public class AzureBlobStoreBackendTest {
             backend.write(identifier, null);
             fail("Expected NullPointerException for null file");
         } catch (NullPointerException e) {
-            assertEquals("file", e.getMessage());
+            assertEquals("file must not be null", e.getMessage());
         }
     }
 
@@ -498,7 +498,7 @@ public class AzureBlobStoreBackendTest {
             backend.read(null);
             fail("Expected NullPointerException for null identifier");
         } catch (NullPointerException e) {
-            assertEquals("identifier", e.getMessage());
+            assertEquals("identifier must not be null", e.getMessage());
         }
     }
 
@@ -546,7 +546,7 @@ public class AzureBlobStoreBackendTest {
             backend.getRecord(null);
             fail("Expected NullPointerException for null identifier");
         } catch (NullPointerException e) {
-            assertEquals("identifier", e.getMessage());
+            assertEquals("identifier must not be null", e.getMessage());
         }
     }
 
@@ -609,7 +609,7 @@ public class AzureBlobStoreBackendTest {
             backend.deleteRecord(null);
             fail("Expected NullPointerException for null identifier");
         } catch (NullPointerException e) {
-            assertEquals("identifier", e.getMessage());
+            assertEquals("identifier must not be null", e.getMessage());
         }
     }
 
@@ -744,7 +744,7 @@ public class AzureBlobStoreBackendTest {
             backend.addMetadataRecord((InputStream) null, "test");
             fail("Expected NullPointerException for null input stream");
         } catch (NullPointerException e) {
-            assertEquals("input", e.getMessage());
+            assertEquals("input must not be null", e.getMessage());
         }
     }
 
@@ -756,7 +756,7 @@ public class AzureBlobStoreBackendTest {
             backend.addMetadataRecord((File) null, "test");
             fail("Expected NullPointerException for null file");
         } catch (NullPointerException e) {
-            assertEquals("input", e.getMessage());
+            assertEquals("input must not be null", e.getMessage());
         }
     }
 
@@ -768,7 +768,7 @@ public class AzureBlobStoreBackendTest {
             backend.addMetadataRecord(new ByteArrayInputStream("test".getBytes()), null);
             fail("Expected IllegalArgumentException for null name");
         } catch (IllegalArgumentException e) {
-            assertEquals("name", e.getMessage());
+            assertEquals("name should not be empty", e.getMessage());
         }
     }
 
@@ -780,7 +780,7 @@ public class AzureBlobStoreBackendTest {
             backend.addMetadataRecord(new ByteArrayInputStream("test".getBytes()), "");
             fail("Expected IllegalArgumentException for empty name");
         } catch (IllegalArgumentException e) {
-            assertEquals("name", e.getMessage());
+            assertEquals("name should not be empty", e.getMessage());
         }
     }
 
@@ -836,7 +836,7 @@ public class AzureBlobStoreBackendTest {
             backend.getAllMetadataRecords(null);
             fail("Expected NullPointerException for null prefix");
         } catch (NullPointerException e) {
-            assertEquals("prefix", e.getMessage());
+            assertEquals("prefix must not be null", e.getMessage());
         }
     }
 
@@ -901,7 +901,7 @@ public class AzureBlobStoreBackendTest {
             backend.deleteAllMetadataRecords(null);
             fail("Expected NullPointerException for null prefix");
         } catch (NullPointerException e) {
-            assertEquals("prefix", e.getMessage());
+            assertEquals("prefix must not be null", e.getMessage());
         }
     }
 
@@ -1730,7 +1730,7 @@ public class AzureBlobStoreBackendTest {
             backend.initiateHttpUpload(0L, 5, options);
             fail("Should throw IllegalArgumentException for maxUploadSizeInBytes <= 0");
         } catch (IllegalArgumentException e) {
-            assertTrue("Should contain size error", e.getMessage().contains("maxUploadSizeInBytes must be > 0"));
+            assertTrue("Should contain size error: " + e.getMessage(), e.getMessage().contains("maxUploadSizeInBytes must be > 0"));
         }
 
         // Test maxNumberOfURIs == 0
@@ -1738,7 +1738,7 @@ public class AzureBlobStoreBackendTest {
             backend.initiateHttpUpload(1000L, 0, options);
             fail("Should throw IllegalArgumentException for maxNumberOfURIs == 0");
         } catch (IllegalArgumentException e) {
-            assertTrue("Should contain URI count error", e.getMessage().contains("maxNumberOfURIs must either be > 0 or -1"));
+            assertTrue("Should contain URI count error: " + e.getMessage(), e.getMessage().contains("maxNumberOfURIs must either be > 0 or -1"));
         }
 
         // Test maxNumberOfURIs < -1
@@ -1746,7 +1746,7 @@ public class AzureBlobStoreBackendTest {
             backend.initiateHttpUpload(1000L, -2, options);
             fail("Should throw IllegalArgumentException for maxNumberOfURIs < -1");
         } catch (IllegalArgumentException e) {
-            assertTrue("Should contain URI count error", e.getMessage().contains("maxNumberOfURIs must either be > 0 or -1"));
+            assertTrue("Should contain URI count error: " + e.getMessage(), e.getMessage().contains("maxNumberOfURIs must either be > 0 or -1"));
         }
     }
 
@@ -1767,7 +1767,7 @@ public class AzureBlobStoreBackendTest {
             testBackend.initiateHttpUpload(tooLargeSize, 1, options);
             fail("Should throw IllegalArgumentException for single-put upload too large");
         } catch (IllegalArgumentException e) {
-            assertTrue("Should contain single-put size error",
+            assertTrue("Should contain single-put size error: " + e.getMessage(),
                 e.getMessage().contains("Cannot do single-put upload with file size"));
         }
     }
@@ -1813,7 +1813,7 @@ public class AzureBlobStoreBackendTest {
             testBackend.initiateHttpUpload(uploadSize, maxURIs, options);
             fail("Should throw IllegalArgumentException for part size too large");
         } catch (IllegalArgumentException e) {
-            assertTrue("Should contain part size error",
+            assertTrue("Should contain part size error: " + e.getMessage(),
                 e.getMessage().contains("Cannot do multi-part upload with requested part size") ||
                 e.getMessage().contains("Cannot do single-put upload with file size"));
         } catch (Exception e) {
@@ -1838,7 +1838,7 @@ public class AzureBlobStoreBackendTest {
             testBackend.createHttpDownloadURI(null, options);
             fail("Should throw NullPointerException for null identifier");
         } catch (NullPointerException e) {
-            assertEquals("identifier", e.getMessage());
+            assertEquals("identifier must not be null", e.getMessage());
         }
     }
 
@@ -1857,7 +1857,7 @@ public class AzureBlobStoreBackendTest {
             testBackend.createHttpDownloadURI(identifier, null);
             fail("Should throw NullPointerException for null options");
         } catch (NullPointerException e) {
-            assertEquals("downloadOptions", e.getMessage());
+            assertEquals("downloadOptions must not be null", e.getMessage());
         }
     }
 

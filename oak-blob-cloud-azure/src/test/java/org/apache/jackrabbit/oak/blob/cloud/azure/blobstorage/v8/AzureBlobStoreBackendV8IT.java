@@ -437,12 +437,10 @@ public class AzureBlobStoreBackendV8IT {
         configFile.delete();
       }
       // Clean up the backend
-      if (nullPropsBackend != null) {
-        try {
-          nullPropsBackend.close();
-        } catch (Exception e) {
-          // Ignore cleanup errors
-        }
+      try {
+        nullPropsBackend.close();
+      } catch (Exception e) {
+        // Ignore cleanup errors
       }
     }
   }
@@ -545,7 +543,7 @@ public class AzureBlobStoreBackendV8IT {
       backend.read(null);
       fail("Expected NullPointerException for null identifier in read");
     } catch (NullPointerException e) {
-      assertEquals("identifier", e.getMessage());
+      assertEquals("identifier must not be null", e.getMessage());
     }
 
     // Test null identifier in getRecord
@@ -553,7 +551,7 @@ public class AzureBlobStoreBackendV8IT {
       backend.getRecord(null);
       fail("Expected NullPointerException for null identifier in getRecord");
     } catch (NullPointerException e) {
-      assertEquals("identifier", e.getMessage());
+      assertEquals("identifier must not be null", e.getMessage());
     }
 
     // Test null identifier in deleteRecord
@@ -561,7 +559,7 @@ public class AzureBlobStoreBackendV8IT {
       backend.deleteRecord(null);
       fail("Expected NullPointerException for null identifier in deleteRecord");
     } catch (NullPointerException e) {
-      assertEquals("identifier", e.getMessage());
+      assertEquals("identifier must not be null", e.getMessage());
     }
 
     // Test null input in addMetadataRecord
@@ -569,7 +567,7 @@ public class AzureBlobStoreBackendV8IT {
       backend.addMetadataRecord((java.io.InputStream) null, "test");
       fail("Expected NullPointerException for null input in addMetadataRecord");
     } catch (NullPointerException e) {
-      assertEquals("input", e.getMessage());
+      assertEquals("input must not be null", e.getMessage());
     }
 
     // Test null name in addMetadataRecord
@@ -577,7 +575,7 @@ public class AzureBlobStoreBackendV8IT {
       backend.addMetadataRecord(new ByteArrayInputStream("test".getBytes()), null);
       fail("Expected IllegalArgumentException for null name in addMetadataRecord");
     } catch (IllegalArgumentException e) {
-      assertEquals("name", e.getMessage());
+      assertEquals("name should not be empty", e.getMessage());
     }
   }
 
@@ -636,7 +634,7 @@ public class AzureBlobStoreBackendV8IT {
       backend.deleteAllMetadataRecords(null);
       fail("Expected NullPointerException for null prefix");
     } catch (NullPointerException e) {
-      assertEquals("prefix", e.getMessage());
+      assertEquals("prefix must not be null", e.getMessage());
     }
   }
 
@@ -652,7 +650,7 @@ public class AzureBlobStoreBackendV8IT {
       backend.getAllMetadataRecords(null);
       fail("Expected NullPointerException for null prefix");
     } catch (NullPointerException e) {
-      assertEquals("prefix", e.getMessage());
+      assertEquals("prefix must not be null", e.getMessage());
     }
   }
 
@@ -680,7 +678,7 @@ public class AzureBlobStoreBackendV8IT {
       backend.write(new org.apache.jackrabbit.core.data.DataIdentifier("test"), null);
       fail("Expected NullPointerException for null file");
     } catch (NullPointerException e) {
-      assertEquals("file", e.getMessage());
+      assertEquals("file must not be null", e.getMessage());
     }
   }
 
@@ -697,7 +695,7 @@ public class AzureBlobStoreBackendV8IT {
       backend.write(null, tempFile);
       fail("Expected NullPointerException for null identifier");
     } catch (NullPointerException e) {
-      assertEquals("identifier", e.getMessage());
+      assertEquals("identifier must not be null", e.getMessage());
     } finally {
       tempFile.delete();
     }
@@ -749,7 +747,7 @@ public class AzureBlobStoreBackendV8IT {
       backend.addMetadataRecord((java.io.File) null, "test");
       fail("Expected NullPointerException for null file");
     } catch (NullPointerException e) {
-      assertEquals("input", e.getMessage());
+      assertEquals("input must not be null", e.getMessage());
     }
   }
 
@@ -1362,7 +1360,7 @@ public class AzureBlobStoreBackendV8IT {
       backend.addMetadataRecord(new ByteArrayInputStream("test".getBytes()), "");
       fail("Expected IllegalArgumentException for empty name");
     } catch (IllegalArgumentException e) {
-      assertEquals("name", e.getMessage());
+      assertEquals("name should not be empty", e.getMessage());
     }
   }
 
@@ -1383,7 +1381,7 @@ public class AzureBlobStoreBackendV8IT {
       backend.addMetadataRecord(tempFile, "");
       fail("Expected IllegalArgumentException for empty name");
     } catch (IllegalArgumentException e) {
-      assertEquals("name", e.getMessage());
+      assertEquals("name should not be empty", e.getMessage());
     } finally {
       tempFile.delete();
     }
@@ -1636,7 +1634,7 @@ public class AzureBlobStoreBackendV8IT {
                                     org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions.DEFAULT);
       fail("Expected NullPointerException for null identifier");
     } catch (NullPointerException e) {
-      assertEquals("identifier", e.getMessage());
+      assertEquals("identifier must not be null", e.getMessage());
     }
 
     // Test createHttpDownloadURI with null options
@@ -1645,7 +1643,7 @@ public class AzureBlobStoreBackendV8IT {
           new org.apache.jackrabbit.core.data.DataIdentifier("test"), null);
       fail("Expected NullPointerException for null options");
     } catch (NullPointerException e) {
-      assertEquals("downloadOptions", e.getMessage());
+      assertEquals("downloadOptions must not be null", e.getMessage());
     }
 
     // Test initiateHttpUpload with null options
