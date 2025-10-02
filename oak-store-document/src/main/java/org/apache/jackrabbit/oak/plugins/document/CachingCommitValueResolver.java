@@ -19,15 +19,14 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.List;
 import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
-
+import com.github.benmanes.caffeine.cache.Cache;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.cache.CacheBuilder.newBuilder;
+import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
 
 /**
  * Resolves the commit value for a given change revision on a document.

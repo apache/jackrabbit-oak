@@ -31,9 +31,10 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
+import com.github.benmanes.caffeine.cache.Cache;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
@@ -49,7 +50,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public class NodeDocumentCache implements Closeable {
 
-    private final Cache<CacheValue, NodeDocument> nodeDocumentsCache;
+    private final Cache<StringValue, NodeDocument> nodeDocumentsCache;
 
     private final CacheStats nodeDocumentsCacheStats;
 
@@ -65,7 +66,7 @@ public class NodeDocumentCache implements Closeable {
 
     private final List<CacheChangesTracker> changeTrackers;
 
-    public NodeDocumentCache(@NotNull Cache<CacheValue, NodeDocument> nodeDocumentsCache,
+    public NodeDocumentCache(@NotNull Cache<StringValue, NodeDocument> nodeDocumentsCache,
                              @NotNull CacheStats nodeDocumentsCacheStats,
                              @NotNull Cache<StringValue, NodeDocument> prevDocumentsCache,
                              @NotNull CacheStats prevDocumentsCacheStats,
@@ -167,23 +168,23 @@ public class NodeDocumentCache implements Closeable {
      * @return document matching given key
      */
     @NotNull
-    public NodeDocument get(@NotNull final String key, @NotNull final Callable<NodeDocument> valueLoader)
+    public NodeDocument get(@NotNull final String key, @NotNull final Function<String, NodeDocument> valueLoader)
             throws ExecutionException {
-        Callable<NodeDocument> wrappedLoader = new Callable<NodeDocument>() {
+        Function<StringValue, NodeDocument> wrappedLoader = new Function<StringValue, NodeDocument>() {
             @Override
-            public NodeDocument call() throws Exception {
+            public NodeDocument apply(StringValue s) {
                 for (CacheChangesTracker tracker : changeTrackers) {
                     tracker.invalidateDocument(key);
                 }
-                return valueLoader.call();
+                return valueLoader.apply(key);
             }
         };
         Lock lock = locks.acquire(key);
         try {
             if (isLeafPreviousDocId(key)) {
-                return prevDocumentsCache.get(new StringValue(key), wrappedLoader);
+                return Objects.requireNonNull(prevDocumentsCache.get(new StringValue(key), wrappedLoader));
             } else {
-                return nodeDocumentsCache.get(new StringValue(key), wrappedLoader);
+                return Objects.requireNonNull(nodeDocumentsCache.get(new StringValue(key), wrappedLoader));
             }
         } finally {
             lock.unlock();
@@ -263,9 +264,9 @@ public class NodeDocumentCache implements Closeable {
         Lock lock = locks.acquire(id);
         try {
             for (;;) {
-                NodeDocument cached = get(id, new Callable<NodeDocument>() {
+                NodeDocument cached = get(id, new Function<String, NodeDocument>() {
                     @Override
-                    public NodeDocument call() {
+                    public NodeDocument apply(String s) {
                         return doc;
                     }
                 });

@@ -621,9 +621,9 @@ public class MongoDocumentStore implements DocumentStore {
                         collection, key,
                         getReadPreference(maxCacheAge));
                 invalidateCache(collection, key);
-                doc = nodesCache.get(key, new Callable<NodeDocument>() {
+                doc = nodesCache.get(key, new Function<String, NodeDocument>() {
                     @Override
-                    public NodeDocument call() throws Exception {
+                    public NodeDocument apply(String s) {
                         return d == null ? NodeDocument.NULL : d;
                     }
                 });
@@ -1816,7 +1816,7 @@ public class MongoDocumentStore implements DocumentStore {
                         // load NULL document into cache unless it may have
                         // been affected by another concurrent operation
                         if (!tracker.mightBeenAffected(id)) {
-                            nodesCache.get(id, () -> NULL);
+                            nodesCache.get(id, x -> NULL);
                         }
                     } finally {
                         lock.unlock();

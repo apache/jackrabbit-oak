@@ -20,7 +20,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
+import com.github.benmanes.caffeine.cache.Cache;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
@@ -49,9 +49,9 @@ public class LocalDiffCache extends DiffCache {
 
     LocalDiffCache(DocumentNodeStoreBuilder<?> builder) {
         this.diffCache = builder.buildLocalDiffCache();
-        this.diffCacheStats = new CacheStats(diffCache,
-                "Document-LocalDiff",
-                builder.getWeigher(), builder.getLocalDiffCacheSize());
+        this.diffCacheStats = null; // new CacheStats(diffCache,
+                // "Document-LocalDiff",
+                // builder.getWeigher(), builder.getLocalDiffCacheSize());
     }
 
     @Override

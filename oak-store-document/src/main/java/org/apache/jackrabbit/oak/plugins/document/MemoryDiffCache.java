@@ -17,10 +17,10 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Collections;
-import java.util.concurrent.Callable;
+import java.util.function.Function;
 import java.util.concurrent.ExecutionException;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
+import com.github.benmanes.caffeine.cache.Cache;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
@@ -57,8 +57,8 @@ public class MemoryDiffCache extends DiffCache {
 
     protected MemoryDiffCache(DocumentNodeStoreBuilder<?> builder) {
         diffCache = builder.buildMemoryDiffCache();
-        diffCacheStats = new CacheStats(diffCache, "Document-MemoryDiff",
-                builder.getWeigher(), builder.getMemoryDiffCacheSize());
+        diffCacheStats = null; /* new CacheStats(diffCache, "Document-MemoryDiff",
+                builder.getWeigher(), builder.getMemoryDiffCacheSize()); */
     }
 
     @Nullable
@@ -75,10 +75,10 @@ public class MemoryDiffCache extends DiffCache {
                 diff = StringValue.EMPTY;
             }
         } else {
-            try {
-                diff = diffCache.get(key, new Callable<StringValue>() {
+//            try {
+                diff = diffCache.get(key, new Function<CacheValue, StringValue>() {
                     @Override
-                    public StringValue call() throws Exception {
+                    public StringValue apply(CacheValue cacheValue) {
                         if (isUnchanged(from, to, path)) {
                             return StringValue.EMPTY;
                         } else {
@@ -86,10 +86,10 @@ public class MemoryDiffCache extends DiffCache {
                         }
                     }
                 });
-            } catch (ExecutionException e) {
-                // try again with loader directly
-                diff = new StringValue(loader.call());
-            }
+//            } catch (ExecutionException e) {
+//                // try again with loader directly
+//                diff = new StringValue(loader.call());
+//           }
         }
         return diff != null ? diff.toString() : null;
     }

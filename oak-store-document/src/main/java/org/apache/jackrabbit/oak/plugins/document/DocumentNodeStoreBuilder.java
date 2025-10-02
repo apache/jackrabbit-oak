@@ -35,12 +35,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
-import org.apache.jackrabbit.guava.common.cache.RemovalCause;
-import org.apache.jackrabbit.guava.common.cache.RemovalListener;
-import org.apache.jackrabbit.guava.common.cache.RemovalNotification;
-import org.apache.jackrabbit.guava.common.cache.Weigher;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.RemovalCause;
+import com.github.benmanes.caffeine.cache.RemovalListener;
+import com.github.benmanes.caffeine.cache.Weigher;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
@@ -138,7 +137,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Feature docStoreEmbeddedVerificationFeature;
     private Feature docStoreAvoidMergeLockFeature;
     private Feature prevNoPropCacheFeature;
-    private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
+    private Weigher<CacheValue, CacheValue> weigher = null; // new EmpiricalWeigher();
     private long memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
     private int nodeCachePercentage = DEFAULT_NODE_CACHE_PERCENTAGE;
     private int prevDocCachePercentage = DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
@@ -995,7 +994,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return buildCache(CacheType.LOCAL_DIFF, getLocalDiffCacheSize(), null, null);
     }
 
-    public Cache<CacheValue, NodeDocument> buildDocumentCache(DocumentStore docStore) {
+    public Cache<StringValue, NodeDocument> buildDocumentCache(DocumentStore docStore) {
         return buildCache(CacheType.DOCUMENT, getDocumentCacheSize(), null, docStore);
     }
 
@@ -1004,11 +1003,11 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     public NodeDocumentCache buildNodeDocumentCache(DocumentStore docStore, NodeDocumentLocks locks) {
-        Cache<CacheValue, NodeDocument> nodeDocumentsCache = buildDocumentCache(docStore);
-        CacheStats nodeDocumentsCacheStats = new CacheStats(nodeDocumentsCache, "Document-Documents", getWeigher(), getDocumentCacheSize());
+        Cache<StringValue, NodeDocument> nodeDocumentsCache = buildDocumentCache(docStore);
+        CacheStats nodeDocumentsCacheStats = null; // new CacheStats(nodeDocumentsCache, "Document-Documents", getWeigher(), getDocumentCacheSize());
 
         Cache<StringValue, NodeDocument> prevDocumentsCache = buildPrevDocumentsCache(docStore);
-        CacheStats prevDocumentsCacheStats = new CacheStats(prevDocumentsCache, "Document-PrevDocuments", getWeigher(), getPrevDocumentCacheSize());
+        CacheStats prevDocumentsCacheStats = null; // new CacheStats(prevDocumentsCache, "Document-PrevDocuments", getWeigher(), getPrevDocumentCacheSize());
 
         return new NodeDocumentCache(nodeDocumentsCache, nodeDocumentsCacheStats, prevDocumentsCache, prevDocumentsCacheStats, locks);
     }
@@ -1129,39 +1128,39 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
             final Set<EvictionListener<K, V>> listeners) {
         // do not use LIRS cache when maxWeight is zero (OAK-6953)
         if (LIRS_CACHE && maxWeight > 0) {
-            return CacheLIRS.<K, V>newBuilder().
-                    module(module).
+            return Caffeine.newBuilder().
+                    // module(module).
                     weigher(new Weigher<K, V>() {
                         @Override
                         public int weigh(K key, V value) {
                             return weigher.weigh(key, value);
                         }
                     }).
-                    averageWeight(2000).
+                    // averageWeight(2000).
                     maximumWeight(maxWeight).
-                    segmentCount(cacheSegmentCount).
-                    stackMoveDistance(cacheStackMoveDistance).
+                    // segmentCount(cacheSegmentCount).
+                    // stackMoveDistance(cacheStackMoveDistance).
                     recordStats().
-                    evictionCallback(new CacheLIRS.EvictionCallback<K, V>() {
+/*                    evictionCallback  (new CacheLIRS.EvictionCallback<K, V>() {
                         @Override
                         public void evicted(K key, V value, RemovalCause cause) {
                             for (EvictionListener<K, V> l : listeners) {
                                 l.evicted(key, value, cause);
                             }
                         }
-                    }).
+                    }).*/
                     build();
         }
-        return CacheBuilder.newBuilder().
-                concurrencyLevel(cacheSegmentCount).
+        return Caffeine.newBuilder().
+                // concurrencyLevel(cacheSegmentCount).
                 weigher(weigher).
                 maximumWeight(maxWeight).
                 recordStats().
                 removalListener(new RemovalListener<K, V>() {
                     @Override
-                    public void onRemoval(RemovalNotification<K, V> notification) {
+                    public void onRemoval(K key, V value, RemovalCause cause) {
                         for (EvictionListener<K, V> l : listeners) {
-                            l.evicted(notification.getKey(), notification.getValue(), notification.getCause());
+                            l.evicted(key, value, cause);
                         }
                     }
                 }).

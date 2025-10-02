@@ -16,24 +16,23 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
+import static com.github.benmanes.caffeine.cache.RemovalCause.COLLECTED;
+import static com.github.benmanes.caffeine.cache.RemovalCause.EXPIRED;
+import static com.github.benmanes.caffeine.cache.RemovalCause.SIZE;
 import static java.util.Collections.singleton;
-import static org.apache.jackrabbit.guava.common.cache.RemovalCause.COLLECTED;
-import static org.apache.jackrabbit.guava.common.cache.RemovalCause.EXPIRED;
-import static org.apache.jackrabbit.guava.common.cache.RemovalCause.SIZE;
 
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.guava.common.cache.CacheStats;
-import org.apache.jackrabbit.guava.common.cache.RemovalCause;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Policy;
+import com.github.benmanes.caffeine.cache.RemovalCause;
+import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -46,10 +45,11 @@ import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.type.DataType;
 import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class NodeCache<K extends CacheValue, V extends  CacheValue>
+class NodeCache<K extends CacheValue, V extends CacheValue>
         implements Cache<K, V>, GenerationCache, EvictionListener<K, V> {
 
     static final Logger LOG = LoggerFactory.getLogger(NodeCache.class);
@@ -190,7 +190,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
     @SuppressWarnings("unchecked")
     @Override
     @Nullable
-    public V getIfPresent(Object key) {
+    public V getIfPresent(K key) {
         memCacheMetadata.increment((K) key);
         V value = memCache.getIfPresent(key);
         if (value == null) {
@@ -218,8 +218,8 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
 
     @Override
     public V get(K key,
-            Callable<? extends V> valueLoader)
-            throws ExecutionException {
+            Function<? super K, ? extends V> valueLoader)
+            /* throws ExecutionException */ {
 
         // Get stats covered in getIfPresent
         V value = getIfPresent(key);
@@ -229,7 +229,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
 
         // Track entry load time
         TimerStats.Context ctx = stats.startLoaderTimer();
-        try {
+//        try {
             memCacheMetadata.increment(key);
             value = memCache.get(key, valueLoader);
             ctx.stop();
@@ -238,20 +238,25 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
             }
             broadcast(key, value);
             return value;
-        } catch (ExecutionException e) {
+/*        } catch (ExecutionException e) {
             stats.markException();
             throw e;
-         }
+         } */
     }
 
     @Override
-    public ImmutableMap<K, V> getAllPresent(
-            Iterable<?> keys) {
-        Iterable<K> typedKeys = (Iterable<K>) keys;
+    public Map<K, @NonNull V> getAllPresent(
+            Iterable<? extends K> keys) {
+        Iterable<? extends K> typedKeys = keys;
         memCacheMetadata.incrementAll(keys);
-        ImmutableMap<K, V> result = memCache.getAllPresent(keys);
+        Map<K, V> result = memCache.getAllPresent(keys);
         memCacheMetadata.removeAll(IterableUtils.filter(typedKeys, x -> !result.keySet().contains(x)));
         return result;
+    }
+
+    @Override
+    public Map<K, @NonNull V> getAll(Iterable<? extends K> keys, Function<? super Set<? extends K>, ? extends Map<? extends K, ? extends @NonNull V>> mappingFunction) {
+        return Map.of();
     }
 
     @Override
@@ -266,7 +271,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
 
     @SuppressWarnings("unchecked")
     @Override
-    public void invalidate(Object key) {
+    public void invalidate(K key) {
         memCache.invalidate(key);
         memCacheMetadata.remove(key);
         if (async) {
@@ -285,7 +290,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
     }
 
     @Override
-    public void invalidateAll(Iterable<?> keys) {
+    public void invalidateAll(Iterable<? extends K> keys) {
         memCache.invalidateAll(keys);
         memCacheMetadata.removeAll(keys);
     }
@@ -299,8 +304,13 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
     }
 
     @Override
+    public long estimatedSize() {
+        return 0;
+    }
+
+    // @Override
     public long size() {
-        return memCache.size();
+        return memCache.estimatedSize();
     }
 
     @Override
@@ -317,6 +327,11 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
     public void cleanUp() {
         memCache.cleanUp();
         memCacheMetadata.clear();
+    }
+
+    @Override
+    public Policy<K, @NonNull V> policy() {
+        return null;
     }
 
     @Override

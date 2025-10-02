@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
-import org.apache.jackrabbit.guava.common.cache.RemovalCause;
+import com.github.benmanes.caffeine.cache.RemovalCause;
 
 /**
  * A listener that gets notified of entries that were removed from the cache.

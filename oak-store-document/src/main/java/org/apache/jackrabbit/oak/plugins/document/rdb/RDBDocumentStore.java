@@ -55,6 +55,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.zip.Deflater;
 import java.util.zip.GZIPOutputStream;
@@ -1521,9 +1522,9 @@ public class RDBDocumentStore implements DocumentStore {
                         doc = null;
                     }
                     final NodeDocument cachedDoc = doc;
-                    doc = nodesCache.get(id, new Callable<NodeDocument>() {
+                    doc = nodesCache.get(id, new Function<String, NodeDocument>() {
                         @Override
-                        public NodeDocument call() throws Exception {
+                        public NodeDocument apply(String s) {
                             NodeDocument doc = (NodeDocument) readDocumentUncached(collection, id, cachedDoc);
                             if (doc != null) {
                                 doc.seal();

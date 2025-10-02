@@ -162,7 +162,11 @@
       <version>2.3.2</version>
       <scope>provided</scope>
     </dependency>
-
+<dependency>
+    <groupId>com.github.ben-manes.caffeine</groupId>
+    <artifactId>guava</artifactId>
+    <version>3.2.2</version>
+</dependency>
     <!-- Optional dependencies for different persistence backends -->
     <dependency>
       <groupId>org.mongodb</groupId>

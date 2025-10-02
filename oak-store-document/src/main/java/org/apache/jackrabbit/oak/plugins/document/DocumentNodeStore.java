@@ -56,7 +56,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
@@ -73,8 +72,8 @@ import java.util.function.Supplier;
 
 import javax.jcr.PropertyType;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -680,12 +679,12 @@ public final class DocumentNodeStore
         //TODO Make stats collection configurable as it add slight overhead
 
         nodeCache = builder.buildNodeCache(this);
-        nodeCacheStats = new CacheStats(nodeCache, "Document-NodeState",
-                builder.getWeigher(), builder.getNodeCacheSize());
+        nodeCacheStats = null; //new CacheStats(nodeCache, "Document-NodeState",
+                // builder.getWeigher(), builder.getNodeCacheSize());
 
         nodeChildrenCache = builder.buildChildrenCache(this);
-        nodeChildrenCacheStats = new CacheStats(nodeChildrenCache, "Document-NodeChildren",
-                builder.getWeigher(), builder.getChildrenCacheSize());
+        nodeChildrenCacheStats = null; //new CacheStats(nodeChildrenCache, "Document-NodeChildren",
+                //builder.getWeigher(), builder.getChildrenCacheSize());
 
         diffCache = builder.getDiffCache(this.clusterId);
 
@@ -1395,9 +1394,9 @@ public final class DocumentNodeStore
         final long start = PERFLOG.start();
         try {
             PathRev key = new PathRev(path, rev);
-            DocumentNodeState node = nodeCache.get(key, new Callable<DocumentNodeState>() {
+            DocumentNodeState node = nodeCache.get(key, new Function<PathRev, DocumentNodeState>() {
                 @Override
-                public DocumentNodeState call() throws Exception {
+                public DocumentNodeState apply(PathRev pathRev) {
                     boolean nodeDoesNotExist = checkNodeNotExistsFromChildrenCache(path, rev);
                     if (nodeDoesNotExist){
                         return missing;
@@ -1415,8 +1414,8 @@ public final class DocumentNodeStore
             return result;
         } catch (UncheckedExecutionException e) {
             throw DocumentStoreException.convert(e.getCause());
-        } catch (ExecutionException e) {
-            throw DocumentStoreException.convert(e.getCause());
+//        } catch (ExecutionException e) {
+//            throw DocumentStoreException.convert(e.getCause());
         }
     }
 
@@ -1459,9 +1458,9 @@ public final class DocumentNodeStore
         final RevisionVector readRevision = parent.getLastRevision();
         try {
             NamePathRev key = childNodeCacheKey(path, readRevision, name);
-            DocumentNodeState.Children children = nodeChildrenCache.get(key, new Callable<DocumentNodeState.Children>() {
+            DocumentNodeState.Children children = nodeChildrenCache.get(key, new Function<NamePathRev, DocumentNodeState.Children>() {
                 @Override
-                public DocumentNodeState.Children call() throws Exception {
+                public DocumentNodeState.Children apply(NamePathRev namePathRev) {
                     return readChildren(parent, name, limit);
                 }
             });
@@ -1478,10 +1477,10 @@ public final class DocumentNodeStore
             throw DocumentStoreException.convert(e.getCause(),
                     "Error occurred while fetching children for path "
                             + path);
-        } catch (ExecutionException e) {
-            throw DocumentStoreException.convert(e.getCause(),
-                    "Error occurred while fetching children for path "
-                            + path);
+//        } catch (ExecutionException e) {
+//            throw DocumentStoreException.convert(e.getCause(),
+//                    "Error occurred while fetching children for path "
+//                            + path);
         }
     }
 
