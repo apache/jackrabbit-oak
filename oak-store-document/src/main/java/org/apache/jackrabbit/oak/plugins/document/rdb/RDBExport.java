@@ -62,11 +62,11 @@ public class RDBExport {
 
     private enum Format {
         JSON, JSONARRAY, CSV
-    };
+    }
 
     private static final RDBJSONSupport JSON = new RDBJSONSupport(false);
 
-    private static final Set<String> EXCLUDE_COLUMNS = new HashSet<String>();
+    private static final Set<String> EXCLUDE_COLUMNS = new HashSet<>();
     static {
         EXCLUDE_COLUMNS.add(Document.ID);
     }
@@ -135,7 +135,7 @@ public class RDBExport {
 
         // JSON output with fieldList missing "_id"
         if ((format == Format.JSON || format == Format.JSONARRAY) && !fieldList.isEmpty() && !fieldList.contains("_id")) {
-            fieldList = new ArrayList<String>(fieldList);
+            fieldList = new ArrayList<>(fieldList);
             fieldList.add(0, "_id");
         }
 
@@ -200,7 +200,7 @@ public class RDBExport {
             String sbdata = fields.get(iBData);
 
             byte[] bytes = null;
-            if (sbdata.length() != 0) {
+            if (!sbdata.isEmpty()) {
                 String lobfile = sbdata.replace("/", "");
 
                 if (!lobfile.endsWith(".lob")) {
@@ -212,8 +212,8 @@ public class RDBExport {
                     lobfile = lobfile.substring(0, lastdot);
 
                     System.err.println("lastdot: " + lastdot + "; length: " + length + "; lobfile: " + lobfile + "; lastdot: " + lastdot + "; startpos: " + startpos);
-                    int s = Integer.valueOf(startpos);
-                    int l = Integer.valueOf(length);
+                    int s = Integer.parseInt(startpos);
+                    int l = Integer.parseInt(length);
                     File lf = new File(lobDirectory, lobfile);
                     InputStream is = new FileInputStream(lf);
                     bytes = new byte[l];
@@ -227,7 +227,7 @@ public class RDBExport {
             }
             try {
                 RDBRow row = new RDBRow(id, "1".equals(shasbinary) ? 1L : 0L, "1".equals(sdeletedonce),
-                        smodified.length() == 0 ? 0 : Long.parseLong(smodified), Long.parseLong(smodcount),
+                        smodified.isEmpty() ? 0 : Long.parseLong(smodified), Long.parseLong(smodcount),
                         Long.parseLong(scmodcount), -1L, -1L, -1L, sdata, bytes);
                 StringBuilder fulljson = dumpRow(ser, id, row);
                 if (format == Format.CSV) {
@@ -255,7 +255,7 @@ public class RDBExport {
     }
 
     protected static List<String> parseDel(String line) {
-        ArrayList<String> result = new ArrayList<String>();
+        ArrayList<String> result = new ArrayList<>();
 
         boolean inQuoted = false;
         char quotechar = '"';
@@ -358,13 +358,13 @@ public class RDBExport {
     @Nullable
     private static Boolean readBooleanOrNullFromResultSet(ResultSet res, String field) throws SQLException {
         long v = res.getLong(field);
-        return res.wasNull() ? null : Boolean.valueOf(v != 0);
+        return res.wasNull() ? null : v != 0;
     }
 
     @Nullable
     private static Long readLongOrNullFromResultSet(ResultSet res, String field) throws SQLException {
         long v = res.getLong(field);
-        return res.wasNull() ? null : Long.valueOf(v);
+        return res.wasNull() ? null : v;
     }
 
     @NotNull
@@ -448,7 +448,7 @@ public class RDBExport {
         if (o == null) {
             buf.append("null");
         } else if (o instanceof Boolean) {
-            buf.append(o.toString());
+            buf.append(o);
         } else if (o instanceof Long) {
             buf.append(((Long) o).longValue());
         } else {
@@ -473,24 +473,24 @@ public class RDBExport {
 
     private static void printHelp() {
         System.err.println("Export Apache OAK RDB data to JSON files");
-        System.err.println("");
+        System.err.println();
         System.err.println("Generic options:");
         System.err.println("  --help                             produce this help message");
         System.err.println("  --version                          show version information");
-        System.err.println("");
+        System.err.println();
         System.err.println("JDBC options:");
         System.err.println("  -j/--jdbc-url JDBC-URL             JDBC URL of database to connect to");
         System.err.println("  -u/--username username             database username");
         System.err.println("  -p/--password password             database password");
         System.err.println("  -c/--collection table              table name (defaults to 'nodes')");
         System.err.println("  -q/--query query                   SQL where clause (minus 'where')");
-        System.err.println("");
+        System.err.println();
         System.err.println("Dump file options:");
         System.err.println("  --columns column-names             column names (comma separated)");
         System.err.println("  --from-db2-dump file               name of DB2 DEL export file");
         System.err.println("  --lobdir dir                       name of DB2 DEL export file LOB directory");
         System.err.println("                                     (defaults to ./lobdir under the dump file)");
-        System.err.println("");
+        System.err.println();
         System.err.println("Output options:");
         System.err.println("  -o/--out file                      Output to name file (instead of stdout)");
         System.err.println("  --jsonArray                        Output a JSON array (instead of one");

@@ -93,9 +93,9 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
     @Override
     public void close() {
-        String dropped = "";
+        StringBuilder dropped = new StringBuilder();
         if (!this.tablesToBeDropped.isEmpty()) {
-            LOG.debug("attempting to drop: " + this.tablesToBeDropped);
+            LOG.debug("attempting to drop: {}", this.tablesToBeDropped);
             for (String tname : this.tablesToBeDropped) {
                 Connection con = null;
                 try {
@@ -106,28 +106,26 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                         stmt.execute("drop table " + tname);
                         stmt.close();
                         con.commit();
-                        dropped += tname + " ";
+                        dropped.append(tname).append(" ");
                     } catch (SQLException ex) {
-                        LOG.debug("attempting to drop: " + tname, ex);
+                        LOG.debug("attempting to drop: {}", tname, ex);
                     } finally {
                         closeStatement(stmt);
                     }
                 } catch (SQLException ex) {
-                    LOG.debug("attempting to drop: " + tname, ex);
+                    LOG.debug("attempting to drop: {}", tname, ex);
                 } finally {
                     this.ch.closeConnection(con);
                 }
             }
-            dropped = dropped.trim();
+            dropped = new StringBuilder(dropped.toString().trim());
         }
 
         this.ch.close();
 
-        LOG.info("RDBBlobStore (" + getModuleVersion() + ") closed"
-                + (dropped.isEmpty() ? "" : " (tables dropped: " + dropped + ")"));
+        LOG.info("RDBBlobStore ({}) closed{}", getModuleVersion(), (dropped.length() == 0) ? "" : " (tables dropped: " + dropped + ")");
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     protected void finalize() throws Throwable {
         if (!this.ch.isClosed() && this.callStack != null) {
@@ -160,12 +158,12 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
     // from options
     protected String tnData;
     protected String tnMeta;
-    private Set<String> tablesToBeDropped = new HashSet<String>();
+    private final Set<String> tablesToBeDropped = new HashSet<>();
     private boolean readOnly;
 
     private void initialize(DataSource ds, DocumentNodeStoreBuilder<?> builder, RDBOptions options) throws Exception {
 
-        this.readOnly = builder == null ? false : builder.getReadOnlyMode();
+        this.readOnly = builder != null && builder.getReadOnlyMode();
  
         this.tnData = RDBJDBCTools.createTableName(options.getTablePrefix(), "DATASTORE_DATA");
         this.tnMeta = RDBJDBCTools.createTableName(options.getTablePrefix(), "DATASTORE_META");
@@ -176,10 +174,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
         int isolation = con.getTransactionIsolation();
         String isolationDiags = RDBJDBCTools.isolationLevelToString(isolation);
         if (isolation != Connection.TRANSACTION_READ_COMMITTED) {
-            LOG.info("Detected transaction isolation level " + isolationDiags + " is "
-                    + (isolation < Connection.TRANSACTION_READ_COMMITTED ? "lower" : "higher") + " than expected "
-                    + RDBJDBCTools.isolationLevelToString(Connection.TRANSACTION_READ_COMMITTED)
-                    + " - check datasource configuration");
+            LOG.info("Detected transaction isolation level {} is {} than expected {} - check datasource configuration", isolationDiags, isolation < Connection.TRANSACTION_READ_COMMITTED ? "lower" : "higher", RDBJDBCTools.isolationLevelToString(Connection.TRANSACTION_READ_COMMITTED));
         }
 
         DatabaseMetaData md = con.getMetaData();
@@ -195,8 +190,8 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                 md.getDriverMinorVersion()).replaceAll("[\r\n\t]", " ").trim();
         String dbUrl = md.getURL();
 
-        List<String> tablesCreated = new ArrayList<String>();
-        List<String> tablesPresent = new ArrayList<String>();
+        List<String> tablesCreated = new ArrayList<>();
+        List<String> tablesPresent = new ArrayList<>();
         Map<String, String> tableInfo = new HashMap<>();
 
         Statement createStatement = null;
@@ -223,7 +218,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                     // table does not appear to exist
                     con.rollback();
 
-                    LOG.debug("trying to read from '" + tableName + "'", ex);
+                    LOG.debug("trying to read from '{}'", tableName, ex);
                     if (this.readOnly) {
                         throw new SQLException("Would like to create table '" + tableName
                                 + "', but RDBBlobStore has been initialized in 'readonly' mode");
@@ -231,13 +226,13 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
                     createStatement = con.createStatement();
 
+                    String ct;
                     if (this.tnMeta.equals(tableName)) {
-                        String ct = db.getMetaTableCreationStatement(tableName);
-                        createStatement.execute(ct);
+                        ct = db.getMetaTableCreationStatement(tableName);
                     } else {
-                        String ct = db.getDataTableCreationStatement(tableName);
-                        createStatement.execute(ct);
+                        ct = db.getDataTableCreationStatement(tableName);
                     }
+                    createStatement.execute(ct);
 
                     createStatement.close();
                     createStatement = null;
@@ -265,15 +260,12 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
             Map<String, String> diag = db.getAdditionalDiagnostics(this.ch, this.tnData);
 
-            LOG.info("RDBBlobStore (" + getModuleVersion() + ") instantiated for database " + dbDesc + ", using driver: "
-                    + driverDesc + ", connecting to: " + dbUrl + (diag.isEmpty() ? "" : (", properties: " + diag.toString()))
-                    + ", transaction isolation level: " + isolationDiags + ", " + tableInfo);
+            LOG.info("RDBBlobStore ({}) instantiated for database {}, using driver: {}, connecting to: {}{}, transaction isolation level: {}, {}", getModuleVersion(), dbDesc, driverDesc, dbUrl, diag.isEmpty() ? "" : (", properties: " + diag), isolationDiags, tableInfo);
             if (!tablesPresent.isEmpty()) {
-                LOG.info("Tables present upon startup: " + tablesPresent);
+                LOG.info("Tables present upon startup: {}", tablesPresent);
             }
             if (!tablesCreated.isEmpty()) {
-                LOG.info("Tables created upon startup: " + tablesCreated
-                        + (options.isDropTablesOnClose() ? " (will be dropped on exit)" : ""));
+                LOG.info("Tables created upon startup: {}{}", tablesCreated, options.isDropTablesOnClose() ? " (will be dropped on exit)" : "");
             }
 
             String moreDiags = db.evaluateDiagnostics(diag);
@@ -341,7 +333,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                     }
                 } catch (SQLException ex) {
                     this.ch.rollbackConnection(con);
-                    // the insert failed although it should have succeeded; see whether the blob already exists
+                    // the insert failed, although it should have succeeded; see whether the blob already exists
                     prep = con.prepareStatement("select DATA from " + this.tnData + " where ID = ?");
                     ResultSet rs = null;
                     byte[] dbdata = null;
@@ -370,7 +362,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                     }
                     else {
                         // just recover
-                        LOG.info("recovered from DB inconsistency for id " + id + ": meta record was missing (impact will be minor performance degradation)");
+                        LOG.info("recovered from DB inconsistency for id {}: meta record was missing (impact will be minor performance degradation)", id);
                     }
                 }
                 try {
@@ -389,7 +381,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                     }
                 } catch (SQLException e) {
                     // already exists - ok
-                    LOG.debug("inserting meta record for id " + id, e);
+                    LOG.debug("inserting meta record for id {}", id, e);
                 }
             }
         } finally {
@@ -510,7 +502,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             prepCheck = con.prepareStatement("select ID from " + this.tnMeta + " where LASTMOD < ?");
             prepCheck.setLong(1, minLastModified);
             rs = prepCheck.executeQuery();
-            ArrayList<String> ids = new ArrayList<String>();
+            ArrayList<String> ids = new ArrayList<>();
             while (rs.next()) {
                 ids.add(rs.getString(1));
             }
@@ -569,8 +561,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                     metaStatement.append(" and LASTMOD <= ?");
                     // delete if there is NO entry where the last modified of
                     // the meta is YOUNGER than x
-                    dataStatement.append(" and not exists(select * from " + this.tnMeta + " where " + this.tnMeta + ".ID = "
-                            + this.tnData + ".ID and LASTMOD > ?)");
+                    dataStatement.append(" and not exists(select * from ").append(this.tnMeta).append(" where ").append(this.tnMeta).append(".ID = ").append(this.tnData).append(".ID and LASTMOD > ?)");
                 }
 
                 prepMeta = con.prepareStatement(metaStatement.toString());
@@ -619,12 +610,12 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
      */
     private static class ChunkIdIterator extends AbstractIterator<String> {
 
-        private long maxLastModifiedTime;
-        private RDBConnectionHandler ch;
-        private static int BATCHSIZE = 1024 * 64;
-        private List<String> results = new LinkedList<String>();
+        private final long maxLastModifiedTime;
+        private final RDBConnectionHandler ch;
+        private static final int BATCHSIZE = 1024 * 64;
+        private final List<String> results = new LinkedList<>();
         private String lastId = null;
-        private String metaTable;
+        private final String metaTable;
 
         public ChunkIdIterator(RDBConnectionHandler ch, long maxLastModifiedTime, String metaTable) {
             this.maxLastModifiedTime = maxLastModifiedTime;
@@ -647,8 +638,8 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
         }
 
         private boolean refill() {
-            StringBuffer query = new StringBuffer();
-            query.append("select ID from " + metaTable);
+            StringBuilder query = new StringBuilder();
+            query.append("select ID from ").append(metaTable);
             if (maxLastModifiedTime > 0) {
                 query.append(" where LASTMOD <= ?");
                 if (lastId != null) {

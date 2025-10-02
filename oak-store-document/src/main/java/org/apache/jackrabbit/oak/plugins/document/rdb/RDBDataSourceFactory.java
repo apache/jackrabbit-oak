@@ -22,7 +22,6 @@ import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.Connection;
-import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
@@ -62,18 +61,18 @@ public class RDBDataSourceFactory {
         } catch (Exception ex) {
             String message = "trying to create datasource " + classname;
             LOG.debug(message, ex);
-            LOG.info(message + " (" + ex.getMessage() + ")");
+            LOG.info("{} ({})", message, ex.getMessage());
             throw new DocumentStoreException(message, ex);
         }
     }
 
     /**
-     * A {@link Closeable} {@link DataSource} based on a generic {@link Source}
+     * A {@link Closeable} {@link DataSource} based on a generic {@link DataSource}
      * .
      */
     private static class CloseableDataSource implements DataSource, Closeable {
 
-        private DataSource ds;
+        private final DataSource ds;
 
         public CloseableDataSource(DataSource ds) {
             this.ds = ds;
@@ -116,13 +115,9 @@ public class RDBDataSourceFactory {
             try {
                 Method clmethod = dsclazz.getMethod("close");
                 clmethod.invoke(ds);
-            } catch (NoSuchMethodException e) {
-                LOG.debug("Class " + dsclazz + " does not have close() method");
-            } catch (IllegalArgumentException e) {
-                LOG.debug("Class " + dsclazz + " does not have close() method");
-            } catch (InvocationTargetException e) {
-                throw new IOException("trying to close datasource", e);
-            } catch (IllegalAccessException e) {
+            } catch (NoSuchMethodException | IllegalArgumentException e) {
+                LOG.debug("Class {} does not have close() method", dsclazz);
+            } catch (InvocationTargetException | IllegalAccessException e) {
                 throw new IOException("trying to close datasource", e);
             }
         }

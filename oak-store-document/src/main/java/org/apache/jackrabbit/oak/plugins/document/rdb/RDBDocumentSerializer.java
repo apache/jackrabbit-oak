@@ -125,7 +125,7 @@ public class RDBDocumentSerializer {
             } else if (op.type == UpdateOp.Operation.Type.REMOVE || op.type == UpdateOp.Operation.Type.REMOVE_MAP_ENTRY) {
                 sb.append("\"*\",");
             } else {
-                throw new DocumentStoreException("Can't serialize " + update.toString() + " for JSON append");
+                throw new DocumentStoreException("Can't serialize " + update + " for JSON append");
             }
             appendJsonString(sb, key.getName());
             sb.append(",");
@@ -162,10 +162,10 @@ public class RDBDocumentSerializer {
             doc.put(CMODCOUNT, row.getCollisionsModcount());
         }
         if (row.hasBinaryProperties() != null) {
-            doc.put(HASBINARY, row.hasBinaryProperties().longValue());
+            doc.put(HASBINARY, row.hasBinaryProperties());
         }
         if (row.deletedOnce() != null) {
-            doc.put(DELETEDONCE, row.deletedOnce().booleanValue());
+            doc.put(DELETEDONCE, row.deletedOnce());
         }
         if (row.getSchemaVersion() >= 2) {
             if (row.getSdType() != RDBRow.LONG_UNSET) {
@@ -240,7 +240,7 @@ public class RDBDocumentSerializer {
             return doc;
         } catch (Exception ex) {
             String message = String.format("Error processing persisted data for document '%s'", row.getId());
-            if (charData.length() > 0) {
+            if (!charData.isEmpty()) {
                 int last = charData.charAt(charData.length() - 1);
                 if (last != '}' && last != '"' && last != ']') {
                     message += " (DATA column might be truncated)";
@@ -272,7 +272,7 @@ public class RDBDocumentSerializer {
                 @SuppressWarnings("unchecked")
                 Map<Revision, Object> m = (Map<Revision, Object>) old;
                 if (m == null) {
-                    m = new TreeMap<Revision, Object>(comparator);
+                    m = new TreeMap<>(comparator);
                     doc.put(key, m);
                 }
                 m.put(rev, value);
@@ -340,7 +340,7 @@ public class RDBDocumentSerializer {
 
     // low level operations
 
-    private static byte[] GZIPSIG = { 31, -117 };
+    private static final byte[] GZIPSIG = { 31, -117 };
 
     private static String fromBlobData(byte[] bdata) {
         try {

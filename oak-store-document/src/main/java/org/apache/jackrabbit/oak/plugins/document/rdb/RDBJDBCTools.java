@@ -105,7 +105,7 @@ public class RDBJDBCTools {
             throws IllegalArgumentException {
         String p = checkLegalTableName(prefix);
         String b = checkLegalTableName(basename);
-        if (p.length() != 0 && !p.endsWith("_")) {
+        if (!p.isEmpty() && !p.endsWith("_")) {
             p += "_";
         }
         return p + b;
@@ -153,7 +153,7 @@ public class RDBJDBCTools {
         try {
             StringBuilder sb = new StringBuilder();
             sb.append(String.format("%s.%s: ", met.getSchemaName(1).trim(), met.getTableName(1).trim()));
-            Map<String, Integer> types = new TreeMap<String, Integer>();
+            Map<String, Integer> types = new TreeMap<>();
             for (int i = 1; i <= met.getColumnCount(); i++) {
                 if (i > 1) {
                     sb.append(", ");
@@ -162,7 +162,7 @@ public class RDBJDBCTools {
                         dumpColumnMeta(met.getColumnName(i), met.getColumnType(i), met.getColumnTypeName(i), met.getPrecision(i)));
                 types.put(met.getColumnTypeName(i), met.getColumnType(i));
             }
-            sb.append(" /* " + types.toString() + " */");
+            sb.append(" /* ").append(types).append(" */");
             return sb.toString();
         } catch (SQLException ex) {
             return "Column metadata unavailable: " + ex.getMessage();
@@ -173,7 +173,7 @@ public class RDBJDBCTools {
      * Return a string containing additional messages from chained exceptions.
      */
     protected static @NotNull String getAdditionalMessages(SQLException ex) {
-        List<String> messages = new ArrayList<String>();
+        List<String> messages = new ArrayList<>();
         String message = ex.getMessage();
         SQLException next = ex.getNextException();
         while (next != null) {
@@ -229,8 +229,7 @@ public class RDBJDBCTools {
             int min = md.getDatabaseMinorVersion();
 
             if (maj < dbmax || (maj == dbmax && min < dbmin)) {
-                result.append(
-                        "Unsupported " + dbname + " version: " + maj + "." + min + ", expected at least " + dbmax + "." + dbmin);
+                result.append("Unsupported ").append(dbname).append(" version: ").append(maj).append(".").append(min).append(", expected at least ").append(dbmax).append(".").append(dbmin);
             }
         }
 
@@ -242,8 +241,7 @@ public class RDBJDBCTools {
                 if (result.length() != 0) {
                     result.append(", ");
                 }
-                result.append("Unsupported " + dbname + " driver version: " + md.getDriverName() + " " + maj + "." + min
-                        + ", expected at least " + drmax + "." + drmin);
+                result.append("Unsupported ").append(dbname).append(" driver version: ").append(md.getDriverName()).append(" ").append(maj).append(".").append(min).append(", expected at least ").append(drmax).append(".").append(drmin);
             }
         }
 
@@ -309,8 +307,7 @@ public class RDBJDBCTools {
          * @return a string suitable for inclusion into a
          *         {@link PreparedStatement}
          */
-        @NotNull
-        public String getStatementComponent();
+        @NotNull String getStatementComponent();
 
         /**
          * Set the parameters need by the statement component returned by
@@ -323,14 +320,14 @@ public class RDBJDBCTools {
          * @return index of next parameter to set
          * @throws SQLException
          */
-        public int setParameters(PreparedStatement stmt, int startIndex) throws SQLException;
+        int setParameters(PreparedStatement stmt, int startIndex) throws SQLException;
     }
 
     /**
      * Appends following SQL condition to the builder: {@code ID in (?,?,?)}.
-     * The field name {@code ID} and the number of place holders is
-     * configurable. If the number of place holders is greater than
-     * {@code maxListLength}, then the condition will have following form:
+     * The field name {@code ID} and the number of placeholders is
+     * configurable. If the number of placeholders is greater than
+     * {@code maxListLength}, then the condition will have the following form:
      * {@code (ID in (?,?,?) or ID in (?,?,?) or ID in (?,?))}
      *
      * @param builder
@@ -417,7 +414,7 @@ public class RDBJDBCTools {
                             stmt.setString(startIndex++, value);
                         }
                     } catch (IOException ex) {
-                        LOG.warn("Invalid ID: " + value, ex);
+                        LOG.warn("Invalid ID: {}", value, ex);
                         throw asDocumentStoreException(ex, "Invalid ID: " + value);
                     }
                 }
