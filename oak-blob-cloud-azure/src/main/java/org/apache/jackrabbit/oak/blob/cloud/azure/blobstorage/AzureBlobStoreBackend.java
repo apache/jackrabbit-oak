@@ -694,10 +694,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
     }
 
     private static void updateLastModifiedMetadata(BlockBlobClient blockBlobClient) {
-        Map<String, String> metadata = blockBlobClient.getProperties().getMetadata();
-        if (metadata == null) {
-            metadata = new HashMap<>();
-        }
+        Map<String, String> metadata = Objects.requireNonNullElse(blockBlobClient.getProperties().getMetadata(), new HashMap<>());
         metadata.put(AZURE_BLOB_LAST_MODIFIED_KEY, String.valueOf(System.currentTimeMillis()));
         blockBlobClient.setMetadata(metadata);
     }

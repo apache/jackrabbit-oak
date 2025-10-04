@@ -18,12 +18,17 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
+import com.azure.core.util.BinaryData;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.ListBlobsOptions;
+import com.azure.storage.blob.sas.BlobSasPermission;
+import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.blob.specialized.BlockBlobClient;
 import com.google.common.cache.Cache;
+import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
+import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -31,6 +36,7 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -50,10 +56,16 @@ import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URI;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -61,7 +73,11 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BlOB_META_DIR_NAME;
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_CONCURRENT_REQUESTS_PER_OPERATION;
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_REF_KEY;
@@ -73,10 +89,12 @@ import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConsta
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_REF_ON_INIT;
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS;
 import static org.junit.Assert.*;
+import static org.junit.Assume.assumeNotNull;
 import static org.mockito.ArgumentMatchers.any;
 
 /**
  * Comprehensive test class for AzureBlobStoreBackend covering all methods and functionality.
+ * Combines unit tests and integration tests.
  */
 public class AzureBlobStoreBackendTest {
 
@@ -86,6 +104,11 @@ public class AzureBlobStoreBackendTest {
     private static final String CONTAINER_NAME = "test-container";
     private static final String TEST_BLOB_CONTENT = "test blob content";
     private static final String TEST_METADATA_CONTENT = "test metadata content";
+    private static final String AZURE_ACCOUNT_NAME = "AZURE_ACCOUNT_NAME";
+    private static final String AZURE_TENANT_ID = "AZURE_TENANT_ID";
+    private static final String AZURE_CLIENT_ID = "AZURE_CLIENT_ID";
+    private static final String AZURE_CLIENT_SECRET = "AZURE_CLIENT_SECRET";
+    private static final Set<String> BLOBS = Set.of("blob1", "blob2");
 
     private BlobContainerClient container;
     private AzureBlobStoreBackend backend;
@@ -2013,6 +2036,155 @@ public class AzureBlobStoreBackendTest {
         }
     }
 
+    // ========== INTEGRATION TESTS (from AzureBlobStoreBackendIT) ==========
+
+    @Test
+    public void initWithSharedAccessSignature_readOnly() throws Exception {
+        BlobContainerClient container = createBlobContainer();
+        OffsetDateTime expiryTime = OffsetDateTime.now().plusDays(7);
+        BlobSasPermission permissions = new BlobSasPermission().setReadPermission(true)
+                .setWritePermission(false)
+                .setListPermission(true);
+
+        BlobServiceSasSignatureValues sasValues = new BlobServiceSasSignatureValues(expiryTime, permissions);
+        String sasToken = container.generateSas(sasValues);
+
+        AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
+        azureBlobStoreBackend.setProperties(getConfigurationWithSasToken(sasToken));
+
+        azureBlobStoreBackend.init();
+
+        assertWriteAccessNotGranted(azureBlobStoreBackend);
+        assertReadAccessGranted(azureBlobStoreBackend, BLOBS);
+    }
+
+    @Test
+    public void initWithSharedAccessSignature_readWrite() throws Exception {
+        BlobContainerClient container = createBlobContainer();
+        OffsetDateTime expiryTime = OffsetDateTime.now().plusDays(7);
+        BlobSasPermission permissions = new BlobSasPermission().setReadPermission(true)
+                .setListPermission(true)
+                .setAddPermission(true)
+                .setCreatePermission(true)
+                .setWritePermission(true);
+
+        BlobServiceSasSignatureValues sasValues = new BlobServiceSasSignatureValues(expiryTime, permissions);
+        String sasToken = container.generateSas(sasValues);
+
+        AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
+        azureBlobStoreBackend.setProperties(getConfigurationWithSasToken(sasToken));
+
+        azureBlobStoreBackend.init();
+
+        assertWriteAccessGranted(azureBlobStoreBackend, "file");
+        assertReadAccessGranted(azureBlobStoreBackend,
+                concat(BLOBS, "file"));
+    }
+
+    @Test
+    public void connectWithSharedAccessSignatureURL_expired() throws Exception {
+        BlobContainerClient container = createBlobContainer();
+
+        OffsetDateTime expiryTime = OffsetDateTime.now().minusDays(1);
+        BlobSasPermission permissions = new BlobSasPermission().setReadPermission(true)
+                .setWritePermission(true);
+
+        BlobServiceSasSignatureValues sasValues = new BlobServiceSasSignatureValues(expiryTime, permissions);
+        String sasToken = container.generateSas(sasValues);
+
+        AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
+        azureBlobStoreBackend.setProperties(getConfigurationWithSasToken(sasToken));
+
+        azureBlobStoreBackend.init();
+
+        assertWriteAccessNotGranted(azureBlobStoreBackend);
+        assertReadAccessNotGranted(azureBlobStoreBackend);
+    }
+
+    @Test
+    public void initWithAccessKey() throws Exception {
+        AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
+        azureBlobStoreBackend.setProperties(getConfigurationWithAccessKey());
+
+        azureBlobStoreBackend.init();
+
+        assertWriteAccessGranted(azureBlobStoreBackend, "file");
+        assertReadAccessGranted(azureBlobStoreBackend, Set.of("file"));
+    }
+
+    @Test
+    public void initWithConnectionURL() throws Exception {
+        AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
+        azureBlobStoreBackend.setProperties(getConfigurationWithConnectionString());
+
+        azureBlobStoreBackend.init();
+
+        assertWriteAccessGranted(azureBlobStoreBackend, "file");
+        assertReadAccessGranted(azureBlobStoreBackend, Set.of("file"));
+    }
+
+    @Test
+    public void initSecret() throws Exception {
+        AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
+        azureBlobStoreBackend.setProperties(getConfigurationWithConnectionString());
+
+        azureBlobStoreBackend.init();
+        assertReferenceSecret(azureBlobStoreBackend);
+    }
+
+    /* make sure that blob1.txt and blob2.txt are uploaded to AZURE_ACCOUNT_NAME/blobstore container before
+     * executing this test
+     * */
+    @Test
+    public void initWithServicePrincipals() throws Exception {
+        assumeNotNull(getEnvironmentVariable(AZURE_ACCOUNT_NAME));
+        assumeNotNull(getEnvironmentVariable(AZURE_TENANT_ID));
+        assumeNotNull(getEnvironmentVariable(AZURE_CLIENT_ID));
+        assumeNotNull(getEnvironmentVariable(AZURE_CLIENT_SECRET));
+
+        AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
+        azureBlobStoreBackend.setProperties(getPropertiesWithServicePrincipals());
+
+        azureBlobStoreBackend.init();
+
+        assertWriteAccessGranted(azureBlobStoreBackend, "test");
+        assertReadAccessGranted(azureBlobStoreBackend, concat(BLOBS, "test"));
+    }
+
+    @Test
+    public void testMetadataOperationsWithRenamedConstants() throws Exception {
+        BlobContainerClient container = createBlobContainer();
+
+        AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
+        azureBlobStoreBackend.setProperties(getConfigurationWithConnectionString());
+        azureBlobStoreBackend.init();
+
+        // Test that metadata operations work correctly with the renamed constants
+        String testMetadataName = "test-metadata-record";
+        String testContent = "test metadata content";
+
+        // Add a metadata record
+        azureBlobStoreBackend.addMetadataRecord(new ByteArrayInputStream(testContent.getBytes()), testMetadataName);
+
+        // Verify the record exists
+        assertTrue("Metadata record should exist", azureBlobStoreBackend.metadataRecordExists(testMetadataName));
+
+        // Retrieve the record
+        DataRecord retrievedRecord = azureBlobStoreBackend.getMetadataRecord(testMetadataName);
+        assertNotNull("Retrieved metadata record should not be null", retrievedRecord);
+        assertEquals("Retrieved record should have correct length", testContent.length(), retrievedRecord.getLength());
+
+        // Verify the record appears in getAllMetadataRecords
+        List<DataRecord> allRecords = azureBlobStoreBackend.getAllMetadataRecords("");
+        boolean foundTestRecord = allRecords.stream()
+                .anyMatch(record -> record.getIdentifier().toString().equals(testMetadataName));
+        assertTrue("Test metadata record should be found in getAllMetadataRecords", foundTestRecord);
+
+        // Clean up - delete the test record
+        azureBlobStoreBackend.deleteMetadataRecord(testMetadataName);
+        assertFalse("Metadata record should be deleted", azureBlobStoreBackend.metadataRecordExists(testMetadataName));
+    }
+
     // ========== HELPER METHODS ==========
 
     private File createTempFile(String content) throws IOException {
@@ -2021,5 +2193,139 @@ public class AzureBlobStoreBackendTest {
             writer.write(content);
         }
         return tempFile;
+    }
+
+    private BlobContainerClient createBlobContainer() throws Exception {
+        container = azurite.getContainer(CONTAINER_NAME, getConnectionString());
+        for (String blob : BLOBS) {
+            container.getBlobClient(blob + ".txt").upload(BinaryData.fromString(blob), true);
+        }
+        return container;
+    }
+
+    private static Properties getConfigurationWithSasToken(String sasToken) {
+        Properties properties = getBasicConfiguration();
+        properties.setProperty(AzureConstants.AZURE_SAS, sasToken);
+        properties.setProperty(AzureConstants.AZURE_CREATE_CONTAINER, "false");
+        properties.setProperty(AzureConstants.AZURE_REF_ON_INIT, "false");
+        return properties;
+    }
+
+    private static Properties getConfigurationWithAccessKey() {
+        Properties properties = getBasicConfiguration();
+        properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, AzuriteDockerRule.ACCOUNT_KEY);
+        return properties;
+    }
+
+    @NotNull
+    private static Properties getConfigurationWithConnectionString() {
+        Properties properties = getBasicConfiguration();
+        properties.setProperty(AzureConstants.AZURE_CONNECTION_STRING, getConnectionString());
+        return properties;
+    }
+
+    @NotNull
+    private static Properties getBasicConfiguration() {
+        Properties properties = new Properties();
+        properties.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, CONTAINER_NAME);
+        properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_NAME);
+        properties.setProperty(AzureConstants.AZURE_BLOB_ENDPOINT, azurite.getBlobEndpoint());
+        properties.setProperty(AzureConstants.AZURE_CREATE_CONTAINER, "");
+        return properties;
+    }
+
+    @NotNull
+    private static SharedAccessBlobPolicy policy(EnumSet<SharedAccessBlobPermissions> permissions, Instant expirationTime) {
+        SharedAccessBlobPolicy sharedAccessBlobPolicy = new SharedAccessBlobPolicy();
+        sharedAccessBlobPolicy.setPermissions(permissions);
+        sharedAccessBlobPolicy.setSharedAccessExpiryTime(Date.from(expirationTime));
+        return sharedAccessBlobPolicy;
+    }
+
+    @NotNull
+    private static SharedAccessBlobPolicy policy(EnumSet<SharedAccessBlobPermissions> permissions) {
+        return policy(permissions, Instant.now().plus(Duration.ofDays(7)));
+    }
+
+    private static void assertReadAccessGranted(AzureBlobStoreBackend backend, Set<String> expectedBlobs) throws Exception {
+        BlobContainerClient container = backend.getAzureContainer();
+        Set<String> actualBlobNames = StreamSupport.stream(container.listBlobs().spliterator(), false)
+                .map(blobItem -> container.getBlobClient(blobItem.getName()).getBlobName())
+                .filter(name -> !name.contains(AZURE_BlOB_META_DIR_NAME))
+                .collect(toSet());
+
+        Set<String> expectedBlobNames = expectedBlobs.stream().map(name -> name + ".txt").collect(toSet());
+
+        assertEquals(expectedBlobNames, actualBlobNames);
+
+        Set<String> actualBlobContent = actualBlobNames.stream()
+                .map(name -> {
+                    try {
+                        return container.getBlobClient(name).getBlockBlobClient().downloadContent().toString();
+                    } catch (Exception e) {
+                        throw new RuntimeException("Error while reading blob " + name, e);
+                    }
+                })
+                .collect(toSet());
+        assertEquals(expectedBlobs, actualBlobContent);
+    }
+
+    private static void assertWriteAccessGranted(AzureBlobStoreBackend backend, String blob) throws Exception {
+        backend.getAzureContainer()
+                .getBlobClient(blob + ".txt")
+                .upload(BinaryData.fromString(blob), true);
+    }
+
+    private static void assertWriteAccessNotGranted(AzureBlobStoreBackend backend) {
+        try {
+            assertWriteAccessGranted(backend, "test.txt");
+            fail("Write access should not be granted, but writing to the storage succeeded.");
+        } catch (Exception e) {
+            // successful
+        }
+    }
+
+    private static void assertReadAccessNotGranted(AzureBlobStoreBackend backend) {
+        try {
+            assertReadAccessGranted(backend, BLOBS);
+            fail("Read access should not be granted, but reading from the storage succeeded.");
+        } catch (Exception e) {
+            // successful
+        }
+    }
+
+    private static Instant yesterday() {
+        return Instant.now().minus(Duration.ofDays(1));
+    }
+
+    private static Set<String> concat(Set<String> set, String element) {
+        return Stream.concat(set.stream(), Stream.of(element)).collect(Collectors.toSet());
+    }
+
+    private static void assertReferenceSecret(AzureBlobStoreBackend AzureBlobStoreBackend)
+            throws DataStoreException {
+        // assert secret already created on init
+        DataRecord refRec = AzureBlobStoreBackend.getMetadataRecord("reference.key");
+        assertNotNull("Reference data record null", refRec);
+        assertTrue("reference key is empty", refRec.getLength() > 0);
+    }
+
+    private Properties getPropertiesWithServicePrincipals() {
+        final String accountName = getEnvironmentVariable(AZURE_ACCOUNT_NAME);
+        final String tenantId = getEnvironmentVariable(AZURE_TENANT_ID);
+        final String clientId = getEnvironmentVariable(AZURE_CLIENT_ID);
+        final String clientSecret = getEnvironmentVariable(AZURE_CLIENT_SECRET);
+
+        Properties properties = new Properties();
+        properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, accountName);
+        properties.setProperty(AzureConstants.AZURE_TENANT_ID, tenantId);
+        properties.setProperty(AzureConstants.AZURE_CLIENT_ID, clientId);
+        properties.setProperty(AzureConstants.AZURE_CLIENT_SECRET, clientSecret);
+        properties.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, CONTAINER_NAME);
+        return properties;
+    }
+
+    private String getEnvironmentVariable(String variableName) {
+        return System.getenv(variableName);
     }
 }
