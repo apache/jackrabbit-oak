@@ -64,7 +64,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeNotNull;
 
-public class AzureBlobStoreBackendV8IT {
+public class AzureBlobStoreBackendV8Test {
   private static final String AZURE_ACCOUNT_NAME = "AZURE_ACCOUNT_NAME";
   private static final String AZURE_TENANT_ID = "AZURE_TENANT_ID";
   private static final String AZURE_CLIENT_ID = "AZURE_CLIENT_ID";
