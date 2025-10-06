@@ -57,7 +57,7 @@ public class AzureHttpRequestLoggingPolicy implements HttpPipelinePolicy {
                     context.getHttpRequest().getHttpMethod(), 
                     context.getHttpRequest().getUrl(), 
                     httpResponse.getStatusCode(), 
-                    (stopwatch.elapsed(TimeUnit.NANOSECONDS))/1_000_000);
+                    stopwatch.elapsed(TimeUnit.MILLISECONDS));
             }
 
             return Mono.just(httpResponse);

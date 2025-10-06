@@ -500,13 +500,11 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
     private void addMetadataRecordImpl(final InputStream input, String name, long recordLength) throws DataStoreException {
         try {
             BlockBlobClient blockBlobClient = getMetaBlobClient(name);
-            blockBlobClient.upload(BinaryData.fromBytes(input.readAllBytes()), true);
+            blockBlobClient.upload(input, recordLength, true);
             updateLastModifiedMetadata(blockBlobClient);
         } catch (BlobStorageException e) {
             LOG.info("Error adding metadata record. metadataName={} length={}", name, recordLength, e);
             throw new DataStoreException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
     }
 
