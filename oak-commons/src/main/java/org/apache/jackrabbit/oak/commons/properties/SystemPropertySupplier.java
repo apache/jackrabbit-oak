@@ -44,6 +44,8 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
 
     private static final Logger LOG = LoggerFactory.getLogger(SystemPropertySupplier.class);
 
+    private static final String HIDDEN_REPLACEMENT = "*****";
+
     private final String propName;
     private final T defaultValue;
     private final Function<String, T> parser;
@@ -51,11 +53,10 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
     private Logger log = LOG;
     private String successLogLevel = "INFO";
     private boolean hideValue = false;
-    private final String hiddenReplacement = "*****";
     private Predicate<T> validator = (a) -> true;
     private Function<String, String> sysPropReader = System::getProperty;
     private BiFunction<String, T, String> setMessageFormatter = (a, b) -> String.format("System property %s found to be '%s'", a,
-            hideValue ? hiddenReplacement : b);
+            hideValue ? HIDDEN_REPLACEMENT : b);
 
     private SystemPropertySupplier(@NotNull String propName, @NotNull T defaultValue) {
         this.propName = Objects.requireNonNull(propName, "propertyName must be non-null");
@@ -149,7 +150,7 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
         if (value == null) {
             log.trace("System property {} not set", propName);
         } else {
-            String displayedValue = hideValue ? hiddenReplacement : value;
+            String displayedValue = hideValue ? HIDDEN_REPLACEMENT : value;
             log.trace("System property {} set to '{}'", propName, displayedValue);
             try {
                 T v = parser.apply(value);
