@@ -125,11 +125,6 @@ public final class S3Constants {
     public static final String S3_SSE_C_KEY = "sseCustomerKey";
 
     /**
-     *  Constant to set S3 signature for SSE_KMS encryption.
-     */
-    public static final String S3_SIG_V4 = "AWSS3V4SignerType";
-
-    /**
      *  Constant to set proxy host.
      */
     public static final String PROXY_HOST = "proxyHost";

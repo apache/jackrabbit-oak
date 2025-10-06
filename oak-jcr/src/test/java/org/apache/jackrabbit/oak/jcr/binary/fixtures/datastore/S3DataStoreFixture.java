@@ -24,13 +24,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.Properties;
 import java.util.UUID;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.BucketAccelerateConfiguration;
-import com.amazonaws.services.s3.model.BucketAccelerateStatus;
-import com.amazonaws.services.s3.model.CreateBucketRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.services.s3.model.SetBucketAccelerateConfigurationRequest;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Backend;
@@ -43,6 +36,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.AccelerateConfiguration;
+import software.amazon.awssdk.services.s3.model.BucketAccelerateStatus;
+import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
+import software.amazon.awssdk.services.s3.model.DeleteBucketRequest;
+import software.amazon.awssdk.services.s3.model.PutBucketAccelerateConfigurationRequest;
 
 /**
  * Fixture for S3DataStore based on an aws.properties config file. It creates
@@ -93,44 +92,46 @@ public class S3DataStoreFixture implements DataStoreFixture {
             throw new AssertionError("createDataStore() called but this fixture is not available");
         }
 
-        AmazonS3 s3Client = Utils.openService(s3Props);
+        String bucketName = null;
 
-        // Create a temporary bucket that will be removed at test completion
-        String bucketName = "direct-binary-test-" + UUID.randomUUID().toString();
+        try (S3Client s3Client = Utils.openService(s3Props, false)) {
+            // Create a temporary bucket that will be removed at test completion
+            bucketName = "direct-binary-test-" + UUID.randomUUID();
 
-        log.info("Creating S3 test bucket {}", bucketName);
-        CreateBucketRequest createBucket = new CreateBucketRequest(bucketName);
-        s3Client.createBucket(createBucket);
-        assertTrue("Failed to create test bucket [" + bucketName + "]", Utils.waitForBucket(s3Client, bucketName));
+            log.info("Creating S3 test bucket {}", bucketName);
+            CreateBucketRequest createBucketRequest = CreateBucketRequest.builder().bucket(bucketName).build();
+            s3Client.createBucket(createBucketRequest);
+            assertTrue("Failed to create test bucket [" + bucketName + "]", Utils.waitForBucket(s3Client, bucketName));
 
-        log.info("Enabling S3 acceleration for bucket {}", bucketName);
-        s3Client.setBucketAccelerateConfiguration(
-            new SetBucketAccelerateConfigurationRequest(bucketName,
-                new BucketAccelerateConfiguration(
-                    BucketAccelerateStatus.Enabled
-                )
-            )
-        );
-
-        s3Client.shutdown();
+            log.info("Enabling S3 acceleration for bucket {}", bucketName);
+            s3Client.putBucketAccelerateConfiguration(
+                    PutBucketAccelerateConfigurationRequest.builder()
+                            .bucket(bucketName)
+                            .accelerateConfiguration(
+                                    AccelerateConfiguration.builder()
+                                            .status(BucketAccelerateStatus.ENABLED)
+                                            .build())
+                            .build()
+            );
+        }
 
         // create new properties since azProps is shared for all created DataStores
         Properties clonedS3Props = new Properties(s3Props);
-        clonedS3Props.setProperty(S3Constants.S3_BUCKET, createBucket.getBucketName());
+        clonedS3Props.setProperty(S3Constants.S3_BUCKET, bucketName);
 
         // setup Oak DS
         S3DataStore dataStore = new S3DataStore();
         dataStore.setProperties(clonedS3Props);
         dataStore.setStagingSplitPercentage(0);
 
-        log.info("s3props: " + s3Props.toString());
+        log.info("s3props: {}", s3Props);
 
         return dataStore;
     }
 
     @Override
     public void dispose(DataStore dataStore) {
-        if (dataStore != null && dataStore instanceof S3DataStore) {
+        if (dataStore instanceof S3DataStore) {
             try {
                 dataStore.close();
             } catch (DataStoreException e) {
@@ -148,26 +149,10 @@ public class S3DataStoreFixture implements DataStoreFixture {
                 return;
             }
             
-            AmazonS3 s3Client = Utils.openService(s3Props);
-
-            // For S3, you have to empty the bucket before removing the bucket itself
-            log.info("Emptying S3 test bucket {}", bucketName);
-            
-            ObjectListing listing = s3Client.listObjects(bucketName);
-            while (true) {
-                for (S3ObjectSummary summary : listing.getObjectSummaries()) {
-                    s3Client.deleteObject(bucketName, summary.getKey());
-                }
-                if (! listing.isTruncated()) {
-                    break;
-                }
-                listing = s3Client.listNextBatchOfObjects(listing);
+            try (S3Client s3Client = Utils.openService(s3Props, false)) {
+                Utils.deleteBucketObjects(bucketName, s3Props, s3Client);
+                s3Client.deleteBucket(DeleteBucketRequest.builder().bucket(bucketName).build());
             }
-            
-            log.info("Removing S3 test bucket {}", bucketName);
-            s3Client.deleteBucket(bucketName);
-
-            s3Client.shutdown();
         }
     }
 }

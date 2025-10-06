@@ -23,34 +23,22 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 
 import javax.net.ssl.HttpsURLConnection;
 
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.DeleteObjectsRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.services.s3.transfer.TransferManager;
-
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Backend.RemoteStorageMode;
+import software.amazon.awssdk.utils.StringUtils;
 
 /**
  * Extension to {@link DataStoreUtils} to enable S3 extensions for cleaning and initialization.
@@ -90,6 +78,16 @@ public class S3DataStoreUtils extends DataStoreUtils {
             return false;
         }
         return true;
+    }
+
+    /**
+     *
+     * @return true if SSE_C encryption is configured
+     */
+    public static boolean isSseCustomerKeyEncrypted() {
+        final Properties s3Config = getS3Config();
+        return Objects.equals(Utils.getDataEncryption(s3Config), DataEncryption.SSE_C)
+                || Objects.nonNull(s3Config.getProperty(S3Constants.S3_SSE_C_KEY));
     }
 
     /**
@@ -146,50 +144,10 @@ public class S3DataStoreUtils extends DataStoreUtils {
         return getS3DataStore(className, getS3Config(), homeDir);
     }
 
-    public static void deleteBucket(String bucket, Date date) throws Exception {
-        log.info("cleaning bucket [" + bucket + "]");
+    public static void deleteBucket(String bucket, Date date) {
+        log.info("cleaning bucket [ {} ]", bucket);
         Properties props = getS3Config();
-        AmazonS3Client s3service = Utils.openService(props);
-        TransferManager tmx = new TransferManager(s3service);
-        if (s3service.doesBucketExist(bucket)) {
-            for (int i = 0; i < 4; i++) {
-                tmx.abortMultipartUploads(bucket, date);
-                ObjectListing prevObjectListing = s3service.listObjects(bucket);
-                while (prevObjectListing != null) {
-                    List<DeleteObjectsRequest.KeyVersion> deleteList = new ArrayList<DeleteObjectsRequest.KeyVersion>();
-                    List<String> keysToDelete = new ArrayList<>();
-                    for (S3ObjectSummary s3ObjSumm : prevObjectListing.getObjectSummaries()) {
-                        deleteList.add(new DeleteObjectsRequest.KeyVersion(s3ObjSumm.getKey()));
-                        keysToDelete.add(s3ObjSumm.getKey());
-                    }
-                    if (!deleteList.isEmpty()) {
-                        RemoteStorageMode mode = getMode(props);
-                        if (mode == RemoteStorageMode.S3) {
-                            DeleteObjectsRequest delObjsReq = new DeleteObjectsRequest(bucket);
-                            delObjsReq.setKeys(deleteList);
-                            s3service.deleteObjects(delObjsReq);
-                        } else {
-                            keysToDelete.forEach(key -> s3service.deleteObject(bucket, key));
-                        }
-                    }
-                    if (!prevObjectListing.isTruncated())
-                        break;
-                    prevObjectListing = s3service.listNextBatchOfObjects(prevObjectListing);
-                }
-            }
-            s3service.deleteBucket(bucket);
-            log.info("bucket [ " + bucket + "] cleaned");
-        } else {
-            log.info("bucket [" + bucket + "] doesn't exists");
-        }
-        tmx.shutdownNow();
-        s3service.shutdown();
-    }
-
-    @NotNull
-    private static RemoteStorageMode getMode(@NotNull Properties props) {
-        return props.getProperty(S3Constants.S3_END_POINT, "").contains("googleapis") ?
-                RemoteStorageMode.GCP : RemoteStorageMode.S3;
+        Utils.deleteBucketAndAbortMultipartUploads(bucket, date, props);
     }
 
     protected static HttpsURLConnection getHttpsConnection(long length, URI uri) throws IOException {
@@ -197,9 +155,33 @@ public class S3DataStoreUtils extends DataStoreUtils {
         conn.setDoOutput(true);
         conn.setRequestMethod("PUT");
         conn.setRequestProperty("Content-Length", String.valueOf(length));
-        conn.setRequestProperty("Date", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX").withZone(ZoneOffset.UTC).format(Instant.now()));
-        conn.setRequestProperty("Host", uri.getHost());
 
+        final Properties props = getS3Config();
+        DataEncryption encryption = Utils.getDataEncryption(props);
+
+        switch (encryption) {
+            case SSE_S3:
+                conn.setRequestProperty("x-amz-server-side-encryption", "AES256");
+                System.out.println("Added SSE-S3 header: AES256");
+                break;
+            case SSE_KMS:
+                conn.setRequestProperty("x-amz-server-side-encryption", "aws:kms");
+                System.out.println("Added SSE-KMS header: aws:kms");
+                if (Objects.nonNull(props.getProperty(S3Constants.S3_SSE_KMS_KEYID))) {
+                    conn.setRequestProperty("x-amz-server-side-encryption-aws-kms-key-id", props.getProperty(S3Constants.S3_SSE_KMS_KEYID));
+                    System.out.println("Added KMS Key ID: " + props.getProperty(S3Constants.S3_SSE_KMS_KEYID));
+                }
+                break;
+            case SSE_C:
+                String customerKey = props.getProperty(S3Constants.S3_SSE_C_KEY);
+                String customerKeyMD5 = Utils.calculateMD5(customerKey);
+                conn.setRequestProperty("x-amz-server-side-encryption-customer-algorithm", "AES256");
+                conn.setRequestProperty("x-amz-server-side-encryption-customer-key", customerKey);
+                conn.setRequestProperty("x-amz-server-side-encryption-customer-key-MD5", customerKeyMD5);
+                break;
+            case NONE:
+                break;
+        }
         return conn;
     }
 }
