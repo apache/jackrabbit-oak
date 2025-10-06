@@ -159,7 +159,8 @@ public class RDBDocumentStoreJDBC {
 
     public int delete(Connection connection, RDBTableMetaData tmd, Map<String, Long> toDelete)
             throws SQLException {
-        try (PreparedStatement stmt = connection.prepareStatement("delete from " + tmd.getName() + " where ID=? and MODIFIED=?")) {
+        String statement = "delete from " + tmd.getName() + " where ID=? and MODIFIED=?";
+        try (PreparedStatement stmt = connection.prepareStatement(statement)) {
             for (Entry<String, Long> entry : toDelete.entrySet()) {
                 setIdInStatement(tmd, stmt, 1, entry.getKey());
                 stmt.setLong(2, entry.getValue());
@@ -327,9 +328,10 @@ public class RDBDocumentStoreJDBC {
         List<Long> modCounts = LOG.isTraceEnabled() ? new ArrayList<>() : null;
         int[] batchResults = new int[0];
 
-        try (PreparedStatement stmt = connection.prepareStatement("update " + tmd.getName()
+        String statement = "update " + tmd.getName()
                 + " set MODIFIED = ?, HASBINARY = ?, DELETEDONCE = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = ?, DATA = ?, "
-                + (tmd.hasVersion() ? (" VERSION = " + SCHEMAVERSION + ", ") : "") + "BDATA = ? where ID = ? and MODCOUNT = ?")) {
+                + (tmd.hasVersion() ? (" VERSION = " + SCHEMAVERSION + ", ") : "") + "BDATA = ? where ID = ? and MODCOUNT = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(statement)) {
             boolean batchIsEmpty = true;
             for (T document : sortDocuments(documents)) {
                 Long modcount = (Long) document.get(MODCOUNT);
