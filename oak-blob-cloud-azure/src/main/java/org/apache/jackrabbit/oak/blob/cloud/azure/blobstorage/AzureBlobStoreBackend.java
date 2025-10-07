@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
 import com.azure.core.http.rest.Response;
-import com.azure.core.util.BinaryData;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobItem;
@@ -58,6 +57,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.security.InvalidKeyException;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -473,18 +475,19 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
     }
 
     @Override
-    public void addMetadataRecord(File input, String name) throws DataStoreException {
-        Objects.requireNonNull(input, "input must not be null");
+    public void addMetadataRecord(File inputFile, String name) throws DataStoreException {
+        Objects.requireNonNull(inputFile, "input must not be null");
         Validate.checkArgument(StringUtils.isNoneEmpty(name), "name should not be empty");
 
         Stopwatch stopwatch = Stopwatch.createStarted();
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
-
-            addMetadataRecordImpl(new FileInputStream(input), name, input.length());
+            try (InputStream input = new FileInputStream(inputFile)) {
+                addMetadataRecordImpl(input, name, inputFile.length());
+            }
             LOG.debug("Metadata record added. metadataName={} duration={}", name, stopwatch.elapsed(TimeUnit.MILLISECONDS));
-        } catch (FileNotFoundException e) {
+        } catch (IOException e) {
             throw new DataStoreException(e);
         } finally {
             if (contextClassLoader != null) {
@@ -500,13 +503,72 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
     private void addMetadataRecordImpl(final InputStream input, String name, long recordLength) throws DataStoreException {
         try {
             BlockBlobClient blockBlobClient = getMetaBlobClient(name);
-            blockBlobClient.upload(BinaryData.fromBytes(input.readAllBytes()), true);
+
+            // If length is unknown (-1), use a file buffer for the stream first
+            // This is necessary because Azure SDK requires a known length for upload
+            // and loading the entire stream into memory is too risky
+            if (recordLength < 0) {
+                LOG.debug("Metadata record length unknown. metadataName={}. Saving to temporary file before upload", name);
+                File tempFile = createTempFileFromStream(input, name, ".tmp");
+                LOG.debug("Metadata record temporary file created. metadataName={} path={}", name, tempFile.getAbsolutePath());
+                try (InputStream fis = new BufferedInputStream(new FileInputStream(tempFile))) {
+                    blockBlobClient.upload(fis, tempFile.length(), true);
+                } finally {
+                    tempFile.delete();
+                }
+            } else {
+                LOG.debug("Metadata record length known: {} bytes. metadataName={}. Uploading directly", recordLength, name);
+                InputStream markableInput = input.markSupported() ? input : new BufferedInputStream(input);
+                blockBlobClient.upload(markableInput, recordLength, true);
+            }
             updateLastModifiedMetadata(blockBlobClient);
-        } catch (BlobStorageException e) {
+        } catch (BlobStorageException | IOException e) {
             LOG.info("Error adding metadata record. metadataName={} length={}", name, recordLength, e);
             throw new DataStoreException(e);
+        }
+    }
+
+    /**
+     * Saves an InputStream to a temporary file with automatic cleanup support.
+     *
+     * <p>This method creates a temporary file and copies the entire contents of the input stream
+     * to it. The temporary file is marked for deletion on JVM exit as a safety measure, but
+     * callers should explicitly delete it when done.</p>
+     *
+     * @param input The InputStream to save to a temporary file
+     * @param prefix The prefix string for the temporary file name (min 3 characters)
+     * @param suffix The suffix string for the temporary file name (null = ".tmp")
+     * @return A File object representing the temporary file
+     * @throws IOException if an I/O error occurs
+     */
+    private File createTempFileFromStream(InputStream input, String prefix, String suffix) throws IOException {
+        Objects.requireNonNull(input, "input must not be null");
+
+        Path tempPath = null;
+        try {
+            // Create temporary file
+            tempPath = Files.createTempFile(prefix + "-" + UUID.randomUUID(), suffix);
+            File tempFile = tempPath.toFile();
+
+            // Mark for deletion on JVM exit as a safety measure
+            tempFile.deleteOnExit();
+
+            // Copy stream contents to temporary file
+            long bytesWritten = Files.copy(input, tempPath, StandardCopyOption.REPLACE_EXISTING);
+            LOG.debug("Stream saved to temporary file. path={} size={} bytes", tempPath.toAbsolutePath(), bytesWritten);
+
+            return tempFile;
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            // Clean up the temporary file if an error occurs
+            if (tempPath != null) {
+                try {
+                    Files.deleteIfExists(tempPath);
+                } catch (IOException cleanupException) {
+                    // Log but don't throw - we want to propagate the original exception
+                    LOG.info("Failed to delete temporary file after error: {}", tempPath, cleanupException);
+                }
+            }
+            throw new IOException("Failed to save stream to temporary file", e);
         }
     }
 
@@ -533,11 +595,8 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
                     true);
             LOG.debug("Metadata record read. metadataName={} duration={} record={}", name, stopwatch.elapsed(TimeUnit.MILLISECONDS), record);
             return record;
-        } catch (BlobStorageException e) {
+        } catch (BlobStorageException | DataStoreException e) {
             LOG.info("Error reading metadata record. metadataName={}", name, e);
-            throw new RuntimeException(e);
-        } catch (Exception e) {
-            LOG.debug("Error reading metadata record. metadataName={}", name, e);
             throw new RuntimeException(e);
         } finally {
             if (contextClassLoader != null) {
@@ -571,10 +630,8 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
                         true));
             }
             LOG.debug("Metadata records read. recordsRead={} metadataFolder={} duration={}", records.size(), prefix, stopwatch.elapsed(TimeUnit.MILLISECONDS));
-        } catch (BlobStorageException e) {
+        } catch (BlobStorageException | DataStoreException e) {
             LOG.info("Error reading all metadata records. metadataFolder={}", prefix, e);
-        } catch (DataStoreException e) {
-            LOG.debug("Error reading all metadata records. metadataFolder={}", prefix, e);
         } finally {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
@@ -596,10 +653,8 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
                     result ? "deleted" : "delete requested, but it does not exist (perhaps already deleted)",
                     name, stopwatch.elapsed(TimeUnit.MILLISECONDS));
             return result;
-        } catch (BlobStorageException e) {
+        } catch (BlobStorageException | DataStoreException e) {
             LOG.info("Error deleting metadata record. metadataName={}", name, e);
-        } catch (DataStoreException e) {
-            LOG.debug("Error deleting metadata record. metadataName={}", name, e);
         } finally {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
@@ -631,10 +686,8 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
             LOG.debug("Metadata records deleted. recordsDeleted={} metadataFolder={} duration={}",
                     total, prefix, stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
-        } catch (BlobStorageException e) {
+        } catch (BlobStorageException | DataStoreException e) {
             LOG.info("Error deleting all metadata records. metadataFolder={}", prefix, e);
-        } catch (DataStoreException e) {
-            LOG.debug("Error deleting all metadata records. metadataFolder={}", prefix, e);
         } finally {
             if (null != contextClassLoader) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
@@ -653,7 +706,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
             LOG.debug("Metadata record {} exists {}. duration={}", name, exists, stopwatch.elapsed(TimeUnit.MILLISECONDS));
             return exists;
         } catch (DataStoreException | BlobStorageException e) {
-            LOG.debug("Error checking existence of metadata record = {}", name, e);
+            LOG.info("Error checking existence of metadata record = {}", name, e);
         } finally {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
