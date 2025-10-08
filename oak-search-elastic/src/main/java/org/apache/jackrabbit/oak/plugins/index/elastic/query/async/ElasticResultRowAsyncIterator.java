@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandl
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets.ElasticFacetProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.FulltextResultRow;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
@@ -280,7 +281,6 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
 
         private int scannedRows;
         private int requests;
-        private boolean fullScan;
         private long searchStartTime;
 
         // reference to the last document sort values for search_after queries
@@ -296,17 +296,12 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
             this.sorts = elasticRequestHandler.baseSorts();
             this.highlight = elasticRequestHandler.highlight();
 
-            Set<String> sourceFieldsSet = new HashSet<>();
             AtomicBoolean needsAggregations = new AtomicBoolean(false);
             Consumer<ElasticResponseListener> register = (listener) -> {
                 allListeners.add(listener);
-                sourceFieldsSet.addAll(listener.sourceFields());
                 if (listener instanceof SearchHitListener) {
                     SearchHitListener searchHitListener = (SearchHitListener) listener;
                     searchHitListeners.add(searchHitListener);
-                    if (searchHitListener.isFullScan()) {
-                        fullScan = true;
-                    }
                 }
                 if (listener instanceof AggregationListener) {
                     aggregationListeners.add((AggregationListener) listener);
@@ -314,7 +309,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
                 }
             };
             listeners.forEach(register);
-            this.sourceConfig = SourceConfig.of(fn -> fn.filter(f -> f.includes(new ArrayList<>(sourceFieldsSet))));
+            this.sourceConfig = SourceConfig.of(fn -> fn.filter(f -> f.includes(FieldNames.PATH)));
 
             searchRequest = SearchRequest.of(builder -> {
                         builder
@@ -412,7 +407,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
                 if (!anyDataLeft.get()) {
                     LOG.trace("No data left: closing scanner, notifying listeners");
                     close();
-                } else if (fullScan || !areAllListenersProcessed) {
+                } else if (!areAllListenersProcessed) {
                     scan();
                 }
             } else {
