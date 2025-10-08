@@ -33,6 +33,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_DIFF_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_NODE_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_UPDATE_LIMIT;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_AVOID_EXCLUSIVE_MERGE_LOCK;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_ENABLED;
@@ -186,7 +187,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
             name = "PrevNoProp Cache",
             description = "Percentage of cache to be allocated towards PrevNoProp cache."
                     + " This cache is used to keep non existence of properties in previous documents and can be small.")
-    int prevNoPropCachePercentage() default DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
+    int prevNoPropCachePercentage() default DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE;
 
     @AttributeDefinition(
             name = "LIRS Cache Segment Count",
