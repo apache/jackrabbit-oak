@@ -70,7 +70,7 @@ public class TarWriterTest {
 
     @Test
     public void failToClose() throws Exception {
-        TarWriter tarWriter = new TarWriter(getFailingSegmentArchiveManager(), 2222, NoopStats.INSTANCE);
+        TarWriter tarWriter = new TarWriter(getFailingSegmentArchiveManager(), 1111, NoopStats.INSTANCE);
 
         writeEntry(tarWriter);
 

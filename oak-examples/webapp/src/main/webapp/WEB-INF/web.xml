@@ -357,14 +357,6 @@
     </servlet>
 
     <!-- ====================================================================== -->
-    <!-- R M I   B I N D I N G   S E R V L E T                                  -->
-    <!-- ====================================================================== -->
-    <servlet>
-      <servlet-name>RMI</servlet-name>
-      <servlet-class>org.apache.jackrabbit.servlet.remote.RemoteBindingServlet</servlet-class>
-    </servlet>
-
-    <!-- ====================================================================== -->
     <!-- F E L I X   W E B C O N S O L E P R O X Y   S E R V L E T              -->
     <!-- ====================================================================== -->
 
@@ -390,10 +382,6 @@
     <servlet-mapping>
         <servlet-name>JCRWebdavServer</servlet-name>
         <url-pattern>/server/*</url-pattern>
-    </servlet-mapping>
-    <servlet-mapping>
-        <servlet-name>RMI</servlet-name>
-        <url-pattern>/rmi</url-pattern>
     </servlet-mapping>
     <servlet-mapping>
         <servlet-name>proxy</servlet-name>

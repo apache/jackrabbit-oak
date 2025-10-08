@@ -22,13 +22,13 @@ package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.DirectExecutor;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.BUNDLOR;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.DOCUMENT_NODE_STORE;
@@ -50,7 +50,7 @@ public class BundlingConfigHandlerTest {
 
     @Test
     public void detectRegistryUpdate() throws Exception{
-        configHandler.initialize(nodeStore, newDirectExecutorService());
+        configHandler.initialize(nodeStore, DirectExecutor.INSTANCE);
         addBundlorConfigForAsset();
 
         BundledTypesRegistry registry = configHandler.getRegistry();

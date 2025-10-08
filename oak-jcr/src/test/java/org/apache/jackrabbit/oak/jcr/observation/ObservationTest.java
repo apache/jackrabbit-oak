@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
-import static java.util.Collections.synchronizedList;
-import static java.util.Collections.synchronizedSet;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static javax.jcr.observation.Event.NODE_ADDED;
 import static javax.jcr.observation.Event.NODE_MOVED;
@@ -42,19 +40,12 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -85,11 +76,6 @@ import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
 import javax.jcr.version.VersionException;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.ForwardingListenableFuture;
-import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
-import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
-import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
-
 import junitx.util.PrivateAccessor;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -102,6 +88,7 @@ import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
+import org.apache.jackrabbit.oak.jcr.observation.ExpectationListener.Expectation;
 import org.apache.jackrabbit.oak.jcr.observation.filter.FilterFactory;
 import org.apache.jackrabbit.oak.jcr.observation.filter.OakEventFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.ChangeSetFilterImpl;
@@ -722,6 +709,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         getAdminSession().save();
 
         List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        System.out.println("finisehd");
         assertTrue("Missing events: " + missing, missing.isEmpty());
         List<Event> unexpected = listener.getUnexpected();
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
@@ -1178,234 +1166,7 @@ public class ObservationTest extends AbstractRepositoryTest {
     private Node getNode(String path) throws RepositoryException {
         return getAdminSession().getNode(path);
     }
-
-    //------------------------------------------------------------< ExpectationListener >---
-
-    private static class Expectation extends ForwardingListenableFuture<Event> {
-        private final SettableFuture<Event> future = SettableFuture.create();
-        private final String name;
-
-        private volatile boolean enabled = true;
-
-        Expectation(String name, boolean enabled) {
-            this.name = name;
-            this.enabled = enabled;
-        }
-
-        Expectation(String name) {
-            this(name, true);
-        }
-
-        @Override
-        protected ListenableFuture<Event> delegate() {
-            return future;
-        }
-
-        public void enable(boolean enabled) {
-            this.enabled = enabled;
-        }
-
-        public boolean isEnabled() {
-            return enabled;
-        }
-
-        public void complete(Event event) {
-            future.set(event);
-        }
-
-        public boolean isComplete() {
-            return future.isDone();
-        }
-
-        public void fail(Exception e) {
-            future.setException(e);
-        }
-
-        public boolean wait(long timeout, TimeUnit unit) {
-            try {
-                future.get(timeout, unit);
-                return true;
-            }
-            catch (Exception e) {
-                return false;
-            }
-        }
-
-        public boolean onEvent(Event event) throws Exception {
-            return true;
-        }
-
-        @Override
-        public String toString() {
-            return name;
-        }
-    }
-
-    private static class ExpectationListener implements EventListener {
-        private final Set<Expectation> expected = synchronizedSet(new CopyOnWriteArraySet<>());
-        private final Set<Expectation> optional = synchronizedSet(new CopyOnWriteArraySet<>());
-        private final List<Event> unexpected = synchronizedList(new CopyOnWriteArrayList<>());
-
-        private volatile Exception failed;
-
-        public Expectation expect(Expectation expectation) {
-            if (failed != null) {
-                expectation.fail(failed);
-            }
-            expected.add(expectation);
-            return expectation;
-        }
-
-        public Expectation optional(Expectation expectation) {
-            if (failed != null) {
-                expectation.fail(failed);
-            }
-            optional.add(expectation);
-            return expectation;
-        }
-
-        public Future<Event> expect(final String path, final int type) {
-            return expect(new Expectation("path = " + path + ", type = " + type) {
-                @Override
-                public boolean onEvent(Event event) throws RepositoryException {
-                    return type == event.getType() && Objects.equals(path, event.getPath());
-                }
-            });
-        }
-
-        public Future<Event> expect(final String path, final String identifier, final int type) {
-            return expect(new Expectation("path = " + path + ", identifier = " + identifier + ", type = " + type) {
-                @Override
-                public boolean onEvent(Event event) throws RepositoryException {
-                    return type == event.getType() && Objects.equals(path, event.getPath()) && Objects.equals(identifier, event.getIdentifier());
-                }
-            });
-        }
-
-        public Node expectAdd(Node node) throws RepositoryException {
-            expect(node.getPath(), NODE_ADDED);
-            expect(node.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
-            return node;
-        }
-
-        public Node expectRemove(Node node) throws RepositoryException {
-            expect(node.getPath(), NODE_REMOVED);
-            expect(node.getPath() + "/jcr:primaryType", PROPERTY_REMOVED);
-            return node;
-        }
-
-        public Property expectAdd(Property property) throws RepositoryException {
-            expect(property.getPath(), PROPERTY_ADDED);
-            return property;
-        }
-
-        public Property expectRemove(Property property) throws RepositoryException {
-            expect(property.getPath(), PROPERTY_REMOVED);
-            return property;
-        }
-
-        public Property expectChange(Property property) throws RepositoryException {
-            expect(property.getPath(), PROPERTY_CHANGED);
-            return property;
-        }
-
-        public void expectMove(final String src, final String dst) {
-            expect(new Expectation('>' + src + ':' + dst){
-                @Override
-                public boolean onEvent(Event event) throws Exception {
-                    return event.getType() == NODE_MOVED &&
-                            Objects.equals(dst, event.getPath()) &&
-                            Objects.equals(src, event.getInfo().get("srcAbsPath")) &&
-                            Objects.equals(dst, event.getInfo().get("destAbsPath"));
-                }
-            });
-        }
-
-        public void expectValue(final Value before, final Value after) {
-            expect(new Expectation("Before value " + before + " after value " + after) {
-                @Override
-                public boolean onEvent(Event event) throws Exception {
-                    return Objects.equals(before, event.getInfo().get("beforeValue")) &&
-                            Objects.equals(after, event.getInfo().get("afterValue"));
-                }
-            });
-        }
-
-        public void expectValues(final Value[] before, final Value[] after) {
-            expect(new Expectation("Before valuse " + before + " after values " + after) {
-                @Override
-                public boolean onEvent(Event event) throws Exception {
-                    return Arrays.equals(before, (Object[])event.getInfo().get("beforeValue")) &&
-                           Arrays.equals(after, (Object[]) event.getInfo().get("afterValue"));
-                }
-            });
-        }
-
-        public Future<Event> expectBeforeValue(final String path, final int type, final String beforeValue) {
-            return expect(new Expectation("path = " + path + ", type = " + type + ", beforeValue = " + beforeValue) {
-                @Override
-                public boolean onEvent(Event event) throws RepositoryException {
-                    return type == event.getType() && Objects.equals(path, event.getPath()) && event.getInfo().containsKey("beforeValue") && beforeValue.equals(((Value)event.getInfo().get("beforeValue")).getString());
-                }
-            });
-        }
-
-        public List<Expectation> getMissing(int time, TimeUnit timeUnit)
-                throws ExecutionException, InterruptedException {
-            List<Expectation> missing = new ArrayList<>();
-            long t0 = System.nanoTime();
-            try {
-                Futures.allAsList(expected).get(time, timeUnit);
-            }
-            catch (TimeoutException e) {
-                for (Expectation exp : expected) {
-                    if (!exp.isDone()) {
-                        missing.add(exp);
-                    }
-                }
-            }
-            return missing;
-        }
-
-        public List<Event> getUnexpected() {
-            return new ArrayList<>(unexpected);
-        }
-
-        @Override
-        public void onEvent(EventIterator events) {
-            try {
-                while (events.hasNext() && failed == null) {
-                    Event event = events.nextEvent();
-                    boolean found = false;
-                    for (Expectation exp : expected) {
-                        if (exp.isEnabled() && !exp.isComplete() && exp.onEvent(event)) {
-                            found = true;
-                            exp.complete(event);
-                        }
-                    }
-                    for (Expectation opt : optional) {
-                        if (opt.isEnabled() && !opt.isComplete() && opt.onEvent(event)) {
-                            found = true;
-                            opt.complete(event);
-                        }
-                    }
-                    if (!found) {
-                        unexpected.add(event);
-                    }
-
-                }
-            } catch (Exception e) {
-                for (Expectation exp : expected) {
-                    exp.fail(e);
-                }
-                failed = e;
-            }
-        }
-
-        private static String key(String path, int type) {
-            return path + ':' + type;
-        }
-    }
+    
     
     //------------------------------------------------------------< OakEventFilter tests >---
 

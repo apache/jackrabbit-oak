@@ -19,3 +19,7 @@ oak:
   mongo:
     db: oak
     uri: mongodb://localhost:27017
+management:
+  endpoints:
+    web:
+      base-path: /

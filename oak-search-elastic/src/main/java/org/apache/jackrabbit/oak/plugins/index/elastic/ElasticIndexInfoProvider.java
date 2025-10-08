@@ -66,6 +66,13 @@ class ElasticIndexInfoProvider implements IndexInfoProvider {
             NodeState idxState = NodeStateUtils.getNode(nodeStore.getRoot(), indexPath);
             String asyncName = IndexUtils.getAsyncLaneName(idxState, indexPath);
             AsyncIndexInfo asyncInfo = asyncIndexInfoService.getInfo(asyncName);
+            boolean hasHiddenOakMount = false;
+            for (String c : idxState.getChildNodeNames()) {
+                if (c.startsWith(IndexDefinition.HIDDEN_OAK_MOUNT_PREFIX)) {
+                    hasHiddenOakMount = true;
+                    break;
+                }
+            }
 
             return new ElasticIndexInfo(
                     indexPath,
@@ -75,7 +82,8 @@ class ElasticIndexInfoProvider implements IndexInfoProvider {
                     node.getIndexStatistics().numDocs(),
                     node.getIndexStatistics().primaryStoreSize(),
                     node.getIndexStatistics().creationDate(),
-                    getStatusTimestamp(idxState, IndexDefinition.REINDEX_COMPLETION_TIMESTAMP)
+                    getStatusTimestamp(idxState, IndexDefinition.REINDEX_COMPLETION_TIMESTAMP),
+                    hasHiddenOakMount
             );
         } finally {
             node.release();
@@ -117,9 +125,11 @@ class ElasticIndexInfoProvider implements IndexInfoProvider {
         private final long sizeInBytes;
         private final long creationTimestamp;
         private final long reindexCompletionTimestamp;
+        private final boolean hasHiddenOakLibsMount;
 
         ElasticIndexInfo(String indexPath, String asyncLane, long indexedUpToTime, long lastUpdatedTime,
-                         long estimatedEntryCount, long sizeInBytes, long creationTimestamp, long reindexCompletionTimestamp) {
+                         long estimatedEntryCount, long sizeInBytes, long creationTimestamp, long reindexCompletionTimestamp,
+                         boolean hasHiddenOakLibsMount) {
             this.indexPath = indexPath;
             this.asyncLane = asyncLane;
             this.indexedUpToTime = indexedUpToTime;
@@ -128,6 +138,7 @@ class ElasticIndexInfoProvider implements IndexInfoProvider {
             this.sizeInBytes = sizeInBytes;
             this.creationTimestamp = creationTimestamp;
             this.reindexCompletionTimestamp = reindexCompletionTimestamp;
+            this.hasHiddenOakLibsMount = hasHiddenOakLibsMount;
         }
 
         @Override
@@ -179,8 +190,7 @@ class ElasticIndexInfoProvider implements IndexInfoProvider {
 
         @Override
         public boolean hasHiddenOakLibsMount() {
-            // not available in elastic
-            return false;
+            return hasHiddenOakLibsMount;
         }
 
         @Override

@@ -26,7 +26,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.85-SNAPSHOT</version>
+    <version>1.87-SNAPSHOT</version>
     <relativePath>../../oak-parent/pom.xml</relativePath>
   </parent>
   <artifactId>oak-standalone</artifactId>
@@ -85,12 +85,11 @@
       <artifactId>spring-boot-devtools</artifactId>
       <optional>true</optional>
     </dependency>
-
     <!-- For colored console logging -->
     <dependency>
       <groupId>org.fusesource.jansi</groupId>
       <artifactId>jansi</artifactId>
-      <version>2.4.2</version>
+      <version>1.11</version>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -98,11 +97,19 @@
       <artifactId>metrics-core</artifactId>
       <optional>true</optional>
     </dependency>
-    <dependency>
+      <dependency>
+          <groupId>io.dropwizard.metrics</groupId>
+          <artifactId>metrics-servlets</artifactId>
+          <version>4.2.22</version>
+      </dependency>
+      <dependency>
       <groupId>org.mongodb</groupId>
       <artifactId>mongodb-driver-sync</artifactId>
+      <!-- version required by spring boot 2.7.18 -->
+      <version>4.6.1</version>
       <optional>true</optional>
     </dependency>
+
     <!-- Required for the persistent cache -->
     <dependency>
       <groupId>com.h2database</groupId>
@@ -186,17 +193,18 @@
     <dependency>
       <groupId>org.apache.felix</groupId>
       <artifactId>org.apache.felix.http.proxy</artifactId>
-      <version>3.0.6</version>
+      <version>2.3.2</version>
     </dependency>
     <dependency>
       <groupId>org.apache.felix</groupId>
       <artifactId>org.apache.felix.http.bridge</artifactId>
-      <version>5.1.8</version>
+      <version>2.3.2</version>
     </dependency>
     <dependency>
       <groupId>org.apache.felix</groupId>
       <artifactId>org.apache.felix.webconsole</artifactId>
-      <version>5.0.12</version>
+      <version>4.2.10</version>
+      <classifier>all</classifier>
     </dependency>
     <dependency>
       <groupId>org.apache.felix</groupId>

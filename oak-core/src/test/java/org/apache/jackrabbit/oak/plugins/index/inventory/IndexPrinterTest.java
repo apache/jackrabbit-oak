@@ -118,6 +118,39 @@ public class IndexPrinterTest {
         assertFalse(jsonMap.get("property").getChildren().containsKey("/oak:index/barIndex"));
     }
 
+    @Test
+    public void indexInfoElasticMountPrintedJson() {
+        when(asyncInfo.getAsyncLanes()).thenReturn(emptyList());
+
+        TestInfo elasticInfo = new TestInfo("/oak:index/esIndex", "elasticsearch");
+        elasticInfo.hasHiddenOakLibsMount = true;
+
+        when(indexInfo.getAllIndexInfo()).thenReturn(asList(elasticInfo));
+
+        String output = getPrintOutput(Format.JSON);
+        JsonObject json = JsonObject.fromJson(output, true);
+        Map<String, JsonObject> jsonMap = json.getChildren();
+        assertTrue(jsonMap.containsKey("elasticsearch"));
+        JsonObject elasticJson = jsonMap.get("elasticsearch");
+        assertTrue(elasticJson.getChildren().containsKey("/oak:index/esIndex"));
+        JsonObject idxJson = elasticJson.getChildren().get("/oak:index/esIndex");
+        assertEquals("true", idxJson.getProperties().get("Has hidden oak mount"));
+    }
+
+    @Test
+    public void indexInfoElasticMountPrinted() {
+        when(asyncInfo.getAsyncLanes()).thenReturn(emptyList());
+
+        TestInfo elasticInfo = new TestInfo("/oak:index/esIndex", "elasticsearch");
+        elasticInfo.hasHiddenOakLibsMount = true;
+
+        when(indexInfo.getAllIndexInfo()).thenReturn(asList(elasticInfo));
+
+        String output = getPrintOutput(Format.TEXT);
+        assertThat(output, containsString("/oak:index/esIndex"));
+        assertThat(output, containsString("Has hidden oak mount"));
+    }
+
     private String getPrintOutput(Format format) {
         StringWriter sw = new StringWriter();
         printer.print(new PrintWriter(sw), format, false);
@@ -128,6 +161,8 @@ public class IndexPrinterTest {
         final String indexPath;
         final String type;
         String laneName;
+        boolean hasHiddenOakLibsMount;
+
 
         private TestInfo(String indexPath, String type) {
             this.indexPath = indexPath;
@@ -181,7 +216,7 @@ public class IndexPrinterTest {
 
         @Override
         public boolean hasHiddenOakLibsMount() {
-            return false;
+            return hasHiddenOakLibsMount;
         }
 
         @Override

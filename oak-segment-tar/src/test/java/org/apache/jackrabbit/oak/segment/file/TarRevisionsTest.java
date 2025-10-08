@@ -37,7 +37,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.base.Functions;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
@@ -208,7 +207,7 @@ public class TarRevisionsTest {
             CompletableFuture<Boolean> t1 = CompletableFuture.supplyAsync(() -> {
                 try {
                     latch.await();
-                    return null != revisions.setHead(Functions.<RecordId>identity());
+                    return null != revisions.setHead(Function.identity());
                 } catch (Exception e) {
                     throw new CompletionException(e);
                 }
@@ -222,7 +221,7 @@ public class TarRevisionsTest {
             CompletableFuture<Boolean> t2 = CompletableFuture.supplyAsync(() -> {
                 try {
                     latch.countDown();
-                    return null != revisions.setHead(Functions.<RecordId>identity());
+                    return null != revisions.setHead(Function.identity());
                 } catch (Exception e) {
                     throw new CompletionException(e);
                 }

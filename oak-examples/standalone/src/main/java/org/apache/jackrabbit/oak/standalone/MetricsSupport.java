@@ -19,13 +19,17 @@
 
 package org.apache.jackrabbit.oak.standalone;
 
-import com.codahale.metrics.MetricRegistry;
 import org.apache.felix.connect.launch.PojoServiceRegistry;
 import org.osgi.framework.ServiceReference;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.servlets.MetricsServlet;
 
 @Configuration
 @ConditionalOnClass(MetricRegistry.class)
@@ -39,5 +43,10 @@ public class MetricsSupport {
         ServiceReference<?> metricRegistry =
                 serviceRegistry.getServiceReference(MetricRegistry.class.getName());
         return (MetricRegistry) serviceRegistry.getService(metricRegistry);
+    }
+
+    @Bean
+    public ServletRegistrationBean<?> metricsServlet() {
+        return new ServletRegistrationBean<>(new MetricsServlet(getMetricsRegistry()), "/metrics/*");
     }
 }
