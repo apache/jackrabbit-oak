@@ -443,6 +443,20 @@ public final class Utils {
         }
     }
 
+    /**
+     * Checks if the specified Amazon S3 bucket exists and is accessible with the provided S3 client.
+     * <p>
+     * This method attempts to perform a {@code headBucket} request. If the bucket exists and is accessible,
+     * it returns {@code true}. If the bucket does not exist, it returns {@code false}.
+     * Other unexpected exceptions (such as permission errors or network issues) will propagate.
+     * </p>
+     *
+     * @param s3Client   the {@link S3Client} to use for the request
+     * @param bucketName the name of the S3 bucket to check
+     * @return {@code true} if the bucket exists and is accessible; {@code false} if the bucket does not exist
+     * @throws NullPointerException if {@code s3Client} or {@code bucketName} is null
+     * @throws S3Exception         if an AWS error other than {@link NoSuchBucketException} occurs
+     */
     static boolean bucketExists(final S3Client s3Client, final String bucketName) {
         try {
             s3Client.headBucket(request -> request.bucket(bucketName));
@@ -453,6 +467,21 @@ public final class Utils {
         }
     }
 
+    /**
+     * Checks if a specific object exists in the given S3 bucket.
+     * <p>
+     * Performs a {@code headObject} request using the provided {@link S3RequestDecorator}.
+     * Returns {@code true} if the object exists, {@code false} if it does not (404 or 403).
+     * Other {@link S3Exception}s are propagated.
+     * </p>
+     *
+     * @param s3Client        the {@link S3Client} to use for the request
+     * @param bucket          the S3 bucket name
+     * @param key             the object key
+     * @param s3ReqDecorator  decorator for the {@link HeadObjectRequest}
+     * @return {@code true} if the object exists, {@code false} if not found or forbidden
+     * @throws S3Exception for AWS errors other than 404 or 403
+     */
     static boolean objectExists(final S3Client s3Client, final String bucket, final String key, S3RequestDecorator s3ReqDecorator) {
         try {
             s3Client.headObject(s3ReqDecorator.decorate(HeadObjectRequest.builder().bucket(bucket).key(key).build()));

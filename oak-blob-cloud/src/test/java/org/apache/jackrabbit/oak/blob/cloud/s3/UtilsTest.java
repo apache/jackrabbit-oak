@@ -19,9 +19,19 @@ package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.Mockito;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.net.URI;
 import java.util.Properties;
+import java.util.function.Consumer;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit cases for Utils class
@@ -169,6 +179,70 @@ public class UtilsTest {
         } catch (IllegalArgumentException e) {
             // expected
         }
+    }
+
+    @Test
+    public void testBucketExistsTrue() {
+        S3Client mockClient = Mockito.mock(S3Client.class);
+        // No exception means bucket exists
+        assertTrue(Utils.bucketExists(mockClient, Mockito.anyString()));
+        Mockito.verify(mockClient).headBucket(Mockito.any(Consumer.class));
+    }
+
+    @Test
+    public void testBucketExistsFalse() {
+        S3Client mockClient = Mockito.mock(S3Client.class);
+        Mockito.doThrow(NoSuchBucketException.builder().build())
+                .when(mockClient).headBucket(Mockito.any(Consumer.class));
+        assertFalse(Utils.bucketExists(mockClient, Mockito.anyString()));
+        Mockito.verify(mockClient).headBucket(Mockito.any(Consumer.class));
+    }
+
+    @Test
+    public void testObjectExistsTrue() {
+        S3Client mockClient = Mockito.mock(S3Client.class);
+        S3RequestDecorator decorator = Mockito.mock(S3RequestDecorator.class);
+
+        // identity decorator
+        Mockito.when(decorator.decorate(Mockito.any(HeadObjectRequest.class))).thenReturn(Mockito.mock(HeadObjectRequest.class));
+        assertTrue(Utils.objectExists(mockClient, "bucket", "key", decorator));
+        Mockito.verify(mockClient).headObject(Mockito.any(HeadObjectRequest.class));
+    }
+
+    @Test
+    public void testObjectExistsNotFound() {
+        S3Client mockClient = Mockito.mock(S3Client.class);
+        S3RequestDecorator decorator = Mockito.mock(S3RequestDecorator.class);
+
+        // identity decorator
+        Mockito.when(decorator.decorate(Mockito.any(HeadObjectRequest.class))).thenReturn(Mockito.mock(HeadObjectRequest.class));
+        AwsServiceException notFound = S3Exception.builder().statusCode(404).build();
+        Mockito.doThrow(notFound).when(mockClient).headObject(Mockito.any(HeadObjectRequest.class));
+        assertFalse(Utils.objectExists(mockClient, "bucket", "key", decorator));
+    }
+
+    @Test
+    public void testObjectExistsForbidden() {
+        S3Client mockClient = Mockito.mock(S3Client.class);
+        S3RequestDecorator decorator = Mockito.mock(S3RequestDecorator.class);
+
+        // identity decorator
+        Mockito.when(decorator.decorate(Mockito.any(HeadObjectRequest.class))).thenReturn(Mockito.mock(HeadObjectRequest.class));
+        AwsServiceException forbidden = S3Exception.builder().statusCode(403).build();
+        Mockito.doThrow(forbidden).when(mockClient).headObject(Mockito.any(HeadObjectRequest.class));
+        assertFalse(Utils.objectExists(mockClient, "bucket", "key", decorator));
+    }
+
+    @Test(expected = S3Exception.class)
+    public void testObjectExistsOtherException() {
+        S3Client mockClient = Mockito.mock(S3Client.class);
+        S3RequestDecorator decorator = Mockito.mock(S3RequestDecorator.class);
+
+        // identity decorator
+        Mockito.when(decorator.decorate(Mockito.any(HeadObjectRequest.class))).thenReturn(Mockito.mock(HeadObjectRequest.class));
+        AwsServiceException other = S3Exception.builder().statusCode(500).build();
+        Mockito.doThrow(other).when(mockClient).headObject(Mockito.any(HeadObjectRequest.class));
+        Utils.objectExists(mockClient, "bucket", "key", decorator);
     }
 
 }
