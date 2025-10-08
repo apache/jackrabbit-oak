@@ -57,10 +57,8 @@ public class RandomInputStream extends InputStream {
         while (true) {
             int x = a.read();
             int y = b.read();
-            if (x == -1 || y == -1) {
-                if (x == y) {
-                    break;
-                }
+            if ((x == -1 || y == -1) && x == y) {
+                break;
             }
             if (x != y) {
                 throw new IOException("Incorrect byte at position " + pos + ": x=" + x + " y=" + y);
@@ -76,6 +74,7 @@ public class RandomInputStream extends InputStream {
         reset();
     }
 
+    @Override
     public long skip(long n) {
         n = getReadBlock(n);
         if (n == 0) {
@@ -97,6 +96,7 @@ public class RandomInputStream extends InputStream {
         return (int) n;
     }
 
+    @Override
     public int read(byte @NotNull [] b, int off, int len) {
         if (pos >= this.len) {
             return -1;
@@ -112,10 +112,12 @@ public class RandomInputStream extends InputStream {
         return len;
     }
 
+    @Override
     public int read(byte @NotNull [] b) {
         return read(b, 0, b.length);
     }
 
+    @Override
     public void close() {
         pos = len;
     }
@@ -129,11 +131,13 @@ public class RandomInputStream extends InputStream {
         return (int) (state >>> (48 - 32));
     }
 
+    @Override
     public void reset() {
         pos = markedPos;
         state = markedState;
     }
 
+    @Override
     public int read() {
         if (pos >= len) {
             return -1;
@@ -142,10 +146,12 @@ public class RandomInputStream extends InputStream {
         return next() & 255;
     }
 
+    @Override
     public boolean markSupported() {
         return true;
     }
 
+    @Override
     public void mark(int readlimit) {
         markedPos = pos;
         markedState = state;
