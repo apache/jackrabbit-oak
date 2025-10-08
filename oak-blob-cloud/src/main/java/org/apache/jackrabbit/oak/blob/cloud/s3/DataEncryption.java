@@ -16,10 +16,13 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
+import org.apache.jackrabbit.oak.commons.annotations.Internal;
+
 /**
  * Enum to indicate S3 encryption mode
  *
  */
+@Internal
 public enum DataEncryption {
     SSE_S3, SSE_KMS, SSE_C, NONE;
 }
