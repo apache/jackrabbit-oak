@@ -158,9 +158,12 @@ public class IndexPrinter implements InventoryPrinter {
         }
 
         if ("lucene".equals(info.getType())) {
-            // Only valid for lucene type indexes, for others it will simply show false.
+            // Only valid for lucene type indexes
             po.text("Has hidden oak mount", info.hasHiddenOakLibsMount());
             po.text("Has property index", info.hasPropertyIndexNode());
+        } else if ("elasticsearch".equals(info.getType())) {
+            // For elastic only the mount flag is applicable
+            po.text("Has hidden oak mount", info.hasHiddenOakLibsMount());
         }
         po.text("Is active", info.isActive());
 
