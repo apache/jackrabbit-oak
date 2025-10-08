@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.segment.standby;
 import static org.junit.Assume.assumeTrue;
 
 import org.apache.commons.lang3.SystemUtils;
-import org.apache.jackrabbit.oak.commons.CIHelper;
+import org.apache.jackrabbit.oak.commons.testing.CIHelper;
 import org.junit.BeforeClass;
 
 public class TestBase {

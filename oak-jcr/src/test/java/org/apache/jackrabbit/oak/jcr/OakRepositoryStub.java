@@ -23,13 +23,13 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
+import org.apache.jackrabbit.oak.commons.testing.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.test.RepositoryStub;
 import org.apache.jackrabbit.test.RepositoryStubException;
 
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
+import static org.apache.jackrabbit.oak.commons.testing.FixturesHelper.getFixtures;
 
 /**
  * A generic Oak repository stub implementation that delegates to a specific
