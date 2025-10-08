@@ -20,8 +20,6 @@ import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3Config;
-
 /**
  * Test S3DataStore operation with SSE_KMS encryption.
  * It requires to pass aws config file via system property  or system properties by prefixing with 'ds.'.
