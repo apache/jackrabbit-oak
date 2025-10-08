@@ -69,7 +69,9 @@ public class AzureBlobContainerProvider implements Closeable {
     }
 
     @Override
-    public void close() {}
+    public void close() {
+        // No resources to close
+    }
 
     public static class Builder {
         private final String containerName;

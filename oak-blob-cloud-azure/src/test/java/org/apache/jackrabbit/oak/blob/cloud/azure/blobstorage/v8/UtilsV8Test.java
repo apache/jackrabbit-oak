@@ -31,22 +31,16 @@ import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.junit.After;
 import org.junit.Test;
 import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
-import java.net.SocketAddress;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.util.Properties;
 
 import static org.junit.Assert.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.mockStatic;
 
 public class UtilsV8Test {
 

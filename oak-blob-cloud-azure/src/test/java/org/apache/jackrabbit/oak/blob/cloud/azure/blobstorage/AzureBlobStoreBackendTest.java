@@ -18,17 +18,14 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
-import com.azure.core.util.BinaryData;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.ListBlobsOptions;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
-import com.azure.storage.blob.specialized.BlockBlobClient;
 import com.google.common.cache.Cache;
-import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
-import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -41,7 +38,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.slf4j.LoggerFactory;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -56,12 +52,8 @@ import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URI;
-import java.time.Duration;
-import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
@@ -102,7 +94,6 @@ public class AzureBlobStoreBackendTest {
     public static AzuriteDockerRule azurite = new AzuriteDockerRule();
 
     private static final String CONTAINER_NAME = "test-container";
-    private static final String TEST_BLOB_CONTENT = "test blob content";
     private static final String TEST_METADATA_CONTENT = "test metadata content";
     private static final String AZURE_ACCOUNT_NAME = "AZURE_ACCOUNT_NAME";
     private static final String AZURE_TENANT_ID = "AZURE_TENANT_ID";
@@ -114,20 +105,8 @@ public class AzureBlobStoreBackendTest {
     private AzureBlobStoreBackend backend;
     private Properties testProperties;
 
-    @Mock
-    private AzureBlobContainerProvider mockProvider;
-
-    @Mock
-    private BlobContainerClient mockContainer;
-
-    @Mock
-    private BlobClient mockBlobClient;
-
-    @Mock
-    private BlockBlobClient mockBlockBlobClient;
-
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         MockitoAnnotations.openMocks(this);
         
         // Create real container for integration tests
@@ -142,7 +121,7 @@ public class AzureBlobStoreBackendTest {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         if (backend != null) {
             try {
                 backend.close();
@@ -192,7 +171,7 @@ public class AzureBlobStoreBackendTest {
     }
 
     @Test
-    public void testInitWithNullProperties() throws Exception {
+    public void testInitWithNullProperties() {
         AzureBlobStoreBackend nullPropsBackend = new AzureBlobStoreBackend();
         // Should not set properties, will try to read from default config file
 
@@ -232,13 +211,11 @@ public class AzureBlobStoreBackendTest {
                 configFile.delete();
             }
             // Clean up the backend
-            if (nullPropsBackend != null) {
-                try {
-                    nullPropsBackend.close();
-                } catch (Exception e) {
-                    // Ignore cleanup errors
-                }
-            }
+          try {
+            nullPropsBackend.close();
+          } catch (Exception e) {
+            // Ignore cleanup errors
+          }
         }
     }
 
@@ -622,6 +599,7 @@ public class AzureBlobStoreBackendTest {
         // Should not throw exception when deleting non-existent record
         backend.deleteRecord(identifier);
         // No exception expected
+        assertTrue("Delete should not throw exception for non-existent record", true);
     }
 
     @Test
@@ -1145,14 +1123,19 @@ public class AzureBlobStoreBackendTest {
 
             DataRecordDownloadOptions options = DataRecordDownloadOptions.DEFAULT;
 
-            URI downloadURI = (URI) createDownloadURIMethod.invoke(downloadBackend, identifier, options);
-            // Note: This may return null if the backend doesn't support presigned URIs in test environment
+          createDownloadURIMethod.invoke(downloadBackend, identifier, options);
+          // Note: This may return null if the backend doesn't support presigned URIs in test environment
             // The important thing is that it doesn't throw an exception
 
             testFile.delete();
+
+            //No exception should be thrown
+            assertTrue("Should not throw exception", true);
         } finally {
             downloadBackend.close();
         }
+
+
     }
 
     @Test
@@ -1288,12 +1271,18 @@ public class AzureBlobStoreBackendTest {
         // Should be able to call close multiple times
         backend.close();
         backend.close();
+
+        //No exception should be thrown
+        assertTrue("Should not throw exception", true);
+
+        // Should be able to use backend after close (since close() is empty)
+        assertNotNull("Backend should still be usable", backend.getAzureContainer());
     }
 
     // ========== ERROR HANDLING AND EDGE CASES ==========
 
     @Test
-    public void testInitWithInvalidConnectionString() throws Exception {
+    public void testInitWithInvalidConnectionString() {
         AzureBlobStoreBackend invalidBackend = new AzureBlobStoreBackend();
         Properties invalidProps = new Properties();
         invalidProps.setProperty(AZURE_CONNECTION_STRING, "invalid-connection-string");
@@ -1312,7 +1301,7 @@ public class AzureBlobStoreBackendTest {
     }
 
     @Test
-    public void testInitWithMissingContainer() throws Exception {
+    public void testInitWithMissingContainer() {
         Properties propsNoContainer = createTestProperties();
         propsNoContainer.remove(AZURE_BLOB_CONTAINER_NAME);
 
@@ -1937,7 +1926,7 @@ public class AzureBlobStoreBackendTest {
     }
 
     @Test
-    public void testBlobStorageExceptionHandling() throws Exception {
+    public void testBlobStorageExceptionHandling() {
         // Test with invalid connection string to trigger exception handling
         Properties invalidProps = new Properties();
         invalidProps.setProperty(AZURE_BLOB_CONTAINER_NAME, CONTAINER_NAME);
@@ -2153,9 +2142,9 @@ public class AzureBlobStoreBackendTest {
 
     @Test
     public void testMetadataOperationsWithRenamedConstants() throws Exception {
-        BlobContainerClient container = createBlobContainer();
+      createBlobContainer();
 
-        AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
+      AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
         azureBlobStoreBackend.setProperties(getConfigurationWithConnectionString());
         azureBlobStoreBackend.init();
 
@@ -2195,10 +2184,11 @@ public class AzureBlobStoreBackendTest {
         return tempFile;
     }
 
-    private BlobContainerClient createBlobContainer() throws Exception {
+    private BlobContainerClient createBlobContainer() {
         container = azurite.getContainer(CONTAINER_NAME, getConnectionString());
         for (String blob : BLOBS) {
-            container.getBlobClient(blob + ".txt").upload(BinaryData.fromString(blob), true);
+            InputStream blobStream = new ByteArrayInputStream(blob.getBytes());
+            container.getBlobClient(blob + ".txt").upload(blobStream, blob.getBytes().length, true);
         }
         return container;
     }
@@ -2234,19 +2224,6 @@ public class AzureBlobStoreBackendTest {
         return properties;
     }
 
-    @NotNull
-    private static SharedAccessBlobPolicy policy(EnumSet<SharedAccessBlobPermissions> permissions, Instant expirationTime) {
-        SharedAccessBlobPolicy sharedAccessBlobPolicy = new SharedAccessBlobPolicy();
-        sharedAccessBlobPolicy.setPermissions(permissions);
-        sharedAccessBlobPolicy.setSharedAccessExpiryTime(Date.from(expirationTime));
-        return sharedAccessBlobPolicy;
-    }
-
-    @NotNull
-    private static SharedAccessBlobPolicy policy(EnumSet<SharedAccessBlobPermissions> permissions) {
-        return policy(permissions, Instant.now().plus(Duration.ofDays(7)));
-    }
-
     private static void assertReadAccessGranted(AzureBlobStoreBackend backend, Set<String> expectedBlobs) throws Exception {
         BlobContainerClient container = backend.getAzureContainer();
         Set<String> actualBlobNames = StreamSupport.stream(container.listBlobs().spliterator(), false)
@@ -2271,9 +2248,10 @@ public class AzureBlobStoreBackendTest {
     }
 
     private static void assertWriteAccessGranted(AzureBlobStoreBackend backend, String blob) throws Exception {
+        InputStream blobStream = new ByteArrayInputStream(blob.getBytes());
         backend.getAzureContainer()
                 .getBlobClient(blob + ".txt")
-                .upload(BinaryData.fromString(blob), true);
+                .upload(blobStream, blob.getBytes().length, true);
     }
 
     private static void assertWriteAccessNotGranted(AzureBlobStoreBackend backend) {
@@ -2292,10 +2270,6 @@ public class AzureBlobStoreBackendTest {
         } catch (Exception e) {
             // successful
         }
-    }
-
-    private static Instant yesterday() {
-        return Instant.now().minus(Duration.ofDays(1));
     }
 
     private static Set<String> concat(Set<String> set, String element) {

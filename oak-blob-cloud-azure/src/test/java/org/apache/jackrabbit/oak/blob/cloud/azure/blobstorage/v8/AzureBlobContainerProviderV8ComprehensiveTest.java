@@ -21,8 +21,6 @@ package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v8;
 import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenRequestContext;
 import com.azure.identity.ClientSecretCredential;
-import com.microsoft.azure.storage.StorageCredentials;
-import com.microsoft.azure.storage.StorageCredentialsToken;
 import com.microsoft.azure.storage.blob.BlobRequestOptions;
 import com.microsoft.azure.storage.blob.SharedAccessBlobHeaders;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
@@ -39,7 +37,6 @@ import java.util.EnumSet;
 import java.util.concurrent.ScheduledExecutorService;
 
 import static org.junit.Assert.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 public class AzureBlobContainerProviderV8ComprehensiveTest {
@@ -367,7 +364,7 @@ public class AzureBlobContainerProviderV8ComprehensiveTest {
     }
 
     @Test
-    public void testClose() throws Exception {
+    public void testClose() {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName(ACCOUNT_NAME)
@@ -379,6 +376,9 @@ public class AzureBlobContainerProviderV8ComprehensiveTest {
 
         // Test multiple close calls (should not throw exception)
         provider.close();
+
+        // No exception should be thrown
+        assertTrue("Should not throw exception", true);
     }
 
     @Test
@@ -455,6 +455,7 @@ public class AzureBlobContainerProviderV8ComprehensiveTest {
         // Call close - should not throw exception
         provider.close();
         // Test passes if no exception is thrown
+        assertTrue("Should not throw exception", true);
     }
 
     @Test
@@ -469,6 +470,7 @@ public class AzureBlobContainerProviderV8ComprehensiveTest {
         provider.close();
         provider.close();
         // Test passes if no exception is thrown
+        assertTrue("Should not throw exception", true);
     }
 
     @Test

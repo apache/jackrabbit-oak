@@ -41,7 +41,7 @@ public class AzureBlobContainerProviderV8SasGenerationTest {
     private AzureBlobContainerProviderV8 provider;
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         if (provider != null) {
             provider.close();
         }

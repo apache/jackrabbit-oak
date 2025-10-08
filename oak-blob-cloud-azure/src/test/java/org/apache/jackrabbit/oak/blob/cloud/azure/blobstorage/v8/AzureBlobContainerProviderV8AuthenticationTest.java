@@ -45,14 +45,14 @@ public class AzureBlobContainerProviderV8AuthenticationTest {
     private AzureBlobContainerProviderV8 provider;
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         if (provider != null) {
             provider.close();
         }
     }
 
     @Test
-    public void testAuthenticationPriorityConnectionString() throws Exception {
+    public void testAuthenticationPriorityConnectionString() {
         // Test that connection string takes priority over all other authentication methods
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
@@ -75,7 +75,7 @@ public class AzureBlobContainerProviderV8AuthenticationTest {
     }
 
     @Test
-    public void testAuthenticationPrioritySasTokenOverAccountKey() throws Exception {
+    public void testAuthenticationPrioritySasTokenOverAccountKey() {
         // Test that SAS token takes priority over account key when no connection string or service principal
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
@@ -95,7 +95,7 @@ public class AzureBlobContainerProviderV8AuthenticationTest {
     }
 
     @Test
-    public void testAuthenticationFallbackToAccountKey() throws Exception {
+    public void testAuthenticationFallbackToAccountKey() {
         // Test fallback to account key when no other authentication methods are available
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
@@ -244,7 +244,7 @@ public class AzureBlobContainerProviderV8AuthenticationTest {
     }
 
     @Test
-    public void testAuthenticationWithConnectionStringOnly() throws Exception {
+    public void testAuthenticationWithConnectionStringOnly() {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString(CONNECTION_STRING)
@@ -261,7 +261,7 @@ public class AzureBlobContainerProviderV8AuthenticationTest {
     }
 
     @Test
-    public void testAuthenticationWithSasTokenOnly() throws Exception {
+    public void testAuthenticationWithSasTokenOnly() {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName(ACCOUNT_NAME)
@@ -280,7 +280,7 @@ public class AzureBlobContainerProviderV8AuthenticationTest {
     }
 
     @Test
-    public void testAuthenticationWithAccountKeyOnly() throws Exception {
+    public void testAuthenticationWithAccountKeyOnly() {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName(ACCOUNT_NAME)
@@ -299,7 +299,7 @@ public class AzureBlobContainerProviderV8AuthenticationTest {
     }
 
     @Test
-    public void testAuthenticationWithServicePrincipalOnly() throws Exception {
+    public void testAuthenticationWithServicePrincipalOnly() {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName(ACCOUNT_NAME)

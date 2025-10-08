@@ -49,7 +49,7 @@ public class AzuriteDockerRule extends ExternalResource {
     private GenericContainer<?> azuriteContainer;
 
     @Override
-    protected void before() throws Throwable {
+    protected void before() {
         azuriteContainer = new GenericContainer<>(DOCKER_IMAGE_NAME)
                 .withExposedPorts(10000)
                 .withEnv(Map.of("executable", "blob"))

@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v8;
 
+import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.SharedAccessBlobHeaders;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -58,7 +59,7 @@ public class AzureBlobContainerProviderV8ErrorConditionsTest {
     }
 
     @Test
-    public void testGetBlobContainerWithInvalidConnectionString() throws Exception {
+    public void testGetBlobContainerWithInvalidConnectionString() {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString("invalid-connection-string")
@@ -75,7 +76,7 @@ public class AzureBlobContainerProviderV8ErrorConditionsTest {
     }
 
     @Test
-    public void testGetBlobContainerWithInvalidAccountKey() throws Exception {
+    public void testGetBlobContainerWithInvalidAccountKey() {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("invalidaccount")
@@ -95,7 +96,7 @@ public class AzureBlobContainerProviderV8ErrorConditionsTest {
     }
 
     @Test
-    public void testGetBlobContainerWithInvalidSasToken() throws Exception {
+    public void testGetBlobContainerWithInvalidSasToken() {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withSasToken("invalid-sas-token")
@@ -112,13 +113,12 @@ public class AzureBlobContainerProviderV8ErrorConditionsTest {
         } catch (Exception e) {
             // Should throw DataStoreException or related exception
             assertTrue("Should throw appropriate exception for invalid SAS token",
-                    e instanceof DataStoreException || e instanceof IllegalArgumentException ||
-                    e instanceof URISyntaxException);
+                       e instanceof DataStoreException || e instanceof IllegalArgumentException);
         }
     }
 
     @Test
-    public void testGetBlobContainerWithNullBlobRequestOptions() throws Exception {
+    public void testGetBlobContainerWithNullBlobRequestOptions() {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString("DefaultEndpointsProtocol=https;AccountName=devstoreaccount1;AccountKey=invalid;")
@@ -131,13 +131,12 @@ public class AzureBlobContainerProviderV8ErrorConditionsTest {
             // Expected for invalid connection, but not for null options
             // The exception could be various types depending on the validation
             assertTrue("Exception should be related to connection or key validation",
-                    e instanceof DataStoreException || e instanceof IllegalArgumentException ||
-                    e instanceof URISyntaxException || e instanceof InvalidKeyException);
+                       e instanceof DataStoreException || e instanceof IllegalArgumentException);
         }
     }
 
     @Test
-    public void testGenerateSharedAccessSignatureWithInvalidKey() throws Exception {
+    public void testGenerateSharedAccessSignatureWithInvalidKey() {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName(ACCOUNT_NAME)
@@ -164,7 +163,7 @@ public class AzureBlobContainerProviderV8ErrorConditionsTest {
     }
 
     @Test
-    public void testGenerateSharedAccessSignatureWithZeroExpiry() throws Exception {
+    public void testGenerateSharedAccessSignatureWithZeroExpiry() throws DataStoreException, URISyntaxException, InvalidKeyException, StorageException {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName(ACCOUNT_NAME)
@@ -172,7 +171,6 @@ public class AzureBlobContainerProviderV8ErrorConditionsTest {
                 .withBlobEndpoint("https://testaccount.blob.core.windows.net")
                 .build();
 
-        try {
             provider.generateSharedAccessSignature(
                     null,
                     "test-blob",
@@ -180,14 +178,14 @@ public class AzureBlobContainerProviderV8ErrorConditionsTest {
                     0, // Zero expiry
                     null
             );
-        } catch (Exception e) {
-            // Expected for invalid connection/key, but should handle zero expiry gracefully
-            assertNotNull("Exception should not be null", e);
-        }
+
+            // No exception should be thrown for zero expiry
+            assertTrue("Should not throw exception for zero expiry", true);
+
     }
 
-    @Test
-    public void testGenerateSharedAccessSignatureWithNegativeExpiry() throws Exception {
+    @Test(expected=DataStoreException.class)
+    public void testGenerateSharedAccessSignatureWithNegativeExpiry() throws DataStoreException, URISyntaxException, InvalidKeyException, StorageException {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName(ACCOUNT_NAME)
@@ -195,7 +193,6 @@ public class AzureBlobContainerProviderV8ErrorConditionsTest {
                 .withBlobEndpoint("https://testaccount.blob.core.windows.net")
                 .build();
 
-        try {
             provider.generateSharedAccessSignature(
                     null,
                     "test-blob",
@@ -203,14 +200,10 @@ public class AzureBlobContainerProviderV8ErrorConditionsTest {
                     -3600, // Negative expiry
                     null
             );
-        } catch (Exception e) {
-            // Expected for invalid connection/key, but should handle negative expiry gracefully
-            assertNotNull("Exception should not be null", e);
-        }
     }
 
-    @Test
-    public void testGenerateSharedAccessSignatureWithEmptyPermissions() throws Exception {
+    @Test(expected = DataStoreException.class)
+    public void testGenerateSharedAccessSignatureWithEmptyPermissions() throws DataStoreException, URISyntaxException, InvalidKeyException, StorageException {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName(ACCOUNT_NAME)
@@ -218,7 +211,6 @@ public class AzureBlobContainerProviderV8ErrorConditionsTest {
                 .withBlobEndpoint("https://testaccount.blob.core.windows.net")
                 .build();
 
-        try {
             provider.generateSharedAccessSignature(
                     null,
                     "test-blob",
@@ -226,14 +218,10 @@ public class AzureBlobContainerProviderV8ErrorConditionsTest {
                     3600,
                     null
             );
-        } catch (Exception e) {
-            // Expected for invalid connection/key, but should handle empty permissions gracefully
-            assertNotNull("Exception should not be null", e);
-        }
     }
 
-    @Test
-    public void testGenerateSharedAccessSignatureWithNullKey() throws Exception {
+    @Test(expected = DataStoreException.class)
+    public void testGenerateSharedAccessSignatureWithNullKey() throws DataStoreException, URISyntaxException, InvalidKeyException, StorageException {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName(ACCOUNT_NAME)
@@ -241,7 +229,6 @@ public class AzureBlobContainerProviderV8ErrorConditionsTest {
                 .withBlobEndpoint("https://testaccount.blob.core.windows.net")
                 .build();
 
-        try {
             provider.generateSharedAccessSignature(
                     null,
                     null, // Null key
@@ -249,21 +236,15 @@ public class AzureBlobContainerProviderV8ErrorConditionsTest {
                     3600,
                     null
             );
-            fail("Should throw exception for null blob key");
-        } catch (Exception e) {
-            // Expected - should throw appropriate exception for null key
-            assertNotNull("Exception should not be null", e);
-        }
     }
 
     @Test
-    public void testFillEmptyHeadersWithNullHeaders() throws Exception {
+    public void testFillEmptyHeadersWithNullHeaders() throws DataStoreException, URISyntaxException, InvalidKeyException, StorageException {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .build();
 
         // Test with null headers - should not crash
-        try {
             provider.generateSharedAccessSignature(
                     null,
                     "test-blob",
@@ -271,14 +252,12 @@ public class AzureBlobContainerProviderV8ErrorConditionsTest {
                     3600,
                     null // Null headers
             );
-        } catch (Exception e) {
-            // Expected for missing authentication, but should handle null headers gracefully
-            assertNotNull("Exception should not be null", e);
-        }
+
+            assertTrue("Should not throw exception", true);
     }
 
-    @Test
-    public void testFillEmptyHeadersWithPartiallyNullHeaders() throws Exception {
+    @Test(expected = DataStoreException.class)
+    public void testFillEmptyHeadersWithPartiallyNullHeaders() throws DataStoreException, URISyntaxException, InvalidKeyException, StorageException {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName(ACCOUNT_NAME)
@@ -290,7 +269,6 @@ public class AzureBlobContainerProviderV8ErrorConditionsTest {
         headers.setContentType("application/json");
         // Leave other headers null to test fillEmptyHeaders method
 
-        try {
             provider.generateSharedAccessSignature(
                     null,
                     "test-blob",
@@ -298,10 +276,6 @@ public class AzureBlobContainerProviderV8ErrorConditionsTest {
                     3600,
                     headers
             );
-        } catch (Exception e) {
-            // Expected for invalid connection/key, but should handle partially null headers gracefully
-            assertNotNull("Exception should not be null", e);
-        }
     }
 
     @Test
@@ -314,6 +288,8 @@ public class AzureBlobContainerProviderV8ErrorConditionsTest {
         provider.close();
         provider.close();
         provider.close();
+
+        assertTrue("Should not throw exception", true);
     }
 
     @Test

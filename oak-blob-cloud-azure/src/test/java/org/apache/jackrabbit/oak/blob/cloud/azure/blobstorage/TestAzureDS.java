@@ -80,7 +80,7 @@ public class TestAzureDS extends AbstractDataStoreTest {
   }
 
   @Override
-  protected DataStore createDataStore() throws RepositoryException {
+  protected DataStore createDataStore() {
     DataStore azureds = null;
     try {
       azureds = AzureDataStoreUtils.getAzureDataStore(props, dataStoreDir);

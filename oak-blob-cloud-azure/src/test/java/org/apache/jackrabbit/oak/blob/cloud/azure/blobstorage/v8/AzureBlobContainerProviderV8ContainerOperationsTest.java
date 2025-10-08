@@ -38,20 +38,18 @@ public class AzureBlobContainerProviderV8ContainerOperationsTest {
     private static final String CLIENT_ID = "test-client-id";
     private static final String CLIENT_SECRET = "test-client-secret";
     private static final String CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=testaccount;AccountKey=dGVzdC1hY2NvdW50LWtleQ==;EndpointSuffix=core.windows.net";
-    private static final String SAS_TOKEN = "?sv=2020-08-04&ss=b&srt=sco&sp=rwdlacx&se=2023-12-31T23:59:59Z&st=2023-01-01T00:00:00Z&spr=https&sig=test";
-    private static final String ACCOUNT_KEY = "dGVzdC1hY2NvdW50LWtleQ==";
 
     private AzureBlobContainerProviderV8 provider;
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         if (provider != null) {
             provider.close();
         }
     }
 
     @Test
-    public void testGetBlobContainerWithBlobRequestOptions() throws Exception {
+    public void testGetBlobContainerWithBlobRequestOptions() {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString(CONNECTION_STRING)
@@ -70,7 +68,7 @@ public class AzureBlobContainerProviderV8ContainerOperationsTest {
     }
 
     @Test
-    public void testGetBlobContainerWithoutBlobRequestOptions() throws Exception {
+    public void testGetBlobContainerWithoutBlobRequestOptions() {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString(CONNECTION_STRING)
@@ -88,7 +86,7 @@ public class AzureBlobContainerProviderV8ContainerOperationsTest {
     }
 
     @Test
-    public void testGetBlobContainerWithServicePrincipalAndBlobRequestOptions() throws Exception {
+    public void testGetBlobContainerWithServicePrincipalAndBlobRequestOptions() {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName(ACCOUNT_NAME)
@@ -182,7 +180,7 @@ public class AzureBlobContainerProviderV8ContainerOperationsTest {
     }
 
     @Test
-    public void testGetBlobContainerWithServicePrincipalOnly() throws Exception {
+    public void testGetBlobContainerWithServicePrincipalOnly() {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName(ACCOUNT_NAME)
@@ -259,7 +257,7 @@ public class AzureBlobContainerProviderV8ContainerOperationsTest {
     }
 
     @Test
-    public void testGetBlobContainerWithInvalidConnectionString() throws Exception {
+    public void testGetBlobContainerWithInvalidConnectionString() {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString("invalid-connection-string")
@@ -277,7 +275,7 @@ public class AzureBlobContainerProviderV8ContainerOperationsTest {
     }
 
     @Test
-    public void testGetBlobContainerWithEmptyCredentials() throws Exception {
+    public void testGetBlobContainerWithEmptyCredentials() {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .build();

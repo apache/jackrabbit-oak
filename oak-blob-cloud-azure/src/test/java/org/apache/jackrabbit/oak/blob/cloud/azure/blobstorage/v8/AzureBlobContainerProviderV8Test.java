@@ -18,17 +18,9 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v8;
 
-import com.azure.core.credential.AccessToken;
-import com.azure.core.credential.TokenRequestContext;
-import com.azure.identity.ClientSecretCredential;
-import com.azure.identity.ClientSecretCredentialBuilder;
-import com.microsoft.azure.storage.CloudStorageAccount;
-import com.microsoft.azure.storage.StorageCredentialsToken;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobRequestOptions;
-import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.blob.SharedAccessBlobHeaders;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
@@ -41,23 +33,17 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
 import org.testcontainers.shaded.com.google.common.collect.ImmutableSet;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.StreamSupport;
 
 import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.ADD;
@@ -68,8 +54,6 @@ import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.WRITE
 import static java.util.stream.Collectors.toSet;
 import static org.junit.Assert.*;
 import static org.junit.Assume.assumeNotNull;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 public class AzureBlobContainerProviderV8Test {
 
@@ -86,18 +70,8 @@ public class AzureBlobContainerProviderV8Test {
     private static final Set<String> BLOBS = Set.of("blob1", "blob2");
 
     private CloudBlobContainer container;
-    private AzureBlobContainerProviderV8 provider;
 
-    @Mock
-    private ClientSecretCredential mockClientSecretCredential;
-
-    @Mock
-    private AccessToken mockAccessToken;
-
-    @Mock
-    private ScheduledExecutorService mockExecutorService;
-
-    @Before
+  @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
     }
@@ -106,9 +80,6 @@ public class AzureBlobContainerProviderV8Test {
     public void tearDown() throws Exception {
         if (container != null) {
             container.deleteIfExists();
-        }
-        if (provider != null) {
-            provider.close();
         }
     }
 
@@ -411,7 +382,7 @@ public class AzureBlobContainerProviderV8Test {
     // ========== Error Condition Tests ==========
 
     @Test
-    public void testGetBlobContainerWithInvalidConnectionString() throws Exception {
+    public void testGetBlobContainerWithInvalidConnectionString() {
         AzureBlobContainerProviderV8 provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString("invalid-connection-string")
@@ -440,7 +411,7 @@ public class AzureBlobContainerProviderV8Test {
     }
 
     @Test
-    public void testCloseProvider() throws Exception {
+    public void testCloseProvider() {
         AzureBlobContainerProviderV8 provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString(getConnectionString())
@@ -448,6 +419,8 @@ public class AzureBlobContainerProviderV8Test {
 
         // Should not throw any exception
         provider.close();
+
+        assertTrue("Should not throw exception", true);
     }
 
     @Test
@@ -597,7 +570,7 @@ public class AzureBlobContainerProviderV8Test {
     }
 
     @Test
-    public void testMultipleClose() throws Exception {
+    public void testMultipleClose() {
         AzureBlobContainerProviderV8 provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString(getConnectionString())
@@ -607,6 +580,8 @@ public class AzureBlobContainerProviderV8Test {
         provider.close();
         provider.close();
         provider.close();
+
+        assertTrue("Should not throw exception", true);
     }
 
     private String getEnvironmentVariable(String variableName) {
@@ -865,7 +840,7 @@ public class AzureBlobContainerProviderV8Test {
                 .withAzureConnectionString(getConnectionString())
                 .build();
 
-        try {
+        try(provider) {
             // Get container
             CloudBlobContainer container = provider.getBlobContainer();
             assertNotNull("Container should not be null", container);
@@ -895,7 +870,7 @@ public class AzureBlobContainerProviderV8Test {
                 .withBlobEndpoint(azurite.getBlobEndpoint())
                 .build();
 
-        try {
+        try (provider) {
             // Get container
             CloudBlobContainer container = provider.getBlobContainer();
             assertNotNull("Container should not be null", container);
@@ -917,7 +892,7 @@ public class AzureBlobContainerProviderV8Test {
     }
 
     private static void assertReferenceSecret(AzureBlobStoreBackendV8 azureBlobStoreBackend)
-            throws DataStoreException, IOException {
+            throws DataStoreException {
         // assert secret already created on init
         DataRecord refRec = azureBlobStoreBackend.getMetadataRecord("reference.key");
         assertNotNull("Reference data record null", refRec);

@@ -54,6 +54,8 @@ import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.LIST;
 import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.READ;
 import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.WRITE;
 import static java.util.stream.Collectors.toSet;
+import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_DEFAULT_CONCURRENT_REQUEST_COUNT;
+import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_MAX_CONCURRENT_REQUEST_COUNT;
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BlOB_META_DIR_NAME;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -475,6 +477,8 @@ public class AzureBlobStoreBackendV8Test {
     backend1.setProperties(props1);
     backend1.init();
     // Should reset to default minimum
+    com.microsoft.azure.storage.blob.BlobRequestOptions options1 = backend1.getBlobRequestOptions();
+    assertEquals("Concurrent request count should be set to default minimum", AZURE_BLOB_DEFAULT_CONCURRENT_REQUEST_COUNT, options1.getConcurrentRequestCount().intValue());
 
     // Test with too high concurrent request count
     AzureBlobStoreBackendV8 backend2 = new AzureBlobStoreBackendV8();
@@ -483,6 +487,11 @@ public class AzureBlobStoreBackendV8Test {
     backend2.setProperties(props2);
     backend2.init();
     // Should reset to default maximum
+    //read concurrent request count from instance's internals
+    com.microsoft.azure.storage.blob.BlobRequestOptions options = backend2.getBlobRequestOptions();
+    assertEquals("Concurrent request count should be set to default maximum", Integer.valueOf(AZURE_BLOB_MAX_CONCURRENT_REQUEST_COUNT), options.getConcurrentRequestCount());
+
+
   }
 
   @Test
@@ -528,6 +537,7 @@ public class AzureBlobStoreBackendV8Test {
     // Should not throw exception when deleting non-existent record
     backend.deleteRecord(new org.apache.jackrabbit.core.data.DataIdentifier("nonexistent"));
     // No exception expected
+    assertTrue("Delete should not throw exception for non-existent record", true);
   }
 
   @Test
@@ -664,6 +674,7 @@ public class AzureBlobStoreBackendV8Test {
 
     // Should not throw exception
     backend.close();
+    assertTrue("Should not throw exception", true);
   }
 
   @Test

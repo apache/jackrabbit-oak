@@ -33,7 +33,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class UtilsTest {
@@ -46,7 +45,7 @@ public class UtilsTest {
         Properties properties = new Properties();
         properties.put(AzureConstants.AZURE_CONNECTION_STRING, "DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=accountKey");
         String connectionString = Utils.getConnectionStringFromProperties(properties);
-        assertEquals(connectionString,"DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=accountKey");
+        assertEquals("DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=accountKey", connectionString);
     }
 
     @Test
@@ -231,8 +230,8 @@ public class UtilsTest {
         properties.setProperty(AzureConstants.PROXY_HOST, "proxy.example.com");
         properties.setProperty(AzureConstants.PROXY_PORT, "invalid");
 
-        com.azure.core.http.ProxyOptions proxyOptions = Utils.computeProxyOptions(properties);
-        fail("Expected NumberFormatException when port is invalid");
+      Utils.computeProxyOptions(properties);
+      fail("Expected NumberFormatException when port is invalid");
     }
 
     @Test
