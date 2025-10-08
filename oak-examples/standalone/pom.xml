@@ -85,7 +85,6 @@
       <artifactId>spring-boot-devtools</artifactId>
       <optional>true</optional>
     </dependency>
-
     <!-- For colored console logging -->
     <dependency>
       <groupId>org.fusesource.jansi</groupId>
@@ -98,12 +97,19 @@
       <artifactId>metrics-core</artifactId>
       <optional>true</optional>
     </dependency>
-    <dependency>
+      <dependency>
+          <groupId>io.dropwizard.metrics</groupId>
+          <artifactId>metrics-servlets</artifactId>
+          <version>4.2.22</version>
+      </dependency>
+      <dependency>
       <groupId>org.mongodb</groupId>
-      <artifactId>mongo-java-driver</artifactId>
-      <version>3.12.14</version>
+      <artifactId>mongodb-driver-sync</artifactId>
+      <!-- version required by spring boot 2.7.18 -->
+      <version>4.6.1</version>
       <optional>true</optional>
     </dependency>
+
     <!-- Required for the persistent cache -->
     <dependency>
       <groupId>com.h2database</groupId>
