@@ -111,6 +111,8 @@ public class TestS3Ds extends AbstractDataStoreTest {
         return DateUtils.addMinutes(new Date(), -1);
     }
 
+    protected void setEncryptionData() {}
+
     @BeforeClass
     public static void assumptions() {
         Assume.assumeTrue(isS3Configured());
@@ -132,10 +134,8 @@ public class TestS3Ds extends AbstractDataStoreTest {
         props.setProperty(S3Constants.PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS, "60");
         props.setProperty(S3Constants.PRESIGNED_URI_ENABLE_ACCELERATION, "60");
         props.setProperty(S3Constants.PRESIGNED_HTTP_DOWNLOAD_URI_CACHE_MAX_SIZE, "60");
-        if (!Objects.equals(props.getProperty(S3_ENCRYPTION), DataEncryption.SSE_C.toString())) {
-            // to avoid overriding SSE_C encryption mode already set by reading config
-            props.setProperty(S3_ENCRYPTION, S3Constants.S3_ENCRYPTION_NONE);
-        }
+        props.setProperty(S3_ENCRYPTION, S3Constants.S3_ENCRYPTION_NONE);
+        setEncryptionData();
         super.setUp();
     }
 

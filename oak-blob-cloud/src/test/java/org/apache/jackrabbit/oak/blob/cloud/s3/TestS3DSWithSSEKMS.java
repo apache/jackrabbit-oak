@@ -32,16 +32,20 @@ import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3Conf
  */
 public class TestS3DSWithSSEKMS extends TestS3Ds {
 
-        protected static final Logger LOG = LoggerFactory.getLogger(TestS3DSWithSSES3.class);
+    protected static final Logger LOG = LoggerFactory.getLogger(TestS3DSWithSSES3.class);
 
-        @Override
-        @Before
-        public void setUp() throws Exception {
-            super.setUp();
-            props.setProperty(S3Constants.S3_ENCRYPTION, S3Constants.S3_ENCRYPTION_SSE_KMS);
-            String kmsKey = props.getProperty(S3Constants.S3_SSE_KMS_KEYID);
-            if (kmsKey != null) {
-                props.remove(S3Constants.S3_SSE_KMS_KEYID);
-            }
+    @Override
+    @Before
+    public void setUp() throws Exception {
+        super.setUp();
+    }
+
+    @Override
+    protected void setEncryptionData() {
+        props.setProperty(S3Constants.S3_ENCRYPTION, S3Constants.S3_ENCRYPTION_SSE_KMS);
+        String kmsKey = props.getProperty(S3Constants.S3_SSE_KMS_KEYID);
+        if (kmsKey != null) {
+            props.remove(S3Constants.S3_SSE_KMS_KEYID);
         }
+    }
 }

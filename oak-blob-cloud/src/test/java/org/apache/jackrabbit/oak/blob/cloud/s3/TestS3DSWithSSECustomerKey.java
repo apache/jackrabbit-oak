@@ -36,19 +36,23 @@ import static org.slf4j.LoggerFactory.getLogger;
  */
 public class TestS3DSWithSSECustomerKey extends TestS3Ds {
 
-        protected static final Logger LOG = getLogger(TestS3DSWithSSECustomerKey.class);
+    protected static final Logger LOG = getLogger(TestS3DSWithSSECustomerKey.class);
 
-        @Override
-        @Before
-        public void setUp() throws Exception {
-            super.setUp();
-            String keyId = props.getProperty(S3_SSE_C_KEY);
-            if (StringUtils.isNotBlank(keyId)) {
-                props.setProperty(S3_ENCRYPTION, S3_ENCRYPTION_SSE_C);
-                props.setProperty(S3_SSE_C_KEY, keyId);
-            } else {
-                LOG.info("SSE Customer Key ID not configured so ignoring test");
-                throw new AssumptionViolatedException("SSE Customer key Id not configured");
-            }
+    @Override
+    @Before
+    public void setUp() throws Exception {
+        super.setUp();
+    }
+
+    @Override
+    protected void setEncryptionData() {
+        String keyId = props.getProperty(S3_SSE_C_KEY);
+        if (StringUtils.isNotBlank(keyId)) {
+            props.setProperty(S3_ENCRYPTION, S3_ENCRYPTION_SSE_C);
+            props.setProperty(S3_SSE_C_KEY, keyId);
+        } else {
+            LOG.info("SSE Customer Key ID not configured so ignoring test");
+            throw new AssumptionViolatedException("SSE Customer key Id not configured");
         }
+    }
 }
