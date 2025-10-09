@@ -18,14 +18,14 @@
  */
 package org.apache.jackrabbit.oak.spi.blob;
 
+import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
+import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
+
 import java.io.File;
 import java.io.InputStream;
 import java.util.Iterator;
 import java.util.List;
-
-import org.apache.jackrabbit.core.data.DataIdentifier;
-import org.apache.jackrabbit.core.data.DataRecord;
-import org.apache.jackrabbit.core.data.DataStoreException;
 
 /**
  */

@@ -22,8 +22,6 @@ package org.apache.jackrabbit.oak.spi.blob.stats;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.core.data.DataIdentifier;
-import org.apache.jackrabbit.core.data.DataStore;
 import org.osgi.annotation.versioning.ConsumerType;
 
 /**

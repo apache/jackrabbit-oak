@@ -33,13 +33,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
-import org.apache.jackrabbit.core.data.DataIdentifier;
-import org.apache.jackrabbit.core.data.DataRecord;
-import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.core.data.LazyFileInputStream;
 import org.apache.jackrabbit.oak.commons.io.FileTreeTraverser;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
+import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
+import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
+import org.apache.jackrabbit.util.LazyFileInputStream;
 import org.apache.jackrabbit.util.TransientFileFactory;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -50,7 +50,7 @@ import static org.apache.commons.io.FilenameUtils.normalizeNoEndSeparator;
 
 /**
  */
-public class FSBackend extends AbstractSharedBackend {
+public class FSBackend extends org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend {
     private static final Logger LOG = LoggerFactory.getLogger(FSBackend.class);
 
     public static final String FS_BACKEND_PATH = "fsBackendPath";
@@ -442,7 +442,7 @@ public class FSBackend extends AbstractSharedBackend {
         private File file;
 
         public FSBackendDataRecord(AbstractSharedBackend backend,
-            @NotNull DataIdentifier identifier, @NotNull File file) {
+                                   @NotNull DataIdentifier identifier, @NotNull File file) {
             super(backend, identifier);
             this.file = file;
             this.length = file.length();

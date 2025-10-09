@@ -18,8 +18,11 @@
  */
 package org.apache.jackrabbit.oak.spi.blob;
 
-import org.apache.jackrabbit.core.data.DataIdentifier;
-import org.apache.jackrabbit.core.data.DataRecord;
+import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
+import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
+
+import java.io.InputStream;
 
 /**
  * Implements {@link DataRecord}
@@ -64,6 +67,12 @@ public abstract class AbstractDataRecord implements DataRecord {
     public String getReference() {
         return backend.getReferenceFromIdentifier(identifier);
     }
+
+    public abstract long getLength() throws DataStoreException;
+
+    public abstract InputStream getStream() throws DataStoreException;
+
+    public abstract long getLastModified();
 
     /**
      * Returns the string representation of the data identifier.

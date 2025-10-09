@@ -21,12 +21,10 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import java.util.Map;
 
+import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Reference;
-import org.apache.jackrabbit.core.data.DataStore;
-import org.apache.jackrabbit.core.data.db.DbDataStore;
-import org.apache.jackrabbit.core.util.db.ConnectionFactory;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.osgi.service.component.ComponentContext;
 
