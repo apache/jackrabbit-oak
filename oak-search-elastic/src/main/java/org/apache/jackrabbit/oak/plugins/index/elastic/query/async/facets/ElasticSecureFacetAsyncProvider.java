@@ -132,9 +132,9 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider {
                         return CompletableFuture.completedFuture(accumulatedFacets);
                     }
 
-                    // warn about big result sets, suggest statistical or insecure facets
-                    LOG.warn("Large result set detected ({} hits so far) for search request {}. Consider using statistical facets or insecure facets for better performance.",
-                            searchRequest, accumulatedFacets.values().stream().mapToInt(Map::size).sum());
+                    // if we get here, it means we have more results to fetch
+                    LOG.warn("Large result set detected ({} hits so far) for search request {}. Consider using statistical or insecure facets for better performance.",
+                            hits.size(), searchRequest);
 
                     // Extract sort values from the last hit for next search_after
                     Hit<ObjectNode> lastHit = hits.get(hits.size() - 1);
