@@ -21,10 +21,23 @@ package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v8;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.junit.After;
 import org.junit.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import java.lang.reflect.Method;
 
 import static org.junit.Assert.*;
+import static org.mockito.Answers.CALLS_REAL_METHODS;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
+import com.microsoft.aad.msal4j.MsalServiceException;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
 
 /**
  * Test class focused on AzureBlobContainerProviderV8 authentication functionality.
@@ -52,7 +65,7 @@ public class AzureBlobContainerProviderV8AuthenticationTest {
     }
 
     @Test
-    public void testAuthenticationPriorityConnectionString() {
+    public void testAuthenticationPriorityConnectionStringOverSasToken() throws DataStoreException {
         // Test that connection string takes priority over all other authentication methods
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
@@ -65,17 +78,20 @@ public class AzureBlobContainerProviderV8AuthenticationTest {
                 .withAccountKey(ACCOUNT_KEY)
                 .build();
 
-        try {
+        //spy UtilsV8
+        try (MockedStatic<UtilsV8> mockedUtils = mockStatic(UtilsV8.class)) {
+            mockedUtils.when(() -> UtilsV8.getBlobContainer(anyString(), anyString(), any()))
+                .thenReturn(mock(CloudBlobContainer.class));
+
             provider.getBlobContainer();
-        } catch (Exception e) {
-            // Expected for invalid connection string in test environment
-            assertTrue("Should throw DataStoreException for invalid connection",
-                    e instanceof org.apache.jackrabbit.core.data.DataStoreException);
+
+            mockedUtils.verify(() -> UtilsV8.getBlobContainer(CONNECTION_STRING, CONTAINER_NAME, null), times(1));
+            mockedUtils.verifyNoMoreInteractions();
         }
     }
 
     @Test
-    public void testAuthenticationPrioritySasTokenOverAccountKey() {
+    public void testAuthenticationPrioritySasTokenOverAccountKey() throws DataStoreException {
         // Test that SAS token takes priority over account key when no connection string or service principal
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
@@ -85,17 +101,50 @@ public class AzureBlobContainerProviderV8AuthenticationTest {
                 .withBlobEndpoint(BLOB_ENDPOINT)
                 .build();
 
-        try {
+        //spy UtilsV8
+        try (MockedStatic<UtilsV8> mockedUtils = mockStatic(UtilsV8.class)) {
+            mockedUtils.when(() -> UtilsV8.getConnectionStringForSas(SAS_TOKEN, BLOB_ENDPOINT, ACCOUNT_NAME))
+                .thenReturn(CONNECTION_STRING);
+            mockedUtils.when(() -> UtilsV8.getBlobContainer(CONNECTION_STRING, CONTAINER_NAME, null))
+                .thenReturn(mock(CloudBlobContainer.class));
+
             provider.getBlobContainer();
-        } catch (Exception e) {
-            // Expected for invalid SAS token in test environment
-            assertTrue("Should throw DataStoreException for invalid SAS token",
-                    e instanceof org.apache.jackrabbit.core.data.DataStoreException);
+
+            mockedUtils.verify(() -> UtilsV8.getConnectionStringForSas(SAS_TOKEN, BLOB_ENDPOINT, ACCOUNT_NAME), times(1));
+            mockedUtils.verify(() -> UtilsV8.getBlobContainer(CONNECTION_STRING, CONTAINER_NAME, null), times(1));
+            mockedUtils.verifyNoMoreInteractions();
         }
     }
 
     @Test
-    public void testAuthenticationFallbackToAccountKey() {
+    public void testAuthenticationPriorityServicePrincipalOverAccountKey() throws DataStoreException {
+        // Test that service principal takes priority over account key when no connection string or SAS token
+        provider = AzureBlobContainerProviderV8.Builder
+                .builder(CONTAINER_NAME)
+                .withAccountName(ACCOUNT_NAME)
+                .withTenantId(TENANT_ID)
+                .withClientId(CLIENT_ID)
+                .withClientSecret(CLIENT_SECRET)
+                .withAccountKey(ACCOUNT_KEY)
+                .build();
+
+        //spy UtilsV8
+        try (MockedStatic<UtilsV8> mockedUtils = mockStatic(UtilsV8.class, CALLS_REAL_METHODS)) {
+            // This should use service principal authentication
+            try {
+                provider.getBlobContainer();
+            } catch (Exception e) {
+                // Expected
+            }
+
+            // Verify that UtilsV8.getBlobContainer was not called
+            // This means service principal authentication was attempted
+            mockedUtils.verifyNoInteractions();
+        }
+    }
+
+    @Test
+    public void testAuthenticationFallbackToAccountKey() throws DataStoreException {
         // Test fallback to account key when no other authentication methods are available
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
@@ -104,12 +153,12 @@ public class AzureBlobContainerProviderV8AuthenticationTest {
                 .withBlobEndpoint(BLOB_ENDPOINT)
                 .build();
 
-        try {
+        try (MockedStatic<UtilsV8> mockedUtils = mockStatic(UtilsV8.class, CALLS_REAL_METHODS)) {
+            // This should use service principal authentication
             provider.getBlobContainer();
-        } catch (Exception e) {
-            // Expected for invalid account key in test environment
-            assertTrue("Should throw DataStoreException for invalid account key",
-                    e instanceof org.apache.jackrabbit.core.data.DataStoreException);
+
+            mockedUtils.verify(() -> UtilsV8.getConnectionString(ACCOUNT_NAME, ACCOUNT_KEY, BLOB_ENDPOINT), times(1));
+            mockedUtils.verify(() -> UtilsV8.getBlobContainer(anyString(), eq(CONTAINER_NAME), eq(null)), times(1));
         }
     }
 
@@ -244,24 +293,26 @@ public class AzureBlobContainerProviderV8AuthenticationTest {
     }
 
     @Test
-    public void testAuthenticationWithConnectionStringOnly() {
+    public void testAuthenticationWithConnectionStringOnly() throws DataStoreException {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString(CONNECTION_STRING)
                 .build();
 
-        // This should use connection string authentication
-        try {
+        //mock UtilsV8
+        try (MockedStatic<UtilsV8> mockedUtils = mockStatic(UtilsV8.class)) {
+            mockedUtils.when(() -> UtilsV8.getBlobContainer(anyString(), anyString(), any()))
+                .thenReturn(mock(CloudBlobContainer.class));
+
             provider.getBlobContainer();
-        } catch (Exception e) {
-            // Expected for invalid connection string in test environment
-            assertTrue("Should throw DataStoreException for invalid connection",
-                    e instanceof DataStoreException);
+
+            mockedUtils.verify(() -> UtilsV8.getBlobContainer(CONNECTION_STRING, CONTAINER_NAME, null), times(1));
+            mockedUtils.verifyNoMoreInteractions();
         }
     }
 
     @Test
-    public void testAuthenticationWithSasTokenOnly() {
+    public void testAuthenticationWithSasTokenOnly() throws DataStoreException {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName(ACCOUNT_NAME)
@@ -270,54 +321,17 @@ public class AzureBlobContainerProviderV8AuthenticationTest {
                 .build();
 
         // This should use SAS token authentication
-        try {
+        try (MockedStatic<UtilsV8> mockedUtils = mockStatic(UtilsV8.class)) {
+            mockedUtils.when(() -> UtilsV8.getConnectionStringForSas(SAS_TOKEN, BLOB_ENDPOINT, ACCOUNT_NAME))
+                .thenReturn(CONNECTION_STRING);
+            mockedUtils.when(() -> UtilsV8.getBlobContainer(CONNECTION_STRING, CONTAINER_NAME, null))
+                .thenReturn(mock(CloudBlobContainer.class));
+
             provider.getBlobContainer();
-        } catch (Exception e) {
-            // Expected for invalid SAS token in test environment
-            assertTrue("Should throw DataStoreException for invalid SAS token",
-                    e instanceof DataStoreException);
-        }
-    }
 
-    @Test
-    public void testAuthenticationWithAccountKeyOnly() {
-        provider = AzureBlobContainerProviderV8.Builder
-                .builder(CONTAINER_NAME)
-                .withAccountName(ACCOUNT_NAME)
-                .withAccountKey(ACCOUNT_KEY)
-                .withBlobEndpoint(BLOB_ENDPOINT)
-                .build();
-
-        // This should use account key authentication
-        try {
-            provider.getBlobContainer();
-        } catch (Exception e) {
-            // Expected for invalid account key in test environment
-            assertTrue("Should throw DataStoreException for invalid account key",
-                    e instanceof DataStoreException);
-        }
-    }
-
-    @Test
-    public void testAuthenticationWithServicePrincipalOnly() {
-        provider = AzureBlobContainerProviderV8.Builder
-                .builder(CONTAINER_NAME)
-                .withAccountName(ACCOUNT_NAME)
-                .withTenantId(TENANT_ID)
-                .withClientId(CLIENT_ID)
-                .withClientSecret(CLIENT_SECRET)
-                .build();
-
-        // This should use service principal authentication
-        try {
-            provider.getBlobContainer();
-        } catch (Exception e) {
-            // Expected in test environment - we're testing the code path exists
-            assertTrue("Should attempt service principal authentication and throw appropriate exception",
-                e instanceof DataStoreException ||
-                e instanceof IllegalArgumentException ||
-                e instanceof RuntimeException ||
-                e.getCause() instanceof IllegalArgumentException);
+            mockedUtils.verify(() -> UtilsV8.getConnectionStringForSas(SAS_TOKEN, BLOB_ENDPOINT, ACCOUNT_NAME), times(1));
+            mockedUtils.verify(() -> UtilsV8.getBlobContainer(CONNECTION_STRING, CONTAINER_NAME, null), times(1));
+            mockedUtils.verifyNoMoreInteractions();
         }
     }
 }

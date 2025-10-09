@@ -36,7 +36,6 @@ import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
-import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Utils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -188,11 +187,11 @@ public class AzureBlobContainerProviderV8 implements Closeable {
             return getBlobContainerFromServicePrincipals(blobRequestOptions);
         } else if (StringUtils.isNotBlank(sasToken)) {
             log.debug("connecting to azure blob storage via sas token");
-            final String connectionStringWithSasToken = Utils.getConnectionStringForSas(sasToken, blobEndpoint, accountName);
+            final String connectionStringWithSasToken = UtilsV8.getConnectionStringForSas(sasToken, blobEndpoint, accountName);
             return UtilsV8.getBlobContainer(connectionStringWithSasToken, containerName, blobRequestOptions);
         }
         log.debug("connecting to azure blob storage via access key");
-        final String connectionStringWithAccountKey = Utils.getConnectionString(accountName, accountKey, blobEndpoint);
+        final String connectionStringWithAccountKey = UtilsV8.getConnectionString(accountName, accountKey, blobEndpoint);
         return UtilsV8.getBlobContainer(connectionStringWithAccountKey, containerName, blobRequestOptions);
     }
 

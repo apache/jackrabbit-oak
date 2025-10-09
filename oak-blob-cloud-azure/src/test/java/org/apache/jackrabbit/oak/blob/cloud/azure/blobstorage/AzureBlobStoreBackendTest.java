@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
+import com.azure.core.util.BinaryData;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobItem;
@@ -43,6 +44,7 @@ import org.slf4j.LoggerFactory;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -2187,8 +2189,10 @@ public class AzureBlobStoreBackendTest {
     private BlobContainerClient createBlobContainer() {
         container = azurite.getContainer(CONTAINER_NAME, getConnectionString());
         for (String blob : BLOBS) {
-            InputStream blobStream = new ByteArrayInputStream(blob.getBytes());
-            container.getBlobClient(blob + ".txt").upload(blobStream, blob.getBytes().length, true);
+            InputStream blobStream = new BufferedInputStream(new ByteArrayInputStream(blob.getBytes()));
+            BlobClient blobClient = container.getBlobClient(blob + ".txt");
+            long length = blob.getBytes().length;
+            blobClient.upload(blobStream, length, true);
         }
         return container;
     }

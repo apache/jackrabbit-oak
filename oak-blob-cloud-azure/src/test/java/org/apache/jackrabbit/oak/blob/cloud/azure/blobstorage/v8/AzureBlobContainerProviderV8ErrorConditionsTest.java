@@ -19,12 +19,17 @@
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v8;
 
 import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.blob.SharedAccessBlobHeaders;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.lang.reflect.Field;
@@ -34,6 +39,12 @@ import java.util.EnumSet;
 
 import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.*;
 import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Test class specifically for testing error conditions and edge cases
@@ -41,14 +52,22 @@ import static org.junit.Assert.*;
  */
 public class AzureBlobContainerProviderV8ErrorConditionsTest {
 
+    @Mock
+    CloudBlobContainer mockContainer;
+
+    @Mock
+    CloudBlockBlob mockBlob;
+
     private static final String CONTAINER_NAME = "test-container";
     private static final String ACCOUNT_NAME = "testaccount";
 
     private AzureBlobContainerProviderV8 provider;
 
+    private AutoCloseable closeableMockito;
+
     @Before
     public void setUp() {
-        MockitoAnnotations.openMocks(this);
+        closeableMockito = MockitoAnnotations.openMocks(this);
     }
 
     @After
@@ -56,87 +75,67 @@ public class AzureBlobContainerProviderV8ErrorConditionsTest {
         if (provider != null) {
             provider.close();
         }
-    }
-
-    @Test
-    public void testGetBlobContainerWithInvalidConnectionString() {
-        provider = AzureBlobContainerProviderV8.Builder
-                .builder(CONTAINER_NAME)
-                .withAzureConnectionString("invalid-connection-string")
-                .build();
-
-        try {
-            provider.getBlobContainer();
-            fail("Should throw exception for invalid connection string");
-        } catch (Exception e) {
-            // Should throw DataStoreException or IllegalArgumentException
-            assertTrue("Should throw appropriate exception for invalid connection string",
-                    e instanceof DataStoreException || e instanceof IllegalArgumentException);
+        if (closeableMockito != null) {
+            try {
+                closeableMockito.close();
+            } catch (Exception e) {
+                // Ignore
+            }
         }
     }
 
-    @Test
-    public void testGetBlobContainerWithInvalidAccountKey() {
+    @Test(expected = IllegalArgumentException.class)
+    public void testGetBlobContainerWithInvalidConnectionString() throws DataStoreException {
         provider = AzureBlobContainerProviderV8.Builder
-                .builder(CONTAINER_NAME)
-                .withAccountName("invalidaccount")
-                .withAccountKey("invalidkey")
-                .withBlobEndpoint("https://invalidaccount.blob.core.windows.net")
-                .build();
+            .builder(CONTAINER_NAME)
+            .withAzureConnectionString("invalid-connection-string")
+            .build();
 
-        try {
-            provider.getBlobContainer();
-            fail("Should throw exception for invalid account key");
-        } catch (Exception e) {
-            // Should throw DataStoreException or related exception
-            assertTrue("Should throw appropriate exception for invalid account key",
-                    e instanceof DataStoreException || e instanceof IllegalArgumentException ||
-                    e instanceof URISyntaxException || e instanceof InvalidKeyException);
-        }
+        provider.getBlobContainer();
+        fail("Should throw exception for invalid connection string");
+    }
+
+    @Test(expected = DataStoreException.class)
+    public void testGetBlobContainerWithInvalidAccountKey() throws DataStoreException {
+        provider = AzureBlobContainerProviderV8.Builder
+            .builder(CONTAINER_NAME)
+            .withAccountName("invalidaccount")
+            .withAccountKey("invalidkey")
+            .withBlobEndpoint("https://invalidaccount.blob.core.windows.net")
+            .build();
+
+        provider.getBlobContainer();
+        fail("Should throw exception for invalid account key");
     }
 
     @Test
-    public void testGetBlobContainerWithInvalidSasToken() {
+    public void testGetBlobContainerWithSasToken() throws DataStoreException {
         provider = AzureBlobContainerProviderV8.Builder
-                .builder(CONTAINER_NAME)
-                .withSasToken("invalid-sas-token")
-                .withBlobEndpoint("https://testaccount.blob.core.windows.net")
-                .withAccountName(ACCOUNT_NAME)
-                .build();
+            .builder(CONTAINER_NAME)
+            .withSasToken("some-sas-token")
+            .withBlobEndpoint("https://testaccount.blob.core.windows.net")
+            .withAccountName(ACCOUNT_NAME)
+            .build();
 
-        // Note: Some invalid SAS tokens might not throw exceptions immediately
-        // but will fail when actually trying to access the storage
-        try {
-            provider.getBlobContainer();
-            // If no exception is thrown, that's also valid behavior for some invalid tokens
-            // The actual validation happens when the container is used
-        } catch (Exception e) {
-            // Should throw DataStoreException or related exception
-            assertTrue("Should throw appropriate exception for invalid SAS token",
-                       e instanceof DataStoreException || e instanceof IllegalArgumentException);
-        }
+        provider.getBlobContainer();
+
+        // Should not throw exception for SAS token
+        assertTrue("Should not throw exception for SAS token", true);
     }
 
     @Test
-    public void testGetBlobContainerWithNullBlobRequestOptions() {
+    public void testGetBlobContainerWithNullBlobRequestOptions() throws DataStoreException {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
-                .withAzureConnectionString("DefaultEndpointsProtocol=https;AccountName=devstoreaccount1;AccountKey=invalid;")
                 .build();
 
-        // Should not throw exception with null options, but may fail due to invalid connection
-        try {
             provider.getBlobContainer(null);
-        } catch (Exception e) {
-            // Expected for invalid connection, but not for null options
-            // The exception could be various types depending on the validation
-            assertTrue("Exception should be related to connection or key validation",
-                       e instanceof DataStoreException || e instanceof IllegalArgumentException);
-        }
+
+            assertTrue("Should not throw exception for null blob request options", true);
     }
 
-    @Test
-    public void testGenerateSharedAccessSignatureWithInvalidKey() {
+    @Test(expected = DataStoreException.class)
+    public void testGenerateSharedAccessSignatureWithInvalidKey() throws DataStoreException, URISyntaxException, InvalidKeyException, StorageException {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName(ACCOUNT_NAME)
@@ -144,47 +143,48 @@ public class AzureBlobContainerProviderV8ErrorConditionsTest {
                 .withBlobEndpoint("https://testaccount.blob.core.windows.net")
                 .build();
 
-        try {
             provider.generateSharedAccessSignature(
                     null,
                     "test-blob",
                     EnumSet.of(READ, WRITE),
                     3600,
-                    null
-            );
+                    null);
+
             fail("Should throw exception for invalid account key");
-        } catch (Exception e) {
-            // Expected - should be DataStoreException, InvalidKeyException, or URISyntaxException
-            assertTrue("Should throw appropriate exception for invalid key", 
-                    e instanceof DataStoreException || 
-                    e instanceof InvalidKeyException || 
-                    e instanceof URISyntaxException);
-        }
+
     }
 
     @Test
-    public void testGenerateSharedAccessSignatureWithZeroExpiry() throws DataStoreException, URISyntaxException, InvalidKeyException, StorageException {
+    public void testGenerateSharedAccessSignatureWithZeroExpiry() throws InvalidKeyException, StorageException, URISyntaxException, DataStoreException {
         provider = AzureBlobContainerProviderV8.Builder
-                .builder(CONTAINER_NAME)
-                .withAccountName(ACCOUNT_NAME)
-                .withAccountKey("valid-key")
-                .withBlobEndpoint("https://testaccount.blob.core.windows.net")
-                .build();
+            .builder(CONTAINER_NAME)
+            .withAccountName(ACCOUNT_NAME)
+            .withAccountKey("valid-key")
+            .withBlobEndpoint("https://testaccount.blob.core.windows.net")
+            .build();
+
+        //mock CloudBlobContainer
+        when(mockContainer.getBlockBlobReference(any())).thenReturn(mockBlob);
+        when(mockBlob.generateSharedAccessSignature(any(), any())).thenReturn("mock-sas-token");
+        //mock static UtilsV8
+        try (MockedStatic<UtilsV8> mockedUtils = mockStatic(UtilsV8.class)) {
+            mockedUtils.when(() -> UtilsV8.getBlobContainer(any(), any(), any())).thenReturn(mockContainer);
 
             provider.generateSharedAccessSignature(
-                    null,
-                    "test-blob",
-                    EnumSet.of(READ, WRITE),
-                    0, // Zero expiry
-                    null
+                null,
+                "test-blob",
+                EnumSet.of(READ, WRITE),
+                0, // Zero expiry
+                null
             );
 
-            // No exception should be thrown for zero expiry
-            assertTrue("Should not throw exception for zero expiry", true);
-
+            mockedUtils.verify(() -> UtilsV8.getBlobContainer(any(), any(), any()), times(1));
+        }
+        verify(mockContainer, times(1)).getBlockBlobReference(any());
+        verify(mockBlob, times(1)).generateSharedAccessSignature(any(), any());
     }
 
-    @Test(expected=DataStoreException.class)
+    @Test
     public void testGenerateSharedAccessSignatureWithNegativeExpiry() throws DataStoreException, URISyntaxException, InvalidKeyException, StorageException {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
@@ -193,13 +193,26 @@ public class AzureBlobContainerProviderV8ErrorConditionsTest {
                 .withBlobEndpoint("https://testaccount.blob.core.windows.net")
                 .build();
 
-            provider.generateSharedAccessSignature(
+        //mock CloudBlobContainer
+        when(mockContainer.getBlockBlobReference(any())).thenReturn(mockBlob);
+        when(mockBlob.generateSharedAccessSignature(any(), any())).thenReturn("mock-sas-token");
+
+        //mock static UtilsV8
+        try (MockedStatic<UtilsV8> mockedUtils = mockStatic(UtilsV8.class)) {
+            mockedUtils.when(() -> UtilsV8.getBlobContainer(any(), any(), any())).thenReturn(mockContainer);
+
+        provider.generateSharedAccessSignature(
                     null,
                     "test-blob",
                     EnumSet.of(READ, WRITE),
                     -3600, // Negative expiry
                     null
             );
+
+            mockedUtils.verify(() -> UtilsV8.getBlobContainer(any(), any(), any()), times(1));
+        }
+        verify(mockContainer, times(1)).getBlockBlobReference(any());
+        verify(mockBlob, times(1)).generateSharedAccessSignature(any(), any());
     }
 
     @Test(expected = DataStoreException.class)

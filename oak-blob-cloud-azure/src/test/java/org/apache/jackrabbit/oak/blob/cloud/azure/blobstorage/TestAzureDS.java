@@ -31,8 +31,6 @@ import org.slf4j.event.Level;
 
 import java.util.Properties;
 
-import javax.jcr.RepositoryException;
-
 /**
  * Test {@link AzureDataStore} with AzureDataStore and local cache on.
  * It requires to pass azure config file via system property or system properties by prefixing with 'ds.'.

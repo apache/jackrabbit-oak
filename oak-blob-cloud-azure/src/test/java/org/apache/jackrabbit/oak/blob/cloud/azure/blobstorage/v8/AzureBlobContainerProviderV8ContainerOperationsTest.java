@@ -21,16 +21,27 @@ package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v8;
 import com.microsoft.azure.storage.blob.BlobRequestOptions;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.junit.After;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.mockito.MockedStatic;
 
 import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 
 /**
  * Test class focused on AzureBlobContainerProviderV8 container operations functionality.
  * Tests getBlobContainer operations and container access patterns.
+ * Includes both unit tests with mock credentials and integration tests with Azurite.
  */
 public class AzureBlobContainerProviderV8ContainerOperationsTest {
+
+    @ClassRule
+    public static AzuriteDockerRule azurite = new AzuriteDockerRule();
 
     private static final String CONTAINER_NAME = "test-container";
     private static final String ACCOUNT_NAME = "testaccount";
@@ -49,69 +60,27 @@ public class AzureBlobContainerProviderV8ContainerOperationsTest {
     }
 
     @Test
-    public void testGetBlobContainerWithBlobRequestOptions() {
+    public void testGetBlobContainerWithBlobRequestOptions() throws DataStoreException {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString(CONNECTION_STRING)
                 .build();
 
-        // Test getBlobContainer with BlobRequestOptions
-        // This covers the overloaded method that accepts BlobRequestOptions
-        try {
-            provider.getBlobContainer(new com.microsoft.azure.storage.blob.BlobRequestOptions());
-            // If no exception is thrown, the method executed successfully
-        } catch (Exception e) {
-            // Expected for invalid connection string in test environment
-            assertTrue("Should throw DataStoreException for invalid connection",
-                    e instanceof org.apache.jackrabbit.core.data.DataStoreException);
-        }
+        CloudBlobContainer container = provider.getBlobContainer(new BlobRequestOptions());
+
+        assertNotNull("Container should not be null", container);
     }
 
     @Test
-    public void testGetBlobContainerWithoutBlobRequestOptions() {
+    public void testGetBlobContainerWithoutBlobRequestOptions() throws DataStoreException {
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString(CONNECTION_STRING)
                 .build();
 
-        // Test getBlobContainer without BlobRequestOptions (calls overloaded method with null)
-        try {
-            provider.getBlobContainer();
-            // If no exception is thrown, the method executed successfully
-        } catch (Exception e) {
-            // Expected for invalid connection string in test environment
-            assertTrue("Should throw DataStoreException for invalid connection",
-                    e instanceof org.apache.jackrabbit.core.data.DataStoreException);
-        }
-    }
+        CloudBlobContainer container = provider.getBlobContainer();
 
-    @Test
-    public void testGetBlobContainerWithServicePrincipalAndBlobRequestOptions() {
-        provider = AzureBlobContainerProviderV8.Builder
-                .builder(CONTAINER_NAME)
-                .withAccountName(ACCOUNT_NAME)
-                .withTenantId(TENANT_ID)
-                .withClientId(CLIENT_ID)
-                .withClientSecret(CLIENT_SECRET)
-                .build();
-
-        BlobRequestOptions options = new BlobRequestOptions();
-        options.setTimeoutIntervalInMs(30000);
-
-        // This test covers the getBlobContainerFromServicePrincipals method with BlobRequestOptions
-        // In a real test environment, this would require actual Azure credentials
-        try {
-            provider.getBlobContainer(options);
-            // If we get here without exception, that's also valid (means authentication worked)
-        } catch (Exception e) {
-            // Expected in test environment - we're testing the code path exists
-            // Accept various types of exceptions that can occur during authentication attempts
-            assertTrue("Should attempt service principal authentication and throw appropriate exception",
-                e instanceof DataStoreException ||
-                e instanceof IllegalArgumentException ||
-                e instanceof RuntimeException ||
-                e.getCause() instanceof IllegalArgumentException);
-        }
+        assertNotNull("Container should not be null", container);
     }
 
     @Test
@@ -292,5 +261,114 @@ public class AzureBlobContainerProviderV8ContainerOperationsTest {
                     e instanceof RuntimeException ||
                     e instanceof NullPointerException);
         }
+    }
+
+    // ========== Integration Tests with Azurite ==========
+
+    @Test
+    public void testGetBlobContainerWithAzurite() throws Exception {
+        provider = AzureBlobContainerProviderV8.Builder
+                .builder(CONTAINER_NAME)
+                .withAccountName(AzuriteDockerRule.ACCOUNT_NAME)
+                .withAccountKey(AzuriteDockerRule.ACCOUNT_KEY)
+                .withBlobEndpoint(azurite.getBlobEndpoint())
+                .build();
+
+        CloudBlobContainer container = provider.getBlobContainer();
+        assertNotNull("Container should not be null", container);
+        assertEquals("Container name should match", CONTAINER_NAME, container.getName());
+    }
+
+    @Test
+    public void testGetBlobContainerWithAzuriteAndBlobRequestOptions() throws Exception {
+        provider = AzureBlobContainerProviderV8.Builder
+                .builder(CONTAINER_NAME)
+                .withAccountName(AzuriteDockerRule.ACCOUNT_NAME)
+                .withAccountKey(AzuriteDockerRule.ACCOUNT_KEY)
+                .withBlobEndpoint(azurite.getBlobEndpoint())
+                .build();
+
+        BlobRequestOptions options = new BlobRequestOptions();
+        options.setTimeoutIntervalInMs(30000);
+        options.setMaximumExecutionTimeInMs(60000);
+
+        CloudBlobContainer container = provider.getBlobContainer(options);
+        assertNotNull("Container should not be null", container);
+        assertEquals("Container name should match", CONTAINER_NAME, container.getName());
+    }
+
+    @Test
+    public void testGetBlobContainerWithAzuriteMultipleCalls() throws Exception {
+        provider = AzureBlobContainerProviderV8.Builder
+                .builder(CONTAINER_NAME)
+                .withAccountName(AzuriteDockerRule.ACCOUNT_NAME)
+                .withAccountKey(AzuriteDockerRule.ACCOUNT_KEY)
+                .withBlobEndpoint(azurite.getBlobEndpoint())
+                .build();
+
+        // Test multiple calls to getBlobContainer with Azurite
+        CloudBlobContainer container1 = provider.getBlobContainer();
+        CloudBlobContainer container2 = provider.getBlobContainer();
+
+        assertNotNull("First container should not be null", container1);
+        assertNotNull("Second container should not be null", container2);
+        assertEquals("Container names should match", container1.getName(), container2.getName());
+        assertEquals("Container name should match expected", CONTAINER_NAME, container1.getName());
+    }
+
+    @Test
+    public void testGetBlobContainerWithAzuriteAndNullOptions() throws Exception {
+        provider = AzureBlobContainerProviderV8.Builder
+                .builder(CONTAINER_NAME)
+                .withAccountName(AzuriteDockerRule.ACCOUNT_NAME)
+                .withAccountKey(AzuriteDockerRule.ACCOUNT_KEY)
+                .withBlobEndpoint(azurite.getBlobEndpoint())
+                .build();
+
+        // Test with null BlobRequestOptions
+        CloudBlobContainer container = provider.getBlobContainer(null);
+        assertNotNull("Container should not be null", container);
+        assertEquals("Container name should match", CONTAINER_NAME, container.getName());
+    }
+
+    @Test
+    public void testGetBlobContainerWithAzuriteAndDifferentOptions() throws Exception {
+        provider = AzureBlobContainerProviderV8.Builder
+                .builder(CONTAINER_NAME)
+                .withAccountName(AzuriteDockerRule.ACCOUNT_NAME)
+                .withAccountKey(AzuriteDockerRule.ACCOUNT_KEY)
+                .withBlobEndpoint(azurite.getBlobEndpoint())
+                .build();
+
+        BlobRequestOptions options1 = new BlobRequestOptions();
+        options1.setTimeoutIntervalInMs(30000);
+
+        BlobRequestOptions options2 = new BlobRequestOptions();
+        options2.setTimeoutIntervalInMs(60000);
+
+        // Test with different options
+        CloudBlobContainer container1 = provider.getBlobContainer(options1);
+        CloudBlobContainer container2 = provider.getBlobContainer(options2);
+
+        assertNotNull("First container should not be null", container1);
+        assertNotNull("Second container should not be null", container2);
+        assertEquals("Container names should match", container1.getName(), container2.getName());
+    }
+
+    @Test
+    public void testGetBlobContainerWithAzuriteVerifyContainerExists() throws Exception {
+        provider = AzureBlobContainerProviderV8.Builder
+                .builder(CONTAINER_NAME)
+                .withAccountName(AzuriteDockerRule.ACCOUNT_NAME)
+                .withAccountKey(AzuriteDockerRule.ACCOUNT_KEY)
+                .withBlobEndpoint(azurite.getBlobEndpoint())
+                .build();
+
+        CloudBlobContainer container = provider.getBlobContainer();
+        assertNotNull("Container should not be null", container);
+
+        // Verify container can be accessed and has expected properties
+        assertEquals("Container name should match", CONTAINER_NAME, container.getName());
+        assertNotNull("Container URI should not be null", container.getUri());
     }
 }

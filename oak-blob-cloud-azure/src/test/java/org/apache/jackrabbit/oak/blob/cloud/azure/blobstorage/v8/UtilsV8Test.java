@@ -78,7 +78,7 @@ public class UtilsV8Test {
         Properties properties = new Properties();
         properties.put(AzureConstants.AZURE_CONNECTION_STRING, "DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=accountKey");
         String connectionString = UtilsV8.getConnectionStringFromProperties(properties);
-        assertEquals(connectionString,"DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=accountKey");
+        assertEquals("DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=accountKey", connectionString);
     }
 
     @Test
