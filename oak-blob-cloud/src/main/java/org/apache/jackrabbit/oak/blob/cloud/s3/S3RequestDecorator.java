@@ -61,6 +61,8 @@ public class S3RequestDecorator {
                     final String keyId = props.getProperty(S3_SSE_C_KEY);
                     if (StringUtils.isNotBlank(keyId)) {
                         sseCustomerKey = keyId;
+                    } else {
+                        throw new IllegalArgumentException("sseCustomerKey is empty for  SSE_C encryption mode");
                     }
                     break;
                 }
@@ -132,11 +134,9 @@ public class S3RequestDecorator {
                 }
                 break;
             case SSE_C:
-                builder.sseCustomerAlgorithm(ServerSideEncryption.AES256.toString());
-                if (sseCustomerKey != null) {
-                    builder.sseCustomerKey(sseCustomerKey);
-                    builder.sseCustomerKeyMD5(Utils.calculateMD5(sseCustomerKey));
-                }
+                builder.sseCustomerAlgorithm(ServerSideEncryption.AES256.toString())
+                        .sseCustomerKey(sseCustomerKey)
+                        .sseCustomerKeyMD5(Utils.calculateMD5(sseCustomerKey));
                 break;
             case NONE:
                 break;
@@ -163,14 +163,15 @@ public class S3RequestDecorator {
                 }
                 break;
             case SSE_C:
-                builder.sseCustomerAlgorithm(ServerSideEncryption.AES256.toString());
-                builder.copySourceSSECustomerAlgorithm(ServerSideEncryption.AES256.toString());
-                if (sseCustomerKey != null) {
-                    builder.sseCustomerKey(sseCustomerKey)
-                            .copySourceSSECustomerKey(sseCustomerKey)
-                            .copySourceSSECustomerKeyMD5(Utils.calculateMD5(sseCustomerKey))
-                            .sseCustomerKeyMD5(Utils.calculateMD5(sseCustomerKey));
-                }
+                // destination headers
+                builder.sseCustomerAlgorithm(ServerSideEncryption.AES256.toString())
+                        .sseCustomerKey(sseCustomerKey)
+                        .sseCustomerKeyMD5(Utils.calculateMD5(sseCustomerKey));
+
+                // source headers
+                builder.copySourceSSECustomerAlgorithm(ServerSideEncryption.AES256.toString())
+                        .copySourceSSECustomerKey(sseCustomerKey)
+                        .copySourceSSECustomerKeyMD5(Utils.calculateMD5(sseCustomerKey));
                 break;
             case NONE:
                 break;
@@ -193,11 +194,9 @@ public class S3RequestDecorator {
                 }
                 break;
             case SSE_C:
-                builder.sseCustomerAlgorithm(ServerSideEncryption.AES256.toString());
-                if (sseCustomerKey != null) {
-                    builder.sseCustomerKey(sseCustomerKey);
-                    builder.sseCustomerKeyMD5(Utils.calculateMD5(sseCustomerKey));
-                }
+                builder.sseCustomerAlgorithm(ServerSideEncryption.AES256.toString())
+                        .sseCustomerKey(sseCustomerKey)
+                        .sseCustomerKeyMD5(Utils.calculateMD5(sseCustomerKey));
                 break;
             case NONE:
                 break;

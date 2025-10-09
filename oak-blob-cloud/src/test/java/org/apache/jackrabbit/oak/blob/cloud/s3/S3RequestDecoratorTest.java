@@ -41,6 +41,74 @@ public class S3RequestDecoratorTest {
     private final String kmsKeyId = "kms-key-id";
 
     @Test
+    public void testConstructorWithNoneEncryption() {
+        Properties props = new Properties();
+        props.setProperty(S3Constants.S3_ENCRYPTION, "NONE");
+        S3RequestDecorator decorator = new S3RequestDecorator(props);
+        assertEquals(DataEncryption.NONE, decorator.dataEncryption);
+        assertNull(decorator.sseKmsKey);
+        assertNull(decorator.sseCustomerKey);
+    }
+
+    @Test
+    public void testConstructorWithSSES3Encryption() {
+        Properties props = new Properties();
+        props.setProperty(S3Constants.S3_ENCRYPTION, "SSE_S3");
+        S3RequestDecorator decorator = new S3RequestDecorator(props);
+        assertEquals(DataEncryption.SSE_S3, decorator.dataEncryption);
+        assertNull(decorator.sseKmsKey);
+        assertNull(decorator.sseCustomerKey);
+    }
+
+    @Test
+    public void testConstructorWithSSEKMSEncryptionWithKey() {
+        Properties props = new Properties();
+        props.setProperty(S3Constants.S3_ENCRYPTION, "SSE_KMS");
+        props.setProperty(S3Constants.S3_SSE_KMS_KEYID, "kms-key-id");
+        S3RequestDecorator decorator = new S3RequestDecorator(props);
+        assertEquals(DataEncryption.SSE_KMS, decorator.dataEncryption);
+        assertEquals("kms-key-id", decorator.sseKmsKey);
+        assertNull(decorator.sseCustomerKey);
+    }
+
+    @Test
+    public void testConstructorWithSSEKMSEncryptionWithoutKey() {
+        Properties props = new Properties();
+        props.setProperty(S3Constants.S3_ENCRYPTION, "SSE_KMS");
+        S3RequestDecorator decorator = new S3RequestDecorator(props);
+        assertEquals(DataEncryption.SSE_KMS, decorator.dataEncryption);
+        assertNull(decorator.sseKmsKey);
+        assertNull(decorator.sseCustomerKey);
+    }
+
+    @Test
+    public void testConstructorWithSSECEncryptionWithKey() {
+        Properties props = new Properties();
+        props.setProperty(S3Constants.S3_ENCRYPTION, "SSE_C");
+        props.setProperty(S3Constants.S3_SSE_C_KEY, "customer-key");
+        S3RequestDecorator decorator = new S3RequestDecorator(props);
+        assertEquals(DataEncryption.SSE_C, decorator.dataEncryption);
+        assertNull(decorator.sseKmsKey);
+        assertEquals("customer-key", decorator.sseCustomerKey);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testConstructorWithSSECEncryptionWithoutKey() {
+        Properties props = new Properties();
+        props.setProperty(S3Constants.S3_ENCRYPTION, "SSE_C");
+        new S3RequestDecorator(props);
+    }
+
+    @Test
+    public void testConstructorWithNullEncryptionType() {
+        Properties props = new Properties();
+        S3RequestDecorator decorator = new S3RequestDecorator(props);
+        assertEquals(DataEncryption.NONE, decorator.dataEncryption);
+        assertNull(decorator.sseKmsKey);
+        assertNull(decorator.sseCustomerKey);
+    }
+
+    @Test
     public void testDecorateHeadObjectWithSSEC() {
         Properties props = new Properties();
         props.setProperty(S3Constants.S3_ENCRYPTION, "SSE_C");

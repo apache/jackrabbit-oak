@@ -58,6 +58,7 @@ import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.MultipartUpload;
 import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
@@ -252,8 +253,8 @@ public final class Utils {
     }
 
     public static void deleteBucketObjects(final String bucket, final Properties props, final S3Client s3service) {
-        ListObjectsV2Iterable listResponses = s3service.listObjectsV2Paginator(builder -> builder.bucket(bucket).build());
-        deleteBucketObjects(bucket, props, s3service, listResponses);
+        deleteBucketObjects(bucket, props, s3service, s3service.listObjectsV2Paginator(
+                ListObjectsV2Request.builder().bucket(bucket).build()));
     }
 
     /**
@@ -314,6 +315,27 @@ public final class Utils {
             encryption = DataEncryption.valueOf(encryptionType);
         }
         return encryption;
+    }
+
+    /**
+     * Sets the remote storage mode in the provided properties based on the S3 endpoint.
+     * <p>
+     * If the endpoint contains "googleapis", the mode is set to GCP. Otherwise, it is set to S3.
+     * If the mode was previously set to S3 but the endpoint is for GCP, a warning is logged and the mode is overridden.
+     *
+     * @param properties the properties to update with the remote storage mode
+     */
+    public static void setRemoteStorageMode(final Properties properties) {
+        String s3EndPoint = properties.getProperty(S3Constants.S3_END_POINT, "");
+        if (s3EndPoint.contains("googleapis")) {
+            if (properties.get(S3Constants.MODE) == RemoteStorageMode.S3) {
+                LOG.warn("Mismatch between remote storage mode and s3EndPoint, overriding mode to GCP");
+            }
+            properties.put(S3Constants.MODE, RemoteStorageMode.GCP);
+            return;
+        }
+        // default mode is S3
+        properties.put(S3Constants.MODE, RemoteStorageMode.S3);
     }
 
     /**

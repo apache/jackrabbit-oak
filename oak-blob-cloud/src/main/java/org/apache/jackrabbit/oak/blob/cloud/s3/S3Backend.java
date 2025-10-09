@@ -33,7 +33,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.UUID;
@@ -168,8 +167,12 @@ public class S3Backend extends AbstractSharedBackend {
             final String region = Utils.getRegion(properties);
 
             s3Client = Utils.openService(properties, false);
+
+            setBinaryTransferAccelerationEnabled(
+                    Boolean.parseBoolean(
+                            properties.getProperty(S3Constants.PRESIGNED_URI_ENABLE_ACCELERATION, "false")));
+
             s3AsyncClient = Utils.openAsyncService(properties);
-            s3PresignService = Utils.createPresigner(s3Client, properties);
             s3ReqDecorator = new S3RequestDecorator(properties);
 
             if (bucket == null || bucket.trim().isEmpty()) {
@@ -222,9 +225,6 @@ public class S3Backend extends AbstractSharedBackend {
 
                 setHttpDownloadURICacheSize(cacheMaxSize);
             }
-
-            String enablePresignedAccelerationStr = properties.getProperty(S3Constants.PRESIGNED_URI_ENABLE_ACCELERATION);
-            setBinaryTransferAccelerationEnabled("true".equals(enablePresignedAccelerationStr));
 
             presignedDownloadURIVerifyExists =
                     PropertiesUtil.toBoolean(properties.get(S3Constants.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS), true);
@@ -282,22 +282,21 @@ public class S3Backend extends AbstractSharedBackend {
         }
     }
 
-    void setBinaryTransferAccelerationEnabled(boolean enabled) {
-        if (enabled) {
-            // verify acceleration is enabled on the bucket
-            GetBucketAccelerateConfigurationResponse accelerateConfig = s3Client.getBucketAccelerateConfiguration(b -> b.bucket(bucket).build());
-            if (Objects.equals(BucketAccelerateStatus.ENABLED, accelerateConfig.status())) {
-                // If transfer acceleration is enabled for presigned URIs, we need a separate AmazonS3Client
-                // instance with the acceleration mode enabled, because we don't want the requests from the
-                // data store itself to S3 to use acceleration
-                s3PresignService = Utils.createPresigner(Utils.openService(properties, true), properties);
-                LOG.info("S3 Transfer Acceleration enabled for presigned URIs.");
+    void setBinaryTransferAccelerationEnabled(final boolean enabled) {
+        if (!enabled) {
+            s3PresignService = Utils.createPresigner(s3Client, properties);
+            return;
+        }
 
-            } else {
-                LOG.warn("S3 Transfer Acceleration is not enabled on the bucket {}. Will create normal, non-accelerated presigned URIs. To enable set {}",
-                    bucket, S3Constants.PRESIGNED_URI_ENABLE_ACCELERATION);
-            }
+        GetBucketAccelerateConfigurationResponse accelerateConfig = s3Client.getBucketAccelerateConfiguration(
+                b -> b.bucket(bucket).build());
+
+        if (Objects.equals(BucketAccelerateStatus.ENABLED, accelerateConfig.status())) {
+            s3PresignService = Utils.createPresigner(Utils.openService(properties, true), properties);
+            LOG.info("S3 Transfer Acceleration enabled for presigned URIs.");
         } else {
+            LOG.warn("S3 Transfer Acceleration is not enabled on the bucket {}. Will create normal, non-accelerated presigned URIs. To enable set {}",
+                    bucket, S3Constants.PRESIGNED_URI_ENABLE_ACCELERATION);
             s3PresignService = Utils.createPresigner(s3Client, properties);
         }
     }
@@ -338,7 +337,7 @@ public class S3Backend extends AbstractSharedBackend {
                                 .sourceKey(key)
                                 .destinationBucket(bucket)
                                 .destinationKey(key)
-                                .metadataDirective(MetadataDirective.REPLACE)
+                                .metadataDirective(MetadataDirective.REPLACE) // Required to update metadata and reset creation time
                                 .build();
                 LOG.warn("Object MetaData before copy: {}", headMeta.metadata());
                 if (Objects.equals(RemoteStorageMode.S3, properties.get(S3Constants.MODE))) {
@@ -439,7 +438,7 @@ public class S3Backend extends AbstractSharedBackend {
 
     @Override
     public Iterator<DataIdentifier> getAllIdentifiers() {
-        return new RecordsIterator<>(input -> new DataIdentifier(getIdentifierName(input.key())));
+        return getAllRecords(s3Object -> new DataIdentifier(getIdentifierName(s3Object.key())));
     }
 
     @Override
@@ -476,6 +475,9 @@ public class S3Backend extends AbstractSharedBackend {
             if (s3AsyncClient != null) {
                 s3AsyncClient.close();
             }
+            if (s3PresignService != null) {
+                s3PresignService.close();
+            }
             s3Client.close();
         }
         LOG.info("S3Backend closed.");
@@ -497,7 +499,7 @@ public class S3Backend extends AbstractSharedBackend {
      */
     public void setProperties(Properties properties) {
         this.properties = properties;
-        setRemoteStorageMode();
+        Utils.setRemoteStorageMode(this.properties);
     }
 
     @Override
@@ -651,9 +653,9 @@ public class S3Backend extends AbstractSharedBackend {
     @Override
     public Iterator<DataRecord> getAllRecords() {
         final AbstractSharedBackend backend = this;
-        return new RecordsIterator<>(
-                input -> new S3DataRecord(backend, s3Client, bucket, new DataIdentifier(getIdentifierName(input.key())),
-                        input.lastModified().toEpochMilli(), input.size(), s3ReqDecorator));
+        return getAllRecords(
+                s3Object -> new S3DataRecord(backend, s3Client, bucket, new DataIdentifier(getIdentifierName(s3Object.key())),
+                        s3Object.lastModified().toEpochMilli(), s3Object.size(), s3ReqDecorator));
     }
 
     @Override
@@ -1107,57 +1109,19 @@ public class S3Backend extends AbstractSharedBackend {
         }
     }
 
-    /**
-     * Returns an iterator over the S3 objects
-     * @param <T>
-     */
-    public class RecordsIterator<T> implements Iterator<T> {
-        private final Iterator<T> objectIterator;
-        private T nextElement = null;
-        private boolean computedNext = false;
+    private <T> Iterator<T> getAllRecords(Function<S3Object, T> transformer) {
 
-        public RecordsIterator(Function<S3Object, T> transformer) {
-
-            ListObjectsV2Iterable prevObjectListing = s3Client.listObjectsV2Paginator(builder -> {
-                builder.bucket(bucket);
-                if (properties.containsKey(S3Constants.MAX_KEYS)) {
-                    builder.maxKeys(Integer.valueOf(properties.getProperty(S3Constants.MAX_KEYS)));
-                }
-                builder.build();
-            });
-
-            this.objectIterator = IteratorUtils.transform(IteratorUtils.filter(prevObjectListing.contents().iterator(),
-                    input -> !input.key().startsWith(META_KEY_PREFIX)), transformer);
-
-        }
-
-        @Override
-        public boolean hasNext() {
-            if (!computedNext) {
-                findNext();
+        final ListObjectsV2Iterable prevObjectListing = s3Client.listObjectsV2Paginator(builder -> {
+            builder.bucket(bucket);
+            if (properties.containsKey(S3Constants.MAX_KEYS)) {
+                builder.maxKeys(Integer.valueOf(properties.getProperty(S3Constants.MAX_KEYS)));
             }
-            return nextElement != null;
-        }
+            builder.build();
+        });
 
-        @Override
-        public T next() {
-            if (!hasNext()) {
-                throw new NoSuchElementException();
-            }
-            T result = nextElement;
-            computedNext = false;
-            nextElement = null;
-            return result;
-        }
-
-        private void findNext() {
-            if (objectIterator.hasNext()) {
-                nextElement = objectIterator.next();
-            } else {
-                nextElement = null;
-            }
-            computedNext = true;
-        }
+        return IteratorUtils.transform(IteratorUtils.filter(
+                prevObjectListing.contents().iterator(),
+                s3Object -> !s3Object.key().startsWith(META_KEY_PREFIX)), transformer);
     }
 
     private static String addMetaKeyPrefix(String key) {
@@ -1359,19 +1323,6 @@ public class S3Backend extends AbstractSharedBackend {
             return key;
         }
         return key.substring(0, 4) + key.substring(5);
-    }
-
-    private void setRemoteStorageMode() {
-        String s3EndPoint = properties.getProperty(S3Constants.S3_END_POINT, "");
-        if (s3EndPoint.contains("googleapis")) {
-            if (properties.get(S3Constants.MODE) == RemoteStorageMode.S3) {
-                LOG.warn("Mismatch between remote storage mode and s3EndPoint, overriding mode to GCP");
-            }
-            properties.put(S3Constants.MODE, RemoteStorageMode.GCP);
-            return;
-        }
-        // default mode is S3
-        properties.put(S3Constants.MODE, RemoteStorageMode.S3);
     }
 
     /**

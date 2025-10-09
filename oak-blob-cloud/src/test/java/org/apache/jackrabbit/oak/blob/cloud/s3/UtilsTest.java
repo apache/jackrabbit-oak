@@ -245,4 +245,29 @@ public class UtilsTest {
         Utils.objectExists(mockClient, "bucket", "key", decorator);
     }
 
+    @Test
+    public void testSetRemoteStorageModeS3() {
+        Properties props = new Properties();
+        props.setProperty("s3EndPoint", "https://s3.amazonaws.com");
+        Utils.setRemoteStorageMode(props);
+        Assert.assertEquals(S3Backend.RemoteStorageMode.S3, props.get(S3Constants.MODE));
+    }
+
+    @Test
+    public void testSetRemoteStorageModeGCP() {
+        Properties props = new Properties();
+        props.setProperty("s3EndPoint", "https://storage.googleapis.com");
+        Utils.setRemoteStorageMode(props);
+        Assert.assertEquals(S3Backend.RemoteStorageMode.GCP, props.get(S3Constants.MODE));
+    }
+
+    @Test
+    public void testSetRemoteStorageModeOverrideWarning() {
+        Properties props = new Properties();
+        props.setProperty("s3EndPoint", "https://storage.googleapis.com");
+        props.put(S3Constants.MODE, S3Backend.RemoteStorageMode.S3);
+        Utils.setRemoteStorageMode(props);
+        Assert.assertEquals(S3Backend.RemoteStorageMode.GCP, props.get(S3Constants.MODE));
+    }
+
 }
