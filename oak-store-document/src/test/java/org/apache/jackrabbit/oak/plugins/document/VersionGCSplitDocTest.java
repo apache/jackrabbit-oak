@@ -20,10 +20,10 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_MEM;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_NS;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_RDB;
+import static org.apache.jackrabbit.oak.commons.testing.FixturesHelper.getFixtures;
+import static org.apache.jackrabbit.oak.commons.testing.FixturesHelper.Fixture.DOCUMENT_MEM;
+import static org.apache.jackrabbit.oak.commons.testing.FixturesHelper.Fixture.DOCUMENT_NS;
+import static org.apache.jackrabbit.oak.commons.testing.FixturesHelper.Fixture.DOCUMENT_RDB;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.NO_BINARY;
 import static org.junit.Assert.assertEquals;

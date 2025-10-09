@@ -57,7 +57,7 @@ public class ParallelCompactorTest extends AbstractCompactorTest {
     }
 
     @Override
-    protected ParallelCompactor createCompactor(
+    protected Compactor createCompactor(
             @NotNull FileStore fileStore,
             @NotNull GCIncrement increment,
             @NotNull GCNodeWriteMonitor compactionMonitor
@@ -67,6 +67,7 @@ public class ParallelCompactorTest extends AbstractCompactorTest {
                 .withWriterPool(SegmentBufferWriterPool.PoolType.THREAD_SPECIFIC)
                 .build(fileStore);
         CompactionWriter compactionWriter = new CompactionWriter(fileStore.getReader(), fileStore.getBlobStore(), increment, writerFactory);
-        return new ParallelCompactor(GCMonitor.EMPTY, compactionWriter, compactionMonitor, concurrency);
+        return new CheckpointCompactor(GCMonitor.EMPTY,
+                new ParallelCompactor(GCMonitor.EMPTY, compactionWriter, compactionMonitor, concurrency));
     }
 }

@@ -18,6 +18,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.Objects.requireNonNullElseGet;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState.binaryProperty;
@@ -97,16 +98,41 @@ public class ClassicCompactor extends Compactor {
             @NotNull NodeState onto,
             @NotNull Canceller canceller
     ) throws IOException {
-        return compact(before, after, onto, canceller, Canceller.newCanceller());
+        return compact(before, after, onto, canceller, null);
     }
 
-    private @Nullable CompactedNodeState compact(
-        @NotNull NodeState before,
-        @NotNull NodeState after,
-        @NotNull NodeState onto,
-        @NotNull Canceller hardCanceller,
-        @NotNull Canceller softCanceller
-    ) throws IOException {
+    /**
+     * Compact the differences between {@code after} and {@code before} on top of {@code onto}. The
+     * {@code softCanceller} must be null, unless {@code after.equals(onto)}, i.e. if the method is
+     * called for a {@link #compactDown(NodeState, NodeState, Canceller, Canceller)} scenario.
+     * .
+     *
+     * @param before        The node state used as the baseline for the diff.
+     * @param after         The node state used as the target for the diff.
+     * @param onto          The node state to apply the diff to.
+     * @param hardCanceller The trigger for hard cancellation, will abandon compaction if cancelled.
+     * @param softCanceller The trigger for soft cancellation, will return partially compacted state if cancelled.
+     *                      Must be null unless {@code after.equals(onto)}.
+     * @return              The compacted node state or {@code null} if hard-cancelled.
+     * @throws IOException Will throw exception if any errors occur during compaction.
+     */
+    protected @Nullable CompactedNodeState compact(
+            @NotNull NodeState before,
+            @NotNull NodeState after,
+            @NotNull NodeState onto,
+            @NotNull Canceller hardCanceller,
+            @Nullable Canceller softCanceller) throws IOException {
+        return internalCompact(before, after, onto, hardCanceller, softCanceller);
+    }
+
+    // the private method is necessary to prevent the call in CompactDiff#childNodeUpdated,
+    // to call an overridden #compact method instead of the one in this class.
+    private @Nullable CompactedNodeState internalCompact(
+            @NotNull NodeState before,
+            @NotNull NodeState after,
+            @NotNull NodeState onto,
+            @NotNull Canceller hardCanceller,
+            @Nullable Canceller softCanceller) throws IOException {
         CompactedNodeState compactedState = getPreviouslyCompactedState(after);
         if (compactedState == null) {
             compactedState = new CompactDiff(onto, hardCanceller, softCanceller).diff(before, after);
@@ -149,11 +175,11 @@ public class ClassicCompactor extends Compactor {
             }
         }
 
-        CompactDiff(@NotNull NodeState base, @NotNull Canceller hardCanceller, @NotNull Canceller softCanceller) {
+        CompactDiff(@NotNull NodeState base, @NotNull Canceller hardCanceller, @Nullable Canceller softCanceller) {
             this.base = requireNonNull(base);
             this.builder = new MemoryNodeBuilder(base);
             this.hardCanceller = requireNonNull(hardCanceller);
-            this.softCanceller = requireNonNull(softCanceller);
+            this.softCanceller = requireNonNullElseGet(softCanceller, Canceller::newCanceller);
         }
 
         private @NotNull CancelableDiff newCancelableDiff() {
@@ -200,7 +226,7 @@ public class ClassicCompactor extends Compactor {
             try {
                 NodeState child = base.getChildNode(name);
                 NodeState onto = child.exists() ? child : EMPTY_NODE;
-                CompactedNodeState compacted = compact(before, after, onto, hardCanceller, softCanceller);
+                CompactedNodeState compacted = internalCompact(before, after, onto, hardCanceller, softCanceller);
                 if (compacted == null) {
                     return false;
                 }

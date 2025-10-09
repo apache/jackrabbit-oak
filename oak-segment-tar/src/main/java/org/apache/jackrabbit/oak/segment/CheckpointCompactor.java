@@ -38,8 +38,6 @@ import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.segment.file.CompactedNodeState;
-import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
-import org.apache.jackrabbit.oak.segment.file.CompactionWriter;
 import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -71,16 +69,13 @@ public class CheckpointCompactor extends Compactor {
      * Create a new instance based on the passed arguments.
      *
      * @param gcListener        listener receiving notifications about the garbage collection process
-     * @param writer           segment writer used to serialise to segments
-     * @param compactionMonitor notification call back for each compacted nodes,
-     *                          properties, and binaries
+     * @param compactor         the delegate compactor to use for the actual compaction work
      */
     public CheckpointCompactor(
             @NotNull GCMonitor gcListener,
-            @NotNull CompactionWriter writer,
-            @NotNull GCNodeWriteMonitor compactionMonitor) {
+            @NotNull ClassicCompactor compactor) {
         this.gcListener = gcListener;
-        this.compactor = new ClassicCompactor(writer, compactionMonitor);
+        this.compactor = compactor;
     }
 
     @Override
@@ -240,7 +235,7 @@ public class CheckpointCompactor extends Compactor {
     /**
      * Delegate compaction to another, usually simpler, implementation.
      */
-    protected @Nullable CompactedNodeState compactDownWithDelegate(
+    private @Nullable CompactedNodeState compactDownWithDelegate(
             @NotNull NodeState before,
             @NotNull NodeState after,
             @NotNull Canceller hardCanceller,
@@ -249,7 +244,7 @@ public class CheckpointCompactor extends Compactor {
         return compactor.compactDown(before, after, hardCanceller, softCanceller);
     }
 
-    protected @Nullable CompactedNodeState compactWithDelegate(
+    private @Nullable CompactedNodeState compactWithDelegate(
             @NotNull NodeState before,
             @NotNull NodeState after,
             @NotNull NodeState onto,

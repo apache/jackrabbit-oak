@@ -40,6 +40,6 @@ public class CheckpointCompactorExternalBlobTest extends AbstractCompactorExtern
     protected CheckpointCompactor createCompactor(@NotNull FileStore fileStore, @NotNull GCGeneration generation) {
         SegmentWriter writer = defaultSegmentWriterBuilder("c").withGeneration(generation).build(fileStore);
         CompactionWriter compactionWriter = new CompactionWriter(fileStore.getReader(), fileStore.getBlobStore(), generation, writer);
-        return new CheckpointCompactor(GCMonitor.EMPTY, compactionWriter, GCNodeWriteMonitor.EMPTY);
+        return new CheckpointCompactor(GCMonitor.EMPTY, new ClassicCompactor(compactionWriter, GCNodeWriteMonitor.EMPTY));
     }
 }
