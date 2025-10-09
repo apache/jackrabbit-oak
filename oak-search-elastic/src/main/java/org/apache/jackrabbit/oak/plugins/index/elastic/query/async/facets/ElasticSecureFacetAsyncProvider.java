@@ -52,6 +52,7 @@ import java.util.stream.Collectors;
 class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticSecureFacetAsyncProvider.class);
+    private static final int MAX_PAGE_SIZE = 10_000;
 
     private final ElasticResponseHandler elasticResponseHandler;
     private final Predicate<String> isAccessible;
@@ -78,7 +79,7 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider {
         this.searchRequest = SearchRequest.of(srb -> srb.index(indexDefinition.getIndexAlias())
                 .source(SourceConfig.of(scf -> scf.filter(ff -> ff.includes(FieldNames.PATH).includes(new ArrayList<>(facetFields)))))
                 .query(Query.of(qb -> qb.bool(elasticRequestHandler.baseQueryBuilder().build())))
-                .size(10000) // batch size for each search_after iteration
+                .size(MAX_PAGE_SIZE) // batch size for each search_after iteration
                 .sort(s -> s.field(fs -> fs.field(FieldNames.PATH)))
         );
 
@@ -126,10 +127,14 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider {
                     }
 
                     // If we got fewer results than requested, we've reached the end
-                    if (hits.size() < 10_000) {
+                    if (hits.isEmpty() || hits.size() < MAX_PAGE_SIZE) {
                         LOG.trace("Reached end of results, final facet processing complete");
                         return CompletableFuture.completedFuture(accumulatedFacets);
                     }
+
+                    // warn about big result sets, suggest statistical or insecure facets
+                    LOG.warn("Large result set detected ({} hits so far) for search request {}. Consider using statistical facets or insecure facets for better performance.",
+                            searchRequest, accumulatedFacets.values().stream().mapToInt(Map::size).sum());
 
                     // Extract sort values from the last hit for next search_after
                     Hit<ObjectNode> lastHit = hits.get(hits.size() - 1);
@@ -232,8 +237,9 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider {
                 searchFuture.cancel(true);
                 LOG.error("Timed out while waiting for facets. Search request: {}", searchRequest);
             } catch (InterruptedException e) {
+                LOG.error("Interrupted while waiting for facets. Search request: {}", searchRequest, e);
                 Thread.currentThread().interrupt();  // restore interrupt status
-                throw new IllegalStateException("Error while waiting for facets. Search request: {}", searchRequest, e);
+                throw new IllegalStateException("Error while waiting for facets", e);
             }
         }
         LOG.trace("Reading facets for {} from {}", columnName, facets);
