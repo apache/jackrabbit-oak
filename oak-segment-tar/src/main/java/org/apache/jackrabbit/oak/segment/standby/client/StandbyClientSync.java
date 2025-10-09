@@ -32,7 +32,7 @@ import javax.management.ObjectName;
 import javax.management.StandardMBean;
 
 import io.netty.channel.nio.NioEventLoopGroup;
-import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.standby.jmx.ClientStandbyStatusMBean;
@@ -195,7 +195,7 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         this.autoClean = builder.autoClean;
         this.fileStore = builder.fileStore;
         this.observer = new CommunicationObserver(clientId());
-        this.group = new NioEventLoopGroup(0, new NamedThreadFactory("standby"));
+        this.group = new NioEventLoopGroup(0, BasicThreadFactory.builder().namingPattern("standby-%d").build());
         this.execution = new StandbyClientSyncExecution(fileStore, () -> running);
         this.spoolFolder = builder.spoolFolder;
         this.sslKeyFile = builder.sslKeyFile;

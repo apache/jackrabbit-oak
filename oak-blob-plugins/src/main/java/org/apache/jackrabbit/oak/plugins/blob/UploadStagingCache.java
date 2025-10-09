@@ -42,6 +42,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.apache.jackrabbit.guava.common.util.concurrent.FutureCallback;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
@@ -49,7 +50,6 @@ import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
@@ -163,13 +163,15 @@ public class UploadStagingCache implements Closeable {
         this.executor = executor;
         if (executor == null) {
             this.executor = MoreExecutors.listeningDecorator(Executors
-                .newFixedThreadPool(uploadThreads, new NamedThreadFactory("oak-ds-async-upload-thread")));
+                .newFixedThreadPool(uploadThreads,
+                        BasicThreadFactory.builder().namingPattern("oak-ds-async-upload-thread-%d").build()));
         }
 
         this.scheduledExecutor = scheduledExecutor;
         if (scheduledExecutor == null) {
             this.scheduledExecutor = Executors
-                .newScheduledThreadPool(2, new NamedThreadFactory("oak-ds-cache-scheduled-thread"));
+                .newScheduledThreadPool(2,
+                        BasicThreadFactory.builder().namingPattern("oak-ds-cache-scheduled-thread-%d").build());
         }
 
         this.map = new ConcurrentHashMap<>();
