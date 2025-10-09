@@ -227,12 +227,6 @@
             <version>${jackrabbit.version}</version>
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>org.apache.jackrabbit</groupId>
-            <artifactId>jackrabbit-data</artifactId>
-            <version>${jackrabbit.version}</version>
-            <scope>provided</scope>
-        </dependency>
 
         <!-- Other dependencies -->
         <dependency>
