@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.standby;
 
-import static org.apache.jackrabbit.oak.commons.CIHelper.jenkinsNodeLabel;
+import static org.apache.jackrabbit.oak.commons.testing.CIHelper.jenkinsNodeLabel;
 import static org.apache.jackrabbit.oak.segment.SegmentTestUtils.addTestContent;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

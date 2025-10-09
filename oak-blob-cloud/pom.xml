@@ -129,6 +129,7 @@
             <artifactId>oak-store-spi</artifactId>
             <version>${project.version}</version>
         </dependency>
+
         <!-- Amazon AWS dependency -->
         <dependency>
             <groupId>com.amazonaws</groupId>
@@ -190,8 +191,8 @@
         <!-- Test dependencies -->
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
-            <artifactId>jackrabbit-data</artifactId>
-            <version>${jackrabbit.version}</version>
+            <artifactId>oak-commons</artifactId>
+            <version>${project.version}</version>
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
