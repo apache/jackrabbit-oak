@@ -227,13 +227,13 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider {
                 facets = searchFuture.get(facetsEvaluationTimeoutMs, TimeUnit.MILLISECONDS);
                 LOG.trace("Facets computed in {}.", TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
             } catch (ExecutionException e) {
-                LOG.error("Error evaluating facets", e);
+                LOG.error("Error evaluating facets. Ignoring. Search request: {}", searchRequest, e);
             } catch (TimeoutException e) {
                 searchFuture.cancel(true);
                 LOG.error("Timed out while waiting for facets. Search request: {}", searchRequest);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();  // restore interrupt status
-                throw new IllegalStateException("Error while waiting for facets", e);
+                throw new IllegalStateException("Error while waiting for facets. Search request: {}", searchRequest, e);
             }
         }
         LOG.trace("Reading facets for {} from {}", columnName, facets);
