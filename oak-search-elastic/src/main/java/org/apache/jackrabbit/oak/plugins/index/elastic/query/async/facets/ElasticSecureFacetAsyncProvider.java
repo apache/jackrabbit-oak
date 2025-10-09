@@ -132,7 +132,7 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider {
                         return CompletableFuture.completedFuture(accumulatedFacets);
                     }
 
-                    // if we get here, it means we have more results to fetch
+                    // if we get here, it means we have processed MAX_PAGE_SIZE hits and there might be more
                     LOG.warn("Large result set detected ({} hits so far) for search request {}. Consider using statistical or insecure facets for better performance.",
                             hits.size(), searchRequest);
 
