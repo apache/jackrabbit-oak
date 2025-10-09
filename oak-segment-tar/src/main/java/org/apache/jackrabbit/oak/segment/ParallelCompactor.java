@@ -23,8 +23,8 @@ import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.segment.file.CompactedNodeState;
-import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.CompactionWriter;
+import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -55,7 +55,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
  * Every node at this depth will be an entry point for asynchronous compaction. After the exploration phase,
  * the main thread will collect these compaction results and write their parents' node state to disk.
  */
-public class ParallelCompactor extends CheckpointCompactor {
+public class ParallelCompactor extends ClassicCompactor {
     /**
      * Expand repository tree until there are this many nodes for each worker to compact. Tradeoff
      * between inefficiency of many small tasks and high risk of at least one of the subtrees being
@@ -67,6 +67,8 @@ public class ParallelCompactor extends CheckpointCompactor {
      * Stop expansion if tree size grows beyond this many nodes.
      */
     private static final int EXPLORATION_UPPER_LIMIT = 100_000;
+
+    private final GCMonitor gcListener;
 
     private final int numWorkers;
 
@@ -91,12 +93,13 @@ public class ParallelCompactor extends CheckpointCompactor {
             @NotNull CompactionWriter writer,
             @NotNull GCNodeWriteMonitor compactionMonitor,
             int nThreads) {
-        super(gcListener, writer, compactionMonitor);
+        super(writer, compactionMonitor);
         if (nThreads < 0) {
             nThreads += Runtime.getRuntime().availableProcessors() + 1;
         }
-        numWorkers = Math.max(0, nThreads - 1);
-        totalSizeEstimate = compactionMonitor.getEstimatedTotal();
+        this.gcListener = gcListener;
+        this.numWorkers = Math.max(0, nThreads - 1);
+        this.totalSizeEstimate = compactionMonitor.getEstimatedTotal();
     }
 
     /**
@@ -131,7 +134,7 @@ public class ParallelCompactor extends CheckpointCompactor {
             }
 
             @NotNull PropertyState compact() {
-                return compactor.compact(state);
+                return ParallelCompactor.this.compact(state);
             }
         }
 
@@ -142,7 +145,7 @@ public class ParallelCompactor extends CheckpointCompactor {
 
         @Nullable List<Entry<String, CompactionTree>> expand(@NotNull Canceller hardCanceller) {
             Validate.checkState(compactionFuture == null);
-            CompactedNodeState compactedState = compactor.getPreviouslyCompactedState(after);
+            CompactedNodeState compactedState = getPreviouslyCompactedState(after);
             if (compactedState != null) {
                 compactionFuture = CompletableFuture.completedFuture(compactedState);
                 return Collections.emptyList();
@@ -203,14 +206,9 @@ public class ParallelCompactor extends CheckpointCompactor {
         void compactAsync(@NotNull Canceller hardCanceller, @Nullable Canceller softCanceller) {
             if (compactionFuture == null) {
                 requireNonNull(executorService);
-                if (softCanceller == null) {
-                    compactionFuture = executorService.submit(() ->
-                            compactor.compact(before, after, onto, hardCanceller));
-                } else {
-                    Validate.checkState(onto.equals(after));
-                    compactionFuture = executorService.submit(() ->
-                            compactor.compactDown(before, after, hardCanceller, softCanceller));
-                }
+                Validate.checkState(softCanceller == null || onto.equals(after));
+                compactionFuture = executorService.submit(() ->
+                        ParallelCompactor.super.compact(before, after, onto, hardCanceller, softCanceller));
             }
         }
 
@@ -267,7 +265,7 @@ public class ParallelCompactor extends CheckpointCompactor {
                             builder.setChildNode(entry.getKey(), compactedState);
                         }
                     }
-                    return compactor.writeNodeState(builder.getNodeState(), stableIdBytes, false);
+                    return writeNodeState(builder.getNodeState(), stableIdBytes, false);
                 }
             }
 
@@ -283,7 +281,7 @@ public class ParallelCompactor extends CheckpointCompactor {
                 builder.removeProperty(name);
             }
 
-            return compactor.writeNodeState(builder.getNodeState(), stableIdBytes, true);
+            return writeNodeState(builder.getNodeState(), stableIdBytes, true);
         }
     }
 
@@ -296,13 +294,7 @@ public class ParallelCompactor extends CheckpointCompactor {
         private final @NotNull Canceller hardCanceller;
         private final @Nullable Canceller softCanceller;
 
-        CompactionHandler(@NotNull NodeState base, @NotNull Canceller hardCanceller) {
-            this.base = base;
-            this.hardCanceller = hardCanceller;
-            this.softCanceller = null;
-        }
-
-        CompactionHandler(@NotNull NodeState base, @NotNull Canceller hardCanceller, @NotNull Canceller softCanceller) {
+        CompactionHandler(@NotNull NodeState base, @NotNull Canceller hardCanceller, @Nullable Canceller softCanceller) {
             this.base = base;
             this.hardCanceller = hardCanceller;
             this.softCanceller = softCanceller;
@@ -385,30 +377,11 @@ public class ParallelCompactor extends CheckpointCompactor {
     }
 
     @Override
-    protected @Nullable CompactedNodeState compactDownWithDelegate(
-            @NotNull NodeState before,
-            @NotNull NodeState after,
-            @NotNull Canceller hardCanceller,
-            @NotNull Canceller softCanceller
-    ) throws IOException {
+    protected @Nullable CompactedNodeState compact(@NotNull NodeState before, @NotNull NodeState after, @NotNull NodeState onto, @NotNull Canceller hardCanceller, @Nullable Canceller softCanceller) throws IOException {
         if (initializeExecutor()) {
-            return new CompactionHandler(after, hardCanceller, softCanceller).diff(before, after);
+            return new CompactionHandler(onto, hardCanceller, softCanceller).diff(before, after);
         } else {
-            return super.compactDownWithDelegate(before, after, hardCanceller, softCanceller);
-        }
-    }
-
-    @Override
-    protected @Nullable CompactedNodeState compactWithDelegate(
-            @NotNull NodeState before,
-            @NotNull NodeState after,
-            @NotNull NodeState onto,
-            @NotNull Canceller canceller
-    ) throws IOException {
-        if (initializeExecutor()) {
-            return new CompactionHandler(onto, canceller).diff(before, after);
-        } else {
-            return super.compactWithDelegate(before, after, onto, canceller);
+            return super.compact(before, after, onto, hardCanceller, softCanceller);
         }
     }
 }

@@ -46,6 +46,6 @@ public class CheckpointCompactorTest extends AbstractCompactorTest {
                 .withGeneration(generation)
                 .build(fileStore);
         CompactionWriter compactionWriter = new CompactionWriter(fileStore.getReader(), fileStore.getBlobStore(), increment, writerFactory);
-        return new CheckpointCompactor(GCMonitor.EMPTY, compactionWriter, compactionMonitor);
+        return new CheckpointCompactor(GCMonitor.EMPTY, new ClassicCompactor(compactionWriter, compactionMonitor));
     }
 }
