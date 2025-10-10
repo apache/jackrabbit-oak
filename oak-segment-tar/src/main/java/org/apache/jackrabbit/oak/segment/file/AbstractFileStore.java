@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.commons.Buffer;
@@ -163,15 +164,18 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         this.remoteStoreMonitor = builder.getRemoteStoreMonitor();
         this.segmentBufferMonitor = new SegmentBufferMonitor(builder.getStatsProvider());
         this.binariesInlineThreshold = builder.getBinariesInlineThreshold();
+        this.persistentCache = initializePersistentCache(builder, this::getTarFiles);
+    }
+
+    private static @Nullable PersistentCache initializePersistentCache(FileStoreBuilder builder, Supplier<TarFiles> tarFilesSupplier) {
         PersistentCache persistentCache = builder.getPersistentCache();
         PersistentCachePreloadingConfiguration preloadingConfig = builder.getPreloadingConfiguration();
         if (preloadingConfig != null) {
             Validate.checkState(persistentCache != null,
                     "PersistentCache must be configured when using a PersistentCachePreloadConfiguration");
-            this.persistentCache = SegmentPreloader.decorate(persistentCache, preloadingConfig, this::getTarFiles);
-        } else {
-            this.persistentCache = persistentCache;
+            persistentCache = SegmentPreloader.decorate(persistentCache, preloadingConfig, tarFilesSupplier);
         }
+        return persistentCache;
     }
 
     static SegmentNotFoundException asSegmentNotFoundException(Exception e, SegmentId id) {

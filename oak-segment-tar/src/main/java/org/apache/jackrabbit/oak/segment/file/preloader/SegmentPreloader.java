@@ -66,8 +66,6 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
 
     private final ConcurrentHashMap<String, Map<UUID, Set<UUID>>> graphCache;
 
-    private final Set<UUID> cachedSegments;
-
     private final PersistentCache delegate;
 
     private final ExecutorService dispatchPool;
@@ -100,7 +98,6 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
         this.tarFiles = Suppliers.memoize(tarFiles);
         this.inProgressPrefetch = new ConcurrentHashMap<>();
         this.graphCache = new ConcurrentHashMap<>();
-        this.cachedSegments = ConcurrentHashMap.newKeySet();
         this.prefetchDepth = config.getPrefetchDepth();
         this.dispatchPool = new ThreadPoolExecutor(1,1,
                 1, TimeUnit.SECONDS,
@@ -163,10 +160,6 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
         execute(dispatchPool, new PrefetchDispatchTask(tarFiles, indicesSupplier, msb, lsb, depth));
     }
 
-    private void prefetch(TarFiles tarFiles, Supplier<Map<String, Set<UUID>>> indicesSupplier, long msb, long lsb, int depth) {
-        execute(prefetchPool, new PrefetchTask(tarFiles, indicesSupplier, msb, lsb, depth));
-    }
-
     private void execute(ExecutorService pool, Runnable r) {
         if (registerInProgressTask(r)) {
             pool.execute(r);
@@ -179,11 +172,6 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
 
     private void clearInProgressTask(Runnable r) {
         inProgressPrefetch.remove(r.hashCode());
-    }
-
-    @VisibleForTesting
-    boolean hasInProgressTasks() {
-        return !inProgressPrefetch.isEmpty();
     }
 
     @Override
@@ -250,12 +238,16 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
             for (UUID reference : graph.get(uuid)) {
                 long refMsb = reference.getMostSignificantBits();
                 long refLsb = reference.getLeastSignificantBits();
-                if (!cachedSegments.contains(reference) && !delegate.containsSegment(refMsb, refLsb)) {
+                if (!delegate.containsSegment(refMsb, refLsb)) {
                     prefetch(tarFiles, () -> indices, refMsb, refLsb, depth);
-                } else if (depth < prefetchDepth - 1 && SegmentId.isDataSegmentId(refLsb)) {
+                } else if (depth < prefetchDepth && SegmentId.isDataSegmentId(refLsb)) {
                     dispatch(tarFiles, () -> indices, refMsb, refLsb, depth);
                 }
             }
+        }
+
+        private void prefetch(TarFiles tarFiles, Supplier<Map<String, Set<UUID>>> indicesSupplier, long msb, long lsb, int depth) {
+            execute(prefetchPool, new PrefetchTask(tarFiles, indicesSupplier, msb, lsb, depth));
         }
 
         @Override
@@ -263,7 +255,7 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
             if (this == o) {
                 return true;
             }
-            if (!(o.getClass() == PrefetchDispatchTask.class)) {
+            if (o.getClass() != PrefetchDispatchTask.class) {
                 return false;
             }
             PrefetchDispatchTask that = (PrefetchDispatchTask) o;
@@ -322,24 +314,14 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
         @Override
         public void run() {
             LOG.debug("Running: {}", this);
-            try {
-                if (depth < prefetchDepth && SegmentId.isDataSegmentId(lsb)) {
-                    dispatch(tarFiles, indicesSupplier, msb, lsb, depth);
+            if (depth < prefetchDepth && SegmentId.isDataSegmentId(lsb)) {
+                dispatch(tarFiles, indicesSupplier, msb, lsb, depth);
+            }
+            if (!delegate.containsSegment(msb, lsb)) {
+                Buffer segmentBuffer = tarFiles.readSegment(msb, lsb);
+                if (segmentBuffer != null) {
+                    delegate.writeSegment(msb, lsb, segmentBuffer);
                 }
-                UUID uuid = new UUID(msb, lsb);
-                if (!cachedSegments.contains(uuid) && !delegate.containsSegment(msb, lsb)) {
-                    Buffer segmentBuffer = tarFiles.readSegment(msb, lsb);
-                    if (segmentBuffer != null) {
-                        cachedSegments.add(uuid);
-                        delegate.writeSegment(msb, lsb, segmentBuffer);
-                    }
-                }
-            } catch (SegmentNotFoundException e) {
-                LOG.warn("SegmentNotFoundException during prefetch of segment {}", new UUID(msb, lsb), e);
-                throw e;
-            } catch (Exception e) {
-                LOG.warn("Exception during prefetch of segment {}", new UUID(msb, lsb), e);
-                throw new RuntimeException(e);
             }
         }
 
@@ -348,7 +330,7 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
             if (this == o) {
                 return true;
             }
-            if (!(o.getClass() == PrefetchTask.class)) {
+            if (o.getClass() != PrefetchTask.class) {
                 return false;
             }
             PrefetchTask that = (PrefetchTask) o;

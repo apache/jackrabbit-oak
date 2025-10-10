@@ -22,19 +22,18 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.Segment;
+import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
-import org.apache.jackrabbit.oak.segment.file.tar.SegmentGraph;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.PersistentCache;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.PersistentCachePreloadingConfiguration;
@@ -46,11 +45,15 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.sql.Time;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -67,11 +70,13 @@ import static org.junit.Assert.assertTrue;
 
 public class SegmentPreloaderTest {
 
+    private static final Logger LOG = LoggerFactory.getLogger(SegmentPreloaderTest.class);
+
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     @Test
-    public void testDecorationSkippedForWrongArguments() throws IOException {
+    public void testDecorationSkippedForWrongArguments() {
         Supplier<TarFiles> tarFiles = () -> null; // never called
         PersistentCache delegate = new MemoryTestCache();
         PersistentCache decorated = SegmentPreloader.decorate(delegate, PersistentCachePreloadingConfiguration.withConcurrency(0), tarFiles);
@@ -79,9 +84,36 @@ public class SegmentPreloaderTest {
     }
 
     @Test
+    public void viaFileStoreBuilder() throws InvalidFileStoreVersionException, IOException, CommitFailedException {
+        try (FileStore fileStore = FileStoreBuilder.fileStoreBuilder(folder.getRoot())
+                .build()) {
+            SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+            NodeBuilder builder = nodeStore.getRoot().builder();
+
+            generateContent(builder, 4, 4);
+            nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        }
+
+        MemoryTestCache persistentCache = new MemoryTestCache();
+        try (FileStore fileStore = FileStoreBuilder.fileStoreBuilder(folder.getRoot())
+                .withPersistentCache(persistentCache)
+                .withPersistentCachePreloading(PersistentCachePreloadingConfiguration.withConcurrency(4).withPrefetchDepth(1))
+                .build()) {
+            SegmentId root = fileStore.getRevisions().getPersistedHead().getSegmentId();
+            Segment segment = root.getSegment();
+            int referencedSegmentIdCount = segment.getReferencedSegmentIdCount();
+
+            assertTrue(persistentCache.containsSegment(root.getMostSignificantBits(), root.getLeastSignificantBits()));
+            assertEquals(1 + referencedSegmentIdCount, persistentCache.segments.size());
+        }
+    }
+
+    @Test
     public void testPreloading() throws IOException, InvalidFileStoreVersionException, CommitFailedException, InterruptedException {
         SegmentNodeStorePersistence persistence = new TarPersistence(folder.getRoot());
         try (FileStore fileStore = FileStoreBuilder.fileStoreBuilder(folder.getRoot())
+                .withMaxFileSize(4)
+                .withMemoryMapping(false)
                 .withCustomPersistence(persistence)
                 .build()) {
             SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
@@ -92,23 +124,18 @@ public class SegmentPreloaderTest {
         }
 
         MemoryTestCache underlyingCache = new MemoryTestCache();
-        TarFiles tarFiles = createReadOnlyTarFiles(folder.getRoot(), persistence);
 
-        SegmentPreloader preloadingCache = (SegmentPreloader)SegmentPreloader.decorate(underlyingCache,
-                PersistentCachePreloadingConfiguration.withConcurrency(8).withPrefetchDepth(2), () -> tarFiles);
-
-        SegmentArchiveManager archiveManager = persistence.createArchiveManager(false, false, null, null, null);
-        assertEquals(List.of("data00000a.tar"), archiveManager.listArchives());
-        try (@Nullable SegmentArchiveReader reader = archiveManager.open("data00000a.tar");
+        try (TarFiles tarFiles = createReadOnlyTarFiles(folder.getRoot(), persistence);
+             SegmentPreloader preloadingCache = (SegmentPreloader)SegmentPreloader.decorate(underlyingCache,
+                     PersistentCachePreloadingConfiguration.withConcurrency(8).withPrefetchDepth(2), () -> tarFiles);
              JournalFileReader journalFileReader = persistence.getJournalFile().openJournalReader()) {
-            assertNotNull(reader);
 
-            String line = journalFileReader.readLine();
-            String[] parts = line.split(":");
-            UUID root = UUID.fromString(parts[0]);
+            UUID root = getRootUUID(journalFileReader);
 
-            SegmentGraph graph = reader.getGraph();
-            Set<UUID> referencedSegments = collectReferencedSegments(root, graph, 2);
+            assertTrue(tarFiles.getIndices().size() > 2);
+            Map<UUID, Set<UUID>> graph = computeFullGraph(tarFiles);
+
+            Set<UUID> referencedSegments = collectReferencedSegments(root, graph, 1);
             for (UUID segment : referencedSegments) {
                 assertFalse(underlyingCache.containsSegment(segment.getMostSignificantBits(), segment.getLeastSignificantBits()));
                 assertFalse(preloadingCache.containsSegment(segment.getMostSignificantBits(), segment.getLeastSignificantBits()));
@@ -116,51 +143,56 @@ public class SegmentPreloaderTest {
 
             preloadingCache.readSegment(root.getMostSignificantBits(), root.getLeastSignificantBits(),
                     () -> tarFiles.readSegment(root.getMostSignificantBits(), root.getLeastSignificantBits()));
-
-            // wait for preloading to complete
-            while (preloadingCache.hasInProgressTasks()) {
-                TimeUnit.MILLISECONDS.sleep(50);
-            }
-
-            for (UUID segment : referencedSegments) {
-                assertTrue("Segment missing in underlying cache: " + segment,
-                        underlyingCache.containsSegment(segment.getMostSignificantBits(), segment.getLeastSignificantBits()));
-                assertTrue("Segment missing in preloading cache: " + segment,
-                        preloadingCache.containsSegment(segment.getMostSignificantBits(), segment.getLeastSignificantBits()));
-            }
-            assertEquals(referencedSegments.size(), underlyingCache.segments.size());
+            assertReferencedSegmentsLoaded(referencedSegments, underlyingCache, preloadingCache);
 
             UUID nextToLoad = null;
             Set<UUID> uuids = null;
             for (UUID referencedSegment : referencedSegments) {
                 uuids = collectReferencedSegments(referencedSegment, graph, 2);
-                uuids.removeAll(referencedSegments);
+                uuids.removeIf(uuid -> underlyingCache.containsSegment(uuid.getMostSignificantBits(), uuid.getLeastSignificantBits()));
                 if (!uuids.isEmpty()) {
                     nextToLoad = referencedSegment;
                 }
             }
 
-            assertNotNull(uuids);
             assertNotNull(nextToLoad);
 
             final UUID next = nextToLoad;
             preloadingCache.readSegment(next.getMostSignificantBits(), next.getLeastSignificantBits(),
                     () -> tarFiles.readSegment(next.getMostSignificantBits(), next.getLeastSignificantBits()));
-
-            // wait for preloading to complete
-            while (preloadingCache.hasInProgressTasks()) {
-                TimeUnit.MILLISECONDS.sleep(50);
-            }
-
-            preloadingCache.close();
-
-            for (UUID segment : uuids) {
-                assertTrue("Segment missing in underlying cache: " + segment,
-                        underlyingCache.containsSegment(segment.getMostSignificantBits(), segment.getLeastSignificantBits()));
-                assertTrue("Segment missing in preloading cache: " + segment,
-                        preloadingCache.containsSegment(segment.getMostSignificantBits(), segment.getLeastSignificantBits()));
-            }
+            LOG.info("Next loaded segment: {}", next);
+            assertReferencedSegmentsLoaded(uuids, underlyingCache, preloadingCache);
         }
+    }
+
+    private static @NotNull UUID getRootUUID(JournalFileReader journalFileReader) throws IOException {
+        String line = journalFileReader.readLine();
+        String[] parts = line.split(":");
+        return UUID.fromString(parts[0]);
+    }
+
+    private void assertReferencedSegmentsLoaded(Set<UUID> referencedSegments, MemoryTestCache underlyingCache, SegmentPreloader preloadingCache) throws InterruptedException {
+        long timeoutSec = 10;
+        long deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(timeoutSec);
+        Set<UUID> segments = new HashSet<>(referencedSegments);
+        while (!segments.isEmpty() && System.currentTimeMillis() < deadline) {
+            segments.removeIf(segment ->
+                    underlyingCache.containsSegment(segment.getMostSignificantBits(), segment.getLeastSignificantBits())
+                    && preloadingCache.containsSegment(segment.getMostSignificantBits(), segment.getLeastSignificantBits()));
+            TimeUnit.MILLISECONDS.sleep(10);
+        }
+
+        assertEquals("Not all referenced segments have been preloaded within " + timeoutSec + " seconds",
+                Set.of(), segments);
+    }
+
+    private static Map<UUID, Set<UUID>> computeFullGraph(TarFiles tarFiles) throws IOException {
+        Map<UUID, Set<UUID>> fullGraph = new HashMap<>();
+        for (String archiveName : tarFiles.getIndices().keySet()) {
+            Map<UUID, Set<UUID>> graph = tarFiles.getGraph(archiveName);
+            fullGraph.putAll(graph);
+        }
+        return fullGraph;
     }
 
     private TarFiles createReadOnlyTarFiles(File directory, SegmentNodeStorePersistence persistence) throws IOException {
@@ -176,11 +208,11 @@ public class SegmentPreloaderTest {
                 .build();
     }
 
-    private static Set<UUID> collectReferencedSegments(UUID root, SegmentGraph graph, int depth) throws IOException {
+    private static Set<UUID> collectReferencedSegments(UUID root, Map<UUID, Set<UUID>> graph, int depth) throws IOException {
         Set<UUID> uuids = new LinkedHashSet<>();
         uuids.add(root);
         if (depth > 0) {
-            for (UUID edge : graph.getEdges(root)) {
+            for (UUID edge : graph.get(root)) {
                 uuids.addAll(collectReferencedSegments(edge, graph, depth - 1));
             }
         }
