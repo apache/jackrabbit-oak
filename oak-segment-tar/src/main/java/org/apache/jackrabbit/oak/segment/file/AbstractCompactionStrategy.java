@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BooleanSupplier;
 
 abstract class AbstractCompactionStrategy implements CompactionStrategy {
 
@@ -295,11 +296,11 @@ abstract class AbstractCompactionStrategy implements CompactionStrategy {
     @SuppressWarnings("deprecation")
     private static Compactor newCompactor(Context context, CompactionWriter writer) {
         CompactorType compactorType = context.getGCOptions().getCompactorType();
-        SystemPropertySupplier<Boolean> useLegacyImpl = SystemPropertySupplier
-                .create("oak.compaction.legacy", false);
+        BooleanSupplier useLegacyImpl = SystemPropertySupplier
+                .create("oak.compaction.legacy", Boolean.FALSE)::get;
         switch (compactorType) {
             case PARALLEL_COMPACTOR:
-                if (useLegacyImpl.get()) {
+                if (useLegacyImpl.getAsBoolean()) {
                     return new LegacyCheckpointCompactor(context.getGCListener(),
                             new ParallelCompactor(context.getGCListener(), writer, context.getCompactionMonitor(),
                                     context.getGCOptions().getConcurrency()));
@@ -308,7 +309,7 @@ abstract class AbstractCompactionStrategy implements CompactionStrategy {
                         new ParallelCompactor(context.getGCListener(), writer, context.getCompactionMonitor(),
                                 context.getGCOptions().getConcurrency()));
             case CHECKPOINT_COMPACTOR:
-                if (useLegacyImpl.get()) {
+                if (useLegacyImpl.getAsBoolean()) {
                     return new LegacyCheckpointCompactor(context.getGCListener(),
                             new ClassicCompactor(writer, context.getCompactionMonitor()));
                 }

@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.function.Supplier;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.Buffer;
@@ -127,7 +126,6 @@ public class CheckpointCompactor extends Compactor {
 
         NodeBuilder rootBuilder = onto.builder();
         CompactedNodeState compacted = null;
-        Supplier<Boolean> isCancelled = () -> softCanceller != null && softCanceller.check().isCancelled();
         for (String path : superRoots) {
             NodeBuilder builder = getDescendant(rootBuilder, path, NodeBuilder::child);
             NodeState afterSuperRoot = getDescendant(after, path, NodeState::getChildNode);
@@ -135,39 +133,52 @@ public class CheckpointCompactor extends Compactor {
             NodeState baseRoot = requireNonNullElseGet(compacted, () -> getRoot(getDescendant(before, path, NodeState::getChildNode)));
             NodeState ontoRoot = requireNonNullElseGet(compacted, () -> getRoot(getDescendant(onto, path, NodeState::getChildNode)));
 
+            compacted = compactRootState(baseRoot, getRoot(afterSuperRoot), ontoRoot, hardCanceller, softCanceller);
             if (compacted == null) {
-                // down compaction only affects the first iteration, after that, we're always doing up compaction
-                compacted = compactWithCache(baseRoot, getRoot(afterSuperRoot), ontoRoot, hardCanceller, softCanceller);
-            } else {
-                compacted = compactWithCache(baseRoot, getRoot(afterSuperRoot), ontoRoot, hardCanceller, null);
-            }
-
-            if (compacted == null) {
+                // only happens for hard cancellation
                 return null;
             }
 
-            Validate.checkState(compacted.isComplete() || isCancelled.get(),
+            Validate.checkState(compacted.isComplete() || isCancelled(softCanceller),
                     "compaction must be complete unless cancelled");
 
             builder.setChildNode(ROOT, compacted);
             if (path.startsWith(CHECKPOINTS + '/')) {
-                // copy checkpoint "properties" child node
-                NodeBuilder props = builder.setChildNode("properties");
-                for (PropertyState properties : afterSuperRoot.getChildNode("properties").getProperties()) {
-                    props.setProperty(compactor.compact(properties));
-                }
-                // copy checkpoint properties (on the parent of the root node)
-                for (PropertyState property : afterSuperRoot.getProperties()) {
-                    builder.setProperty(compactor.compact(property));
-                }
+                compactCheckpointMetadata(builder, afterSuperRoot);
             }
 
-            if (isCancelled.get()) {
+            if (isCancelled(softCanceller)) {
                 break;
             }
         }
 
-        return compactor.writeNodeState(rootBuilder.getNodeState(), stableIdBytes, !isCancelled.get());
+        return compactor.writeNodeState(rootBuilder.getNodeState(), stableIdBytes, !isCancelled(softCanceller));
+    }
+
+    private @Nullable CompactedNodeState compactRootState(@NotNull NodeState baseRoot, @NotNull NodeState afterRoot, @NotNull NodeState ontoRoot, @NotNull Canceller hardCanceller, @Nullable Canceller softCanceller) throws IOException {
+        if (Objects.equals(ontoRoot, afterRoot)) {
+            // down compaction only affects the first iteration, when compacted == null and ontoRoot.equals(afterRoot).
+            return compactWithCache(baseRoot, afterRoot, ontoRoot, hardCanceller, softCanceller);
+        } else {
+            // for subsequent iterations, ontoRoot == compacted and thus ontoRoot.equals(afterRoot) no longer holds true.
+            return compactWithCache(baseRoot, afterRoot, ontoRoot, hardCanceller, null);
+        }
+    }
+
+    private void compactCheckpointMetadata(NodeBuilder builder, NodeState afterSuperRoot) {
+        // copy checkpoint "properties" child node
+        NodeBuilder props = builder.setChildNode("properties");
+        for (PropertyState properties : afterSuperRoot.getChildNode("properties").getProperties()) {
+            props.setProperty(compactor.compact(properties));
+        }
+        // copy checkpoint properties (on the parent of the root node)
+        for (PropertyState property : afterSuperRoot.getProperties()) {
+            builder.setProperty(compactor.compact(property));
+        }
+    }
+
+    private static boolean isCancelled(@Nullable Canceller softCanceller) {
+        return softCanceller != null && softCanceller.check().isCancelled();
     }
 
     private @Nullable CompactedNodeState compactWithCache(

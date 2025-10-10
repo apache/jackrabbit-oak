@@ -69,9 +69,13 @@ import org.jetbrains.annotations.Nullable;
  *
  * @see CheckpointCompactor
  * @deprecated Use {@link org.apache.jackrabbit.oak.segment.CheckpointCompactor} instead.
+ * @since 1.86.0 (OAK-11985)
  */
-@Deprecated
+@Deprecated(since = "1.88.0")
 public class LegacyCheckpointCompactor extends Compactor {
+
+    private static final String CREATED = "created";
+
     protected final @NotNull GCMonitor gcListener;
 
     private final @NotNull Map<NodeState, CompactedNodeState> cpCache = new HashMap<>();
@@ -216,8 +220,8 @@ public class LegacyCheckpointCompactor extends Compactor {
         );
 
         checkpoints.sort((cne1, cne2) -> {
-            long c1 = cne1.getNodeState().getLong("created");
-            long c2 = cne2.getNodeState().getLong("created");
+            long c1 = cne1.getNodeState().getLong(CREATED);
+            long c2 = cne2.getNodeState().getLong(CREATED);
             return Long.compare(c1, c2);
         });
 
@@ -226,7 +230,7 @@ public class LegacyCheckpointCompactor extends Compactor {
             String name = checkpoint.getName();
             NodeState node = checkpoint.getNodeState();
             gcListener.info("found checkpoint {} created on {}.",
-                    name, new Date(node.getLong("created")));
+                    name, new Date(node.getLong(CREATED)));
             roots.put("checkpoints/" + name + "/root", node.getChildNode("root"));
         }
         roots.put("root", superRootAfter.getChildNode("root"));
