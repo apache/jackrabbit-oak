@@ -32,8 +32,8 @@ import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.SimpleCompact
 
 @RunWith(Parameterized.class)
 public class CheckpointCompactorExternalBlobTest extends AbstractCompactorExternalBlobTest {
-    public CheckpointCompactorExternalBlobTest(@NotNull SimpleCompactorFactory compactorFactory) {
-        super(compactorFactory);
+    public CheckpointCompactorExternalBlobTest(String name, @NotNull SimpleCompactorFactory compactorFactory) {
+        super(name, compactorFactory);
     }
 
     @Override

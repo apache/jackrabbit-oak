@@ -27,9 +27,11 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.COMPA
 import static org.apache.jackrabbit.oak.segment.file.TarRevisions.EXPEDITE_OPTION;
 import static org.apache.jackrabbit.oak.segment.file.TarRevisions.timeout;
 
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.segment.CheckpointCompactor;
 import org.apache.jackrabbit.oak.segment.ClassicCompactor;
 import org.apache.jackrabbit.oak.segment.Compactor;
+import org.apache.jackrabbit.oak.segment.LegacyCheckpointCompactor;
 import org.apache.jackrabbit.oak.segment.ParallelCompactor;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
@@ -42,6 +44,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BooleanSupplier;
 
 abstract class AbstractCompactionStrategy implements CompactionStrategy {
 
@@ -290,14 +293,26 @@ abstract class AbstractCompactionStrategy implements CompactionStrategy {
         }
     }
 
-    private Compactor newCompactor(Context context, CompactionWriter writer) {
+    @SuppressWarnings("deprecation")
+    private static Compactor newCompactor(Context context, CompactionWriter writer) {
         CompactorType compactorType = context.getGCOptions().getCompactorType();
+        BooleanSupplier useLegacyImpl = SystemPropertySupplier
+                .create("oak.compaction.legacy", Boolean.FALSE)::get;
         switch (compactorType) {
             case PARALLEL_COMPACTOR:
+                if (useLegacyImpl.getAsBoolean()) {
+                    return new LegacyCheckpointCompactor(context.getGCListener(),
+                            new ParallelCompactor(context.getGCListener(), writer, context.getCompactionMonitor(),
+                                    context.getGCOptions().getConcurrency()));
+                }
                 return new CheckpointCompactor(context.getGCListener(),
                         new ParallelCompactor(context.getGCListener(), writer, context.getCompactionMonitor(),
                                 context.getGCOptions().getConcurrency()));
             case CHECKPOINT_COMPACTOR:
+                if (useLegacyImpl.getAsBoolean()) {
+                    return new LegacyCheckpointCompactor(context.getGCListener(),
+                            new ClassicCompactor(writer, context.getCompactionMonitor()));
+                }
                 return new CheckpointCompactor(context.getGCListener(),
                         new ClassicCompactor(writer, context.getCompactionMonitor()));
             case CLASSIC_COMPACTOR:

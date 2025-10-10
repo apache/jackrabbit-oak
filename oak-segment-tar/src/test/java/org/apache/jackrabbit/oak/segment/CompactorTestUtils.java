@@ -18,6 +18,8 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.oak.plugins.memory.MultiBinaryPropertyState.binaryPropertyFromBlob;
+import static org.apache.jackrabbit.oak.segment.SegmentNodeStore.CHECKPOINTS;
+import static org.apache.jackrabbit.oak.segment.SegmentNodeStore.ROOT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -61,11 +63,17 @@ public class CompactorTestUtils {
         }
     }
 
-    public static NodeState getCheckpoint(NodeState superRoot, String name) {
+    public static NodeState getCheckpointSuperRoot(NodeState superRoot, String name) {
         NodeState checkpoint = superRoot
-                .getChildNode("checkpoints")
-                .getChildNode(name)
-                .getChildNode("root");
+                .getChildNode(CHECKPOINTS)
+                .getChildNode(name);
+        assertTrue(checkpoint.exists());
+        return checkpoint;
+    }
+
+    public static NodeState getCheckpointRoot(NodeState superRoot, String name) {
+        NodeState checkpoint = getCheckpointSuperRoot(superRoot, name)
+                .getChildNode(ROOT);
         assertTrue(checkpoint.exists());
         return checkpoint;
     }
