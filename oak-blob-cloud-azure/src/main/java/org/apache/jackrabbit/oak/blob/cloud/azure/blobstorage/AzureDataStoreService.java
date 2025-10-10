@@ -33,7 +33,7 @@ public class AzureDataStoreService extends AbstractAzureDataStoreService {
 
     public static final String NAME = "org.apache.jackrabbit.oak.plugins.blob.datastore.AzureDataStore";
 
-    protected @NotNull StatisticsProvider getStatisticsProvider(){
+    protected @NotNull StatisticsProvider getStatisticsProvider() {
         return statisticsProvider;
     }
 

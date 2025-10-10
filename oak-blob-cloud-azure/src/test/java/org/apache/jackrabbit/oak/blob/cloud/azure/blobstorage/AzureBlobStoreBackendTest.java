@@ -926,8 +926,9 @@ public class AzureBlobStoreBackendTest {
         backend.init();
 
         String prefix = "delete-all-";
+        String otherPrefix = "keep-all-";
 
-        // Add multiple metadata records
+        // Add multiple metadata records with the target prefix
         for (int i = 0; i < 3; i++) {
             backend.addMetadataRecord(
                 new ByteArrayInputStream(("content" + i).getBytes()),
@@ -935,17 +936,38 @@ public class AzureBlobStoreBackendTest {
             );
         }
 
-        // Verify records exist
-        for (int i = 0; i < 3; i++) {
-            assertTrue("Record should exist", backend.metadataRecordExists(prefix + i));
+        // Add metadata records with a different prefix (should NOT be deleted)
+        for (int i = 0; i < 2; i++) {
+            backend.addMetadataRecord(
+                new ByteArrayInputStream(("other-content" + i).getBytes()),
+                otherPrefix + i
+            );
         }
 
-        // Delete all records with prefix
+        // Verify all records exist
+        for (int i = 0; i < 3; i++) {
+            assertTrue("Record with target prefix should exist", backend.metadataRecordExists(prefix + i));
+        }
+        for (int i = 0; i < 2; i++) {
+            assertTrue("Record with other prefix should exist", backend.metadataRecordExists(otherPrefix + i));
+        }
+
+        // Delete all records with the target prefix
         backend.deleteAllMetadataRecords(prefix);
 
-        // Verify records are deleted
+        // Verify records with target prefix are deleted
         for (int i = 0; i < 3; i++) {
-            assertFalse("Record should be deleted", backend.metadataRecordExists(prefix + i));
+            assertFalse("Record with target prefix should be deleted", backend.metadataRecordExists(prefix + i));
+        }
+
+        // Verify records with other prefix still exist (not deleted)
+        for (int i = 0; i < 2; i++) {
+            assertTrue("Record with other prefix should still exist", backend.metadataRecordExists(otherPrefix + i));
+        }
+
+        // Clean up remaining records
+        for (int i = 0; i < 2; i++) {
+            backend.deleteMetadataRecord(otherPrefix + i);
         }
     }
 
