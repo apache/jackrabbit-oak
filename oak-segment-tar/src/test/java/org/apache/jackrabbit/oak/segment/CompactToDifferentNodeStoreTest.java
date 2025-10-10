@@ -62,7 +62,7 @@ public class CompactToDifferentNodeStoreTest {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
-    public CompactToDifferentNodeStoreTest(@SuppressWarnings("unused") String name, CompactorFactory compactorFactory) {
+    public CompactToDifferentNodeStoreTest(@SuppressWarnings({"unused", "java:S1172"}) String name, CompactorFactory compactorFactory) {
         this.compactorFactory = compactorFactory;
     }
 
@@ -76,8 +76,6 @@ public class CompactToDifferentNodeStoreTest {
                 new Object[] { "ClassicCompactor", (CompactorFactory) (gcListener, writer, compactionMonitor) -> new ClassicCompactor(writer, compactionMonitor) },
                 new Object[] { "CheckpointCompactor", (CompactorFactory) (gcListener, writer, compactionMonitor) -> new CheckpointCompactor(gcListener, new ClassicCompactor(writer, compactionMonitor)) },
                 new Object[] { "CheckpointCompactor-parallel", (CompactorFactory) (gcListener, writer, compactionMonitor) -> new CheckpointCompactor(gcListener, new ParallelCompactor(gcListener, writer, compactionMonitor, 4)) }
-                // test fails with LegacyCheckpointCompactor because it does not contain the fix for OAK-11895
-                //, new Object[] { "LegacyCheckpointCompactor", (CompactorFactory) (gcListener, writer, compactionMonitor) -> new LegacyCheckpointCompactor(gcListener, new ClassicCompactor(writer, compactionMonitor)) }
         );
     }
 

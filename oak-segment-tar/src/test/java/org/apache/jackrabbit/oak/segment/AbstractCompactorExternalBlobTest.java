@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static java.util.concurrent.TimeUnit.DAYS;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.SimpleCompactor;
 import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.SimpleCompactorFactory;
 import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.addTestContent;
@@ -57,8 +56,6 @@ import org.junit.runners.Parameterized;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
 
 @RunWith(Parameterized.class)
 public abstract class AbstractCompactorExternalBlobTest {
@@ -86,7 +83,7 @@ public abstract class AbstractCompactorExternalBlobTest {
         return AbstractCompactorTest.compactorFactories();
     }
 
-    public AbstractCompactorExternalBlobTest(String name, @NotNull SimpleCompactorFactory compactorFactory) {
+    public AbstractCompactorExternalBlobTest(@SuppressWarnings({"unused", "java:S1172"}) String name, @NotNull SimpleCompactorFactory compactorFactory) {
         this.compactorFactory = compactorFactory;
     }
 

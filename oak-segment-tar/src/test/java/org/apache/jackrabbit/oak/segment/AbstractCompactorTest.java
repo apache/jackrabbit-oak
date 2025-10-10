@@ -86,7 +86,7 @@ public abstract class AbstractCompactorTest {
         );
     }
 
-    public AbstractCompactorTest(@SuppressWarnings("unused") String name, @NotNull SimpleCompactorFactory compactorFactory) {
+    public AbstractCompactorTest(@SuppressWarnings({"unused", "java:S1172"}) String name, @NotNull SimpleCompactorFactory compactorFactory) {
         this.compactorFactory = compactorFactory;
     }
 
