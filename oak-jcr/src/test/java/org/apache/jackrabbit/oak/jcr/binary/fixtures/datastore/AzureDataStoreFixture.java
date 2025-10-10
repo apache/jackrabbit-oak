@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Utils;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v8.UtilsV8;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.binary.fixtures.nodestore.FixtureUtils;
 import org.jetbrains.annotations.NotNull;
@@ -66,7 +67,7 @@ public class AzureDataStoreFixture implements DataStoreFixture {
 
     @Nullable
     private final Properties azProps;
-    private Map<DataStore, Object> containers = new HashMap<>();
+    private final Map<DataStore, Object> containers = new HashMap<>();
     private static final String AZURE_SDK_12_ENABLED = "azure.sdk.12.enabled";
 
     public AzureDataStoreFixture() {
@@ -97,7 +98,7 @@ public class AzureDataStoreFixture implements DataStoreFixture {
 
         String connectionString = Utils.getConnectionStringFromProperties(azProps);
         try {
-            boolean useSDK12 = Boolean.parseBoolean(azProps.getProperty(AZURE_SDK_12_ENABLED, "false"));
+            boolean useSDK12 = SystemPropertySupplier.create(AZURE_SDK_12_ENABLED, false).get();
             Object container;
             
             if (useSDK12) {

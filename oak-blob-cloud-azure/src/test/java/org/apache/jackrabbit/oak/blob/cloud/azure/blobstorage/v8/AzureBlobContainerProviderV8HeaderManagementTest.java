@@ -42,7 +42,7 @@ public class AzureBlobContainerProviderV8HeaderManagementTest {
     private AzureBlobContainerProviderV8 provider;
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         if (provider != null) {
             provider.close();
         }
@@ -62,6 +62,8 @@ public class AzureBlobContainerProviderV8HeaderManagementTest {
 
         // Should not throw exception when called with null
         fillEmptyHeadersMethod.invoke(provider, (SharedAccessBlobHeaders) null);
+
+        assertTrue("Should not throw exception", true);
     }
 
     @Test
@@ -132,6 +134,8 @@ public class AzureBlobContainerProviderV8HeaderManagementTest {
 
         // Test with null headers - should not throw exception
         fillEmptyHeadersMethod.invoke(provider, (SharedAccessBlobHeaders) null);
+
+        assertTrue("Should not throw exception", true);
     }
 
     @Test

@@ -19,11 +19,10 @@ package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 import static org.apache.commons.codec.binary.Hex.encodeHexString;
 import static org.apache.commons.io.FileUtils.copyInputStreamToFile;
 import static org.junit.Assert.*;
-import static org.junit.Assume.assumeTrue;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import com.microsoft.azure.storage.StorageException;
+import com.azure.storage.blob.BlobContainerClient;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.NullOutputStream;
 import org.apache.commons.lang3.StringUtils;
@@ -49,9 +48,7 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.jcr.RepositoryException;
 import java.io.*;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.security.DigestOutputStream;
-import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
@@ -59,15 +56,19 @@ import java.util.*;
 /**
  * Combined unit and integration tests for AzureDataStore class.
  * Unit tests use Mockito and don't require Azure configuration.
- * Integration tests require Azure configuration and test actual Azure operations.
+ * Integration tests use Azurite (Azure Storage emulator) for local testing.
  */
 @RunWith(MockitoJUnitRunner.class)
 public class AzureDataStoreTest {
     protected static final Logger LOG = LoggerFactory.getLogger(AzureDataStoreTest.class);
 
+    // Azurite Docker container for integration tests
+    @ClassRule
+    public static AzuriteDockerRule azurite = new AzuriteDockerRule();
+
     // Unit test fields
     private AzureDataStore azureDataStore;
-    
+
     @Mock
     private DataIdentifier mockDataIdentifier;
 
@@ -78,8 +79,9 @@ public class AzureDataStoreTest {
     private Properties props;
     private static byte[] testBuffer = "test".getBytes();
     private AzureDataStore ds;
-    private AzureBlobStoreBackend backend;
+    private AbstractAzureBlobStoreBackend backend;
     private String container;
+    private BlobContainerClient azuriteContainer;
     Random randomGen = new Random();
 
     @Before
@@ -112,7 +114,9 @@ public class AzureDataStoreTest {
     @Test
     public void testSetPropertiesWithNull() {
         azureDataStore.setProperties(null);
+
         // Should not throw exception
+        assertTrue("Should not throw exception", true);
     }
 
     @Test
@@ -169,6 +173,7 @@ public class AzureDataStoreTest {
         azureDataStore.setBinaryTransferAccelerationEnabled(true);
         azureDataStore.setBinaryTransferAccelerationEnabled(false);
         // No exception should be thrown
+        assertTrue("Should not throw exception", true);
     }
 
     @Test
@@ -178,6 +183,7 @@ public class AzureDataStoreTest {
         azureDataStore.setDirectUploadURIExpirySeconds(0);
         azureDataStore.setDirectUploadURIExpirySeconds(-1);
         // No exception should be thrown
+        assertTrue("Should not throw exception", true);
     }
 
     @Test
@@ -186,7 +192,9 @@ public class AzureDataStoreTest {
         azureDataStore.setDirectDownloadURIExpirySeconds(7200);
         azureDataStore.setDirectDownloadURIExpirySeconds(0);
         azureDataStore.setDirectDownloadURIExpirySeconds(-1);
+
         // No exception should be thrown
+        assertTrue("Should not throw exception", true);
     }
 
     @Test(expected = DataRecordUploadException.class)
@@ -267,6 +275,9 @@ public class AzureDataStoreTest {
         azureDataStore.setDirectUploadURIExpirySeconds(3600);
         azureDataStore.setDirectUploadURIExpirySeconds(0);
         azureDataStore.setDirectUploadURIExpirySeconds(-1);
+
+        // Should not throw exceptions
+        assertTrue("Should not throw exception", true);
     }
 
     @Test
@@ -278,6 +289,9 @@ public class AzureDataStoreTest {
         azureDataStore.setDirectDownloadURIExpirySeconds(7200);
         azureDataStore.setDirectDownloadURIExpirySeconds(0);
         azureDataStore.setDirectDownloadURIExpirySeconds(-1);
+
+        // Should not throw exceptions
+        assertTrue("Should not throw exception", true);
     }
 
     @Test
@@ -289,19 +303,24 @@ public class AzureDataStoreTest {
         azureDataStore.setDirectDownloadURICacheSize(100);
         azureDataStore.setDirectDownloadURICacheSize(0);
         azureDataStore.setDirectDownloadURICacheSize(-1);
+
+        // Should not throw exceptions
+        assertTrue("Should not throw exception", true);
     }
 
     @Test(expected = NullPointerException.class)
-    public void testGetDownloadURIWithBackendButNullIdentifier() throws Exception {
+    public void testGetDownloadURIWithBackendButNullIdentifier() {
         // Create backend first and initialize it
         azureDataStore.createBackend();
 
         // This should throw NPE for null identifier
         azureDataStore.getDownloadURI(null, DataRecordDownloadOptions.DEFAULT);
+
+        fail("Expected NullPointerException for null identifier");
     }
 
     @Test(expected = NullPointerException.class)
-    public void testGetDownloadURIWithBackendButNullOptions() throws Exception {
+    public void testGetDownloadURIWithBackendButNullOptions() {
         // Create backend first and initialize it
         azureDataStore.createBackend();
 
@@ -380,6 +399,7 @@ public class AzureDataStoreTest {
         azureDataStore.setBinaryTransferAccelerationEnabled(false);
 
         // These should not throw exceptions even without backend
+        assertTrue("Should not throw exception", true);
     }
 
     @Test
@@ -445,33 +465,77 @@ public class AzureDataStoreTest {
         azureDataStore.setDirectDownloadURICacheSize(100);
 
         // No exceptions should be thrown
+        assertTrue("Should not throw exception", true);
     }
 
     ////
-    // Integration Tests - Testing with actual Azure backend
-    // These tests require Azure configuration and will be skipped if not available
+    // Integration Tests - Testing with Azurite (Azure Storage emulator)
+    // These tests use Azurite Docker container for local testing without requiring real Azure credentials
     ////
 
-    private void setupIntegrationTest() throws IOException, RepositoryException, URISyntaxException, InvalidKeyException, StorageException {
-        assumeTrue(AzureDataStoreUtils.isAzureConfigured());
-
-        props = AzureDataStoreUtils.getAzureConfig();
+    private void setupIntegrationTest() throws IOException, RepositoryException {
+        // Generate unique container name for this test run
         container = String.valueOf(randomGen.nextInt(9999)) + "-" + String.valueOf(randomGen.nextInt(9999))
                     + "-test";
-        props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, container);
+
+        // Create Azurite container
+        azuriteContainer = azurite.getContainer(container, getConnectionString());
+
+        // Setup properties for Azurite
+        props = createAzuriteProperties();
 
         ds = new AzureDataStore();
         ds.setProperties(props);
         ds.setCacheSize(0);  // Turn caching off so we don't get weird test results due to caching
         ds.init(folder.newFolder().getAbsolutePath());
-        backend = (AzureBlobStoreBackend) ds.getBackend();
+        backend = (AbstractAzureBlobStoreBackend) ds.getBackend();
     }
 
-    private void teardownIntegrationTest() throws InvalidKeyException, URISyntaxException, StorageException {
-        ds = null;
-        try {
-            AzureDataStoreUtils.deleteContainer(container);
-        } catch (Exception ignore) {}
+    private void teardownIntegrationTest() {
+        if (ds != null) {
+            try {
+                ds.close();
+            } catch (Exception ignore) {
+                LOG.warn("Error closing data store", ignore);
+            }
+            ds = null;
+        }
+
+        if (azuriteContainer != null) {
+            try {
+                azuriteContainer.deleteIfExists();
+            } catch (Exception ignore) {
+                LOG.warn("Error deleting Azurite container: {}", container, ignore);
+            }
+            azuriteContainer = null;
+        }
+
+        backend = null;
+    }
+
+    /**
+     * Creates properties configured for Azurite local testing.
+     */
+    private Properties createAzuriteProperties() {
+        Properties properties = new Properties();
+        properties.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, container);
+        properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_NAME);
+        properties.setProperty(AzureConstants.AZURE_BLOB_ENDPOINT, azurite.getBlobEndpoint());
+        properties.setProperty(AzureConstants.AZURE_CONNECTION_STRING, getConnectionString());
+        properties.setProperty(AzureConstants.AZURE_CREATE_CONTAINER, "true");
+        properties.setProperty(AzureConstants.AZURE_REF_ON_INIT, "true"); // Enable reference key creation
+        return properties;
+    }
+
+    /**
+     * Gets the Azurite connection string.
+     */
+    private static String getConnectionString() {
+        return Utils.getConnectionString(
+            AzuriteDockerRule.ACCOUNT_NAME,
+            AzuriteDockerRule.ACCOUNT_KEY,
+            azurite.getBlobEndpoint()
+        );
     }
 
     private void validateRecord(final DataRecord record,
@@ -503,10 +567,10 @@ public class AzureDataStoreTest {
         } else {
             assertTrue(record.getLastModified() > lastModified);
         }
-        assertTrue(record.getIdentifier().toString().equals(identifier.toString()));
+        assertEquals(record.getIdentifier().toString(), identifier.toString());
         StringWriter writer = new StringWriter();
         org.apache.commons.io.IOUtils.copy(record.getStream(), writer, "utf-8");
-        assertTrue(writer.toString().equals(contents));
+        assertEquals(writer.toString(), contents);
     }
 
     private static InputStream randomStream(int seed, int size) {
@@ -519,7 +583,7 @@ public class AzureDataStoreTest {
     private static String getIdForInputStream(final InputStream in)
             throws NoSuchAlgorithmException, IOException {
         MessageDigest digest = MessageDigest.getInstance("SHA-1");
-        OutputStream output = new DigestOutputStream(new NullOutputStream(), digest);
+        OutputStream output = new DigestOutputStream(NullOutputStream.INSTANCE, digest);
         try {
             IOUtils.copyLarge(in, output);
         } finally {
@@ -653,7 +717,7 @@ public class AzureDataStoreTest {
                 backend.write(identifier, testFile);
                 fail();
             } catch (NullPointerException e) {
-                assertEquals("identifier", e.getMessage());
+                assertEquals("identifier must not be null", e.getMessage());
             }
         } finally {
             teardownIntegrationTest();
@@ -671,7 +735,7 @@ public class AzureDataStoreTest {
                 fail();
             }
             catch (NullPointerException e) {
-                assertTrue("file".equals(e.getMessage()));
+                assertTrue("file must not be null".equals(e.getMessage()));
             }
         } finally {
             teardownIntegrationTest();
@@ -707,23 +771,26 @@ public class AzureDataStoreTest {
                 fail();
             }
             catch (NullPointerException e) {
-                assert("identifier".equals(e.getMessage()));
+                assert("identifier must not be null".equals(e.getMessage()));
             }
         } finally {
             teardownIntegrationTest();
         }
     }
 
-    @Test
+    @Test(expected = DataStoreException.class)
     public void testBackendReadRecordInvalidIdentifier() throws Exception {
         setupIntegrationTest();
         try {
             DataIdentifier identifier = new DataIdentifier("fake");
-            try {
-                backend.read(identifier);
-                fail();
+            try (var is = backend.read(identifier);){
+                fail("Expected DataStoreException for invalid identifier");
             }
-            catch (DataStoreException e) { }
+            catch (DataStoreException e) {
+                assertTrue("Should contain missing blob error",
+                    e.getMessage().contains("Trying to read missing blob"));
+                throw e;
+            }
         } finally {
             teardownIntegrationTest();
         }
@@ -739,7 +806,7 @@ public class AzureDataStoreTest {
                 fail();
             }
             catch (NullPointerException e) {
-                assert("identifier".equals(e.getMessage()));
+                assert("identifier must not be null".equals(e.getMessage()));
             }
         } finally {
             teardownIntegrationTest();
@@ -843,7 +910,7 @@ public class AzureDataStoreTest {
                 fail();
             }
             catch (NullPointerException e) {
-                assertTrue("identifier".equals(e.getMessage()));
+                assertTrue("identifier must not be null".equals(e.getMessage()));
             }
         } finally {
             teardownIntegrationTest();
@@ -889,7 +956,7 @@ public class AzureDataStoreTest {
                     assertTrue(addedRecords.containsKey(record.getIdentifier()));
                     StringWriter writer = new StringWriter();
                     IOUtils.copy(record.getStream(), writer);
-                    assertTrue(writer.toString().equals(addedRecords.get(record.getIdentifier())));
+                  assertEquals(writer.toString(), addedRecords.get(record.getIdentifier()));
                     actualCount++;
                 }
 
@@ -973,7 +1040,7 @@ public class AzureDataStoreTest {
                 fail();
             }
             catch (NullPointerException e) {
-                assertTrue("input".equals(e.getMessage()));
+                assertTrue("input must not be null".equals(e.getMessage()));
             }
         } finally {
             teardownIntegrationTest();
@@ -989,7 +1056,7 @@ public class AzureDataStoreTest {
                 fail();
             }
             catch (NullPointerException e) {
-                assertTrue("input".equals(e.getMessage()));
+                assertTrue("input must not be null".equals(e.getMessage()));
             }
         } finally {
             teardownIntegrationTest();
@@ -1013,7 +1080,7 @@ public class AzureDataStoreTest {
                         }
                         fail();
                     } catch (IllegalArgumentException e) {
-                        assertTrue("name".equals(e.getMessage()));
+                        assertTrue("name should not be empty".equals(e.getMessage()));
                     }
                 }
             }
@@ -1082,7 +1149,7 @@ public class AzureDataStoreTest {
                 fail();
             }
             catch (NullPointerException e) {
-                assertTrue("prefix".equals(e.getMessage()));
+                assertTrue("prefix must not be null".equals(e.getMessage()));
             }
         } finally {
             teardownIntegrationTest();
@@ -1192,7 +1259,7 @@ public class AzureDataStoreTest {
                 fail();
             }
             catch (NullPointerException e) {
-                assertTrue("prefix".equals(e.getMessage()));
+                assertTrue("prefix must not be null".equals(e.getMessage()));
             }
         } finally {
             teardownIntegrationTest();

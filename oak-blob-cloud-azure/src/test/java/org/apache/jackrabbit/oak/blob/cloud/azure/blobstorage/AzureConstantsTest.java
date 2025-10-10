@@ -103,11 +103,8 @@ public class AzureConstantsTest {
     @Test
     public void testConstantNamingConvention() {
         // Test that the constant names follow expected naming conventions
-        String dirConstantName = "AZURE_BlOB_META_DIR_NAME";
-        String prefixConstantName = "AZURE_BLOB_META_KEY_PREFIX";
-        String refKeyConstantName = "AZURE_BLOB_REF_KEY";
-        
-        // These tests verify that the constants exist by accessing them
+
+      // These tests verify that the constants exist by accessing them
         // If the constant names were changed incorrectly, these would fail at compile time
         assertNotNull("Directory constant should exist", AzureConstants.AZURE_BlOB_META_DIR_NAME);
         assertNotNull("Prefix constant should exist", AzureConstants.AZURE_BLOB_META_KEY_PREFIX);

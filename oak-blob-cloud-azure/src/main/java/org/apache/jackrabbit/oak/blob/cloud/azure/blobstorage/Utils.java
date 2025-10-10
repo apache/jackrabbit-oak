@@ -150,8 +150,7 @@ public final class Utils {
     }
 
     /**
-     * Read a configuration properties file. If the file name ends with ";burn",
-     * the file is deleted after reading.
+     * Read a configuration properties file.
      *
      * @param fileName the properties file name
      * @return the properties

@@ -23,6 +23,8 @@ import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.blob.specialized.BlockBlobClient;
 import com.azure.storage.common.policy.RequestRetryOptions;
+import com.microsoft.aad.msal4j.MsalServiceException;
+
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.junit.After;
 import org.junit.Before;
@@ -37,7 +39,6 @@ import java.time.OffsetDateTime;
 import java.util.Properties;
 
 import static org.junit.Assert.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 public class AzureBlobContainerProviderTest {
@@ -178,6 +179,8 @@ public class AzureBlobContainerProviderTest {
         
         // Should not throw exception
         provider.close();
+        assertEquals("Container name should match", CONTAINER_NAME, provider.getContainerName());
+        assertEquals("Connection string should match", getConnectionString(), provider.getAzureConnectionString());
     }
 
     @Test
@@ -195,7 +198,7 @@ public class AzureBlobContainerProviderTest {
     }
 
     @Test
-    public void testGenerateSharedAccessSignatureWithConnectionString() throws Exception {
+    public void testGenerateSharedAccessSignatureWithConnectionString() {
         String connectionString = getConnectionString();
 
         provider = AzureBlobContainerProvider.Builder
@@ -241,7 +244,7 @@ public class AzureBlobContainerProviderTest {
     }
 
     @Test
-    public void testGetBlobContainerWithServicePrincipalMissingCredentials() {
+    public void testGetBlobContainerWithServicePrincipalMissingCredentials() throws DataStoreException{
         provider = AzureBlobContainerProvider.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("testaccount")
@@ -250,18 +253,13 @@ public class AzureBlobContainerProviderTest {
                 // Missing client secret
                 .build();
 
-        try {
             BlobContainerClient containerClient = provider.getBlobContainer();
             // May succeed with incomplete credentials - Azure SDK might handle it differently
             assertNotNull("Container client should not be null", containerClient);
-        } catch (Exception e) {
-            // Expected - may fail with incomplete credentials
-            assertNotNull("Exception should not be null", e);
-        }
     }
 
-    @Test
-    public void testGetBlobContainerWithSasTokenMissingEndpoint() {
+    @Test(expected = DataStoreException.class)
+    public void testGetBlobContainerWithSasTokenMissingEndpoint() throws DataStoreException{
         provider = AzureBlobContainerProvider.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("testaccount")
@@ -269,13 +267,7 @@ public class AzureBlobContainerProviderTest {
                 // Missing blob endpoint
                 .build();
 
-        try {
             BlobContainerClient containerClient = provider.getBlobContainer();
-            assertNotNull("Container client should not be null", containerClient);
-        } catch (Exception e) {
-            // May fail depending on SAS token format
-            assertNotNull("Exception should not be null", e);
-        }
     }
 
     @Test
@@ -347,7 +339,7 @@ public class AzureBlobContainerProviderTest {
     }
 
     @Test
-    public void testGetBlobContainerServicePrincipalPath() throws DataStoreException {
+    public void testGetBlobContainerServicePrincipalPath() {
         provider = AzureBlobContainerProvider.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("testaccount")
@@ -367,7 +359,7 @@ public class AzureBlobContainerProviderTest {
     }
 
     @Test
-    public void testGetBlobContainerSasTokenPath() throws DataStoreException {
+    public void testGetBlobContainerSasTokenPath() {
         provider = AzureBlobContainerProvider.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("testaccount")
@@ -386,7 +378,7 @@ public class AzureBlobContainerProviderTest {
     }
 
     @Test
-    public void testGenerateSharedAccessSignatureServicePrincipalPath() throws Exception {
+    public void testGenerateSharedAccessSignatureServicePrincipalPath() throws DataStoreException, URISyntaxException, InvalidKeyException{
         provider = AzureBlobContainerProvider.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("testaccount")
@@ -403,23 +395,25 @@ public class AzureBlobContainerProviderTest {
                     3600,
                     new Properties()
             );
-            assertNotNull("SAS token should not be null", sas);
-        } catch (Exception e) {
-            // Expected for invalid service principal credentials - can be various exception types
-            assertNotNull("Exception should not be null", e);
+
+            //fail if no exception is thrown
+            fail("Expected exception for invalid service principal credentials");
+        } catch (MsalServiceException e) {
+            // Expected for invalid service principal credentials
+            //Message should be: AADSTS900023: Specified tenant identifier 'tenant-id' is neither a valid DNS name, nor a valid external domain
+          assertTrue("Message should be different", e.getMessage().contains("AADSTS900023: Specified tenant identifier 'tenant-id' is neither a valid DNS name, nor a valid external domain"));
             // Accept any exception as authentication will fail with invalid credentials
         }
     }
 
     @Test
-    public void testGenerateSharedAccessSignatureAccountKeyPath() throws Exception {
+    public void testGenerateSharedAccessSignatureAccountKeyPath() throws DataStoreException, URISyntaxException, InvalidKeyException {
         provider = AzureBlobContainerProvider.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("testaccount")
                 .withAccountKey("testkey")
                 .build();
 
-        try {
             String sas = provider.generateSharedAccessSignature(
                     null,
                     "test-blob",
@@ -428,11 +422,7 @@ public class AzureBlobContainerProviderTest {
                     new Properties()
             );
             assertNotNull("SAS token should not be null", sas);
-        } catch (Exception e) {
-            // Expected for invalid account key - can be various exception types
-            assertNotNull("Exception should not be null", e);
-            // Accept any exception as authentication will fail with invalid credentials
-        }
+            assertFalse("SAS token should not be empty", sas.isEmpty());
     }
 
     @Test
@@ -450,7 +440,7 @@ public class AzureBlobContainerProviderTest {
         // Test that Builder constructor is private by accessing it via reflection
         java.lang.reflect.Constructor<AzureBlobContainerProvider.Builder> constructor =
                 AzureBlobContainerProvider.Builder.class.getDeclaredConstructor(String.class);
-        assertTrue("Constructor should not be public", !constructor.isAccessible());
+        assertFalse("Constructor should not be public", constructor.isAccessible());
 
         // Make it accessible and test
         constructor.setAccessible(true);
@@ -504,7 +494,7 @@ public class AzureBlobContainerProviderTest {
     }
 
     @Test
-    public void testGenerateUserDelegationKeySignedSasWithMockTime() throws Exception {
+    public void testGenerateUserDelegationKeySignedSasWithMockTime() {
         provider = AzureBlobContainerProvider.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("testaccount")
@@ -613,7 +603,7 @@ public class AzureBlobContainerProviderTest {
     }
 
     @Test
-    public void testGetBlobContainerWithAccountKeyFallback() throws DataStoreException {
+    public void testGetBlobContainerWithAccountKeyFallback() {
         provider = AzureBlobContainerProvider.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("testaccount")
@@ -726,7 +716,7 @@ public class AzureBlobContainerProviderTest {
     }
 
     @Test
-    public void testGenerateUserDelegationKeySignedSas() throws Exception {
+    public void testGenerateUserDelegationKeySignedSas() {
         provider = AzureBlobContainerProvider.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("testaccount")
@@ -833,5 +823,130 @@ public class AzureBlobContainerProviderTest {
                 AzuriteDockerRule.ACCOUNT_NAME,
                 AzuriteDockerRule.ACCOUNT_KEY,
                 azurite.getBlobEndpoint());
+    }
+
+    /**
+     * Test that generateSharedAccessSignature works without headers (backward compatibility).
+     */
+    @Test
+    public void testGenerateSharedAccessSignatureWithoutHeaders() throws Exception {
+        String connectionString = getConnectionString();
+        provider = AzureBlobContainerProvider.Builder
+                .builder(CONTAINER_NAME)
+                .withAzureConnectionString(connectionString)
+                .build();
+
+        // Create container and blob
+        BlobContainerClient container = azurite.getContainer(CONTAINER_NAME, connectionString);
+        String blobName = "test-blob";
+        container.getBlobClient(blobName).upload(
+                com.azure.core.util.BinaryData.fromString("test content"), true);
+
+        // Generate SAS without headers
+        BlobSasPermission permissions = new BlobSasPermission().setReadPermission(true);
+        String sas = provider.generateSharedAccessSignature(
+                null, blobName, permissions, 3600, new Properties());
+
+        assertNotNull("SAS should not be null", sas);
+        assertTrue("SAS should contain signature", sas.contains("sig="));
+        assertTrue("SAS should contain expiry", sas.contains("se="));
+    }
+
+    /**
+     * Test that generateSharedAccessSignature includes headers when provided.
+     */
+    @Test
+    public void testGenerateSharedAccessSignatureWithHeaders() throws Exception {
+        String connectionString = getConnectionString();
+        provider = AzureBlobContainerProvider.Builder
+                .builder(CONTAINER_NAME)
+                .withAzureConnectionString(connectionString)
+                .build();
+
+        // Create container and blob
+        BlobContainerClient container = azurite.getContainer(CONTAINER_NAME, connectionString);
+        String blobName = "test-blob-with-headers";
+        container.getBlobClient(blobName).upload(
+                com.azure.core.util.BinaryData.fromString("test content"), true);
+
+        // Generate SAS with headers
+        BlobSasPermission permissions = new BlobSasPermission().setReadPermission(true);
+        BlobSasHeaders headers = new BlobSasHeaders()
+                .setCacheControl("private, max-age=3600, immutable")
+                .setContentType("image/png")
+                .setContentDisposition("attachment; filename=\"test.png\"");
+
+        String sas = provider.generateSharedAccessSignature(
+                null, blobName, permissions, 3600, new Properties(), headers);
+
+        assertNotNull("SAS should not be null", sas);
+        assertTrue("SAS should contain signature", sas.contains("sig="));
+        assertTrue("SAS should contain expiry", sas.contains("se="));
+
+        // Verify headers are encoded in SAS
+        // Azure encodes headers as rscc (cache-control), rsct (content-type), rscd (content-disposition)
+        assertTrue("SAS should contain cache-control parameter",
+                sas.contains("rscc=") || sas.contains("&rscc"));
+        assertTrue("SAS should contain content-type parameter",
+                sas.contains("rsct=") || sas.contains("&rsct"));
+        assertTrue("SAS should contain content-disposition parameter",
+                sas.contains("rscd=") || sas.contains("&rscd"));
+    }
+
+    /**
+     * Test that generateSharedAccessSignature handles null headers gracefully.
+     */
+    @Test
+    public void testGenerateSharedAccessSignatureWithNullHeaders() throws Exception {
+        String connectionString = getConnectionString();
+        provider = AzureBlobContainerProvider.Builder
+                .builder(CONTAINER_NAME)
+                .withAzureConnectionString(connectionString)
+                .build();
+
+        // Create container and blob
+        BlobContainerClient container = azurite.getContainer(CONTAINER_NAME, connectionString);
+        String blobName = "test-blob-null-headers";
+        container.getBlobClient(blobName).upload(
+                com.azure.core.util.BinaryData.fromString("test content"), true);
+
+        // Generate SAS with null headers
+        BlobSasPermission permissions = new BlobSasPermission().setReadPermission(true);
+        String sas = provider.generateSharedAccessSignature(
+                null, blobName, permissions, 3600, new Properties(), null);
+
+        assertNotNull("SAS should not be null", sas);
+        assertTrue("SAS should contain signature", sas.contains("sig="));
+        assertTrue("SAS should contain expiry", sas.contains("se="));
+    }
+
+    /**
+     * Test that generateSharedAccessSignature includes only provided headers.
+     */
+    @Test
+    public void testGenerateSharedAccessSignatureWithPartialHeaders() throws Exception {
+        String connectionString = getConnectionString();
+        provider = AzureBlobContainerProvider.Builder
+                .builder(CONTAINER_NAME)
+                .withAzureConnectionString(connectionString)
+                .build();
+
+        // Create container and blob
+        BlobContainerClient container = azurite.getContainer(CONTAINER_NAME, connectionString);
+        String blobName = "test-blob-partial-headers";
+        container.getBlobClient(blobName).upload(
+                com.azure.core.util.BinaryData.fromString("test content"), true);
+
+        // Generate SAS with only content-type header
+        BlobSasPermission permissions = new BlobSasPermission().setReadPermission(true);
+        BlobSasHeaders headers = new BlobSasHeaders().setContentType("application/json");
+
+        String sas = provider.generateSharedAccessSignature(
+                null, blobName, permissions, 3600, new Properties(), headers);
+
+        assertNotNull("SAS should not be null", sas);
+        assertTrue("SAS should contain signature", sas.contains("sig="));
+        assertTrue("SAS should contain content-type parameter",
+                sas.contains("rsct=") || sas.contains("&rsct"));
     }
 }

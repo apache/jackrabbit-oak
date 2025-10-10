@@ -50,10 +50,12 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
 
     private AbstractAzureBlobStoreBackend azureBlobStoreBackend;
 
-    private final boolean useAzureSdkV12 = SystemPropertySupplier.create("blob.azure.v12.enabled", false).get();
+    private static final String AZURE_SDK_12_ENABLED = "azure.sdk.12.enabled";
 
     @Override
     protected AbstractSharedBackend createBackend() {
+        boolean useAzureSdkV12 = SystemPropertySupplier.create(AZURE_SDK_12_ENABLED, false).get();
+
         if (useAzureSdkV12) {
             log.info("Starting blob store using Azure SDK 12");
             azureBlobStoreBackend = new AzureBlobStoreBackend();

@@ -31,22 +31,16 @@ import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.junit.After;
 import org.junit.Test;
 import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
-import java.net.SocketAddress;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.util.Properties;
 
 import static org.junit.Assert.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.mockStatic;
 
 public class UtilsV8Test {
 
@@ -84,7 +78,7 @@ public class UtilsV8Test {
         Properties properties = new Properties();
         properties.put(AzureConstants.AZURE_CONNECTION_STRING, "DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=accountKey");
         String connectionString = UtilsV8.getConnectionStringFromProperties(properties);
-        assertEquals(connectionString,"DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=accountKey");
+        assertEquals("DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=accountKey", connectionString);
     }
 
     @Test

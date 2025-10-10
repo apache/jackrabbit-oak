@@ -31,8 +31,6 @@ import org.slf4j.event.Level;
 
 import java.util.Properties;
 
-import javax.jcr.RepositoryException;
-
 /**
  * Test {@link AzureDataStore} with AzureDataStore and local cache on.
  * It requires to pass azure config file via system property or system properties by prefixing with 'ds.'.
@@ -80,7 +78,7 @@ public class TestAzureDS extends AbstractDataStoreTest {
   }
 
   @Override
-  protected DataStore createDataStore() throws RepositoryException {
+  protected DataStore createDataStore() {
     DataStore azureds = null;
     try {
       azureds = AzureDataStoreUtils.getAzureDataStore(props, dataStoreDir);
