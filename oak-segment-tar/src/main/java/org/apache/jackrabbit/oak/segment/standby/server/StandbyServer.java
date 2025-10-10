@@ -43,7 +43,7 @@ import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.util.CharsetUtil;
-import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobResponseEncoder;
@@ -224,8 +224,8 @@ class StandbyServer implements AutoCloseable {
             }
         }
 
-        bossGroup = new NioEventLoopGroup(1, new NamedThreadFactory("primary-run"));
-        workerGroup = new NioEventLoopGroup(0, new NamedThreadFactory("primary"));
+        bossGroup = new NioEventLoopGroup(1, BasicThreadFactory.builder().namingPattern("primary-run-%d").build());
+        workerGroup = new NioEventLoopGroup(0, BasicThreadFactory.builder().namingPattern("primary-%d").build());
 
         b = new ServerBootstrap();
         b.group(bossGroup, workerGroup);
