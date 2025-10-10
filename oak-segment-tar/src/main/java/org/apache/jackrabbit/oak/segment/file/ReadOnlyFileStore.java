@@ -136,6 +136,7 @@ public class ReadOnlyFileStore extends AbstractFileStore {
         Closer closer = Closer.create();
         closer.register(tarFiles);
         closer.register(revisions);
+        closer.register(segmentCache);
         closeAndLogOnFail(closer);
         System.gc(); // for any memory-mappings that are no longer used
         log.info("TarMK closed: {}", directory);
@@ -168,6 +169,11 @@ public class ReadOnlyFileStore extends AbstractFileStore {
     @Override
     public ReadOnlyRevisions getRevisions() {
         return revisions;
+    }
+
+    @Override
+    protected @NotNull TarFiles getTarFiles() {
+        return tarFiles;
     }
 
     public Set<SegmentId> getReferencedSegmentIds() {

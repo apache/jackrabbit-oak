@@ -33,6 +33,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.segment.CacheWeights.NodeCacheWeigher;
@@ -40,6 +41,7 @@ import org.apache.jackrabbit.oak.segment.CacheWeights.StringCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.TemplateCacheWeigher;
 import org.apache.jackrabbit.oak.segment.RecordCache;
 import org.apache.jackrabbit.oak.segment.Segment;
+import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
@@ -79,7 +81,8 @@ public class FileStoreBuilder {
 
     private int maxFileSize = DEFAULT_MAX_FILE_SIZE;
 
-    private int segmentCacheSize = DEFAULT_SEGMENT_CACHE_MB;
+    private final SegmentCache.Config segmentCacheConfig = new SegmentCache.Config()
+            .withCacheSizeMB(DEFAULT_SEGMENT_CACHE_MB);
 
     private int stringCacheSize = DEFAULT_STRING_CACHE_MB;
 
@@ -94,7 +97,7 @@ public class FileStoreBuilder {
     private boolean memoryMapping = MEMORY_MAPPING_DEFAULT;
 
     private boolean offHeapAccess = getBoolean("access.off.heap");
-    
+
     private int binariesInlineThreshold = Segment.MEDIUM_LIMIT;
 
     private SegmentNodeStorePersistence persistence;
@@ -192,7 +195,18 @@ public class FileStoreBuilder {
      */
     @NotNull
     public FileStoreBuilder withSegmentCacheSize(int segmentCacheSize) {
-        this.segmentCacheSize = segmentCacheSize;
+        this.segmentCacheConfig.withCacheSizeMB(segmentCacheSize);
+        return this;
+    }
+    /**
+     * Configure the segment cache.
+     *
+     * @param segmentCacheConfigurer Callback to configure segment cache
+     * @return this instance
+     */
+    @NotNull
+    public FileStoreBuilder withSegmentCache(Consumer<SegmentCache.Config> segmentCacheConfigurer) {
+        segmentCacheConfigurer.accept(this.segmentCacheConfig);
         return this;
     }
 
@@ -397,7 +411,7 @@ public class FileStoreBuilder {
         this.eagerSegmentCaching = eagerSegmentCaching;
         return this;
     }
-    
+
     /**
      * Sets the threshold under which binaries are inlined in data segments.
      * @param binariesInlineThreshold the threshold
@@ -505,8 +519,9 @@ public class FileStoreBuilder {
         return maxFileSize;
     }
 
-    int getSegmentCacheSize() {
-        return segmentCacheSize;
+    @NotNull
+    SegmentCache.Config getSegmentCacheConfig() {
+        return segmentCacheConfig;
     }
 
     int getStringCacheSize() {
@@ -585,7 +600,7 @@ public class FileStoreBuilder {
     boolean getEagerSegmentCaching() {
         return eagerSegmentCaching;
     }
-    
+
     int getBinariesInlineThreshold() {
         return binariesInlineThreshold;
     }
@@ -598,7 +613,7 @@ public class FileStoreBuilder {
                 ", blobStore=" + blobStore +
                 ", binariesInlineThreshold=" + binariesInlineThreshold +
                 ", maxFileSize=" + maxFileSize +
-                ", segmentCacheSize=" + segmentCacheSize +
+                ", segmentCacheConfig=" + segmentCacheConfig +
                 ", stringCacheSize=" + stringCacheSize +
                 ", templateCacheSize=" + templateCacheSize +
                 ", stringDeduplicationCacheSize=" + stringDeduplicationCacheSize +

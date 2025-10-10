@@ -471,6 +471,11 @@ public class FileStore extends AbstractFileStore {
     }
 
     @Override
+    protected @NotNull TarFiles getTarFiles() {
+        return tarFiles;
+    }
+
+    @Override
     public void close() {
         try (ShutDownCloser ignored = shutDown.shutDown()) {
             // avoid deadlocks by closing (and joining) the background
@@ -487,6 +492,7 @@ public class FileStore extends AbstractFileStore {
             closer.register(repositoryLock::unlock);
             closer.register(tarFiles) ;
             closer.register(revisions);
+            closer.register(segmentCache);
 
             closeAndLogOnFail(closer);
         }
