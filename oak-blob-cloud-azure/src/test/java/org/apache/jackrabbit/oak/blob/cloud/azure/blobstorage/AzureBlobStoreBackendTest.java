@@ -52,8 +52,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -83,7 +85,6 @@ import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConsta
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_REF_ON_INIT;
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS;
 import static org.junit.Assert.*;
-import static org.junit.Assume.assumeNotNull;
 import static org.mockito.ArgumentMatchers.any;
 
 /**
@@ -97,10 +98,6 @@ public class AzureBlobStoreBackendTest {
 
     private static final String CONTAINER_NAME = "test-container";
     private static final String TEST_METADATA_CONTENT = "test metadata content";
-    private static final String AZURE_ACCOUNT_NAME = "AZURE_ACCOUNT_NAME";
-    private static final String AZURE_TENANT_ID = "AZURE_TENANT_ID";
-    private static final String AZURE_CLIENT_ID = "AZURE_CLIENT_ID";
-    private static final String AZURE_CLIENT_SECRET = "AZURE_CLIENT_SECRET";
     private static final Set<String> BLOBS = Set.of("blob1", "blob2");
 
     private BlobContainerClient container;
@@ -796,6 +793,61 @@ public class AzureBlobStoreBackendTest {
     }
 
     @Test
+    public void testMetadataPrefixComposition() throws Exception {
+        backend.init();
+
+        BlobContainerClient azureContainer = backend.getAzureContainer();
+        String actualPrefix = "test-prefix";
+        String recordName = actualPrefix + "-record1";
+
+        // Add metadata record with the actual prefix
+        backend.addMetadataRecord(new ByteArrayInputStream("test content".getBytes()),
+            recordName
+        );
+
+        try {
+            // Verify the blob is stored with the META/ prefix in Azure storage
+            String expectedBlobName = AzureConstants.AZURE_BLOB_META_KEY_PREFIX + recordName;
+            BlobClient blobClient = azureContainer.getBlobClient(expectedBlobName);
+            assertTrue("Blob should exist at path with META/ prefix: " + expectedBlobName,
+                       blobClient.exists());
+
+            // Verify the blob is listed under the META directory
+            ListBlobsOptions listOptions = new ListBlobsOptions();
+            listOptions.setPrefix(AzureConstants.AZURE_BlOB_META_DIR_NAME);
+
+            boolean foundBlobWithMetaPrefix = false;
+            for (BlobItem blobItem : azureContainer.listBlobs(listOptions, null)) {
+                if (blobItem.getName().equals(expectedBlobName)) {
+                    foundBlobWithMetaPrefix = true;
+                    break;
+                }
+            }
+            assertTrue("Blob should be found in META directory with full META/ prefix",
+                       foundBlobWithMetaPrefix);
+
+            // Get all metadata records via the API
+            List<DataRecord> records = backend.getAllMetadataRecords("");
+            assertNotNull("Records list should not be null", records);
+            assertEquals("Should find exactly one record", 1, records.size());
+
+            // Verify the record identifier does NOT include the META/ prefix
+            // The identifier should be the logical name, not the storage path
+            DataRecord record = records.get(0);
+            String recordId = record.getIdentifier().toString();
+            assertEquals("Record identifier should match the provided name (without META/ prefix)",
+                         recordName, recordId);
+
+            // Verify the identifier starts with our prefix
+            assertTrue("Record identifier should start with the prefix",
+                       recordId.startsWith(actualPrefix));
+
+        } finally {
+            backend.deleteMetadataRecord(recordName);
+        }
+    }
+
+    @Test
     public void testGetAllMetadataRecords() throws Exception {
         backend.init();
 
@@ -1153,9 +1205,10 @@ public class AzureBlobStoreBackendTest {
         try {
             createDownloadURIMethod.invoke(backend, null, options);
             fail("Expected NullPointerException for null identifier");
-        } catch (Exception e) {
-            assertTrue("Should throw NullPointerException",
-                e.getCause() instanceof NullPointerException);
+        } catch (InvocationTargetException e) {
+            Throwable targetException = e.getTargetException();
+            assertEquals("Exception should be NullPointerException", NullPointerException.class, targetException.getClass());
+            assertEquals("Message should match","identifier must not be null", targetException.getMessage());
         }
     }
 
@@ -1172,9 +1225,10 @@ public class AzureBlobStoreBackendTest {
         try {
             createDownloadURIMethod.invoke(backend, identifier, null);
             fail("Expected NullPointerException for null options");
-        } catch (Exception e) {
-            assertTrue("Should throw NullPointerException",
-                e.getCause() instanceof NullPointerException);
+        } catch (InvocationTargetException e) {
+            Throwable targetException = e.getTargetException();
+            assertEquals("Exception should be NullPointerException", NullPointerException.class, targetException.getClass());
+            assertEquals("Message should match","downloadOptions must not be null", targetException.getMessage());
         }
     }
 
@@ -1206,7 +1260,7 @@ public class AzureBlobStoreBackendTest {
 
             // Test getStream()
             try (InputStream stream = record.getStream()) {
-                String content = IOUtils.toString(stream, "UTF-8");
+                String content = IOUtils.toString(stream, StandardCharsets.UTF_8);
                 assertEquals("Content should match", "data-record-test", content);
             }
 
@@ -1247,7 +1301,7 @@ public class AzureBlobStoreBackendTest {
 
             // Test getStream()
             try (InputStream stream = record.getStream()) {
-                String readContent = IOUtils.toString(stream, "UTF-8");
+                String readContent = IOUtils.toString(stream, StandardCharsets.UTF_8);
                 assertEquals("Content should match", content, readContent);
             }
 
@@ -1420,7 +1474,7 @@ public class AzureBlobStoreBackendTest {
 
             // Read content
             try (InputStream inputStream = backend.read(identifier)) {
-                String content = IOUtils.toString(inputStream, "UTF-8");
+                String content = IOUtils.toString(inputStream, StandardCharsets.UTF_8);
                 assertEquals("Content should match", "special-chars-content", content);
             }
         } finally {
@@ -1460,7 +1514,7 @@ public class AzureBlobStoreBackendTest {
                             if (backend.exists(identifier)) {
                                 // Read back
                                 try (InputStream inputStream = backend.read(identifier)) {
-                                    String readContent = IOUtils.toString(inputStream, "UTF-8");
+                                    String readContent = IOUtils.toString(inputStream, StandardCharsets.UTF_8);
                                     if (content.equals(readContent)) {
                                         successCount.incrementAndGet();
                                     }
@@ -2123,18 +2177,13 @@ public class AzureBlobStoreBackendTest {
         assertReferenceSecret(azureBlobStoreBackend);
     }
 
-    /* make sure that blob1.txt and blob2.txt are uploaded to AZURE_ACCOUNT_NAME/blobstore container before
-     * executing this test
-     * */
     @Test
     public void initWithServicePrincipals() throws Exception {
-        assumeNotNull(getEnvironmentVariable(AZURE_ACCOUNT_NAME));
-        assumeNotNull(getEnvironmentVariable(AZURE_TENANT_ID));
-        assumeNotNull(getEnvironmentVariable(AZURE_CLIENT_ID));
-        assumeNotNull(getEnvironmentVariable(AZURE_CLIENT_SECRET));
+        // Create blob container with test blobs using Azurite
+        createBlobContainer();
 
         AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
-        azureBlobStoreBackend.setProperties(getPropertiesWithServicePrincipals());
+        azureBlobStoreBackend.setProperties(getConfigurationWithConnectionString());
 
         azureBlobStoreBackend.init();
 
@@ -2286,24 +2335,5 @@ public class AzureBlobStoreBackendTest {
         DataRecord refRec = AzureBlobStoreBackend.getMetadataRecord("reference.key");
         assertNotNull("Reference data record null", refRec);
         assertTrue("reference key is empty", refRec.getLength() > 0);
-    }
-
-    private Properties getPropertiesWithServicePrincipals() {
-        final String accountName = getEnvironmentVariable(AZURE_ACCOUNT_NAME);
-        final String tenantId = getEnvironmentVariable(AZURE_TENANT_ID);
-        final String clientId = getEnvironmentVariable(AZURE_CLIENT_ID);
-        final String clientSecret = getEnvironmentVariable(AZURE_CLIENT_SECRET);
-
-        Properties properties = new Properties();
-        properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, accountName);
-        properties.setProperty(AzureConstants.AZURE_TENANT_ID, tenantId);
-        properties.setProperty(AzureConstants.AZURE_CLIENT_ID, clientId);
-        properties.setProperty(AzureConstants.AZURE_CLIENT_SECRET, clientSecret);
-        properties.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, CONTAINER_NAME);
-        return properties;
-    }
-
-    private String getEnvironmentVariable(String variableName) {
-        return System.getenv(variableName);
     }
 }

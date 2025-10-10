@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.util.Base64;
+import org.apache.jackrabbit.util.TransientFileFactory;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -287,14 +288,14 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
                     .setBlockSizeLong(len)
                     .setMaxConcurrency(concurrentRequestCount)
                     .setMaxSingleUploadSizeLong(AZURE_BLOB_MAX_SINGLE_PUT_UPLOAD_SIZE);
-            BlobUploadFromFileOptions options = new BlobUploadFromFileOptions(file.toString());
+            BlobUploadFromFileOptions options = new BlobUploadFromFileOptions(file.getPath());
             options.setParallelTransferOptions(parallelTransferOptions);
             try {
                 BlobClient blobClient = client.getContainerClient().getBlobClient(key);
                 Response<BlockBlobItem> blockBlob = blobClient.uploadFromFileWithResponse(options, null, null);
                 LOG.debug("Upload status is {} for blob {}", blockBlob.getStatusCode(), key);
             } catch (UncheckedIOException ex) {
-                System.err.printf("Failed to upload from file: %s%n", ex.getMessage());
+                LOG.debug("Failed to upload from file:{}}", ex.getMessage());
                 throw new IOException("Failed to upload blob: " + key, ex);
             }
             LOG.debug("Blob created. identifier={} length={} duration={} buffered={}", key, len, stopwatch.elapsed(TimeUnit.MILLISECONDS), useBufferedStream);
@@ -426,7 +427,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
     }
 
     @Override
-    public void close(){
+    public void close() {
         azureBlobContainerProvider.close();
         LOG.info("AzureBlobBackend closed.");
     }
@@ -509,7 +510,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
             // and loading the entire stream into memory is too risky
             if (recordLength < 0) {
                 LOG.debug("Metadata record length unknown. metadataName={}. Saving to temporary file before upload", name);
-                File tempFile = createTempFileFromStream(input, name, ".tmp");
+                File tempFile = createTempFileFromStream(input, name);
                 LOG.debug("Metadata record temporary file created. metadataName={} path={}", name, tempFile.getAbsolutePath());
                 try (InputStream fis = new BufferedInputStream(new FileInputStream(tempFile))) {
                     blockBlobClient.upload(fis, tempFile.length(), true);
@@ -536,20 +537,19 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
      * callers should explicitly delete it when done.</p>
      *
      * @param input The InputStream to save to a temporary file
-     * @param prefix The prefix string for the temporary file name (min 3 characters)
-     * @param suffix The suffix string for the temporary file name (null = ".tmp")
+     * @param name The name string for the temporary file name (min 3 characters)
      * @return A File object representing the temporary file
      * @throws IOException if an I/O error occurs
      */
-    private File createTempFileFromStream(InputStream input, String prefix, String suffix) throws IOException {
+    private File createTempFileFromStream(InputStream input, String name) throws IOException {
         Objects.requireNonNull(input, "input must not be null");
 
         Path tempPath = null;
         try {
             // Create temporary file
-            tempPath = Files.createTempFile(prefix + "-" + UUID.randomUUID(), suffix);
-            File tempFile = tempPath.toFile();
-
+            TransientFileFactory fileFactory = TransientFileFactory.getInstance();
+            File tempFile = fileFactory.createTransientFile(name, ".tmp", null);
+            tempPath = tempFile.toPath();
             // Mark for deletion on JVM exit as a safety measure
             tempFile.deleteOnExit();
 
@@ -616,7 +616,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 
             ListBlobsOptions listBlobsOptions = new ListBlobsOptions();
-            listBlobsOptions.setPrefix(AzureConstants.AZURE_BlOB_META_DIR_NAME);
+            listBlobsOptions.setPrefix(AzureConstants.AZURE_BlOB_META_DIR_NAME + "/" + prefix);
 
             for (BlobItem blobItem : getAzureContainer().listBlobs(listBlobsOptions, null)) {
                 BlobClient blobClient = getAzureContainer().getBlobClient(blobItem.getName());
@@ -675,7 +675,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
             int total = 0;
 
             ListBlobsOptions listBlobsOptions = new ListBlobsOptions();
-            listBlobsOptions.setPrefix(AzureConstants.AZURE_BlOB_META_DIR_NAME);
+            listBlobsOptions.setPrefix(AzureConstants.AZURE_BlOB_META_DIR_NAME + "/" + prefix);
 
             for (BlobItem blobItem : getAzureContainer().listBlobs(listBlobsOptions, null)) {
                 BlobClient blobClient = getAzureContainer().getBlobClient(blobItem.getName());
