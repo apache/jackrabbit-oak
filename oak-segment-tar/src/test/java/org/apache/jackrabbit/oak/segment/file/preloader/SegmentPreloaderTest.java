@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.Persist
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.awaitility.Awaitility;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Rule;
@@ -50,7 +51,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.Time;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -84,7 +84,7 @@ public class SegmentPreloaderTest {
     }
 
     @Test
-    public void viaFileStoreBuilder() throws InvalidFileStoreVersionException, IOException, CommitFailedException {
+    public void viaFileStoreBuilder() throws InvalidFileStoreVersionException, IOException, CommitFailedException, InterruptedException {
         try (FileStore fileStore = FileStoreBuilder.fileStoreBuilder(folder.getRoot())
                 .build()) {
             SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
@@ -101,10 +101,13 @@ public class SegmentPreloaderTest {
                 .build()) {
             SegmentId root = fileStore.getRevisions().getPersistedHead().getSegmentId();
             Segment segment = root.getSegment();
-            int referencedSegmentIdCount = segment.getReferencedSegmentIdCount();
+
+            int expectedCacheSize = 1 + segment.getReferencedSegmentIdCount();
+            Awaitility.await()
+                    .atMost(10, TimeUnit.SECONDS)
+                    .untilAsserted(() -> assertEquals(expectedCacheSize, persistentCache.segments.size()));
 
             assertTrue(persistentCache.containsSegment(root.getMostSignificantBits(), root.getLeastSignificantBits()));
-            assertEquals(1 + referencedSegmentIdCount, persistentCache.segments.size());
         }
     }
 
@@ -172,18 +175,20 @@ public class SegmentPreloaderTest {
     }
 
     private void assertReferencedSegmentsLoaded(Set<UUID> referencedSegments, MemoryTestCache underlyingCache, SegmentPreloader preloadingCache) throws InterruptedException {
-        long timeoutSec = 10;
-        long deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(timeoutSec);
         Set<UUID> segments = new HashSet<>(referencedSegments);
-        while (!segments.isEmpty() && System.currentTimeMillis() < deadline) {
-            segments.removeIf(segment ->
-                    underlyingCache.containsSegment(segment.getMostSignificantBits(), segment.getLeastSignificantBits())
-                    && preloadingCache.containsSegment(segment.getMostSignificantBits(), segment.getLeastSignificantBits()));
-            TimeUnit.MILLISECONDS.sleep(10);
-        }
+        int timeoutSec = 10;
+        Awaitility
+                .await()
+                .atMost(timeoutSec, TimeUnit.SECONDS)
+                .untilAsserted(() -> {
+                    segments.removeIf(uuid ->
+                            underlyingCache.containsSegment(uuid.getMostSignificantBits(), uuid.getLeastSignificantBits())
+                            && preloadingCache.containsSegment(uuid.getMostSignificantBits(), uuid.getLeastSignificantBits()));
+                    assertEquals("Not all referenced segments have been preloaded within " + timeoutSec + " seconds",
+                            Set.of(), segments);
+                });
 
-        assertEquals("Not all referenced segments have been preloaded within " + timeoutSec + " seconds",
-                Set.of(), segments);
+
     }
 
     private static Map<UUID, Set<UUID>> computeFullGraph(TarFiles tarFiles) throws IOException {
