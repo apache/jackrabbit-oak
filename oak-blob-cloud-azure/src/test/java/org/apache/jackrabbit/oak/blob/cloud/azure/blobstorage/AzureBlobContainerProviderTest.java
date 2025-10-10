@@ -824,4 +824,129 @@ public class AzureBlobContainerProviderTest {
                 AzuriteDockerRule.ACCOUNT_KEY,
                 azurite.getBlobEndpoint());
     }
+
+    /**
+     * Test that generateSharedAccessSignature works without headers (backward compatibility).
+     */
+    @Test
+    public void testGenerateSharedAccessSignatureWithoutHeaders() throws Exception {
+        String connectionString = getConnectionString();
+        provider = AzureBlobContainerProvider.Builder
+                .builder(CONTAINER_NAME)
+                .withAzureConnectionString(connectionString)
+                .build();
+
+        // Create container and blob
+        BlobContainerClient container = azurite.getContainer(CONTAINER_NAME, connectionString);
+        String blobName = "test-blob";
+        container.getBlobClient(blobName).upload(
+                com.azure.core.util.BinaryData.fromString("test content"), true);
+
+        // Generate SAS without headers
+        BlobSasPermission permissions = new BlobSasPermission().setReadPermission(true);
+        String sas = provider.generateSharedAccessSignature(
+                null, blobName, permissions, 3600, new Properties());
+
+        assertNotNull("SAS should not be null", sas);
+        assertTrue("SAS should contain signature", sas.contains("sig="));
+        assertTrue("SAS should contain expiry", sas.contains("se="));
+    }
+
+    /**
+     * Test that generateSharedAccessSignature includes headers when provided.
+     */
+    @Test
+    public void testGenerateSharedAccessSignatureWithHeaders() throws Exception {
+        String connectionString = getConnectionString();
+        provider = AzureBlobContainerProvider.Builder
+                .builder(CONTAINER_NAME)
+                .withAzureConnectionString(connectionString)
+                .build();
+
+        // Create container and blob
+        BlobContainerClient container = azurite.getContainer(CONTAINER_NAME, connectionString);
+        String blobName = "test-blob-with-headers";
+        container.getBlobClient(blobName).upload(
+                com.azure.core.util.BinaryData.fromString("test content"), true);
+
+        // Generate SAS with headers
+        BlobSasPermission permissions = new BlobSasPermission().setReadPermission(true);
+        BlobSasHeaders headers = new BlobSasHeaders()
+                .setCacheControl("private, max-age=3600, immutable")
+                .setContentType("image/png")
+                .setContentDisposition("attachment; filename=\"test.png\"");
+
+        String sas = provider.generateSharedAccessSignature(
+                null, blobName, permissions, 3600, new Properties(), headers);
+
+        assertNotNull("SAS should not be null", sas);
+        assertTrue("SAS should contain signature", sas.contains("sig="));
+        assertTrue("SAS should contain expiry", sas.contains("se="));
+
+        // Verify headers are encoded in SAS
+        // Azure encodes headers as rscc (cache-control), rsct (content-type), rscd (content-disposition)
+        assertTrue("SAS should contain cache-control parameter",
+                sas.contains("rscc=") || sas.contains("&rscc"));
+        assertTrue("SAS should contain content-type parameter",
+                sas.contains("rsct=") || sas.contains("&rsct"));
+        assertTrue("SAS should contain content-disposition parameter",
+                sas.contains("rscd=") || sas.contains("&rscd"));
+    }
+
+    /**
+     * Test that generateSharedAccessSignature handles null headers gracefully.
+     */
+    @Test
+    public void testGenerateSharedAccessSignatureWithNullHeaders() throws Exception {
+        String connectionString = getConnectionString();
+        provider = AzureBlobContainerProvider.Builder
+                .builder(CONTAINER_NAME)
+                .withAzureConnectionString(connectionString)
+                .build();
+
+        // Create container and blob
+        BlobContainerClient container = azurite.getContainer(CONTAINER_NAME, connectionString);
+        String blobName = "test-blob-null-headers";
+        container.getBlobClient(blobName).upload(
+                com.azure.core.util.BinaryData.fromString("test content"), true);
+
+        // Generate SAS with null headers
+        BlobSasPermission permissions = new BlobSasPermission().setReadPermission(true);
+        String sas = provider.generateSharedAccessSignature(
+                null, blobName, permissions, 3600, new Properties(), null);
+
+        assertNotNull("SAS should not be null", sas);
+        assertTrue("SAS should contain signature", sas.contains("sig="));
+        assertTrue("SAS should contain expiry", sas.contains("se="));
+    }
+
+    /**
+     * Test that generateSharedAccessSignature includes only provided headers.
+     */
+    @Test
+    public void testGenerateSharedAccessSignatureWithPartialHeaders() throws Exception {
+        String connectionString = getConnectionString();
+        provider = AzureBlobContainerProvider.Builder
+                .builder(CONTAINER_NAME)
+                .withAzureConnectionString(connectionString)
+                .build();
+
+        // Create container and blob
+        BlobContainerClient container = azurite.getContainer(CONTAINER_NAME, connectionString);
+        String blobName = "test-blob-partial-headers";
+        container.getBlobClient(blobName).upload(
+                com.azure.core.util.BinaryData.fromString("test content"), true);
+
+        // Generate SAS with only content-type header
+        BlobSasPermission permissions = new BlobSasPermission().setReadPermission(true);
+        BlobSasHeaders headers = new BlobSasHeaders().setContentType("application/json");
+
+        String sas = provider.generateSharedAccessSignature(
+                null, blobName, permissions, 3600, new Properties(), headers);
+
+        assertNotNull("SAS should not be null", sas);
+        assertTrue("SAS should contain signature", sas.contains("sig="));
+        assertTrue("SAS should contain content-type parameter",
+                sas.contains("rsct=") || sas.contains("&rsct"));
+    }
 }

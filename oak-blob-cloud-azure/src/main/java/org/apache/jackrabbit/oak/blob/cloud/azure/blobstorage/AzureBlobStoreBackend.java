@@ -814,10 +814,19 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
                 }
 
                 String key = getKeyName(identifier);
+
+                // Prepare headers for the presigned URI
+                BlobSasHeaders headers = new BlobSasHeaders()
+                        .setCacheControl(String.format("private, max-age=%d, immutable", httpDownloadURIExpirySeconds))
+                        .setContentType(downloadOptions.getContentTypeHeader())
+                        .setContentDisposition(downloadOptions.getContentDispositionHeader());
+
                 uri = createPresignedURI(key,
                         new BlobSasPermission().setReadPermission(true),
                         httpDownloadURIExpirySeconds,
-                        domain);
+                        Map.of(),
+                        domain,
+                        headers);
                 if (uri != null && httpDownloadURICache != null) {
                     httpDownloadURICache.put(cacheKey, uri);
                 }
@@ -1038,7 +1047,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
                                    BlobSasPermission blobSasPermissions,
                                    int expirySeconds,
                                    String domain) {
-        return createPresignedURI(key, blobSasPermissions, expirySeconds, Maps.newHashMap(), domain);
+        return createPresignedURI(key, blobSasPermissions, expirySeconds, Maps.newHashMap(), domain, null);
     }
 
     private URI createPresignedURI(String key,
@@ -1046,6 +1055,15 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
                                    int expirySeconds,
                                    Map<String, String> additionalQueryParams,
                                    String domain) {
+        return createPresignedURI(key, blobSasPermissions, expirySeconds, additionalQueryParams, domain, null);
+    }
+
+    private URI createPresignedURI(String key,
+                                   BlobSasPermission blobSasPermissions,
+                                   int expirySeconds,
+                                   Map<String, String> additionalQueryParams,
+                                   String domain,
+                                   BlobSasHeaders optionalHeaders) {
         if (Strings.isNullOrEmpty(domain)) {
             LOG.warn("Can't generate presigned URI - no Azure domain provided (is Azure account name configured?)");
             return null;
@@ -1054,7 +1072,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
         URI presignedURI = null;
         try {
             String sharedAccessSignature = azureBlobContainerProvider.generateSharedAccessSignature(retryOptions, key,
-                    blobSasPermissions, expirySeconds, properties);
+                    blobSasPermissions, expirySeconds, properties, optionalHeaders);
 
             // Shared access signature is returned encoded already.
             String uriString = String.format("https://%s/%s/%s?%s",

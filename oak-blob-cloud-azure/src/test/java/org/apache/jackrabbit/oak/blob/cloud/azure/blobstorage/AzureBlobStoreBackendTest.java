@@ -31,6 +31,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions;
@@ -2335,5 +2336,155 @@ public class AzureBlobStoreBackendTest {
         DataRecord refRec = AzureBlobStoreBackend.getMetadataRecord("reference.key");
         assertNotNull("Reference data record null", refRec);
         assertTrue("reference key is empty", refRec.getLength() > 0);
+    }
+
+    /**
+     * Test that headers are properly included in presigned download URIs.
+     * This test verifies the fix for the critical issue where headers were being ignored.
+     */
+    @Test
+    public void testCreateHttpDownloadURIWithHeaders() throws Exception {
+        // Set up download URI configuration
+        Properties propsWithDownload = createTestProperties();
+        propsWithDownload.setProperty(PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS, "3600");
+
+        AzureBlobStoreBackend downloadBackend = new AzureBlobStoreBackend();
+        downloadBackend.setProperties(propsWithDownload);
+        downloadBackend.init();
+
+        try {
+            // Create a test blob first
+            File testFile = createTempFile("header-test");
+            DataIdentifier identifier = new DataIdentifier("headertestblob");
+            downloadBackend.write(identifier, testFile);
+
+            // Create download options with custom headers
+            String expectedContentType = "image/png";
+            String expectedFileName = "test-image.png";
+            DataRecordDownloadOptions options = DataRecordDownloadOptions.fromBlobDownloadOptions(
+                    new BlobDownloadOptions(
+                            expectedContentType,
+                            null,
+                            expectedFileName,
+                            "attachment"
+                    )
+            );
+
+            // Create download URI using reflection
+            Method createDownloadURIMethod = AzureBlobStoreBackend.class.getDeclaredMethod(
+                    "createHttpDownloadURI", DataIdentifier.class, DataRecordDownloadOptions.class);
+            createDownloadURIMethod.setAccessible(true);
+
+            URI uri = (URI) createDownloadURIMethod.invoke(downloadBackend, identifier, options);
+
+            // Verify URI was created
+            assertNotNull("Download URI should not be null", uri);
+
+            // Verify the URI contains SAS parameters
+            String uriString = uri.toString();
+            assertTrue("URI should contain SAS signature", uriString.contains("sig="));
+            assertTrue("URI should contain expiry", uriString.contains("se="));
+            assertTrue("URI should contain permissions", uriString.contains("sp="));
+
+            // Verify headers are encoded in the SAS token
+            // The Azure SDK encodes headers in the SAS signature
+            // We verify by checking that the rscc (cache-control), rsct (content-type),
+            // and rscd (content-disposition) parameters are present
+            assertTrue("URI should contain cache-control parameter (rscc)",
+                    uriString.contains("rscc=") || uriString.contains("&rscc") || uriString.contains("?rscc"));
+            assertTrue("URI should contain content-type parameter (rsct)",
+                    uriString.contains("rsct=") || uriString.contains("&rsct") || uriString.contains("?rsct"));
+            assertTrue("URI should contain content-disposition parameter (rscd)",
+                    uriString.contains("rscd=") || uriString.contains("&rscd") || uriString.contains("?rscd"));
+
+            testFile.delete();
+        } finally {
+            downloadBackend.close();
+        }
+    }
+
+    /**
+     * Test that default headers (cache-control) are included even without custom content headers.
+     */
+    @Test
+    public void testCreateHttpDownloadURIWithDefaultHeaders() throws Exception {
+        Properties propsWithDownload = createTestProperties();
+        propsWithDownload.setProperty(PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS, "3600");
+
+        AzureBlobStoreBackend downloadBackend = new AzureBlobStoreBackend();
+        downloadBackend.setProperties(propsWithDownload);
+        downloadBackend.init();
+
+        try {
+            File testFile = createTempFile("default-header-test");
+            DataIdentifier identifier = new DataIdentifier("defaultheadertestblob");
+            downloadBackend.write(identifier, testFile);
+
+            // Use default options (no custom headers)
+            DataRecordDownloadOptions options = DataRecordDownloadOptions.DEFAULT;
+
+            Method createDownloadURIMethod = AzureBlobStoreBackend.class.getDeclaredMethod(
+                    "createHttpDownloadURI", DataIdentifier.class, DataRecordDownloadOptions.class);
+            createDownloadURIMethod.setAccessible(true);
+
+            URI uri = (URI) createDownloadURIMethod.invoke(downloadBackend, identifier, options);
+
+            assertNotNull("Download URI should not be null", uri);
+
+            String uriString = uri.toString();
+            // Cache-control should always be present
+            assertTrue("URI should contain cache-control parameter",
+                    uriString.contains("rscc=") || uriString.contains("&rscc") || uriString.contains("?rscc"));
+
+            testFile.delete();
+        } finally {
+            downloadBackend.close();
+        }
+    }
+
+    /**
+     * Test that content-disposition header is properly formatted with filename.
+     */
+    @Test
+    public void testCreateHttpDownloadURIWithContentDisposition() throws Exception {
+        Properties propsWithDownload = createTestProperties();
+        propsWithDownload.setProperty(PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS, "3600");
+
+        AzureBlobStoreBackend downloadBackend = new AzureBlobStoreBackend();
+        downloadBackend.setProperties(propsWithDownload);
+        downloadBackend.init();
+
+        try {
+            File testFile = createTempFile("disposition-test");
+            DataIdentifier identifier = new DataIdentifier("dispositiontestblob");
+            downloadBackend.write(identifier, testFile);
+
+            // Create options with filename
+            String fileName = "my-document.pdf";
+            DataRecordDownloadOptions options = DataRecordDownloadOptions.fromBlobDownloadOptions(
+                    new BlobDownloadOptions(
+                            "application/pdf",
+                            null,
+                            fileName,
+                            "attachment"
+                    )
+            );
+
+            Method createDownloadURIMethod = AzureBlobStoreBackend.class.getDeclaredMethod(
+                    "createHttpDownloadURI", DataIdentifier.class, DataRecordDownloadOptions.class);
+            createDownloadURIMethod.setAccessible(true);
+
+            URI uri = (URI) createDownloadURIMethod.invoke(downloadBackend, identifier, options);
+
+            assertNotNull("Download URI should not be null", uri);
+
+            String uriString = uri.toString();
+            assertTrue("URI should contain content-disposition parameter",
+                    uriString.contains("rscd=") || uriString.contains("&rscd") || uriString.contains("?rscd"));
+
+            testFile.delete();
+        } finally {
+            downloadBackend.close();
+        }
     }
 }

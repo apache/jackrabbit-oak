@@ -188,9 +188,39 @@ public class AzureBlobContainerProvider implements Closeable {
                                                 BlobSasPermission blobSasPermissions,
                                                 int expirySeconds,
                                                 Properties properties) throws DataStoreException, URISyntaxException, InvalidKeyException {
+        return generateSharedAccessSignature(retryOptions, key, blobSasPermissions, expirySeconds, properties, null);
+    }
+
+    /**
+     * Generates a shared access signature (SAS) for the specified blob with optional headers.
+     * This is the Azure SDK 12 equivalent of the V8 method that accepted {@code SharedAccessBlobHeaders}.
+     *
+     * @param retryOptions retry options for the request
+     * @param key the blob key
+     * @param blobSasPermissions the permissions for the SAS
+     * @param expirySeconds the number of seconds until the SAS expires
+     * @param properties additional properties
+     * @param optionalHeaders optional headers to include in the SAS (can be null)
+     * @return the SAS query string
+     * @throws DataStoreException if an error occurs
+     * @throws URISyntaxException if the URI is invalid
+     * @throws InvalidKeyException if the key is invalid
+     */
+    @NotNull
+    public String generateSharedAccessSignature(RequestRetryOptions retryOptions,
+                                                String key,
+                                                BlobSasPermission blobSasPermissions,
+                                                int expirySeconds,
+                                                Properties properties,
+                                                @Nullable BlobSasHeaders optionalHeaders) throws DataStoreException, URISyntaxException, InvalidKeyException {
 
         OffsetDateTime expiry = OffsetDateTime.now().plusSeconds(expirySeconds);
         BlobServiceSasSignatureValues serviceSasSignatureValues = new BlobServiceSasSignatureValues(expiry, blobSasPermissions);
+
+        // Apply headers if provided
+        if (optionalHeaders != null) {
+            optionalHeaders.applyTo(serviceSasSignatureValues);
+        }
 
         BlockBlobClient blob = getBlobContainer(retryOptions, properties).getBlobClient(key).getBlockBlobClient();
 
