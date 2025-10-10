@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr.xml;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -31,15 +30,17 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 
+import org.apache.commons.io.input.ReaderInputStream;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.xml.TextValue;
-import org.apache.jackrabbit.util.Base64;
 import org.apache.jackrabbit.util.TransientFileFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -133,9 +134,7 @@ class BufferedStringValue implements TextValue {
     private String retrieveString() throws IOException {
         String value = retrieve();
         if (base64) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            Base64.decode(value, out);
-            value = new String(out.toByteArray(), "UTF-8");
+            value = new String(Base64.getDecoder().decode(value), StandardCharsets.UTF_8);
         }
         return value;
     }
@@ -157,14 +156,11 @@ class BufferedStringValue implements TextValue {
             }
             StringBuilder sb = new StringBuilder((int) length);
             char[] chunk = new char[0x2000];
-            Reader reader = openReader();
-            try {
+            try (Reader reader = openReader()) {
                 int read;
                 while ((read = reader.read(chunk)) > -1) {
                     sb.append(chunk, 0, read);
                 }
-            } finally {
-                reader.close();
             }
             return sb.toString();
         } else {
@@ -173,7 +169,7 @@ class BufferedStringValue implements TextValue {
     }
 
     private Reader openReader() throws IOException {
-        return new InputStreamReader(openStream(), "UTF-8");
+        return new InputStreamReader(openStream(), StandardCharsets.UTF_8);
     }
 
     private InputStream openStream() throws IOException {
@@ -182,9 +178,10 @@ class BufferedStringValue implements TextValue {
 
     private InputStream stream() throws IOException {
         if (base64) {
-            return new Base64ReaderInputStream(reader());
+            return Base64.getDecoder().wrap(
+                    ReaderInputStream.builder().setReader(reader()).setCharset(StandardCharsets.UTF_8).get());
         } else if (buffer != null) {
-            return new ByteArrayInputStream(retrieve().getBytes("UTF-8"));
+            return new ByteArrayInputStream(retrieve().getBytes(StandardCharsets.UTF_8));
         } else if (tmpFile != null) {
             // close writer first
             writer.close();
@@ -229,7 +226,7 @@ class BufferedStringValue implements TextValue {
                 TransientFileFactory fileFactory = TransientFileFactory.getInstance();
                 tmpFile = fileFactory.createTransientFile("txt", null, null);
                 BufferedOutputStream fout = new BufferedOutputStream(new FileOutputStream(tmpFile));
-                writer = new OutputStreamWriter(fout, "UTF-8");
+                writer = new OutputStreamWriter(fout, StandardCharsets.UTF_8);
                 writer.write(buffer.toString());
                 writer.write(chars, start, len);
                 // reset the in-memory buffer
@@ -290,7 +287,9 @@ class BufferedStringValue implements TextValue {
         } else if (tmpFile != null) {
             try {
                 writer.close();
-                tmpFile.delete();
+                if (!tmpFile.delete()) {
+                    log.warn("Problem disposing property value: {} not deleted", tmpFile);
+                }
                 tmpFile = null;
                 writer = null;
             } catch (IOException e) {
@@ -300,56 +299,4 @@ class BufferedStringValue implements TextValue {
             log.warn("this instance has already been disposed");
         }
     }
-
-    /**
-     * This class converts the text read Converts a base64 reader to an input stream.
-     */
-    private static class Base64ReaderInputStream extends InputStream {
-
-        private static final int BUFFER_SIZE = 1024;
-        private final char[] chars;
-        private final ByteArrayOutputStream out;
-        private final Reader reader;
-        private int pos;
-        private int remaining;
-        private byte[] buffer;
-
-        public Base64ReaderInputStream(Reader reader) {
-            chars = new char[BUFFER_SIZE];
-            this.reader = reader;
-            out = new ByteArrayOutputStream(BUFFER_SIZE);
-        }
-
-        private void fillBuffer() throws IOException {
-            int len = reader.read(chars, 0, BUFFER_SIZE);
-            if (len < 0) {
-                remaining = -1;
-                return;
-            }
-            Base64.decode(chars, 0, len, out);
-            buffer = out.toByteArray();
-            pos = 0;
-            remaining = buffer.length;
-            out.reset();
-        }
-
-        @Override
-        public int read() throws IOException {
-            if (remaining == 0) {
-                fillBuffer();
-            }
-            if (remaining < 0) {
-                return -1;
-            }
-            remaining--;
-            return buffer[pos++] & 0xff;
-        }
-
-        @Override
-        public void close() throws IOException {
-            reader.close();
-        }
-
-    }
-
 }
