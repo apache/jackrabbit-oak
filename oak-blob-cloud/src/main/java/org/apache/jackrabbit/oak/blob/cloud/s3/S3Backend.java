@@ -234,7 +234,7 @@ public class S3Backend extends AbstractSharedBackend {
 
             LOG.debug("S3 Backend initialized in [{}] ms", (System.currentTimeMillis() - startTime.getTime()));
         } catch (Exception e) {
-            LOG.error("Error while initializing S3 Backend {}", e.getMessage());
+            LOG.error("Error while initializing S3 Backend", e);
             Map<String, Object> filteredMap = new HashMap<>();
             if (properties != null) {
                 filteredMap = MapUtils.filterKeys(Utils.asMap(properties),
@@ -1070,7 +1070,7 @@ public class S3Backend extends AbstractSharedBackend {
 
                     presignedURL = s3PresignService.presignPutObject(builder -> builder
                             .signatureDuration(Duration.between(
-                                    java.time.Instant.now(),           // current time
+                                    Instant.now(),           // current time
                                     expiration.toInstant()             // expiration time from your Date object
                             ))
                             .putObjectRequest(s3ReqDecorator.decorate(
@@ -1261,13 +1261,11 @@ public class S3Backend extends AbstractSharedBackend {
                     int batchSize = 500, startIndex = 0, size = deleteList.size();
                     int endIndex = Math.min(batchSize, size);
                     while (endIndex <= size) {
-                        int finalStartIndex = startIndex;
-                        int finalEndIndex = endIndex;
                         DeleteObjectsResponse dobjs = s3Client.deleteObjects(DeleteObjectsRequest.builder()
                                 .bucket(bucket)
                                 .delete(Delete.builder()
                                         .objects(Collections.unmodifiableList(
-                                                deleteList.subList(finalStartIndex, finalEndIndex))).build())
+                                                deleteList.subList(startIndex, startIndex))).build())
                                         .build());
                         LOG.info("Records[{}] deleted in datastore from index [{}] to [{}]",
                                 dobjs.deleted().size(), startIndex, (endIndex - 1));
