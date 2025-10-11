@@ -410,10 +410,8 @@ public final class Utils {
                                             final ListObjectsV2Iterable listResponses) {
         for (ListObjectsV2Response listRes : listResponses) {
             List<ObjectIdentifier> deleteList = new ArrayList<>();
-            List<String> keysToDelete = new ArrayList<>();
             for (S3Object s3Obj : listRes.contents()) {
                 deleteList.add(ObjectIdentifier.builder().key(s3Obj.key()).build());
-                keysToDelete.add(s3Obj.key());
             }
 
             if (!deleteList.isEmpty()) {
@@ -427,10 +425,10 @@ public final class Utils {
                                     .build());
                 } else {
                     // Delete objects one by one
-                    keysToDelete.forEach(key -> s3service.deleteObject(delObj -> delObj
-                                    .bucket(bucket)
-                                    .key(key)
-                                    .build()));
+                    deleteList.forEach(obj -> s3service.deleteObject(delObj -> delObj
+                            .bucket(bucket)
+                            .key(obj.key())
+                            .build()));
 
                 }
             }
