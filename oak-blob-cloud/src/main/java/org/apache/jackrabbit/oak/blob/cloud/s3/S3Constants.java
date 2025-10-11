@@ -53,6 +53,11 @@ public final class S3Constants {
     public static final String S3_MAX_ERR_RETRY = "maxErrorRetry";
 
     /**
+     * Amazon S3 cross region bucket access
+     */
+    public static final String S3_CROSS_REGION_ACCESS = "crossRegionAccess";
+
+    /**
      * Amazon aws S3 bucket.
      */
     public static final String S3_BUCKET = "s3Bucket";

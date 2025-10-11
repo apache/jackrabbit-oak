@@ -55,6 +55,7 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.regions.providers.DefaultAwsRegionProviderChain;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
+import software.amazon.awssdk.services.s3.S3BaseClientBuilder;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
@@ -127,17 +128,9 @@ public final class Utils {
 
         S3ClientBuilder builder = S3Client.builder();
 
-        builder.credentialsProvider(getAwsCredentials(prop));
-        builder.overrideConfiguration(getClientConfiguration(prop));
+        configureBuilder(builder, prop, accReq);
+        // sync http client
         builder.httpClient(getSdkHttpClient(prop));
-
-        String region = getRegion(prop);
-        builder.endpointOverride(getEndPointUri(prop, accReq, region));
-
-        // region is mandatory even with endpointOverride
-        builder.region(Region.of(region));
-        // to enable cross region bucket access
-        builder.crossRegionAccessEnabled(true);
 
         return builder.build();
     }
@@ -151,15 +144,9 @@ public final class Utils {
     public static S3AsyncClient openAsyncService(final Properties prop) {
         S3AsyncClientBuilder builder = S3AsyncClient.builder();
 
-        builder.credentialsProvider(getAwsCredentials(prop));
-        builder.overrideConfiguration(getClientConfiguration(prop));
+        configureBuilder(builder, prop, false);
+        // async http client
         builder.httpClient(getSdkAsyncHttpClient(prop));
-
-        String region = getRegion(prop);
-        builder.endpointOverride(getEndPointUri(prop, false, region));
-
-        // region is mandatory even with endpointOverride
-        builder.region(Region.of(region));
         builder.multipartEnabled(true);
 
         return builder.build();
@@ -672,6 +659,18 @@ public final class Utils {
             final AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
             return StaticCredentialsProvider.create(credentials);
         }
+    }
+
+    private static void configureBuilder(final S3BaseClientBuilder builder, final Properties prop, final boolean accReq) {
+        builder.credentialsProvider(getAwsCredentials(prop));
+        builder.overrideConfiguration(getClientConfiguration(prop));
+
+        // region is mandatory even with endpointOverride
+        String region = getRegion(prop);
+        builder.region(Region.of(region));
+
+        builder.endpointOverride(getEndPointUri(prop, accReq, region));
+        builder.crossRegionAccessEnabled(Boolean.parseBoolean(prop.getProperty(S3Constants.S3_CROSS_REGION_ACCESS)));
     }
 
     // Helper class to hold common Http config
