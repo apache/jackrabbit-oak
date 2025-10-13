@@ -40,7 +40,6 @@ import org.apache.jackrabbit.core.data.LazyFileInputStream;
 import org.apache.jackrabbit.oak.commons.io.FileTreeTraverser;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
-import org.apache.jackrabbit.util.TransientFileFactory;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -102,18 +101,18 @@ public class FSBackend extends AbstractSharedBackend {
 
     @Override
     public void write(DataIdentifier identifier, File file) throws DataStoreException {
-        TransientFileFactory fileFactory = TransientFileFactory.getInstance();
-        File tmpFile = null;
-
         File dest = getFile(identifier, fsPathDir);
+
         if (dest.exists()) {
             long now = System.currentTimeMillis();
             if (getLastModified(dest) < now + ACCESS_TIME_RESOLUTION) {
                 setLastModified(dest, now + ACCESS_TIME_RESOLUTION);
             }
         } else {
+            File tmpFile = null;
+
             try {
-                tmpFile = fileFactory.createTransientFile("fsbackend", null, fsPathDir);
+                tmpFile = File.createTempFile("fsbackend", null, fsPathDir);
                 FileUtils.copyFile(file, tmpFile);
 
                 File parent = dest.getParentFile();
@@ -129,7 +128,7 @@ public class FSBackend extends AbstractSharedBackend {
                                 + " (media read only?)");
                     }
                 }
-            }  catch (IOException e) {
+            } catch (IOException e) {
                 throw new DataStoreException("Could not add record", e);
             } finally {
                 if (tmpFile != null) {
