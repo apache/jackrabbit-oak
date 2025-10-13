@@ -601,6 +601,49 @@ public class ConfigurationParametersTest {
         options.clear();
     }
 
+    @Test
+    public void testConfigValueOrDefault() {
+        ConfigurationParameters options = ConfigurationParameters.of(Collections.singletonMap("test", null));
+        Object defaultObject = new TestObject("t");
+        String defaultValue = "defaultValue";
+
+        assertEquals(defaultValue, options.getConfigValueOrDefault("test", defaultValue));
+        assertEquals(1L, options.getConfigValueOrDefault("test", 1L).longValue());
+        assertEquals(1.1f, options.getConfigValueOrDefault("test", 1.1f), 0.01);
+        assertEquals(1.1d, options.getConfigValueOrDefault("test", 1.1d), 0.01);
+        assertEquals(1, options.getConfigValueOrDefault("test", 1).intValue());
+        assertEquals(defaultObject, options.getConfigValueOrDefault("test", defaultObject));
+        assertFalse(options.getConfigValueOrDefault("test", false));
+    }
+
+    @Test
+    public void testConfigValueOrDefault1() {
+        ConfigurationParameters options = ConfigurationParameters.of(Collections.singletonMap("test", ""));
+        Object defaultObject = new TestObject("t");
+
+        assertEquals("", options.getConfigValueOrDefault("test", "value"));
+        assertEquals(1L, options.getConfigValueOrDefault("test", 1L).longValue());
+        assertEquals(1.1f, options.getConfigValueOrDefault("test", 1.1f), 0.01);
+        assertEquals(1.1d, options.getConfigValueOrDefault("test", 1.1d), 0.01);
+        assertEquals(1, options.getConfigValueOrDefault("test", 1).intValue());
+        assertEquals(defaultObject, options.getConfigValueOrDefault("test", defaultObject));
+        assertFalse(options.getConfigValueOrDefault("test", false));
+    }
+
+    @Test
+    public void testConfigValueOrDefault2() {
+        ConfigurationParameters options = ConfigurationParameters.of(Collections.singletonMap("test", " "));
+        Object defaultObject = new TestObject("t");
+
+        assertEquals(" ", options.getConfigValueOrDefault("test", "value"));
+        assertEquals(1L, options.getConfigValueOrDefault("test", 1L).longValue());
+        assertEquals(1.1f, options.getConfigValueOrDefault("test", 1.1f), 0.01);
+        assertEquals(1.1d, options.getConfigValueOrDefault("test", 1.1d), 0.01);
+        assertEquals(1, options.getConfigValueOrDefault("test", 1).intValue());
+        assertEquals(defaultObject, options.getConfigValueOrDefault("test", defaultObject));
+        assertFalse(options.getConfigValueOrDefault("test", false));
+    }
+
     private static class TestObject {
 
         private final String name;
