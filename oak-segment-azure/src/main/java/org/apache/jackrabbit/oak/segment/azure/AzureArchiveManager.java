@@ -25,6 +25,7 @@ import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.models.ListBlobsOptions;
 import com.azure.storage.blob.models.CopyStatusType;
 import com.azure.storage.blob.specialized.BlockBlobClient;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ForkJoinUtils;
 import org.apache.jackrabbit.oak.segment.remote.RemoteUtilities;
 import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
@@ -37,8 +38,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -91,16 +94,21 @@ public class AzureArchiveManager implements SegmentArchiveManager {
                     .filter(blobName -> blobName.endsWith(".tar"))
                     .collect(Collectors.toList());
 
-            Iterator<String> it = archiveNames.iterator();
-            while (it.hasNext()) {
-                String archiveName = it.next();
-                if (deleteInProgress(archiveName)) {
-                    if (writeAccessController.isWritingAllowed()) {
-                        delete(archiveName);
-                    }
-                    it.remove();
-                }
-            }
+            Set<String> archivesToDelete = ForkJoinUtils.invokeInCustomPool(
+                    "AzureArchiveManager-deleted-archive-handler",
+                    Math.min(64, archiveNames.size()),
+                    () -> archiveNames.stream()
+                            .parallel()
+                            .filter(this::deleteInProgress)
+                            .peek(archiveName -> {
+                                if (writeAccessController.isWritingAllowed()) {
+                                    delete(archiveName);
+                                }
+                            })
+                            .collect(Collectors.toUnmodifiableSet()));
+
+            archiveNames.removeAll(archivesToDelete);
+
             return archiveNames;
         } catch (BlobStorageException e) {
             throw new IOException(e);
