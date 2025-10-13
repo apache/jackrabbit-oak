@@ -110,8 +110,10 @@ public class PageFile implements MemoryObject {
         // synchronization is needed because we share the buffer
         synchronized (PageFile.class) {
             ByteBuffer buff = REUSED_BUFFER;
-            if (buff.capacity() < sizeInBytes * 2) {
-                buff = REUSED_BUFFER = ByteBuffer.allocate(sizeInBytes * 2);
+            // the sizeInBytes only assumes 1 byte per character
+            // but there can be more byte due to using UTF-8
+            if (buff.capacity() < sizeInBytes * 4) {
+                buff = REUSED_BUFFER = ByteBuffer.allocate(sizeInBytes * 4);
             }
             buff.rewind();
             // first byte may not be '4', as that is used for LZ4 compression
