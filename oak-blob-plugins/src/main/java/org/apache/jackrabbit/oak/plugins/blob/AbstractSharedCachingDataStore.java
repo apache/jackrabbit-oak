@@ -231,12 +231,9 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
             // Copy the stream to the temporary file and calculate the
             // stream length and the message digest of the stream
             MessageDigest digest = MessageDigest.getInstance(DIGEST);
-            OutputStream output = new DigestOutputStream(new FileOutputStream(tmpFile), digest);
             long length = 0;
-            try {
+            try (OutputStream output = new DigestOutputStream(new FileOutputStream(tmpFile), digest)) {
                 length = IOUtils.copyLarge(inputStream, output);
-            } finally {
-                output.close();
             }
 
             DataIdentifier identifier = new DataIdentifier(encodeHexString(digest.digest()));
