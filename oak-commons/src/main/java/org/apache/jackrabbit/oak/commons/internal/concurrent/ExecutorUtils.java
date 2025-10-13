@@ -18,20 +18,18 @@
  */
 package org.apache.jackrabbit.oak.commons.internal.concurrent;
 
+
 import java.util.concurrent.Executor;
 
 /**
- * An @{@link Executor} that runs the task in calling thread
+ * Util methods for {@link java.util.concurrent.Executor}
  */
-enum DirectExecutor implements Executor {
-    INSTANCE;
-
-    public void execute(Runnable command) {
-        command.run();
+public class ExecutorUtils {
+    private ExecutorUtils() {
+        // no instances for you
     }
 
-    @Override
-    public String toString() {
-        return "DirectExecutor";
+    public static Executor directExecutor() {
+        return DirectExecutor.INSTANCE;
     }
 }
