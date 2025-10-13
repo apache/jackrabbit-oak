@@ -30,7 +30,7 @@ import org.junit.Test;
 import org.junit.runners.Parameterized;
 
 import static java.util.Collections.singleton;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.MEMORY_NS;
+import static org.apache.jackrabbit.oak.commons.testing.FixturesHelper.Fixture.MEMORY_NS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 

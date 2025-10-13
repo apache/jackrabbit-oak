@@ -19,14 +19,15 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static java.util.concurrent.TimeUnit.DAYS;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.SimpleCompactor;
 import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.SimpleCompactorFactory;
 import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.addTestContent;
 import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.assertSameRecord;
 import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.assertSameStableId;
 import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.checkGeneration;
-import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.getCheckpoint;
+import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.getCheckpointRoot;
+import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.getCheckpointSuperRoot;
+import static org.apache.jackrabbit.oak.segment.SegmentNodeStore.ROOT;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -39,7 +40,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.List;
 
 import org.apache.jackrabbit.oak.segment.file.CompactedNodeState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -78,16 +78,15 @@ public abstract class AbstractCompactorTest {
     private GCGeneration partialGeneration;
     private GCGeneration targetGeneration;
 
-    @Parameterized.Parameters
-    public static List<SimpleCompactorFactory> compactorFactories() {
+    @Parameterized.Parameters(name = "{index}: {0}")
+    public static Iterable<Object[]> compactorFactories() {
         return Arrays.asList(
-                compactor -> compactor::compactUp,
-                compactor -> (node, canceller) -> compactor.compactDown(node, canceller, canceller),
-                compactor -> (node, canceller) -> compactor.compact(EMPTY_NODE, node, EMPTY_NODE, canceller)
+                new Object[] {"compactUp", ((SimpleCompactorFactory)compactor -> compactor::compactUp)},
+                new Object[] {"compactDown", ((SimpleCompactorFactory)compactor -> (node, canceller) -> compactor.compactDown(node, canceller, canceller))}
         );
     }
 
-    public AbstractCompactorTest(@NotNull SimpleCompactorFactory compactorFactory) {
+    public AbstractCompactorTest(@SuppressWarnings({"unused", "java:S1172"}) String name, @NotNull SimpleCompactorFactory compactorFactory) {
         this.compactorFactory = compactorFactory;
     }
 
@@ -130,9 +129,9 @@ public abstract class AbstractCompactorTest {
         checkGeneration(compacted1, targetGeneration);
 
         assertSameStableId(uncompacted1, compacted1);
-        assertSameStableId(getCheckpoint(uncompacted1, cp1), getCheckpoint(compacted1, cp1));
-        assertSameStableId(getCheckpoint(uncompacted1, cp2), getCheckpoint(compacted1, cp2));
-        assertSameRecord(getCheckpoint(compacted1, cp2), compacted1.getChildNode("root"));
+        assertSameStableId(getCheckpointRoot(uncompacted1, cp1), getCheckpointRoot(compacted1, cp1));
+        assertSameStableId(getCheckpointRoot(uncompacted1, cp2), getCheckpointRoot(compacted1, cp2));
+        assertSameRecord(getCheckpointRoot(compacted1, cp2), compacted1.getChildNode(ROOT));
 
         // Simulate a 2nd compaction cycle
         addTestContent("cp3", nodeStore, 42);
@@ -141,22 +140,39 @@ public abstract class AbstractCompactorTest {
         String cp4 = nodeStore.checkpoint(DAYS.toMillis(1));
 
         SegmentNodeState uncompacted2 = fileStore.getHead();
-        SegmentNodeState compacted2 = compactor.compact(uncompacted1, uncompacted2, compacted1, Canceller.newCanceller());
+
+        // A new generation is needed for compaction, because the previous compaction was fully-compacted.
+        // If the previous compaction had been partial, the same target generation could be used.
+        GCGeneration secondTargetGeneration = targetGeneration.nextFull();
+        compactor = createCompactor(fileStore, new GCIncrement(targetGeneration, targetGeneration.nextPartial(), secondTargetGeneration), compactionMonitor);
+        SegmentNodeState compacted2 = compactor.compact(compacted1, uncompacted2, compacted1, Canceller.newCanceller());
+
         assertNotNull(compacted2);
         assertNotSame(uncompacted2, compacted2);
-        checkGeneration(compacted2, targetGeneration);
+        checkGeneration(compacted2, secondTargetGeneration);
 
         assertTrue(fileStore.getRevisions().setHead(uncompacted2.getRecordId(), compacted2.getRecordId()));
 
+        // verify that all checkpoints, including the checkpoint-properties, are copied over correctly
+        assertEquals(getCheckpointSuperRoot(uncompacted1, cp1), getCheckpointSuperRoot(compacted2, cp1));
+        assertEquals(getCheckpointSuperRoot(uncompacted1, cp2), getCheckpointSuperRoot(compacted2, cp2));
+        assertEquals(getCheckpointSuperRoot(uncompacted2, cp3), getCheckpointSuperRoot(compacted2, cp3));
+        assertEquals(getCheckpointSuperRoot(uncompacted2, cp4), getCheckpointSuperRoot(compacted2, cp4));
+
+        // verify that the entire tree has the same content
         assertEquals(uncompacted2, compacted2);
+
+        // the super root and all root nodes should have the same stable-id
         assertSameStableId(uncompacted2, compacted2);
-        assertSameStableId(getCheckpoint(uncompacted2, cp1), getCheckpoint(compacted2, cp1));
-        assertSameStableId(getCheckpoint(uncompacted2, cp2), getCheckpoint(compacted2, cp2));
-        assertSameStableId(getCheckpoint(uncompacted2, cp3), getCheckpoint(compacted2, cp3));
-        assertSameStableId(getCheckpoint(uncompacted2, cp4), getCheckpoint(compacted2, cp4));
-        assertSameRecord(getCheckpoint(compacted1, cp1), getCheckpoint(compacted2, cp1));
-        assertSameRecord(getCheckpoint(compacted1, cp2), getCheckpoint(compacted2, cp2));
-        assertSameRecord(getCheckpoint(compacted2, cp4), compacted2.getChildNode("root"));
+        assertSameStableId(uncompacted2.getChildNode(ROOT), compacted2.getChildNode(ROOT));
+        assertSameStableId(getCheckpointRoot(uncompacted2, cp1), getCheckpointRoot(compacted2, cp1));
+        assertSameStableId(getCheckpointRoot(uncompacted2, cp2), getCheckpointRoot(compacted2, cp2));
+        assertSameStableId(getCheckpointRoot(uncompacted2, cp3), getCheckpointRoot(compacted2, cp3));
+        assertSameStableId(getCheckpointRoot(uncompacted2, cp4), getCheckpointRoot(compacted2, cp4));
+
+        // The root of checkpoint 4 and the current root should be deduplicated,
+        // as there were no changes after the checkpoint was taken.
+        assertSameRecord(getCheckpointRoot(compacted2, cp4), compacted2.getChildNode(ROOT));
     }
 
     @Test
@@ -199,5 +215,6 @@ public abstract class AbstractCompactorTest {
         assertNotNull(compacted2);
         assertTrue(compacted2.isComplete());
         checkGeneration(compacted2, targetGeneration);
+        assertEquals(uncompacted1, compacted2);
     }
 }

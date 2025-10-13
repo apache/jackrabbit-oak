@@ -32,14 +32,14 @@ import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.SimpleCompact
 
 @RunWith(Parameterized.class)
 public class CheckpointCompactorExternalBlobTest extends AbstractCompactorExternalBlobTest {
-    public CheckpointCompactorExternalBlobTest(@NotNull SimpleCompactorFactory compactorFactory) {
-        super(compactorFactory);
+    public CheckpointCompactorExternalBlobTest(String name, @NotNull SimpleCompactorFactory compactorFactory) {
+        super(name, compactorFactory);
     }
 
     @Override
     protected CheckpointCompactor createCompactor(@NotNull FileStore fileStore, @NotNull GCGeneration generation) {
         SegmentWriter writer = defaultSegmentWriterBuilder("c").withGeneration(generation).build(fileStore);
         CompactionWriter compactionWriter = new CompactionWriter(fileStore.getReader(), fileStore.getBlobStore(), generation, writer);
-        return new CheckpointCompactor(GCMonitor.EMPTY, compactionWriter, GCNodeWriteMonitor.EMPTY);
+        return new CheckpointCompactor(GCMonitor.EMPTY, new ClassicCompactor(compactionWriter, GCNodeWriteMonitor.EMPTY));
     }
 }

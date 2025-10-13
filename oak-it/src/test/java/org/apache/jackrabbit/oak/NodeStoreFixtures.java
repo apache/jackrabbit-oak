@@ -22,7 +22,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.commons.FixturesHelper;
+import org.apache.jackrabbit.oak.commons.testing.FixturesHelper;
 import org.apache.jackrabbit.oak.cow.COWStoreFixture;
 import org.apache.jackrabbit.oak.fixture.DocumentMemoryFixture;
 import org.apache.jackrabbit.oak.fixture.DocumentMongoFixture;

@@ -46,8 +46,8 @@ import javax.jcr.Repository;
 import javax.jcr.Session;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.oak.commons.FixturesHelper;
-import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
+import org.apache.jackrabbit.oak.commons.testing.FixturesHelper;
+import org.apache.jackrabbit.oak.commons.testing.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureUtils;

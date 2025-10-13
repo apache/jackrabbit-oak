@@ -36,8 +36,8 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.NodeStoreFixtures;
-import org.apache.jackrabbit.oak.commons.FixturesHelper;
-import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
+import org.apache.jackrabbit.oak.commons.testing.FixturesHelper;
+import org.apache.jackrabbit.oak.commons.testing.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.jetbrains.annotations.NotNull;

@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static java.util.concurrent.TimeUnit.DAYS;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.SimpleCompactor;
 import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.SimpleCompactorFactory;
 import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.addTestContent;
@@ -27,7 +26,8 @@ import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.assertSameRec
 import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.assertSameStableId;
 import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.checkGeneration;
 import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.createBlob;
-import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.getCheckpoint;
+import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.getCheckpointRoot;
+import static org.apache.jackrabbit.oak.segment.SegmentNodeStore.ROOT;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 import static org.junit.Assert.assertNotNull;
@@ -56,8 +56,6 @@ import org.junit.runners.Parameterized;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
 
 @RunWith(Parameterized.class)
 public abstract class AbstractCompactorExternalBlobTest {
@@ -80,16 +78,12 @@ public abstract class AbstractCompactorExternalBlobTest {
     public RuleChain rules = RuleChain.outerRule(folder)
         .around(temporaryBlobStore);
 
-    @Parameterized.Parameters
-    public static List<SimpleCompactorFactory> compactorFactories() {
-        return Arrays.asList(
-                compactor -> compactor::compactUp,
-                compactor -> (node, canceller) -> compactor.compactDown(node, canceller, canceller),
-                compactor -> (node, canceller) -> compactor.compact(EMPTY_NODE, node, EMPTY_NODE, canceller)
-        );
+    @Parameterized.Parameters(name = "{index}: {0}")
+    public static Iterable<Object[]> compactorFactories() {
+        return AbstractCompactorTest.compactorFactories();
     }
 
-    public AbstractCompactorExternalBlobTest(@NotNull SimpleCompactorFactory compactorFactory) {
+    public AbstractCompactorExternalBlobTest(@SuppressWarnings({"unused", "java:S1172"}) String name, @NotNull SimpleCompactorFactory compactorFactory) {
         this.compactorFactory = compactorFactory;
     }
 
@@ -146,12 +140,12 @@ public abstract class AbstractCompactorExternalBlobTest {
         checkGeneration(compacted1, compactedGeneration);
 
         assertSameStableId(uncompacted1, compacted1);
-        assertSameStableId(getCheckpoint(uncompacted1, cp1), getCheckpoint(compacted1, cp1));
-        assertSameStableId(getCheckpoint(uncompacted1, cp2), getCheckpoint(compacted1, cp2));
-        assertSameStableId(getCheckpoint(uncompacted1, cp3), getCheckpoint(compacted1, cp3));
-        assertSameStableId(getCheckpoint(uncompacted1, cp4), getCheckpoint(compacted1, cp4));
-        assertSameStableId(getCheckpoint(uncompacted1, cp5), getCheckpoint(compacted1, cp5));
-        assertSameRecord(getCheckpoint(compacted1, cp5), compacted1.getChildNode("root"));
+        assertSameStableId(getCheckpointRoot(uncompacted1, cp1), getCheckpointRoot(compacted1, cp1));
+        assertSameStableId(getCheckpointRoot(uncompacted1, cp2), getCheckpointRoot(compacted1, cp2));
+        assertSameStableId(getCheckpointRoot(uncompacted1, cp3), getCheckpointRoot(compacted1, cp3));
+        assertSameStableId(getCheckpointRoot(uncompacted1, cp4), getCheckpointRoot(compacted1, cp4));
+        assertSameStableId(getCheckpointRoot(uncompacted1, cp5), getCheckpointRoot(compacted1, cp5));
+        assertSameRecord(getCheckpointRoot(compacted1, cp5), compacted1.getChildNode(ROOT));
     }
 
     private static void updateTestContent(@NotNull String parent, @NotNull NodeStore nodeStore)

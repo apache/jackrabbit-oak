@@ -27,7 +27,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
@@ -38,31 +37,24 @@ public class ParallelCompactorExternalBlobTest extends AbstractCompactorExternal
 
     private final int concurrency;
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name = "{index}: {0} concurrency={2}")
     public static List<Object[]> parameters() {
-        Integer[] concurrencyLevels = {1, 2, 4, 8, 16};
-
-        List<Object[]> parameters = new ArrayList<>();
-        for (SimpleCompactorFactory factory : AbstractCompactorExternalBlobTest.compactorFactories()) {
-            for (int concurrency : concurrencyLevels) {
-                parameters.add(new Object[]{factory, concurrency});
-            }
-        }
-        return parameters;
+        return ParallelCompactorTest.parameters();
     }
 
-    public ParallelCompactorExternalBlobTest(@NotNull SimpleCompactorFactory compactorFactory, int concurrency) {
-        super(compactorFactory);
+    public ParallelCompactorExternalBlobTest(String name, @NotNull SimpleCompactorFactory compactorFactory, int concurrency) {
+        super(name, compactorFactory);
         this.concurrency = concurrency;
     }
 
     @Override
-    protected ParallelCompactor createCompactor(@NotNull FileStore fileStore, @NotNull GCGeneration generation) {
+    protected Compactor createCompactor(@NotNull FileStore fileStore, @NotNull GCGeneration generation) {
         SegmentWriter writer = defaultSegmentWriterBuilder("c")
                 .withGeneration(generation)
                 .withWriterPool(SegmentBufferWriterPool.PoolType.THREAD_SPECIFIC)
                 .build(fileStore);
         CompactionWriter compactionWriter = new CompactionWriter(fileStore.getReader(), fileStore.getBlobStore(), generation, writer);
-        return new ParallelCompactor(GCMonitor.EMPTY, compactionWriter, GCNodeWriteMonitor.EMPTY, concurrency);
+        return new CheckpointCompactor(GCMonitor.EMPTY,
+                new ParallelCompactor(GCMonitor.EMPTY, compactionWriter, GCNodeWriteMonitor.EMPTY, concurrency));
     }
 }

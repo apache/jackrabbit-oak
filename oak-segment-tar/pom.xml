@@ -227,17 +227,16 @@
             <version>${jackrabbit.version}</version>
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>org.apache.jackrabbit</groupId>
-            <artifactId>jackrabbit-data</artifactId>
-            <version>${jackrabbit.version}</version>
-            <scope>provided</scope>
-        </dependency>
 
         <!-- Other dependencies -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -382,11 +381,6 @@
         <dependency>
             <groupId>org.osgi</groupId>
             <artifactId>org.osgi.service.cm</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

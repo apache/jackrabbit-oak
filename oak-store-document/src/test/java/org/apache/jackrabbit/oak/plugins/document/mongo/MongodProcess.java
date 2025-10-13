@@ -44,7 +44,7 @@ import de.flapdoodle.embed.process.runtime.IStopable;
  */
 public class MongodProcess {
 
-    private static final String VERSION = "4.2.16";
+    private static final String VERSION = "8.0.15";
 
     private static final Directory TMP_DIR = join(new FixedPath("target"), new FixedPath("tmp"));
 
