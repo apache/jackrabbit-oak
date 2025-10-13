@@ -95,17 +95,18 @@ public class SegmentMemoryNodeStoreFixture extends NodeStoreFixture implements C
 
             FileStore fileStore = fileStoreBuilder.build();
             NodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+            components.put(nodeStore, new LinkedHashMap<>());
 
             // track all main components
             if (dataStore != null) {
-                components.computeIfAbsent(nodeStore, k -> new LinkedHashMap<>()).put(DataStore.class.getName(), dataStore);
-                components.computeIfAbsent(nodeStore, k -> new LinkedHashMap<>()).put(DataStore.class.getName() + ":folder", dataStoreFolder);
+                components.get(nodeStore).put(DataStore.class.getName(), dataStore);
+                components.get(nodeStore).put(DataStore.class.getName() + ":folder", dataStoreFolder);
             }
             if (blobStore != null) {
-                components.computeIfAbsent(nodeStore, k -> new LinkedHashMap<>()).put(BlobStore.class.getName(), blobStore);
+                components.get(nodeStore).put(BlobStore.class.getName(), blobStore);
             }
-            components.computeIfAbsent(nodeStore, k -> new LinkedHashMap<>()).put(FileStore.class.getName(), fileStore);
-            components.computeIfAbsent(nodeStore, k -> new LinkedHashMap<>()).put(FileStore.class.getName() + ":root", fileStoreRoot);
+            components.get(nodeStore).put(FileStore.class.getName(), fileStore);
+            components.get(nodeStore).put(FileStore.class.getName() + ":root", fileStoreRoot);
 
             return nodeStore;
 

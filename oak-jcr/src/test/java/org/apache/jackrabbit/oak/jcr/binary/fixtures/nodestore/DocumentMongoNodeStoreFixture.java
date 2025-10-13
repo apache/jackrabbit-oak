@@ -120,14 +120,15 @@ public class DocumentMongoNodeStoreFixture extends NodeStoreFixture implements C
             }
 
             NodeStore nodeStore = documentNodeStoreBuilder.build();
+            components.put(nodeStore, new LinkedHashMap<>());
 
             // track all main components
             if (dataStore != null) {
-                components.computeIfAbsent(nodeStore, k -> new LinkedHashMap<>()).put(DataStore.class.getName(), dataStore);
-                components.computeIfAbsent(nodeStore, k -> new LinkedHashMap<>()).put(DataStore.class.getName() + ":folder", dataStoreFolder);
+                components.get(nodeStore).put(DataStore.class.getName(), dataStore);
+                components.get(nodeStore).put(DataStore.class.getName() + ":folder", dataStoreFolder);
             }
             if (blobStore != null) {
-                components.computeIfAbsent(nodeStore, k -> new LinkedHashMap<>()).put(BlobStore.class.getName(), blobStore);
+                components.get(nodeStore).put(BlobStore.class.getName(), blobStore);
             }
 
             return nodeStore;

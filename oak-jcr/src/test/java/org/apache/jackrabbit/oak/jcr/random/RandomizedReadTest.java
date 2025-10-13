@@ -43,17 +43,20 @@ public class RandomizedReadTest extends AbstractRandomizedTest {
     static {
 
         // Java
-        tree.computeIfAbsent(0, k -> new LinkedHashMap<>()).put(0, "/");
-        tree.computeIfAbsent(0, k -> new LinkedHashMap<>()).put(0, "/");
-        tree.computeIfAbsent(1, k -> new LinkedHashMap<>()).put(0, "/n1");
-        tree.computeIfAbsent(1, k -> new LinkedHashMap<>()).put(1, "/n2");
-        tree.computeIfAbsent(2, k -> new LinkedHashMap<>()).put(0, "/n1/n3");
-        tree.computeIfAbsent(2, k -> new LinkedHashMap<>()).put(1, "/n1/n4");
-        tree.computeIfAbsent(2, k -> new LinkedHashMap<>()).put(2, "/n1/n5");
-        tree.computeIfAbsent(3, k -> new LinkedHashMap<>()).put(0, "/n1/n3/n6");
-        tree.computeIfAbsent(3, k -> new LinkedHashMap<>()).put(1, "/n1/n3/n7");
-        tree.computeIfAbsent(3, k -> new LinkedHashMap<>()).put(2, "/n1/n3/n8");
-        tree.computeIfAbsent(3, k -> new LinkedHashMap<>()).put(3, "/n1/n3/n9");
+        for (int i = 0; i < depth; i++) {
+            tree.put(i, new LinkedHashMap<>());
+        }
+
+        tree.get(0).put(0, "/");
+        tree.get(1).put(0, "/n1");
+        tree.get(1).put(1, "/n2");
+        tree.get(2).put(0, "/n1/n3");
+        tree.get(2).put(1, "/n1/n4");
+        tree.get(2).put(2, "/n1/n5");
+        tree.get(3).put(0, "/n1/n3/n6");
+        tree.get(3).put(1, "/n1/n3/n7");
+        tree.get(3).put(2, "/n1/n3/n8");
+        tree.get(3).put(3, "/n1/n3/n9");
     }
 
     @Override
