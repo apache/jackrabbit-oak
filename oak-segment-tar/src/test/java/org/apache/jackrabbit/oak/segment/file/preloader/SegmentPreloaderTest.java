@@ -92,7 +92,7 @@ public class SegmentPreloaderTest {
     }
 
     @Test
-    public void viaFileStoreBuilder() throws InvalidFileStoreVersionException, IOException, CommitFailedException, InterruptedException {
+    public void viaFileStoreBuilder() throws InvalidFileStoreVersionException, IOException, CommitFailedException {
         try (FileStore fileStore = FileStoreBuilder.fileStoreBuilder(folder.getRoot())
                 .build()) {
             SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
@@ -120,7 +120,7 @@ public class SegmentPreloaderTest {
     }
 
     @Test
-    public void testPreloading() throws IOException, InvalidFileStoreVersionException, CommitFailedException, InterruptedException {
+    public void testPreloading() throws IOException, InvalidFileStoreVersionException, CommitFailedException {
         SegmentNodeStorePersistence persistence = new TarPersistence(folder.getRoot());
         try (FileStore fileStore = FileStoreBuilder.fileStoreBuilder(folder.getRoot())
                 .withMaxFileSize(4)
@@ -288,7 +288,7 @@ public class SegmentPreloaderTest {
         return UUID.fromString(parts[0]);
     }
 
-    private void assertReferencedSegmentsLoaded(Set<UUID> referencedSegments, MemoryTestCache underlyingCache, SegmentPreloader preloadingCache) throws InterruptedException {
+    private void assertReferencedSegmentsLoaded(Set<UUID> referencedSegments, MemoryTestCache underlyingCache, SegmentPreloader preloadingCache) {
         Set<UUID> segments = new HashSet<>(referencedSegments);
         int timeoutSec = 10;
         Awaitility
@@ -327,7 +327,7 @@ public class SegmentPreloaderTest {
                 .build();
     }
 
-    private static Set<UUID> collectReferencedSegments(UUID root, Map<UUID, Set<UUID>> graph, int depth) throws IOException {
+    private static Set<UUID> collectReferencedSegments(UUID root, Map<UUID, Set<UUID>> graph, int depth) {
         Set<UUID> uuids = new LinkedHashSet<>();
         uuids.add(root);
         if (depth > 0) {

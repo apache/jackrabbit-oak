@@ -174,7 +174,7 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
     }
 
     private void execute(ExecutorService pool, Runnable r) {
-        if (registerInProgressTask(r)) {
+        if (!pool.isShutdown() && registerInProgressTask(r)) {
             pool.execute(r);
         }
     }
