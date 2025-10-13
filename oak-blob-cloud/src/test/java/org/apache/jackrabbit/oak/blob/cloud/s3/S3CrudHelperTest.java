@@ -21,6 +21,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.HeadBucketResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 import software.amazon.awssdk.services.s3.model.S3Exception;
@@ -91,6 +92,46 @@ public class S3CrudHelperTest {
         AwsServiceException other = S3Exception.builder().statusCode(500).build();
         Mockito.doThrow(other).when(mockClient).headObject(Mockito.any(HeadObjectRequest.class));
         S3CrudHelper.objectExists(mockClient, "bucket", "key", decorator);
+    }
+
+    @Test
+    public void testWaitForBucketExistsImmediately() {
+        S3Client mockClient = Mockito.mock(S3Client.class);
+        boolean result = S3CrudHelper.waitForBucket(mockClient, "bucket");
+        Assert.assertTrue(result);
+        Mockito.verify(mockClient, Mockito.times(1)).headBucket(Mockito.any(Consumer.class));
+    }
+
+    @Test
+    public void testWaitForBucketExistsAfterRetries() {
+        S3Client mockClient = Mockito.mock(S3Client.class);
+        Mockito.doThrow(NoSuchBucketException.builder().build())
+                .doThrow(NoSuchBucketException.builder().build())
+                .doReturn(HeadBucketResponse.builder().build())
+                .when(mockClient).headBucket(Mockito.any(Consumer.class));
+        boolean result = S3CrudHelper.waitForBucket(mockClient, "bucket");
+        Assert.assertTrue(result);
+        Mockito.verify(mockClient, Mockito.times(3)).headBucket(Mockito.any(Consumer.class));
+    }
+
+    @Test
+    public void testWaitForBucketNeverExists() {
+        S3Client mockClient = Mockito.mock(S3Client.class);
+        Mockito.doThrow(NoSuchBucketException.builder().build())
+                .when(mockClient).headBucket(Mockito.any(Consumer.class));
+        boolean result = S3CrudHelper.waitForBucket(mockClient, "bucket");
+        Assert.assertFalse(result);
+        Mockito.verify(mockClient, Mockito.times(20)).headBucket(Mockito.any(Consumer.class));
+    }
+
+    @Test
+    public void testWaitForBucketOtherException() {
+        S3Client mockClient = Mockito.mock(S3Client.class);
+        Mockito.doThrow(new RuntimeException("fail"))
+                .when(mockClient).headBucket(Mockito.any(Consumer.class));
+        boolean result = S3CrudHelper.waitForBucket(mockClient, "bucket");
+        Assert.assertFalse(result);
+        Mockito.verify(mockClient, Mockito.times(1)).headBucket(Mockito.any(Consumer.class));
     }
 
 }
