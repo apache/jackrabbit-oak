@@ -96,7 +96,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
 
             Set<String> archivesToDelete = ForkJoinUtils.invokeInCustomPool(
                     "AzureArchiveManager-deleted-archive-handler",
-                    Math.min(64, archiveNames.size()),
+                    Math.min(64, Math.max(1, archiveNames.size())),
                     () -> archiveNames.stream()
                             .parallel()
                             .filter(this::deleteInProgress)
