@@ -102,7 +102,7 @@ public class S3DataStoreFixture implements DataStoreFixture {
             log.info("Creating S3 test bucket {}", bucketName);
             CreateBucketRequest createBucketRequest = CreateBucketRequest.builder().bucket(bucketName).build();
             s3Client.createBucket(createBucketRequest);
-            assertTrue("Failed to create test bucket [" + bucketName + "]", S3CrudHelper.waitForBucket(s3Client, bucketName));
+            assertTrue("Failed to create test bucket [" + bucketName + "]", S3CrudHelper.waitForBucket(s3Client, bucketName, 20, 100L));
 
             log.info("Enabling S3 acceleration for bucket {}", bucketName);
             s3Client.putBucketAccelerateConfiguration(

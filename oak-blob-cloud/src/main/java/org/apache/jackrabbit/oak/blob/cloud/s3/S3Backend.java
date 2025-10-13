@@ -267,7 +267,7 @@ public class S3Backend extends AbstractSharedBackend {
                                         config.locationConstraint(bucketRegion)
                                                 .build())
                                 .build());
-                if (S3CrudHelper.waitForBucket(s3Client, bucket)) {
+                if (S3CrudHelper.waitForBucket(s3Client, bucket, 20, 100L)) {
                     LOG.error("Bucket [{}] does not exist in [{}] and was not automatically created",
                             bucket, region);
                     return;

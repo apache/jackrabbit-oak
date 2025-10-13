@@ -97,7 +97,7 @@ public class S3CrudHelperTest {
     @Test
     public void testWaitForBucketExistsImmediately() {
         S3Client mockClient = Mockito.mock(S3Client.class);
-        boolean result = S3CrudHelper.waitForBucket(mockClient, "bucket");
+        boolean result = S3CrudHelper.waitForBucket(mockClient, "bucket", 5, 1L);
         Assert.assertTrue(result);
         Mockito.verify(mockClient, Mockito.times(1)).headBucket(Mockito.any(Consumer.class));
     }
@@ -109,7 +109,7 @@ public class S3CrudHelperTest {
                 .doThrow(NoSuchBucketException.builder().build())
                 .doReturn(HeadBucketResponse.builder().build())
                 .when(mockClient).headBucket(Mockito.any(Consumer.class));
-        boolean result = S3CrudHelper.waitForBucket(mockClient, "bucket");
+        boolean result = S3CrudHelper.waitForBucket(mockClient, "bucket", 5, 1L);
         Assert.assertTrue(result);
         Mockito.verify(mockClient, Mockito.times(3)).headBucket(Mockito.any(Consumer.class));
     }
@@ -119,9 +119,9 @@ public class S3CrudHelperTest {
         S3Client mockClient = Mockito.mock(S3Client.class);
         Mockito.doThrow(NoSuchBucketException.builder().build())
                 .when(mockClient).headBucket(Mockito.any(Consumer.class));
-        boolean result = S3CrudHelper.waitForBucket(mockClient, "bucket");
+        boolean result = S3CrudHelper.waitForBucket(mockClient, "bucket", 5, 1L);
         Assert.assertFalse(result);
-        Mockito.verify(mockClient, Mockito.times(20)).headBucket(Mockito.any(Consumer.class));
+        Mockito.verify(mockClient, Mockito.times(5)).headBucket(Mockito.any(Consumer.class));
     }
 
     @Test
@@ -129,7 +129,7 @@ public class S3CrudHelperTest {
         S3Client mockClient = Mockito.mock(S3Client.class);
         Mockito.doThrow(new RuntimeException("fail"))
                 .when(mockClient).headBucket(Mockito.any(Consumer.class));
-        boolean result = S3CrudHelper.waitForBucket(mockClient, "bucket");
+        boolean result = S3CrudHelper.waitForBucket(mockClient, "bucket", 5, 1L);
         Assert.assertFalse(result);
         Mockito.verify(mockClient, Mockito.times(1)).headBucket(Mockito.any(Consumer.class));
     }

@@ -201,25 +201,26 @@ public class S3CrudHelper {
      * @param bucketName The name of the bucket to check.
      * @return True if the bucket exists; false otherwise.
      */
-    public static boolean waitForBucket(@NotNull final S3Client s3Client, final String bucketName) {
-        int tries = 0;
-        boolean bucketExists = false;
-        while (tries < 20) {
-            tries++;
+    public static boolean waitForBucket(@NotNull final S3Client s3Client, @NotNull final String bucketName,
+                                        final int maxAttempts, final long delayMillis) {
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
                 s3Client.headBucket(headReq -> headReq.bucket(bucketName).build());
-                bucketExists = true;
-                break;
+                return true;
             } catch (NoSuchBucketException e) {
-                // Bucket does not exist, wait and retry
+                // Bucket doesn't exist yet; backoff and retry
                 try {
-                    Thread.sleep(100L * tries);
-                } catch (InterruptedException ie) {}
+                    Thread.sleep(delayMillis * attempt);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt(); // Preserve interrupt status!
+                    break;
+                }
             } catch (Exception e) {
-                // For other exceptions, optionally handle or break
+                // Log or handle unexpected errors
+                LOG.error("Error during waitForBucket:", e);
                 break;
             }
         }
-        return bucketExists;
+        return false;
     }
 }
