@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
@@ -94,6 +93,11 @@ public class ReadOnlyFileStore extends AbstractFileStore {
         return this;
     }
 
+    @Override
+    TarFiles getTarFiles() {
+        return tarFiles;
+    }
+
     /**
      * Go to the specified {@code revision}
      *
@@ -120,25 +124,17 @@ public class ReadOnlyFileStore extends AbstractFileStore {
     @NotNull
     public Segment readSegment(final SegmentId id) {
         try {
-            return segmentCache.getSegment(id, new Callable<Segment>() {
-                @Override
-                public Segment call() throws Exception {
-                    return readSegmentUncached(tarFiles, id);
-                }
-            });
+            return segmentCache.getSegment(id, () -> readSegmentUncached(id));
         } catch (ExecutionException | UncheckedExecutionException e) {
             throw asSegmentNotFoundException(e, id);
         }
     }
 
     @Override
-    public void close() {
-        Closer closer = Closer.create();
+    protected void registerCloseables(Closer closer) {
         closer.register(tarFiles);
         closer.register(revisions);
-        closeAndLogOnFail(closer);
-        System.gc(); // for any memory-mappings that are no longer used
-        log.info("TarMK closed: {}", directory);
+        super.registerCloseables(closer);
     }
 
     @NotNull
