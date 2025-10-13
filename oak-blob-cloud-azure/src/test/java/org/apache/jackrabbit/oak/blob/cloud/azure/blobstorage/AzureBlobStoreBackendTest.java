@@ -18,19 +18,19 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
-import com.azure.core.util.BinaryData;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.ListBlobsOptions;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
-import com.google.common.cache.Cache;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
@@ -1012,10 +1012,9 @@ public class AzureBlobStoreBackendTest {
     @Test
     public void testGetKeyName() throws Exception {
         // Test the static getKeyName method using reflection
-        Method getKeyNameMethod = AzureBlobStoreBackend.class.getDeclaredMethod("getKeyName", DataIdentifier.class);
-        getKeyNameMethod.setAccessible(true);
-
         DataIdentifier identifier = new DataIdentifier("abcd1234567890");
+        Method getKeyNameMethod = MethodUtils.getMatchingMethod(AzureBlobStoreBackend.class, "getKeyName", DataIdentifier.class);
+        getKeyNameMethod.setAccessible(true);
         String keyName = (String) getKeyNameMethod.invoke(null, identifier);
 
         assertEquals("Key name should be formatted correctly", "abcd-1234567890", keyName);
@@ -1024,7 +1023,7 @@ public class AzureBlobStoreBackendTest {
     @Test
     public void testGetIdentifierName() throws Exception {
         // Test the static getIdentifierName method using reflection
-        Method getIdentifierNameMethod = AzureBlobStoreBackend.class.getDeclaredMethod("getIdentifierName", String.class);
+        Method getIdentifierNameMethod = MethodUtils.getMatchingMethod(AzureBlobStoreBackend.class, "getIdentifierName", String.class);
         getIdentifierNameMethod.setAccessible(true);
 
         String identifierName = (String) getIdentifierNameMethod.invoke(null, "abcd-1234567890");
@@ -1044,9 +1043,8 @@ public class AzureBlobStoreBackendTest {
     @Test
     public void testAddMetaKeyPrefix() throws Exception {
         // Test the static addMetaKeyPrefix method using reflection
-        Method addMetaKeyPrefixMethod = AzureBlobStoreBackend.class.getDeclaredMethod("addMetaKeyPrefix", String.class);
+        Method addMetaKeyPrefixMethod = MethodUtils.getMatchingMethod(AzureBlobStoreBackend.class, "addMetaKeyPrefix", String.class);
         addMetaKeyPrefixMethod.setAccessible(true);
-
         String result = (String) addMetaKeyPrefixMethod.invoke(null, "test-key");
         assertTrue("Result should contain META prefix", result.startsWith("META/"));
         assertTrue("Result should contain original key", result.endsWith("test-key"));
@@ -1055,7 +1053,7 @@ public class AzureBlobStoreBackendTest {
     @Test
     public void testStripMetaKeyPrefix() throws Exception {
         // Test the static stripMetaKeyPrefix method using reflection
-        Method stripMetaKeyPrefixMethod = AzureBlobStoreBackend.class.getDeclaredMethod("stripMetaKeyPrefix", String.class);
+        Method stripMetaKeyPrefixMethod = MethodUtils.getMatchingMethod(AzureBlobStoreBackend.class, "stripMetaKeyPrefix", String.class);
         stripMetaKeyPrefixMethod.setAccessible(true);
 
         String withPrefix = "META/test-key";
@@ -1108,15 +1106,12 @@ public class AzureBlobStoreBackendTest {
 
         try {
             // Read metadata bytes using reflection
-            Method readMetadataBytesMethod = AzureBlobStoreBackend.class.getDeclaredMethod("readMetadataBytes", String.class);
-            readMetadataBytesMethod.setAccessible(true);
-
-            byte[] bytes = (byte[]) readMetadataBytesMethod.invoke(backend, metadataName);
+            byte[] bytes = (byte[]) MethodUtils.invokeMethod(backend, true, "readMetadataBytes", metadataName);
             assertNotNull("Bytes should not be null", bytes);
             assertEquals("Content should match", content, new String(bytes));
 
             // Test with non-existent metadata
-            byte[] nullBytes = (byte[]) readMetadataBytesMethod.invoke(backend, "non-existent");
+            byte[] nullBytes = (byte[]) MethodUtils.invokeMethod(backend, true, "readMetadataBytes", "non-existent");
             assertNull("Non-existent metadata should return null", nullBytes);
         } finally {
             backend.deleteMetadataRecord(metadataName);
@@ -1128,10 +1123,7 @@ public class AzureBlobStoreBackendTest {
     @Test
     public void testSetHttpDownloadURIExpirySeconds() throws Exception {
         // Test setting download URI expiry using reflection
-        Method setExpiryMethod = AzureBlobStoreBackend.class.getDeclaredMethod("setHttpDownloadURIExpirySeconds", int.class);
-        setExpiryMethod.setAccessible(true);
-
-        setExpiryMethod.invoke(backend, 3600);
+        MethodUtils.invokeMethod(backend, true, "setHttpDownloadURIExpirySeconds", 3600);
 
         // Verify the field was set
         Field expiryField = AzureBlobStoreBackend.class.getDeclaredField("httpDownloadURIExpirySeconds");
@@ -1143,10 +1135,7 @@ public class AzureBlobStoreBackendTest {
     @Test
     public void testSetHttpUploadURIExpirySeconds() throws Exception {
         // Test setting upload URI expiry using reflection
-        Method setExpiryMethod = AzureBlobStoreBackend.class.getDeclaredMethod("setHttpUploadURIExpirySeconds", int.class);
-        setExpiryMethod.setAccessible(true);
-
-        setExpiryMethod.invoke(backend, 1800);
+        MethodUtils.invokeMethod(backend, true, "setHttpUploadURIExpirySeconds", 1800);
 
         // Verify the field was set
         Field expiryField = AzureBlobStoreBackend.class.getDeclaredField("httpUploadURIExpirySeconds");
@@ -1158,11 +1147,8 @@ public class AzureBlobStoreBackendTest {
     @Test
     public void testSetHttpDownloadURICacheSize() throws Exception {
         // Test setting cache size using reflection
-        Method setCacheSizeMethod = AzureBlobStoreBackend.class.getDeclaredMethod("setHttpDownloadURICacheSize", int.class);
-        setCacheSizeMethod.setAccessible(true);
-
         // Test with positive cache size
-        setCacheSizeMethod.invoke(backend, 100);
+        MethodUtils.invokeMethod(backend, true, "setHttpDownloadURICacheSize", 100);
 
         Field cacheField = AzureBlobStoreBackend.class.getDeclaredField("httpDownloadURICache");
         cacheField.setAccessible(true);
@@ -1170,7 +1156,7 @@ public class AzureBlobStoreBackendTest {
         assertNotNull("Cache should be created for positive size", cache);
 
         // Test with zero cache size (disabled)
-        setCacheSizeMethod.invoke(backend, 0);
+        MethodUtils.invokeMethod(backend, true, "setHttpDownloadURICacheSize", 0);
         cache = (Cache<String, URI>) cacheField.get(backend);
         assertNull("Cache should be null for zero size", cache);
     }
@@ -1194,13 +1180,11 @@ public class AzureBlobStoreBackendTest {
             downloadBackend.write(identifier, testFile);
 
             // Create download URI using reflection
-            Method createDownloadURIMethod = AzureBlobStoreBackend.class.getDeclaredMethod(
-                "createHttpDownloadURI", DataIdentifier.class, DataRecordDownloadOptions.class);
-            createDownloadURIMethod.setAccessible(true);
-
             DataRecordDownloadOptions options = DataRecordDownloadOptions.DEFAULT;
 
-          createDownloadURIMethod.invoke(downloadBackend, identifier, options);
+            MethodUtils.invokeMethod(downloadBackend, true, "createHttpDownloadURI",
+                new Object[]{identifier, options},
+                new Class<?>[]{DataIdentifier.class, DataRecordDownloadOptions.class});
           // Note: This may return null if the backend doesn't support presigned URIs in test environment
             // The important thing is that it doesn't throw an exception
 
@@ -1219,14 +1203,12 @@ public class AzureBlobStoreBackendTest {
     public void testCreateHttpDownloadURIWithNullIdentifier() throws Exception {
         backend.init();
 
-        Method createDownloadURIMethod = AzureBlobStoreBackend.class.getDeclaredMethod(
-            "createHttpDownloadURI", DataIdentifier.class, DataRecordDownloadOptions.class);
-        createDownloadURIMethod.setAccessible(true);
-
         DataRecordDownloadOptions options = DataRecordDownloadOptions.DEFAULT;
 
         try {
-            createDownloadURIMethod.invoke(backend, null, options);
+            MethodUtils.invokeMethod(backend, true, "createHttpDownloadURI",
+                new Object[]{null, options},
+                new Class<?>[]{DataIdentifier.class, DataRecordDownloadOptions.class});
             fail("Expected NullPointerException for null identifier");
         } catch (InvocationTargetException e) {
             Throwable targetException = e.getTargetException();
@@ -1239,14 +1221,12 @@ public class AzureBlobStoreBackendTest {
     public void testCreateHttpDownloadURIWithNullOptions() throws Exception {
         backend.init();
 
-        Method createDownloadURIMethod = AzureBlobStoreBackend.class.getDeclaredMethod(
-            "createHttpDownloadURI", DataIdentifier.class, DataRecordDownloadOptions.class);
-        createDownloadURIMethod.setAccessible(true);
-
         DataIdentifier identifier = new DataIdentifier("test");
 
         try {
-            createDownloadURIMethod.invoke(backend, identifier, null);
+            MethodUtils.invokeMethod(backend, true, "createHttpDownloadURI",
+                new Object[]{identifier, null},
+                new Class<?>[]{DataIdentifier.class, DataRecordDownloadOptions.class});
             fail("Expected NullPointerException for null options");
         } catch (InvocationTargetException e) {
             Throwable targetException = e.getTargetException();
@@ -2393,11 +2373,9 @@ public class AzureBlobStoreBackendTest {
             );
 
             // Create download URI using reflection
-            Method createDownloadURIMethod = AzureBlobStoreBackend.class.getDeclaredMethod(
-                    "createHttpDownloadURI", DataIdentifier.class, DataRecordDownloadOptions.class);
-            createDownloadURIMethod.setAccessible(true);
-
-            URI uri = (URI) createDownloadURIMethod.invoke(downloadBackend, identifier, options);
+            URI uri = (URI) MethodUtils.invokeMethod(downloadBackend, true, "createHttpDownloadURI",
+                new Object[]{identifier, options},
+                new Class<?>[]{DataIdentifier.class, DataRecordDownloadOptions.class});
 
             // Verify URI was created
             assertNotNull("Download URI should not be null", uri);
@@ -2445,11 +2423,9 @@ public class AzureBlobStoreBackendTest {
             // Use default options (no custom headers)
             DataRecordDownloadOptions options = DataRecordDownloadOptions.DEFAULT;
 
-            Method createDownloadURIMethod = AzureBlobStoreBackend.class.getDeclaredMethod(
-                    "createHttpDownloadURI", DataIdentifier.class, DataRecordDownloadOptions.class);
-            createDownloadURIMethod.setAccessible(true);
-
-            URI uri = (URI) createDownloadURIMethod.invoke(downloadBackend, identifier, options);
+            URI uri = (URI) MethodUtils.invokeMethod(downloadBackend, true, "createHttpDownloadURI",
+                new Object[]{identifier, options},
+                new Class<?>[]{DataIdentifier.class, DataRecordDownloadOptions.class});
 
             assertNotNull("Download URI should not be null", uri);
 
@@ -2492,11 +2468,9 @@ public class AzureBlobStoreBackendTest {
                     )
             );
 
-            Method createDownloadURIMethod = AzureBlobStoreBackend.class.getDeclaredMethod(
-                    "createHttpDownloadURI", DataIdentifier.class, DataRecordDownloadOptions.class);
-            createDownloadURIMethod.setAccessible(true);
-
-            URI uri = (URI) createDownloadURIMethod.invoke(downloadBackend, identifier, options);
+            URI uri = (URI) MethodUtils.invokeMethod(downloadBackend, true, "createHttpDownloadURI",
+                new Object[]{identifier, options},
+                new Class<?>[]{DataIdentifier.class, DataRecordDownloadOptions.class});
 
             assertNotNull("Download URI should not be null", uri);
 

@@ -80,7 +80,6 @@
                             com.microsoft.aad,
                             com.microsoft.aad.msal4jextensions,
                             com.microsoft.aad.msal4jextensions.persistence,
-                            guava,
                             jsr305,
                             reactive-streams,
                             msal4j,
@@ -305,12 +304,6 @@
             <artifactId>nimbus-jose-jwt</artifactId>
         </dependency>
 
-        <!-- Azure Guava dependency -->
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>33.1.0-jre</version>
-        </dependency>
         <dependency>
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>

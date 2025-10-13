@@ -59,14 +59,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.cache.Cache;
+import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
+import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 
-import com.google.common.base.Strings;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.microsoft.azure.storage.AccessCondition;
 import com.microsoft.azure.storage.LocationMode;
 import com.microsoft.azure.storage.ResultContinuation;
@@ -165,7 +165,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
             LOG.debug("Started backend initialization");
 
-            if (null == properties) {
+            if (properties == null) {
                 try {
                     properties = Utils.readConfig(UtilsV8.DEFAULT_CONFIG_FILE);
                 }
@@ -177,7 +177,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
             try {
                 UtilsV8.setProxyIfNeeded(properties);
                 createBlobContainer = PropertiesUtil.toBoolean(
-                        Strings.emptyToNull(properties.getProperty(AzureConstants.AZURE_CREATE_CONTAINER)), true);
+                    Strings.emptyToNull(properties.getProperty(AzureConstants.AZURE_CREATE_CONTAINER)), true);
                 initAzureDSConfig();
 
                 concurrentRequestCount = PropertiesUtil.toInteger(
@@ -246,7 +246,8 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
                 }
             }
             catch (StorageException e) {
-                throw new DataStoreException(e);
+                LOG.error("Error performing blob storage creation: {}", e.getMessage());
+                throw new DataStoreException("Error performing backend initialization", e);
             }
         }
         finally {
@@ -291,7 +292,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
             return is;
         }
         catch (StorageException e) {
-            LOG.info("Error reading blob. identifier={}", key);
+            LOG.error("Error reading blob. identifier={}", key);
             throw new DataStoreException(String.format("Cannot read blob. identifier=%s", key), e);
         }
         catch (URISyntaxException e) {
@@ -529,6 +530,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
             LOG.debug("Metadata record added. metadataName={} duration={}", name, watch.elapsed(TimeUnit.MILLISECONDS));
         }
         catch (FileNotFoundException e) {
+            LOG.error("Error adding metadata record. metadataName={}", name, e);
             throw new DataStoreException(e);
         }
         finally {
@@ -546,10 +548,11 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
             blob.upload(input, recordLength);
         }
         catch (StorageException e) {
-            LOG.info("Error adding metadata record. metadataName={} length={}", name, recordLength, e);
+            LOG.error("Error adding metadata record. metadataName={} length={}", name, recordLength, e);
             throw new DataStoreException(e);
         }
         catch (URISyntaxException |  IOException e) {
+            LOG.debug("Error adding metadata record. metadataName={} length={}", name, recordLength, e);
             throw new DataStoreException(e);
         }
     }
@@ -798,7 +801,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
             if (null != httpDownloadURICache) {
                 uri = httpDownloadURICache.getIfPresent(cacheKey);
             }
-            if (null == uri) {
+            if (uri == null) {
                 if (presignedDownloadURIVerifyExists) {
                     // Check if this identifier exists.  If not, we want to return null
                     // even if the identifier is in the download URI cache.

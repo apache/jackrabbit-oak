@@ -163,7 +163,7 @@ public class AzureDataStoreUtils extends DataStoreUtils {
             mergedProperties.putAll(overrideProperties);
         }
         // set properties needed for direct access testing
-        if (null == mergedProperties.getProperty("cacheSize", null)) {
+        if (mergedProperties.getProperty("cacheSize", null) == null) {
             mergedProperties.put("cacheSize", "0");
         }
         return mergedProperties;
@@ -178,12 +178,10 @@ public class AzureDataStoreUtils extends DataStoreUtils {
         Properties props = getAzureConfig();
         props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, containerName);
 
-        try (AzureBlobContainerProvider azureBlobContainerProvider = AzureBlobContainerProvider.Builder.builder(containerName).initializeWithProperties(props)
-                .build()) {
-            BlobContainerClient container = azureBlobContainerProvider.getBlobContainer();
-            boolean result = container.deleteIfExists();
-            log.info("Container deleted. containerName={} existed={}", containerName, result);
-        }
+        AzureBlobContainerProvider azureBlobContainerProvider = AzureBlobContainerProvider.Builder.builder(containerName).initializeWithProperties(props).build();
+        BlobContainerClient container = azureBlobContainerProvider.getBlobContainer();
+        boolean result = container.deleteIfExists();
+        log.info("Container deleted. containerName={} existed={}", containerName, result);
     }
 
     protected static HttpsURLConnection getHttpsConnection(long length, URI uri) throws IOException {

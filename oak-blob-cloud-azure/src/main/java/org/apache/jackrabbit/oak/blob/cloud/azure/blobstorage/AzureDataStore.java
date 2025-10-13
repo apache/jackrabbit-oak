@@ -113,7 +113,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
     @Override
     public DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs, @NotNull final DataRecordUploadOptions options)
             throws DataRecordUploadException {
-        if (null == azureBlobStoreBackend) {
+        if (azureBlobStoreBackend == null) {
             throw new DataRecordUploadException("Backend not initialized");
         }
         return azureBlobStoreBackend.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURIs, options);
@@ -123,7 +123,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
     @Override
     public DataRecord completeDataRecordUpload(String uploadToken)
             throws DataRecordUploadException, DataStoreException {
-        if (null == azureBlobStoreBackend) {
+        if (azureBlobStoreBackend == null) {
             throw new DataRecordUploadException("Backend not initialized");
         }
         return azureBlobStoreBackend.completeHttpUpload(uploadToken);

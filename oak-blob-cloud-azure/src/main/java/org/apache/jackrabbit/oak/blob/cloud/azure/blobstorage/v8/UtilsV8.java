@@ -30,7 +30,7 @@ import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.core.data.DataStoreException;
-import com.google.common.base.Strings;
+import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.jetbrains.annotations.NotNull;
@@ -86,7 +86,7 @@ public final class UtilsV8 {
                                                       @Nullable final BlobRequestOptions requestOptions) throws DataStoreException {
         try {
             CloudBlobClient client = (
-                    (null == requestOptions)
+                    (requestOptions == null)
                             ? UtilsV8.getBlobClient(connectionString)
                             : UtilsV8.getBlobClient(connectionString, requestOptions)
             );
