@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.jcr.binary.fixtures.nodestore;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import javax.jcr.RepositoryException;
 
 import org.apache.commons.io.FileUtils;
@@ -42,9 +44,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.HashBasedTable;
-import org.apache.jackrabbit.guava.common.collect.Table;
-
 /**
  * Creates a repository with
  * - SegmentNodeStore, storing data in-memory
@@ -57,7 +56,7 @@ public class SegmentMemoryNodeStoreFixture extends NodeStoreFixture implements C
 
     private final DataStoreFixture dataStoreFixture;
 
-    private final Table<NodeStore, String, Object> components = HashBasedTable.create();
+    private final Map<NodeStore, Map<String, Object>> components = new LinkedHashMap<>();
 
     public SegmentMemoryNodeStoreFixture(@Nullable DataStoreFixture dataStoreFixture) {
         this.dataStoreFixture = dataStoreFixture;
@@ -99,14 +98,14 @@ public class SegmentMemoryNodeStoreFixture extends NodeStoreFixture implements C
 
             // track all main components
             if (dataStore != null) {
-                components.put(nodeStore, DataStore.class.getName(), dataStore);
-                components.put(nodeStore, DataStore.class.getName() + ":folder", dataStoreFolder);
+                components.computeIfAbsent(nodeStore, k -> new LinkedHashMap<>()).put(DataStore.class.getName(), dataStore);
+                components.computeIfAbsent(nodeStore, k -> new LinkedHashMap<>()).put(DataStore.class.getName() + ":folder", dataStoreFolder);
             }
             if (blobStore != null) {
-                components.put(nodeStore, BlobStore.class.getName(), blobStore);
+                components.computeIfAbsent(nodeStore, k -> new LinkedHashMap<>()).put(BlobStore.class.getName(), blobStore);
             }
-            components.put(nodeStore, FileStore.class.getName(), fileStore);
-            components.put(nodeStore, FileStore.class.getName() + ":root", fileStoreRoot);
+            components.computeIfAbsent(nodeStore, k -> new LinkedHashMap<>()).put(FileStore.class.getName(), fileStore);
+            components.computeIfAbsent(nodeStore, k -> new LinkedHashMap<>()).put(FileStore.class.getName() + ":root", fileStoreRoot);
 
             return nodeStore;
 
@@ -118,22 +117,22 @@ public class SegmentMemoryNodeStoreFixture extends NodeStoreFixture implements C
     @Override
     public void dispose(NodeStore nodeStore) {
         try {
-            FileStore fileStore = (FileStore) components.get(nodeStore, FileStore.class.getName());
+            FileStore fileStore = (FileStore) components.get(nodeStore).get(FileStore.class.getName());
             if (fileStore != null) {
                 fileStore.close();
             }
-            File fileStoreRoot = (File) components.get(nodeStore, FileStore.class.getName() + ":root");
+            File fileStoreRoot = (File) components.get(nodeStore).get(FileStore.class.getName() + ":root");
             FileUtils.deleteQuietly(fileStoreRoot);
 
-            DataStore dataStore = (DataStore) components.get(nodeStore, DataStore.class.getName());
+            DataStore dataStore = (DataStore) components.get(nodeStore).get(DataStore.class.getName());
             if (dataStore != null && dataStoreFixture != null) {
                 dataStoreFixture.dispose(dataStore);
 
-                File dataStoreFolder = (File) components.get(nodeStore, DataStore.class.getName() + ":folder");
+                File dataStoreFolder = (File) components.get(nodeStore).get(DataStore.class.getName() + ":folder");
                 FileUtils.deleteQuietly(dataStoreFolder);
             }
         } finally {
-            components.row(nodeStore).clear();
+            components.get(nodeStore).clear();
         }
     }
 
@@ -158,6 +157,6 @@ public class SegmentMemoryNodeStoreFixture extends NodeStoreFixture implements C
 
     @Override
     public <T> T get(NodeStore nodeStore, String componentName) {
-        return (T) components.get(nodeStore, componentName);
+        return (T) components.get(nodeStore).get(componentName);
     }
 }
