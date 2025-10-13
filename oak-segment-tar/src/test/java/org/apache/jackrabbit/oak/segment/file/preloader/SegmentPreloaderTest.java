@@ -29,6 +29,8 @@ import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.file.preloader.SegmentPreloader.DispatchTask;
+import org.apache.jackrabbit.oak.segment.file.preloader.SegmentPreloader.PreloadTask;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
@@ -51,21 +53,27 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class SegmentPreloaderTest {
@@ -97,7 +105,7 @@ public class SegmentPreloaderTest {
         MemoryTestCache persistentCache = new MemoryTestCache();
         try (FileStore fileStore = FileStoreBuilder.fileStoreBuilder(folder.getRoot())
                 .withPersistentCache(persistentCache)
-                .withPersistentCachePreloading(PersistentCachePreloadingConfiguration.withConcurrency(4).withPrefetchDepth(1))
+                .withPersistentCachePreloading(PersistentCachePreloadingConfiguration.withConcurrency(4).withMaxPreloadDepth(1))
                 .build()) {
             SegmentId root = fileStore.getRevisions().getPersistedHead().getSegmentId();
             Segment segment = root.getSegment();
@@ -130,7 +138,7 @@ public class SegmentPreloaderTest {
 
         try (TarFiles tarFiles = createReadOnlyTarFiles(folder.getRoot(), persistence);
              SegmentPreloader preloadingCache = (SegmentPreloader)SegmentPreloader.decorate(underlyingCache,
-                     PersistentCachePreloadingConfiguration.withConcurrency(8).withPrefetchDepth(2), () -> tarFiles);
+                     PersistentCachePreloadingConfiguration.withConcurrency(8).withMaxPreloadDepth(2), () -> tarFiles);
              JournalFileReader journalFileReader = persistence.getJournalFile().openJournalReader()) {
 
             UUID root = getRootUUID(journalFileReader);
@@ -165,6 +173,112 @@ public class SegmentPreloaderTest {
                     () -> tarFiles.readSegment(next.getMostSignificantBits(), next.getLeastSignificantBits()));
             LOG.info("Next loaded segment: {}", next);
             assertReferencedSegmentsLoaded(uuids, underlyingCache, preloadingCache);
+        }
+    }
+
+    @Test
+    public void testDispatchTaskEquals() throws IOException {
+        withSegmentPreloader(preloader -> {
+            UUID uuid = UUID.randomUUID();
+            long msb = uuid.getMostSignificantBits();
+            long lsb = uuid.getLeastSignificantBits();
+
+            DispatchTask task1 = preloader.createDispatchTask(msb, lsb, 1);
+            assertEquals(task1, task1);
+
+            DispatchTask task2 = preloader.createDispatchTask(msb, lsb, 1);
+            assertEquals(task1, task2);
+
+            DispatchTask task3 = preloader.createDispatchTask(msb, lsb, 0);
+            assertNotEquals(task1, task3);
+
+            DispatchTask task4 = preloader.createDispatchTask(msb, lsb + 1, 1);
+            assertNotEquals(task1, task4);
+
+            DispatchTask task5 = preloader.createDispatchTask(msb + 1, lsb, 1);
+            assertNotEquals(task1, task5);
+
+            assertNotEquals(task1, new Object());
+        });
+    }
+
+    @Test
+    public void testDispatchTaskArgumentValidation() throws IOException {
+        withSegmentPreloader(preloader -> {
+            UUID uuid = UUID.randomUUID();
+            assertThrows(IllegalArgumentException.class, () -> preloader.createDispatchTask(uuid.getMostSignificantBits(), uuid.getLeastSignificantBits(), 3));
+        });
+    }
+
+    @Test
+    public void testDispatchTaskToString() throws IOException {
+        withSegmentPreloader(preloader -> {
+            UUID uuid = UUID.randomUUID();
+            assertEquals(
+                    "DispatchTask{segmentId=" + uuid + ", depth=1}",
+                    preloader.createDispatchTask(uuid.getMostSignificantBits(), uuid.getLeastSignificantBits(), 1).toString());
+        });
+    }
+
+    @Test
+    public void testDispatchTaskCompareTo() throws IOException {
+        withSegmentPreloader(preloader -> {
+            UUID uuid = UUID.randomUUID();
+            DispatchTask task1 = preloader.createDispatchTask(uuid.getMostSignificantBits(), uuid.getLeastSignificantBits(), 2);
+            DispatchTask task2 = preloader.createDispatchTask(uuid.getMostSignificantBits(), uuid.getLeastSignificantBits(), 1);
+            DispatchTask task3 = preloader.createDispatchTask(uuid.getMostSignificantBits(), uuid.getLeastSignificantBits(), 2);
+            List<DispatchTask> tasks = new ArrayList<>();
+            tasks.add(task1);
+            tasks.add(task2);
+            tasks.add(task3);
+            Collections.sort(tasks);
+            assertEquals(List.of(task2, task3, task1), tasks);
+        });
+    }
+
+    @Test
+    public void testPreloadTaskEquals() throws IOException {
+        withSegmentPreloader(preloader -> {
+            UUID uuid = UUID.randomUUID();
+            long msb = uuid.getMostSignificantBits();
+            long lsb = uuid.getLeastSignificantBits();
+
+            PreloadTask task1 = preloader.createPreloadTask(msb, lsb, 1);
+            assertEquals(task1, task1);
+
+            PreloadTask task2 = preloader.createPreloadTask(msb, lsb, 1);
+            assertEquals(task1, task2);
+
+            PreloadTask task3 = preloader.createPreloadTask(msb, lsb, 0);
+            assertEquals(task1, task3); // depth is not considered for equality
+
+            PreloadTask task4 = preloader.createPreloadTask(msb, lsb + 1, 1);
+            assertNotEquals(task1, task4);
+
+            PreloadTask task5 = preloader.createPreloadTask(msb + 1, lsb, 1);
+            assertNotEquals(task1, task5);
+
+            assertNotEquals(task1, new Object());
+
+        });
+    }
+
+    @Test
+    public void testPreloadTaskToString() throws IOException {
+        withSegmentPreloader(preloader -> {
+            UUID uuid = UUID.randomUUID();
+            assertEquals("PreloadTask{segmentId=" + uuid + ", depth=1}",
+                    preloader.createPreloadTask(uuid.getMostSignificantBits(), uuid.getLeastSignificantBits(), 1).toString());
+        });
+    }
+
+    private void withSegmentPreloader(Consumer<SegmentPreloader> withPreloader) throws IOException {
+        MemoryTestCache cache = new MemoryTestCache();
+        PersistentCachePreloadingConfiguration config =
+                PersistentCachePreloadingConfiguration.withConcurrency(2).withMaxPreloadDepth(2);
+        try (TarFiles tarFiles = createReadOnlyTarFiles(folder.getRoot(), new TarPersistence(folder.getRoot()));
+             SegmentPreloader preloader = (SegmentPreloader) SegmentPreloader.decorate(cache, config, () -> tarFiles)) {
+            withPreloader.accept(preloader);
         }
     }
 

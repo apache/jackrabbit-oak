@@ -21,14 +21,12 @@ package org.apache.jackrabbit.oak.segment.file.preloader;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.internal.function.Suppliers;
 import org.apache.jackrabbit.oak.segment.SegmentId;
-import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.DelegatingPersistentCache;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.PersistentCache;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.PersistentCachePreloadingConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +51,7 @@ import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgumen
 
 /**
  * A {@link PersistentCache} decorator that preloads segments into the cache by
- * asynchronously prefetching segments referenced by a segment that is being read
+ * asynchronously preloading segments referenced by a segment that is being read
  * from the cache.
  *
  * @see PersistentCachePreloadingConfiguration
@@ -70,9 +68,9 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
 
     private final ExecutorService dispatchPool;
 
-    private final ExecutorService prefetchPool;
+    private final ExecutorService preloadPool;
 
-    private final int prefetchDepth;
+    private final int preloadDepth;
 
     private final Supplier<TarFiles> tarFiles;
 
@@ -87,7 +85,7 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
      * @return the decorated cache or the given {@code delegate} if no preloading is configured
      */
     public static @NotNull PersistentCache decorate(@NotNull PersistentCache delegate, @NotNull PersistentCachePreloadingConfiguration config, @NotNull Supplier<TarFiles> tarFiles) {
-        if (config.getConcurrency() > 0 && config.getPrefetchDepth() > 0) {
+        if (config.getConcurrency() > 0 && config.getMaxPreloadDepth() > 0) {
             return new SegmentPreloader(delegate, config, tarFiles);
         }
         return delegate;
@@ -98,23 +96,23 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
         this.tarFiles = Suppliers.memoize(tarFiles);
         this.inProgressPrefetch = new ConcurrentHashMap<>();
         this.graphCache = new ConcurrentHashMap<>();
-        this.prefetchDepth = config.getPrefetchDepth();
+        this.preloadDepth = config.getMaxPreloadDepth();
         this.dispatchPool = new ThreadPoolExecutor(1,1,
                 1, TimeUnit.SECONDS,
                 new PriorityBlockingQueue<>(),
-                r -> new Thread(r, "segment-prefetch-dispatcher")) {
+                r -> new Thread(r, "segment-preload-dispatcher")) {
             @Override
             protected void afterExecute(Runnable r, Throwable t) {
                 super.afterExecute(r, t);
                 clearInProgressTask(r);
             }
         };
-        int prefetchThreads = config.getConcurrency();
-        this.prefetchPool = new ThreadPoolExecutor(Math.max(1, prefetchThreads / 4), prefetchThreads,
-                10, TimeUnit.SECONDS,
-                new LinkedBlockingQueue<>(prefetchThreads * 4),
+        int preloadThreads = config.getConcurrency();
+        ThreadPoolExecutor preloadPool = new ThreadPoolExecutor(Math.max(1, preloadThreads / 4), preloadThreads,
+                5, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(preloadThreads * 4),
                 r -> {
-                    String threadName = String.format("segment-prefetch-%s", Long.toHexString(System.nanoTime() & 0xFFFFF));
+                    String threadName = String.format("segment-preload-%s", Long.toHexString(System.nanoTime() & 0xFFFFF));
                     Thread thread = new Thread(r, threadName);
                     thread.setUncaughtExceptionHandler((t, e) -> {
                         if (!(e instanceof InterruptedException)) {
@@ -126,7 +124,7 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
                 (r, executor) -> {
                     try {
                         // force the caller thread to wait for space in the queue (this is always a thread in the dispatchPool)
-                        // this creates back-pressure to the dispatchPool, slowing down the dispatching of new prefetch tasks
+                        // this creates back-pressure to the dispatchPool, slowing down the dispatching of new preload tasks
                         executor.getQueue().put(r);
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
@@ -139,6 +137,8 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
                 clearInProgressTask(r);
             }
         };
+        preloadPool.allowCoreThreadTimeOut(true);
+        this.preloadPool = preloadPool;
     }
 
     @Override
@@ -148,16 +148,29 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
 
     @Override
     public @Nullable Buffer readSegment(long msb, long lsb, @NotNull Callable<Buffer> loader) {
-        dispatch(tarFiles.get(), msb, lsb);
+        dispatch(msb, lsb);
         return delegate().readSegment(msb, lsb, loader);
     }
 
-    private void dispatch(@NotNull TarFiles tarFiles, long msb, long lsb) {
-        dispatch(tarFiles, tarFiles::getIndices, msb, lsb, 0);
+    private void dispatch(long msb, long lsb) {
+        dispatch(msb, lsb, 1);
     }
 
-    private void dispatch(@NotNull TarFiles tarFiles, Supplier<Map<String, Set<UUID>>> indicesSupplier, long msb, long lsb, int depth) {
-        execute(dispatchPool, new PrefetchDispatchTask(tarFiles, indicesSupplier, msb, lsb, depth));
+    private void dispatch(long msb, long lsb, int depth) {
+        execute(dispatchPool, createDispatchTask(msb, lsb, depth));
+    }
+
+    @NotNull SegmentPreloader.DispatchTask createDispatchTask(long msb, long lsb, int depth) {
+        TarFiles tars = tarFiles.get();
+        return new DispatchTask(tars, tars::getIndices, msb, lsb, depth);
+    }
+
+    private void preload(long msb, long lsb, int depth) {
+        execute(preloadPool, createPreloadTask(msb, lsb, depth));
+    }
+
+    @NotNull SegmentPreloader.PreloadTask createPreloadTask(long msb, long lsb, int depth) {
+        return new PreloadTask(tarFiles.get(), msb, lsb, depth);
     }
 
     private void execute(ExecutorService pool, Runnable r) {
@@ -177,22 +190,22 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
     @Override
     public void close() {
         try {
-            prefetchPool.shutdown();
+            preloadPool.shutdown();
             dispatchPool.shutdown();
-            if (!prefetchPool.awaitTermination(4, TimeUnit.SECONDS)) {
-                prefetchPool.shutdownNow();
+            if (!preloadPool.awaitTermination(4, TimeUnit.SECONDS)) {
+                preloadPool.shutdownNow();
             }
             if (!dispatchPool.awaitTermination(1, TimeUnit.SECONDS)) {
                 dispatchPool.shutdownNow();
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            prefetchPool.shutdownNow();
+            preloadPool.shutdownNow();
             dispatchPool.shutdownNow();
         }
     }
 
-    private class PrefetchDispatchTask implements Runnable, Comparable<PrefetchDispatchTask> {
+    class DispatchTask implements Runnable, Comparable<DispatchTask> {
 
         private final TarFiles tarFiles;
 
@@ -206,13 +219,13 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
 
         private final long creationTime = System.nanoTime();
 
-        PrefetchDispatchTask(@NotNull TarFiles tarFiles, Supplier<Map<String, Set<UUID>>> indicesSupplier, long msb, long lsb, int depth) {
-            checkArgument(depth < prefetchDepth, "depth must be < %d, is %d", prefetchDepth, depth);
+        private DispatchTask(@NotNull TarFiles tarFiles, Supplier<Map<String, Set<UUID>>> indicesSupplier, long msb, long lsb, int depth) {
+            checkArgument(depth <= preloadDepth, "depth must be <= %d, is %d", preloadDepth, depth);
             this.tarFiles = tarFiles;
             this.indicesSupplier = indicesSupplier;
             this.msb = msb;
             this.lsb = lsb;
-            this.depth = depth + 1;
+            this.depth = depth;
             LOG.debug("Created: {}", this);
         }
 
@@ -239,15 +252,11 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
                 long refMsb = reference.getMostSignificantBits();
                 long refLsb = reference.getLeastSignificantBits();
                 if (!delegate.containsSegment(refMsb, refLsb)) {
-                    prefetch(tarFiles, () -> indices, refMsb, refLsb, depth);
-                } else if (depth < prefetchDepth && SegmentId.isDataSegmentId(refLsb)) {
-                    dispatch(tarFiles, () -> indices, refMsb, refLsb, depth);
+                    preload(refMsb, refLsb, depth);
+                } else if (depth < preloadDepth && SegmentId.isDataSegmentId(refLsb)) {
+                    dispatch(refMsb, refLsb, depth + 1);
                 }
             }
-        }
-
-        private void prefetch(TarFiles tarFiles, Supplier<Map<String, Set<UUID>>> indicesSupplier, long msb, long lsb, int depth) {
-            execute(prefetchPool, new PrefetchTask(tarFiles, indicesSupplier, msb, lsb, depth));
         }
 
         @Override
@@ -255,10 +264,10 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
             if (this == o) {
                 return true;
             }
-            if (o.getClass() != PrefetchDispatchTask.class) {
+            if (o.getClass() != DispatchTask.class) {
                 return false;
             }
-            PrefetchDispatchTask that = (PrefetchDispatchTask) o;
+            DispatchTask that = (DispatchTask) o;
             return msb == that.msb && lsb == that.lsb && depth == that.depth;
         }
 
@@ -269,10 +278,10 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
 
         @Override
         public String toString() {
-            return "PrefetchDispatchTask{segmentId=" + new UUID(msb, lsb) + ", depth=" + depth + '}';
+            return "DispatchTask{segmentId=" + new UUID(msb, lsb) + ", depth=" + depth + '}';
         }
 
-        private int getPrefetchDepth() {
+        private int getPreloadDepth() {
             return depth;
         }
 
@@ -281,19 +290,17 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
         }
 
         @Override
-        public int compareTo(@NotNull SegmentPreloader.PrefetchDispatchTask o) {
+        public int compareTo(@NotNull SegmentPreloader.DispatchTask o) {
             return Comparator
-                    .comparing(PrefetchDispatchTask::getPrefetchDepth)
-                    .thenComparing(PrefetchDispatchTask::getCreationTime)
+                    .comparing(DispatchTask::getPreloadDepth)
+                    .thenComparing(DispatchTask::getCreationTime)
                     .compare(this, o);
         }
     }
 
-    private class PrefetchTask implements Runnable {
+    class PreloadTask implements Runnable {
 
         private final TarFiles tarFiles;
-
-        private final Supplier<Map<String, Set<UUID>>> indicesSupplier;
 
         private final long msb;
 
@@ -301,10 +308,9 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
 
         private final int depth;
 
-        PrefetchTask(TarFiles tarFiles, Supplier<Map<String, Set<UUID>>> indicesSupplier, long msb, long lsb, int depth) {
-            checkArgument(depth <= prefetchDepth, "depth must be <= %d, is %d", prefetchDepth, depth);
+        private PreloadTask(TarFiles tarFiles, long msb, long lsb, int depth) {
+            checkArgument(depth <= preloadDepth, "depth must be <= %d, is %d", preloadDepth, depth);
             this.tarFiles = tarFiles;
-            this.indicesSupplier = indicesSupplier;
             this.msb = msb;
             this.lsb = lsb;
             this.depth = depth;
@@ -314,8 +320,8 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
         @Override
         public void run() {
             LOG.debug("Running: {}", this);
-            if (depth < prefetchDepth && SegmentId.isDataSegmentId(lsb)) {
-                dispatch(tarFiles, indicesSupplier, msb, lsb, depth);
+            if (depth < preloadDepth && SegmentId.isDataSegmentId(lsb)) {
+                dispatch(msb, lsb, depth + 1);
             }
             if (!delegate.containsSegment(msb, lsb)) {
                 Buffer segmentBuffer = tarFiles.readSegment(msb, lsb);
@@ -330,10 +336,10 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
             if (this == o) {
                 return true;
             }
-            if (o.getClass() != PrefetchTask.class) {
+            if (o.getClass() != PreloadTask.class) {
                 return false;
             }
-            PrefetchTask that = (PrefetchTask) o;
+            PreloadTask that = (PreloadTask) o;
             return msb == that.msb && lsb == that.lsb;
         }
 
@@ -344,7 +350,7 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
 
         @Override
         public String toString() {
-            return "PrefetchTask{segmentId=" + new UUID(msb, lsb) + ", depth=" + depth + '}';
+            return "PreloadTask{segmentId=" + new UUID(msb, lsb) + ", depth=" + depth + '}';
         }
     }
 }

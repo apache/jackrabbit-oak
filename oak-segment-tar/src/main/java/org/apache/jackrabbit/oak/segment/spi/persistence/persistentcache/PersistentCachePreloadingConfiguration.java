@@ -21,41 +21,41 @@ package org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache;
 import java.util.concurrent.Callable;
 
 /**
- * Configuration for a segment prefetch mechanism that preloads segments into a
- * {@link PersistentCache}. The prefetch mechanism is triggered whenever a segment
+ * Configuration for a segment preload mechanism that preloads segments into a
+ * {@link PersistentCache}. The preload mechanism is triggered whenever a segment
  * in the cache is {@link PersistentCache#readSegment(long, long, Callable)|accessed}.
  * When this happens, all segments referenced by the accessed segment are asynchronously
- * prefetched.
+ * preloaded.
  * <p>
- * Next to the concurrency level, i.e. how many threads are used for prefetching, the
- * {@code prefetchDepth} (default: {@code 1}, which controls how many recursive levels
- * of referenced segments are prefetched, can be configured.
+ * Next to the concurrency level, i.e. how many threads are used for preloading, the
+ * {@code maxPreloadDepth} (default: {@code 1}, which controls how many recursive levels
+ * of referenced segments are preloaded, can be configured.
  * <p>
  * Prefetching is done asynchronously, but it <i>may</i> add some overhead. It is primarily
  * recommended to parallelize slow I/O, e.g. when using a remote persistence.
  * <p>
- * Different scenarios may warrant different prefetching strategies. A short-lived
+ * Different scenarios may warrant different preloading strategies. A short-lived
  * process traversing a repository (e.g. copy, offline-compaction) with an initially
- * empty cache may benefit from a more threads and a higher prefetch-depth, while a
+ * empty cache may benefit from a more threads and a higher preload-depth, while a
  * long-running process, e.g. a web application, may perform better with fewer threads
- * and a lower prefetch depth.
+ * and a lower preload depth.
  */
 public class PersistentCachePreloadingConfiguration {
 
     private final int concurrency;
 
-    private int prefetchDepth;
+    private int maxPreloadDepth;
 
-    private PersistentCachePreloadingConfiguration(int concurrency, int prefetchDepth) {
+    private PersistentCachePreloadingConfiguration(int concurrency, int preloadDepth) {
         this.concurrency = concurrency;
-        this.prefetchDepth = prefetchDepth;
+        this.maxPreloadDepth = preloadDepth;
     }
 
     /**
      * Creates a new {@link PersistentCachePreloadingConfiguration} with the given concurrency
-     * level and a {@code prefetchDepth} of {@code 1}.
+     * level and a {@code preloadDepth} of {@code 1}.
      *
-     * @param concurrency number of threads to use for prefetching
+     * @param concurrency number of threads to use for preloading
      * @return a new configuration
      */
     public static PersistentCachePreloadingConfiguration withConcurrency(int concurrency) {
@@ -63,14 +63,14 @@ public class PersistentCachePreloadingConfiguration {
     }
 
     /**
-     * Set how many recursive levels of referenced segments should be prefetched.
+     * Set how many recursive levels of referenced segments should be preloaded.
      *
-     * @param prefetchDepth depth of the prefetching, i.e. how many levels of referenced
-     *                      segments should be prefetched (default: {@code 1})
+     * @param maxPreloadDepth depth of the preloading, i.e. how many levels of referenced
+     *                      segments should be preloaded (default: {@code 1})
      * @return this configuration
      */
-    public PersistentCachePreloadingConfiguration withPrefetchDepth(int prefetchDepth) {
-        this.prefetchDepth = prefetchDepth;
+    public PersistentCachePreloadingConfiguration withMaxPreloadDepth(int maxPreloadDepth) {
+        this.maxPreloadDepth = maxPreloadDepth;
         return this;
     }
 
@@ -78,15 +78,15 @@ public class PersistentCachePreloadingConfiguration {
         return concurrency;
     }
 
-    public int getPrefetchDepth() {
-        return prefetchDepth;
+    public int getMaxPreloadDepth() {
+        return maxPreloadDepth;
     }
 
     @Override
     public String toString() {
         return "PersistentCachePreloadingConfiguration{" +
                 "concurrency=" + concurrency +
-                ", prefetchDepth=" + prefetchDepth +
+                ", maxPreloadDepth=" + maxPreloadDepth +
                 '}';
     }
 }
