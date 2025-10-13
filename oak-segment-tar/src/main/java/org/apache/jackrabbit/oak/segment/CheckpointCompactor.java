@@ -19,21 +19,24 @@ package org.apache.jackrabbit.oak.segment;
 
 import static java.util.Objects.requireNonNull;
 
+import static java.util.Objects.requireNonNullElseGet;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.segment.SegmentNodeStore.CHECKPOINTS;
+import static org.apache.jackrabbit.oak.segment.SegmentNodeStore.ROOT;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.BiFunction;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
@@ -79,102 +82,116 @@ public class CheckpointCompactor extends Compactor {
     }
 
     @Override
-    public @Nullable CompactedNodeState compactDown(
-            @NotNull NodeState before,
-            @NotNull NodeState after,
-            @NotNull Canceller hardCanceller,
-            @NotNull Canceller softCanceller
-    ) throws IOException {
-        Iterator<Entry<String, NodeState>> iterator = collectRoots(before, after).entrySet().iterator();
-        Entry<String, NodeState> entry = iterator.next();
-        String path = entry.getKey();
-
-        // could already be in cache if compactor is reused
-        CompactedNodeState compacted = cpCache.get(entry.getValue());
-        gcListener.info("compacting {}.", path);
-        if (compacted == null) {
-            compacted = compactDownWithDelegate(getRoot(before), entry.getValue(), hardCanceller, softCanceller);
-            if (compacted == null) {
-                return null;
-            }
-        }
-
-        NodeBuilder builder = after.builder();
-        Buffer stableIdBytes = requireNonNull(CompactorUtils.getStableIdBytes(after));
-
-        getChild(builder, getParentPath(path)).setChildNode(getName(path), compacted);
-
-        if (compacted.isComplete()) {
-            cpCache.put(entry.getValue(), compacted);
-        } else {
-            return compactor.writeNodeState(builder.getNodeState(), stableIdBytes, false);
-        }
-
-        before = entry.getValue();
-
-        while (iterator.hasNext()) {
-            entry = iterator.next();
-            path = entry.getKey();
-            gcListener.info("compacting {}.", path);
-
-            compacted = compactWithCache(before, entry.getValue(), compacted, hardCanceller);
-            if (compacted == null) {
-                return null;
-            }
-
-            before = entry.getValue();
-            Validate.checkState(compacted.isComplete());
-            getChild(builder, getParentPath(path)).setChildNode(getName(path), compacted);
-
-            if (softCanceller.check().isCancelled()) {
-                return compactor.writeNodeState(builder.getNodeState(), stableIdBytes, false);
-            }
-        }
-
-        return compactor.writeNodeState(builder.getNodeState(), stableIdBytes, true);
+    public @Nullable CompactedNodeState compactDown(@NotNull NodeState before, @NotNull NodeState after, @NotNull Canceller hardCanceller, @NotNull Canceller softCanceller) throws IOException {
+        return doCompact(before, after, after, hardCanceller, softCanceller);
     }
 
     @Override
-    public @Nullable CompactedNodeState compact(
+    public @Nullable CompactedNodeState compact(@NotNull NodeState before, @NotNull NodeState after, @NotNull NodeState onto, @NotNull Canceller canceller) throws IOException {
+        return doCompact(before, after, onto, canceller, null);
+    }
+
+    /**
+     * Implementation that compacts checkpoints chronologically on top of each other. The implementation
+     * supports both {@link #compactDown(NodeState, Canceller, Canceller)} type and
+     * {@link #compactUp(NodeState, Canceller)} type operations.
+     * <p>
+     * Soft cancellation is only supported for {@link #compactDown(NodeState, Canceller, Canceller)} type
+     * scenarios, i.e. when {@code after.equals(onto)}, and will return a partially compacted state if cancelled.
+     * <p>
+     * Hard cancellation will abandon the compaction and return {@code null}.
+     * <p>
+     * If compaction completes successfully, a fully compacted state is returned.
+     *
+     * @param before        the node state to diff against from {@code after}
+     * @param after         the node state diffed against {@code before}
+     * @param onto          the node state to compact to apply the diff to
+     * @param hardCanceller the trigger for hard cancellation, will abandon compaction if cancelled
+     * @param softCanceller the trigger for soft cancellation, will return partially compacted state if cancelled; may only be set if {@code after.equals(onto)}, implementations should validate the arguments
+     * @return              a fully-compacted or partially-compacted node state, or {@code null} if hard-cancelled
+     * @throws IOException will throw exception if any errors occur during compaction
+     */
+    private @Nullable CompactedNodeState doCompact(
             @NotNull NodeState before,
             @NotNull NodeState after,
             @NotNull NodeState onto,
-            @NotNull Canceller canceller
+            @NotNull Canceller hardCanceller,
+            @Nullable Canceller softCanceller
     ) throws IOException {
-        LinkedHashMap<String, NodeState> roots = collectRoots(before, after);
+        Validate.checkArgument(softCanceller == null || Objects.equals(after, onto),
+                "softCanceller is only supported for compactDown, i.e. when Objects.equals(after, onto)");
 
-        NodeBuilder builder = after.builder();
+        Set<String> superRoots = collectSuperRootPaths(before, after);
         Buffer stableIdBytes = requireNonNull(CompactorUtils.getStableIdBytes(after));
 
-        before = getRoot(before);
-        onto = getRoot(onto);
+        NodeBuilder rootBuilder = onto.builder();
+        CompactedNodeState compacted = null;
+        for (String path : superRoots) {
+            NodeBuilder builder = getDescendant(rootBuilder, path, NodeBuilder::child);
+            NodeState afterSuperRoot = getDescendant(after, path, NodeState::getChildNode);
 
-        for (Entry<String, NodeState> entry : roots.entrySet()) {
-            String path = entry.getKey();
-            after = entry.getValue();
-            CompactedNodeState compacted = compactWithCache(before, after, onto, canceller);
+            NodeState baseRoot = requireNonNullElseGet(compacted, () -> getRoot(getDescendant(before, path, NodeState::getChildNode)));
+            NodeState ontoRoot = requireNonNullElseGet(compacted, () -> getRoot(getDescendant(onto, path, NodeState::getChildNode)));
+
+            compacted = compactRootState(baseRoot, getRoot(afterSuperRoot), ontoRoot, hardCanceller, softCanceller);
             if (compacted == null) {
+                // only happens for hard cancellation
                 return null;
             }
-            Validate.checkState(compacted.isComplete());
-            getChild(builder, getParentPath(path)).setChildNode(getName(path), compacted);
-            before = after;
-            onto = compacted;
+
+            Validate.checkState(compacted.isComplete() || isCancelled(softCanceller),
+                    "compaction must be complete unless cancelled");
+
+            builder.setChildNode(ROOT, compacted);
+            if (path.startsWith(CHECKPOINTS + '/')) {
+                compactCheckpointMetadata(builder, afterSuperRoot);
+            }
+
+            if (isCancelled(softCanceller)) {
+                break;
+            }
         }
 
-        return compactor.writeNodeState(builder.getNodeState(), stableIdBytes, true);
+        return compactor.writeNodeState(rootBuilder.getNodeState(), stableIdBytes, !isCancelled(softCanceller));
+    }
+
+    private @Nullable CompactedNodeState compactRootState(@NotNull NodeState baseRoot, @NotNull NodeState afterRoot, @NotNull NodeState ontoRoot, @NotNull Canceller hardCanceller, @Nullable Canceller softCanceller) throws IOException {
+        if (Objects.equals(ontoRoot, afterRoot)) {
+            // down compaction only affects the first iteration, when compacted == null and ontoRoot.equals(afterRoot).
+            return compactWithCache(baseRoot, afterRoot, ontoRoot, hardCanceller, softCanceller);
+        } else {
+            // for subsequent iterations, ontoRoot == compacted and thus ontoRoot.equals(afterRoot) no longer holds true.
+            return compactWithCache(baseRoot, afterRoot, ontoRoot, hardCanceller, null);
+        }
+    }
+
+    private void compactCheckpointMetadata(NodeBuilder builder, NodeState afterSuperRoot) {
+        // copy checkpoint "properties" child node
+        NodeBuilder props = builder.setChildNode("properties");
+        for (PropertyState properties : afterSuperRoot.getChildNode("properties").getProperties()) {
+            props.setProperty(compactor.compact(properties));
+        }
+        // copy checkpoint properties (on the parent of the root node)
+        for (PropertyState property : afterSuperRoot.getProperties()) {
+            builder.setProperty(compactor.compact(property));
+        }
+    }
+
+    private static boolean isCancelled(@Nullable Canceller softCanceller) {
+        return softCanceller != null && softCanceller.check().isCancelled();
     }
 
     private @Nullable CompactedNodeState compactWithCache(
             @NotNull NodeState before,
             @NotNull NodeState after,
             @NotNull NodeState onto,
-            @NotNull Canceller canceller
+            @NotNull Canceller hardCanceller,
+            @Nullable Canceller softCanceller
     ) throws IOException {
         CompactedNodeState compacted = cpCache.get(after);
         if (compacted == null) {
-            compacted = compactWithDelegate(before, after, onto, canceller);
-            if (compacted != null) {
+            compacted = compactor.compact(before, after, onto, hardCanceller, softCanceller);
+            if (compacted != null && compacted.isComplete()) {
                 cpCache.put(after, compacted);
             }
         } else {
@@ -188,7 +205,7 @@ public class CheckpointCompactor extends Compactor {
      * state from a {@code superRoot}. This list consists of all checkpoints followed by
      * the root.
      */
-    private @NotNull LinkedHashMap<String, NodeState> collectRoots(
+    private @NotNull LinkedHashSet<String> collectSuperRootPaths(
             @NotNull NodeState superRootBefore,
             @NotNull NodeState superRootAfter) {
         List<ChildNodeEntry> checkpoints = new ArrayList<>();
@@ -208,48 +225,27 @@ public class CheckpointCompactor extends Compactor {
             return Long.compare(c1, c2);
         });
 
-        LinkedHashMap<String, NodeState> roots = new LinkedHashMap<>();
+        LinkedHashSet<String> roots = new LinkedHashSet<>();
         for (ChildNodeEntry checkpoint : checkpoints) {
             String name = checkpoint.getName();
             NodeState node = checkpoint.getNodeState();
             gcListener.info("found checkpoint {} created on {}.",
                     name, new Date(node.getLong("created")));
-            roots.put("checkpoints/" + name + "/root", node.getChildNode("root"));
+            roots.add("checkpoints/" + name);
         }
-        roots.put("root", superRootAfter.getChildNode("root"));
+        roots.add("");
 
         return roots;
     }
 
     private static @NotNull NodeState getRoot(@NotNull NodeState node) {
-        return node.hasChildNode("root") ? node.getChildNode("root") : EMPTY_NODE;
+        return node.hasChildNode(ROOT) ? node.getChildNode(ROOT) : EMPTY_NODE;
     }
 
-    private static @NotNull NodeBuilder getChild(NodeBuilder builder, String path) {
+    private static <T> T getDescendant(T t, String path, BiFunction<T, String, T> getChild) {
         for (String name : elements(path)) {
-            builder = builder.getChildNode(name);
+            t = getChild.apply(t, name);
         }
-        return builder;
-    }
-
-    /**
-     * Delegate compaction to another, usually simpler, implementation.
-     */
-    private @Nullable CompactedNodeState compactDownWithDelegate(
-            @NotNull NodeState before,
-            @NotNull NodeState after,
-            @NotNull Canceller hardCanceller,
-            @NotNull Canceller softCanceller
-    ) throws IOException {
-        return compactor.compactDown(before, after, hardCanceller, softCanceller);
-    }
-
-    private @Nullable CompactedNodeState compactWithDelegate(
-            @NotNull NodeState before,
-            @NotNull NodeState after,
-            @NotNull NodeState onto,
-            @NotNull Canceller canceller
-    ) throws IOException {
-        return compactor.compact(before, after, onto, canceller);
+        return t;
     }
 }

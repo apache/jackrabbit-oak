@@ -339,8 +339,7 @@ public class NodeDelegate extends ItemDelegate {
     @NotNull
     public Iterator<NodeDelegate> getChildren() throws InvalidItemStateException {
         Iterator<Tree> iterator = getTree().getChildren().iterator();
-        return IteratorUtils.transform(
-                IteratorUtils.filter(iterator, tree -> tree.exists()),
+        return IteratorUtils.transform(iterator, 
                 tree -> new NodeDelegate(sessionDelegate, tree));
     }
 

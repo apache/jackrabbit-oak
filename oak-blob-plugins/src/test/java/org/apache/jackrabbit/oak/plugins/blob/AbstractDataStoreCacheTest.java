@@ -46,6 +46,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.jackrabbit.guava.common.cache.CacheLoader;
 import org.apache.jackrabbit.guava.common.util.concurrent.AbstractListeningExecutorService;
 import org.apache.jackrabbit.guava.common.util.concurrent.FutureCallback;
@@ -191,7 +192,7 @@ public class AbstractDataStoreCacheTest {
 
         TestPoolExecutor(int threads, CountDownLatch beforeLatch, CountDownLatch afterLatch) {
             super(threads, threads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(),
-                new NamedThreadFactory("oak-async-thread"));
+                    BasicThreadFactory.builder().namingPattern("oak-async-thread-%d").build());
             this.beforeLatch = beforeLatch;
             this.afterLatch = afterLatch;
         }

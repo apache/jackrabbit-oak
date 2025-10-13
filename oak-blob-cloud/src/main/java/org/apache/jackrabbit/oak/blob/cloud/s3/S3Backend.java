@@ -46,6 +46,7 @@ import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
@@ -202,7 +203,7 @@ public class S3Backend extends AbstractSharedBackend {
             }
             LOG.info("Using thread pool of [{}] threads in S3 transfer manager.", writeThreads);
             tmx = new TransferManager(s3service, Executors.newFixedThreadPool(writeThreads,
-                new NamedThreadFactory("s3-transfer-manager-worker")));
+                    BasicThreadFactory.builder().namingPattern("s3-transfer-manager-worker-%d").build()));
 
             String renameKeyProp = properties.getProperty(S3Constants.S3_RENAME_KEYS);
             boolean renameKeyBool = (renameKeyProp == null || "".equals(renameKeyProp))
@@ -1245,7 +1246,7 @@ public class S3Backend extends AbstractSharedBackend {
             List<String> keysToDelete = new ArrayList<>();
             int nThreads = Integer.parseInt(properties.getProperty("maxConnections"));
             ExecutorService executor = Executors.newFixedThreadPool(nThreads,
-                new NamedThreadFactory("s3-object-rename-worker"));
+                    BasicThreadFactory.builder().namingPattern("s3-object-rename-worker-%d").build());
             boolean taskAdded = false;
             while (true) {
                 for (S3ObjectSummary s3ObjSumm : prevObjectListing.getObjectSummaries()) {
