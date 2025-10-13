@@ -27,8 +27,8 @@ import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureBlobContainer
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
+import org.apache.jackrabbit.oak.blob.cloud.s3.S3CrudHelper;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
-import org.apache.jackrabbit.oak.blob.cloud.s3.Utils;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -112,7 +112,7 @@ public class DataStoreUtils {
         log.info("cleaning bucket [ {} ]", bucket);
         Properties props = new Properties();
         props.putAll(map);
-        Utils.deleteBucketAndAbortMultipartUploads(bucket, date, props);
+        S3CrudHelper.deleteBucketAndAbortMultipartUploads(bucket, date, props);
     }
 
     public static void deleteAzureContainer(Map<String, ?> config, String containerName) throws Exception {
