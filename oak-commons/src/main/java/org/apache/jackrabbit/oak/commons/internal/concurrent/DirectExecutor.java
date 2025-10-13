@@ -23,7 +23,7 @@ import java.util.concurrent.Executor;
 /**
  * An @{@link Executor} that runs the task in calling thread
  */
-enum DirectExecutor implements Executor {
+public enum DirectExecutor implements Executor {
     INSTANCE;
 
     public void execute(Runnable command) {
