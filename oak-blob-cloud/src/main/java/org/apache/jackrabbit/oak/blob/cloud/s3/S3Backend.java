@@ -250,7 +250,7 @@ public class S3Backend extends AbstractSharedBackend {
 
     private void createBucketIfNeeded(final String region) {
         try {
-            if (!S3CrudHelper.bucketExists(s3Client, bucket)) {
+            if (!S3BackendHelper.bucketExists(s3Client, bucket)) {
                 String bucketRegion;
                 if (Utils.US_EAST_1_AWS_BUCKET_REGION.equals(region)) {
                     // The SDK has changed such that if the region is us-east-1
@@ -267,7 +267,7 @@ public class S3Backend extends AbstractSharedBackend {
                                         config.locationConstraint(bucketRegion)
                                                 .build())
                                 .build());
-                if (S3CrudHelper.waitForBucket(s3Client, bucket, 20, 100L)) {
+                if (S3BackendHelper.waitForBucket(s3Client, bucket, 20, 100L)) {
                     LOG.error("Bucket [{}] does not exist in [{}] and was not automatically created",
                             bucket, region);
                     return;
@@ -395,7 +395,7 @@ public class S3Backend extends AbstractSharedBackend {
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
-            return S3CrudHelper.objectExists(s3Client, bucket, key, s3ReqDecorator);
+            return S3BackendHelper.objectExists(s3Client, bucket, key, s3ReqDecorator);
         } catch (S3Exception e) {
             LOG.debug("exists [{}]: [false] took [{}] ms.", identifier, System.currentTimeMillis() - start);
             throw new DataStoreException("Error occurred to getObjectMetadata for key [" + identifier + "]", e);
@@ -464,9 +464,9 @@ public class S3Backend extends AbstractSharedBackend {
     public void close() {
         // backend is closing. abort all mulitpart uploads from start.
         try {
-            if(S3CrudHelper.bucketExists(s3Client, bucket)) {
+            if(S3BackendHelper.bucketExists(s3Client, bucket)) {
                 // List and abort multipart uploads initiated before startTime
-                S3CrudHelper.abortMultipartUpload(bucket, startTime, s3Client);
+                S3BackendHelper.abortMultipartUpload(bucket, startTime, s3Client);
             }
         } finally {
             if (tmx != null) {
@@ -642,7 +642,7 @@ public class S3Backend extends AbstractSharedBackend {
                     .bucket(bucket)
                     .prefix(addMetaKeyPrefix(prefix))
                     .build());
-            S3CrudHelper.deleteBucketObjects(bucket, properties, s3Client, metaList);
+            S3BackendHelper.deleteBucketObjects(bucket, properties, s3Client, metaList);
         } finally {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
@@ -733,7 +733,7 @@ public class S3Backend extends AbstractSharedBackend {
         try {
             Thread.currentThread().setContextClassLoader(
                 getClass().getClassLoader());
-            return S3CrudHelper.objectExists(s3Client, bucket, addMetaKeyPrefix(name), s3ReqDecorator);
+            return S3BackendHelper.objectExists(s3Client, bucket, addMetaKeyPrefix(name), s3ReqDecorator);
         } finally {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);

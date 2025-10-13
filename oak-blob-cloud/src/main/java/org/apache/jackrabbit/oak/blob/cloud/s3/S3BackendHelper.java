@@ -42,13 +42,13 @@ import java.util.Properties;
 /**
  * A Utils class to handle S3 related crud operations
  */
-public class S3CrudHelper {
+public class S3BackendHelper {
 
-    private S3CrudHelper() {
+    private S3BackendHelper() {
         // no instances for you
     }
 
-    private static final Logger LOG = LoggerFactory.getLogger(S3CrudHelper.class);
+    private static final Logger LOG = LoggerFactory.getLogger(S3BackendHelper.class);
 
     /**
      * Delete S3 bucket. This method first deletes all objects from bucket and

@@ -28,7 +28,7 @@ import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Backend;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
-import org.apache.jackrabbit.oak.blob.cloud.s3.S3CrudHelper;
+import org.apache.jackrabbit.oak.blob.cloud.s3.S3BackendHelper;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
 import org.apache.jackrabbit.oak.blob.cloud.s3.Utils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
@@ -102,7 +102,7 @@ public class S3DataStoreFixture implements DataStoreFixture {
             log.info("Creating S3 test bucket {}", bucketName);
             CreateBucketRequest createBucketRequest = CreateBucketRequest.builder().bucket(bucketName).build();
             s3Client.createBucket(createBucketRequest);
-            assertTrue("Failed to create test bucket [" + bucketName + "]", S3CrudHelper.waitForBucket(s3Client, bucketName, 20, 100L));
+            assertTrue("Failed to create test bucket [" + bucketName + "]", S3BackendHelper.waitForBucket(s3Client, bucketName, 20, 100L));
 
             log.info("Enabling S3 acceleration for bucket {}", bucketName);
             s3Client.putBucketAccelerateConfiguration(
@@ -151,7 +151,7 @@ public class S3DataStoreFixture implements DataStoreFixture {
             }
             
             try (S3Client s3Client = Utils.openService(s3Props, false)) {
-                S3CrudHelper.deleteBucketObjects(bucketName, s3Props, s3Client);
+                S3BackendHelper.deleteBucketObjects(bucketName, s3Props, s3Client);
                 s3Client.deleteBucket(DeleteBucketRequest.builder().bucket(bucketName).build());
             }
         }

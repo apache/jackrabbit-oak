@@ -147,7 +147,7 @@ public class S3DataStoreUtils extends DataStoreUtils {
     public static void deleteBucket(String bucket, Date date) {
         log.info("cleaning bucket [ {} ]", bucket);
         Properties props = getS3Config();
-        S3CrudHelper.deleteBucketAndAbortMultipartUploads(bucket, date, props);
+        S3BackendHelper.deleteBucketAndAbortMultipartUploads(bucket, date, props);
     }
 
     protected static HttpsURLConnection getHttpsConnection(long length, URI uri) throws IOException {
