@@ -24,6 +24,7 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DuplicateKeyException;
 import com.mongodb.MongoCommandException;
 import com.mongodb.MongoException;
+import com.mongodb.MongoServerUnavailableException;
 import com.mongodb.MongoSocketException;
 import com.mongodb.ServerAddress;
 import com.mongodb.WriteConcernException;
@@ -158,6 +159,7 @@ public class MongoUtilsTest {
         assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(newMongoCommandException(11601)));
         assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(newMongoCommandException(11602)));
         assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(new MongoSocketException("message", new ServerAddress())));
+        assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(new MongoServerUnavailableException("message")));
     }
 
     @Test
