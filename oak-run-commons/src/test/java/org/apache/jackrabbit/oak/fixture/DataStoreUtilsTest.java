@@ -155,14 +155,14 @@ public class DataStoreUtilsTest {
         Assume.assumeNotNull(tenantId);
 
         BlobContainerClient container;
-        try (AzureBlobContainerProvider azureBlobContainerProvider = AzureBlobContainerProvider.Builder.builder(CONTAINER_NAME)
+        AzureBlobContainerProvider azureBlobContainerProvider = AzureBlobContainerProvider.Builder.builder(CONTAINER_NAME)
                 .withAccountName(accountName)
                 .withClientId(clientId)
                 .withClientSecret(clientSecret)
-                .withTenantId(tenantId).build()) {
-            container = azureBlobContainerProvider.getBlobContainer();
-            container.createIfNotExists();
-        }
+                .withTenantId(tenantId).build();
+        container = azureBlobContainerProvider.getBlobContainer();
+        container.createIfNotExists();
+
         assertNotNull(container);
         assertTrue(container.exists());
 

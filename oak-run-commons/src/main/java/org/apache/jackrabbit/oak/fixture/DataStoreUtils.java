@@ -187,17 +187,17 @@ public class DataStoreUtils {
             return null;
         }
 
-        try (AzureBlobContainerProvider azureBlobContainerProvider = AzureBlobContainerProvider.Builder.builder(containerName)
-                .withAzureConnectionString(azureConnectionString)
-                .withAccountName(accountName)
-                .withClientId(clientId)
-                .withClientSecret(clientSecret)
-                .withTenantId(tenantId)
-                .withAccountKey(accountKey)
-                .withSasToken(sasToken)
-                .withBlobEndpoint(blobEndpoint)
-                .build()) {
-            return azureBlobContainerProvider.getBlobContainer();
-        }
+        AzureBlobContainerProvider azureBlobContainerProvider = AzureBlobContainerProvider.Builder.builder(containerName)
+            .withAzureConnectionString(azureConnectionString)
+            .withAccountName(accountName)
+            .withClientId(clientId)
+            .withClientSecret(clientSecret)
+            .withTenantId(tenantId)
+            .withAccountKey(accountKey)
+            .withSasToken(sasToken)
+            .withBlobEndpoint(blobEndpoint)
+            .build();
+
+        return azureBlobContainerProvider.getBlobContainer();
     }
 }
