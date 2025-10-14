@@ -20,13 +20,13 @@ package org.apache.jackrabbit.oak.jcr.binary.fixtures.nodestore;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.HashBasedTable;
-import org.apache.jackrabbit.guava.common.collect.Table;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
@@ -61,7 +61,7 @@ public class DocumentMongoNodeStoreFixture extends NodeStoreFixture implements C
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final DataStoreFixture dataStoreFixture;
-    private final Table<NodeStore, String, Object> components = HashBasedTable.create();
+    private final Map<NodeStore, Map<String, Object>> components = new LinkedHashMap<>();
     private MongoConnection connection;
     private final Clock clock;
     public MongoConnectionFactory connFactory;
@@ -120,14 +120,15 @@ public class DocumentMongoNodeStoreFixture extends NodeStoreFixture implements C
             }
 
             NodeStore nodeStore = documentNodeStoreBuilder.build();
+            components.put(nodeStore, new LinkedHashMap<>());
 
             // track all main components
             if (dataStore != null) {
-                components.put(nodeStore, DataStore.class.getName(), dataStore);
-                components.put(nodeStore, DataStore.class.getName() + ":folder", dataStoreFolder);
+                components.get(nodeStore).put(DataStore.class.getName(), dataStore);
+                components.get(nodeStore).put(DataStore.class.getName() + ":folder", dataStoreFolder);
             }
             if (blobStore != null) {
-                components.put(nodeStore, BlobStore.class.getName(), blobStore);
+                components.get(nodeStore).put(BlobStore.class.getName(), blobStore);
             }
 
             return nodeStore;
@@ -143,11 +144,11 @@ public class DocumentMongoNodeStoreFixture extends NodeStoreFixture implements C
                 ((DocumentNodeStore)nodeStore).dispose();
             }
 
-            DataStore dataStore = (DataStore) components.get(nodeStore, DataStore.class.getName());
+            DataStore dataStore = (DataStore) components.get(nodeStore).get(DataStore.class.getName());
             if (dataStore != null && dataStoreFixture != null) {
                 dataStoreFixture.dispose(dataStore);
 
-                File dataStoreFolder = (File) components.get(nodeStore, DataStore.class.getName() + ":folder");
+                File dataStoreFolder = (File) components.get(nodeStore).get(DataStore.class.getName() + ":folder");
                 FileUtils.deleteQuietly(dataStoreFolder);
             }
             MongoUtils.dropDatabase(db);
@@ -155,7 +156,7 @@ public class DocumentMongoNodeStoreFixture extends NodeStoreFixture implements C
                 connection.close();
             }
         } finally {
-            components.row(nodeStore).clear();
+            components.get(nodeStore).clear();
         }
     }
 
@@ -179,6 +180,6 @@ public class DocumentMongoNodeStoreFixture extends NodeStoreFixture implements C
 
     @Override
     public <T> T get(NodeStore nodeStore, String componentName) {
-        return (T) components.get(nodeStore, componentName);
+        return (T) components.get(nodeStore).get(componentName);
     }
 }
