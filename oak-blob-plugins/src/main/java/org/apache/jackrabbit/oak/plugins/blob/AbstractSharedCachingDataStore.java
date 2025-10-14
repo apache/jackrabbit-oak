@@ -224,19 +224,16 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
     public DataRecord addRecord(InputStream inputStream, BlobOptions blobOptions)
         throws DataStoreException {
         Stopwatch watch = Stopwatch.createStarted();
+        File tmpFile = null;
         try {
-            TransientFileFactory fileFactory = TransientFileFactory.getInstance();
-            File tmpFile = fileFactory.createTransientFile("upload", null, tmp);
+            tmpFile = File.createTempFile("upload", null, tmp);
 
             // Copy the stream to the temporary file and calculate the
             // stream length and the message digest of the stream
             MessageDigest digest = MessageDigest.getInstance(DIGEST);
-            OutputStream output = new DigestOutputStream(new FileOutputStream(tmpFile), digest);
             long length = 0;
-            try {
+            try (OutputStream output = new DigestOutputStream(new FileOutputStream(tmpFile), digest)) {
                 length = IOUtils.copyLarge(inputStream, output);
-            } finally {
-                output.close();
             }
 
             DataIdentifier identifier = new DataIdentifier(encodeHexString(digest.digest()));
@@ -251,16 +248,18 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
                 LOG.debug("Added blob [{}] to backend", identifier);
                 // offer to download cache
                 cache.getDownloadCache().put(identifier.toString(), tmpFile);
-
-                // Attempt deleting the temporary file
-                boolean deletedTemp = FileUtils.deleteQuietly(tmpFile);
-                LOG.trace("Temporary file deleted {}", deletedTemp);
             }
 
             return getRecordIfStored(identifier);
         } catch (Exception e) {
             LOG.error("Error in adding record");
             throw new DataStoreException("Error in adding record ", e);
+        } finally {
+            // Attempt deleting the temporary file
+            if (tmpFile != null) {
+                boolean deletedTemp = FileUtils.deleteQuietly(tmpFile);
+                LOG.trace("Temporary file {} deleted: {}", tmpFile, deletedTemp);
+            }
         }
     }
 
