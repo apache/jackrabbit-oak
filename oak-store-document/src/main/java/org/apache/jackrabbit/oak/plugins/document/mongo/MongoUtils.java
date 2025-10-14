@@ -23,6 +23,7 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.MongoCommandException;
 import com.mongodb.MongoException;
 import com.mongodb.MongoNotPrimaryException;
+import com.mongodb.MongoServerUnavailableException;
 import com.mongodb.MongoSocketException;
 import com.mongodb.MongoWriteConcernException;
 import com.mongodb.ReadPreference;
@@ -180,7 +181,8 @@ class MongoUtils {
         Type type = Type.GENERIC;
         if (t instanceof MongoSocketException
                 || t instanceof MongoWriteConcernException
-                || t instanceof MongoNotPrimaryException) {
+                || t instanceof MongoNotPrimaryException
+                || t instanceof MongoServerUnavailableException) {
             type = Type.TRANSIENT;
         } else if (t instanceof MongoCommandException
                 || t instanceof WriteConcernException
