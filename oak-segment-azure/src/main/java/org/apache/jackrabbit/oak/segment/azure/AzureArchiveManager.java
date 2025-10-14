@@ -38,11 +38,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
@@ -97,15 +94,16 @@ public class AzureArchiveManager implements SegmentArchiveManager {
             Set<String> archivesToDelete = ForkJoinUtils.invokeInCustomPool(
                     "AzureArchiveManager-deleted-archive-handler",
                     Math.min(64, Math.max(1, archiveNames.size())),
-                    () -> archiveNames.stream()
-                            .parallel()
-                            .filter(this::deleteInProgress)
-                            .peek(archiveName -> {
-                                if (writeAccessController.isWritingAllowed()) {
-                                    delete(archiveName);
-                                }
-                            })
-                            .collect(Collectors.toUnmodifiableSet()));
+                    () -> {
+                        Set<String> toDelete = archiveNames.stream()
+                                .parallel()
+                                .filter(this::deleteInProgress)
+                                .collect(Collectors.toUnmodifiableSet());
+                        if (writeAccessController.isWritingAllowed()) {
+                            toDelete.parallelStream().forEach(this::delete);
+                        }
+                        return toDelete;
+                    });
 
             archiveNames.removeAll(archivesToDelete);
 
