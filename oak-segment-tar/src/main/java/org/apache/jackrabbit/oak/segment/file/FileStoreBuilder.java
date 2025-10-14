@@ -48,6 +48,8 @@ import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.apache.jackrabbit.oak.segment.spi.monitor.*;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.PersistentCache;
+import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.PersistentCachePreloadingConfiguration;
 import org.apache.jackrabbit.oak.segment.tool.iotrace.IOTraceLogWriter;
 import org.apache.jackrabbit.oak.segment.tool.iotrace.IOTraceMonitor;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -94,7 +96,7 @@ public class FileStoreBuilder {
     private boolean memoryMapping = MEMORY_MAPPING_DEFAULT;
 
     private boolean offHeapAccess = getBoolean("access.off.heap");
-    
+
     private int binariesInlineThreshold = Segment.MEDIUM_LIMIT;
 
     private SegmentNodeStorePersistence persistence;
@@ -107,6 +109,12 @@ public class FileStoreBuilder {
 
     @Nullable
     private EvictingWriteCacheManager cacheManager;
+
+    @Nullable
+    private PersistentCache persistentCache;
+
+    @Nullable
+    private PersistentCachePreloadingConfiguration preloadingConfig;
 
     private class FileStoreGCListener extends DelegatingGCMonitor implements GCListener {
         @Override
@@ -257,6 +265,34 @@ public class FileStoreBuilder {
     }
 
     /**
+     * The {@link PersistentCache} instance to be used, if any. By default no {@code PersistentCache}
+     * is configured.
+     *
+     * @param persistentCache the persistent cache
+     * @return this instance
+     */
+    @NotNull
+    public FileStoreBuilder withPersistentCache(@NotNull PersistentCache persistentCache) {
+        this.persistentCache = requireNonNull(persistentCache);
+        return this;
+    }
+
+    /**
+     * The {@link PersistentCachePreloadingConfiguration} to be used for preloading segments.
+     * This configuration must be used together with a {@link PersistentCache}, configured
+     * via {@link #withPersistentCache(PersistentCache)}. By default, no segment preloading
+     * is configured.
+     *
+     * @param preloadingConfig the configuration for persistent cache preloading
+     * @return this instance
+     */
+    @NotNull
+    public FileStoreBuilder withPersistentCachePreloading(@NotNull PersistentCachePreloadingConfiguration preloadingConfig) {
+        this.preloadingConfig = requireNonNull(preloadingConfig);
+        return this;
+    }
+
+    /**
      * Turn memory mapping on or off
      *
      * @param memoryMapping
@@ -397,7 +433,7 @@ public class FileStoreBuilder {
         this.eagerSegmentCaching = eagerSegmentCaching;
         return this;
     }
-    
+
     /**
      * Sets the threshold under which binaries are inlined in data segments.
      * @param binariesInlineThreshold the threshold
@@ -585,9 +621,17 @@ public class FileStoreBuilder {
     boolean getEagerSegmentCaching() {
         return eagerSegmentCaching;
     }
-    
+
     int getBinariesInlineThreshold() {
         return binariesInlineThreshold;
+    }
+
+    @Nullable PersistentCache getPersistentCache() {
+        return persistentCache;
+    }
+
+    @Nullable PersistentCachePreloadingConfiguration getPreloadingConfiguration() {
+        return preloadingConfig;
     }
 
     @Override
@@ -607,6 +651,8 @@ public class FileStoreBuilder {
                 ", memoryMapping=" + memoryMapping +
                 ", offHeapAccess=" + offHeapAccess +
                 ", gcOptions=" + gcOptions +
+                ", persistentCache=" + persistentCache +
+                ", persistentCachePreloadingConfiguration=" + preloadingConfig +
                 '}';
     }
 

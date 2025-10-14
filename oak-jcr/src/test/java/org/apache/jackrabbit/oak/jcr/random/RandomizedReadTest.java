@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.jcr.random;
 
 
 import java.security.Principal;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Random;
 
 import javax.jcr.Node;
@@ -27,8 +29,6 @@ import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 
-import org.apache.jackrabbit.guava.common.collect.HashBasedTable;
-import org.apache.jackrabbit.guava.common.collect.Table;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -39,18 +39,24 @@ import org.junit.Test;
 public class RandomizedReadTest extends AbstractRandomizedTest {
 
     private static final int depth = 4;
-    private static final Table<Integer, Integer, String> tree = HashBasedTable.create();
+    private static final Map<Integer, Map<Integer, String>> tree = new LinkedHashMap<>();
     static {
-        tree.put(0, 0, "/");
-        tree.put(1, 0, "/n1");
-        tree.put(1, 1, "/n2");
-        tree.put(2, 0, "/n1/n3");
-        tree.put(2, 1, "/n1/n4");
-        tree.put(2, 2, "/n1/n5");
-        tree.put(3, 0, "/n1/n3/n6");
-        tree.put(3, 1, "/n1/n3/n7");
-        tree.put(3, 2, "/n1/n3/n8");
-        tree.put(3, 3, "/n1/n3/n9");
+
+        // Java
+        for (int i = 0; i < depth; i++) {
+            tree.put(i, new LinkedHashMap<>());
+        }
+
+        tree.get(0).put(0, "/");
+        tree.get(1).put(0, "/n1");
+        tree.get(1).put(1, "/n2");
+        tree.get(2).put(0, "/n1/n3");
+        tree.get(2).put(1, "/n1/n4");
+        tree.get(2).put(2, "/n1/n5");
+        tree.get(3).put(0, "/n1/n3/n6");
+        tree.get(3).put(1, "/n1/n3/n7");
+        tree.get(3).put(2, "/n1/n3/n8");
+        tree.get(3).put(3, "/n1/n3/n9");
     }
 
     @Override
@@ -134,37 +140,39 @@ public class RandomizedReadTest extends AbstractRandomizedTest {
         if (depth == 0) {
             return "/";
         }
-        return tree.get(depth, index);
+        return tree.get(depth).get(index);
     }
 
     public void check() throws Exception {
         boolean mustThrow;
         try {
-            for (String path : tree.values()) {
-                mustThrow = false;
+            for (Map<Integer, String> t : tree.values()) {
+                for (String path : t.values()) {
+                    mustThrow = false;
 
-                Session s1 = readSessions.get(0);
-                try {
-                    Node n = s1.getNode(path);
-                    if (!path.equals(n.getPath())) {
-                        Assert.fail("did not resolved the same node");
-                    }
-                } catch (PathNotFoundException pnf) {
-                    mustThrow = true;
-                }
-
-                for (int i = 1; i < readSessions.size(); i++) {
+                    Session s1 = readSessions.get(0);
                     try {
-                        Node n = readSessions.get(i).getNode(path);
-                        if (mustThrow) {
-                            Assert.fail("did not throw for path " + path);
-                        }
+                        Node n = s1.getNode(path);
                         if (!path.equals(n.getPath())) {
                             Assert.fail("did not resolved the same node");
                         }
                     } catch (PathNotFoundException pnf) {
-                        if (!mustThrow) {
-                            Assert.fail("did throw for path " + path);
+                        mustThrow = true;
+                    }
+
+                    for (int i = 1; i < readSessions.size(); i++) {
+                        try {
+                            Node n = readSessions.get(i).getNode(path);
+                            if (mustThrow) {
+                                Assert.fail("did not throw for path " + path);
+                            }
+                            if (!path.equals(n.getPath())) {
+                                Assert.fail("did not resolved the same node");
+                            }
+                        } catch (PathNotFoundException pnf) {
+                            if (!mustThrow) {
+                                Assert.fail("did throw for path " + path);
+                            }
                         }
                     }
                 }
