@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authentication.token;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
 
 public interface TokenConstants {
 
@@ -34,11 +35,15 @@ public interface TokenConstants {
     String TOKENS_NT_NAME = NodeTypeConstants.NT_REP_UNSTRUCTURED;
 
     String TOKEN_NT_NAME = "rep:Token";
+    
+    String EXTERNAL_ID_ATTRIBUTE = ":externalId";
 
     Set<String> RESERVED_ATTRIBUTES = Set.of(
             TOKEN_ATTRIBUTE,
             TOKEN_ATTRIBUTE_EXPIRY,
-            TOKEN_ATTRIBUTE_KEY);
+            TOKEN_ATTRIBUTE_KEY,
+            AbstractLoginModule.SHARED_KEY_LOGIN_NAME,
+            EXTERNAL_ID_ATTRIBUTE);
 
     Set<String> TOKEN_PROPERTY_NAMES = Set.of(TOKEN_ATTRIBUTE_EXPIRY, TOKEN_ATTRIBUTE_KEY);
 

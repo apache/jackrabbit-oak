@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
+import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -58,6 +59,7 @@ import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.login.LoginException;
 import java.security.Principal;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -228,7 +230,22 @@ public class ExternalLoginModule extends AbstractLoginModule {
             // before into the repository.
             UserManager userManager = getUserManager();
             SyncedIdentity sId = getSyncedIdentity(userId, userManager);
-
+            if (sId ==null && userManager != null && creds != null) {
+                // Check if the external user was registered with a different userId, and the same externalId
+                Object externalAttribute = credentialsSupport.getAttributes(creds).get(ExternalIdentityConstants.EXTERNAL_ID_ATTRIBUTE);
+                if (externalAttribute != null ) {
+                    @NotNull Iterator<Authorizable> authIterator = userManager.findAuthorizables(ExternalIdentityConstants.REP_EXTERNAL_ID, externalAttribute + ";" + idp.getName(), UserManager.SEARCH_TYPE_USER);
+                    if (authIterator.hasNext()) {
+                        //modify credentials to reflect the login name stored in oak
+                        Authorizable authorizable = authIterator.next();
+                        sId = getSyncedIdentity(authorizable.getID(), userManager);
+                        Map<String, ?> attributes = credentialsSupport.getAttributes(creds);
+                        HashMap<String, Object> newAttributes = new HashMap<>(attributes);
+                        newAttributes.put(AbstractLoginModule.SHARED_KEY_LOGIN_NAME, authorizable.getID());
+                        credentialsSupport.setAttributes(creds, newAttributes);
+                    }
+                }
+            }
             // if there exists an authorizable with the given userid (syncedIdentity != null),
             // ignore it if any of the following conditions is met:
             // - identity is local (i.e. not an external identity)

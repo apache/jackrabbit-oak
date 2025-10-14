@@ -25,6 +25,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
@@ -69,6 +71,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import static java.util.Map.of;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 import static org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule.SHARED_KEY_ATTRIBUTES;
 import static org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule.SHARED_KEY_PRE_AUTH_LOGIN;
@@ -251,6 +254,127 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         assertFalse(loginModule.commit());
         assertFalse(loginModule.logout());
         verifyNoInteractions(monitor);
+    }
+
+    private void createExternalIdIndex(Tree rootTree) {
+        // Navigate to or create the /oak:index node
+        Tree index = rootTree.getChild("oak:index");
+        if (!index.exists()) {
+            index = rootTree.addChild("oak:index");
+            index.setProperty("jcr:primaryType", "oak:Unstructured", Type.NAME);
+        }
+
+        Tree externalIdIndex = index.getChild("externalId");
+        if (!externalIdIndex.exists()) {
+            externalIdIndex = index.addChild("externalId");
+            externalIdIndex.setProperty("jcr:primaryType", "oak:QueryIndexDefinition", Type.NAME); // Correct node type
+            externalIdIndex.setProperty("type", "property", Type.STRING);
+            externalIdIndex.setProperty("propertyNames", Collections.singletonList("rep:externalId"), Type.NAMES);
+            externalIdIndex.setProperty("reindex", true, Type.BOOLEAN);
+            externalIdIndex.setProperty("unique", true, Type.BOOLEAN);
+        }
+
+    }
+    @Test
+    public void testLoginUserIdentifiedByExternalId() throws Exception {
+        String idpName = "testExternalId";
+        // UserId (PrincipalName) already present in oak (old UserId for the user)
+        String oldPrincipalName =  "test3OldValue";
+        // ExternalId present in oak and returned by the Idp, and already configured in Oak
+        String externalId = "extId123";
+        // New UserId returned by the ExternalIdp
+        String newPrincipalName = "newUserId";
+
+        TestExternalUserIdCredentials creds = new TestExternalUserIdCredentials(newPrincipalName);
+        creds.setAttribute(ExternalIdentityConstants.EXTERNAL_ID_ATTRIBUTE, externalId);
+
+        // We need to create an index, or we have an exception with the search       
+        createExternalIdIndex(root.getTree("/"));
+        UserManager userManager = getUserManager(root);
+        userManager.createUser(oldPrincipalName, null).setProperty(REP_EXTERNAL_ID, getValueFactory().createValue(externalId + ";" + idpName));
+        root.commit();
+        
+        ExternalIdentityProvider idp = new TestExternalUserIdIdentityProvider(idpName);
+
+        when(extIPMgr.getProvider(DEFAULT_IDP_NAME)).thenReturn(idp);
+        when(syncManager.getSyncHandler("syncHandler")).thenReturn(new DefaultSyncHandler(new DefaultSyncConfigImpl().setName("syncHandler")));
+
+        wb.register(ExternalIdentityProviderManager.class, extIPMgr, Collections.emptyMap());
+        wb.register(SyncManager.class, syncManager, Collections.emptyMap());
+        
+        CallbackHandler cbh = createCallbackHandler(wb, getContentRepository(), getSecurityProvider(), creds);
+
+        Map<String,Object> sharedState = new HashMap<>();
+
+        loginModule.initialize(new Subject(), cbh, sharedState, of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
+        assertTrue(loginModule.login());
+        assertTrue(loginModule.commit());
+        // The original PrincipalId is used, even if the Idp initially sent a new UderId.
+        assertEquals(creds.getUserId(), oldPrincipalName);
+        assertTrue(loginModule.logout());
+    }
+
+    // Test if the user is not found by the externalId, even if it is present in oak.
+    // This is the default case for users that did not modify his userId
+    @Test
+    public void testLoginUserIdentifiedByExternalIdNotFound() throws Exception {
+        String idpName = "testExternalId";
+        // UserId (PrincipalName) already present in oak (UserId for the user)
+        String principalName =  "test4";
+
+        // We need to create an index, or we have an exception with the search       
+        createExternalIdIndex(root.getTree("/"));
+        root.commit();
+        
+        TestExternalUserIdCredentials creds = new TestExternalUserIdCredentials(principalName);
+        creds.setAttribute(ExternalIdentityConstants.EXTERNAL_ID_ATTRIBUTE, principalName);
+
+        ExternalIdentityProvider idp = new TestExternalUserIdIdentityProvider(idpName);
+
+        when(extIPMgr.getProvider(DEFAULT_IDP_NAME)).thenReturn(idp);
+        when(syncManager.getSyncHandler("syncHandler")).thenReturn(new DefaultSyncHandler(new DefaultSyncConfigImpl().setName("syncHandler")));
+
+        wb.register(ExternalIdentityProviderManager.class, extIPMgr, Collections.emptyMap());
+        wb.register(SyncManager.class, syncManager, Collections.emptyMap());
+
+        CallbackHandler cbh = createCallbackHandler(wb, getContentRepository(), getSecurityProvider(), creds);
+
+        Map<String,Object> sharedState = new HashMap<>();
+
+        loginModule.initialize(new Subject(), cbh, sharedState, of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
+        assertTrue(loginModule.login());
+        assertTrue(loginModule.commit());
+        // The original PrincipalId is used, even if the Idp initially sent a new UderId.
+        assertEquals(creds.getUserId(), principalName);
+        assertTrue(loginModule.logout());
+    }
+
+    @Test
+    public void testLoginUserIdentifiedByExternalIdMissingCredentials() throws Exception {
+        String idpName = "testExternalId";
+
+        // We need to create an index, or we have an exception with the search       
+        createExternalIdIndex(root.getTree("/"));
+        root.commit();
+        
+        ExternalIdentityProvider idp = new TestExternalUserIdIdentityProvider(idpName);
+
+        when(extIPMgr.getProvider(DEFAULT_IDP_NAME)).thenReturn(idp);
+        when(syncManager.getSyncHandler("syncHandler")).thenReturn(new DefaultSyncHandler(new DefaultSyncConfigImpl().setName("syncHandler")));
+
+        wb.register(ExternalIdentityProviderManager.class, extIPMgr, Collections.emptyMap());
+        wb.register(SyncManager.class, syncManager, Collections.emptyMap());
+
+        CallbackHandler cbh = createCallbackHandler(wb, getContentRepository(), getSecurityProvider(), null);
+
+        Map<String,Object> sharedState = new HashMap<>();
+        sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin(ID_TEST_USER));
+        sharedState.put(SHARED_KEY_ATTRIBUTES, Collections.singletonMap("att", "value"));
+
+        loginModule.initialize(new Subject(), cbh, sharedState, of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
+        assertFalse(loginModule.login());
+        assertFalse(loginModule.commit());
+        assertFalse(loginModule.logout());
     }
 
     @Test
@@ -631,4 +755,5 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
             verify(monitor).loginError();
         }
     }
+
 }
