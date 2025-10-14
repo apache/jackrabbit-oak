@@ -21,9 +21,7 @@ import java.util.Iterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
 
-import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -70,16 +68,6 @@ public interface SyncHandler {
     @Nullable
     SyncedIdentity findIdentity(@NotNull UserManager userManager, @NotNull String id) throws RepositoryException;
 
-    /**
-     * Creates a synced identity object for the given authorizable.
-     * @param authorizable the authorizable
-     * @return a synced identity object
-     * @throws RepositoryException if an error occurs
-     */
-    @NotNull
-    default SyncedIdentity getIdentity(@NotNull Authorizable authorizable) throws RepositoryException {
-        return DefaultSyncContext.createSyncedIdentity(authorizable);
-    }
     /**
      * Checks if the identity requires sync based on the configuration, type and last sync time.
      * @param identity the identity to check
