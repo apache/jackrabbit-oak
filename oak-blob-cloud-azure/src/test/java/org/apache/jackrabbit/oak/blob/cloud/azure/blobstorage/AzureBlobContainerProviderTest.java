@@ -25,6 +25,7 @@ import com.azure.storage.blob.specialized.BlockBlobClient;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.microsoft.aad.msal4j.MsalServiceException;
 
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.junit.After;
 import org.junit.Before;
@@ -32,7 +33,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.time.OffsetDateTime;
@@ -48,22 +48,6 @@ public class AzureBlobContainerProviderTest {
 
     private static final String CONTAINER_NAME = "test-container";
     private AzureBlobContainerProvider provider;
-
-    @Before
-    public void setUp() {
-        // Clean up any existing provider
-        if (provider != null) {
-            provider.close();
-            provider = null;
-        }
-    }
-
-    @After
-    public void tearDown() {
-        if (provider != null) {
-            provider.close();
-        }
-    }
 
     @Test
     public void testBuilderWithConnectionString() {
@@ -168,19 +152,6 @@ public class AzureBlobContainerProviderTest {
         BlobContainerClient containerClient = provider.getBlobContainer(retryOptions, properties);
         assertNotNull("Container client should not be null", containerClient);
         assertEquals("Container name should match", CONTAINER_NAME, containerClient.getBlobContainerName());
-    }
-
-    @Test
-    public void testClose() {
-        provider = AzureBlobContainerProvider.Builder
-                .builder(CONTAINER_NAME)
-                .withAzureConnectionString(getConnectionString())
-                .build();
-        
-        // Should not throw exception
-        provider.close();
-        assertEquals("Container name should match", CONTAINER_NAME, provider.getContainerName());
-        assertEquals("Connection string should match", getConnectionString(), provider.getAzureConnectionString());
     }
 
     @Test
@@ -449,21 +420,6 @@ public class AzureBlobContainerProviderTest {
     }
 
     @Test
-    public void testCloseMethod() {
-        provider = AzureBlobContainerProvider.Builder
-                .builder(CONTAINER_NAME)
-                .withAzureConnectionString(getConnectionString())
-                .build();
-
-        // Test that close method can be called multiple times without issues
-        provider.close();
-        provider.close(); // Should not throw exception
-
-        // Should still be able to use provider after close (since close() is empty)
-        assertNotNull("Provider should still be usable", provider.getContainerName());
-    }
-
-    @Test
     public void testDefaultEndpointSuffixUsage() throws Exception {
         provider = AzureBlobContainerProvider.Builder
                 .builder(CONTAINER_NAME)
@@ -481,12 +437,11 @@ public class AzureBlobContainerProviderTest {
 
         // Test that the endpoint is used in service principal authentication
         RequestRetryOptions retryOptions = new RequestRetryOptions();
-        Method getContainerMethod = AzureBlobContainerProvider.class.getDeclaredMethod(
-                "getBlobContainerFromServicePrincipals", String.class, RequestRetryOptions.class);
-        getContainerMethod.setAccessible(true);
 
         try {
-            getContainerMethod.invoke(provider, "testaccount", retryOptions);
+            MethodUtils.invokeMethod(provider, true, "getBlobContainerFromServicePrincipals",
+                new Object[]{"testaccount", retryOptions},
+                new Class<?>[]{String.class, RequestRetryOptions.class});
         } catch (Exception e) {
             // Expected - we're just testing that the method uses the default endpoint
             assertNotNull("Exception should not be null", e);
@@ -631,9 +586,7 @@ public class AzureBlobContainerProviderTest {
                 .build();
 
         // Use reflection to test private method
-        Method authenticateMethod = AzureBlobContainerProvider.class.getDeclaredMethod("authenticateViaServicePrincipal");
-        authenticateMethod.setAccessible(true);
-        boolean result = (boolean) authenticateMethod.invoke(provider);
+        boolean result = (boolean) MethodUtils.invokeMethod(provider, true, "authenticateViaServicePrincipal");
         assertTrue("Should authenticate via service principal", result);
     }
 
@@ -649,9 +602,7 @@ public class AzureBlobContainerProviderTest {
                 .build();
 
         // Use reflection to test private method
-        Method authenticateMethod = AzureBlobContainerProvider.class.getDeclaredMethod("authenticateViaServicePrincipal");
-        authenticateMethod.setAccessible(true);
-        boolean result = (boolean) authenticateMethod.invoke(provider);
+        boolean result = (boolean) MethodUtils.invokeMethod(provider, true, "authenticateViaServicePrincipal");
         assertFalse("Should not authenticate via service principal when connection string is present", result);
     }
 
@@ -666,9 +617,7 @@ public class AzureBlobContainerProviderTest {
                 .build();
 
         // Use reflection to test private method
-        Method authenticateMethod = AzureBlobContainerProvider.class.getDeclaredMethod("authenticateViaServicePrincipal");
-        authenticateMethod.setAccessible(true);
-        boolean result = (boolean) authenticateMethod.invoke(provider);
+        boolean result = (boolean) MethodUtils.invokeMethod(provider, true, "authenticateViaServicePrincipal");
         assertFalse("Should not authenticate via service principal with missing credentials", result);
     }
 
@@ -682,9 +631,7 @@ public class AzureBlobContainerProviderTest {
                 .build();
 
         // Use reflection to test private method
-        Method getCredentialMethod = AzureBlobContainerProvider.class.getDeclaredMethod("getClientSecretCredential");
-        getCredentialMethod.setAccessible(true);
-        ClientSecretCredential credential = (ClientSecretCredential) getCredentialMethod.invoke(provider);
+        ClientSecretCredential credential = (ClientSecretCredential) MethodUtils.invokeMethod(provider, true, "getClientSecretCredential");
         assertNotNull("Credential should not be null", credential);
     }
 
@@ -701,13 +648,11 @@ public class AzureBlobContainerProviderTest {
         RequestRetryOptions retryOptions = new RequestRetryOptions();
 
         // Use reflection to test private method
-        Method getContainerMethod = AzureBlobContainerProvider.class.getDeclaredMethod(
-                "getBlobContainerFromServicePrincipals", String.class, RequestRetryOptions.class);
-        getContainerMethod.setAccessible(true);
-
         try {
-            BlobContainerClient containerClient = (BlobContainerClient) getContainerMethod.invoke(
-                    provider, "testaccount", retryOptions);
+            BlobContainerClient containerClient = (BlobContainerClient) MethodUtils.invokeMethod(provider, true,
+                "getBlobContainerFromServicePrincipals",
+                new Object[]{"testaccount", retryOptions},
+                new Class<?>[]{String.class, RequestRetryOptions.class});
             assertNotNull("Container client should not be null", containerClient);
         } catch (Exception e) {
             // Expected for invalid credentials
@@ -756,15 +701,9 @@ public class AzureBlobContainerProviderTest {
         when(mockBlobClient.generateSas(any(), any())).thenReturn("mock-sas-token");
 
         // Use reflection to test private method
-        Method generateSasMethod = AzureBlobContainerProvider.class.getDeclaredMethod(
-                "generateSas", BlockBlobClient.class, com.azure.storage.blob.sas.BlobServiceSasSignatureValues.class);
-        generateSasMethod.setAccessible(true);
-
-        String sas = (String) generateSasMethod.invoke(
-                provider,
-                mockBlobClient,
-                mock(com.azure.storage.blob.sas.BlobServiceSasSignatureValues.class)
-        );
+        String sas = (String) MethodUtils.invokeMethod(provider, true, "generateSas",
+                new Object[]{mockBlobClient, mock(com.azure.storage.blob.sas.BlobServiceSasSignatureValues.class)},
+                new Class<?>[]{BlockBlobClient.class, com.azure.storage.blob.sas.BlobServiceSasSignatureValues.class});
         assertEquals("SAS should match mock", "mock-sas-token", sas);
     }
 

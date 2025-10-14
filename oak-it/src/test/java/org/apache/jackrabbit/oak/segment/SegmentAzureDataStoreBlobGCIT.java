@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_TAR;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
+import static org.apache.jackrabbit.oak.commons.testing.FixturesHelper.Fixture.SEGMENT_TAR;
+import static org.apache.jackrabbit.oak.commons.testing.FixturesHelper.getFixtures;
 import static org.junit.Assume.assumeTrue;
 
 import org.apache.commons.lang3.StringUtils;

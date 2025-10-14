@@ -2330,13 +2330,13 @@ public class AzureBlobStoreBackendV8Test {
   }
 
   @Test
-  public void testInitAzureDSConfigWithAllProperties() {
+  public void testInitAzureDSConfigWithAllProperties() throws DataStoreException {
     // This test exercises the Azure configuration initialization with all possible properties
     AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
 
     Properties props = new Properties();
     props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, "test-container");
-    props.setProperty(AzureConstants.AZURE_CONNECTION_STRING, "DefaultEndpointsProtocol=https;AccountName=test;AccountKey=test;EndpointSuffix=core.windows.net");
+    props.setProperty(AzureConstants.AZURE_CONNECTION_STRING, getConnectionString());
     props.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "testaccount");
     props.setProperty(AzureConstants.AZURE_BLOB_ENDPOINT, "https://testaccount.blob.core.windows.net");
     props.setProperty(AzureConstants.AZURE_SAS, "test-sas-token");
@@ -2347,19 +2347,59 @@ public class AzureBlobStoreBackendV8Test {
 
     backend.setProperties(props);
 
-    try {
-      backend.init();
-      // If init succeeds, the initAzureDSConfig method was called and executed
-      assertNotNull("Backend should be initialized", backend);
-    } catch (DataStoreException e) {
-      // Expected for test credentials, but initAzureDSConfig() was still executed
-      assertTrue("initAzureDSConfig was called during init", e.getMessage().contains("Unable to initialize") ||
-          e.getMessage().contains("Cannot create") ||
-          e.getMessage().contains("Storage"));
-    } catch (IllegalArgumentException e) {
-      // Also expected for invalid connection string, but initAzureDSConfig() was still executed
-      assertTrue("initAzureDSConfig was called during init", e.getMessage().contains("Invalid connection string"));
-    }
+    backend.init();
+    // If init succeeds, the initAzureDSConfig method was called and executed
+    assertNotNull("Backend should be initialized", backend);
+  }
+
+  @Test(expected = DataStoreException.class)
+  public void testInitAzureDSConfigWithAllPropertiesInvalidCredentials() throws Exception {
+    // Negative test: verify that init fails with invalid credentials even when all properties are set
+    // Uses Azurite endpoint but with invalid account key to trigger authentication failure
+    AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+
+    Properties props = new Properties();
+    props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, "test-container");
+    // Use Azurite endpoint but with invalid credentials
+    String invalidConnectionString = UtilsV8.getConnectionString(
+        AzuriteDockerRule.ACCOUNT_NAME,
+        "INVALID_KEY_aW52YWxpZGtleWludmFsaWRrZXlpbnZhbGlka2V5aW52YWxpZGtleQ==",
+        azurite.getBlobEndpoint());
+    props.setProperty(AzureConstants.AZURE_CONNECTION_STRING, invalidConnectionString);
+    props.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_NAME);
+    props.setProperty(AzureConstants.AZURE_BLOB_ENDPOINT, azurite.getBlobEndpoint());
+    props.setProperty(AzureConstants.AZURE_SAS, "invalid-sas-token");
+    props.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, "invalid-account-key");
+    props.setProperty(AzureConstants.AZURE_TENANT_ID, "invalid-tenant-id");
+    props.setProperty(AzureConstants.AZURE_CLIENT_ID, "invalid-client-id");
+    props.setProperty(AzureConstants.AZURE_CLIENT_SECRET, "invalid-client-secret");
+
+    backend.setProperties(props);
+    backend.init(); // Should throw DataStoreException due to invalid credentials
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testInitAzureDSConfigWithAllPropertiesInvalidConnectionStringFormat() throws Exception {
+    // Negative test: verify that init fails with malformed connection string
+    // Uses Azurite endpoint reference but provides malformed connection string
+    AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+
+    Properties props = new Properties();
+    props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, "test-container");
+    // Malformed connection string - missing required fields and invalid format
+    // Still references Azurite endpoint to show it fails before even attempting connection
+    props.setProperty(AzureConstants.AZURE_CONNECTION_STRING,
+        "InvalidFormat;BlobEndpoint=" + azurite.getBlobEndpoint() + ";MissingAccountName");
+    props.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_NAME);
+    props.setProperty(AzureConstants.AZURE_BLOB_ENDPOINT, azurite.getBlobEndpoint());
+    props.setProperty(AzureConstants.AZURE_SAS, "test-sas-token");
+    props.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, "test-account-key");
+    props.setProperty(AzureConstants.AZURE_TENANT_ID, "test-tenant-id");
+    props.setProperty(AzureConstants.AZURE_CLIENT_ID, "test-client-id");
+    props.setProperty(AzureConstants.AZURE_CLIENT_SECRET, "test-client-secret");
+
+    backend.setProperties(props);
+    backend.init(); // Should throw IllegalArgumentException due to malformed connection string
   }
 
   @Test

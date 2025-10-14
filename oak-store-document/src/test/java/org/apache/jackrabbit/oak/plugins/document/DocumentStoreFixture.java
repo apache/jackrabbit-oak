@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_MEM;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_NS;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_RDB;
+import static org.apache.jackrabbit.oak.commons.testing.FixturesHelper.Fixture.DOCUMENT_MEM;
+import static org.apache.jackrabbit.oak.commons.testing.FixturesHelper.Fixture.DOCUMENT_NS;
+import static org.apache.jackrabbit.oak.commons.testing.FixturesHelper.Fixture.DOCUMENT_RDB;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -28,7 +28,7 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
-import org.apache.jackrabbit.oak.commons.FixturesHelper;
+import org.apache.jackrabbit.oak.commons.testing.FixturesHelper;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;

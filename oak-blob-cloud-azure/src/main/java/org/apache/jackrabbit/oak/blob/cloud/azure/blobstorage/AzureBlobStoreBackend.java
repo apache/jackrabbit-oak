@@ -38,11 +38,11 @@ import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
-import com.google.common.base.Strings;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.cache.Cache;
+import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
@@ -53,7 +53,13 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
@@ -140,7 +146,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
             LOG.debug("Started backend initialization");
 
-            if (null == properties) {
+            if (properties == null) {
                 try {
                     properties = Utils.readConfig(Utils.DEFAULT_CONFIG_FILE);
                 } catch (IOException e) {
@@ -428,8 +434,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
 
     @Override
     public void close() {
-        azureBlobContainerProvider.close();
-        LOG.info("AzureBlobBackend closed.");
+        //Nothing to close
     }
 
     @Override
@@ -795,10 +800,10 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
                     + domain
                     + Objects.toString(downloadOptions.getContentTypeHeader(), "")
                     + Objects.toString(downloadOptions.getContentDispositionHeader(), "");
-            if (null != httpDownloadURICache) {
+            if (httpDownloadURICache != null) {
                 uri = httpDownloadURICache.getIfPresent(cacheKey);
             }
-            if (null == uri) {
+            if (uri == null) {
                 if (presignedDownloadURIVerifyExists) {
                     // Check if this identifier exists.  If not, we want to return null
                     // even if the identifier is in the download URI cache.

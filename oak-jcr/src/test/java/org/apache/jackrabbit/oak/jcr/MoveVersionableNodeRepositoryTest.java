@@ -34,7 +34,7 @@ import java.util.Collection;
 import java.util.List;
 
 import static java.util.Collections.singleton;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_NS;
+import static org.apache.jackrabbit.oak.commons.testing.FixturesHelper.Fixture.DOCUMENT_NS;
 import static org.junit.Assert.assertEquals;
 
 /**

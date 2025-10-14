@@ -32,11 +32,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.commons.collections.MapUtils;
@@ -77,7 +77,7 @@ public class FSBackendIT {
         props.setProperty("fsBackendPath", dataStoreDir);
         ds = createDataStore();
         backend = (FSBackend) ((CachingFileDataStore) ds).getBackend();
-        this.executor = Executors.newFixedThreadPool(25, new NamedThreadFactory("oak-backend-test-write-thread"));
+        this.executor = Executors.newFixedThreadPool(25, BasicThreadFactory.builder().namingPattern("oak-backend-test-write-thread-%d").build());
     }
 
     protected DataStore createDataStore() {

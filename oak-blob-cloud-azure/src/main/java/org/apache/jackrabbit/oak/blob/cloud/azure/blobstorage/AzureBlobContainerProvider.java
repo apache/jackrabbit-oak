@@ -43,7 +43,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Properties;
 
-public class AzureBlobContainerProvider implements Closeable {
+public class AzureBlobContainerProvider {
     private static final Logger log = LoggerFactory.getLogger(AzureBlobContainerProvider.class);
     private static final String DEFAULT_ENDPOINT_SUFFIX = "core.windows.net";
     private final String azureConnectionString;
@@ -66,11 +66,6 @@ public class AzureBlobContainerProvider implements Closeable {
         this.tenantId = builder.tenantId;
         this.clientId = builder.clientId;
         this.clientSecret = builder.clientSecret;
-    }
-
-    @Override
-    public void close() {
-        // No resources to close
     }
 
     public static class Builder {

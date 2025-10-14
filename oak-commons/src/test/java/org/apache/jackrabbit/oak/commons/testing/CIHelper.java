@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.commons;
+package org.apache.jackrabbit.oak.commons.testing;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.System.getenv;

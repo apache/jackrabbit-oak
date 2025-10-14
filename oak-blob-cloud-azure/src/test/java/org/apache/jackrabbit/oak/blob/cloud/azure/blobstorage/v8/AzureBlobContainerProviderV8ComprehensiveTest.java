@@ -24,6 +24,7 @@ import com.azure.identity.ClientSecretCredential;
 import com.microsoft.azure.storage.blob.BlobRequestOptions;
 import com.microsoft.azure.storage.blob.SharedAccessBlobHeaders;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,7 +32,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.time.OffsetDateTime;
 import java.util.EnumSet;
 import java.util.concurrent.ScheduledExecutorService;
@@ -221,11 +221,7 @@ public class AzureBlobContainerProviderV8ComprehensiveTest {
                 .withClientSecret(CLIENT_SECRET)
                 .build();
 
-        Method authenticateMethod = AzureBlobContainerProviderV8.class
-                .getDeclaredMethod("authenticateViaServicePrincipal");
-        authenticateMethod.setAccessible(true);
-        
-        boolean result = (Boolean) authenticateMethod.invoke(provider);
+        boolean result = (Boolean) MethodUtils.invokeMethod(provider, true, "authenticateViaServicePrincipal");
         assertTrue("Should authenticate via service principal when all credentials are present", result);
     }
 
@@ -239,11 +235,7 @@ public class AzureBlobContainerProviderV8ComprehensiveTest {
                 .withClientSecret(CLIENT_SECRET)
                 .build();
 
-        Method authenticateMethod = AzureBlobContainerProviderV8.class
-                .getDeclaredMethod("authenticateViaServicePrincipal");
-        authenticateMethod.setAccessible(true);
-        
-        boolean result = (Boolean) authenticateMethod.invoke(provider);
+        boolean result = (Boolean) MethodUtils.invokeMethod(provider, true, "authenticateViaServicePrincipal");
         assertFalse("Should not authenticate via service principal when tenant ID is missing", result);
     }
 
@@ -258,11 +250,7 @@ public class AzureBlobContainerProviderV8ComprehensiveTest {
                 .withClientSecret(CLIENT_SECRET)
                 .build();
 
-        Method authenticateMethod = AzureBlobContainerProviderV8.class
-                .getDeclaredMethod("authenticateViaServicePrincipal");
-        authenticateMethod.setAccessible(true);
-        
-        boolean result = (Boolean) authenticateMethod.invoke(provider);
+        boolean result = (Boolean) MethodUtils.invokeMethod(provider, true, "authenticateViaServicePrincipal");
         assertFalse("Should not authenticate via service principal when connection string is present", result);
     }
 
@@ -305,11 +293,7 @@ public class AzureBlobContainerProviderV8ComprehensiveTest {
                 .withClientSecret(CLIENT_SECRET)
                 .build();
 
-        Method authenticateMethod = AzureBlobContainerProviderV8.class
-                .getDeclaredMethod("authenticateViaServicePrincipal");
-        authenticateMethod.setAccessible(true);
-
-        boolean result = (Boolean) authenticateMethod.invoke(provider);
+        boolean result = (Boolean) MethodUtils.invokeMethod(provider, true, "authenticateViaServicePrincipal");
         assertTrue("Should authenticate via service principal when credentials are provided", result);
     }
 
@@ -320,11 +304,7 @@ public class AzureBlobContainerProviderV8ComprehensiveTest {
                 .withAzureConnectionString(CONNECTION_STRING)
                 .build();
 
-        Method authenticateMethod = AzureBlobContainerProviderV8.class
-                .getDeclaredMethod("authenticateViaServicePrincipal");
-        authenticateMethod.setAccessible(true);
-
-        boolean result = (Boolean) authenticateMethod.invoke(provider);
+        boolean result = (Boolean) MethodUtils.invokeMethod(provider, true, "authenticateViaServicePrincipal");
         assertFalse("Should not authenticate via service principal when no credentials are provided", result);
     }
 
@@ -483,11 +463,7 @@ public class AzureBlobContainerProviderV8ComprehensiveTest {
                 .withClientSecret(CLIENT_SECRET)
                 .build();
 
-        Method authenticateMethod = AzureBlobContainerProviderV8.class
-                .getDeclaredMethod("authenticateViaServicePrincipal");
-        authenticateMethod.setAccessible(true);
-
-        boolean result = (Boolean) authenticateMethod.invoke(provider);
+        boolean result = (Boolean) MethodUtils.invokeMethod(provider, true, "authenticateViaServicePrincipal");
         assertTrue("Should authenticate via service principal when all credentials are present", result);
     }
 
@@ -499,11 +475,7 @@ public class AzureBlobContainerProviderV8ComprehensiveTest {
                 .withAzureConnectionString(CONNECTION_STRING)
                 .build();
 
-        Method authenticateMethod = AzureBlobContainerProviderV8.class
-                .getDeclaredMethod("authenticateViaServicePrincipal");
-        authenticateMethod.setAccessible(true);
-
-        boolean result = (Boolean) authenticateMethod.invoke(provider);
+        boolean result = (Boolean) MethodUtils.invokeMethod(provider, true, "authenticateViaServicePrincipal");
         assertFalse("Should not authenticate via service principal when credentials are missing", result);
     }
 

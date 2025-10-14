@@ -38,26 +38,26 @@ public class ParallelCompactorTest extends AbstractCompactorTest {
 
     private final int concurrency;
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name = "{index}: {0} concurrency={2}")
     public static List<Object[]> parameters() {
         Integer[] concurrencyLevels = {1, 2, 4, 8, 16};
 
         List<Object[]> parameters = new ArrayList<>();
-        for (SimpleCompactorFactory factory : AbstractCompactorExternalBlobTest.compactorFactories()) {
+        for (Object[] args : AbstractCompactorTest.compactorFactories()) {
             for (int concurrency : concurrencyLevels) {
-                parameters.add(new Object[]{factory, concurrency});
+                parameters.add(new Object[]{args[0], args[1], concurrency});
             }
         }
         return parameters;
     }
 
-    public ParallelCompactorTest(@NotNull SimpleCompactorFactory compactorFactory, int concurrency) {
-        super(compactorFactory);
+    public ParallelCompactorTest(String name, @NotNull SimpleCompactorFactory compactorFactory, int concurrency) {
+        super(name, compactorFactory);
         this.concurrency = concurrency;
     }
 
     @Override
-    protected ParallelCompactor createCompactor(
+    protected Compactor createCompactor(
             @NotNull FileStore fileStore,
             @NotNull GCIncrement increment,
             @NotNull GCNodeWriteMonitor compactionMonitor
@@ -67,6 +67,7 @@ public class ParallelCompactorTest extends AbstractCompactorTest {
                 .withWriterPool(SegmentBufferWriterPool.PoolType.THREAD_SPECIFIC)
                 .build(fileStore);
         CompactionWriter compactionWriter = new CompactionWriter(fileStore.getReader(), fileStore.getBlobStore(), increment, writerFactory);
-        return new ParallelCompactor(GCMonitor.EMPTY, compactionWriter, compactionMonitor, concurrency);
+        return new CheckpointCompactor(GCMonitor.EMPTY,
+                new ParallelCompactor(GCMonitor.EMPTY, compactionWriter, compactionMonitor, concurrency));
     }
 }

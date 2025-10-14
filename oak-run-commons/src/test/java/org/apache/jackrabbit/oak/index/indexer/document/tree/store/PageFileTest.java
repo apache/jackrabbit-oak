@@ -61,4 +61,16 @@ public class PageFileTest {
         assertEquals(f.getUpdate(), f2.getUpdate());
     }
 
+    @Test
+    public void largeStringTest() {
+        PageFile f = new PageFile(false, 1_000_000);
+        StringBuilder buff = new StringBuilder();
+        for (int i = 0; i < 1_000_000; i++) {
+            buff.append('\uffff');
+        }
+        f.appendRecord("test", buff.toString());
+        // expected that the buffer doesn't overflow here
+        f.toBytes();
+    }
+
 }

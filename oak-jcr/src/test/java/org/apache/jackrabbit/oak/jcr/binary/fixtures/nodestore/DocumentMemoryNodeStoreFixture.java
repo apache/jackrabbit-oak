@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.jcr.binary.fixtures.nodestore;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import javax.jcr.RepositoryException;
 
 import org.apache.commons.io.FileUtils;
@@ -36,9 +38,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.HashBasedTable;
-import org.apache.jackrabbit.guava.common.collect.Table;
-
 /**
  * Creates a repository with
  * - DocumentNodeStore, storing data in-memory
@@ -50,7 +49,7 @@ public class DocumentMemoryNodeStoreFixture extends NodeStoreFixture implements 
 
     private final DataStoreFixture dataStoreFixture;
 
-    private final Table<NodeStore, String, Object> components = HashBasedTable.create();
+    private final Map<NodeStore, Map<String, Object>> components = new LinkedHashMap<>();
 
     public DocumentMemoryNodeStoreFixture(@Nullable DataStoreFixture dataStoreFixture) {
         this.dataStoreFixture = dataStoreFixture;
@@ -84,14 +83,15 @@ public class DocumentMemoryNodeStoreFixture extends NodeStoreFixture implements 
             }
 
             NodeStore nodeStore = documentNodeStoreBuilder.build();
+            components.put(nodeStore, new LinkedHashMap<>());
 
             // track all main components
             if (dataStore != null) {
-                components.put(nodeStore, DataStore.class.getName(), dataStore);
-                components.put(nodeStore, DataStore.class.getName() + ":folder", dataStoreFolder);
+                components.get(nodeStore).put(DataStore.class.getName(), dataStore);
+                components.get(nodeStore).put(DataStore.class.getName() + ":folder", dataStoreFolder);
             }
             if (blobStore != null) {
-                components.put(nodeStore, BlobStore.class.getName(), blobStore);
+                components.get(nodeStore).put(BlobStore.class.getName(), blobStore);
             }
 
             return nodeStore;
@@ -107,15 +107,15 @@ public class DocumentMemoryNodeStoreFixture extends NodeStoreFixture implements 
                 ((DocumentNodeStore)nodeStore).dispose();
             }
 
-            DataStore dataStore = (DataStore) components.get(nodeStore, DataStore.class.getName());
+            DataStore dataStore = (DataStore) components.get(nodeStore).get(DataStore.class.getName());
             if (dataStore != null && dataStoreFixture != null) {
                 dataStoreFixture.dispose(dataStore);
 
-                File dataStoreFolder = (File) components.get(nodeStore, DataStore.class.getName() + ":folder");
+                File dataStoreFolder = (File) components.get(nodeStore).get(DataStore.class.getName() + ":folder");
                 FileUtils.deleteQuietly(dataStoreFolder);
             }
         } finally {
-            components.row(nodeStore).clear();
+            components.get(nodeStore).clear();
         }
     }
 
@@ -127,6 +127,6 @@ public class DocumentMemoryNodeStoreFixture extends NodeStoreFixture implements 
 
     @Override
     public <T> T get(NodeStore nodeStore, String componentName) {
-        return (T) components.get(nodeStore, componentName);
+        return (T) components.get(nodeStore).get(componentName);
     }
 }
