@@ -128,7 +128,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
      */
     private static final Logger LOG = LoggerFactory.getLogger(NodeImpl.class);
 
-    private final int logWarnStringSizeThreshold;
+    private static final int LOG_WARN_STRING_SIZE_THRESHOLD = Integer.getInteger(
+            OakJcrConstants.WARN_LOG_STRING_SIZE_THRESHOLD_KEY,
+            OakJcrConstants.DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE);
 
     @Nullable
     public static NodeImpl<? extends NodeDelegate> createNodeOrNull(
@@ -162,9 +164,6 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
 
     public NodeImpl(T dlg, SessionContext sessionContext) {
         super(dlg, sessionContext);
-        logWarnStringSizeThreshold = Integer.getInteger(
-                OakJcrConstants.WARN_LOG_STRING_SIZE_THRESHOLD_KEY,
-                OakJcrConstants.DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE);
     }
 
     //---------------------------------------------------------------< Item >---
@@ -1425,8 +1424,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
     }
 
     private void logLargeStringProperties(String propertyName, String value) throws RepositoryException {
-        if (value.length() > logWarnStringSizeThreshold) {
-            LOG.warn("String length: {} for property: {} at Node: {} is greater than configured value {}", value.length(), propertyName, this.getPath(), logWarnStringSizeThreshold);
+        if (value.length() > LOG_WARN_STRING_SIZE_THRESHOLD) {
+            LOG.warn("String length: {} for property: {} at Node: {} is greater than configured value {}", value.length(), propertyName, this.getPath(), LOG_WARN_STRING_SIZE_THRESHOLD);
         }
     }
 
