@@ -231,7 +231,8 @@ public class ExternalLoginModule extends AbstractLoginModule {
             // before into the repository.
             UserManager userManager = getUserManager();
             SyncedIdentity sId = getSyncedIdentity(userId, userManager);
-            if (sId == null && userManager != null && creds != null) {
+            if (Boolean.parseBoolean(System.getProperty("FT_GRANITE-61684")) && 
+                    sId ==null && userManager != null && creds != null) {
                 // Check if the external user was registered with a different userId, and the same externalId
                 Object externalAttribute = credentialsSupport.getAttributes(creds).get(SHARED_ATTRIBUTE_EXTERNAL_ID);
                 if (externalAttribute != null ) {
