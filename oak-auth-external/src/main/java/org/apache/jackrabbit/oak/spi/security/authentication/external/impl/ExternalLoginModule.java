@@ -67,6 +67,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConstants.SHARED_ATTRIBUTE_EXTERNAL_ID;
 
 /**
  * {@code ExternalLoginModule} implements a {@code LoginModule} that uses an
@@ -232,7 +233,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
             SyncedIdentity sId = getSyncedIdentity(userId, userManager);
             if (sId == null && userManager != null && creds != null) {
                 // Check if the external user was registered with a different userId, and the same externalId
-                Object externalAttribute = credentialsSupport.getAttributes(creds).get(ExternalIdentityConstants.EXTERNAL_ID_ATTRIBUTE);
+                Object externalAttribute = credentialsSupport.getAttributes(creds).get(SHARED_ATTRIBUTE_EXTERNAL_ID);
                 if (externalAttribute != null ) {
                     @NotNull Iterator<Authorizable> authIterator = userManager.findAuthorizables(ExternalIdentityConstants.REP_EXTERNAL_ID, externalAttribute + ";" + idp.getName(), UserManager.SEARCH_TYPE_USER);
                     if (authIterator.hasNext()) {

@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
+import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.AbstractCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
@@ -130,8 +130,8 @@ public class TestExternalUserIdIdentityProvider implements ExternalIdentityProvi
         if (credentials instanceof TestExternalUserIdCredentials) {
             HashMap<String, Object> attrs = new HashMap<>();
             attrs.put(TokenConstants.TOKEN_ATTRIBUTE, "");
-            attrs.put(TokenConstants.EXTERNAL_ID_ATTRIBUTE, ((TestExternalUserIdCredentials) credentials).getAttribute(TokenConstants.EXTERNAL_ID_ATTRIBUTE));
-            attrs.put(AbstractLoginModule.SHARED_KEY_LOGIN_NAME, ((TestExternalUserIdCredentials) credentials).getAttribute(AbstractLoginModule.SHARED_KEY_LOGIN_NAME));
+            attrs.put(AuthenticationConstants.SHARED_ATTRIBUTE_EXTERNAL_ID, ((TestExternalUserIdCredentials) credentials).getAttribute(AuthenticationConstants.SHARED_ATTRIBUTE_EXTERNAL_ID));
+            attrs.put(AuthenticationConstants.SHARED_KEY_LOGIN_NAME, ((TestExternalUserIdCredentials) credentials).getAttribute(AuthenticationConstants.SHARED_KEY_LOGIN_NAME));
             return attrs;
         } else {
             return Collections.emptyMap();
@@ -160,7 +160,7 @@ public class TestExternalUserIdIdentityProvider implements ExternalIdentityProvi
 
         @Override
         public @NotNull ExternalIdentityRef getExternalId() {
-            return new ExternalIdentityRef((String) Objects.requireNonNull(externalCredentials.getAttribute(TokenConstants.EXTERNAL_ID_ATTRIBUTE)),
+            return new ExternalIdentityRef((String) Objects.requireNonNull(externalCredentials.getAttribute(AuthenticationConstants.SHARED_ATTRIBUTE_EXTERNAL_ID)),
                     getName());
         }
 

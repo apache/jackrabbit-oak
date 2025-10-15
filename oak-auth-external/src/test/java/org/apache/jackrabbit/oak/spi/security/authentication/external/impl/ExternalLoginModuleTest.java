@@ -75,6 +75,7 @@ import static java.util.Map.of;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 import static org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule.SHARED_KEY_ATTRIBUTES;
 import static org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule.SHARED_KEY_PRE_AUTH_LOGIN;
+import static org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConstants.SHARED_ATTRIBUTE_EXTERNAL_ID;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.DEFAULT_IDP_NAME;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_EXCEPTION;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_TEST_USER;
@@ -286,7 +287,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         String newPrincipalName = "newUserId";
 
         TestExternalUserIdCredentials creds = new TestExternalUserIdCredentials(newPrincipalName);
-        creds.setAttribute(ExternalIdentityConstants.EXTERNAL_ID_ATTRIBUTE, externalId);
+        creds.setAttribute(SHARED_ATTRIBUTE_EXTERNAL_ID, externalId);
 
         // We need to create an index, or we have an exception with the search       
         createExternalIdIndex(root.getTree("/"));
@@ -327,7 +328,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         root.commit();
         
         TestExternalUserIdCredentials creds = new TestExternalUserIdCredentials(principalName);
-        creds.setAttribute(ExternalIdentityConstants.EXTERNAL_ID_ATTRIBUTE, principalName);
+        creds.setAttribute(SHARED_ATTRIBUTE_EXTERNAL_ID, principalName);
 
         ExternalIdentityProvider idp = new TestExternalUserIdIdentityProvider(idpName);
 
