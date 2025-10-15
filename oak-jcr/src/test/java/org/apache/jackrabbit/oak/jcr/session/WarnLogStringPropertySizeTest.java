@@ -47,8 +47,8 @@ public class WarnLogStringPropertySizeTest extends AbstractRepositoryTest {
     public TemporarySystemProperty temporarySystemProperty = new TemporarySystemProperty();
 
     private final static String testStringPropertyKey = "testStringPropertyKey";
-    private final static String testLargeStringPropertyValue = "abcdefghijklmnopqrstuvwxyz";
-    private final static String testSmallStringPropertyValue = "abcd";
+    private final static String testLargeStringPropertyValue = "a".repeat(OakJcrConstants.DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE + 1);
+    private final static String testSmallStringPropertyValue = "a".repeat(OakJcrConstants.DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE);
     private final static String nodeImplLogger = NodeImpl.class.getName();
     private final static String warnMessage = "String length: {} for property: {} at Node: {} is greater than configured value {}";
     private static ListAppender<ILoggingEvent> listAppender = null;
@@ -80,7 +80,6 @@ public class WarnLogStringPropertySizeTest extends AbstractRepositoryTest {
 
     @Test
     public void warnLogOnAddingLargeStringPropertiesWithCustomThreshold() throws Exception {
-        System.setProperty(OakJcrConstants.WARN_LOG_STRING_SIZE_THRESHOLD_KEY, "10");
         Session s = getAdminSession();
         Node test = s.getRootNode().addNode("testLarge");
         test.setProperty(testStringPropertyKey, testLargeStringPropertyValue);
