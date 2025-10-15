@@ -278,9 +278,11 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
     }
     @Test
     public void testLoginUserIdentifiedByExternalId() throws Exception {
+        System.setProperty("FT_GRANITE-61684", "true");
+
         String idpName = "testExternalId";
         // UserId (PrincipalName) already present in oak (old UserId for the user)
-        String oldPrincipalName =  "test3OldValue";
+        String oldPrincipalName = "test3OldValue";
         // ExternalId present in oak and returned by the Idp, and already configured in Oak
         String externalId = "extId123";
         // New UserId returned by the ExternalIdp
@@ -294,7 +296,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         UserManager userManager = getUserManager(root);
         userManager.createUser(oldPrincipalName, null).setProperty(REP_EXTERNAL_ID, getValueFactory().createValue(externalId + ";" + idpName));
         root.commit();
-        
+
         ExternalIdentityProvider idp = new TestExternalUserIdIdentityProvider(idpName);
 
         when(extIPMgr.getProvider(DEFAULT_IDP_NAME)).thenReturn(idp);
@@ -302,10 +304,51 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
 
         wb.register(ExternalIdentityProviderManager.class, extIPMgr, Collections.emptyMap());
         wb.register(SyncManager.class, syncManager, Collections.emptyMap());
-        
+
         CallbackHandler cbh = createCallbackHandler(wb, getContentRepository(), getSecurityProvider(), creds);
 
-        Map<String,Object> sharedState = new HashMap<>();
+        Map<String, Object> sharedState = new HashMap<>();
+
+        loginModule.initialize(new Subject(), cbh, sharedState, of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
+        assertTrue(loginModule.login());
+        assertTrue(loginModule.commit());
+        // The original PrincipalId is used, even if the Idp initially sent a new UderId.
+        assertEquals(creds.getUserId(), oldPrincipalName);
+        assertTrue(loginModule.logout());
+    }
+
+    @Test(expected = LoginException.class)
+    public void testLoginUserIdentifiedByExternalIdIssue() throws Exception {
+        System.setProperty("FT_GRANITE-61684", "false");
+
+        String idpName = "testExternalId";
+        // UserId (PrincipalName) already present in oak (old UserId for the user)
+        String oldPrincipalName = "test3OldValue";
+        // ExternalId present in oak and returned by the Idp, and already configured in Oak
+        String externalId = "extId123";
+        // New UserId returned by the ExternalIdp
+        String newPrincipalName = "newUserId";
+
+        TestExternalUserIdCredentials creds = new TestExternalUserIdCredentials(newPrincipalName);
+        creds.setAttribute(SHARED_ATTRIBUTE_EXTERNAL_ID, externalId);
+
+        // We need to create an index, or we have an exception with the search       
+        createExternalIdIndex(root.getTree("/"));
+        UserManager userManager = getUserManager(root);
+        userManager.createUser(oldPrincipalName, null).setProperty(REP_EXTERNAL_ID, getValueFactory().createValue(externalId + ";" + idpName));
+        root.commit();
+
+        ExternalIdentityProvider idp = new TestExternalUserIdIdentityProvider(idpName);
+
+        when(extIPMgr.getProvider(DEFAULT_IDP_NAME)).thenReturn(idp);
+        when(syncManager.getSyncHandler("syncHandler")).thenReturn(new DefaultSyncHandler(new DefaultSyncConfigImpl().setName("syncHandler")));
+
+        wb.register(ExternalIdentityProviderManager.class, extIPMgr, Collections.emptyMap());
+        wb.register(SyncManager.class, syncManager, Collections.emptyMap());
+
+        CallbackHandler cbh = createCallbackHandler(wb, getContentRepository(), getSecurityProvider(), creds);
+
+        Map<String, Object> sharedState = new HashMap<>();
 
         loginModule.initialize(new Subject(), cbh, sharedState, of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
         assertTrue(loginModule.login());
@@ -319,6 +362,8 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
     // This is the default case for users that did not modify his userId
     @Test
     public void testLoginUserIdentifiedByExternalIdNotFound() throws Exception {
+        System.setProperty("FT_GRANITE-61684", "true");
+
         String idpName = "testExternalId";
         // UserId (PrincipalName) already present in oak (UserId for the user)
         String principalName =  "test4";
@@ -352,6 +397,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
 
     @Test
     public void testLoginUserIdentifiedByExternalIdMissingCredentials() throws Exception {
+        System.setProperty("FT_GRANITE-61684", "true");
         String idpName = "testExternalId";
 
         // We need to create an index, or we have an exception with the search       
