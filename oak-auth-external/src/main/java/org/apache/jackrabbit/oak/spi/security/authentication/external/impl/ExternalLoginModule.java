@@ -241,7 +241,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
                         sId = getSyncedIdentity(authorizable.getID(), userManager);
                         Map<String, ?> attributes = credentialsSupport.getAttributes(creds);
                         HashMap<String, Object> newAttributes = new HashMap<>(attributes);
-                        newAttributes.put(AbstractLoginModule.SHARED_KEY_LOGIN_NAME, authorizable.getID());
+                        newAttributes.put(SHARED_KEY_LOGIN_NAME, authorizable.getID());
                         credentialsSupport.setAttributes(creds, newAttributes);
                     }
                 }
