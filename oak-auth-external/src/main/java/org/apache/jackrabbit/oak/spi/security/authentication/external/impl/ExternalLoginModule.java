@@ -230,7 +230,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
             // before into the repository.
             UserManager userManager = getUserManager();
             SyncedIdentity sId = getSyncedIdentity(userId, userManager);
-            if (sId ==null && userManager != null && creds != null) {
+            if (sId == null && userManager != null && creds != null) {
                 // Check if the external user was registered with a different userId, and the same externalId
                 Object externalAttribute = credentialsSupport.getAttributes(creds).get(ExternalIdentityConstants.EXTERNAL_ID_ATTRIBUTE);
                 if (externalAttribute != null ) {
