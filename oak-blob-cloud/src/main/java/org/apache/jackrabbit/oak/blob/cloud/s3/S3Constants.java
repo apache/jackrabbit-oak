@@ -53,6 +53,11 @@ public final class S3Constants {
     public static final String S3_MAX_ERR_RETRY = "maxErrorRetry";
 
     /**
+     * Amazon S3 cross region bucket access
+     */
+    public static final String S3_CROSS_REGION_ACCESS = "crossRegionAccess";
+
+    /**
      * Amazon aws S3 bucket.
      */
     public static final String S3_BUCKET = "s3Bucket";
@@ -123,11 +128,6 @@ public final class S3Constants {
     // please use  'openssl rand -base64 -out ssec.key 32' command to
     // generate base64 encoded 32 bytes string customer key for SSE_C
     public static final String S3_SSE_C_KEY = "sseCustomerKey";
-
-    /**
-     *  Constant to set S3 signature for SSE_KMS encryption.
-     */
-    public static final String S3_SIG_V4 = "AWSS3V4SignerType";
 
     /**
      *  Constant to set proxy host.

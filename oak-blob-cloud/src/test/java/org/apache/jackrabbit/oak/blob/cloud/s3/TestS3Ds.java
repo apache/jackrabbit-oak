@@ -29,14 +29,6 @@ import java.util.Properties;
 import javax.jcr.RepositoryException;
 
 import org.apache.commons.lang3.time.DateUtils;
-import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.entity.InputStreamEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.message.BasicHeader;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -51,6 +43,7 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -58,16 +51,16 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.core.sync.ResponseTransformer;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3Uri;
+import software.amazon.awssdk.services.s3.S3Utilities;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectResponse;
+import software.amazon.awssdk.services.s3.model.ServerSideEncryption;
 
-import static com.amazonaws.services.s3.Headers.SERVER_SIDE_ENCRYPTION;
-import static com.amazonaws.services.s3.Headers.SERVER_SIDE_ENCRYPTION_AWS_KMS_KEYID;
-import static com.amazonaws.services.s3.Headers.SERVER_SIDE_ENCRYPTION_CUSTOMER_ALGORITHM;
-import static com.amazonaws.services.s3.Headers.SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY;
-import static com.amazonaws.services.s3.Headers.SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY_MD5;
-import static com.amazonaws.services.s3.model.SSEAlgorithm.AES256;
-import static com.amazonaws.services.s3.model.SSEAlgorithm.KMS;
-import static com.amazonaws.util.Base64.decode;
-import static com.amazonaws.util.Md5Utils.md5AsBase64;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION_SSE_C;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION_SSE_KMS;
@@ -77,9 +70,10 @@ import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getFixtur
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3Config;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3DataStore;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.isS3Configured;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.isSseCustomerKeyEncrypted;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
+import static software.amazon.awssdk.services.s3.model.ServerSideEncryption.AES256;
 
 /**
  * Test {@link S3DataStore} with S3Backend and local cache on.
@@ -117,9 +111,11 @@ public class TestS3Ds extends AbstractDataStoreTest {
         return DateUtils.addMinutes(new Date(), -1);
     }
 
+    protected void setEncryptionData() {}
+
     @BeforeClass
     public static void assumptions() {
-        assumeTrue(isS3Configured());
+        Assume.assumeTrue(isS3Configured());
     }
 
     private static List<String> createdBucketNames = new ArrayList<>();
@@ -139,6 +135,7 @@ public class TestS3Ds extends AbstractDataStoreTest {
         props.setProperty(S3Constants.PRESIGNED_URI_ENABLE_ACCELERATION, "60");
         props.setProperty(S3Constants.PRESIGNED_HTTP_DOWNLOAD_URI_CACHE_MAX_SIZE, "60");
         props.setProperty(S3_ENCRYPTION, S3Constants.S3_ENCRYPTION_NONE);
+        setEncryptionData();
         super.setUp();
     }
 
@@ -164,6 +161,7 @@ public class TestS3Ds extends AbstractDataStoreTest {
 
     @Test
     public void testGetDownloadURI() throws IOException, RepositoryException {
+        Assume.assumeTrue("SSE-C doesn't support presigned GET URLs", !isSseCustomerKeyEncrypted());
         DataStore ds = createDataStore();
 
         byte[] data = new byte[dataLength];
@@ -172,21 +170,22 @@ public class TestS3Ds extends AbstractDataStoreTest {
         DataRecord record = doSynchronousAddRecord(ds, new ByteArrayInputStream(data));
         URI uri = ((DataRecordAccessProvider) ds).getDownloadURI(record.getIdentifier(),
                                  DataRecordDownloadOptions.DEFAULT);
-        Assert.assertNotNull("uri is null", uri);
+        assertNotNull("uri is null", uri);
 
         // Download content from the URI directly and check
-        HttpEntity entity = httpGet(uri);
-        assertStream(new ByteArrayInputStream(data), entity.getContent());
+        InputStream entity = httpGet(uri);
+        assertStream(new ByteArrayInputStream(data), entity);
 
         // Download with DataStore API and check
         DataRecord getrec = ds.getRecord(record.getIdentifier());
-        Assert.assertNotNull(getrec);
+        assertNotNull(getrec);
         Assert.assertEquals(data.length, getrec.getLength());
         assertRecord(data, getrec);
     }
 
     @Test
     public void testDataMigration() {
+        Assume.assumeTrue("For SSE-C we can't change encryption without manual intervention", !isSseCustomerKeyEncrypted());
         try {
             String encryption = props.getProperty(S3_ENCRYPTION);
 
@@ -243,8 +242,8 @@ public class TestS3Ds extends AbstractDataStoreTest {
         randomGen.nextBytes(data);
 
         // Upload directly using the URI and check
-        CloseableHttpResponse response =  httpPut(uploadContext, new ByteArrayInputStream(data), data.length);
-        Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+        PutObjectResponse response =  httpPut(uploadContext, new ByteArrayInputStream(data), data.length);
+        Assert.assertEquals(200, response.sdkHttpResponse().statusCode());
         DataRecord uploadedRecord = ds.completeDataRecordUpload(uploadToken);
         assertNotNull(uploadedRecord);
         Assert.assertEquals(data.length, uploadedRecord.getLength());
@@ -252,62 +251,9 @@ public class TestS3Ds extends AbstractDataStoreTest {
 
         // Retieve through DataStore API and check
         DataRecord getrec = ds.getRecord(uploadedRecord.getIdentifier());
-        Assert.assertNotNull(getrec);
+        assertNotNull(getrec);
         Assert.assertEquals(data.length, getrec.getLength());
         assertRecord(data, getrec);
-    }
-
-    public CloseableHttpResponse httpPut(@Nullable DataRecordUpload uploadContext, InputStream inputstream, long length) throws IOException  {
-        // this weird combination of @Nullable and assertNotNull() is for IDEs not warning in test methods
-        assertNotNull(uploadContext);
-
-        URI puturl = uploadContext.getUploadURIs().iterator().next();
-        HttpPut putreq = new HttpPut(puturl);
-
-        String keyId = null;
-        String encryptionType = props.getProperty(S3_ENCRYPTION);
-
-        switch (encryptionType) {
-            case S3_ENCRYPTION_SSE_KMS:
-                keyId = props.getProperty(S3_SSE_KMS_KEYID);
-                putreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION, KMS.getAlgorithm()));
-                if (keyId != null) {
-                    putreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_AWS_KMS_KEYID, keyId));
-                }
-                break;
-            case S3_ENCRYPTION_SSE_C:
-                keyId = props.getProperty(S3_SSE_C_KEY);
-                putreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_ALGORITHM, AES256.getAlgorithm()));
-                putreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY, keyId));
-                putreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY_MD5, md5AsBase64(decode(keyId))));
-                break;
-            default:
-                break;
-        }
-
-        putreq.setEntity(new InputStreamEntity(inputstream , length));
-        CloseableHttpClient httpclient = HttpClients.createDefault();
-        CloseableHttpResponse response  = httpclient.execute(putreq);
-        return response;
-    }
-
-
-    private HttpEntity httpGet(URI uri) throws IOException {
-        HttpGet getreq = new HttpGet(uri);
-
-        final String encryptionType = props.getProperty(S3_ENCRYPTION);
-
-        if (Objects.equals(S3_ENCRYPTION_SSE_C, encryptionType)) {
-            String keyId = props.getProperty(S3_SSE_C_KEY);
-            getreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_ALGORITHM, AES256.getAlgorithm()));
-            getreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY, keyId));
-            getreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY_MD5, md5AsBase64(decode(keyId))));
-        }
-
-        CloseableHttpClient httpclient = HttpClients.createDefault();
-        CloseableHttpResponse res = httpclient.execute(getreq);
-        Assert.assertEquals(200, res.getStatusLine().getStatusCode());
-        return res.getEntity();
     }
 
     protected DataRecord doSynchronousAddRecord(DataStore ds, InputStream in) throws DataStoreException {
@@ -367,5 +313,87 @@ public class TestS3Ds extends AbstractDataStoreTest {
 
     @Override
     public void testDeleteAllOlderThan() {
+    }
+
+    // helper methods
+
+    private PutObjectResponse httpPut(@Nullable DataRecordUpload uploadContext, InputStream inputstream, long length) {
+        // this weird combination of @Nullable and assertNotNull() is for IDEs not warning in test methods
+        assertNotNull(uploadContext);
+
+        URI putUri = uploadContext.getUploadURIs().iterator().next();
+        try (S3Client s3Client = Utils.openService(props, false)) {
+            String bucketName = extractBucketFromUri(s3Client, putUri);
+            String key = extractKeyFromUri(s3Client, putUri);
+
+            String encryptionType = props.getProperty(S3_ENCRYPTION);
+
+            PutObjectRequest.Builder putReqBuilder = PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key);
+
+            switch (encryptionType) {
+                case S3_ENCRYPTION_SSE_KMS:
+                    String keyId = props.getProperty(S3_SSE_KMS_KEYID);
+                    putReqBuilder.serverSideEncryption(ServerSideEncryption.AWS_KMS);
+                    if (keyId != null) {
+                        putReqBuilder.ssekmsKeyId(keyId);
+                    }
+                    break;
+                case S3_ENCRYPTION_SSE_C:
+                    String sseCustomerKey = props.getProperty(S3_SSE_C_KEY);
+                    putReqBuilder
+                            .sseCustomerAlgorithm(AES256.toString())
+                            .sseCustomerKey(sseCustomerKey)
+                            .sseCustomerKeyMD5(Utils.calculateMD5(sseCustomerKey));  // implement helpers
+                    break;
+                default:
+                    // No encryption
+                    break;
+            }
+            return s3Client.putObject(putReqBuilder.build(), RequestBody.fromInputStream(inputstream, length));
+        }
+    }
+
+    private InputStream httpGet(URI uri) {
+        String encryptionType = props.getProperty(S3_ENCRYPTION);
+
+        try (S3Client s3Client = Utils.openService(props, false)) {
+            String bucketName = extractBucketFromUri(s3Client, uri);
+            String key = extractKeyFromUri(s3Client, uri);
+
+            GetObjectRequest.Builder req = GetObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key);
+
+            if (Objects.equals(S3_ENCRYPTION_SSE_C, encryptionType)) {
+                String keyId = props.getProperty(S3_SSE_C_KEY);
+                if (keyId != null) {
+                    req.sseCustomerAlgorithm(AES256.toString())
+                            .sseCustomerKey(keyId)
+                            .sseCustomerKeyMD5(Utils.calculateMD5(keyId));
+                }
+            }
+
+            return s3Client.getObject(req.build(), ResponseTransformer.toInputStream());
+        }
+    }
+
+    private static String extractBucketFromUri(S3Client s3Client, URI uri) {
+        LOG.info("Extracting bucket from URI {}", uri);
+        S3Utilities s3Utilities = s3Client.utilities();
+
+        S3Uri s3Uri = s3Utilities.parseUri(uri);
+
+        return s3Uri.bucket().orElse(null);
+    }
+
+    private static String extractKeyFromUri(S3Client s3Client, URI uri) {
+        LOG.info("Extracting key from URI {}", uri);
+        S3Utilities s3Utilities = s3Client.utilities();
+
+        S3Uri s3Uri = s3Utilities.parseUri(uri);
+
+        return s3Uri.key().orElse(null);
     }
 }
