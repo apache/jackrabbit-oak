@@ -42,8 +42,9 @@
         105 MB: Azure updates
         107 MB: RDB/Tomcat (OAK-10752)
         120 MB: added commons-csv for csv parsing (OAK-10790)
+        124 MB: Aws Sdk 2.x (OAK-11935)
         -->
-        <max.jar.size>120000000</max.jar.size>
+        <max.jar.size>130000000</max.jar.size>
                       
     </properties>
 
