@@ -172,10 +172,6 @@
         <!-- Azure Blob Storage dependency -->
         <dependency>
             <groupId>com.microsoft.azure</groupId>
-            <artifactId>azure-storage</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-keyvault-core</artifactId>
         </dependency>
         <dependency>

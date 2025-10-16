@@ -18,11 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.tool;
 
-import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.ADD;
-import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.CREATE;
-import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.LIST;
-import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.READ;
-import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.WRITE;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newFileStore;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newSegmentNodeStorePersistence;
 import static org.junit.Assert.assertEquals;
@@ -31,26 +26,20 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
-import java.time.Duration;
-import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.Collections;
-import java.util.Date;
-import java.util.EnumSet;
 import java.util.List;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
-import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
+import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.blob.sas.BlobSasPermission;
+import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 
-import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.azure.v8.AzurePersistenceV8;
-import org.apache.jackrabbit.oak.segment.azure.tool.SegmentCopy;
+import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
+import org.apache.jackrabbit.oak.segment.azure.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -71,7 +60,6 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersist
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.jetbrains.annotations.NotNull;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -81,7 +69,7 @@ import org.junit.rules.TemporaryFolder;
 public abstract class SegmentCopyTestBase {
     private static final String AZURE_DIRECTORY = "repository";
     private static final String AZURE_CONTAINER = "oak-test";
-    private static final EnumSet<SharedAccessBlobPermissions> READ_WRITE = EnumSet.of(READ, LIST, CREATE, WRITE, ADD);
+    private static final BlobSasPermission READ_WRITE = new BlobSasPermission().setReadPermission(true).setListPermission(true).setCreatePermission(true).setWritePermission(true).setAddPermission(true);
 
     @ClassRule
     public static AzuriteDockerRule azurite = new AzuriteDockerRule();
@@ -234,7 +222,7 @@ public abstract class SegmentCopyTestBase {
     }
 
     protected SegmentNodeStorePersistence getAzurePersistence() throws Exception {
-        return new AzurePersistenceV8(azurite.getContainer(AZURE_CONTAINER).getDirectoryReference(AZURE_DIRECTORY));
+        return new AzurePersistence(azurite.getReadBlobContainerClient(AZURE_CONTAINER), AZURE_DIRECTORY);
     }
 
     protected String getTarPersistencePathOrUri() {
@@ -256,9 +244,8 @@ public abstract class SegmentCopyTestBase {
         String sasToken;
 
         try {
-            sasToken = azurite.getContainer(AZURE_CONTAINER)
-                    .generateSharedAccessSignature(policy(READ_WRITE), null);
-        } catch (StorageException | InvalidKeyException | URISyntaxException e) {
+            sasToken = azurite.getReadBlobContainerClient(AZURE_CONTAINER).generateSas(new BlobServiceSasSignatureValues(OffsetDateTime.now().plusDays(1), READ_WRITE));
+        } catch (BlobStorageException e) {
             throw new RuntimeException("Error while accessing container ", e);
         }
 
@@ -269,13 +256,5 @@ public abstract class SegmentCopyTestBase {
         uri.append(sasToken);
 
         return uri.toString();
-    }
-
-    @NotNull
-    private static SharedAccessBlobPolicy policy(EnumSet<SharedAccessBlobPermissions> permissions) {
-        SharedAccessBlobPolicy sharedAccessBlobPolicy = new SharedAccessBlobPolicy();
-        sharedAccessBlobPolicy.setPermissions(permissions);
-        sharedAccessBlobPolicy.setSharedAccessExpiryTime(Date.from(Instant.now().plus(Duration.ofDays(7))));
-        return sharedAccessBlobPolicy;
     }
 }

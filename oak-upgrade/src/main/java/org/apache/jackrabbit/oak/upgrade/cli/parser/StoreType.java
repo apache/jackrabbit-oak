@@ -167,6 +167,7 @@ public enum StoreType {
                                 direction == MigrationDirection.SRC)
                         .connectionString(config.get(KEY_CONNECTION_STRING))
                         .containerName(config.get(KEY_CONTAINER_NAME))
+                        .accountName(config.get(KEY_ACCOUNT_NAME))
                         .build()
                 );
             } else {
