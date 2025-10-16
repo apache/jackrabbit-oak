@@ -132,10 +132,6 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider {
                         return CompletableFuture.completedFuture(accumulatedFacets);
                     }
 
-                    // if we get here, it means we have processed MAX_PAGE_SIZE hits and there might be more
-                    LOG.warn("Large result set detected ({} hits so far) for search request {}. Consider using statistical or insecure facets for better performance.",
-                            hits.size(), searchRequest);
-
                     // Extract sort values from the last hit for next search_after
                     Hit<ObjectNode> lastHit = hits.get(hits.size() - 1);
                     List<FieldValue> nextSearchAfter = lastHit.sort();
@@ -144,6 +140,10 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider {
                         LOG.warn("No sort values found for search_after, stopping pagination");
                         return CompletableFuture.completedFuture(accumulatedFacets);
                     }
+
+                    // if we get here, it means we have processed MAX_PAGE_SIZE hits and there might be more
+                    LOG.warn("Large result set detected ({} hits so far) for search request {}. Consider using statistical or insecure facets for better performance.",
+                            hits.size(), searchRequest);
 
                     // Recursively continue with next batch
                     return searchWithIncrementalFacetProcessing(connection, nextSearchAfter, accumulatedFacets);
