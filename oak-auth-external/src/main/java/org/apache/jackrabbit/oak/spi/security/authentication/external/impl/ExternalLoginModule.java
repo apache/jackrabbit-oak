@@ -233,11 +233,13 @@ public class ExternalLoginModule extends AbstractLoginModule {
             SyncedIdentity sId = getSyncedIdentity(userId, userManager);
             if (Boolean.parseBoolean(System.getProperty("FT_GRANITE-61684")) && 
                     sId ==null && userManager != null && creds != null) {
+                log.debug("FT_GRANITE-61684 is enabled and user is not found by userId. Trying to find external user by externalId attribute.");
                 // Check if the external user was registered with a different userId, and the same externalId
                 Object externalAttribute = credentialsSupport.getAttributes(creds).get(SHARED_ATTRIBUTE_EXTERNAL_ID);
                 if (externalAttribute != null ) {
                     @NotNull Iterator<Authorizable> authIterator = userManager.findAuthorizables(ExternalIdentityConstants.REP_EXTERNAL_ID, externalAttribute + ";" + idp.getName(), UserManager.SEARCH_TYPE_USER);
                     if (authIterator.hasNext()) {
+                        log.debug("Found existing user by externalId attribute: {}", externalAttribute);
                         //modify credentials to reflect the login name stored in oak
                         Authorizable authorizable = authIterator.next();
                         sId = getSyncedIdentity(authorizable.getID(), userManager);
