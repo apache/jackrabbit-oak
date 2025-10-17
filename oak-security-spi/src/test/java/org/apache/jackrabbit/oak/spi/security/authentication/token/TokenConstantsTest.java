@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.token;
 
+import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConstants;
 import org.junit.Test;
 
 import java.util.Set;
@@ -29,7 +30,7 @@ public class TokenConstantsTest {
 
     @Test
     public void testReservedAttributes() {
-        assertEquals(Set.of(TOKEN_ATTRIBUTE, TOKEN_ATTRIBUTE_EXPIRY, TOKEN_ATTRIBUTE_KEY), TokenConstants.RESERVED_ATTRIBUTES);
+        assertEquals(Set.of(TOKEN_ATTRIBUTE, TOKEN_ATTRIBUTE_EXPIRY, TOKEN_ATTRIBUTE_KEY, AuthenticationConstants.SHARED_ATTRIBUTE_EXTERNAL_ID, AuthenticationConstants.SHARED_KEY_LOGIN_NAME), TokenConstants.RESERVED_ATTRIBUTES);
     }
 
     @Test
