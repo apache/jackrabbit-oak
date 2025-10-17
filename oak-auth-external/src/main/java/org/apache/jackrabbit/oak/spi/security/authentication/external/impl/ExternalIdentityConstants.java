@@ -36,7 +36,12 @@ public interface ExternalIdentityConstants {
      * @see DefaultSyncContext#REP_EXTERNAL_ID
      */
     String REP_EXTERNAL_ID = DefaultSyncContext.REP_EXTERNAL_ID;
-
+    
+    /**
+     * Name of the attribute storing the external identifier in Credentials
+     */
+    String EXTERNAL_ID_ATTRIBUTE = ":externalId";
+    
     /**
      * Name of the property storing the date of the last synchronization of an
      * external identity.
