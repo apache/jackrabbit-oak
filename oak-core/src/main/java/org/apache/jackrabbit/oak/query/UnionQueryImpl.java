@@ -568,11 +568,11 @@ public class UnionQueryImpl implements Query {
 
     /**
      * @param row the result row
-     * @return the jcr:score as a Double
+     * @return the jcr:score as a double
      * Precondition: {@link #isScorePresent(Query)} must be true. If the row lacks a jcr:score, 0.0 is returned and
      * the issue is logged.
      */
-    private Double getScoreFromRow(ResultRowImpl row) {
+    private double getScoreFromRow(ResultRowImpl row) {
         try {
             PropertyValue scoreValue = row.getValue(QueryConstants.JCR_SCORE);
             return scoreValue.getValue(Type.DOUBLE);
