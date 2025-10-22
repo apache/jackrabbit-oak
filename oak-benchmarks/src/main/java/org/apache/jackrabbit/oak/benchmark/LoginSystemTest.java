@@ -24,10 +24,10 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.security.auth.Subject;
 
-import org.apache.jackrabbit.core.security.SystemPrincipal;
 import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
+import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 
 public class LoginSystemTest extends AbstractLoginTest {
 
@@ -39,7 +39,7 @@ public class LoginSystemTest extends AbstractLoginTest {
         if (getRepository() instanceof RepositoryImpl) {
             subject = SystemSubject.INSTANCE;
         } else {
-            subject = new Subject(true, Set.of(new SystemPrincipal()), Collections.emptySet(), Collections.emptySet());
+            subject = new Subject(true, Set.of(SystemPrincipal.INSTANCE), Collections.emptySet(), Collections.emptySet());
         }
     }
 

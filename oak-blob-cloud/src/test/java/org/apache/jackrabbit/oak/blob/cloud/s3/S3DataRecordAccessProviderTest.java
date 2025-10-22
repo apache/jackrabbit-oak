@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -98,6 +99,12 @@ public class S3DataRecordAccessProviderTest extends AbstractDataRecordAccessProv
     @Override
     protected void doDeleteRecord(DataStore ds, DataIdentifier identifier) throws DataStoreException {
         ((S3DataStore)ds).deleteRecord(identifier);
+    }
+
+    @Override
+    protected boolean isSSECustomerKeyEncryption() {
+        String encryption = getS3Config().getProperty(S3Constants.S3_ENCRYPTION, DataEncryption.NONE.toString());
+        return  Objects.equals(DataEncryption.valueOf(encryption), DataEncryption.SSE_C);
     }
 
     @Override

@@ -589,6 +589,10 @@ public class Oak {
             LOG.info("Registered optimize in restrictions for functions feature: " + QueryEngineSettings.FT_OPTIMIZE_IN_RESTRICTIONS_FOR_FUNCTIONS);
             closer.register(optimizeInRestrictionsForFunctions);
             queryEngineSettings.setOptimizeInRestrictionsForFunctions(optimizeInRestrictionsForFunctions);
+            Feature sortUnionQueryByScoreFeature = newFeature(QueryEngineSettings.FT_SORT_UNION_QUERY_BY_SCORE, whiteboard);
+            LOG.info("Registered sort union query by score feature: " + QueryEngineSettings.FT_SORT_UNION_QUERY_BY_SCORE);
+            closer.register(sortUnionQueryByScoreFeature);
+            queryEngineSettings.setSortUnionQueryByScoreFeature(sortUnionQueryByScoreFeature);
         }
 
         return this;
@@ -998,6 +1002,10 @@ public class Oak {
 
         public void setOptimizeInRestrictionsForFunctions(@Nullable Feature feature) {
             settings.setOptimizeInRestrictionsForFunctions(feature);
+        }
+
+        public void setSortUnionQueryByScoreFeature(@Nullable Feature feature) {
+            settings.setSortUnionQueryByScoreFeature(feature);
         }
 
         @Override
