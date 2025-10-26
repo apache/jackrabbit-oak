@@ -28,15 +28,4 @@ jobs:
         run: mvn -pl oak-auth-ldap test -Dtest=org.apache.jackrabbit.oak.security.authentication.ldap.TokenDefaultLdapLoginModuleTest#testSyncCreateGroup
 
       - name: Run test with NonDex
-        id: nondex
-        run: |
-          mvn -pl oak-auth-ldap edu.illinois:nondex-maven-plugin:2.1.1:nondex \
-            -Dtest=org.apache.jackrabbit.oak.security.authentication.ldap.TokenDefaultLdapLoginModuleTest#testSyncCreateGroup \
-            -DnondexRuns=10 || true
-          echo "RESULT_DIR=$(ls -d oak-auth-ldap/.nondex/*/)" >> $GITHUB_ENV
-
-      - name: Upload NonDex results
-        uses: actions/upload-artifact@v3
-        with:
-          name: nondex-test-results
-          path: ${{ env.RESULT_DIR }}
+        run: mvn -pl oak-auth-ldap edu.illinois:nondex-maven-plugin:2.1.1:nondex -Dtest=org.apache.jackrabbit.oak.security.authentication.ldap.TokenDefaultLdapLoginModuleTest#testSyncCreateGroup -DnondexRuns=10
