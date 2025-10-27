@@ -299,6 +299,12 @@ public class MongoDocumentStore implements DocumentStore {
 
     private final boolean readOnly;
 
+    /**
+     * Threshold in milliseconds for logging MongoDB query warnings.
+     * A value of 0 disables query time warnings.
+     */
+    private final long queryWarningThresholdMillis;
+
     @Override
     public int getNodeNameLimit() {
         return nodeNameLimit;
@@ -338,6 +344,7 @@ public class MongoDocumentStore implements DocumentStore {
         initializeMongoStorageOptions(builder);
 
         maxReplicationLagMillis = builder.getMaxReplicationLagMillis();
+        queryWarningThresholdMillis = builder.getQueryWarningThresholdMillis();
 
         useClientSession = !builder.isClientSessionDisabled()
                 && Boolean.parseBoolean(System.getProperty("oak.mongo.clientSession", "true"));
@@ -407,7 +414,8 @@ public class MongoDocumentStore implements DocumentStore {
         // reading documents in the nodes collection and checking
         // existing indexes is performed against the MongoDB primary
         // this ensures the information is up-to-date and accurate
-        boolean emptyNodesCollection = execute(session -> MongoUtils.isCollectionEmpty(nodes, session), Collection.NODES);
+        boolean emptyNodesCollection = execute(session -> MongoUtils.isCollectionEmpty(nodes, session), 
+                Collection.NODES, "isCollectionEmpty()");
         createCollection(db, Collection.NODES.toString(), mongoStatus);
         // compound index on _modified and _id
         if (emptyNodesCollection) {
@@ -706,7 +714,7 @@ public class MongoDocumentStore implements DocumentStore {
                     dbCollection.find(getByKeyQuery(key)).into(result);
                 }
                 return null;
-            }, collection);
+            }, collection, "findUncached(key=" + key + ")");
 
             if(result.isEmpty()) {
                 docFound = false;
@@ -878,7 +886,8 @@ public class MongoDocumentStore implements DocumentStore {
                     }
                 }
                 return null;
-            }, collection);
+            }, collection, "query(fromKey=" + fromKey + ", toKey=" + toKey + 
+                ", indexedProperty=" + indexedProperty + ", limit=" + limit + ")");
             resultSize = list.size();
 
             if (cacheChangesTracker != null) {
@@ -916,7 +925,7 @@ public class MongoDocumentStore implements DocumentStore {
                     dbCollection.deleteOne(filter);
                 }
                 return null;
-            }, collection);
+            }, collection, "remove(key=" + key + ")");
         } catch (Exception e) {
             throw DocumentStoreException.convert(e, "Remove failed for " + key);
         } finally {
@@ -941,7 +950,7 @@ public class MongoDocumentStore implements DocumentStore {
                             dbCollection.deleteMany(query);
                         }
                         return null;
-                    }, collection);
+                    }, collection, "remove(keys batch, size=" + keyBatch.size() + ")");
                 } catch (Exception e) {
                     throw DocumentStoreException.convert(e, "Remove failed for " + keyBatch);
                 } finally {
@@ -977,15 +986,15 @@ public class MongoDocumentStore implements DocumentStore {
                 if (!it.hasNext() || batch.size() == IN_CLAUSE_BATCH_SIZE) {
                     Bson query = Filters.or(batch);
                     try {
-                        num += execute(session -> {
-                            DeleteResult result;
-                            if (session != null) {
-                                result = dbCollection.deleteMany(session, query);
-                            } else {
-                                result = dbCollection.deleteMany(query);
-                            }
-                            return result.getDeletedCount();
-                        }, collection);
+                    num += execute(session -> {
+                        DeleteResult result;
+                        if (session != null) {
+                            result = dbCollection.deleteMany(session, query);
+                        } else {
+                            result = dbCollection.deleteMany(query);
+                        }
+                        return result.getDeletedCount();
+                    }, collection, "remove(query batch, size=" + batch.size() + ")");
                     } catch (Exception e) {
                         throw DocumentStoreException.convert(e, "Remove failed for " + batch);
                     } finally {
@@ -1025,7 +1034,8 @@ public class MongoDocumentStore implements DocumentStore {
                         result = dbCollection.deleteMany(query);
                     }
                     return result.getDeletedCount();
-                }, collection), MAX_VALUE);
+                }, collection, "remove(indexedProperty=" + indexedProperty + 
+                    ", startValue=" + startValue + ", endValue=" + endValue + ")"), MAX_VALUE);
             } catch (Exception e) {
                 throw DocumentStoreException.convert(e, "Remove failed for " + collection + ": " +
                     indexedProperty + " in (" + startValue + ", " + endValue + ")");
@@ -1097,7 +1107,7 @@ public class MongoDocumentStore implements DocumentStore {
                         } else {
                             return dbCollection.updateOne(query, update);
                         }
-                    }, collection);
+                    }, collection, "update(key=" + updateOp.getId() + ", modCount=" + modCount + ")");
                     if (result.getModifiedCount() > 0) {
                         // success, update cached document
                         if (collection == Collection.NODES) {
@@ -1121,7 +1131,7 @@ public class MongoDocumentStore implements DocumentStore {
                 } else {
                     return dbCollection.findOneAndUpdate(query, update, options);
                 }
-            }, collection);
+            }, collection, "findAndModify(key=" + updateOp.getId() + ", upsert=" + upsert + ")");
 
             if (oldNode == null && upsert) {
                 newEntry = true;
@@ -1561,7 +1571,7 @@ public class MongoDocumentStore implements DocumentStore {
                         docs.put(foundDoc.getId(), foundDoc);
                     }
                     return null;
-                }, collection);
+                }, collection, "find(keys, size=" + keys.size() + ")");
             }
             return docs;
         } catch (BSONException ex) {
@@ -1596,7 +1606,7 @@ public class MongoDocumentStore implements DocumentStore {
                     docs.put(foundDoc.getId(), foundDoc);
                 }
                 return null;
-            }, collection);
+            }, collection, "findDocumentsOneByOne(keys, size=" + keys.size() + ")");
         }
 
         return docs;
@@ -1638,7 +1648,7 @@ public class MongoDocumentStore implements DocumentStore {
                 } else {
                     return dbCollection.bulkWrite(writes, options);
                 }
-            }, collection);
+            }, collection, "bulkUpdate(size=" + writes.size() + ")");
         } catch (MongoBulkWriteException e) {
             bulkResult = e.getWriteResult();
             for (BulkWriteError err : e.getWriteErrors()) {
@@ -1723,7 +1733,7 @@ public class MongoDocumentStore implements DocumentStore {
                         dbCollection.insertMany(inserts);
                     }
                     return null;
-                }, collection);
+                }, collection, "insertDocuments(size=" + inserts.size() + ")");
                 if (collection == Collection.NODES) {
                     for (T doc : docs) {
                         nodesCache.putIfAbsent((NodeDocument) doc);
@@ -1791,7 +1801,7 @@ public class MongoDocumentStore implements DocumentStore {
                     dbCollection.find(query).into(result);
                 }
                 return null;
-            }, collection);
+            }, collection, "findCached(keys, size=" + keys.size() + ")");
 
             List<T> docs = new ArrayList<>(keys.size());
             for (BasicDBObject dbObject : result) {
@@ -2366,28 +2376,39 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     /**
-     * Execute a callable with an optional {@link ClientSession}. A client
-     * session is passed to {@link DocumentStoreCallable#call(ClientSession)} if
+     * Execute a callable with an optional {@link ClientSession} and track execution time.
+     * A client session is passed to {@link DocumentStoreCallable#call(ClientSession)} if
      * the connected MongoDB servers support client sessions, otherwise the
      * session is {@code null}. The client session must only be used within
      * the scope of the {@link DocumentStoreCallable#call(ClientSession)}.
      * 
      * @param callable the callable.
      * @param collection the collection this callable operates on.
+     * @param description a description of the query for logging purposes.
      * @param <T> the return type of the callable.
      * @return the result of the callable.
      * @throws DocumentStoreException if the callable throws an exception.
      */
     private <T> T execute(@NotNull DocumentStoreCallable<T> callable,
-                          @NotNull Collection<?> collection)
+                          @NotNull Collection<?> collection,
+                          @NotNull String description)
             throws DocumentStoreException {
+        final Stopwatch watch = startWatch();
         T result;
-        if (withClientSession()) {
-            try (ClientSession session = createClientSession(collection)) {
-                result = callable.call(session);
+        try {
+            if (withClientSession()) {
+                try (ClientSession session = createClientSession(collection)) {
+                    result = callable.call(session);
+                }
+            } else {
+                result = callable.call(null);
             }
-        } else {
-            result = callable.call(null);
+        } finally {
+            long durationMillis = watch.elapsed(TimeUnit.MILLISECONDS);
+            if (queryWarningThresholdMillis > 0 && durationMillis > queryWarningThresholdMillis) {
+                LOG.warn("MongoDB query exceeded threshold: {} took {}ms on collection {}",
+                        description, durationMillis, collection);
+            }
         }
         return result;
     }
