@@ -2215,7 +2215,7 @@ public class MongoDocumentStore implements DocumentStore {
         return doc;
     }
 
-    private Stopwatch startWatch() {
+    protected Stopwatch startWatch() {
         return Stopwatch.createStarted();
     }
 
