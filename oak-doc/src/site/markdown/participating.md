@@ -92,6 +92,13 @@ up to the committer.
 - When new files are added, make sure they have the proper license on it
   (in doubt, run the build with "-Prat").
 - after merging a PR consider deleting the branch unless it should be kept.
+- PRs from Apache branches are checked using CI builds and
+  [Sonar](https://sonarcloud.io/project/overview?id=org.apache.jackrabbit%3Ajackrabbit-oak).
+  Please take warnings seriously.
+- PRs from other repositories do not get these checks. Oak committers can merge
+  the changes into an Apache Oak branch for testing.
+- After merging, please monitor the Oak related tests on https://ci-builds.apache.org/job/Jackrabbit/.
+- Changes can also be tested locally; run `mvn clean install -PintegrationTesting` - and be patient.
 
 #### Commits
 
