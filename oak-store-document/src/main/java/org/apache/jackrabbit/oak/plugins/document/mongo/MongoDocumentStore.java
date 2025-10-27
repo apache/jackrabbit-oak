@@ -986,15 +986,15 @@ public class MongoDocumentStore implements DocumentStore {
                 if (!it.hasNext() || batch.size() == IN_CLAUSE_BATCH_SIZE) {
                     Bson query = Filters.or(batch);
                     try {
-                    num += execute(session -> {
-                        DeleteResult result;
-                        if (session != null) {
-                            result = dbCollection.deleteMany(session, query);
-                        } else {
-                            result = dbCollection.deleteMany(query);
-                        }
-                        return result.getDeletedCount();
-                    }, collection, "remove(query batch, size=" + batch.size() + ")");
+                        num += execute(session -> {
+                            DeleteResult result;
+                            if (session != null) {
+                                result = dbCollection.deleteMany(session, query);
+                            } else {
+                                result = dbCollection.deleteMany(query);
+                            }
+                            return result.getDeletedCount();
+                        }, collection, "remove(query batch, size=" + batch.size() + ")");
                     } catch (Exception e) {
                         throw DocumentStoreException.convert(e, "Remove failed for " + batch);
                     } finally {
