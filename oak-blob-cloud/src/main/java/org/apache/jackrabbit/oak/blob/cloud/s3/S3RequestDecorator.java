@@ -17,22 +17,17 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
-import com.amazonaws.services.s3.model.CopyObjectRequest;
-import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
-import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.SSEAlgorithm;
-import com.amazonaws.services.s3.model.SSEAwsKeyManagementParams;
-import com.amazonaws.services.s3.model.SSECustomerKey;
+import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.ServerSideEncryption;
+import software.amazon.awssdk.utils.StringUtils;
 
 import java.util.Properties;
 
-import static com.amazonaws.HttpMethod.GET;
-import static com.amazonaws.services.s3.model.SSEAlgorithm.AES256;
-import static com.amazonaws.util.StringUtils.hasValue;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION_SSE_C;
@@ -41,14 +36,13 @@ import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_SSE_C_KEY;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_SSE_KMS_KEYID;
 
 /**
- * This class to sets encrption mode in S3 request.
+ * This class to sets encryption mode related properties for S3 request.
  *
  */
 public class S3RequestDecorator {
     DataEncryption dataEncryption = DataEncryption.NONE;
-    SSEAwsKeyManagementParams sseParams;
-
-    SSECustomerKey sseCustomerKey;
+    String sseKmsKey;
+    String sseCustomerKey;
 
     public S3RequestDecorator(Properties props) {
         final String encryptionType = props.getProperty(S3_ENCRYPTION);
@@ -58,16 +52,17 @@ public class S3RequestDecorator {
             switch (encryptionType) {
                 case S3_ENCRYPTION_SSE_KMS: {
                     final String keyId = props.getProperty(S3_SSE_KMS_KEYID);
-                    sseParams = new SSEAwsKeyManagementParams();
-                    if (hasValue(keyId)) {
-                        sseParams.withAwsKmsKeyId(keyId);
+                    if (StringUtils.isNotBlank(keyId)) {
+                        sseKmsKey = keyId;
                     }
                     break;
                 }
                 case S3_ENCRYPTION_SSE_C: {
                     final String keyId = props.getProperty(S3_SSE_C_KEY);
-                    if (hasValue(keyId)) {
-                        sseCustomerKey = new SSECustomerKey(keyId);
+                    if (StringUtils.isNotBlank(keyId)) {
+                        sseCustomerKey = keyId;
+                    } else {
+                        throw new IllegalArgumentException("sseCustomerKey is empty for  SSE_C encryption mode");
                     }
                     break;
                 }
@@ -78,11 +73,16 @@ public class S3RequestDecorator {
     }
 
     /**
-     * Set encryption in {@link GetObjectMetadataRequest}
+     * Set encryption in {@link HeadObjectRequest}
      */
-    public GetObjectMetadataRequest decorate(final GetObjectMetadataRequest request) {
+    public HeadObjectRequest decorate(final HeadObjectRequest request) {
         if (requireNonNull(getDataEncryption()) == DataEncryption.SSE_C) {
-            request.withSSECustomerKey(sseCustomerKey);
+            // Assume sseCustomerKey is already of type software.amazon.awssdk.services.s3.model.SseCustomerKey
+            return request.toBuilder()
+                    .sseCustomerKey(sseCustomerKey)
+                    .sseCustomerAlgorithm(ServerSideEncryption.AES256.toString())
+                    .sseCustomerKeyMD5(Utils.calculateMD5(sseCustomerKey))
+                    .build();
         }
         return request;
     }
@@ -92,7 +92,25 @@ public class S3RequestDecorator {
      */
     public GetObjectRequest decorate(final GetObjectRequest request) {
         if (requireNonNull(getDataEncryption()) == DataEncryption.SSE_C) {
-            request.withSSECustomerKey(sseCustomerKey);
+            return request.toBuilder()
+                    .sseCustomerAlgorithm(ServerSideEncryption.AES256.toString())
+                    .sseCustomerKey(sseCustomerKey)
+                    .sseCustomerKeyMD5(Utils.calculateMD5(sseCustomerKey))
+                    .build();
+        }
+        return request;
+    }
+
+    /**
+     * Set encryption in {@link CompleteMultipartUploadRequest}
+     */
+    public CompleteMultipartUploadRequest decorate(final CompleteMultipartUploadRequest request) {
+        if (requireNonNull(getDataEncryption()) == DataEncryption.SSE_C) {
+            return request.toBuilder()
+                    .sseCustomerAlgorithm(ServerSideEncryption.AES256.toString())
+                    .sseCustomerKey(sseCustomerKey)
+                    .sseCustomerKeyMD5(Utils.calculateMD5(sseCustomerKey))
+                    .build();
         }
         return request;
     }
@@ -101,109 +119,93 @@ public class S3RequestDecorator {
      * Set encryption in {@link PutObjectRequest}
      */
     public PutObjectRequest decorate(PutObjectRequest request) {
-        ObjectMetadata metadata = request.getMetadata() == null
-                                      ? new ObjectMetadata()
-                                      : request.getMetadata();
-        switch (getDataEncryption()) {
+        PutObjectRequest.Builder builder = request.toBuilder();
+
+        DataEncryption encryption = getDataEncryption();
+
+        switch (encryption) {
             case SSE_S3:
-                metadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+                builder.serverSideEncryption(ServerSideEncryption.AES256);
                 break;
             case SSE_KMS:
-                metadata.setSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
-                /*Set*/
-                request.withSSEAwsKeyManagementParams(sseParams);
+                builder.serverSideEncryption(ServerSideEncryption.AWS_KMS);
+                if (sseKmsKey != null) {
+                    builder.ssekmsKeyId(sseKmsKey);
+                }
                 break;
             case SSE_C:
-                request.withSSECustomerKey(sseCustomerKey);
+                builder.sseCustomerAlgorithm(ServerSideEncryption.AES256.toString())
+                        .sseCustomerKey(sseCustomerKey)
+                        .sseCustomerKeyMD5(Utils.calculateMD5(sseCustomerKey));
                 break;
             case NONE:
                 break;
         }
-        request.setMetadata(metadata);
-        return request;
+        return builder.build();
     }
 
     /**
      * Set encryption in {@link CopyObjectRequest}
      */
     public CopyObjectRequest decorate(CopyObjectRequest request) {
-        ObjectMetadata metadata = request.getNewObjectMetadata() == null
-                                      ? new ObjectMetadata()
-                                      : request.getNewObjectMetadata();;
+
+        CopyObjectRequest.Builder builder = request.toBuilder();
+
         switch (getDataEncryption()) {
             case SSE_S3:
-                metadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+                builder.serverSideEncryption(ServerSideEncryption.AES256);
                 break;
             case SSE_KMS:
-                metadata.setSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
-                request.withSSEAwsKeyManagementParams(sseParams);
+                builder.serverSideEncryption(ServerSideEncryption.AWS_KMS);
+                if (sseKmsKey != null) {
+                    // sseParams is typically a KMS Key ID string in SDK 2.x.
+                    builder.ssekmsKeyId(sseKmsKey);
+                }
                 break;
             case SSE_C:
-                metadata.setSSEAlgorithm(AES256.getAlgorithm());
-                request.withSourceSSECustomerKey(sseCustomerKey).withDestinationSSECustomerKey(sseCustomerKey);
+                // destination headers
+                builder.sseCustomerAlgorithm(ServerSideEncryption.AES256.toString())
+                        .sseCustomerKey(sseCustomerKey)
+                        .sseCustomerKeyMD5(Utils.calculateMD5(sseCustomerKey));
+
+                // source headers
+                builder.copySourceSSECustomerAlgorithm(ServerSideEncryption.AES256.toString())
+                        .copySourceSSECustomerKey(sseCustomerKey)
+                        .copySourceSSECustomerKeyMD5(Utils.calculateMD5(sseCustomerKey));
                 break;
             case NONE:
                 break;
         }
-        request.setNewObjectMetadata(metadata);
-        return request;
+        return builder.build();
     }
 
-    public InitiateMultipartUploadRequest decorate(InitiateMultipartUploadRequest request) {
-        ObjectMetadata metadata = request.getObjectMetadata() == null
-                                      ? new ObjectMetadata()
-                                      : request.getObjectMetadata();;
+    public CreateMultipartUploadRequest decorate(CreateMultipartUploadRequest request) {
+
+        CreateMultipartUploadRequest.Builder builder = request.toBuilder();
+
         switch (getDataEncryption()) {
             case SSE_S3:
-                metadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+                builder.serverSideEncryption(ServerSideEncryption.AES256);
                 break;
             case SSE_KMS:
-                metadata.setSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
-                request.withSSEAwsKeyManagementParams(sseParams);
+                builder.serverSideEncryption(ServerSideEncryption.AWS_KMS);
+                if (sseKmsKey != null) {
+                    builder.ssekmsKeyId(sseKmsKey);
+                }
                 break;
             case SSE_C:
-                request.withSSECustomerKey(sseCustomerKey);
+                builder.sseCustomerAlgorithm(ServerSideEncryption.AES256.toString())
+                        .sseCustomerKey(sseCustomerKey)
+                        .sseCustomerKeyMD5(Utils.calculateMD5(sseCustomerKey));
                 break;
             case NONE:
                 break;
         }
-        request.setObjectMetadata(metadata);
-        return request;
-    }
-
-    public GeneratePresignedUrlRequest decorate(GeneratePresignedUrlRequest request) {
-        switch (getDataEncryption()) {
-          case SSE_KMS:
-              if (request.getMethod() == GET) break; // KMS is not valid for GET Requests
-              String keyId = getSSEParams().getAwsKmsKeyId();
-              request = request.withSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
-              if (keyId != null) {
-                  request = request.withKmsCmkId(keyId);
-              }
-              break;
-          case SSE_C:
-              request = request.withSSECustomerKey(sseCustomerKey);
-              break;
-          default:
-              break;
-        }
-        return request;
-    }
-
-    private SSEAwsKeyManagementParams getSSEParams() {
-        return this.sseParams;
+        return builder.build();
     }
 
     private DataEncryption getDataEncryption() {
         return this.dataEncryption;
-    }
-
-    /**
-     * Enum to indicate S3 encryption mode
-     *
-     */
-    private enum DataEncryption {
-        SSE_S3, SSE_KMS, SSE_C, NONE;
     }
 
 }
