@@ -235,7 +235,7 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider {
                 LOG.error("Error evaluating facets. Ignoring. Search request: {}", searchRequest, e);
             } catch (TimeoutException e) {
                 searchFuture.cancel(true);
-                LOG.error("Timed out while waiting for facets. Search request: {}", searchRequest);
+                LOG.error("Timed out while waiting for facets. Search request: {}", searchRequest, e);
             } catch (InterruptedException e) {
                 LOG.error("Interrupted while waiting for facets. Search request: {}", searchRequest, e);
                 Thread.currentThread().interrupt();  // restore interrupt status
