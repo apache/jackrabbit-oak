@@ -55,6 +55,7 @@ public class JsonNodeBuilderTest {
         JsonNodeBuilder.addOrReplace(ns, "/test", "nt:test", json.toString());
         String json2 = JsonUtils.nodeStateToJson(ns.getRoot(), 5);
         json2 = json2.replaceAll("jcr:uuid\" : \".*\"", "jcr:uuid\" : \"...\"");
+        json2 = json2.replace("\r\n", "\n");
         assertEquals("{\n"
                 + "  \"test\" : {\n"
                 + "    \"queryPaths\" : \"/same\",\n"
@@ -88,7 +89,7 @@ public class JsonNodeBuilderTest {
                 + "      \"jcr:primaryType\" : \"nt:test\"\n"
                 + "    }\n"
                 + "  }\n"
-                + "}", JsonUtils.nodeStateToJson(ns.getRoot(), 5));
+                + "}", JsonUtils.nodeStateToJson(ns.getRoot(), 5).replace("\r\n", "\n"));
     }
 
     @Test
@@ -114,7 +115,7 @@ public class JsonNodeBuilderTest {
                 + "      \"jcr:primaryType\" : \"nt:test\"\n"
                 + "    }\n"
                 + "  }\n"
-                + "}", JsonUtils.nodeStateToJson(ns.getRoot(), 5));
+                + "}", JsonUtils.nodeStateToJson(ns.getRoot(), 5).replace("\r\n", "\n"));
 
         json = JsonObject.fromJson(
                 "{\"number\":1," +
@@ -135,13 +136,13 @@ public class JsonNodeBuilderTest {
                 + "      \"jcr:primaryType\" : \"nt:test\"\n"
                 + "    }\n"
                 + "  }\n"
-                + "}", JsonUtils.nodeStateToJson(ns.getRoot(), 5));
+                + "}", JsonUtils.nodeStateToJson(ns.getRoot(), 5).replace("\r\n", "\n"));
     }
 
     @Test
     public void illegalNodeTypesAreProhibited() {
         String simpleJson = "{\"property\": \"value\"}";
-        
+
         IllegalStateException exception = assertThrows(
             IllegalStateException.class,
             () -> JsonNodeBuilder.addOrReplace(ns, "/test", "invalid/nodetype", simpleJson)
@@ -152,7 +153,7 @@ public class JsonNodeBuilderTest {
     @Test
     public void removingEntriesIsProhibited() {
         String jsonWithNull = "{\"nullProperty\": null}";
-        
+
         IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
             () -> JsonNodeBuilder.addOrReplace(ns, "/test", "nt:unstructured", jsonWithNull)
