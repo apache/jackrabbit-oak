@@ -246,7 +246,7 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
     public void knnWithSmallFetchSize() throws Exception {
         String jcrIndexName = UUID.randomUUID().toString();
         String inferenceServiceUrl = "http://localhost:" + wireMock.port() + "/v1/embeddings";
-        String inferenceModelConfigName = "ada-test-model";
+        String inferenceModelConfigName = "small-fetch-size";
         String inferenceModelName = "text-embedding-ada-002";
 
         // Create inference config
