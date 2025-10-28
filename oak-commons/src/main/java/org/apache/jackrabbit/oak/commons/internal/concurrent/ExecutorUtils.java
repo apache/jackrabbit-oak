@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.commons.internal.concurrent;
 
-
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Util methods for {@link java.util.concurrent.Executor}
@@ -31,5 +31,9 @@ public class ExecutorUtils {
 
     public static Executor directExecutor() {
         return DirectExecutor.INSTANCE;
+    }
+
+    public static ExecutorService newDirectExecutorService() {
+        return new DirectExecutorService();
     }
 }

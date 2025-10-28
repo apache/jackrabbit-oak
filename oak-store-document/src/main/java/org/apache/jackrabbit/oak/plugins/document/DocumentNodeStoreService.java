@@ -231,6 +231,12 @@ public class DocumentNodeStoreService {
 
     /** OAK-11246 : default millis for perflogger info */
     static final long DEFAULT_PERFLOGGER_INFO_MILLIS = Long.MAX_VALUE;
+
+    /**
+     * Default threshold in milliseconds for logging MongoDB query warnings.
+     * A value of 0 disables query time warnings.
+     */
+    static final long DEFAULT_MONGO_QUERY_WARNING_THRESHOLD_MILLIS = 0;
   
     /**
      * Feature toggle name to enable the prev-no-prop cache.
@@ -392,6 +398,7 @@ public class DocumentNodeStoreService {
             builder.setMongoWaitQueueTimeoutMillis(config.mongoWaitQueueTimeoutMillis());
             builder.setMongoReadTimeoutMillis(config.mongoReadTimeoutMillis());
             builder.setMongoMinHeartbeatFrequencyMillis(config.mongoMinHeartbeatFrequencyMillis());
+            builder.setMongoQueryWarningThresholdMillis(config.mongoQueryWarningThresholdMillis());
             builder.setMongoDB(uri, db, config.blobCacheSize());
             builder.setCollectionCompressionType(config.collectionCompressionType());
             mkBuilder = builder;

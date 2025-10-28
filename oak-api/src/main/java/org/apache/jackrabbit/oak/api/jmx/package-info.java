@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 @Version("4.16.0")
 package org.apache.jackrabbit.oak.api.jmx;
 
