@@ -87,7 +87,7 @@ import static org.junit.Assert.assertTrue;
 public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticInferenceUsingConfigTest.class);
-    private static ObjectMapper MAPPER = new JsonMapper();
+    private static final ObjectMapper MAPPER = new JsonMapper();
 
     private ScheduledExecutorService executorService;
     private StatisticsProvider statisticsProvider;
@@ -240,6 +240,45 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         // Test hybrid search with experimental inference query prefix
         hybridSearch("?");
         System.clearProperty(VectorQuery.EXPERIMENTAL_COMPATIBILITY_MODE_KEY);
+    }
+
+    @Test
+    public void knnWithSmallFetchSize() throws Exception {
+        String jcrIndexName = UUID.randomUUID().toString();
+        String inferenceServiceUrl = "http://localhost:" + wireMock.port() + "/v1/embeddings";
+        String inferenceModelConfigName = "ada-test-model";
+        String inferenceModelName = "text-embedding-ada-002";
+
+        // Create inference config
+        createInferenceConfig(jcrIndexName, true, defaultEnricherConfig, inferenceModelConfigName,
+                inferenceModelName, inferenceServiceUrl, 0.0, 1L, true, true);
+        setupEnricherStatus(defaultEnricherStatusMapping, defaultEnricherStatusData);
+        // Create index definition with multiple properties
+        IndexDefinitionBuilder builder = createIndexDefinition("title", "description", "updatedBy");
+        // set small query fetch sizes to test this behavioral change https://github.com/elastic/elasticsearch/pull/118774
+        builder.getBuilderTree().setProperty("queryFetchSizes", List.of(1L, 10L), Type.LONGS);
+        Tree index = setIndex(jcrIndexName, builder);
+        root.commit();
+
+        // Add test content
+        addTestContent();
+
+        // Let the index catch up
+        assertEventually(() -> assertEquals(7, countDocuments(index)));
+
+        // Enrich documents with embeddings
+        setupEmbeddingsForContent(index, inferenceModelConfigName, inferenceModelName);
+
+        // Setup wiremock stubs for inference service
+        setupMockInferenceService(inferenceModelConfigName, jcrIndexName);
+
+        // Test with inference config
+        String queryPath = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '"
+                + "?{}?a beginner guide to data manipulation in python')";
+        assertEventually(() -> {
+            List<String> results = executeQuery(queryPath, SQL2, true, true);
+            assertEquals(5, results.size());
+        });
     }
 
     private void enableExperimentalInferenceCompatibility() {
@@ -423,7 +462,7 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
                 Map<String, Collection<Double>> map = MAPPER.readValue(json, Map.class);
                 ObjectNode updateDoc = MAPPER.createObjectNode();
                 List<Float> embeddings = map.get("embedding").stream()
-                    .map(d -> ((Double) d).floatValue())
+                    .map(Double::floatValue)
                     .collect(Collectors.toList());
 
                 VectorDocument vectorDocument = new VectorDocument(
@@ -435,8 +474,7 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
                 ObjectNode vectorSpacesNode = updateDoc.putObject(InferenceConstants.VECTOR_SPACES);
                 ArrayNode inferenceModelConfigNode = vectorSpacesNode.putArray(inferenceModelConfigName);
                 inferenceModelConfigNode.addPOJO(vectorDocument);
-                Map<String, Object> enricherStatusConfig = new HashMap<>();
-                InferenceConfig.getInstance().getEnricherStatus().entrySet().forEach(k -> enricherStatusConfig.put(k.getKey(), k.getValue()));
+                Map<String, Object> enricherStatusConfig = new HashMap<>(InferenceConfig.getInstance().getEnricherStatus());
                 enricherStatusConfig.put("status", "COMPLETED");
                 updateDoc.putPOJO(InferenceConstants.ENRICH_NODE, enricherStatusConfig);
                 updateDocument(index, path, updateDoc);
@@ -542,7 +580,7 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
             assertNotNull(carsDocUpdated.get(InferenceConstants.VECTOR_SPACES));
             try {
                 TreeNode tree = MAPPER.readTree(carsDocUpdated.get(InferenceConstants.ENRICH_NODE).traverse());
-                assertEquals(((TextNode) tree.get("status")).asText(), (String) InferenceConfig.getInstance().getEnricherStatus().get("status"));
+                assertEquals(((TextNode) tree.get("status")).asText(), InferenceConfig.getInstance().getEnricherStatus().get("status"));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -923,7 +961,7 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         ObjectMapper mapper = new JsonMapper();
         Map<String, Collection<Double>> embeddingsMap = mapper.readValue(jsonUrl, Map.class);
         List<Float> embeddings = embeddingsMap.get("embedding").stream()
-            .map(d -> ((Double) d).floatValue())
+            .map(Double::floatValue)
             .collect(Collectors.toList());
 
         // Create a large number of car-related documents

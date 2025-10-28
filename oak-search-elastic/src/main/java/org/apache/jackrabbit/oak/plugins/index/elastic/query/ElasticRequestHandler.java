@@ -700,6 +700,8 @@ public class ElasticRequestHandler {
                         KnnQuery.Builder knnQueryBuilder = new KnnQuery.Builder();
                         knnQueryBuilder.field(InferenceConstants.VECTOR_SPACES + "." + inferenceModelConfigName + "." + InferenceConstants.VECTOR);
                         knnQueryBuilder.numCandidates(inferenceModelConfig.getNumCandidates());
+                        // see https://github.com/elastic/elasticsearch/pull/118774
+                        knnQueryBuilder.k(inferenceModelConfig.getNumCandidates());
                         knnQueryBuilder.queryVector(embeddings);
                         knnQueryBuilder.similarity((float) inferenceModelConfig.getSimilarityThreshold());
                         // filters in knn are only applicable if filters are defined in knn query itself.
