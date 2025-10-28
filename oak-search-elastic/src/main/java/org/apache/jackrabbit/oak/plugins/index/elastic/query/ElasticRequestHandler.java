@@ -700,6 +700,9 @@ public class ElasticRequestHandler {
                         KnnQuery.Builder knnQueryBuilder = new KnnQuery.Builder();
                         knnQueryBuilder.field(InferenceConstants.VECTOR_SPACES + "." + inferenceModelConfigName + "." + InferenceConstants.VECTOR);
                         knnQueryBuilder.numCandidates(inferenceModelConfig.getNumCandidates());
+                        // The behavior of knn queries has changed in ES 8.18+. k is the number of nearest neighbors to return from each shard.
+                        // When not specified, it defaults to the size of the overall search request, which by default is 10.
+                        // To maintain previous behavior, we explicitly set k to numCandidates.
                         // see https://github.com/elastic/elasticsearch/pull/118774
                         knnQueryBuilder.k(inferenceModelConfig.getNumCandidates());
                         knnQueryBuilder.queryVector(embeddings);
