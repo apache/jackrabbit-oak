@@ -468,6 +468,65 @@ public class DocumentNodeStoreServiceConfigurationTest {
         assertEquals(15000, config.mongoHeartbeatFrequencyMillis());
     }
 
+    @Test
+    public void mongoQueryWarningThresholdDefault() throws IOException {
+        Configuration config = createConfiguration();
+        
+        // Verify default value is 0 (disabled)
+        assertEquals("Default query warning threshold should be 0 (disabled)", 
+                0L, config.mongoQueryWarningThresholdMillis());
+    }
+
+    @Test
+    public void mongoQueryWarningThresholdCustomValue() throws IOException {
+        // Set custom threshold value (30000 milliseconds = 30 seconds)
+        addConfigurationEntry(configuration, "mongoQueryWarningThresholdMillis", 30000L);
+        
+        Configuration config = createConfiguration();
+        
+        // Verify the custom value is read correctly
+        assertEquals("Custom query warning threshold should be applied", 
+                30000L, config.mongoQueryWarningThresholdMillis());
+    }
+
+    @Test
+    public void mongoQueryWarningThresholdFromPreset() throws IOException {
+        // Set threshold value in preset (45000 milliseconds = 45 seconds)
+        addConfigurationEntry(preset, "mongoQueryWarningThresholdMillis", 45000L);
+        
+        Configuration config = createConfiguration();
+        
+        // Verify the preset value is read correctly
+        assertEquals("Query warning threshold from preset should be applied", 
+                45000L, config.mongoQueryWarningThresholdMillis());
+    }
+
+    @Test
+    public void mongoQueryWarningThresholdOverridePreset() throws IOException {
+        // Set threshold in both preset and configuration
+        // Configuration should take precedence
+        addConfigurationEntry(preset, "mongoQueryWarningThresholdMillis", 45000L);
+        addConfigurationEntry(configuration, "mongoQueryWarningThresholdMillis", 60000L);
+        
+        Configuration config = createConfiguration();
+        
+        // Verify the configuration value overrides preset
+        assertEquals("Configuration should override preset for query warning threshold", 
+                60000L, config.mongoQueryWarningThresholdMillis());
+    }
+
+    @Test
+    public void mongoQueryWarningThresholdDisabled() throws IOException {
+        // Explicitly set threshold to 0 to disable warnings
+        addConfigurationEntry(configuration, "mongoQueryWarningThresholdMillis", 0L);
+        
+        Configuration config = createConfiguration();
+        
+        // Verify warnings are disabled
+        assertEquals("Query warning threshold of 0 should disable warnings", 
+                0L, config.mongoQueryWarningThresholdMillis());
+    }
+
     private Configuration createConfiguration() throws IOException {
         return DocumentNodeStoreServiceConfiguration.create(
                 context.componentContext(), configAdmin,
