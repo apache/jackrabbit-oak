@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.86.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.88.0
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.86.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.88.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
@@ -15,72 +15,76 @@ production use.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.86.0
+Changes in Oak 1.88.0
 ---------------------
-
-Sub-task
-
-    [OAK-11856] - oak-run-commons: remove usage of "old" Oak bloom filter, use oak-commons instead
-    [OAK-11858] - Remove remains of Oak bloom filter in oak-run-commons
-    [OAK-11881] - Remove usage of Guava Maps.map()
-    [OAK-11883] - Remove usage of Guava collect.Range
-    [OAK-11885] - Remove usage of Guava collect.ListMultiMap
-    [OAK-11887] - oak-it: exclude *db artefacts
-    [OAK-11888] - Remove usage of Guava ThreadBuilderFactory
 
 Technical task
 
-    [OAK-11656] - Remove usage of Guava Suppliers.memoize
-    [OAK-11832] - Remove usage of Guava's Tree Traverser
-    [OAK-11833] - Remove usage of Guava's Traverser
-    [OAK-11836] - Remove usage of Guava's AbstractIterator
-    [OAK-11842] - Copy Bloom Filter implementation from oak-run-commons to oak-commons for re-use
-    [OAK-11852] - Use new Bloom filter implementation in document store
-    [OAK-11855] - update oak-blob to use oak-commons bloom filter
-    [OAK-11869] - Remove usage of Guava's Hashing
-    [OAK-11886] - Remove usage of Guava's Futures.immediateFuture()
-    [OAK-11889] - Remove usage of Guava's Futures.successfulAsList()
-    [OAK-11890] - Remove usage of Guava's Futures.allAsList [Part 1]
-    [OAK-11893] - Remove usage of Guava's ListenableFuture [Part 1]
-    [OAK-11896] - Remove usage of Guava's SettableFuture [Part 1] [Test cases only]
-    [OAK-11903] - Remove usage of Guava's SettableFuture [Part 2] [Prod + Test]
-    [OAK-11906] - Remove usage of Guava's ListenableFutureTask [Part 1] [Test cases]
-    [OAK-11907] - Remove usage of Guava's MoreExecutors.directExecutor()
-    [OAK-11909] - Remove usage of Guava's MoreExecutors.newDirectExecutorService [Part 1] [Test cases]
+    [OAK-11911] - expose DirectExecutor in Oak from ExecutorUtils
+    [OAK-11912] - Create a new DirectExecutorService
+    [OAK-11913] - Create a new ForwardingExecutorService
+    [OAK-11914] - Remove usage of Guava's HashBasedTable
+    [OAK-11926] - Remove usage of Guava's Functions
+    [OAK-11927] - Remove usage of Guava's Queues.newLinkedBlockingQueue
+    [OAK-11928] - Remove usage of Guava's Queues.newSynchronousQueue
+    [OAK-11972] - eliminate uses of org.apache.jackrabbit.core.data.RandomInputStream
+    [OAK-11974] - remove usage of jackrabbit-data - NamedThreadFactory
 
 Bug
 
-    [OAK-9586] - SysViewImportHandler does not support expanded names in sv:name attributes
-    [OAK-9897] - SplitPersistence: FileReaper cannot finish cleanup
-    [OAK-11808] - Segment graph may need to be recomputed
-    [OAK-11846] - oak-segment-azure - recovery will recover from .bak
-    [OAK-11862] - oak-search-elastic: missing facets for multi-valued fields
-    [OAK-11864] - Create a new FullGC mode ALL_ORPHANS without empty properties
-    [OAK-11875] - FullGC.EMPTY_PROPS should not delete if there are previous documents with that property
-    [OAK-11884] - AzureArchiveManage.listArchives() should delete segments only if write acces is allowed
-    [OAK-11891] - Add metrics for documents Skipped due to FullGC.EMPTY_PROPS not deleting if there are previous documents with that property
-    [OAK-11905] - Update Mockito dependency to 5.19.0
+    [OAK-11848] - oak-standalone does not start anymore
+    [OAK-11895] - CheckpointCompactor writes to "after" instead of "onto" NodeState
+    [OAK-11899] - Empty tokenLength property values cause token not being generated
+    [OAK-11902] - TarWriterTest unstable
+    [OAK-11931] - Wrong default value for PREV_NO_PROP_CACHE
+    [OAK-11955] - oak-examples: The metrics page of the standalone app doesn't work
+    [OAK-11959] - oak-examples: The webapp doesn't work at all
+    [OAK-11965] - Persist new base states as complete during compaction
+    [OAK-11987] - org.apache.jackrabbit.oak.segment.azure.tool.SegmentStoreMigrator.migrateBinaryRef is missing a null check
+
+Epic
+
+    [OAK-11904] - Oak should compile & test on Java 25
+
+Story
+
+    [OAK-11936] - Allow updating the inference config via JMX
+    [OAK-11949] - Union queries should still order by score
 
 Improvement
 
-    [OAK-11841] - Optimizations and additional logging of performance metrics to statistical facets
-    [OAK-11849] - Make timeout for querying facets with Elasticsearch configurable
-    [OAK-11850] - Use MutableInt to compute facets to avoid boxing/unboxing between Int and Integer
-    [OAK-11851] - Log performance metrics of statistical facets and simplify logic
-    [OAK-11857] - Improve path handling in oak-segment-azure
-    [OAK-11861] - segment store initialization should run in parallel
-    [OAK-11866] - Support for datastore files without length
-    [OAK-11878] - ClusterNodeStoreLock LOCK_TIMEOUT is too large
-    [OAK-11894] - DocViewImport: Resolve the IdentifierManager lazily
+    [OAK-11929] - NPE in Lucene's implementation of secure facets
+    [OAK-11930] - JCR observation events should not serialize the propertyState for binary properties
+    [OAK-11934] - segment preloading for PersistentCache
+    [OAK-11969] - NodeDelegate: remove double check for existence of child tree
+    [OAK-11977] - Tree store: BufferOverflowException
+    [OAK-11980] - improve parallelization of I/O during segment-azure initialization
+    [OAK-11982] - Remove initialization of constant value from NodeImpl c'tor
+    [OAK-11984] - Support UserId Change for External Users
+    [OAK-11997] - Log slow Mongo queries in DocumentNodeStore
 
 Task
 
-    [OAK-10674] - use Oak's Bloom filter instead Guava's
-    [OAK-11859] - update Tomcat dependency to 9.0.108
-    [OAK-11870] - Allow passing fullGCGeneration parameter to RevisionsCommand
-    [OAK-11897] - Remove exports from oak-segment-azure
-    [OAK-11900] - SplitPersistenceTest: disable three tests on Windows platform
-    [OAK-11908] - Update Easymock dependency to 5.6.0
+    [OAK-11892] - Expose hidden mount for elasticsearch indexes in IndexStats
+    [OAK-11935] - Upgrade oak-blob-cloud aws java sdk from 1.x to 2.x
+    [OAK-11937] - Upgrade mockito-core to 5.20.0
+    [OAK-11938] - Upgrade assertj-core to 3.27.5
+    [OAK-11939] - Upgrade groovy version to 3.0.25
+    [OAK-11940] - Upgrade org.jetbrains.annotations to 26.0.2-1
+    [OAK-11942] - jdk 25 is unhappy with annotations on shaded types not directly referenced in the POM
+    [OAK-11943] - Upgrade netty version to 4.1.127.Final
+    [OAK-11944] - Upgrade aws-java-sdk-s3 version to 1.12.791
+    [OAK-11957] - oak-benchmarks/oak-it-osgi: update commons-compress dependency to 1.28.0
+    [OAK-11962] - Update commons-lang3 dependency to 3.19.0
+    [OAK-11964] - refactor parallel compaction inheritance
+    [OAK-11968] - SystemPropertySupplier should not declare IllegalArgumentExceptions
+    [OAK-11970] - Update MongoDockerRule to use Mongo 8 docker image
+    [OAK-11971] - Update MongodProcess to use Mongo 8 process
+    [OAK-11981] - blob-plugins - remove use of TransientFileFactory
+    [OAK-11983] - benchmarks: remove jackrabbit-core dependency
+    [OAK-11985] - Add MongoServerUnavailableException to transient error list
+    [OAK-11994] - [oak-run] remove dependency to joda-time
+    [OAK-11996] - Expand oak/docs/participating wrt to test coverage and Sonar
 
 
 In addition to the above-mentioned changes, this release contains all
