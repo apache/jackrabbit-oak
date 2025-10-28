@@ -24,7 +24,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import joptsimple.internal.Strings;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.json.JsonNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.EnvironmentVariableProcessorUtil;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
@@ -38,8 +37,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.util.Map;
@@ -49,7 +46,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class InferenceConfigTest {
 
@@ -999,72 +995,5 @@ public class InferenceConfigTest {
         // Test case 5: non-existent index name should return NOOP
         InferenceModelConfig resultForNonExistentIndexName = inferenceConfig.getInferenceModelConfig("nonExistentIndex", defaultModelName);
         assertEquals("Non-existent index name should return NOOP", InferenceModelConfig.NOOP, resultForNonExistentIndexName);
-    }
-
-    @Test
-    public void updateAndReInitializeCallsJsonNodeBuilder() {
-        String testPath = "/oak:index/testConfig";
-        String testJson = "{\"type\":\"inferenceConfig\",\"enabled\":true}";
-        InferenceConfig.reInitialize(nodeStore, testPath, true);
-
-        try (MockedStatic<JsonNodeBuilder> mockedStatic = Mockito.mockStatic(JsonNodeBuilder.class)) {
-            InferenceConfig.updateAndReInitializeConfigJson(testPath, testJson);
-            mockedStatic.verify(() -> JsonNodeBuilder.addOrReplace(
-                nodeStore,
-                testPath,
-                InferenceConfig.TYPE,
-                testJson
-            ), Mockito.times(1));
-        }
-    }
-
-    @Test
-    public void updateAndReInitializeDoesReInitialize() throws Exception {
-        NodeBuilder inferenceConfigBuilder = createNodePath(rootBuilder, DEFAULT_CONFIG_PATH);
-        inferenceConfigBuilder.setProperty(InferenceConstants.ENABLED, false);
-        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        InferenceConfig.reInitialize(nodeStore, DEFAULT_CONFIG_PATH, true);
-        InferenceConfig initialConfig = InferenceConfig.getInstance();
-        assertFalse(initialConfig.isEnabled());
-
-        String enabledJson = "{\"type\":\"inferenceConfig\",\"enabled\":true}";
-        InferenceConfig.updateAndReInitializeConfigJson(DEFAULT_CONFIG_PATH, enabledJson);
-        InferenceConfig updatedConfig = InferenceConfig.getInstance();
-        assertTrue(updatedConfig.isEnabled());
-    }
-
-    @Test
-    public void updateAndReInitializeHandlesCommitFailedException() {
-        InferenceConfig.reInitialize(nodeStore, "/test", true);
-        try (MockedStatic<JsonNodeBuilder> mockedStatic = Mockito.mockStatic(JsonNodeBuilder.class)) {
-            mockedStatic.when(() -> JsonNodeBuilder.addOrReplace(
-                Mockito.any(NodeStore.class), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()
-            )).thenThrow(new CommitFailedException("TEST", 0, "Test exception"));
-
-            try {
-                InferenceConfig.updateAndReInitializeConfigJson("/test", "{}");
-                fail("Expected RuntimeException to be thrown");
-            } catch (RuntimeException e) {
-                assertTrue(e.getCause() instanceof CommitFailedException);
-            }
-        }
-    }
-
-    @Test
-    public void updateAndReInitializeHandlesIOException() {
-        InferenceConfig.reInitialize(nodeStore, "/test", true);
-        try (MockedStatic<JsonNodeBuilder> mockedStatic = Mockito.mockStatic(JsonNodeBuilder.class)) {
-            mockedStatic.when(() -> JsonNodeBuilder.addOrReplace(
-                Mockito.any(NodeStore.class), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()
-            )).thenThrow(new IOException("Test IO exception"));
-
-            try {
-                InferenceConfig.updateAndReInitializeConfigJson("/test", "{}");
-                fail("Expected RuntimeException to be thrown");
-            } catch (RuntimeException e) {
-                assertTrue(e.getCause() instanceof IOException);
-            }
-        }
     }
 } 

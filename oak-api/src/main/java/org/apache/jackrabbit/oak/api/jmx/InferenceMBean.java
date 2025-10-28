@@ -37,13 +37,4 @@ public interface InferenceMBean {
      * Get the inference configuration as a Json string.
      */
     String getConfigNodeStateJson();
-
-    @Description("Adds or replaces the inference configuration at the specified path with the provided JSON. " +
-            "If saved successful, the system reInitializes with the updated configuration.")
-    void setConfigJson(@Name("path")
-                       @Description("The node path where the configuration should be stored.")
-                       String path,
-                       @Name("configJson")
-                       @Description("The inferenceConfig as a JSON sting.")
-                       String configJson);
 }
