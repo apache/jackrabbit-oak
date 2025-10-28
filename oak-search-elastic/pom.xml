@@ -34,7 +34,7 @@
 
   <properties>
     <elasticsearch.java.client.version>8.19.5</elasticsearch.java.client.version>
-    <lucene.version>10.3.1</lucene.version>
+    <lucene.version>9.12.2</lucene.version>
   </properties>
 
   <build>
@@ -138,11 +138,6 @@
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
       <version>${jackson.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-core</artifactId>
-      <version>${lucene.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.lucene</groupId>
