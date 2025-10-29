@@ -52,15 +52,17 @@ import java.util.stream.Collectors;
 class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticSecureFacetAsyncProvider.class);
-    private static final int MAX_PAGE_SIZE = 10_000;
 
     private final ElasticResponseHandler elasticResponseHandler;
+    private final long resultSizeLimit;
     private final Predicate<String> isAccessible;
     private final Set<String> facetFields;
     private final long facetsEvaluationTimeoutMs;
     private Map<String, List<FulltextIndex.Facet>> facets;
     private final SearchRequest searchRequest;
     private final CompletableFuture<Map<String, List<FulltextIndex.Facet>>> searchFuture;
+
+    private long processedDocs = 0L;
 
     private final long queryStartTimeNanos;
 
@@ -69,6 +71,7 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider {
                                          Predicate<String> isAccessible, long facetsEvaluationTimeoutMs) {
 
         this.elasticResponseHandler = elasticResponseHandler;
+        this.resultSizeLimit = elasticRequestHandler.getResultSizeLimit();
         this.isAccessible = isAccessible;
         this.facetFields = elasticRequestHandler.facetFields().
                 map(ElasticIndexUtils::fieldName).
@@ -79,7 +82,7 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider {
         this.searchRequest = SearchRequest.of(srb -> srb.index(indexDefinition.getIndexAlias())
                 .source(SourceConfig.of(scf -> scf.filter(ff -> ff.includes(FieldNames.PATH).includes(new ArrayList<>(facetFields)))))
                 .query(Query.of(qb -> qb.bool(elasticRequestHandler.baseQueryBuilder().build())))
-                .size(MAX_PAGE_SIZE) // batch size for each search_after iteration
+                .size(indexDefinition.secureFacetsDocsSize) // batch size for each search_after iteration
                 .sort(s -> s.field(fs -> fs.field(FieldNames.PATH)))
         );
 
@@ -127,7 +130,7 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider {
                     }
 
                     // If we got fewer results than requested, we've reached the end
-                    if (hits.isEmpty() || hits.size() < MAX_PAGE_SIZE) {
+                    if (hits.isEmpty() || hits.size() < searchRequest.size()) {
                         LOG.trace("Reached end of results, final facet processing complete");
                         return CompletableFuture.completedFuture(accumulatedFacets);
                     }
@@ -138,6 +141,13 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider {
 
                     if (nextSearchAfter == null || nextSearchAfter.isEmpty()) {
                         LOG.warn("No sort values found for search_after, stopping pagination");
+                        return CompletableFuture.completedFuture(accumulatedFacets);
+                    }
+
+                    processedDocs += hits.size();
+                    if (processedDocs >= resultSizeLimit) {
+                        LOG.warn("Result size limit of {} reached during facet computation. " +
+                                "Stopping further processing. Consider using statistical or insecure facets", resultSizeLimit);
                         return CompletableFuture.completedFuture(accumulatedFacets);
                     }
 

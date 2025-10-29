@@ -250,6 +250,10 @@ public class ElasticRequestHandler {
         return bqb;
     }
 
+    public long getResultSizeLimit() {
+        return indexPlan.getFilter().getQueryLimits().getLimitReads();
+    }
+
     private String generateFieldsForMLT() {
         //TODO with addition of :enricher status for inference. All documents will now have :enricher for inference enabled indexes.
         // as as result mlt is now returning all documents.
