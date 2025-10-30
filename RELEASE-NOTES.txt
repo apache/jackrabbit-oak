@@ -53,6 +53,7 @@ Story
 
 Improvement
 
+    [OAK-11898] - ElasticSecureFacets should be decoupled from the AsyncIterator
     [OAK-11929] - NPE in Lucene's implementation of secure facets
     [OAK-11930] - JCR observation events should not serialize the propertyState for binary properties
     [OAK-11934] - segment preloading for PersistentCache
@@ -85,6 +86,7 @@ Task
     [OAK-11985] - Add MongoServerUnavailableException to transient error list
     [OAK-11994] - [oak-run] remove dependency to joda-time
     [OAK-11996] - Expand oak/docs/participating wrt to test coverage and Sonar
+    [OAK-11998] - Bump elasticsearch version to 8.19.5 / lucene 9.12.2
 
 
 In addition to the above-mentioned changes, this release contains all
