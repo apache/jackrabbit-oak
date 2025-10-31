@@ -29,7 +29,7 @@ jobs:
         distribution: 'temurin'
         cache: maven
     - name: Build with Maven
-      run: mvn -pl oak-auth-ldap test -Dtest=org.apache.jackrabbit.oak.security.authentication.ldap.LdapLoginStandaloneTest#testSyncCreateGroup
+      run: mvn -pl oak-auth-ldap edu.illinois:nondex-maven-plugin:2.1.7:nondex -Dtest=org.apache.jackrabbit.oak.security.authentication.ldap.LdapLoginStandaloneTest#testSyncCreateGroup
 
     # Optional: Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
     #- name: Update dependency graph
