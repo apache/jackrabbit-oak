@@ -30,10 +30,6 @@
     <name>Oak Cloud Blob Store</name>
     <packaging>bundle</packaging>
 
-    <properties>
-        <aws.version>1.12.761</aws.version>
-    </properties>
-
     <build>
         <plugins>
             <plugin>
@@ -130,9 +126,20 @@
         </dependency>
         <!-- Amazon AWS dependency -->
         <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-s3</artifactId>
-            <version>${aws.version}</version>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>apache-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3-transfer-manager</artifactId>
+        </dependency>
+        <dependency>
+            <artifactId>netty-nio-client</artifactId>
+            <groupId>software.amazon.awssdk</groupId>
         </dependency>
 
         <dependency>

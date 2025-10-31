@@ -40,6 +40,7 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.apache.jackrabbit.util.Base64;
 import org.jetbrains.annotations.NotNull;
+import org.junit.Assume;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,6 +73,9 @@ public abstract class AbstractDataRecordAccessProviderTest {
     protected abstract DataRecord doGetRecord(DataStore ds, DataIdentifier identifier) throws DataStoreException;
     protected abstract DataRecord doSynchronousAddRecord(DataStore ds, InputStream in) throws DataStoreException;
     protected abstract void doDeleteRecord(DataStore ds, DataIdentifier identifier) throws DataStoreException;
+    protected boolean isSSECustomerKeyEncryption() {
+        return false;
+    }
 
     protected static int expirySeconds = 60*15;
 
@@ -90,6 +94,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
     //
     @Test
     public void testGetDownloadURIProvidesValidURIIT() throws DataStoreException {
+        Assume.assumeTrue("SSE-C doesn't support presigned GET URLs", !isSSECustomerKeyEncryption());
         DataRecord record = null;
         ConfigurableDataRecordAccessProvider dataStore = getDataStore();
         try {
@@ -155,6 +160,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
 
     @Test
     public void testGetDownloadURIIT() throws DataStoreException, IOException {
+        Assume.assumeTrue("SSE-C doesn't support presigned GET URLs", !isSSECustomerKeyEncryption());
         DataRecord record = null;
         DataRecordAccessProvider dataStore = getDataStore();
         try {
@@ -177,6 +183,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
 
     @Test
     public void testGetDownloadURIWithCustomHeadersIT() throws DataStoreException, IOException {
+        Assume.assumeTrue("SSE-C doesn't support presigned GET URLs", !isSSECustomerKeyEncryption());
         String umlautFilename = "Uml\u00e4utfile.png";
         String umlautFilename_ISO_8859_1 = new String(
                 Charsets.ISO_8859_1.encode(umlautFilename).array(),
@@ -253,6 +260,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
 
     @Test
     public void testGetExpiredReadURIFailsIT() throws DataStoreException, IOException {
+        Assume.assumeTrue("SSE-C doesn't support presigned GET URLs", !isSSECustomerKeyEncryption());
         DataRecord record = null;
         ConfigurableDataRecordAccessProvider dataStore = getDataStore();
         try {

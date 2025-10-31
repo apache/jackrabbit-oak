@@ -283,7 +283,9 @@ public class TestS3DataStore {
         assumeTrue(isS3Configured());
         S3DataStore s3ds = getDataStore();
 
-        assertEquals(0, s3ds.getAllMetadataRecords("").size());
+        // reference.key initialized in backend#init() - OAK-9807, so expected 1 record
+        assertEquals(1, s3ds.getAllMetadataRecords("").size());
+        s3ds.deleteAllMetadataRecords("");
 
         String prefixAll = "prefix1";
         String prefixSome = "prefix1.prefix2";
@@ -402,7 +404,8 @@ public class TestS3DataStore {
         assumeTrue(isS3Configured());
         S3DataStore s3ds = getDataStore();
 
-        assertEquals(0, s3ds.getAllMetadataRecords("").size());
+        // reference.key initialized in backend#init() - OAK-9807, so expected 1 record
+        assertEquals(1, s3ds.getAllMetadataRecords("").size());
 
         s3ds.deleteAllMetadataRecords("");
 
