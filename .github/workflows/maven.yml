@@ -13,6 +13,7 @@ on:
     branches: [ "trunk" ]
   pull_request:
     branches: [ "trunk" ]
+  workflow_dispatch:
 
 jobs:
   build:
