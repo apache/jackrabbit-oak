@@ -250,6 +250,10 @@ public class ElasticRequestHandler {
         return bqb;
     }
 
+    public long getResultSizeLimit() {
+        return indexPlan.getFilter().getQueryLimits().getLimitReads();
+    }
+
     private String generateFieldsForMLT() {
         //TODO with addition of :enricher status for inference. All documents will now have :enricher for inference enabled indexes.
         // as as result mlt is now returning all documents.
@@ -700,6 +704,11 @@ public class ElasticRequestHandler {
                         KnnQuery.Builder knnQueryBuilder = new KnnQuery.Builder();
                         knnQueryBuilder.field(InferenceConstants.VECTOR_SPACES + "." + inferenceModelConfigName + "." + InferenceConstants.VECTOR);
                         knnQueryBuilder.numCandidates(inferenceModelConfig.getNumCandidates());
+                        // The behavior of knn queries has changed in ES 8.18+. k is the number of nearest neighbors to return from each shard.
+                        // When not specified, it defaults to the size of the overall search request, which by default is 10.
+                        // To maintain previous behavior, we explicitly set k to numCandidates.
+                        // see https://github.com/elastic/elasticsearch/pull/118774
+                        knnQueryBuilder.k(inferenceModelConfig.getNumCandidates());
                         knnQueryBuilder.queryVector(embeddings);
                         knnQueryBuilder.similarity((float) inferenceModelConfig.getSimilarityThreshold());
                         // filters in knn are only applicable if filters are defined in knn query itself.

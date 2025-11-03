@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -30,20 +31,16 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
-import com.amazonaws.services.s3.model.GetObjectRequest;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
@@ -51,8 +48,7 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
-import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
@@ -64,44 +60,47 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.HttpMethod;
-import com.amazonaws.SdkClientException;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.S3ClientOptions;
-import com.amazonaws.services.s3.model.BucketAccelerateConfiguration;
-import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
-import com.amazonaws.services.s3.model.CopyObjectRequest;
-import com.amazonaws.services.s3.model.CreateBucketRequest;
-import com.amazonaws.services.s3.model.DeleteObjectsRequest;
-import com.amazonaws.services.s3.model.DeleteObjectsResult;
-import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
-import com.amazonaws.services.s3.model.GetBucketAccelerateConfigurationRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
-import com.amazonaws.services.s3.model.ListObjectsRequest;
-import com.amazonaws.services.s3.model.ListPartsRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PartETag;
-import com.amazonaws.services.s3.model.PartListing;
-import com.amazonaws.services.s3.model.PartSummary;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.Region;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.services.s3.transfer.Copy;
-import com.amazonaws.services.s3.transfer.TransferManager;
-import com.amazonaws.services.s3.transfer.Upload;
-
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
-import org.apache.jackrabbit.oak.commons.collections.AbstractIterator;
+import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.async.AsyncRequestBody;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.sync.ResponseTransformer;
+import software.amazon.awssdk.http.SdkHttpMethod;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.BucketAccelerateStatus;
+import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CompletedMultipartUpload;
+import software.amazon.awssdk.services.s3.model.CompletedPart;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadResponse;
+import software.amazon.awssdk.services.s3.model.Delete;
+import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectsResponse;
+import software.amazon.awssdk.services.s3.model.GetBucketAccelerateConfigurationResponse;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.ListPartsResponse;
+import software.amazon.awssdk.services.s3.model.MetadataDirective;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
+import software.amazon.awssdk.services.s3.model.Part;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.S3Object;
+import software.amazon.awssdk.services.s3.paginators.ListObjectsV2Iterable;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.transfer.s3.S3TransferManager;
+import software.amazon.awssdk.transfer.s3.model.Copy;
+import software.amazon.awssdk.transfer.s3.model.CopyRequest;
+import software.amazon.awssdk.transfer.s3.model.FileUpload;
+import software.amazon.awssdk.transfer.s3.model.Upload;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
-import static java.lang.Thread.currentThread;
 
 /**
  * A data store backend that stores data on Amazon S3.
@@ -121,28 +120,26 @@ public class S3Backend extends AbstractSharedBackend {
 
     private static final String REF_KEY = "reference.key";
 
-    private static final int MAX_UNIQUE_RECORD_TRIES = 10;
-
     static final String PART_NUMBER = "partNumber";
     static final String UPLOAD_ID = "uploadId";
 
-    private static final int ONE_MB = 1024*1024;
-    static final long MIN_MULTIPART_UPLOAD_PART_SIZE = 1024 * 1024 * 10; // 10MB
-    static final long MAX_MULTIPART_UPLOAD_PART_SIZE = 1024 * 1024 * 256; // 256MB
+    static final long MIN_MULTIPART_UPLOAD_PART_SIZE = 1024 * 1024 * 10L; // 10MB
+    static final long MAX_MULTIPART_UPLOAD_PART_SIZE = 1024 * 1024 * 256L; // 256MB
     static final long MAX_SINGLE_PUT_UPLOAD_SIZE = 1024L * 1024L * 1024L * 5L; // 5GB, AWS limitation
     static final long MAX_BINARY_UPLOAD_SIZE = 1024L * 1024L * 1024L * 1024L * 5L; // 5TB, AWS limitation
     private static final int MAX_ALLOWABLE_UPLOAD_URIS = 10000; // AWS limitation
 
-    private AmazonS3Client s3service;
+    private S3Client s3Client;
+    private S3AsyncClient s3AsyncClient;
 
     // needed only in case of transfer acceleration is enabled for presigned URIs
-    private AmazonS3Client s3PresignService;
+    private S3Presigner s3PresignService;
 
     private String bucket;
 
     private byte[] secret;
 
-    private TransferManager tmx;
+    private S3TransferManager tmx;
 
     private Properties properties;
 
@@ -167,31 +164,23 @@ public class S3Backend extends AbstractSharedBackend {
 
             LOG.debug("init");
 
-            s3ReqDecorator = new S3RequestDecorator(properties);
-            s3service = Utils.openService(properties);
-            s3PresignService = s3service;
+            final String region = Utils.getRegion(properties);
 
-            if (bucket == null || "".equals(bucket.trim())) {
+            s3Client = Utils.openService(properties, false);
+
+            setBinaryTransferAccelerationEnabled(
+                    Boolean.parseBoolean(
+                            properties.getProperty(S3Constants.PRESIGNED_URI_ENABLE_ACCELERATION, "false")));
+
+            s3AsyncClient = Utils.openAsyncService(properties);
+            s3ReqDecorator = new S3RequestDecorator(properties);
+
+            if (bucket == null || bucket.trim().isEmpty()) {
                 bucket = properties.getProperty(S3Constants.S3_BUCKET);
                 // Alternately check if the 'container' property is set
                 if (StringUtils.isEmpty(bucket)) {
                     bucket = properties.getProperty(S3Constants.S3_CONTAINER);
                 }
-            }
-            String region = properties.getProperty(S3Constants.S3_REGION);
-            
-            if (StringUtils.isEmpty(region)) {
-                com.amazonaws.regions.Region ec2Region = Regions.getCurrentRegion();
-                if (ec2Region != null) {
-                    region = ec2Region.getName();
-                } else {
-                    throw new AmazonClientException(
-                            "parameter ["
-                                    + S3Constants.S3_REGION
-                                    + "] not configured and cannot be derived from environment");
-                }
-            } else if (Utils.DEFAULT_AWS_BUCKET_REGION.equals(region)) {
-                region = Region.US_Standard.toString();
             }
 
             createBucketIfNeeded(region);
@@ -202,13 +191,15 @@ public class S3Backend extends AbstractSharedBackend {
                 writeThreads = Integer.parseInt(writeThreadsStr);
             }
             LOG.info("Using thread pool of [{}] threads in S3 transfer manager.", writeThreads);
-            tmx = new TransferManager(s3service, Executors.newFixedThreadPool(writeThreads,
-                    BasicThreadFactory.builder().namingPattern("s3-transfer-manager-worker-%d").build()));
+            tmx = S3TransferManager.builder()
+                    .s3Client(s3AsyncClient)
+                    .executor(Executors.
+                            newFixedThreadPool(writeThreads,
+                                    BasicThreadFactory.builder().namingPattern("s3-transfer-manager-worker-%d").build()))
+                    .build();
 
             String renameKeyProp = properties.getProperty(S3Constants.S3_RENAME_KEYS);
-            boolean renameKeyBool = (renameKeyProp == null || "".equals(renameKeyProp))
-                    ? false
-                    : Boolean.parseBoolean(renameKeyProp);
+            boolean renameKeyBool = renameKeyProp != null && !renameKeyProp.isEmpty() && Boolean.parseBoolean(renameKeyProp);
             LOG.info("Rename keys [{}]", renameKeyBool);
             if (renameKeyBool) {
                 renameKeys();
@@ -235,19 +226,15 @@ public class S3Backend extends AbstractSharedBackend {
                 setHttpDownloadURICacheSize(cacheMaxSize);
             }
 
-            String enablePresignedAccelerationStr = properties.getProperty(S3Constants.PRESIGNED_URI_ENABLE_ACCELERATION);
-            setBinaryTransferAccelerationEnabled(enablePresignedAccelerationStr != null && "true".equals(enablePresignedAccelerationStr));
-
             presignedDownloadURIVerifyExists =
                     PropertiesUtil.toBoolean(properties.get(S3Constants.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS), true);
 
             // Initialize reference key secret
             getOrCreateReferenceKey();
 
-            LOG.debug("S3 Backend initialized in [{}] ms",
-                +(System.currentTimeMillis() - startTime.getTime()));
+            LOG.debug("S3 Backend initialized in [{}] ms", (System.currentTimeMillis() - startTime.getTime()));
         } catch (Exception e) {
-            LOG.error("Error ", e);
+            LOG.error("Error while initializing S3 Backend", e);
             Map<String, Object> filteredMap = new HashMap<>();
             if (properties != null) {
                 filteredMap = MapUtils.filterKeys(Utils.asMap(properties),
@@ -263,18 +250,24 @@ public class S3Backend extends AbstractSharedBackend {
 
     private void createBucketIfNeeded(final String region) {
         try {
-            if (!s3service.doesBucketExist(bucket)) {
-                String bucketRegion = region;
+            if (!S3BackendHelper.bucketExists(s3Client, bucket)) {
+                String bucketRegion;
                 if (Utils.US_EAST_1_AWS_BUCKET_REGION.equals(region)) {
                     // The SDK has changed such that if the region is us-east-1
                     // the region value should not be provided in the
                     // request to create the bucket.
                     // See https://stackoverflow.com/questions/51912072/invalidlocationconstraint-error-while-creating-s3-bucket-when-the-used-command-i
                     bucketRegion = null;
+                } else {
+                    bucketRegion = region;
                 }
-                CreateBucketRequest req = new CreateBucketRequest(bucket, bucketRegion);
-                s3service.createBucket(req);
-                if (Utils.waitForBucket(s3service, bucket)) {
+                s3Client.createBucket(createBucket ->
+                        createBucket.bucket(bucket).
+                                createBucketConfiguration(config ->
+                                        config.locationConstraint(bucketRegion)
+                                                .build())
+                                .build());
+                if (S3BackendHelper.waitForBucket(s3Client, bucket, 20, 100L)) {
                     LOG.error("Bucket [{}] does not exist in [{}] and was not automatically created",
                             bucket, region);
                     return;
@@ -285,29 +278,26 @@ public class S3Backend extends AbstractSharedBackend {
             }
         }
         catch (SdkClientException awsException) {
-            LOG.error("Attempt to create S3 bucket [{}] in [{}] failed",
-                    bucket, region, awsException);
+            LOG.error("Attempt to create S3 bucket [{}] in [{}] failed", bucket, region, awsException);
         }
     }
 
-    void setBinaryTransferAccelerationEnabled(boolean enabled) {
-        if (enabled) {
-            // verify acceleration is enabled on the bucket
-            BucketAccelerateConfiguration accelerateConfig = s3service.getBucketAccelerateConfiguration(new GetBucketAccelerateConfigurationRequest(bucket));
-            if (accelerateConfig.isAccelerateEnabled()) {
-                // If transfer acceleration is enabled for presigned URIs, we need a separate AmazonS3Client
-                // instance with the acceleration mode enabled, because we don't want the requests from the
-                // data store itself to S3 to use acceleration
-                s3PresignService = Utils.openService(properties);
-                s3PresignService.setS3ClientOptions(S3ClientOptions.builder().setAccelerateModeEnabled(true).build());
-                LOG.info("S3 Transfer Acceleration enabled for presigned URIs.");
+    void setBinaryTransferAccelerationEnabled(final boolean enabled) {
+        if (!enabled) {
+            s3PresignService = Utils.createPresigner(s3Client, properties);
+            return;
+        }
 
-            } else {
-                LOG.warn("S3 Transfer Acceleration is not enabled on the bucket {}. Will create normal, non-accelerated presigned URIs.",
-                    bucket, S3Constants.PRESIGNED_URI_ENABLE_ACCELERATION);
-            }
+        GetBucketAccelerateConfigurationResponse accelerateConfig = s3Client.getBucketAccelerateConfiguration(
+                b -> b.bucket(bucket).build());
+
+        if (Objects.equals(BucketAccelerateStatus.ENABLED, accelerateConfig.status())) {
+            s3PresignService = Utils.createPresigner(Utils.openService(properties, true), properties);
+            LOG.info("S3 Transfer Acceleration enabled for presigned URIs.");
         } else {
-            s3PresignService = s3service;
+            LOG.warn("S3 Transfer Acceleration is not enabled on the bucket {}. Will create normal, non-accelerated presigned URIs. To enable set {}",
+                    bucket, S3Constants.PRESIGNED_URI_ENABLE_ACCELERATION);
+            s3PresignService = Utils.createPresigner(s3Client, properties);
         }
     }
 
@@ -316,57 +306,72 @@ public class S3Backend extends AbstractSharedBackend {
      * method uses parallel concurrent connections to upload.
      */
     @Override
-    public void write(DataIdentifier identifier, File file)
-        throws DataStoreException {
+    public void write(DataIdentifier identifier, File file) throws DataStoreException {
         String key = getKeyName(identifier);
-        ObjectMetadata objectMetaData = null;
         long start = System.currentTimeMillis();
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            Thread.currentThread().setContextClassLoader(
-                getClass().getClassLoader());
+            Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
             // check if the same record already exists
+            HeadObjectResponse headMeta = null;
             try {
-                objectMetaData = s3service.getObjectMetadata(s3ReqDecorator.decorate(new GetObjectMetadataRequest(bucket, key)));
-            } catch (AmazonServiceException ase) {
-                if (!(ase.getStatusCode() == 404 || ase.getStatusCode() == 403)) {
-                    throw ase;
+                headMeta = s3Client.headObject(s3ReqDecorator.decorate(
+                        HeadObjectRequest.builder()
+                                .bucket(bucket)
+                                .key(key)
+                                .build()));
+            } catch (S3Exception se) {
+                if (!(se instanceof NoSuchKeyException || se.statusCode() == 404 || se.statusCode() == 403)) {
+                    throw se;
                 }
             }
-            if (objectMetaData != null) {
-                long l = objectMetaData.getContentLength();
+            if (headMeta != null) {
+                long l = headMeta.contentLength();
                 if (l != file.length()) {
-                    throw new DataStoreException("Collision: " + key
-                        + " new length: " + file.length() + " old length: " + l);
+                    throw new DataStoreException("Collision: " + key + " new length: " + file.length() + " old length: " + l);
                 }
-                LOG.debug("[{}]'s exists, lastmodified = [{}]", key,
-                    objectMetaData.getLastModified().getTime());
-                CopyObjectRequest copReq = new CopyObjectRequest(bucket, key,
-                    bucket, key);
-                LOG.warn("Object MetaData before copy: {}", objectMetaData.getRawMetadata());
+                LOG.debug("[{}]'s exists, lastmodified = [{}]", key, headMeta.lastModified().toEpochMilli());
+                CopyObjectRequest copyReq = 
+                        CopyObjectRequest.builder()
+                                .sourceBucket(bucket)
+                                .sourceKey(key)
+                                .destinationBucket(bucket)
+                                .destinationKey(key)
+                                .metadataDirective(MetadataDirective.REPLACE) // Required to update metadata and reset creation time
+                                .build();
+                LOG.warn("Object MetaData before copy: {}", headMeta.metadata());
                 if (Objects.equals(RemoteStorageMode.S3, properties.get(S3Constants.MODE))) {
-                    copReq.setNewObjectMetadata(objectMetaData);
+                    copyReq = copyReq.toBuilder().metadata(headMeta.metadata()).build();
                 }
-                Copy copy = tmx.copy(s3ReqDecorator.decorate(copReq));
                 try {
-                    copy.waitForCopyResult();
+                    Copy copy = tmx.copy(CopyRequest.builder()
+                            .copyObjectRequest(
+                                    s3ReqDecorator.decorate(copyReq))
+                            .build());
+                    copy.completionFuture().join();
                     LOG.debug("lastModified of [{}] updated successfully.", identifier);
-                }catch (Exception e2) {
-                    throw new DataStoreException("Could not upload " + key, e2);
+                } catch (Exception e2) {
+                    throw new DataStoreException("Could not upload " + key, e2.getCause());
                 }
             }
 
-            if (objectMetaData == null) {
+            if (headMeta == null) {
                 try {
                     // start multipart parallel upload using amazon sdk
-                    Upload up = tmx.upload(s3ReqDecorator.decorate(new PutObjectRequest(
-                        bucket, key, file)));
+                    FileUpload up = tmx.uploadFile(uploadReq ->
+                            uploadReq.source(file).
+                                    putObjectRequest(
+                                            s3ReqDecorator.decorate(
+                                                    PutObjectRequest.builder().bucket(bucket).key(key)
+                                                            .build()))
+                                    .build());
+
                     if (LOG_STREAMS_UPLOAD.isDebugEnabled()) {
                         // Log message, with exception so we can get a trace to see where the call came from
                         LOG_STREAMS_UPLOAD.debug("Binary uploaded to S3 - identifier={}", key, new Exception());
                     }
                     // wait for upload to finish
-                    up.waitForUploadResult();
+                    up.completionFuture().join();
                     LOG.debug("synchronous upload to identifier [{}] completed.", identifier);
                 } catch (Exception e2 ) {
                     throw new DataStoreException("Could not upload " + key, e2);
@@ -377,8 +382,7 @@ public class S3Backend extends AbstractSharedBackend {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
             }
         }
-        LOG.debug("write of [{}], length=[{}], in [{}]ms",
-            identifier, file.length(), (System.currentTimeMillis() - start));
+        LOG.debug("write of [{}], length=[{}], in [{}]ms", identifier, file.length(), System.currentTimeMillis() - start);
     }
 
     /**
@@ -391,21 +395,10 @@ public class S3Backend extends AbstractSharedBackend {
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
-            ObjectMetadata objectMetaData = s3service.getObjectMetadata(s3ReqDecorator.decorate(new GetObjectMetadataRequest(bucket, key)));
-            if (objectMetaData != null) {
-                LOG.trace("exists [{}]: [true] took [{}] ms.",
-                    identifier, (System.currentTimeMillis() - start) );
-                return true;
-            }
-            return false;
-        } catch (AmazonServiceException e) {
-            if (e.getStatusCode() == 404 || e.getStatusCode() == 403) {
-                LOG.debug("exists [{}]: [false] took [{}] ms.",
-                    identifier, (System.currentTimeMillis() - start) );
-                return false;
-            }
-            throw new DataStoreException(
-                "Error occured to getObjectMetadata for key [" + identifier.toString() + "]", e);
+            return S3BackendHelper.objectExists(s3Client, bucket, key, s3ReqDecorator);
+        } catch (S3Exception e) {
+            LOG.debug("exists [{}]: [false] took [{}] ms.", identifier, System.currentTimeMillis() - start);
+            throw new DataStoreException("Error occurred to getObjectMetadata for key [" + identifier + "]", e);
         } finally {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
@@ -421,15 +414,20 @@ public class S3Backend extends AbstractSharedBackend {
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
-            S3Object object = s3service.getObject(bucket, key);
-            InputStream in = object.getObjectContent();
-            LOG.debug("[{}] read took [{}]ms", identifier, (System.currentTimeMillis() - start));
+            InputStream in = s3Client.getObject(s3ReqDecorator.decorate(
+                    GetObjectRequest.builder()
+                            .bucket(bucket)
+                            .key(key)
+                            .build()),
+                    ResponseTransformer.toInputStream());
+
+            LOG.debug("[{}] read took [{}]ms", identifier, System.currentTimeMillis() - start);
             if (LOG_STREAMS_DOWNLOAD.isDebugEnabled()) {
                 // Log message, with exception so we can get a trace to see where the call came from
                 LOG_STREAMS_DOWNLOAD.debug("Binary downloaded from S3 - identifier={}", key, new Exception());
             }
             return in;
-        } catch (AmazonServiceException e) {
+        } catch (S3Exception e) {
             throw new DataStoreException("Object not found: " + key, e);
         } finally {
             if (contextClassLoader != null) {
@@ -439,9 +437,8 @@ public class S3Backend extends AbstractSharedBackend {
     }
 
     @Override
-    public Iterator<DataIdentifier> getAllIdentifiers()
-            throws DataStoreException {
-        return new RecordsIterator<DataIdentifier>(input -> new DataIdentifier(getIdentifierName(input.getKey())));
+    public Iterator<DataIdentifier> getAllIdentifiers() {
+        return getAllRecords(s3Object -> new DataIdentifier(getIdentifierName(s3Object.key())));
     }
 
     @Override
@@ -451,14 +448,11 @@ public class S3Backend extends AbstractSharedBackend {
         String key = getKeyName(identifier);
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            Thread.currentThread().setContextClassLoader(
-                getClass().getClassLoader());
-            s3service.deleteObject(bucket, key);
-            LOG.debug("Identifier [{}] deleted. It took [{}]ms.", new Object[] {
-                identifier, (System.currentTimeMillis() - start) });
-        } catch (AmazonServiceException e) {
-            throw new DataStoreException(
-                "Could not delete dataIdentifier " + identifier, e);
+            Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
+            s3Client.deleteObject(delReq -> delReq.bucket(bucket).key(key).build());
+            LOG.debug("Identifier [{}] deleted. It took [{}]ms.", identifier, (System.currentTimeMillis() - start));
+        } catch (S3Exception e) {
+            throw new DataStoreException("Could not delete dataIdentifier " + identifier, e);
         } finally {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
@@ -469,11 +463,23 @@ public class S3Backend extends AbstractSharedBackend {
     @Override
     public void close() {
         // backend is closing. abort all mulitpart uploads from start.
-        if(s3service.doesBucketExist(bucket)) {
-            tmx.abortMultipartUploads(bucket, startTime);
+        try {
+            if(S3BackendHelper.bucketExists(s3Client, bucket)) {
+                // List and abort multipart uploads initiated before startTime
+                S3BackendHelper.abortMultipartUpload(bucket, startTime, s3Client);
+            }
+        } finally {
+            if (tmx != null) {
+                tmx.close();
+            }
+            if (s3AsyncClient != null) {
+                s3AsyncClient.close();
+            }
+            if (s3PresignService != null) {
+                s3PresignService.close();
+            }
+            s3Client.close();
         }
-        tmx.shutdownNow();
-        s3service.shutdown();
         LOG.info("S3Backend closed.");
     }
 
@@ -493,20 +499,7 @@ public class S3Backend extends AbstractSharedBackend {
      */
     public void setProperties(Properties properties) {
         this.properties = properties;
-        setRemoteStorageMode();
-    }
-
-    private void setRemoteStorageMode() {
-        String s3EndPoint = properties.getProperty(S3Constants.S3_END_POINT, "");
-        if (s3EndPoint.contains("googleapis")) {
-            if (properties.get(S3Constants.MODE) == RemoteStorageMode.S3) {
-                LOG.warn("Mismatch between remote storage mode and s3EndPoint, overriding mode to GCP");
-            }
-            properties.put(S3Constants.MODE, RemoteStorageMode.GCP);
-            return;
-        }
-        // default mode is S3
-        properties.put(S3Constants.MODE, RemoteStorageMode.S3);
+        Utils.setRemoteStorageMode(this.properties);
     }
 
     @Override
@@ -516,18 +509,33 @@ public class S3Backend extends AbstractSharedBackend {
 
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
 
+        // Executor required to handle reading from the InputStream on a separate thread so the main upload is not blocked.
+        final ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
-
-            Upload upload = tmx.upload(s3ReqDecorator
-                .decorate(new PutObjectRequest(bucket, addMetaKeyPrefix(name), input, new ObjectMetadata())));
-            upload.waitForUploadResult();
-        } catch (InterruptedException e) {
-            LOG.error("Error in uploading", e);
-            throw new DataStoreException("Error in uploading", e);
+            // Specify `null` for the content length when you don't know the content length.
+            final AsyncRequestBody body = AsyncRequestBody.fromInputStream(input, null, executor);
+            final Upload upload = tmx.upload(uploadReq ->
+                    uploadReq.requestBody(body).
+                            putObjectRequest(
+                                    s3ReqDecorator.decorate(PutObjectRequest.builder().bucket(bucket).key(addMetaKeyPrefix(name)).build()))
+                            .build());
+            upload.completionFuture().join();
+        } catch (Exception e) {
+            LOG.error("Exception in uploading {}", e.getMessage());
+            throw new DataStoreException("Error in uploading metadata file", e);
         } finally {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
+            }
+            executor.shutdown();
+            try {
+                if (!executor.awaitTermination(60, TimeUnit.SECONDS)) {
+                    executor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                executor.shutdownNow();
+                Thread.currentThread().interrupt();
             }
         }
     }
@@ -541,11 +549,16 @@ public class S3Backend extends AbstractSharedBackend {
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 
-            Upload upload = tmx.upload(s3ReqDecorator
-                .decorate(new PutObjectRequest(bucket, addMetaKeyPrefix(name), input)));
-            upload.waitForUploadResult();
-        } catch (InterruptedException e) {
-            LOG.error("Exception in uploading metadata file {}", new Object[] {input, e});
+            FileUpload upload = tmx.uploadFile(uploadReq ->
+                    uploadReq.source(input).
+                            putObjectRequest(
+                                    s3ReqDecorator.decorate(
+                                            PutObjectRequest.builder().bucket(bucket).key(addMetaKeyPrefix(name)).build()))
+                            .build());
+
+            upload.completionFuture().join();
+        } catch (Exception e) {
+            LOG.error("Exception in uploading metadata file {}", input);
             throw new DataStoreException("Error in uploading metadata file", e);
         } finally {
             if (contextClassLoader != null) {
@@ -562,9 +575,9 @@ public class S3Backend extends AbstractSharedBackend {
         try {
             Thread.currentThread().setContextClassLoader(
                 getClass().getClassLoader());
-            ObjectMetadata meta = s3service.getObjectMetadata(bucket, addMetaKeyPrefix(name));
-            return new S3DataRecord(this, s3service, bucket, new DataIdentifier(name),
-                meta.getLastModified().getTime(), meta.getContentLength(), true, s3ReqDecorator);
+            HeadObjectResponse meta = s3Client.headObject(s3ReqDecorator.decorate(HeadObjectRequest.builder().bucket(bucket).key(addMetaKeyPrefix(name)).build()));
+            return new S3DataRecord(this, s3Client, bucket, new DataIdentifier(name),
+                meta.lastModified().toEpochMilli(), meta.contentLength(), true, s3ReqDecorator);
         } catch(Exception e) {
             LOG.error("Error getting metadata record for {}", name, e);
         }
@@ -580,18 +593,17 @@ public class S3Backend extends AbstractSharedBackend {
     public List<DataRecord> getAllMetadataRecords(String prefix) {
         checkArgument(null != prefix, "prefix should not be null");
 
-        List<DataRecord> metadataList = new ArrayList<DataRecord>();
+        List<DataRecord> metadataList = new ArrayList<>();
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            Thread.currentThread().setContextClassLoader(
-                getClass().getClassLoader());
-            ListObjectsRequest listObjectsRequest =
-                new ListObjectsRequest().withBucketName(bucket).withPrefix(addMetaKeyPrefix(prefix));
-            ObjectListing prevObjectListing = s3service.listObjects(listObjectsRequest);
-            for (final S3ObjectSummary s3ObjSumm : prevObjectListing.getObjectSummaries()) {
-                metadataList.add(new S3DataRecord(this, s3service, bucket,
-                    new DataIdentifier(stripMetaKeyPrefix(s3ObjSumm.getKey())),
-                    s3ObjSumm.getLastModified().getTime(), s3ObjSumm.getSize(), true, s3ReqDecorator));
+            Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
+            final ListObjectsV2Iterable prevObjectListing = s3Client.listObjectsV2Paginator(listReq ->
+                    listReq.bucket(bucket).prefix(addMetaKeyPrefix(prefix)).build());
+
+            for (final S3Object s3ObjSumm : prevObjectListing.contents()) {
+                metadataList.add(new S3DataRecord(this, s3Client, bucket,
+                    new DataIdentifier(stripMetaKeyPrefix(s3ObjSumm.key())),
+                    s3ObjSumm.lastModified().toEpochMilli(), s3ObjSumm.size(), true, s3ReqDecorator));
             }
         } finally {
             if (contextClassLoader != null) {
@@ -609,7 +621,7 @@ public class S3Backend extends AbstractSharedBackend {
         try {
             Thread.currentThread().setContextClassLoader(
                 getClass().getClassLoader());
-            s3service.deleteObject(bucket, addMetaKeyPrefix(name));
+            s3Client.deleteObject(delReq ->  delReq.bucket(bucket).key(addMetaKeyPrefix(name)).build());
         } finally {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
@@ -624,29 +636,13 @@ public class S3Backend extends AbstractSharedBackend {
 
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            Thread.currentThread().setContextClassLoader(
-                getClass().getClassLoader());
+            Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 
-            ListObjectsRequest listObjectsRequest =
-                new ListObjectsRequest().withBucketName(bucket).withPrefix(addMetaKeyPrefix(prefix));
-            ObjectListing metaList = s3service.listObjects(listObjectsRequest);
-            List<DeleteObjectsRequest.KeyVersion> deleteList = new ArrayList<DeleteObjectsRequest.KeyVersion>();
-            List<String> keysToDelete = new ArrayList<>();
-            for (S3ObjectSummary s3ObjSumm : metaList.getObjectSummaries()) {
-                deleteList.add(new DeleteObjectsRequest.KeyVersion(s3ObjSumm.getKey()));
-                keysToDelete.add(s3ObjSumm.getKey());
-            }
-            if (!deleteList.isEmpty()) {
-                RemoteStorageMode mode = (RemoteStorageMode) properties.getOrDefault(S3Constants.MODE, RemoteStorageMode.S3);
-                if (mode == RemoteStorageMode.S3) {
-                    DeleteObjectsRequest delObjsReq = new DeleteObjectsRequest(bucket);
-                    delObjsReq.setKeys(deleteList);
-                    s3service.deleteObjects(delObjsReq);
-                } else {
-                    // GCP does not support bulk delete operations, hence we need to delete each object individually
-                    keysToDelete.forEach(key -> s3service.deleteObject(bucket, key));
-                }
-            }
+            ListObjectsV2Iterable metaList = s3Client.listObjectsV2Paginator(builder -> builder
+                    .bucket(bucket)
+                    .prefix(addMetaKeyPrefix(prefix))
+                    .build());
+            S3BackendHelper.deleteBucketObjects(bucket, properties, s3Client, metaList);
         } finally {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
@@ -657,9 +653,9 @@ public class S3Backend extends AbstractSharedBackend {
     @Override
     public Iterator<DataRecord> getAllRecords() {
         final AbstractSharedBackend backend = this;
-        return new RecordsIterator<DataRecord>(
-                input -> new S3DataRecord(backend, s3service, bucket, new DataIdentifier(getIdentifierName(input.getKey())),
-                        input.getLastModified().getTime(), input.getSize(), s3ReqDecorator));
+        return getAllRecords(
+                s3Object -> new S3DataRecord(backend, s3Client, bucket, new DataIdentifier(getIdentifierName(s3Object.key())),
+                        s3Object.lastModified().toEpochMilli(), s3Object.size(), s3ReqDecorator));
     }
 
     @Override
@@ -670,15 +666,20 @@ public class S3Backend extends AbstractSharedBackend {
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 
-            ObjectMetadata object = s3service.getObjectMetadata(s3ReqDecorator.decorate(new GetObjectMetadataRequest(bucket, key)));
-            S3DataRecord record = new S3DataRecord(this, s3service, bucket, identifier,
-                object.getLastModified().getTime(), object.getContentLength(), s3ReqDecorator);
+            HeadObjectResponse object = s3Client.headObject(s3ReqDecorator.decorate(
+                    HeadObjectRequest.builder()
+                            .bucket(bucket)
+                            .key(key)
+                            .build()));
+            S3DataRecord s3DataRecord = new S3DataRecord(this, s3Client, bucket, identifier,
+                object.lastModified().toEpochMilli(), object.contentLength(), s3ReqDecorator);
             LOG.debug("Identifier [{}]'s getRecord = [{}] took [{}]ms.",
-                identifier, record, (System.currentTimeMillis() - start));
+                identifier, s3DataRecord, (System.currentTimeMillis() - start));
 
-            return record;
-        } catch (AmazonServiceException e) {
-            if (e.getStatusCode() == 404 || e.getStatusCode() == 403) {
+            return s3DataRecord;
+        } catch (AwsServiceException e) {
+            int statusCode = e.awsErrorDetails().sdkHttpResponse().statusCode();
+            if (statusCode == 404 || statusCode == 403) {
                 LOG.debug(
                         "getRecord:Identifier [{}] not found. Took [{}] ms.",
                         identifier, (System.currentTimeMillis() - start));
@@ -732,7 +733,7 @@ public class S3Backend extends AbstractSharedBackend {
         try {
             Thread.currentThread().setContextClassLoader(
                 getClass().getClassLoader());
-            return s3service.doesObjectExist(bucket, addMetaKeyPrefix(name));
+            return S3BackendHelper.objectExists(s3Client, bucket, addMetaKeyPrefix(name), s3ReqDecorator);
         } finally {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
@@ -759,7 +760,7 @@ public class S3Backend extends AbstractSharedBackend {
             return null;
         }
 
-        return createPresignedURI(identifier, HttpMethod.PUT, httpUploadURIExpirySeconds);
+        return createPresignedURI(identifier, httpUploadURIExpirySeconds);
     }
 
     void setHttpDownloadURIExpirySeconds(int seconds) {
@@ -829,7 +830,7 @@ public class S3Backend extends AbstractSharedBackend {
             }
 
             uri = createPresignedURI(identifier,
-                    HttpMethod.GET,
+                    SdkHttpMethod.GET,
                     httpDownloadURIExpirySeconds,
                     requestParams);
             if (uri != null && httpDownloadURICache != null) {
@@ -881,9 +882,13 @@ public class S3Backend extends AbstractSharedBackend {
             }
             else {
                 // multi-part
-                InitiateMultipartUploadRequest req = new InitiateMultipartUploadRequest(bucket, blobId);
-                InitiateMultipartUploadResult res = s3service.initiateMultipartUpload(s3ReqDecorator.decorate(req));
-                uploadId = res.getUploadId();
+                final CreateMultipartUploadResponse res = s3Client.createMultipartUpload(
+                        s3ReqDecorator.decorate(
+                                CreateMultipartUploadRequest.builder()
+                                        .bucket(bucket)
+                                        .key(blobId)
+                                        .build()));
+                uploadId = res.uploadId();
 
                 long numParts;
                 if (maxNumberOfURIs > 1) {
@@ -912,7 +917,7 @@ public class S3Backend extends AbstractSharedBackend {
                     presignedURIRequestParams.put("partNumber", String.valueOf(blockId));
                     presignedURIRequestParams.put("uploadId", uploadId);
                     uploadPartURIs.add(createPresignedURI(newIdentifier,
-                            HttpMethod.PUT,
+                            SdkHttpMethod.PUT,
                             httpUploadURIExpirySeconds,
                             presignedURIRequestParams));
                 }
@@ -976,35 +981,34 @@ public class S3Backend extends AbstractSharedBackend {
             if (uploadToken.getUploadId().isPresent()) {
                 // An existing upload ID means this is a multi-part upload
                 String uploadId = uploadToken.getUploadId().get();
-                ListPartsRequest listPartsRequest = new ListPartsRequest(bucket, key, uploadId);
-                PartListing listing = s3service.listParts(listPartsRequest);
-                List<PartETag> eTags = new ArrayList<>();
+                ListPartsResponse listing = s3Client.listParts(builder -> builder.bucket(bucket).key(key).uploadId(uploadId).build());
+                final List<CompletedPart> completedParts = new ArrayList<>();
                 long size = 0L;
-                Date lastModified = null;
-                for (PartSummary partSummary : listing.getParts()) {
-                    PartETag eTag = new PartETag(partSummary.getPartNumber(), partSummary.getETag());
-                    eTags.add(eTag);
-                    size += partSummary.getSize();
-                    if (null == lastModified || partSummary.getLastModified().after(lastModified)) {
-                        lastModified = partSummary.getLastModified();
+                Instant lastModified = null;
+                for (Part part : listing.parts()) {
+                    completedParts.add(CompletedPart.builder().partNumber(part.partNumber()).eTag(part.eTag()).build());
+                    size += part.size();
+                    if (null == lastModified || part.lastModified().isAfter(lastModified)) {
+                        lastModified = part.lastModified();
                     }
                 }
 
-                CompleteMultipartUploadRequest completeReq = new CompleteMultipartUploadRequest(
-                        bucket,
-                        key,
-                        uploadId,
-                        eTags
-                );
-
-                s3service.completeMultipartUpload(completeReq);
+                s3Client.completeMultipartUpload(s3ReqDecorator.decorate(
+                        CompleteMultipartUploadRequest.builder()
+                                .bucket(bucket)
+                                .key(key)
+                                .uploadId(uploadId)
+                                .multipartUpload(CompletedMultipartUpload.builder()
+                                        .parts(completedParts)
+                                        .build())
+                                .build()));
 
                 record = new S3DataRecord(
                         this,
-                        s3service,
+                        s3Client,
                         bucket,
                         blobId,
-                        lastModified.getTime(),
+                        lastModified.toEpochMilli(),
                         size,
                         s3ReqDecorator
                 );
@@ -1022,134 +1026,102 @@ public class S3Backend extends AbstractSharedBackend {
         return record;
     }
 
-    private URI createPresignedURI(DataIdentifier identifier,
-                                   HttpMethod method,
-                                   int expirySeconds) {
-        return createPresignedURI(identifier, method, expirySeconds, new HashMap<>());
+    private URI createPresignedURI(DataIdentifier identifier, int expirySeconds) {
+        return createPresignedURI(identifier, SdkHttpMethod.PUT, expirySeconds, new HashMap<>());
     }
 
     private URI createPresignedURI(DataIdentifier identifier,
-                                   HttpMethod method,
+                                   SdkHttpMethod method,
                                    int expirySeconds,
                                    Map<String, String> reqParams) {
         final String key = getKeyName(identifier);
 
+        // SSE-C is supported with presigned URLs when encryption headers are included in both
+        // the signature calculation (handled by S3RequestDecorator) and the actual HTTP request
+
         try {
             final Date expiration = new Date();
-            expiration.setTime(expiration.getTime() + expirySeconds * 1000);
+            URL presignedURL = null;
+            expiration.setTime(expiration.getTime() + expirySeconds * 1000L);
 
-            GeneratePresignedUrlRequest request = s3ReqDecorator.decorate(new GeneratePresignedUrlRequest(bucket, key)
-                    .withMethod(method)
-                    .withExpiration(expiration));
+            // Add raw query parameters via override configuration
+            AwsRequestOverrideConfiguration.Builder overrideBuilder = AwsRequestOverrideConfiguration.builder();
 
             for (Map.Entry<String, String> e : reqParams.entrySet()) {
-                request.addRequestParameter(e.getKey(), e.getValue());
+                overrideBuilder.putRawQueryParameter(e.getKey(), e.getValue());
             }
+
+            switch (method) {
+                case GET:
+                    presignedURL = s3PresignService.presignGetObject(builder -> builder
+                            .signatureDuration(Duration.between(
+                                    Instant.now(),           // current time
+                                    expiration.toInstant()             // expiration time from your Date object
+                            ))
+                            .getObjectRequest(s3ReqDecorator.decorate(
+                                    GetObjectRequest.builder()
+                                            .bucket(bucket)
+                                            .key(key)
+                                            .overrideConfiguration(overrideBuilder.build())
+                                            .build()))
+                            .build()).url();
+                    break;
+                case PUT:
+
+                    presignedURL = s3PresignService.presignPutObject(builder -> builder
+                            .signatureDuration(Duration.between(
+                                    Instant.now(),           // current time
+                                    expiration.toInstant()             // expiration time from your Date object
+                            ))
+                            .putObjectRequest(s3ReqDecorator.decorate(
+                                    PutObjectRequest.builder()
+                                            .bucket(bucket)
+                                            .key(key)
+                                            .overrideConfiguration(overrideBuilder.build())
+                                            .build()))
+                            .build()).url();
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unsupported method: " + method);
+            }
+
 
             URI uri = null;
-            URL presignedURL = null;
             try {
-                presignedURL = s3PresignService.generatePresignedUrl(request);
                 uri = presignedURL.toURI();
-
-                LOG.debug("Presigned {} URI for key {}: {}", method.name(), key, uri.toString());
+                LOG.debug("Presigned {} URI for key {}: {}", method.name(), key, uri);
             }
             catch (URISyntaxException e) {
-                LOG.error("AWS request to create presigned S3 URI failed - could not convert '{}' to URI",
-                        (null != presignedURL ? presignedURL.toString() : "")
-                );
+                LOG.error("AWS request to create presigned S3 URI failed - could not convert '{}' to URI", presignedURL);
             }
-
             return uri;
 
-        } catch (AmazonServiceException e) {
+        } catch (S3Exception e) {
             LOG.error("AWS request to create presigned S3 {} URI failed. " +
-                            "Key: {}, Error: {}, HTTP Code: {}, AWS Error Code: {}, Error Type: {}, Request ID: {}",
-                    method.name(), key, e.getMessage(), e.getStatusCode(), e.getErrorCode(), e.getErrorType(), e.getRequestId());
+                            "Key: {}, Error: {}, HTTP Code: {}, AWS Error Code: {}, Request ID: {}",
+                    method.name(), key,
+                    e.getMessage(),
+                    e.statusCode(),
+                    e.awsErrorDetails() != null ? e.awsErrorDetails().errorCode() : "N/A",
+                    e.requestId());
 
             return null;
         }
     }
 
-    /**
-     * Returns an iterator over the S3 objects
-     * @param <T>
-     */
-    class RecordsIterator<T> extends AbstractIterator<T> {
-        ObjectListing prevObjectListing;
-        Queue<S3ObjectSummary> queue;
-        long size;
-        Function<S3ObjectSummary, T> transformer;
+    private <T> Iterator<T> getAllRecords(Function<S3Object, T> transformer) {
 
-        public RecordsIterator (Function<S3ObjectSummary, T> transformer) {
-            queue = new LinkedList<>();
-            this.transformer = transformer;
-        }
-
-        @Override
-        protected T computeNext() {
-            if (queue.isEmpty()) {
-                loadBatch();
+        final ListObjectsV2Iterable prevObjectListing = s3Client.listObjectsV2Paginator(builder -> {
+            builder.bucket(bucket);
+            if (properties.containsKey(S3Constants.MAX_KEYS)) {
+                builder.maxKeys(Integer.valueOf(properties.getProperty(S3Constants.MAX_KEYS)));
             }
+            builder.build();
+        });
 
-            while (queue.isEmpty() && prevObjectListing.getNextMarker() != null) {
-                LOG.debug("Queue is empty, but there is more data in the S3 bucket");
-                loadBatch();
-            }
-
-            if (!queue.isEmpty()) {
-                return transformer.apply(queue.remove());
-            }
-
-            return endOfData();
-        }
-
-        private boolean loadBatch() {
-            ClassLoader contextClassLoader = currentThread().getContextClassLoader();
-            long start = System.currentTimeMillis();
-            try {
-                currentThread().setContextClassLoader(getClass().getClassLoader());
-
-                // initialize the listing the first time
-                if (prevObjectListing == null) {
-                    ListObjectsRequest listReq = new ListObjectsRequest();
-                    listReq.withBucketName(bucket);
-                    if (properties.containsKey(S3Constants.MAX_KEYS)) {
-                        listReq.setMaxKeys(Integer.valueOf(properties.getProperty(S3Constants.MAX_KEYS)));
-                    }
-
-                    prevObjectListing = s3service.listObjects(listReq);
-                } else if (prevObjectListing.isTruncated()) { //already initialized more objects available
-                    prevObjectListing = s3service.listNextBatchOfObjects(prevObjectListing);
-                } else { // no more available
-                    return false;
-                }
-
-                List<S3ObjectSummary> listing = ListUtils.toList(
-                        IterableUtils.filter(prevObjectListing.getObjectSummaries(),
-                            input -> !input.getKey().startsWith(META_KEY_PREFIX)));
-
-                // After filtering no elements
-                if (listing.isEmpty()) {
-                    return false;
-                }
-
-                size += listing.size();
-                queue.addAll(listing);
-
-                LOG.info("Loaded batch of size [{}] in [{}] ms.",
-                    listing.size(), (System.currentTimeMillis() - start));
-
-                return true;
-            } catch (AmazonServiceException e) {
-                LOG.warn("Could not list objects", e);
-            } finally {
-                if (contextClassLoader != null) {
-                    currentThread().setContextClassLoader(contextClassLoader);
-                }
-            }
-            return false;
-        }
+        return IteratorUtils.transform(IteratorUtils.filter(
+                prevObjectListing.contents().iterator(),
+                s3Object -> !s3Object.key().startsWith(META_KEY_PREFIX)), transformer);
     }
 
     private static String addMetaKeyPrefix(String key) {
@@ -1167,22 +1139,22 @@ public class S3Backend extends AbstractSharedBackend {
      * S3DataRecord which lazily retrieves the input stream of the record.
      */
     static class S3DataRecord extends AbstractDataRecord {
-        private AmazonS3Client s3service;
-        private long length;
-        private long lastModified;
-        private String bucket;
-        private boolean isMeta;
+        private final S3Client s3Client;
+        private final long length;
+        private final long lastModified;
+        private final String bucket;
+        private final boolean isMeta;
         private final S3RequestDecorator s3ReqDecorator;
 
-        public S3DataRecord(AbstractSharedBackend backend, AmazonS3Client s3service, String bucket,
-            DataIdentifier key, long lastModified, long length, final S3RequestDecorator s3ReqDecorator) {
-            this(backend, s3service, bucket, key, lastModified, length, false, s3ReqDecorator);
+        public S3DataRecord(AbstractSharedBackend backend, S3Client s3Client, String bucket,
+                            DataIdentifier key, long lastModified, long length, final S3RequestDecorator s3ReqDecorator) {
+            this(backend, s3Client, bucket, key, lastModified, length, false, s3ReqDecorator);
         }
 
-        public S3DataRecord(AbstractSharedBackend backend, AmazonS3Client s3service, String bucket,
-            DataIdentifier key, long lastModified, long length, boolean isMeta, final S3RequestDecorator s3ReqDecorator) {
+        public S3DataRecord(AbstractSharedBackend backend, S3Client s3Client, String bucket,
+                            DataIdentifier key, long lastModified, long length, boolean isMeta, final S3RequestDecorator s3ReqDecorator) {
             super(backend, key);
-            this.s3service = s3service;
+            this.s3Client = s3Client;
             this.lastModified = lastModified;
             this.length = length;
             this.bucket = bucket;
@@ -1200,7 +1172,11 @@ public class S3Backend extends AbstractSharedBackend {
             String id = getKeyName(getIdentifier());
             if (isMeta) {
                 id = addMetaKeyPrefix(getIdentifier().toString());
-                return s3service.getObject(bucket, id).getObjectContent();
+                return s3Client.getObject(s3ReqDecorator.decorate(GetObjectRequest.builder()
+                                .bucket(bucket)
+                                .key(id)
+                                .build()),
+                        ResponseTransformer.toInputStream());
             }
             else {
                 // Don't worry about stream logging for metadata records
@@ -1209,7 +1185,12 @@ public class S3Backend extends AbstractSharedBackend {
                     LOG_STREAMS_DOWNLOAD.debug("Binary downloaded from S3 - identifier={}", id, new Exception());
                 }
             }
-            return s3service.getObject(s3ReqDecorator.decorate(new GetObjectRequest(bucket, id))).getObjectContent();
+            return s3Client.getObject(s3ReqDecorator.decorate(
+                    GetObjectRequest.builder()
+                            .bucket(bucket)
+                            .key(id)
+                            .build()),
+                    ResponseTransformer.toInputStream());
         }
 
         @Override
@@ -1234,34 +1215,30 @@ public class S3Backend extends AbstractSharedBackend {
      * aws.properties. As S3 doesn't have "move" command, this method simulate
      * move as copy object object to new key and then delete older key.
      */
-    private void renameKeys() throws DataStoreException {
+    private void renameKeys() {
         long startTime = System.currentTimeMillis();
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         long count = 0;
         try {
-            Thread.currentThread().setContextClassLoader(
-                getClass().getClassLoader());
-            ObjectListing prevObjectListing = s3service.listObjects(bucket);
-            List<DeleteObjectsRequest.KeyVersion> deleteList = new ArrayList<DeleteObjectsRequest.KeyVersion>();
+            Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
+
+            List<ObjectIdentifier> deleteList = new ArrayList<>();
             List<String> keysToDelete = new ArrayList<>();
+
+            ListObjectsV2Iterable prevObjectListing = s3Client.listObjectsV2Paginator(getObj -> getObj.bucket(bucket).build());
             int nThreads = Integer.parseInt(properties.getProperty("maxConnections"));
             ExecutorService executor = Executors.newFixedThreadPool(nThreads,
                     BasicThreadFactory.builder().namingPattern("s3-object-rename-worker-%d").build());
             boolean taskAdded = false;
-            while (true) {
-                for (S3ObjectSummary s3ObjSumm : prevObjectListing.getObjectSummaries()) {
-                    executor.execute(new KeyRenameThread(s3ObjSumm.getKey()));
-                    taskAdded = true;
-                    count++;
-                    // delete the object if it follows old key name format
-                    if( s3ObjSumm.getKey().startsWith(KEY_PREFIX)) {
-                        deleteList.add(new DeleteObjectsRequest.KeyVersion(
-                            s3ObjSumm.getKey()));
-                        keysToDelete.add(s3ObjSumm.getKey());
-                    }
+            for (S3Object s3Obj : prevObjectListing.contents()) {
+                executor.execute(new KeyRenameThread(s3Obj.key()));
+                taskAdded = true;
+                count++;
+                // delete the object if it follows old key name format
+                if( s3Obj.key().startsWith(KEY_PREFIX)) {
+                    deleteList.add(ObjectIdentifier.builder().key(s3Obj.key()).build());
+                    keysToDelete.add(s3Obj.key());
                 }
-                if (!prevObjectListing.isTruncated()) break;
-                prevObjectListing = s3service.listNextBatchOfObjects(prevObjectListing);
             }
             // This will make the executor accept no new threads
             // and finish all existing threads in the queue
@@ -1276,22 +1253,22 @@ public class S3Backend extends AbstractSharedBackend {
             } catch (InterruptedException ie) {
 
             }
-            LOG.info("Renamed [{}] keys, time taken [{}]sec", count,
-                ((System.currentTimeMillis() - startTime) / 1000));
+            LOG.info("Renamed [{}] keys, time taken [{}]sec", count, ((System.currentTimeMillis() - startTime) / 1000));
             // Delete older keys.
             if (!deleteList.isEmpty()) {
                 RemoteStorageMode mode = (RemoteStorageMode) properties.getOrDefault(S3Constants.MODE, RemoteStorageMode.S3);
                 if (mode == RemoteStorageMode.S3) {
-                    DeleteObjectsRequest delObjsReq = new DeleteObjectsRequest(
-                            bucket);
                     int batchSize = 500, startIndex = 0, size = deleteList.size();
                     int endIndex = Math.min(batchSize, size);
                     while (endIndex <= size) {
-                        delObjsReq.setKeys(Collections.unmodifiableList(deleteList.subList(
-                                startIndex, endIndex)));
-                        DeleteObjectsResult dobjs = s3service.deleteObjects(delObjsReq);
+                        DeleteObjectsResponse dobjs = s3Client.deleteObjects(DeleteObjectsRequest.builder()
+                                .bucket(bucket)
+                                .delete(Delete.builder()
+                                        .objects(Collections.unmodifiableList(
+                                                deleteList.subList(startIndex, startIndex))).build())
+                                        .build());
                         LOG.info("Records[{}] deleted in datastore from index [{}] to [{}]",
-                                dobjs.getDeletedObjects().size(), startIndex, (endIndex - 1));
+                                dobjs.deleted().size(), startIndex, (endIndex - 1));
                         if (endIndex == size) {
                             break;
                         } else {
@@ -1301,7 +1278,7 @@ public class S3Backend extends AbstractSharedBackend {
                     }
                 } else {
                     long keysDeleteStartTime = System.currentTimeMillis();
-                    keysToDelete.forEach(key -> s3service.deleteObject(bucket, key));
+                    keysToDelete.forEach(key -> s3Client.deleteObject(delObj -> delObj.bucket(bucket).key(key).build()));
                     LOG.debug("Delete operation for rename keys from gcp took: {} seconds", ((System.currentTimeMillis() - keysDeleteStartTime) / 1000));
                 }
             }
@@ -1346,13 +1323,12 @@ public class S3Backend extends AbstractSharedBackend {
         return key.substring(0, 4) + key.substring(5);
     }
 
-
     /**
      * The class renames object key in S3 in a thread.
      */
     private class KeyRenameThread implements Runnable {
 
-        private String oldKey;
+        private final String oldKey;
 
         public void run() {
             ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
@@ -1360,20 +1336,25 @@ public class S3Backend extends AbstractSharedBackend {
                 Thread.currentThread().setContextClassLoader(
                     getClass().getClassLoader());
                 String newS3Key = convertKey(oldKey);
-                CopyObjectRequest copReq = new CopyObjectRequest(bucket,
-                    oldKey, bucket, newS3Key);
-                Copy copy = tmx.copy(s3ReqDecorator.decorate(copReq));
+                Copy copy = tmx.copy(copyReq ->
+                        copyReq.copyObjectRequest(s3ReqDecorator.decorate(
+                                CopyObjectRequest.builder()
+                                        .sourceBucket(bucket)
+                                        .sourceKey(oldKey)
+                                        .destinationBucket(bucket)
+                                        .destinationKey(newS3Key)
+                                        .build()))
+                                .build());
                 try {
-                    copy.waitForCopyResult();
+                    copy.completionFuture().join();
                     LOG.debug("[{}] renamed to [{}] ", oldKey, newS3Key);
-                } catch (InterruptedException ie) {
-                    LOG.error(" Exception in renaming [{}] to [{}] ", ie, oldKey, newS3Key);
+                } catch (Exception ie) {
+                    LOG.error(" Exception {} in renaming [{}] to [{}] ", ie, oldKey, newS3Key);
                 }
 
             } finally {
                 if (contextClassLoader != null) {
-                    Thread.currentThread().setContextClassLoader(
-                        contextClassLoader);
+                    Thread.currentThread().setContextClassLoader(contextClassLoader);
                 }
             }
         }

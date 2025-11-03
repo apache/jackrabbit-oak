@@ -48,6 +48,7 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     private MongoStatus mongoStatus;
     private long maxReplicationLagMillis = TimeUnit.HOURS.toMillis(6);
     private boolean clientSessionDisabled = false;
+    private long queryWarningThresholdMillis = 0;
     private Integer leaseSocketTimeout;
     private String uri;
     private String name;
@@ -222,6 +223,24 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     public T setMongoMinHeartbeatFrequencyMillis(int minHeartbeatFrequencyMillis) {
         this.minHeartbeatFrequencyMillis = minHeartbeatFrequencyMillis;
         return thisBuilder();
+    }
+
+    /**
+     * Sets the threshold for logging warnings when MongoDB queries exceed this duration.
+     *
+     * @param thresholdMillis the threshold in milliseconds. A value of 0 disables warnings.
+     * @return this builder.
+     */
+    public T setMongoQueryWarningThresholdMillis(long thresholdMillis) {
+        this.queryWarningThresholdMillis = thresholdMillis;
+        return thisBuilder();
+    }
+
+    /**
+     * @return the query warning threshold in milliseconds.
+     */
+    long getQueryWarningThresholdMillis() {
+        return queryWarningThresholdMillis;
     }
 
     /**

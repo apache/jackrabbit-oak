@@ -21,7 +21,7 @@
     <parent>
         <artifactId>oak-parent</artifactId>
         <groupId>org.apache.jackrabbit</groupId>
-        <version>1.87-SNAPSHOT</version>
+        <version>1.89-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -29,10 +29,6 @@
     <artifactId>oak-blob-cloud</artifactId>
     <name>Oak Cloud Blob Store</name>
     <packaging>bundle</packaging>
-
-    <properties>
-        <aws.version>1.12.791</aws.version>
-    </properties>
 
     <build>
         <plugins>
@@ -132,9 +128,20 @@
 
         <!-- Amazon AWS dependency -->
         <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-s3</artifactId>
-            <version>${aws.version}</version>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>apache-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3-transfer-manager</artifactId>
+        </dependency>
+        <dependency>
+            <artifactId>netty-nio-client</artifactId>
+            <groupId>software.amazon.awssdk</groupId>
         </dependency>
 
         <dependency>

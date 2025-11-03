@@ -59,6 +59,9 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public static final String TRACK_TOTAL_HITS = "trackTotalHits";
     public static final Integer TRACK_TOTAL_HITS_DEFAULT = 10000;
 
+    public static final String SECURE_FACETS_DOCS_SIZE = "secureFacetsDocsSize";
+    public static final int SECURE_FACETS_DOCS_SIZE_DEFAULT = 10000;
+
     /**
      * Hidden property for storing the index mapping version.
      */
@@ -176,6 +179,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public final long indexNameSeed;
     public final InferenceDefinition inferenceDefinition;
     public final long limitTotalFields;
+    public final int secureFacetsDocsSize;
 
     private final Map<String, List<PropertyDefinition>> propertiesByName;
     private final List<ElasticPropertyDefinition> dynamicBoostProperties;
@@ -208,6 +212,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
         this.indexNameSeed = getOptionalValue(defn, INDEX_NAME_SEED, INDEX_NAME_SEED_DEFAULT);
         this.similarityTagsFields = getOptionalValues(defn, SIMILARITY_TAGS_FIELDS, Type.STRINGS, String.class, SIMILARITY_TAGS_FIELDS_DEFAULT);
         this.limitTotalFields = getOptionalValue(defn, LIMIT_TOTAL_FIELDS, LIMIT_TOTAL_FIELDS_DEFAULT);
+        this.secureFacetsDocsSize = getOptionalValue(defn, SECURE_FACETS_DOCS_SIZE, SECURE_FACETS_DOCS_SIZE_DEFAULT);
 
         this.propertiesByName = getDefinedRules()
                 .stream()

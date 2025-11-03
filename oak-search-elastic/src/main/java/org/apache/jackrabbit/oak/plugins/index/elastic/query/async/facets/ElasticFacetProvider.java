@@ -64,7 +64,8 @@ public interface ElasticFacetProvider extends FulltextIndex.FacetProvider {
                 break;
             case SECURE:
             default:
-                facetProvider = new ElasticSecureFacetAsyncProvider(requestHandler, responseHandler, isAccessible, facetsEvaluationTimeoutMs);
+                facetProvider = new ElasticSecureFacetAsyncProvider(connection, indexDefinition,
+                        requestHandler, responseHandler, isAccessible, facetsEvaluationTimeoutMs);
         }
         return facetProvider;
     }

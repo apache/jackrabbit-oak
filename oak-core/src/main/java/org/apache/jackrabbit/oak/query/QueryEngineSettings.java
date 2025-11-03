@@ -67,6 +67,8 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     public static final String FT_OPTIMIZE_IN_RESTRICTIONS_FOR_FUNCTIONS = "FT_OAK-11214";
 
+    public static final String FT_SORT_UNION_QUERY_BY_SCORE = "FT_OAK-11949";
+
     public static final int DEFAULT_PREFETCH_COUNT = Integer.getInteger(OAK_QUERY_PREFETCH_COUNT, -1);
 
     public static final String OAK_QUERY_FAIL_TRAVERSAL = "oak.queryFailTraversal";
@@ -124,6 +126,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     private Feature prefetchFeature;
     private Feature improvedIsNullCostFeature;
     private Feature optimizeInRestrictionsForFunctions;
+    private Feature sortUnionQueryByScoreFeature;
 
     private String autoOptionsMappingJson = "{}";
     private QueryOptions.AutomaticQueryOptionsMapping autoOptionsMapping = new QueryOptions.AutomaticQueryOptionsMapping(autoOptionsMappingJson);
@@ -246,6 +249,15 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     public boolean getOptimizeInRestrictionsForFunctions() {
         // enabled if the feature toggle is not used
         return optimizeInRestrictionsForFunctions == null || optimizeInRestrictionsForFunctions.isEnabled();
+    }
+
+    public void setSortUnionQueryByScoreFeature(@Nullable Feature feature) {
+        this.sortUnionQueryByScoreFeature = feature;
+    }
+
+    public boolean isSortUnionQueryByScoreEnabled() {
+        // disable if the feature toggle is not used
+        return sortUnionQueryByScoreFeature != null && sortUnionQueryByScoreFeature.isEnabled();
     }
 
     public String getStrictPathRestriction() {

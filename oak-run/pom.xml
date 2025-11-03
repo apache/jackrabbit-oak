@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.87-SNAPSHOT</version>
+    <version>1.89-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -34,6 +34,7 @@
     <jetty.version>9.4.53.v20231009</jetty.version>
     <!--
       Size History:
+      + 87 MB (Aws Sdk 2.x, OAK-11935)
       + 84 MB (RDB/Tomcat, OAK-10752)
       + 80 MB (Java 17, OAK-10638)
       + 78.7 MB Apache Commons Lang » 3.0 (OAK-10615)
@@ -51,7 +52,7 @@
       + 41 MB build failing on the release profile (OAK-6250)
       + 38 MB. Initial value. Current 35MB plus a 10%
     -->
-    <max.jar.size>88080384</max.jar.size>
+    <max.jar.size>91226112</max.jar.size>
   </properties>
 
   <build>
@@ -402,11 +403,6 @@
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient-osgi</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>joda-time</groupId>
-      <artifactId>joda-time</artifactId>
-      <version>2.8.1</version>
     </dependency>
 
     <!-- RDB support -->

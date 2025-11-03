@@ -150,25 +150,25 @@ public abstract class AbstractLoginModule implements LoginModule {
      * Key of the sharedState entry referring to validated Credentials that is
      * shared between multiple login modules.
      */
-    public static final String SHARED_KEY_CREDENTIALS = "org.apache.jackrabbit.credentials";
+    public static final String SHARED_KEY_CREDENTIALS = AuthenticationConstants.SHARED_KEY_CREDENTIALS;
 
     /**
      * Key of the sharedState entry referring to a valid login ID that is shared
      * between multiple login modules.
      */
-    public static final String SHARED_KEY_LOGIN_NAME = "javax.security.auth.login.name";
+    public static final String SHARED_KEY_LOGIN_NAME = AuthenticationConstants.SHARED_KEY_LOGIN_NAME;
 
     /**
      * Key of the sharedState entry referring to public attributes that are shared
      * between multiple login modules.
      */
-    public static final String SHARED_KEY_ATTRIBUTES = "javax.security.auth.login.attributes";
+    public static final String SHARED_KEY_ATTRIBUTES = AuthenticationConstants.SHARED_KEY_ATTRIBUTES;
 
     /**
      * Key of the sharedState entry referring to pre authenticated login information that is shared
      * between multiple login modules.
      */
-    public static final String SHARED_KEY_PRE_AUTH_LOGIN = PreAuthenticatedLogin.class.getName();
+    public static final String SHARED_KEY_PRE_AUTH_LOGIN = AuthenticationConstants.SHARED_KEY_PRE_AUTH_LOGIN;
 
     protected Subject subject;
     protected CallbackHandler callbackHandler;
