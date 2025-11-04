@@ -62,7 +62,11 @@ public class AzureArchiveManager implements SegmentArchiveManager {
 
     private static final String CLOSED_ARCHIVE_MARKER = "closed";
 
-    private static final int COPY_BATCH = 1000;
+    public static final String COPY_BATCH_SIZE_PROP = "segment.azure.batch.copy.size";
+
+    private static final int DEFAULT_COPY_BATCH = 1000;
+
+    private static final int COPY_BATCH = Integer.getInteger(COPY_BATCH_SIZE_PROP, DEFAULT_COPY_BATCH);
 
     protected final BlobContainerClient readBlobContainerClient;
 
