@@ -334,22 +334,23 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     private void batchCopyBlobs(List<BlobItem> from, String to) {
         String newParent = getDirectory(to);
 
-        log.info("Start tp copy {} blobs to {}", from.size(), newParent);
-
-        int batches = from.size() / COPY_BATCH;
-        int start = 0;
-        int end = COPY_BATCH;
-
-        for (int i = 0; i < batches; i++) {
-            log.info("Start batch {}/{}: {} to {}", i + 1, batches, start, end);
-            List<BlobItem> blobItemsBatch = from.subList(start, end);
-            copyBlobs(blobItemsBatch, newParent);
-            start = end;
-            end += COPY_BATCH;
+        if(from.isEmpty()) {
+            log.info("No blobs to copy to: {}", newParent);
+            return;
         }
 
-        log.info("Copy {} to {}", start, from.size());
-        copyBlobs(from.subList(start, from.size()), newParent);
+        log.info("Start to copy {} blobs to {}", from.size(), newParent);
+
+        int batches = (int) Math.ceil(from.size() / (double) COPY_BATCH);
+        int start = 0;
+
+        for (int i = 0; i < batches; i++) {
+            int end = Math.min(start + COPY_BATCH, from.size());
+            log.info("Start batch {}/{}: {} to {}", i + 1, batches, start, end);
+            List<BlobItem> blobItemsBatch = new ArrayList<>(from.subList(start, end));
+            copyBlobs(blobItemsBatch, newParent);
+            start = end;
+        }
     }
 
     private void copyBlobs(List<BlobItem> blobs, String newParent) {
