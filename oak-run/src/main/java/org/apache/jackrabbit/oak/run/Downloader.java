@@ -187,7 +187,7 @@ public class Downloader implements Closeable {
             long size = 0;
             if (item.length >= segmentSize) {
                 size = item.length;
-                LOG.info("Downloading large file {}: {} bytes", destinationPath.toString(), item.length);
+                LOG.debug("Downloading large file {}: {} bytes", destinationPath.toString(), item.length);
                 String fileName = destinationPath.getFileName().toString();
                 long numSegments = (item.length + segmentSize - 1) / segmentSize;
                 ArrayList<Path> segmentFiles = new ArrayList<>();
@@ -200,20 +200,20 @@ public class Downloader implements Closeable {
                     downloadTasks.add(executorService.submit(
                         new Callable<Boolean>() {
                             @Override
-                                public Boolean call() throws Exception {
-                                    Exception lastException = null;
-                                    for (int i = 0; i < maxRetries; i++) {
-                                        try {
-                                            return tryDownloadRange(item.source, connectTimeoutMs, readTimeoutMs,
-                                                    segmentFile, startByte, endByte);
-                                        } catch (Exception e) {
-                                            LOG.warn("Range download try # {} failed", i, e);
-                                            lastException = e;
-                                            // retry
-                                        }
+                            public Boolean call() throws Exception {
+                                Exception lastException = null;
+                                for (int i = 0; i < maxRetries; i++) {
+                                    try {
+                                        return tryDownloadRange(item.source, connectTimeoutMs, readTimeoutMs,
+                                                segmentFile, startByte, endByte);
+                                    } catch (Exception e) {
+                                        LOG.warn("Range download try # {} failed", i, e);
+                                        lastException = e;
+                                        // retry
                                     }
-                                    throw lastException;
                                 }
+                                throw lastException;
+                            }
                         }
                     ));
                 }
@@ -241,7 +241,7 @@ public class Downloader implements Closeable {
                                 Files.delete(segmentFile);
                             }
                         }
-                        LOG.info("Download {} size {}, {} parts", destinationPath.toString(), size, downloadTasks.size());
+                        LOG.debug("Downloaded {} size {}, {} parts", destinationPath.toString(), size, downloadTasks.size());
                     }
                 } else {
                     LOG.warn("Download {} failed", destinationPath.toString());
