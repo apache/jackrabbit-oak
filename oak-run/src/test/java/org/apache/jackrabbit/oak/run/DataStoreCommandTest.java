@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
@@ -210,7 +211,7 @@ public class DataStoreCommandTest {
             while (idIter.hasNext()) {
                 String chunk = idIter.next();
                 data.added.add(chunk);
-                data.idToPath.put(chunk, (createMultiLevelNodes ? pathRoot : "") + "/c" + i);
+                data.idToPath.put(chunk, (createMultiLevelNodes ? pathRoot : "") + "/c" + i + ",18342");
                 if (!createMultiLevelNodes && toBeDeleted.contains(i)) {
                     data.deleted.add(chunk);
                 }
@@ -376,7 +377,7 @@ public class DataStoreCommandTest {
 
 
         for (String id : data.idToPath.keySet()) {
-            if (data.idToPath.get(id).equals("/c1") || data.idToPath.get(id).equals("/c2")) {
+            if (data.idToPath.get(id).equals("/c1,18342") || data.idToPath.get(id).equals("/c2,18342")) {
                 data.addedSubset.add(id);
             }
         }
@@ -392,7 +393,7 @@ public class DataStoreCommandTest {
 
 
         for (String id : data.idToPath.keySet()) {
-            if (data.idToPath.get(id).equals("/c1") || data.idToPath.get(id).equals("/c2")) {
+            if (data.idToPath.get(id).equals("/c1,18342") || data.idToPath.get(id).equals("/c2,18342")) {
                 data.addedSubset.add(id);
             }
         }
@@ -406,7 +407,7 @@ public class DataStoreCommandTest {
         storeFixture.close();
         additionalParams += " --verboseRootPath /c1,/c2";
         for (String id : data.idToPath.keySet()) {
-            if (data.idToPath.get(id).equals("/c1") || data.idToPath.get(id).equals("/c2")) {
+            if (data.idToPath.get(id).equals("/c1,18342") || data.idToPath.get(id).equals("/c2,18342")) {
                 data.addedSubset.add(id);
             }
         }
@@ -441,7 +442,7 @@ public class DataStoreCommandTest {
 
 
         for (String id : data.idToPath.keySet()) {
-            if (data.idToPath.get(id).equals("/c1") || data.idToPath.get(id).equals("/c2")) {
+            if (data.idToPath.get(id).equals("/c1,18342") || data.idToPath.get(id).equals("/c2,18342")) {
                 data.addedSubset.add(id);
             }
         }
@@ -736,7 +737,13 @@ public class DataStoreCommandTest {
 
         if (verbose) {
             argsList.add("--verbose");
+        } else {
+            // only the verbose listing has the length
+            for (Entry<String, String> e : data.idToPath.entrySet()) {
+                data.idToPath.put(e.getKey(), e.getValue().split(",")[0]);
+            }
         }
+
         DataStoreCommand cmd = new DataStoreCommand();
         cmd.execute(argsList.toArray(new String[0]));
 
