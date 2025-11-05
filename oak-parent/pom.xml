@@ -1078,7 +1078,7 @@
         <dependency>
           <groupId>com.microsoft.sqlserver</groupId>
           <artifactId>mssql-jdbc</artifactId>
-          <version>8.2.2.jre8</version>
+          <version>11.1.0.jre8-preview</version>
           <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
           <scope>compile</scope>
         </dependency>
