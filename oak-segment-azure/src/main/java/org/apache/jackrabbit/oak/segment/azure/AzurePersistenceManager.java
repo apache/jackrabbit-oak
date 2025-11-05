@@ -20,6 +20,8 @@ import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
+import com.azure.storage.blob.BlobContainerAsyncClient;
+import com.azure.storage.blob.BlobServiceAsyncClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.common.policy.RequestRetryOptions;
@@ -32,7 +34,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.*;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_CLIENT_ID;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_CLIENT_SECRET;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_TENANT_ID;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_SECRET_KEY;
+
 
 public class AzurePersistenceManager {
 
@@ -134,12 +140,15 @@ public class AzurePersistenceManager {
                 .build();
 
         RequestRetryOptions retryOptions = readRequestRetryOptions(enableSecondaryLocation, accountName);
-        BlobContainerClient blobContainerClient = getBlobContainerClient(accountName, containerName, retryOptions, azureHttpRequestLoggingPolicy, clientSecretCredential);
+        BlobContainerClient blobContainerClient = new BlobContainerClientBuilder(accountName, containerName, azureHttpRequestLoggingPolicy).
+                withRequestRetryOptions(retryOptions).withClientSecretCredential(clientSecretCredential).buildClient();
 
         RequestRetryOptions writeRetryOptions = AzureRequestOptions.getRetryOperationsOptimiseForWriteOperations();
-        BlobContainerClient writeContainerClient = getBlobContainerClient(accountName, containerName, writeRetryOptions, azureHttpRequestLoggingPolicy, clientSecretCredential);
+        BlobContainerClient writeContainerClient = new BlobContainerClientBuilder(accountName, containerName, azureHttpRequestLoggingPolicy).
+                withRequestRetryOptions(writeRetryOptions).withClientSecretCredential(clientSecretCredential).buildClient();
 
-        BlobContainerClient noRetryBlobContainerClient = getBlobContainerClient(accountName, containerName, null, azureHttpRequestLoggingPolicy, clientSecretCredential);
+        BlobContainerClient noRetryBlobContainerClient = new BlobContainerClientBuilder(accountName, containerName, azureHttpRequestLoggingPolicy).
+                withClientSecretCredential(clientSecretCredential).buildClient();
 
         return createAzurePersistence(blobContainerClient, writeContainerClient, noRetryBlobContainerClient, azureHttpRequestLoggingPolicy, rootPrefix, createContainer);
     }
@@ -161,27 +170,16 @@ public class AzurePersistenceManager {
             AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy = new AzureHttpRequestLoggingPolicy();
 
             RequestRetryOptions retryOptions = readRequestRetryOptions(enableSecondaryLocation, accountName);
-            BlobContainerClient blobContainerClient;
-            if (sasToken != null) {
-                blobContainerClient = getBlobContainerClientWithSas(accountName, containerName, retryOptions, azureHttpRequestLoggingPolicy, sasToken);
-            } else {
-                blobContainerClient = getBlobContainerClient(accountName, containerName, retryOptions, azureHttpRequestLoggingPolicy, connectionString);
-            }
+            BlobContainerClient blobContainerClient = new BlobContainerClientBuilder(accountName, containerName, azureHttpRequestLoggingPolicy)
+                    .withSasToken(sasToken).withConnectionString(connectionString).withRequestRetryOptions(retryOptions).buildClient();
 
             RequestRetryOptions writeRetryOptions = AzureRequestOptions.getRetryOperationsOptimiseForWriteOperations();
-            BlobContainerClient writeBlobContainerClient;
-            if (sasToken != null) {
-                writeBlobContainerClient = getBlobContainerClientWithSas(accountName, containerName, writeRetryOptions, azureHttpRequestLoggingPolicy, sasToken);
-            } else {
-                writeBlobContainerClient = getBlobContainerClient(accountName, containerName, writeRetryOptions, azureHttpRequestLoggingPolicy, connectionString);
-            }
+            BlobContainerClient writeBlobContainerClient = new BlobContainerClientBuilder(accountName, containerName, azureHttpRequestLoggingPolicy)
+                    .withSasToken(sasToken).withConnectionString(connectionString).withRequestRetryOptions(writeRetryOptions).buildClient();
 
-            BlobContainerClient noRetryBlobContainerClient;
-            if (sasToken != null) {
-                noRetryBlobContainerClient = getBlobContainerClientWithSas(accountName, containerName, null, azureHttpRequestLoggingPolicy, sasToken);
-            } else {
-                noRetryBlobContainerClient = getBlobContainerClient(accountName, containerName, null, azureHttpRequestLoggingPolicy, connectionString);
-            }
+
+            BlobContainerClient noRetryBlobContainerClient = new BlobContainerClientBuilder(accountName, containerName, azureHttpRequestLoggingPolicy)
+                    .withSasToken(sasToken).withConnectionString(connectionString).buildClient();
 
             return createAzurePersistence(blobContainerClient, writeBlobContainerClient, noRetryBlobContainerClient, azureHttpRequestLoggingPolicy, rootPrefix, createContainer);
         } catch (BlobStorageException e) {
@@ -197,48 +195,6 @@ public class AzurePersistenceManager {
         final String rootPrefixNormalized = normalizePath(rootPrefix);
 
         return new AzurePersistence(blobContainerClient, writeContainerClient, noRetryBlobContainerClient, rootPrefixNormalized, azureHttpRequestLoggingPolicy, null);
-    }
-
-    private static BlobContainerClient getBlobContainerClientWithSas(String accountName, String containerName, RequestRetryOptions requestRetryOptions, AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy, String sasToken) {
-        BlobServiceClient blobServiceClient = blobServiceClientBuilder(accountName, requestRetryOptions, azureHttpRequestLoggingPolicy, sasToken)
-                .buildClient();
-
-        return blobServiceClient.getBlobContainerClient(containerName);
-    }
-
-    private static BlobContainerClient getBlobContainerClient(String accountName, String containerName, RequestRetryOptions requestRetryOptions, AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy, String connectionString) {
-        BlobServiceClient blobServiceClient = blobServiceClientBuilder(accountName, requestRetryOptions, azureHttpRequestLoggingPolicy, null)
-                .connectionString(connectionString)
-                .buildClient();
-
-        return blobServiceClient.getBlobContainerClient(containerName);
-    }
-
-    private static BlobContainerClient getBlobContainerClient(String accountName, String containerName, RequestRetryOptions requestRetryOptions, AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy, ClientSecretCredential clientSecretCredential) {
-        BlobServiceClient blobServiceClient = blobServiceClientBuilder(accountName, requestRetryOptions, azureHttpRequestLoggingPolicy, null)
-                .credential(clientSecretCredential)
-                .buildClient();
-
-        return blobServiceClient.getBlobContainerClient(containerName);
-    }
-
-    private static BlobServiceClientBuilder blobServiceClientBuilder(String accountName, RequestRetryOptions requestRetryOptions, AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy, String sasToken) {
-        if (sasToken == null) {
-            sasToken = "";
-        } else {
-            sasToken = "?" + sasToken;
-        }
-        String endpoint = String.format("https://%s.blob.core.windows.net%s", accountName, sasToken);
-
-        BlobServiceClientBuilder builder = new BlobServiceClientBuilder()
-                .endpoint(endpoint)
-                .addPolicy(azureHttpRequestLoggingPolicy);
-
-        if (requestRetryOptions != null) {
-            builder.retryOptions(requestRetryOptions);
-        }
-
-        return builder;
     }
 
     private static RequestRetryOptions readRequestRetryOptions(boolean enableSecondaryLocation, String accountName) {
@@ -258,7 +214,7 @@ public class AzurePersistenceManager {
         return rootPath;
     }
 
-    private static void checkArguments(String accountName, String containerName, String rootPrefix){
+    private static void checkArguments(String accountName, String containerName, String rootPrefix) {
         checkIfEmpty(accountName, "Account name");
         checkIfEmpty(containerName, "Container name");
         checkIfEmpty(rootPrefix, "Root prefix");
@@ -267,6 +223,86 @@ public class AzurePersistenceManager {
     private static void checkIfEmpty(String argument, String argumentName) {
         if (StringUtils.isEmpty(argument)) {
             throw new IllegalArgumentException(String.format("%s must not be empty argument", argumentName));
+        }
+    }
+
+    private static class BlobContainerClientBuilder {
+        private final String accountName;
+        private final String containerName;
+        private String sasToken;
+        private String connectionString;
+        private ClientSecretCredential clientSecretCredential;
+        private RequestRetryOptions requestRetryOptions;
+        private final AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy;
+
+        public BlobContainerClientBuilder(String accountName, String containerName, AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy) {
+            this.accountName = accountName;
+            this.containerName = containerName;
+            this.azureHttpRequestLoggingPolicy = azureHttpRequestLoggingPolicy;
+        }
+
+        public BlobContainerClientBuilder withSasToken(String sasToken) {
+            this.sasToken = sasToken;
+            return this;
+        }
+
+        public BlobContainerClientBuilder withConnectionString(String connectionString) {
+            this.connectionString = connectionString;
+            return this;
+        }
+
+        public BlobContainerClientBuilder withClientSecretCredential(ClientSecretCredential clientSecretCredential) {
+            this.clientSecretCredential = clientSecretCredential;
+            return this;
+        }
+
+        public BlobContainerClientBuilder withRequestRetryOptions(RequestRetryOptions requestRetryOptions) {
+            this.requestRetryOptions = requestRetryOptions;
+            return this;
+        }
+
+        public BlobContainerClient buildClient() {
+            BlobServiceClient blobServiceClient = blobServiceClientBuilder().buildClient();
+            return blobServiceClient.getBlobContainerClient(containerName);
+        }
+
+        public BlobContainerAsyncClient buildAsyncClient() {
+            BlobServiceAsyncClient asyncBlobServiceClient = blobServiceClientBuilder().buildAsyncClient();
+            return asyncBlobServiceClient.getBlobContainerAsyncClient(containerName);
+        }
+
+        private BlobServiceClientBuilder blobServiceClientBuilder() {
+            validate(sasToken, clientSecretCredential, connectionString);
+
+            if (sasToken == null) {
+                sasToken = "";
+            } else {
+                sasToken = "?" + sasToken;
+            }
+            String endpoint = String.format("https://%s.blob.core.windows.net%s", accountName, sasToken);
+
+            BlobServiceClientBuilder builder = new BlobServiceClientBuilder()
+                    .endpoint(endpoint)
+                    .addPolicy(azureHttpRequestLoggingPolicy);
+
+            if (requestRetryOptions != null) {
+                builder.retryOptions(requestRetryOptions);
+            }
+
+            if (clientSecretCredential != null) {
+                builder.credential(clientSecretCredential);
+            }
+            if (connectionString != null) {
+                builder.connectionString(connectionString);
+            }
+
+            return builder;
+        }
+
+        private void validate(String sasToken, ClientSecretCredential clientSecret, String connectionString) {
+            if (StringUtils.isEmpty(sasToken) && clientSecret == null && StringUtils.isEmpty(connectionString)) {
+                throw new IllegalArgumentException("Please configure one of sasToken, service principals or access key");
+            }
         }
     }
 }
