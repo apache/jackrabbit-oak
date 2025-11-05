@@ -66,7 +66,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
 
     private static final int DEFAULT_COPY_BATCH = 1000;
 
-    private static final int COPY_BATCH = Integer.getInteger(COPY_BATCH_SIZE_PROP, DEFAULT_COPY_BATCH);
+    private final int COPY_BATCH = Integer.getInteger(COPY_BATCH_SIZE_PROP, DEFAULT_COPY_BATCH);
 
     protected final BlobContainerClient readBlobContainerClient;
 
