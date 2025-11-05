@@ -27,11 +27,14 @@ import java.io.Closeable;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -53,8 +56,10 @@ import java.util.stream.Collectors;
 public class Downloader implements Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(Downloader.class);
+    private static final long MAX_LENGTH_SINGLE_THREADED = 16 * 1024 * 1024;
 
     private final ExecutorService executorService;
+    private final ExecutorService executorServiceForParts;
     private final int connectTimeoutMs;
     private final int readTimeoutMs;
     private final int slowLogThreshold;
@@ -80,7 +85,8 @@ public class Downloader implements Closeable {
         if (maxRetries <= 0 || maxRetries > 100) {
             throw new IllegalArgumentException("maxRetries range must be between 1 and 100");
         }
-        LOG.info("Initializing Downloader with max number of concurrent requests={}", concurrency);
+        int corePoolSize = (int) Math.ceil(concurrency * .4);
+        LOG.info("Initializing Downloader with max number of concurrent requests={}, core pool size {}", concurrency, corePoolSize);
         this.connectTimeoutMs = connectTimeoutMs;
         this.readTimeoutMs = readTimeoutMs;
         this.slowLogThreshold = slowLogThreshold;
@@ -101,16 +107,21 @@ public class Downloader implements Closeable {
         this.bufferSize = bufferSize;
 
         this.executorService = new ThreadPoolExecutor(
-                (int) Math.ceil(concurrency * .1), concurrency, 60L, TimeUnit.SECONDS,
+                corePoolSize, concurrency, 60L, TimeUnit.SECONDS,
                 new LinkedBlockingQueue<>(),
                 BasicThreadFactory.builder().namingPattern("downloader-%d").daemon().build()
+        );
+        this.executorServiceForParts = new ThreadPoolExecutor(
+                corePoolSize, concurrency, 60L, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(),
+                BasicThreadFactory.builder().namingPattern("partDownloader-%d").daemon().build()
         );
         this.responses = new ArrayList<>();
     }
 
     public void offer(Item item) {
         responses.add(
-                this.executorService.submit(new RetryingCallable<>(new DownloaderWorker(item)))
+                this.executorService.submit(new RetryingCallable<>(new DownloaderWorker(executorServiceForParts, item)))
         );
     }
 
@@ -146,9 +157,11 @@ public class Downloader implements Closeable {
 
     private class DownloaderWorker implements Callable<ItemResponse> {
 
+        private final ExecutorService executorService;
         private final Item item;
 
-        public DownloaderWorker(Item item) {
+        public DownloaderWorker(ExecutorService executorService, Item item) {
+            this.executorService = executorService;
             this.item = item;
         }
 
@@ -170,29 +183,86 @@ public class Downloader implements Closeable {
             Path destinationPath = Paths.get(item.destination);
             Files.createDirectories(destinationPath.getParent());
 
+            long segmentSize = MAX_LENGTH_SINGLE_THREADED;
             long size = 0;
-            try (InputStream inputStream = sourceUrl.getInputStream();
-                 FileOutputStream outputStream = new FileOutputStream(destinationPath.toFile())) {
-                byte[] buffer = new byte[bufferSize];
-                int bytesRead;
-                while ((bytesRead = inputStream.read(buffer)) != -1) {
-                    if (md != null) {
-                        md.update(buffer, 0, bytesRead);
+            if (item.length >= segmentSize) {
+                size = item.length;
+                LOG.info("Downloading large file {}: {} bytes", destinationPath.toString(), item.length);
+                String fileName = destinationPath.getFileName().toString();
+                long numSegments = (item.length + segmentSize - 1) / segmentSize;
+                ArrayList<Path> segmentFiles = new ArrayList<>();
+                ArrayList<Future<Boolean>> downloadTasks = new ArrayList<>();
+                for (int i = 0; i < numSegments; i++) {
+                    long startByte = i * segmentSize;
+                    long endByte = Math.min(startByte + segmentSize - 1, item.length - 1);
+                    Path segmentFile = destinationPath.getParent().resolve(fileName + "_" + i + ".tmp");
+                    segmentFiles.add(segmentFile);
+                    downloadTasks.add(executorService.submit(
+                        new Callable<Boolean>() {
+                            @Override
+                                public Boolean call() throws Exception {
+                                    Exception lastException = null;
+                                    for (int i = 0; i < maxRetries; i++) {
+                                        try {
+                                            return tryDownloadRange(item.source, connectTimeoutMs, readTimeoutMs,
+                                                    segmentFile, startByte, endByte);
+                                        } catch (Exception e) {
+                                            LOG.warn("Range download try # {} failed", i, e);
+                                            lastException = e;
+                                            // retry
+                                        }
+                                    }
+                                    throw lastException;
+                                }
+                        }
+                    ));
+                }
+                // wait for threads
+                boolean allSuccess = true;
+                for (int i = 0; i < downloadTasks.size(); i++) {
+                    try {
+                        boolean success = downloadTasks.get(i).get();
+                        if (!success) {
+                            allSuccess = false;
+                            break;
+                        }
+                    } catch (Exception e) {
+                        allSuccess = false;
+                        break;
                     }
-                    outputStream.write(buffer, 0, bytesRead);
-                    size += bytesRead;
+                }
+                // merge
+                if (allSuccess) {
+                    try (OutputStream fileOut = Files.newOutputStream(destinationPath)) {
+                        OutputStream out = md == null ? fileOut : new DigestOutputStream(fileOut, md);
+                        for (Path segmentFile : segmentFiles) {
+                            if (Files.exists(segmentFile)) {
+                                Files.copy(segmentFile, out);
+                                Files.delete(segmentFile);
+                            }
+                        }
+                        LOG.info("Download {} size {}, {} parts", destinationPath.toString(), size, downloadTasks.size());
+                    }
+                } else {
+                    LOG.warn("Download {} failed", destinationPath.toString());
+                }
+            } else {
+                try (InputStream inputStream = sourceUrl.getInputStream();
+                     FileOutputStream out = new FileOutputStream(destinationPath.toFile())) {
+                    byte[] buffer = new byte[bufferSize];
+                    int bytesRead;
+                    while ((bytesRead = inputStream.read(buffer)) != -1) {
+                        if (md != null) {
+                            md.update(buffer, 0, bytesRead);
+                        }
+                        out.write(buffer, 0, bytesRead);
+                        size += bytesRead;
+                    }
                 }
             }
 
             if (md != null) {
-                byte[] checksumBytes = md.digest();
-
-                // Convert the checksum bytes to a hexadecimal string
-                StringBuilder sb = new StringBuilder();
-                for (byte b : checksumBytes) {
-                    sb.append(String.format("%02x", b));
-                }
-                String checksum = sb.toString();
+                String checksum = getMessageDigestString(md);
                 // Warning: most modern checksum algorithms used for cryptographic purposes are designed to be case-insensitive,
                 // to ensure that the same checksum value is produced regardless of the input's case. There may be some
                 // legacy algorithms that are case-sensitive. Using equalsIgnoreCase can be considered safe here.
@@ -216,6 +286,45 @@ public class Downloader implements Closeable {
             return "DownloaderWorker{" +
                     "item=" + item +
                     '}';
+        }
+    }
+
+    private static String getMessageDigestString(MessageDigest md) {
+        byte[] checksumBytes = md.digest();
+        // Convert the checksum bytes to a hexadecimal string
+        StringBuilder sb = new StringBuilder();
+        for (byte b : checksumBytes) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
+    }
+
+    private static boolean tryDownloadRange(String sourceURL, int connectTimeoutMs,
+            int readTimeoutMs, Path target, long startByte, long endByte) throws IOException {
+        HttpURLConnection connection = (HttpURLConnection) new URL(sourceURL).openConnection();
+        connection.setConnectTimeout(connectTimeoutMs);
+        connection.setReadTimeout(readTimeoutMs);
+        connection.setRequestProperty("Range", "bytes=" + startByte + "-" + endByte);
+        int responseCode = connection.getResponseCode();
+        if (responseCode != HttpURLConnection.HTTP_PARTIAL && responseCode != HttpURLConnection.HTTP_OK) {
+            throw new IOException("Unexpected response code: " + responseCode);
+        }
+        try (InputStream inputStream = connection.getInputStream();
+                OutputStream outputStream = Files.newOutputStream(target)) {
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            long totalBytesRead = 0;
+            long expectedBytes = endByte - startByte + 1;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+                totalBytesRead += bytesRead;
+                if (totalBytesRead >= expectedBytes) {
+                    break;
+                }
+            }
+            return true;
+        } finally {
+            connection.disconnect();
         }
     }
 
@@ -285,12 +394,14 @@ public class Downloader implements Closeable {
         public String source;
         public String destination;
         public String checksum;
+        public long length;
 
         @Override
         public String toString() {
             return "Item{" +
                     "source='" + source + '\'' +
                     ", destination='" + destination + '\'' +
+                    ", length=" + length +
                     (checksum != null ? ", checksum='" + checksum + '\'' : "") +
                     '}';
         }

@@ -644,12 +644,8 @@ public class DataStoreCommand implements Command {
 
             String id = list.get(0);
             // Split b47b58169f121822cd4a0a0a153ba5910e581ad2bc450b6af7e51e6214c2b173#123311 on # to get the id
-            List<String> idLengthSepList = Arrays.stream(id.split(HASH))
-                    .map(String::trim)
-                    .filter(s -> !s.isEmpty())
-                    .collect(Collectors.toList());
-            String blobId = idLengthSepList.get(0);
-
+            String blobId = id.split(HASH)[0];
+            long length = getBlobLengthOrZero(id);
             if (dsType == FAKE || dsType == FDS) {
                 // 0102030405... => 01/02/03/0102030405...
                 blobId = String.join(System.getProperty("file.separator"), blobId.substring(0, 2), blobId.substring(2, 4),
@@ -665,7 +661,7 @@ public class DataStoreCommand implements Command {
             // In case of blob ids dump, the list size would be 1 (Consisting of just the id)
             if (list.size() > 1) {
                 // Join back the encoded blob ref and the path on which the ref is present
-                return String.join(DELIM, blobId, EscapeUtils.unescapeLineBreaks(list.get(1)));
+                return String.join(DELIM, blobId, EscapeUtils.unescapeLineBreaks(list.get(1)), "" + length);
             } else {
                 // return the encoded blob id
                 return blobId;
@@ -684,6 +680,28 @@ public class DataStoreCommand implements Command {
                     writeStrings(iterator, outFile, true, log, "Transformed to verbose ids - ");
                 }
             }
+        }
+    }
+
+    /**
+     * Try to read the blob length from the blobId. It is typically after the '#'.
+     * It never throws an exception.
+     *
+     * @param blobId the blob id, which may contain a '#'
+     * @return the length, or 0 if unknown.
+     */
+    public static long getBlobLengthOrZero(String blobId) {
+        if (blobId == null) {
+            return 0;
+        }
+        int hashIndex = blobId.indexOf('#');
+        if (hashIndex < 0) {
+            return 0;
+        }
+        try {
+            return Long.parseLong(blobId.substring(hashIndex + 1));
+        } catch (NumberFormatException e) {
+            return 0;
         }
     }
 

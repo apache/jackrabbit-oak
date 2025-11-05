@@ -548,6 +548,16 @@ public class DataStoreCommandTest {
     }
 
     @Test
+    public void getBlobLengthOrZero() {
+        assertEquals(1, DataStoreCommand.getBlobLengthOrZero("cafe#1"));
+        assertEquals(10, DataStoreCommand.getBlobLengthOrZero("cafe#10"));
+        assertEquals(0, DataStoreCommand.getBlobLengthOrZero("cafe"));
+        assertEquals(0, DataStoreCommand.getBlobLengthOrZero("#"));
+        assertEquals(0, DataStoreCommand.getBlobLengthOrZero(""));
+        assertEquals(0, DataStoreCommand.getBlobLengthOrZero(null));
+    }
+
+    @Test
     public void testConsistencyMarkOnly() throws Exception {
         File dump = temporaryFolder.newFolder();
         Data data = prepareData(storeFixture, blobFixture, 10, 5, 0);
@@ -729,7 +739,7 @@ public class DataStoreCommandTest {
         }
         DataStoreCommand cmd = new DataStoreCommand();
         cmd.execute(argsList.toArray(new String[0]));
-        
+
         if (!markOnly) {
             assertFileEquals(dump, "avail-", SetUtils.difference(data.added, data.missingDataStore));
         } else {
@@ -743,7 +753,7 @@ public class DataStoreCommandTest {
                 (storeFixture instanceof StoreFixture.MongoStoreFixture) ?
                         encodedIdsAndPath(SetUtils.difference(data.added, data.deleted), blobFixture.getType(), data.idToPath, false) :
                         SetUtils.difference(data.added, data.deleted));
-        
+
         if (!markOnly) {
             // Verbose would have paths as well as ids changed but normally only DocumentNS would have paths suffixed
             assertFileEquals(dump, "gccand-", verbose ?
