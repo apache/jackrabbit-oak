@@ -635,6 +635,35 @@ public class AzureArchiveManagerTest {
         assertTrue("Archive should not be deleted", readBlobContainerClient.listBlobs(new ListBlobsOptions().setPrefix("oak/data00000a.tar"), null).iterator().hasNext());
     }
 
+    @Test
+    public void testCopyFile() throws IOException {
+        final String archiveName = "data00003a.tar";
+        final String bakArchiveName = archiveName + ".bak";
+        final String rootPrefix = "oak";
+        final int numberOfBlobs = 25;
+
+        createBlobs(rootPrefix, archiveName, numberOfBlobs);
+
+        System.setProperty(AzureArchiveManager.COPY_BATCH_SIZE_PROP, "10");
+
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        manager.copyFile(archiveName, bakArchiveName);
+
+        int numberOfBlobsCopied = (int) readBlobContainerClient.listBlobs(new ListBlobsOptions().setPrefix(rootPrefix + "/" + bakArchiveName), null)
+                .stream().count();
+
+        System.clearProperty(AzureArchiveManager.COPY_BATCH_SIZE_PROP);
+
+        assertEquals("blob from backup tar archive should not be copied", numberOfBlobs, numberOfBlobsCopied);
+    }
+
+    private void createBlobs(String rootPrefix, String archiveName, int numberOfBlobs) {
+        for (int i = 0; i < numberOfBlobs; i++) {
+            writeBlobContainerClient.getBlobClient(rootPrefix + "/" + archiveName + "/0004." + UUID.randomUUID().toString())
+                    .getBlockBlobClient().upload(BinaryData.fromString("test-data-segment-content"));
+        }
+    }
+
     private void createArchive(SegmentArchiveManager manager, String archiveName) throws IOException {
         SegmentArchiveWriter writer = manager.create(archiveName);
         UUID u = UUID.randomUUID();
