@@ -56,10 +56,32 @@ import java.util.stream.Collectors;
 public class Downloader implements Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(Downloader.class);
+
+    /**
+     * The maximum size of what is considered a "small file".
+     * At the same time, this is the block size for large files.
+     */
     private static final long MAX_LENGTH_SINGLE_THREADED = 16 * 1024 * 1024;
 
+    /**
+     * The executor service used for small files,
+     * and to coordinate download of large files.
+     * Large files are split into parts, which are downloaded
+     * concurrently using range headers.
+     *
+     * The parts of large files may not use this service,
+     * otherwise download might deadlock: all threads
+     * might wait for parts, but the parts themselves
+     * can't be downloaded because the pool is full.
+     * The easiest solution is to use two pools.
+     */
     private final ExecutorService executorService;
+
+    /**
+     * The executor service used for parts of large files.
+     */
     private final ExecutorService executorServiceForParts;
+
     private final int connectTimeoutMs;
     private final int readTimeoutMs;
     private final int slowLogThreshold;
@@ -85,6 +107,7 @@ public class Downloader implements Closeable {
         if (maxRetries <= 0 || maxRetries > 100) {
             throw new IllegalArgumentException("maxRetries range must be between 1 and 100");
         }
+        // The constant 0.4 was found to give the best performance for a real-world scenario
         int corePoolSize = (int) Math.ceil(concurrency * .4);
         LOG.info("Initializing Downloader with max number of concurrent requests={}, core pool size {}", concurrency, corePoolSize);
         this.connectTimeoutMs = connectTimeoutMs;
@@ -106,6 +129,15 @@ public class Downloader implements Closeable {
         }
         this.bufferSize = bufferSize;
 
+        // The maximum number of threads in each executor service,
+        // when using a LinkedBlockingQueue(), is corePoolSize.
+        // all other tasks are kept in the LinkedBlockingQueue, which
+        // is unbounded.
+        // (Using a bounded queue, such as SynchronousQueue,
+        // would result in RejectedExecutionHandler).
+        // We want to keep things simple and don't want
+        // to use back presssure or other mechanisms.
+        // So in summary, corePoolSize threads are used, per service.
         this.executorService = new ThreadPoolExecutor(
                 corePoolSize, concurrency, 60L, TimeUnit.SECONDS,
                 new LinkedBlockingQueue<>(),

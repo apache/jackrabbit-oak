@@ -698,9 +698,11 @@ public class DataStoreCommand implements Command {
         if (hashIndex < 0) {
             return 0;
         }
+        String lengthString = blobId.substring(hashIndex + 1);
         try {
-            return Long.parseLong(blobId.substring(hashIndex + 1));
+            return Long.parseLong(lengthString);
         } catch (NumberFormatException e) {
+            log.warn("Can not parse length for blob id {}", blobId);
             return 0;
         }
     }
