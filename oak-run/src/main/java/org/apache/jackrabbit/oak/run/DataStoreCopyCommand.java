@@ -76,13 +76,24 @@ public class DataStoreCopyCommand implements Command {
 
             long startNano = System.nanoTime();
 
-            ids.forEach(id -> {
+            ids.forEach(line -> {
+                String[] parts = line.split(",");
+                String id = parts[0];
+                long length = 0;
+                if (parts.length > 2) {
+                    try {
+                        length = Long.parseLong(parts[2]);
+                    } catch (NumberFormatException e) {
+                        // ignore: length 0
+                    }
+                }
                 Downloader.Item item = new Downloader.Item();
                 item.source = sourceRepo + "/" + id;
                 if (sasToken != null) {
                     item.source += "?" + sasToken;
                 }
                 item.destination = getDestinationFromId(id);
+                item.length = length;
                 item.checksum = id.replaceAll("-", "");
                 downloader.offer(item);
             });
