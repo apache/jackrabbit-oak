@@ -36,6 +36,10 @@ public class TestS3DSWithSSES3 extends TestS3Ds {
     @Before
     public void setUp() throws Exception {
         super.setUp();
+    }
+
+    @Override
+    protected void setEncryptionData() {
         props.setProperty(S3Constants.S3_ENCRYPTION, S3Constants.S3_ENCRYPTION_SSE_S3);
     }
 }

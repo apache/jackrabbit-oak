@@ -39,6 +39,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_GENERATION;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_MONGO_QUERY_WARNING_THRESHOLD_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_PERFLOGGER_INFO_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLING_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_MODE;
@@ -516,4 +517,11 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
                     "merging the changes in case of a conflict. The Default value is " + DEFAULT_AVOID_EXCLUSIVE_MERGE_LOCK +
                     " Note that this value can be overridden via framework property 'oak.documentstore.avoidExclusiveMergeLock'")
     boolean avoidExclusiveMergeLock() default DEFAULT_AVOID_EXCLUSIVE_MERGE_LOCK;
+
+    @AttributeDefinition(
+            name = "MongoDB Query Warning Threshold (in millis)",
+            description = "Threshold in milliseconds for logging warnings when MongoDB queries take longer than expected. " +
+                    "A value of 0 disables query time warnings. Default is 0 (disabled). " +
+                    "Note that this value can be overridden via framework property 'oak.mongo.queryWarningThresholdMillis'")
+    long mongoQueryWarningThresholdMillis() default DEFAULT_MONGO_QUERY_WARNING_THRESHOLD_MILLIS;
 }

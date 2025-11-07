@@ -48,8 +48,6 @@
                             com.azure.storage.common*;resolution:=optional,
                             com.azure.storage.internal*;resolution:=optional,
                             com.microsoft.aad.*;resolution:=optional,
-                            com.microsoft.aad.msal4jextensions*;resolution:=optional,
-                            com.microsoft.aad.msal4jextensions.persistence*;resolution:=optional,
                             com.sun.net.httpserver;resolution:=optional,
                             sun.misc;resolution:=optional,
                             net.jcip.annotations;resolution:=optional,
@@ -64,7 +62,7 @@
                             *
                         </Import-Package>
                         <Export-Package>
-                            org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage
+                            !org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.*
                         </Export-Package>
                         <DynamicImport-Package>sun.io</DynamicImport-Package>
                         <Embed-Dependency>
@@ -78,8 +76,6 @@
                             azure-storage-common,
                             azure-storage-internal-avro,
                             com.microsoft.aad,
-                            com.microsoft.aad.msal4jextensions,
-                            com.microsoft.aad.msal4jextensions.persistence,
                             jsr305,
                             reactive-streams,
                             msal4j,

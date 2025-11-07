@@ -50,7 +50,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
 
     private AbstractAzureBlobStoreBackend azureBlobStoreBackend;
 
-    private static final String AZURE_SDK_12_ENABLED = "azure.sdk.12.enabled";
+    private static final String AZURE_SDK_12_ENABLED = "blob.azure.sdk.12.enabled";
 
     @Override
     protected AbstractSharedBackend createBackend() {

@@ -18,11 +18,6 @@
  */
 package org.apache.jackrabbit.oak.fixture;
 
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.DeleteObjectsRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.services.s3.transfer.TransferManager;
 import com.azure.storage.blob.BlobContainerClient;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -32,8 +27,8 @@ import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureBlobContainer
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
+import org.apache.jackrabbit.oak.blob.cloud.s3.S3BackendHelper;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
-import org.apache.jackrabbit.oak.blob.cloud.s3.Utils;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -41,9 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -51,6 +44,9 @@ import java.util.Properties;
  * Extension to {@link DataStoreUtils} to enable S3 / AzureBlob extensions for cleaning and initialization.
  */
 public class DataStoreUtils {
+
+    private DataStoreUtils() {}
+
     private static final Logger log = LoggerFactory.getLogger(DataStoreUtils.class);
 
     private static Class S3 = S3DataStore.class;
@@ -67,7 +63,7 @@ public class DataStoreUtils {
 
     public static DataStore configureIfCloudDataStore(String className, DataStore ds,
                                                       Map<String, ?> config, String bucket,
-                                                      StatisticsProvider statisticsProvider) throws Exception {
+                                                      StatisticsProvider statisticsProvider) {
         // Add bucket info
         Properties props = new Properties();
         props.putAll(config);
@@ -112,40 +108,11 @@ public class DataStoreUtils {
         }
     }
 
-    public static void deleteBucket(String bucket, Map<String, ?> map, Date date) throws Exception {
-        log.info("cleaning bucket [" + bucket + "]");
+    public static void deleteBucket(String bucket, Map<String, ?> map, Date date) {
+        log.info("cleaning bucket [ {} ]", bucket);
         Properties props = new Properties();
         props.putAll(map);
-        AmazonS3Client s3service = Utils.openService(props);
-        TransferManager tmx = new TransferManager(s3service);
-        if (s3service.doesBucketExist(bucket)) {
-            for (int i = 0; i < 4; i++) {
-                tmx.abortMultipartUploads(bucket, date);
-                ObjectListing prevObjectListing = s3service.listObjects(bucket);
-                while (prevObjectListing != null) {
-                    List<DeleteObjectsRequest.KeyVersion>
-                            deleteList = new ArrayList<DeleteObjectsRequest.KeyVersion>();
-                    for (S3ObjectSummary s3ObjSumm : prevObjectListing.getObjectSummaries()) {
-                        deleteList.add(new DeleteObjectsRequest.KeyVersion(
-                                s3ObjSumm.getKey()));
-                    }
-                    if (deleteList.size() > 0) {
-                        DeleteObjectsRequest delObjsReq = new DeleteObjectsRequest(
-                                bucket);
-                        delObjsReq.setKeys(deleteList);
-                        s3service.deleteObjects(delObjsReq);
-                    }
-                    if (!prevObjectListing.isTruncated()) break;
-                    prevObjectListing = s3service.listNextBatchOfObjects(prevObjectListing);
-                }
-            }
-            s3service.deleteBucket(bucket);
-            log.info("bucket [ " + bucket + "] cleaned");
-        } else {
-            log.info("bucket [" + bucket + "] doesn't exists");
-        }
-        tmx.shutdownNow();
-        s3service.shutdown();
+        S3BackendHelper.deleteBucketAndAbortMultipartUploads(bucket, date, props);
     }
 
     public static void deleteAzureContainer(Map<String, ?> config, String containerName) throws Exception {

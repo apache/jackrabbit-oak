@@ -18,14 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.jackrabbit.oak.api.jmx.InferenceMBean;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.Objects;
 
 /**
  * An MBean that provides the inference configuration.
@@ -45,5 +40,10 @@ public class InferenceMBeanImpl extends AnnotatedStandardMBean implements Infere
     @Override
     public String getConfigNodeStateJson() {
         return InferenceConfig.getInstance().getInferenceConfigNodeState();
+    }
+
+    @Override
+    public void setConfigJson(String path, String configJson) {
+        InferenceConfig.updateAndReInitializeConfigJson(path, configJson);
     }
 }

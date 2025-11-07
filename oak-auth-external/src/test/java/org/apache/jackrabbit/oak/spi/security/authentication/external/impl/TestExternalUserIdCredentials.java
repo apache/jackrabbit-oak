@@ -14,8 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@Version("4.16.0")
-package org.apache.jackrabbit.oak.api.jmx;
+package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import org.osgi.annotation.versioning.Version;
+import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
+import org.apache.jackrabbit.oak.spi.security.authentication.credentials.AbstractCredentials;
+import org.jetbrains.annotations.NotNull;
 
+class TestExternalUserIdCredentials extends AbstractCredentials {
+    public TestExternalUserIdCredentials(String originalUserId) {
+        super(originalUserId);
+    }
+
+    @Override
+    public @NotNull String getUserId() {
+        Object loginName = getAttribute(AbstractLoginModule.SHARED_KEY_LOGIN_NAME);
+        if ( loginName != null) {
+            return (String) loginName;
+        }
+        return userId;
+    }
+
+}

@@ -214,8 +214,10 @@ public class SegmentStoreMigrator implements Closeable  {
     private void migrateBinaryRef(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException, ExecutionException, InterruptedException {
         Future<Buffer> future = executor.submit(() -> RETRIER.execute(reader::getBinaryReferences));
         Buffer binaryReferences = future.get();
-        byte[] array = fetchByteArray(binaryReferences);
-        RETRIER.execute(() -> writer.writeBinaryReferences(array));
+        if (binaryReferences != null) {
+            byte[] array = fetchByteArray(binaryReferences);
+            RETRIER.execute(() -> writer.writeBinaryReferences(array));
+        }
     }
 
     private void migrateGraph(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException, ExecutionException, InterruptedException {

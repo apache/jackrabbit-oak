@@ -32,19 +32,23 @@ import org.slf4j.LoggerFactory;
  */
 public class TestS3DSWithSSEKMSwithKey extends TestS3Ds {
 
-        protected static final Logger LOG = LoggerFactory.getLogger(TestS3DSWithSSES3.class);
+    protected static final Logger LOG = LoggerFactory.getLogger(TestS3DSWithSSES3.class);
 
-        @Override
-        @Before
-        public void setUp() throws Exception {
-            super.setUp();
-            String keyid = props.getProperty(S3Constants.S3_SSE_KMS_KEYID);
-            if (!StringUtils.isEmpty(keyid)) {
-                props.setProperty(S3Constants.S3_ENCRYPTION, S3Constants.S3_ENCRYPTION_SSE_KMS);
-                props.setProperty(S3Constants.S3_SSE_KMS_KEYID, keyid);
-            } else {
-                LOG.info("Key ID not configured so ignoring test");
-                throw new AssumptionViolatedException("KMS key Id not configured");
-            }
+    @Override
+    @Before
+    public void setUp() throws Exception {
+        super.setUp();
+    }
+
+    @Override
+    protected void setEncryptionData() {
+        String keyid = props.getProperty(S3Constants.S3_SSE_KMS_KEYID);
+        if (!StringUtils.isEmpty(keyid)) {
+            props.setProperty(S3Constants.S3_ENCRYPTION, S3Constants.S3_ENCRYPTION_SSE_KMS);
+            props.setProperty(S3Constants.S3_SSE_KMS_KEYID, keyid);
+        } else {
+            LOG.info("Key ID not configured so ignoring test");
+            throw new AssumptionViolatedException("KMS key Id not configured");
         }
+    }
 }

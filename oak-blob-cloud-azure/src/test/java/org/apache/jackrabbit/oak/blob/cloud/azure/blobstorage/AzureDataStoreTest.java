@@ -29,6 +29,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v8.AzureBlobStoreBackendV8;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
@@ -388,6 +389,89 @@ public class AzureDataStoreTest {
 
         // Both should be the same type (determined by system property)
         assertEquals(backend1.getClass(), backend2.getClass());
+    }
+
+    @Test
+    public void testBackendInstantiationWithAzureSdk12Enabled() {
+        String originalProperty = System.getProperty("blob.azure.sdk.12.enabled");
+        try {
+            // Set system property to enable Azure SDK 12
+            System.setProperty("blob.azure.sdk.12.enabled", "true");
+
+            // Create a new AzureDataStore instance
+            AzureDataStore dataStore = new AzureDataStore();
+
+            // Call createBackend which should instantiate AzureBlobStoreBackend
+            AbstractSharedBackend backend = dataStore.createBackend();
+
+            // Verify that the backend is an instance of AzureBlobStoreBackend (SDK 12)
+            assertNotNull("Backend should not be null", backend);
+            assertTrue("Backend should be an instance of AzureBlobStoreBackend when SDK 12 is enabled",
+                    backend instanceof AzureBlobStoreBackend);
+            assertFalse("Backend should not be an instance of AzureBlobStoreBackendV8 when SDK 12 is enabled",
+                    backend instanceof AzureBlobStoreBackendV8);
+        } finally {
+            // Restore original system property
+            if (originalProperty != null) {
+                System.setProperty("blob.azure.sdk.12.enabled", originalProperty);
+            } else {
+                System.clearProperty("blob.azure.sdk.12.enabled");
+            }
+        }
+    }
+
+    @Test
+    public void testBackendInstantiationWithAzureSdk12Disabled() {
+        String originalProperty = System.getProperty("blob.azure.sdk.12.enabled");
+        try {
+            // Set system property to disable Azure SDK 12
+            System.setProperty("blob.azure.sdk.12.enabled", "false");
+
+            // Create a new AzureDataStore instance
+            AzureDataStore dataStore = new AzureDataStore();
+
+            // Call createBackend which should instantiate AzureBlobStoreBackendV8
+            AbstractSharedBackend backend = dataStore.createBackend();
+
+            // Verify that the backend is an instance of AzureBlobStoreBackendV8 (SDK 8)
+            assertNotNull("Backend should not be null", backend);
+            assertTrue("Backend should be an instance of AzureBlobStoreBackendV8 when SDK 12 is disabled",
+                    backend instanceof AzureBlobStoreBackendV8);
+        } finally {
+            // Restore original system property
+            if (originalProperty != null) {
+                System.setProperty("blob.azure.sdk.12.enabled", originalProperty);
+            } else {
+                System.clearProperty("blob.azure.sdk.12.enabled");
+            }
+        }
+    }
+
+    @Test
+    public void testBackendInstantiationWithAzureSdk12NotSet() {
+        String originalProperty = System.getProperty("blob.azure.sdk.12.enabled");
+        try {
+            // Clear system property to test default behavior
+            System.clearProperty("blob.azure.sdk.12.enabled");
+
+            // Create a new AzureDataStore instance
+            AzureDataStore dataStore = new AzureDataStore();
+
+            // Call createBackend which should instantiate AzureBlobStoreBackendV8 (default)
+            AbstractSharedBackend backend = dataStore.createBackend();
+
+            // Verify that the backend is an instance of AzureBlobStoreBackendV8 (SDK 8) by default
+            assertNotNull("Backend should not be null", backend);
+            assertTrue("Backend should be an instance of AzureBlobStoreBackendV8 when SDK 12 property is not set",
+                    backend instanceof AzureBlobStoreBackendV8);
+        } finally {
+            // Restore original system property
+            if (originalProperty != null) {
+                System.setProperty("blob.azure.sdk.12.enabled", originalProperty);
+            } else {
+                System.clearProperty("blob.azure.sdk.12.enabled");
+            }
+        }
     }
 
     @Test

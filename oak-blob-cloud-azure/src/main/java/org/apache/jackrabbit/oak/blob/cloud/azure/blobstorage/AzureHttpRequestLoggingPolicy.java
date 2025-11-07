@@ -45,7 +45,9 @@ public class AzureHttpRequestLoggingPolicy implements HttpPipelinePolicy {
 
     private static final Logger log = LoggerFactory.getLogger(AzureHttpRequestLoggingPolicy.class);
 
-    private final boolean verboseEnabled = SystemPropertySupplier.create("blob.azure.v12.http.verbose.enabled", false).get();
+    private static final String AZURE_SDK_VERBOSE_LOGGING_ENABLED = "blob.azure.v12.http.verbose.enabled";
+
+    private final boolean verboseEnabled = SystemPropertySupplier.create(AZURE_SDK_VERBOSE_LOGGING_ENABLED, false).get();
 
     @Override
     public Mono<HttpResponse> process(HttpPipelineCallContext context, HttpPipelineNextPolicy next) {
