@@ -42,6 +42,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -910,7 +911,7 @@ public class TarFiles implements Closeable {
                 Map<UUID, UUID> uuidDeduplicationMap = indices.values().stream()
                         .flatMap(Set::stream)
                         .collect(Collectors.toUnmodifiableMap(Function.identity(), Function.identity()));
-                Function<UUID, UUID> uuidDeduplicator = uuid -> uuidDeduplicationMap.getOrDefault(uuid, uuid);
+                UnaryOperator<UUID> uuidDeduplicator = uuid -> uuidDeduplicationMap.getOrDefault(uuid, uuid);
                 Set<UUID> uuids = indices.get(reader.getFileName());
                 Map<UUID, Set<UUID>> edges = reader.getGraph().getEdges();
                 // Create a map covering all UUIDs contained in the file's index and deduplicate
