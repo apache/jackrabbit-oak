@@ -40,7 +40,9 @@ import java.util.UUID;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -905,10 +907,22 @@ public class TarFiles implements Closeable {
 
         for (TarReader reader : iterable(head)) {
             if (fileName.equals(reader.getFileName())) {
-                Map<UUID, Set<UUID>> result = new HashMap<>();
-                reader.getUUIDs().forEach((uuid -> result.put(uuid, emptySet())));
-                result.putAll(reader.getGraph().getEdges());
-                return result;
+                Map<String, Set<UUID>> indices = getIndices();
+                Map<UUID, UUID> uuidDeduplicationMap = indices.values().stream()
+                        .flatMap(Set::stream)
+                        .collect(Collectors.toUnmodifiableMap(Function.identity(), Function.identity()));
+                UnaryOperator<UUID> uuidDeduplicator = uuid -> uuidDeduplicationMap.getOrDefault(uuid, uuid);
+                Set<UUID> uuids = indices.get(reader.getFileName());
+                Map<UUID, Set<UUID>> edges = reader.getGraph().getEdges();
+                // Create a map covering all UUIDs contained in the file's index and deduplicate
+                // all UUID instances based on the UUIDs already present in _all_ archives' indices.
+                // This helps to keep the memory overhead during the lifetime of graph-maps to a minimum.
+                return uuids.stream().collect(Collectors.toUnmodifiableMap(
+                        uuidDeduplicator,
+                        uuid -> edges.getOrDefault(uuid, emptySet()).stream()
+                                .map(uuidDeduplicator)
+                                .collect(Collectors.toUnmodifiableSet())));
+
             }
         }
         return emptyMap();

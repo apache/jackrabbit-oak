@@ -286,7 +286,7 @@ public class TarReader implements Closeable {
         this.segmentUUIDs = archive.listSegments()
                 .stream()
                 .map(e -> new UUID(e.getMsb(), e.getLsb()))
-                .collect(Collectors.toSet());
+                .collect(Collectors.toUnmodifiableSet());
     }
 
     long size() {
