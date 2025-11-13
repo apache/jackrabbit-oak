@@ -62,13 +62,16 @@ public class Statement {
     
     QueryOptions queryOptions;
     
-    public Statement optimize() {
+    public Statement optimize(boolean convertOrToUnion) {
         ignoreOrderByScoreDesc(orderList);
         if (where == null) {
             return this;
         }
         where = where.optimize();
         optimizeSelectorNodeTypes();
+        if (!convertOrToUnion) {
+            return this;
+        }
         ArrayList<Expression> unionList = new ArrayList<Expression>();
         try {
             addToUnionList(where, unionList);
@@ -90,7 +93,7 @@ public class Statement {
             if (union == null) {
                 union = s;
             } else {
-                union = new UnionStatement(union.optimize(), s.optimize());
+                union = new UnionStatement(union.optimize(convertOrToUnion), s.optimize(convertOrToUnion));
             }
         }
         union.orderList = orderList;
@@ -303,12 +306,12 @@ public class Statement {
         }
         
         @Override
-        public Statement optimize() {
+        public Statement optimize(boolean convertOrToUnion) {
             if (!KEEP_UNION_ORDER) {
                 ignoreOrderByScoreDesc(orderList);
             }
-            Statement s1b = s1.optimize();
-            Statement s2b = s2.optimize();
+            Statement s1b = s1.optimize(convertOrToUnion);
+            Statement s2b = s2.optimize(convertOrToUnion);
             if (s1 == s1b && s2 == s2b) {
                 // no change
                 return this;

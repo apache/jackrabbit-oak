@@ -593,6 +593,10 @@ public class Oak {
             LOG.info("Registered sort union query by score feature: " + QueryEngineSettings.FT_SORT_UNION_QUERY_BY_SCORE);
             closer.register(sortUnionQueryByScoreFeature);
             queryEngineSettings.setSortUnionQueryByScoreFeature(sortUnionQueryByScoreFeature);
+            Feature optimizeXPathUnion = newFeature(QueryEngineSettings.FT_OPTIMIZE_XPATH_UNION, whiteboard);
+            LOG.info("Registered optimize XPath union feature: " + QueryEngineSettings.FT_OPTIMIZE_XPATH_UNION);
+            closer.register(optimizeXPathUnion);
+            queryEngineSettings.setOptimizeXPathUnion(optimizeXPathUnion);
         }
 
         return this;
@@ -1006,6 +1010,10 @@ public class Oak {
 
         public void setSortUnionQueryByScoreFeature(@Nullable Feature feature) {
             settings.setSortUnionQueryByScoreFeature(feature);
+        }
+
+        public void setOptimizeXPathUnion(@Nullable Feature feature) {
+            settings.setOptimizeXPathUnion(feature);
         }
 
         @Override
