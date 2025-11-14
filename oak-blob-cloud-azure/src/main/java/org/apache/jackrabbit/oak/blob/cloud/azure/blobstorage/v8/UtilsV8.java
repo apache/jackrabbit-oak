@@ -69,7 +69,7 @@ public final class UtilsV8 {
                                                 @Nullable final BlobRequestOptions requestOptions) throws URISyntaxException, InvalidKeyException {
         CloudStorageAccount account = CloudStorageAccount.parse(connectionString);
         CloudBlobClient client = account.createCloudBlobClient();
-        if (null != requestOptions) {
+        if (requestOptions != null) {
             client.setDefaultRequestOptions(requestOptions);
         }
         return client;

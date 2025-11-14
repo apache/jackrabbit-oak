@@ -104,7 +104,7 @@ public class AzureDataStoreUtils extends DataStoreUtils {
                 is = new FileInputStream(config);
                 props.load(is);
             } catch (Exception e) {
-                e.printStackTrace();
+                log.warn("Error loading azure config", e);
             } finally {
                 IOUtils.closeQuietly(is);
             }
@@ -159,7 +159,7 @@ public class AzureDataStoreUtils extends DataStoreUtils {
     public static Properties getDirectAccessDataStoreProperties(@Nullable final Properties overrideProperties) {
         Properties mergedProperties = new Properties();
         mergedProperties.putAll(getAzureConfig());
-        if (null != overrideProperties) {
+        if (overrideProperties != null) {
             mergedProperties.putAll(overrideProperties);
         }
         // set properties needed for direct access testing

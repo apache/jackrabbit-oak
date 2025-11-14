@@ -23,7 +23,6 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 import org.junit.After;
 import org.junit.Test;
 import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 
 import static org.junit.Assert.*;
 import static org.mockito.Answers.CALLS_REAL_METHODS;
@@ -33,9 +32,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
-import com.microsoft.aad.msal4j.MsalServiceException;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 
 /**
@@ -52,7 +49,7 @@ public class AzureBlobContainerProviderV8AuthenticationTest {
     private static final String CONNECTION_STRING = "some-connection-string";
     private static final String SAS_TOKEN = "some-SAS-token";
     private static final String ACCOUNT_KEY = "dGVzdC1hY2NvdW50LWtleQ==";
-    private static final String BLOB_ENDPOINT = "https://testaccount.blob.core.windows.net";
+    private static final String BLOB_ENDPOINT = "https://some.valid.url";
 
     private AzureBlobContainerProviderV8 provider;
 
@@ -116,7 +113,7 @@ public class AzureBlobContainerProviderV8AuthenticationTest {
     }
 
     @Test
-    public void testAuthenticationPriorityServicePrincipalOverAccountKey() throws DataStoreException {
+    public void testAuthenticationPriorityServicePrincipalOverAccountKey() {
         // Test that service principal takes priority over account key when no connection string or SAS token
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
