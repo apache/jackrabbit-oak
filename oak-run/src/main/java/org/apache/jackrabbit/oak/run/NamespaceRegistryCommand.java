@@ -51,7 +51,7 @@ import java.util.Map;
  * --fix executes an operation that will attempt to repair an inconsistent the namespace registry.
  * <p>
  * --mappings is an option for both operations, allowing to specify additional namespace mappings in
- * the format "prefix=uri", which will be applied during the operation.
+ * the format "prefix=uri", which will be applied during the operation. It may be used multiple times
  */
 public class NamespaceRegistryCommand implements Command {
 

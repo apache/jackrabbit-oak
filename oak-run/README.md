@@ -793,7 +793,7 @@ option.
             { /path/to/oak/repository | mongodb://host:port/database | jdbc:...} \
             [--analyse] \
             [--fix --read-write] \
-            [--mappings prefix=uri[,prefix=uri]...]
+            [--mappings prefix=uri]...
 
 The following options are available:
 
@@ -807,8 +807,8 @@ The following options are available:
                                 mappings containing the same prefix or URI.
     --mappings              - Sometimes an inconsistent namespace registry cannot be repaired without additional
                                 information. The missing information can be supplied using this option if the form
-                                of a comma separated list of prefix to URI mappings which will override any
-                                (incomplete) mappings in the registry during --analyse or --fix operations.
+                                of prefix to URI mappings which will override any (incomplete) mappings in the
+                                registry during --analyse or --fix operations.
 
 Unlock DocumentMK upgrade
 -------------------------
