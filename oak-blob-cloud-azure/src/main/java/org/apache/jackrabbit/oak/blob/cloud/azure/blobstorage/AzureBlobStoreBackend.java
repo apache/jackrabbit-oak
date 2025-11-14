@@ -48,7 +48,6 @@ import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.util.Base64;
-import org.apache.jackrabbit.util.TransientFileFactory;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,6 +92,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordU
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadToken;
 
+import static java.nio.file.StandardOpenOption.DELETE_ON_CLOSE;
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_BUFFERED_STREAM_THRESHOLD;
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_DEFAULT_CONCURRENT_REQUEST_COUNT;
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_LAST_MODIFIED_KEY;
@@ -121,8 +121,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
     private int httpUploadURIExpirySeconds = 0; // disabled by default
     private String uploadDomainOverride = null;
     private String downloadDomainOverride = null;
-    private boolean createBlobContainer = true;
-    private boolean presignedDownloadURIVerifyExists = true;
+  private boolean presignedDownloadURIVerifyExists = true;
 
     private Cache<String, URI> httpDownloadURICache;
 
@@ -155,8 +154,8 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
             }
 
             try {
-                createBlobContainer = PropertiesUtil.toBoolean(
-                    org.apache.jackrabbit.oak.commons.StringUtils.emptyToNull(properties.getProperty(AzureConstants.AZURE_CREATE_CONTAINER)), true);
+              boolean createBlobContainer = PropertiesUtil.toBoolean(
+                  org.apache.jackrabbit.oak.commons.StringUtils.emptyToNull(properties.getProperty(AzureConstants.AZURE_CREATE_CONTAINER)), true);
                 initAzureDSConfig();
 
                 concurrentRequestCount = PropertiesUtil.toInteger(
@@ -196,14 +195,14 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
 
                 // settings pertaining to DataRecordAccessProvider functionality
                 String putExpiry = properties.getProperty(AzureConstants.PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS);
-                if (null != putExpiry) {
+                if (putExpiry != null) {
                     this.setHttpUploadURIExpirySeconds(Integer.parseInt(putExpiry));
                 }
                 String getExpiry = properties.getProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS);
-                if (null != getExpiry) {
+                if (getExpiry != null) {
                     this.setHttpDownloadURIExpirySeconds(Integer.parseInt(getExpiry));
                     String cacheMaxSize = properties.getProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_CACHE_MAX_SIZE);
-                    if (null != cacheMaxSize) {
+                    if (cacheMaxSize != null) {
                         this.setHttpDownloadURICacheSize(Integer.parseInt(cacheMaxSize));
                     } else {
                         this.setHttpDownloadURICacheSize(0); // default
@@ -219,6 +218,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
                     getOrCreateReferenceKey();
                 }
             } catch (BlobStorageException e) {
+                LOG.error("Error setting up Azure Blob store backend: {}", e.getMessage());
                 throw new DataStoreException(e);
             }
         } finally {
@@ -263,7 +263,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
             }
             return is;
         } catch (BlobStorageException e) {
-            LOG.info("Error reading blob. identifier={}", key);
+            LOG.error("Error reading blob. identifier={}", key);
             tryClose(is);
             throw new DataStoreException(String.format("Cannot read blob. identifier=%s", key), e);
         } finally {
@@ -284,31 +284,24 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
     }
 
     private void uploadBlob(BlockBlobClient client, File file, long len, Stopwatch stopwatch, String key) throws IOException {
-
-        boolean useBufferedStream = len < AZURE_BLOB_BUFFERED_STREAM_THRESHOLD;
-        try (InputStream in = useBufferedStream ?
-                new BufferedInputStream(new FileInputStream(file))
-                : new FileInputStream(file)) {
-
-            ParallelTransferOptions parallelTransferOptions = new ParallelTransferOptions()
-                    .setBlockSizeLong(len)
-                    .setMaxConcurrency(concurrentRequestCount)
-                    .setMaxSingleUploadSizeLong(AZURE_BLOB_MAX_SINGLE_PUT_UPLOAD_SIZE);
-            BlobUploadFromFileOptions options = new BlobUploadFromFileOptions(file.getPath());
-            options.setParallelTransferOptions(parallelTransferOptions);
-            try {
-                BlobClient blobClient = client.getContainerClient().getBlobClient(key);
-                Response<BlockBlobItem> blockBlob = blobClient.uploadFromFileWithResponse(options, null, null);
-                LOG.debug("Upload status is {} for blob {}", blockBlob.getStatusCode(), key);
-            } catch (UncheckedIOException ex) {
-                LOG.debug("Failed to upload from file:{}}", ex.getMessage());
-                throw new IOException("Failed to upload blob: " + key, ex);
-            }
-            LOG.debug("Blob created. identifier={} length={} duration={} buffered={}", key, len, stopwatch.elapsed(TimeUnit.MILLISECONDS), useBufferedStream);
-            if (LOG_STREAMS_UPLOAD.isDebugEnabled()) {
-                // Log message, with exception, so we can get a trace to see where the call came from
-                LOG_STREAMS_UPLOAD.debug("Binary uploaded to Azure Blob Storage - identifier={}", key, new Exception());
-            }
+        ParallelTransferOptions parallelTransferOptions = new ParallelTransferOptions()
+            .setBlockSizeLong(len)
+            .setMaxConcurrency(concurrentRequestCount)
+            .setMaxSingleUploadSizeLong(AZURE_BLOB_MAX_SINGLE_PUT_UPLOAD_SIZE);
+        BlobUploadFromFileOptions options = new BlobUploadFromFileOptions(file.getPath());
+        options.setParallelTransferOptions(parallelTransferOptions);
+        try {
+            BlobClient blobClient = client.getContainerClient().getBlobClient(key);
+            Response<BlockBlobItem> blockBlob = blobClient.uploadFromFileWithResponse(options, null, null);
+            LOG.debug("Upload status is {} for blob {}", blockBlob.getStatusCode(), key);
+        } catch (UncheckedIOException ex) {
+            LOG.debug("Failed to upload from file:{}}", ex.getMessage());
+            throw new IOException("Failed to upload blob: " + key, ex);
+        }
+        LOG.debug("Blob created. identifier={} length={} duration={}", key, len, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+        if (LOG_STREAMS_UPLOAD.isDebugEnabled()) {
+            // Log message, with exception, so we can get a trace to see where the call came from
+            LOG_STREAMS_UPLOAD.debug("Binary uploaded to Azure Blob Storage - identifier={}", key, new Exception());
         }
     }
 
@@ -515,12 +508,20 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
             // and loading the entire stream into memory is too risky
             if (recordLength < 0) {
                 LOG.debug("Metadata record length unknown. metadataName={}. Saving to temporary file before upload", name);
-                File tempFile = createTempFileFromStream(input, name);
-                LOG.debug("Metadata record temporary file created. metadataName={} path={}", name, tempFile.getAbsolutePath());
-                try (InputStream fis = new BufferedInputStream(new FileInputStream(tempFile))) {
-                    blockBlobClient.upload(fis, tempFile.length(), true);
+                Path tempFile = createTempFileFromStream(input, name);
+                long fileSize = Files.size(tempFile);
+                LOG.debug("Metadata record temporary file created. metadataName={} path={}", name, tempFile);
+                try (InputStream fis = new BufferedInputStream(Files.newInputStream(tempFile, DELETE_ON_CLOSE))) {
+                    blockBlobClient.upload(fis, fileSize, true);
                 } finally {
-                    tempFile.delete();
+                    //will be true only if the file exists and was deleted
+                    boolean wasDeleted = Files.deleteIfExists(tempFile);
+                    if(wasDeleted) {
+                        LOG.debug("Cleanup: Metadata record temporary file deleted. metadataName={}, filePath={}, size={}", name, tempFile, fileSize);
+                    }
+                    else {
+                        LOG.debug("Cleanup: No metadata record temporary file not deleted. metadataName={}, filePath={}, size={}", name, tempFile, fileSize);
+                    }
                 }
             } else {
                 LOG.debug("Metadata record length known: {} bytes. metadataName={}. Uploading directly", recordLength, name);
@@ -546,23 +547,19 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
      * @return A File object representing the temporary file
      * @throws IOException if an I/O error occurs
      */
-    private File createTempFileFromStream(InputStream input, String name) throws IOException {
+    private Path createTempFileFromStream(InputStream input, String name) throws IOException {
         Objects.requireNonNull(input, "input must not be null");
 
         Path tempPath = null;
         try {
             // Create temporary file
-            TransientFileFactory fileFactory = TransientFileFactory.getInstance();
-            File tempFile = fileFactory.createTransientFile(name, ".tmp", null);
-            tempPath = tempFile.toPath();
-            // Mark for deletion on JVM exit as a safety measure
-            tempFile.deleteOnExit();
+            tempPath = Files.createTempFile(name, null);
 
             // Copy stream contents to temporary file
             long bytesWritten = Files.copy(input, tempPath, StandardCopyOption.REPLACE_EXISTING);
             LOG.debug("Stream saved to temporary file. path={} size={} bytes", tempPath.toAbsolutePath(), bytesWritten);
 
-            return tempFile;
+            return tempPath;
         } catch (IOException e) {
             // Clean up the temporary file if an error occurs
             if (tempPath != null) {
@@ -694,7 +691,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
         } catch (BlobStorageException | DataStoreException e) {
             LOG.info("Error deleting all metadata records. metadataFolder={}", prefix, e);
         } finally {
-            if (null != contextClassLoader) {
+            if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
             }
         }
@@ -1114,36 +1111,6 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
         }
 
         return presignedURI;
-    }
-
-    private static class AzureBlobInfo {
-        private final String name;
-        private final long lastModified;
-        private final long length;
-
-        public AzureBlobInfo(String name, long lastModified, long length) {
-            this.name = name;
-            this.lastModified = lastModified;
-            this.length = length;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public long getLastModified() {
-            return lastModified;
-        }
-
-        public long getLength() {
-            return length;
-        }
-
-        public static AzureBlobInfo fromCloudBlob(BlockBlobClient cloudBlob) throws BlobStorageException {
-            return new AzureBlobInfo(cloudBlob.getBlobName(),
-                                     AzureBlobStoreBackend.getLastModified(cloudBlob),
-                                     cloudBlob.getProperties().getBlobSize());
-        }
     }
 
     static class AzureBlobStoreDataRecord extends AbstractDataRecord {

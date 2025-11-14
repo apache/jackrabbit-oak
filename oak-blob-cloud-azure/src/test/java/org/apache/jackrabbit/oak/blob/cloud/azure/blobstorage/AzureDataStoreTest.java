@@ -393,10 +393,10 @@ public class AzureDataStoreTest {
 
     @Test
     public void testBackendInstantiationWithAzureSdk12Enabled() {
-        String originalProperty = System.getProperty("blob.azure.sdk.12.enabled");
+        String originalProperty = System.getProperty("blob.azure.v12.enabled");
         try {
             // Set system property to enable Azure SDK 12
-            System.setProperty("blob.azure.sdk.12.enabled", "true");
+            System.setProperty("blob.azure.v12.enabled", "true");
 
             // Create a new AzureDataStore instance
             AzureDataStore dataStore = new AzureDataStore();
@@ -413,19 +413,19 @@ public class AzureDataStoreTest {
         } finally {
             // Restore original system property
             if (originalProperty != null) {
-                System.setProperty("blob.azure.sdk.12.enabled", originalProperty);
+                System.setProperty("blob.azure.v12.enabled", originalProperty);
             } else {
-                System.clearProperty("blob.azure.sdk.12.enabled");
+                System.clearProperty("blob.azure.v12.enabled");
             }
         }
     }
 
     @Test
     public void testBackendInstantiationWithAzureSdk12Disabled() {
-        String originalProperty = System.getProperty("blob.azure.sdk.12.enabled");
+        String originalProperty = System.getProperty("blob.azure.v12.enabled");
         try {
             // Set system property to disable Azure SDK 12
-            System.setProperty("blob.azure.sdk.12.enabled", "false");
+            System.setProperty("blob.azure.v12.enabled", "false");
 
             // Create a new AzureDataStore instance
             AzureDataStore dataStore = new AzureDataStore();
@@ -440,19 +440,19 @@ public class AzureDataStoreTest {
         } finally {
             // Restore original system property
             if (originalProperty != null) {
-                System.setProperty("blob.azure.sdk.12.enabled", originalProperty);
+                System.setProperty("blob.azure.v12.enabled", originalProperty);
             } else {
-                System.clearProperty("blob.azure.sdk.12.enabled");
+                System.clearProperty("blob.azure.v12.enabled");
             }
         }
     }
 
     @Test
     public void testBackendInstantiationWithAzureSdk12NotSet() {
-        String originalProperty = System.getProperty("blob.azure.sdk.12.enabled");
+        String originalProperty = System.getProperty("blob.azure.v12.enabled");
         try {
             // Clear system property to test default behavior
-            System.clearProperty("blob.azure.sdk.12.enabled");
+            System.clearProperty("blob.azure.v12.enabled");
 
             // Create a new AzureDataStore instance
             AzureDataStore dataStore = new AzureDataStore();
@@ -467,9 +467,9 @@ public class AzureDataStoreTest {
         } finally {
             // Restore original system property
             if (originalProperty != null) {
-                System.setProperty("blob.azure.sdk.12.enabled", originalProperty);
+                System.setProperty("blob.azure.v12.enabled", originalProperty);
             } else {
-                System.clearProperty("blob.azure.sdk.12.enabled");
+                System.clearProperty("blob.azure.v12.enabled");
             }
         }
     }
@@ -1233,7 +1233,7 @@ public class AzureDataStoreTest {
                 fail();
             }
             catch (NullPointerException e) {
-                assertTrue("prefix must not be null".equals(e.getMessage()));
+              assertEquals("prefix must not be null", e.getMessage());
             }
         } finally {
             teardownIntegrationTest();
@@ -1343,7 +1343,7 @@ public class AzureDataStoreTest {
                 fail();
             }
             catch (NullPointerException e) {
-                assertTrue("prefix must not be null".equals(e.getMessage()));
+              assertEquals("prefix must not be null", e.getMessage());
             }
         } finally {
             teardownIntegrationTest();
@@ -1378,8 +1378,7 @@ public class AzureDataStoreTest {
 
             byte[] refDirectFromBackend = IOUtils.toByteArray(refRec.getStream());
             LOG.warn("Ref direct from backend {}", refDirectFromBackend);
-            assertTrue("refKey in memory not equal to the metadata record",
-                Arrays.equals(refKey, refDirectFromBackend));
+            assertArrayEquals("refKey in memory not equal to the metadata record", refKey, refDirectFromBackend);
         } finally {
             teardownIntegrationTest();
         }

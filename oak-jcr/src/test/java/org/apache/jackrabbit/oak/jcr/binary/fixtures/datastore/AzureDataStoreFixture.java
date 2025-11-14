@@ -68,7 +68,7 @@ public class AzureDataStoreFixture implements DataStoreFixture {
     @Nullable
     private final Properties azProps;
     private final Map<DataStore, Object> containers = new HashMap<>();
-    private static final String AZURE_SDK_12_ENABLED = "azure.sdk.12.enabled";
+    private static final String AZURE_SDK_12_ENABLED = "blob.azure.v12.enabled";
 
     public AzureDataStoreFixture() {
         azProps = FixtureUtils.loadDataStoreProperties("azure.config", "azure.properties", ".azure");

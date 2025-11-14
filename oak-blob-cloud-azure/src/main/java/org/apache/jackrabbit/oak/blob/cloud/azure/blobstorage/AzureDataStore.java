@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
 
 public class AzureDataStore extends AbstractSharedCachingDataStore implements ConfigurableDataRecordAccessProvider {
 
-    private static final Logger log = LoggerFactory.getLogger(AzureHttpRequestLoggingPolicy.class);
+    private static final Logger log = LoggerFactory.getLogger(AzureDataStore.class);
 
     private int minRecordLength = 16*1024;
 
@@ -50,7 +50,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
 
     private AbstractAzureBlobStoreBackend azureBlobStoreBackend;
 
-    private static final String AZURE_SDK_12_ENABLED = "blob.azure.sdk.12.enabled";
+    private static final String AZURE_SDK_12_ENABLED = "blob.azure.v12.enabled";
 
     @Override
     protected AbstractSharedBackend createBackend() {
@@ -64,7 +64,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
             azureBlobStoreBackend = new AzureBlobStoreBackendV8();
         }
 
-        if (null != properties) {
+        if (properties != null) {
             azureBlobStoreBackend.setProperties(properties);
         }
         return azureBlobStoreBackend;
@@ -92,7 +92,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
     //
     @Override
     public void setDirectUploadURIExpirySeconds(int seconds) {
-        if (null != azureBlobStoreBackend) {
+        if (azureBlobStoreBackend != null) {
             azureBlobStoreBackend.setHttpUploadURIExpirySeconds(seconds);
         }
     }
@@ -121,7 +121,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
 
     @NotNull
     @Override
-    public DataRecord completeDataRecordUpload(String uploadToken)
+    public DataRecord completeDataRecordUpload(@NotNull String uploadToken)
             throws DataRecordUploadException, DataStoreException {
         if (azureBlobStoreBackend == null) {
             throw new DataRecordUploadException("Backend not initialized");
@@ -131,7 +131,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
 
     @Override
     public void setDirectDownloadURIExpirySeconds(int seconds) {
-        if (null != azureBlobStoreBackend) {
+        if (azureBlobStoreBackend != null) {
             azureBlobStoreBackend.setHttpDownloadURIExpirySeconds(seconds);
         }
     }
@@ -145,7 +145,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
     @Override
     public URI getDownloadURI(@NotNull DataIdentifier identifier,
                               @NotNull DataRecordDownloadOptions downloadOptions) {
-        if (null != azureBlobStoreBackend) {
+        if (azureBlobStoreBackend != null) {
             return azureBlobStoreBackend.createHttpDownloadURI(identifier, downloadOptions);
         }
         return null;

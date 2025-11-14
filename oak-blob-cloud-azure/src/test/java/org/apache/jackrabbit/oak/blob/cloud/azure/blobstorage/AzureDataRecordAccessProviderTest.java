@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -127,6 +128,7 @@ public class AzureDataRecordAccessProviderTest extends AbstractDataRecordAccessP
             Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
             ds.setDirectUploadURIExpirySeconds(60);
             DataRecordUpload uploadContext = ds.initiateDataRecordUpload(ONE_MB, 1);
+            assertNotNull("The upload context should not be null", uploadContext);
             URI uploadURI = uploadContext.getUploadURIs().iterator().next();
             Map<String, String> params = parseQueryString(uploadURI);
             String expiryDateStr = params.get("se");
@@ -144,16 +146,19 @@ public class AzureDataRecordAccessProviderTest extends AbstractDataRecordAccessP
         long uploadSize = ONE_GB * 100;
         int expectedNumURIs = 10000;
         DataRecordUpload upload = ds.initiateDataRecordUpload(uploadSize, -1);
+        assertNotNull("The upload context should not be null", upload);
         assertEquals(expectedNumURIs, upload.getUploadURIs().size());
 
         uploadSize = ONE_GB * 500;
         expectedNumURIs = 50000;
         upload = ds.initiateDataRecordUpload(uploadSize, -1);
+        assertNotNull("The upload context should not be null", upload);
         assertEquals(expectedNumURIs, upload.getUploadURIs().size());
 
         uploadSize = ONE_GB * 1000;
         // expectedNumURIs still 50000, Azure limit
         upload = ds.initiateDataRecordUpload(uploadSize, -1);
+        assertNotNull("The upload context should not be null", upload);
         assertEquals(expectedNumURIs, upload.getUploadURIs().size());
     }
 
@@ -170,14 +175,14 @@ public class AzureDataRecordAccessProviderTest extends AbstractDataRecordAccessP
             record = this.doSynchronousAddRecord((DataStore) dataStore, testStream);
             DataIdentifier id = record.getIdentifier();
             URI uri = dataStore.getDownloadURI(id, downloadOptionsWithMimeType(null));
-            Assert.assertNotNull(uri);
+            assertNotNull(uri);
             URI uriWithContentType = dataStore.getDownloadURI(id, downloadOptionsWithMimeType("application/octet-stream"));
-            Assert.assertNotNull(uriWithContentType);
+            assertNotNull(uriWithContentType);
             // must generate different download URIs
             assertNotEquals(uri.toString(), uriWithContentType.toString());
         } finally {
             dataStore.setDirectDownloadURICacheSize(0);
-            if (null != record) {
+            if (record != null) {
                 this.doDeleteRecord((DataStore) dataStore, record.getIdentifier());
             }
         }
