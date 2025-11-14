@@ -24,6 +24,7 @@ The following runmodes are currently available:
     * help            : Print a list of available runmodes
     * history         : Trace the history of a node
     * iotrace         : Collect a trace of segment store read accesses 
+    * namespace-registry : Analyze and optionally repair the namespace registry in an Oak repository
     * recovery        : Run a _lastRev recovery on a DocumentMK repository
     * resetclusterid  : Resets the cluster id
     * restore         : Restore a backup of an Oak repository
@@ -777,6 +778,36 @@ Upgrades the JR2 DataStore cache by moving files to the Upload staging and the d
         --path <path> \
         --moveCache <true|false> \
         --deleteMapFile <true|false>
+
+Namespace Registry
+-------
+
+The 'namespace-registry' mode analyses and optionally repairs the namespace-registry of an existing oak repository.
+
+It will write a human-readable summary to stdout. If inconsistencies are detected, they will be reported and
+if they can be repaired automatically, a dry run of the fix operation will be performed and the results will be
+written to stdout. If automatic repair is not possible, the missing information may be added using the --mappings
+option.
+
+    $ java -jar oak-run-*.jar namespace-registry \
+            { /path/to/oak/repository | mongodb://host:port/database | jdbc:...} \
+            [--analyse] \
+            [--fix] \
+            [--mappings prefix=uri[,prefix=uri]...]
+
+The following options are available:
+
+    --analyse               - An analysis of the namespace registry will be performed. The result will be written
+                                to stdout in human-readable form. If inconsistencies are detected, they will be
+                                reported and if they can be repaired automatically, a dry run of the --fix operation
+                                will be performed and the results will be written to stdout.
+    --fix                   - This will try an automatic repair of an inconsistent namespace registry.
+    --mappings              - Sometimes an inconsistent namespace registry cannot be repaired without additional
+                                information. The missing information can be supplied using this option if the form
+                                of a comma separated list of prefix to URI mappings which will override any
+                                (incomplete) mappings in the registry during the --fix operation. If used with the
+                                --analyse option, the additional mapping information will used for the possible dry
+                                run of the --fix operation.
 
 Unlock DocumentMK upgrade
 -------------------------
