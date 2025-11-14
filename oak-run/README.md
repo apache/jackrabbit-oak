@@ -801,13 +801,14 @@ The following options are available:
                                 to stdout in human-readable form. If inconsistencies are detected, they will be
                                 reported and if they can be repaired automatically, a dry run of the --fix operation
                                 will be performed and the results will be written to stdout.
+                                If --mappings are supplied, they will be considered part of the registry.
     --fix                   - This will try an automatic repair of an inconsistent namespace registry.
+                                If --mappings are supplied, they will be added to the registry, overriding existing
+                                mappings containing the same prefix or URI.
     --mappings              - Sometimes an inconsistent namespace registry cannot be repaired without additional
                                 information. The missing information can be supplied using this option if the form
                                 of a comma separated list of prefix to URI mappings which will override any
-                                (incomplete) mappings in the registry during the --fix operation. If used with the
-                                --analyse option, the additional mapping information will used for the possible dry
-                                run of the --fix operation.
+                                (incomplete) mappings in the registry during --analyse or --fix operations.
 
 Unlock DocumentMK upgrade
 -------------------------

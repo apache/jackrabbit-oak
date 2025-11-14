@@ -122,19 +122,19 @@ public class NamespaceRegistryCommand implements Command {
             };
             if (analyse || fix) {
                 NamespaceRegistryModel registryModel = NamespaceRegistryModel.create(root);
-                if (fix) {
-                    Map<String, String> additionalMappings = new HashMap<>();
-                    if (mappings != null) {
-                        for (String mapping : mappings) {
-                            String[] parts = mapping.split("=");
-                            if (parts.length != 2) {
-                                System.err.println("Invalid mapping: " + mapping);
-                                return;
-                            }
-                            additionalMappings.put(parts[0].trim(), parts[1].trim());
+                Map<String, String> additionalMappings = new HashMap<>();
+                if (mappings != null) {
+                    for (String mapping : mappings) {
+                        String[] parts = mapping.split("=");
+                        if (parts.length != 2) {
+                            System.err.println("Invalid mapping: " + mapping);
+                            return;
                         }
+                        additionalMappings.put(parts[0].trim(), parts[1].trim());
                     }
-                    registryModel = registryModel.setMappings(additionalMappings);
+                }
+                registryModel = registryModel.setMappings(additionalMappings);
+                if (fix) {
                     if (registryModel.isConsistent() && additionalMappings.isEmpty()) {
                         System.out.println("The namespace registry is already consistent. No action is required.");
                     } else if (registryModel.isFixable()) {

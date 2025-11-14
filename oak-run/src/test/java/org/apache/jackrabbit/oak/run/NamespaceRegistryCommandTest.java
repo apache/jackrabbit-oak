@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.run;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
@@ -34,7 +36,12 @@ import org.junit.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
@@ -84,6 +91,25 @@ public class NamespaceRegistryCommandTest {
         store.runBackgroundOperations();
         testCmd(new String[] { MongoUtils.URL, "--analyse" }, new String[] { "This namespace registry model is inconsistent. The inconsistency can be fixed.", "The repaired registry would contain the following mappings:", "foo -> urn:foo" });
         testCmd(new String[] { MongoUtils.URL, "--fix", "--read-write" }, new String[] { "This namespace registry model is consistent, containing the following mappings from prefixes to namespace uris:", "foo -> urn:foo" });
+    }
+
+    @Test
+    public void breakAndFixWithMapping() throws Exception {
+        NodeBuilder rootBuilder = store.getRoot().builder();
+        NodeBuilder namespaces = rootBuilder.getChildNode(JcrConstants.JCR_SYSTEM).getChildNode(NamespaceConstants.REP_NAMESPACES);
+        NodeBuilder nsdata = namespaces.child(NamespaceConstants.REP_NSDATA);
+        Iterable<String> prefixes = Objects.requireNonNull(nsdata.getProperty("rep:prefixes")).getValue(STRINGS);
+        List<String> newValue = new ArrayList<>();
+        prefixes.forEach(newValue::add);
+        newValue.add("foo");
+        //adding a prefix without any mapping to an URI
+        nsdata.setProperty(NamespaceConstants.REP_PREFIXES, newValue, STRINGS);
+        store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store.runBackgroundOperations();
+        testCmd(new String[] { MongoUtils.URL, "--analyse" }, new String[] { "This namespace registry model is inconsistent. The inconsistency can NOT be fixed." });
+        testCmd(new String[] { MongoUtils.URL, "--analyse", "--mappings",  "foo=urn:foo" }, new String[] { "This namespace registry model is consistent, containing the following mappings from prefixes to namespace uris:", "foo -> urn:foo" });
+        testCmd(new String[] { MongoUtils.URL, "--fix", "--read-write" }, new String[] { "This namespace registry model is inconsistent. The inconsistency can NOT be fixed." });
+        testCmd(new String[] { MongoUtils.URL, "--fix", "--read-write", "--mappings", "foo=urn:foo" }, new String[] { "This namespace registry model is consistent, containing the following mappings from prefixes to namespace uris:", "foo -> urn:foo" });
     }
 
     @Test
