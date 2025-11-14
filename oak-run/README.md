@@ -792,7 +792,7 @@ option.
     $ java -jar oak-run-*.jar namespace-registry \
             { /path/to/oak/repository | mongodb://host:port/database | jdbc:...} \
             [--analyse] \
-            [--fix] \
+            [--fix --read-write] \
             [--mappings prefix=uri[,prefix=uri]...]
 
 The following options are available:
