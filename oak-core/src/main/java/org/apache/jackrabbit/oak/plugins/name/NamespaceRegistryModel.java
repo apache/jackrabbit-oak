@@ -189,6 +189,11 @@ public final class NamespaceRegistryModel {
         }
     }
 
+    /**
+     * Remove any unmapped prefixes and URIs, so that they don't have to be mapped to dummy values in order to
+     * create a consistent registry.
+     * @return new NamespaceRegistryModel without unmapped prefixes or URIs.
+     */
     public NamespaceRegistryModel prune() {
         List<String> newRegisteredPrefixesList = new ArrayList<>(registeredPrefixes);
         newRegisteredPrefixesList.removeAll(danglingPrefixes);
@@ -218,6 +223,8 @@ public final class NamespaceRegistryModel {
             String encodedUri = Namespaces.encodeUri(uri);
 
             String previousMappedUri = newPrefixToNamespaceMap.get(prefix);
+            //if the prefix of the new mapping is already mapped to an existing URI, remove this existing mapping so
+            //that it doesn't need to be explicitly overridden (which still may be done, if needed).
             if (newPrefixToNamespaceMap.containsValue(uri)) {
                 Optional<String> s = newPrefixToNamespaceMap.entrySet().stream()
                         .filter(mapEntry -> uri.equals(mapEntry.getValue()))
@@ -226,6 +233,8 @@ public final class NamespaceRegistryModel {
                     newPrefixToNamespaceMap.remove(s.get());
                 }
             }
+            //if the URI of the new mapping is already mapped to an existing prefix, remove this existing mapping so
+            //that it doesn't need to be explicitly overridden (which still may be done, if needed).
             String previousMappedPrefix = newEncodedNamespaceToPrefixMap.get(encodedUri);
             if (newEncodedNamespaceToPrefixMap.containsValue(prefix)) {
                 Optional<String> s = newEncodedNamespaceToPrefixMap.entrySet().stream()
