@@ -70,6 +70,14 @@ import org.junit.runners.Parameterized.Parameter;
 @RunWith(Parameterized.class)
 public class BranchCommitGCTest {
 
+    /**
+     * System property to enable BETWEEN_CHECKPOINTS modes in tests.
+     * By default, these modes are disabled due to flakiness and slowness (OAK-10844).
+     * Set to "true" to enable: -Doak.test.enableBetweenCheckpointsModes=true
+     */
+    private static final String ENABLE_BETWEEN_CHECKPOINTS_MODES = 
+            "oak.test.enableBetweenCheckpointsModes";
+
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
     private Clock clock;
@@ -79,12 +87,26 @@ public class BranchCommitGCTest {
 
     @Parameterized.Parameters(name="{index}: {0} with {1}")
     public static java.util.Collection<Object[]> params() {
+        boolean enableBetweenCheckpointsModes = Boolean.getBoolean(ENABLE_BETWEEN_CHECKPOINTS_MODES);
         java.util.Collection<Object[]> params = new LinkedList<>();
+        int skippedModes = 0;
         for (Object[] fixture : AbstractDocumentStoreTest.fixtures()) {
             DocumentStoreFixture f = (DocumentStoreFixture)fixture[0];
             for (FullGCMode gcType : FullGCMode.values()) {
+                // OAK-10844: Skip BETWEEN_CHECKPOINTS modes by default
+                if (!enableBetweenCheckpointsModes && 
+                        (gcType == FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_NO_UNMERGED_BC ||
+                         gcType == FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC)) {
+                    skippedModes++;
+                    continue;
+                }
                 params.add(new Object[] {f, gcType});
             }
+        }
+        if (skippedModes > 0 && !enableBetweenCheckpointsModes) {
+            System.out.println("BranchCommitGCTest: Skipping " + skippedModes + 
+                    " BETWEEN_CHECKPOINTS mode test combinations. " +
+                    "To enable, set system property: -D" + ENABLE_BETWEEN_CHECKPOINTS_MODES + "=true");
         }
         return params;
     }
