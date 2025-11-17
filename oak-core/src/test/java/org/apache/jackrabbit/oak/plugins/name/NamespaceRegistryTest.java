@@ -222,9 +222,10 @@ public class NamespaceRegistryTest {
             assertFalse(model.isConsistent());
             assertTrue(model.isFixable());
 
-            // Add a registered namespace uri without any mapping
+            // Add two registered namespace uris without any mapping
             builder = PropertyBuilder.copy(Type.STRING, namespaceProp);
             builder.addValue("urn:bar2");
+            builder.addValue("urn:bar3");
             nsdata.setProperty(builder.getPropertyState());
 
             // Cannot be fixed automatically
@@ -234,12 +235,13 @@ public class NamespaceRegistryTest {
             assertFalse(model.isConsistent());
             assertFalse(model.isFixable());
 
-            // remap a prefix and map the new URI to make it fixable
+            // remap a prefix, map the first new URI and remove the dangling second new URI to make it fixable
             HashMap<String, String> mappings = new HashMap<>();
             mappings.put("foo", "urn:foo2");
             mappings.put("bar2", "urn:bar2");
             assertFalse(registry.checkConsistency(root));
             model = model.setMappings(mappings);
+            model = model.prune();
             assertFalse(model.isConsistent());
             assertTrue(model.isFixable());
 

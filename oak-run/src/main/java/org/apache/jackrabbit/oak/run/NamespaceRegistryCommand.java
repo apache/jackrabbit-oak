@@ -51,7 +51,9 @@ import java.util.Map;
  * --fix executes an operation that will attempt to repair an inconsistent the namespace registry.
  * <p>
  * --mappings is an option for both operations, allowing to specify additional namespace mappings in
- * the format "prefix=uri", which will be applied during the operation. It may be used multiple times
+ * the format "prefix=uri", which will be applied during the operation. It may be used multiple times.
+ * <p>
+ * --prune is an option for both operations. All unmapped data will be removed.
  */
 public class NamespaceRegistryCommand implements Command {
 
@@ -110,18 +112,14 @@ public class NamespaceRegistryCommand implements Command {
             throws IOException, RepositoryException, CommitFailedException {
         boolean analyse = namespaceRegistryOptions.analyse();
         boolean fix = namespaceRegistryOptions.fix();
+        boolean prune = namespaceRegistryOptions.prune();
         List<String> mappings = namespaceRegistryOptions.mappings();
         Oak oak = new Oak(fixture.getStore()).with(new OpenSecurityProvider());
         try (ContentSession contentSession = oak.createContentSession()) {
             Root root = contentSession.getLatestRoot();
-            ReadWriteNamespaceRegistry namespaceRegistry = new ReadWriteNamespaceRegistry(root) {
-                @Override
-                protected Root getWriteRoot() {
-                    return root;
-                }
-            };
             if (analyse || fix) {
-                NamespaceRegistryModel registryModel = NamespaceRegistryModel.create(root);
+                NamespaceRegistryModel originalModel = NamespaceRegistryModel.create(root);
+                NamespaceRegistryModel registryModel = originalModel;
                 Map<String, String> additionalMappings = new HashMap<>();
                 if (mappings != null) {
                     for (String mapping : mappings) {
@@ -134,8 +132,11 @@ public class NamespaceRegistryCommand implements Command {
                     }
                 }
                 registryModel = registryModel.setMappings(additionalMappings);
+                if (prune) {
+                    registryModel = registryModel.prune();
+                }
                 if (fix) {
-                    if (registryModel.isConsistent() && additionalMappings.isEmpty()) {
+                    if (originalModel.isConsistent() && additionalMappings.isEmpty()) {
                         System.out.println("The namespace registry is already consistent. No action is required.");
                     } else if (registryModel.isFixable()) {
                         registryModel.dump(System.out);

@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -188,6 +189,17 @@ public final class NamespaceRegistryModel {
         }
     }
 
+    public NamespaceRegistryModel prune() {
+        List<String> newRegisteredPrefixesList = new ArrayList<>(registeredPrefixes);
+        newRegisteredPrefixesList.removeAll(danglingPrefixes);
+        List<String> newRegisteredNamespacesEncodedList = new ArrayList<>(registeredNamespacesEncoded);
+        newRegisteredNamespacesEncodedList.removeAll(danglingNamespacesEncoded);
+        Map<String, String> newPrefixToNamespaceMap = new HashMap<>(prefixToNamespaceMap);
+        Map<String, String> newEncodedNamespaceToPrefixMap = new HashMap<>(encodedNamespaceToPrefixMap);
+        return new NamespaceRegistryModel(newRegisteredPrefixesList, newRegisteredNamespacesEncodedList,
+                newPrefixToNamespaceMap, newEncodedNamespaceToPrefixMap);
+    }
+
     /**
      * Creates a new {@link NamespaceRegistryModel} with the given mappings. Used by {@see NamespaceRegistryCommand} to
      * repair a namespace registry that cannot be fixed automatically because mapping information is missing.
@@ -205,18 +217,39 @@ public final class NamespaceRegistryModel {
             String uri = entry.getValue();
             String encodedUri = Namespaces.encodeUri(uri);
 
+            String previousMappedUri = newPrefixToNamespaceMap.get(prefix);
+            if (newPrefixToNamespaceMap.containsValue(uri)) {
+                Optional<String> s = newPrefixToNamespaceMap.entrySet().stream()
+                        .filter(mapEntry -> uri.equals(mapEntry.getValue()))
+                        .map(Map.Entry::getKey).findFirst();
+                if (s.isPresent() && !prefix.equals(s.get())) {
+                    newPrefixToNamespaceMap.remove(s.get());
+                }
+            }
+            String previousMappedPrefix = newEncodedNamespaceToPrefixMap.get(encodedUri);
+            if (newEncodedNamespaceToPrefixMap.containsValue(prefix)) {
+                Optional<String> s = newEncodedNamespaceToPrefixMap.entrySet().stream()
+                        .filter(mapEntry -> prefix.equals(mapEntry.getValue()))
+                        .map(Map.Entry::getKey).findFirst();
+                if (s.isPresent() && !encodedUri.equals(s.get())) {
+                    newEncodedNamespaceToPrefixMap.remove(s.get());
+                }
+            }
+            if (previousMappedPrefix != null) {
+                newRegisteredPrefixesList.remove(previousMappedPrefix);
+                newPrefixToNamespaceMap.remove(previousMappedPrefix);
+            }
             if (!newRegisteredPrefixesList.contains(prefix)) {
                 newRegisteredPrefixesList.add(prefix);
             }
-            if (!newRegisteredNamespacesEncodedList.contains(encodedUri)) {
-                newRegisteredNamespacesEncodedList.add(encodedUri);
-            }
-            String previousUri = newPrefixToNamespaceMap.get(prefix);
             newPrefixToNamespaceMap.put(prefix, uri);
-            if (previousUri != null) {
-                String previousEncodedUri = Namespaces.encodeUri(previousUri);
+            if (previousMappedUri != null) {
+                String previousEncodedUri = Namespaces.encodeUri(previousMappedUri);
                 newRegisteredNamespacesEncodedList.remove(previousEncodedUri);
                 newEncodedNamespaceToPrefixMap.remove(previousEncodedUri);
+            }
+            if (!newRegisteredNamespacesEncodedList.contains(encodedUri)) {
+                newRegisteredNamespacesEncodedList.add(encodedUri);
             }
             newEncodedNamespaceToPrefixMap.put(encodedUri, prefix);
         }

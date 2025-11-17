@@ -782,7 +782,7 @@ Upgrades the JR2 DataStore cache by moving files to the Upload staging and the d
 Namespace Registry
 -------
 
-The 'namespace-registry' mode analyses and optionally repairs the namespace-registry of an existing oak repository.
+The 'namespace-registry' mode analyses and optionally repairs the namespace-registry of an existing Oak repository.
 
 It will write a human-readable summary to stdout. If inconsistencies are detected, they will be reported and
 if they can be repaired automatically, a dry run of the fix operation will be performed and the results will be
@@ -793,6 +793,7 @@ option.
             { /path/to/oak/repository | mongodb://host:port/database | jdbc:...} \
             [--analyse] \
             [--fix --read-write] \
+            [--prune] \
             [--mappings prefix=uri]...
 
 The following options are available:
@@ -809,6 +810,7 @@ The following options are available:
                                 information. The missing information can be supplied using this option if the form
                                 of prefix to URI mappings which will override any (incomplete) mappings in the
                                 registry during --analyse or --fix operations.
+    --prune                 - Remove any unmapped prefixes and URIs before --analyse or --fix operations.
 
 Unlock DocumentMK upgrade
 -------------------------
