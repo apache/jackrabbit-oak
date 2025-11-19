@@ -200,10 +200,25 @@ public class SessionSaveDelayerConfig {
             this.maxSavesPerSecond = maxSavesPerSecond;
         }
 
+        /**
+         * Get the number of nanoseconds to delay the next operation.
+         *
+         * @return the time in nanoseconds
+         */
         public long getDelayNanos() {
+            return getDelayNanos(0);
+        }
+
+        /**
+         * Get the number of nanoseconds to delay the next operation.
+         *
+         * @param timeMillis the injected current time, or 0 to read it using System.currentTimeMillis() if needed
+         * @return the time in nanoseconds
+         */
+        public long getDelayNanos(long timeMillis) {
             long totalDelayNanos = baseDelayNanos;
             if (maxSavesPerSecond > 0) {
-                long currentTime = System.currentTimeMillis();
+                long currentTime = timeMillis != 0 ? timeMillis : System.currentTimeMillis();
                 double intervalMs = 1000.0 / maxSavesPerSecond;
                 long lastMatchTime = lastMatch.get();
                 if (lastMatchTime > 0) {
