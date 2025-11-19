@@ -359,6 +359,46 @@ public class NamespaceRegistryTest {
         }
     }
 
+    @Test
+    public void testNamespaceRegistryModelPruneUnmappedData() throws Exception {
+        try (ContentSession session = new Oak()
+                .with(new OpenSecurityProvider())
+                .with(new InitialContent())
+                .with(new NamespaceEditorProvider())
+                .createContentSession()) {
+            Root root = session.getLatestRoot();
+            ReadWriteNamespaceRegistry registry = new TestNamespaceRegistry(root);
+            Tree namespaces = root.getTree("/jcr:system/rep:namespaces");
+            Tree nsdata = namespaces.getChild(REP_NSDATA);
+            PropertyState prefixProp = nsdata.getProperty(REP_PREFIXES);
+            PropertyState namespaceProp = nsdata.getProperty(REP_URIS);
+
+            // Add a prefix and an URI without mappings
+            String foo = "foo";
+            String barUri = "urn:bar";
+
+            PropertyBuilder<String> builder = PropertyBuilder.copy(Type.STRING, prefixProp);
+            builder.addValue(foo);
+            nsdata.setProperty(builder.getPropertyState());
+            builder = PropertyBuilder.copy(Type.STRING, namespaceProp);
+            builder.addValue(barUri);
+            nsdata.setProperty(builder.getPropertyState());
+
+            NamespaceRegistryModel model = NamespaceRegistryModel.create(root);
+            assertNotNull(model);
+            assertFalse(registry.checkConsistency(root));
+            assertFalse(model.isConsistent());
+            assertFalse(model.isFixable());
+            model = model.prune();
+            assertTrue(model.isConsistent());
+            model.apply(root);
+            assertTrue(registry.checkConsistency());
+
+            assertThrows(NamespaceException.class, () -> registry.getURI(foo));
+            assertThrows(NamespaceException.class, () -> registry.getPrefix(barUri));
+        }
+    }
+
     static class TestNamespaceRegistry extends ReadWriteNamespaceRegistry {
         public TestNamespaceRegistry(Root root) {
             super(root);
