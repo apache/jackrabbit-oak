@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 
 import org.junit.Test;
 
+import javax.jcr.NamespaceException;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -40,6 +41,8 @@ import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_URI
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.spy;
@@ -279,6 +282,80 @@ public class NamespaceRegistryTest {
             verify(spy, times(0)).checkConsistency(any(Root.class));
             new TestNamespaceRegistry(root);
             verify(spy, times(0)).checkConsistency(any(Root.class));
+        }
+    }
+
+    @Test
+    public void testNamespaceRegistryModelAmbiguousUri() throws Exception {
+        try (ContentSession session = new Oak()
+                .with(new OpenSecurityProvider())
+                .with(new InitialContent())
+                .with(new NamespaceEditorProvider())
+                .createContentSession()) {
+            Root root = session.getLatestRoot();
+            ReadWriteNamespaceRegistry registry = new TestNamespaceRegistry(root);
+            Tree namespaces = root.getTree("/jcr:system/rep:namespaces");
+            Tree nsdata = namespaces.getChild(REP_NSDATA);
+
+            // Add a mapping and an incompatible reverse mapping
+            String foo = "foo";
+            String bar = "bar";
+            String fooUri = "urn:foo";
+            String barUri = "urn:bar";
+            namespaces.setProperty(foo, fooUri);
+            nsdata.setProperty(Namespaces.encodeUri(barUri), foo);
+
+            NamespaceRegistryModel model = NamespaceRegistryModel.create(root);
+            assertNotNull(model);
+            assertFalse(registry.checkConsistency(root));
+            assertFalse(model.isConsistent());
+            assertFalse(model.isFixable());
+            model = model.setMappings(Collections.singletonMap(foo, fooUri));
+            assertTrue(model.isConsistent());
+            model.apply(root);
+            assertTrue(registry.checkConsistency());
+
+            assertEquals(fooUri, registry.getURI(foo));
+            assertThrows(NamespaceException.class, () -> registry.getURI(bar));
+            assertEquals(foo, registry.getPrefix(fooUri));
+            assertThrows(NamespaceException.class, () -> registry.getPrefix(barUri));
+        }
+    }
+
+    @Test
+    public void testNamespaceRegistryModelAmbiguousPrefix() throws Exception {
+        try (ContentSession session = new Oak()
+                .with(new OpenSecurityProvider())
+                .with(new InitialContent())
+                .with(new NamespaceEditorProvider())
+                .createContentSession()) {
+            Root root = session.getLatestRoot();
+            ReadWriteNamespaceRegistry registry = new TestNamespaceRegistry(root);
+            Tree namespaces = root.getTree("/jcr:system/rep:namespaces");
+            Tree nsdata = namespaces.getChild(REP_NSDATA);
+
+            // Add a mapping and an incompatible reverse mapping
+            String foo = "foo";
+            String bar = "bar";
+            String fooUri = "urn:foo";
+            String barUri = "urn:bar";
+            namespaces.setProperty(foo, fooUri);
+            nsdata.setProperty(Namespaces.encodeUri(fooUri), bar);
+
+            NamespaceRegistryModel model = NamespaceRegistryModel.create(root);
+            assertNotNull(model);
+            assertFalse(registry.checkConsistency(root));
+            assertFalse(model.isConsistent());
+            assertFalse(model.isFixable());
+            model = model.setMappings(Collections.singletonMap(foo, fooUri));
+            assertTrue(model.isConsistent());
+            model.apply(root);
+            assertTrue(registry.checkConsistency());
+
+            assertEquals(fooUri, registry.getURI(foo));
+            assertThrows(NamespaceException.class, () -> registry.getURI(bar));
+            assertEquals(foo, registry.getPrefix(fooUri));
+            assertThrows(NamespaceException.class, () -> registry.getPrefix(barUri));
         }
     }
 
