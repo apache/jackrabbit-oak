@@ -66,6 +66,26 @@ public class NodeTypeTest extends AbstractRepositoryTest {
         session.save();
     }
 
+    @Test
+    public void illegalSetProperty() throws Exception {
+        try {
+            Session session = getAdminSession();
+            Node root = session.getRootNode();
+            Node test = root.addNode("testfolder", "nt:folder");
+            test.addMixin("mix:created");
+            test.setProperty("can't", "set");
+            session.save();
+        } catch (ConstraintViolationException expected) {
+            String wantToSee ="nt:folder";
+            String message = expected.getMessage();
+            assertTrue("exception message should contain '" + wantToSee + "', but got: '" + message,
+                    message.contains(wantToSee));
+            wantToSee ="mix:created";
+            assertTrue("exception message should contain '" + wantToSee + "', but got: '" + message,
+                    message.contains(wantToSee));
+        }
+    }
+
     @Test(expected = ConstraintViolationException.class)
     public void illegalAddNodeWithProps() throws Exception {
         Session session = getAdminSession();
