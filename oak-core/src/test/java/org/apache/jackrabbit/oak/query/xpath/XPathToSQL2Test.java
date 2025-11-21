@@ -163,14 +163,6 @@ public class XPathToSQL2Test {
 
     static String formatSQL(String sql) {   
         sql = sql.replace('\n', ' ');
-        /*
-        sql = sql.replaceAll(" from ", "\nfrom ");
-        sql = sql.replaceAll(" where ", "\nwhere ");
-        sql = sql.replaceAll(" and ", "\nand ");
-        sql = sql.replaceAll(" union ", "\nunion ");
-        sql = sql.replaceAll(" order by ", "\norder by ");
-        sql = sql.replaceAll(" option\\(", "\noption\\(");
-        */
         sql = sql.replaceAll("\\[jcr:path\\], \\[jcr:score\\], \\* from \\[nt:base\\] as a", "...");
         sql = sql.replaceAll("\\/\\*.*\\*/", "");
         return sql;
