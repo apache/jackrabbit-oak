@@ -294,8 +294,6 @@ public class NamespaceRegistryTest {
                 .createContentSession()) {
             Root root = session.getLatestRoot();
             ReadWriteNamespaceRegistry registry = new TestNamespaceRegistry(root);
-            Tree namespaces = root.getTree("/jcr:system/rep:namespaces");
-            Tree nsdata = namespaces.getChild(REP_NSDATA);
 
             // Add a mapping
             NamespaceRegistryModel model = NamespaceRegistryModel.create(root);
@@ -327,8 +325,6 @@ public class NamespaceRegistryTest {
                 .createContentSession()) {
             Root root = session.getLatestRoot();
             ReadWriteNamespaceRegistry registry = new TestNamespaceRegistry(root);
-            Tree namespaces = root.getTree("/jcr:system/rep:namespaces");
-            Tree nsdata = namespaces.getChild(REP_NSDATA);
 
             // Add a mapping
             NamespaceRegistryModel model = NamespaceRegistryModel.create(root);
