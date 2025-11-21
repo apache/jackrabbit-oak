@@ -286,6 +286,72 @@ public class NamespaceRegistryTest {
     }
 
     @Test
+    public void testNamespaceRegistryModelRemappedPrefix() throws Exception {
+        try (ContentSession session = new Oak()
+                .with(new OpenSecurityProvider())
+                .with(new InitialContent())
+                .with(new NamespaceEditorProvider())
+                .createContentSession()) {
+            Root root = session.getLatestRoot();
+            ReadWriteNamespaceRegistry registry = new TestNamespaceRegistry(root);
+            Tree namespaces = root.getTree("/jcr:system/rep:namespaces");
+            Tree nsdata = namespaces.getChild(REP_NSDATA);
+
+            // Add a mapping
+            NamespaceRegistryModel model = NamespaceRegistryModel.create(root);
+            String foo = "foo";
+            String fooUri = "urn:foo";
+            model = model.setMappings(Collections.singletonMap(foo, fooUri));
+            assertTrue(model.isConsistent());
+            model.apply(root);
+            assertTrue(registry.checkConsistency());
+            assertEquals(foo, registry.getPrefix(fooUri));
+
+            // re-map
+            String barUri = "urn:bar";
+            model = model.setMappings(Collections.singletonMap(foo, barUri));
+            assertTrue(model.isConsistent());
+            model.apply(root);
+            assertTrue(registry.checkConsistency());
+            assertEquals(foo, registry.getPrefix(barUri));
+            assertThrows(NamespaceException.class, () -> registry.getPrefix(fooUri));
+        }
+    }
+
+    @Test
+    public void testNamespaceRegistryModelRemappedNamespace() throws Exception {
+        try (ContentSession session = new Oak()
+                .with(new OpenSecurityProvider())
+                .with(new InitialContent())
+                .with(new NamespaceEditorProvider())
+                .createContentSession()) {
+            Root root = session.getLatestRoot();
+            ReadWriteNamespaceRegistry registry = new TestNamespaceRegistry(root);
+            Tree namespaces = root.getTree("/jcr:system/rep:namespaces");
+            Tree nsdata = namespaces.getChild(REP_NSDATA);
+
+            // Add a mapping
+            NamespaceRegistryModel model = NamespaceRegistryModel.create(root);
+            String foo = "foo";
+            String fooUri = "urn:foo";
+            model = model.setMappings(Collections.singletonMap(foo, fooUri));
+            assertTrue(model.isConsistent());
+            model.apply(root);
+            assertTrue(registry.checkConsistency());
+            assertEquals(foo, registry.getPrefix(fooUri));
+
+            // re-map
+            String bar = "bar";
+            model = model.setMappings(Collections.singletonMap(bar, fooUri));
+            assertTrue(model.isConsistent());
+            model.apply(root);
+            assertTrue(registry.checkConsistency());
+            assertEquals(bar, registry.getPrefix(fooUri));
+            assertThrows(NamespaceException.class, () -> registry.getURI(foo));
+        }
+    }
+
+    @Test
     public void testNamespaceRegistryModelAmbiguousUri() throws Exception {
         try (ContentSession session = new Oak()
                 .with(new OpenSecurityProvider())
