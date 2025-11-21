@@ -362,7 +362,7 @@ public class S3Backend extends AbstractSharedBackend {
                             uploadReq.source(file).
                                     putObjectRequest(
                                             s3ReqDecorator.decorate(
-                                                    PutObjectRequest.builder().bucket(bucket).key(key)
+                                                    PutObjectRequest.builder().bucket(bucket).key(key).contentLength(file.length())
                                                             .build()))
                                     .build());
 
@@ -514,11 +514,13 @@ public class S3Backend extends AbstractSharedBackend {
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
             // Specify `null` for the content length when you don't know the content length.
-            final AsyncRequestBody body = AsyncRequestBody.fromInputStream(input, null, executor);
+            byte[] bytes = input.readAllBytes();
+            InputStream is = new ByteArrayInputStream(bytes);
+            final AsyncRequestBody body = AsyncRequestBody.fromInputStream(is, (long) bytes.length, executor);
             final Upload upload = tmx.upload(uploadReq ->
                     uploadReq.requestBody(body).
                             putObjectRequest(
-                                    s3ReqDecorator.decorate(PutObjectRequest.builder().bucket(bucket).key(addMetaKeyPrefix(name)).build()))
+                                    s3ReqDecorator.decorate(PutObjectRequest.builder().bucket(bucket).contentType("application/octet-stream").contentLength((long) bytes.length).key(addMetaKeyPrefix(name)).build()))
                             .build());
             upload.completionFuture().join();
         } catch (Exception e) {
@@ -527,15 +529,6 @@ public class S3Backend extends AbstractSharedBackend {
         } finally {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
-            }
-            executor.shutdown();
-            try {
-                if (!executor.awaitTermination(60, TimeUnit.SECONDS)) {
-                    executor.shutdownNow();
-                }
-            } catch (InterruptedException e) {
-                executor.shutdownNow();
-                Thread.currentThread().interrupt();
             }
         }
     }
@@ -553,7 +546,7 @@ public class S3Backend extends AbstractSharedBackend {
                     uploadReq.source(input).
                             putObjectRequest(
                                     s3ReqDecorator.decorate(
-                                            PutObjectRequest.builder().bucket(bucket).key(addMetaKeyPrefix(name)).build()))
+                                            PutObjectRequest.builder().bucket(bucket).contentLength(input.length()).key(addMetaKeyPrefix(name)).build()))
                             .build());
 
             upload.completionFuture().join();

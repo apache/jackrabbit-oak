@@ -111,32 +111,37 @@ public class UtilsTest {
 
     @Test
     public void testGetRegionFromStandardEndpoint() {
-        Assert.assertEquals("eu-west-1", Utils.getRegionFromEndpoint("https://s3.eu-west-1.amazonaws.com"));
+        Assert.assertEquals("eu-west-1", Utils.getRegionFromEndpoint("https://s3.eu-west-1.amazonaws.com", null));
     }
 
     @Test
     public void testGetRegionFromVirtualHostedEndpoint() {
-        Assert.assertEquals("ap-south-1", Utils.getRegionFromEndpoint("https://bucket.s3.ap-south-1.amazonaws.com"));
+        Assert.assertEquals("ap-south-1", Utils.getRegionFromEndpoint("https://bucket.s3.ap-south-1.amazonaws.com", null));
     }
 
     @Test
     public void testGetRegionFromUsEast1Endpoint() {
-        Assert.assertEquals("us-east-1", Utils.getRegionFromEndpoint("https://s3.amazonaws.com"));
+        Assert.assertEquals("us-east-1", Utils.getRegionFromEndpoint("https://s3.amazonaws.com", null));
     }
 
     @Test
     public void testGetRegionFromVirtualHostedUsEast1() {
-        Assert.assertEquals("us-east-1", Utils.getRegionFromEndpoint("https://bucket.s3.amazonaws.com"));
+        Assert.assertEquals("us-east-1", Utils.getRegionFromEndpoint("https://bucket.s3.amazonaws.com", null));
     }
 
     @Test
     public void testGetRegionFromInvalidEndpoint() {
-        Assert.assertNull(Utils.getRegionFromEndpoint("https://example.com"));
+        Assert.assertNull(Utils.getRegionFromEndpoint("https://example.com", null));
     }
 
     @Test
     public void testGetRegionFromMalformedEndpoint() {
-        Assert.assertNull(Utils.getRegionFromEndpoint("not-a-valid-uri"));
+        Assert.assertNull(Utils.getRegionFromEndpoint("not-a-valid-uri", "https"));
+    }
+
+    @Test
+    public void testGetRegionFromEndpointWithoutProtocol() {
+        Assert.assertEquals("us-east-1", Utils.getRegionFromEndpoint("s3.us-east-1.amazonaws.com", "https"));
     }
 
     @Test
