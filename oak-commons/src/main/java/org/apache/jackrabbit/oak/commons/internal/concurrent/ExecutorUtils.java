@@ -20,7 +20,9 @@ package org.apache.jackrabbit.oak.commons.internal.concurrent;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
+import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -46,23 +48,15 @@ public class ExecutorUtils {
         setDeamonThreadFactory(executor);
         final ExecutorService service = Executors.unconfigurableExecutorService(executor);
         // JVM shutdown hook for graceful executor shutdown
-        addRuntimeShutdownHook(executor, service);
+        addRuntimeShutdownHook(executor);
         return service;
 
     }
 
-    private static void addRuntimeShutdownHook(ThreadPoolExecutor executor, ExecutorService service) {
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            executor.shutdown();
-            try {
-                if (!executor.awaitTermination(120, TimeUnit.SECONDS)) {
-                    executor.shutdownNow();
-                }
-            } catch (InterruptedException e) {
-                executor.shutdownNow();
-                Thread.currentThread().interrupt();
-            }
-        }, "RuntimeShutdownHook-for-" + service));
+    private static void addRuntimeShutdownHook(final ExecutorService executor) {
+        Runtime.getRuntime().addShutdownHook(
+                new Thread(() -> new ExecutorCloser(executor, 120, TimeUnit.SECONDS).close(),
+                "RuntimeShutdownHook-for-" + executor));
     }
 
     private static void setDeamonThreadFactory(final ThreadPoolExecutor executor) {
