@@ -29,18 +29,18 @@ import org.jetbrains.annotations.NotNull;
 public class NotFullTextSearchImpl extends FullTextSearchImpl {
     private static final Set<String> KEYWORDS = Set.of("or");
 
-    public NotFullTextSearchImpl(String selectorName, String propertyName,
+    public NotFullTextSearchImpl(String selectorName, String relativePath, String propertyName,
                                  StaticOperandImpl fullTextSearchExpression) {
-        super(selectorName, propertyName, fullTextSearchExpression);
+        super(selectorName, relativePath, propertyName, fullTextSearchExpression);
     }
 
     public NotFullTextSearchImpl(FullTextSearchImpl ft) {
-        this(ft.selectorName, ft.propertyName, ft.fullTextSearchExpression);
+        this(ft.selectorName, ft.relativePath, ft.propertyName, ft.fullTextSearchExpression);
     }
 
     @Override
     ConstraintImpl not() {
-        return new FullTextSearchImpl(this.selectorName, this.propertyName,
+        return new FullTextSearchImpl(this.selectorName, this.relativePath, this.propertyName,
                 this.fullTextSearchExpression);
     }
 
