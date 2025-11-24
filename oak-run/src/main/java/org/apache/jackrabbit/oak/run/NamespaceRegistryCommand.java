@@ -40,7 +40,7 @@ import java.util.Map;
 
 /**
  * Command to analyze and repair the namespace registry in an Oak repository ({@link NamespaceRegistryModel}).
- * Possible options are: --analyse, --fix, and --mappings, which will execute corresponding operations on
+ * Possible options are: --analyse, --fix, --prune and --mappings, which will execute corresponding operations on
  * the namespace registry.
  * <p>
  * --analyse executes an operation that will print the current consistency state of the namespace registry to
