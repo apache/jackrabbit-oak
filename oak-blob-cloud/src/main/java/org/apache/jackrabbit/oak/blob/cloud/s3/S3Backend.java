@@ -513,14 +513,26 @@ public class S3Backend extends AbstractSharedBackend {
         final ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
+            final PutObjectRequest.Builder putObjectRequestBuilder = PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .contentType("application/octet-stream")
+                    .key(addMetaKeyPrefix(name));
+
             // Specify `null` for the content length when you don't know the content length.
-            byte[] bytes = input.readAllBytes();
-            InputStream is = new ByteArrayInputStream(bytes);
-            final AsyncRequestBody body = AsyncRequestBody.fromInputStream(is, (long) bytes.length, executor);
+            final AsyncRequestBody body;
+            if (Objects.equals(RemoteStorageMode.S3, properties.get(S3Constants.MODE))) {
+                body = AsyncRequestBody.fromInputStream(input, null, executor);
+            } else {
+                // for GCP we need to know the length in advance, else it won't work.
+                byte[] bytes = input.readAllBytes();
+                InputStream is = new ByteArrayInputStream(bytes);
+                body = AsyncRequestBody.fromInputStream(is, (long) bytes.length, executor);
+                putObjectRequestBuilder.contentLength((long) bytes.length);
+            }
             final Upload upload = tmx.upload(uploadReq ->
                     uploadReq.requestBody(body).
                             putObjectRequest(
-                                    s3ReqDecorator.decorate(PutObjectRequest.builder().bucket(bucket).contentType("application/octet-stream").contentLength((long) bytes.length).key(addMetaKeyPrefix(name)).build()))
+                                    s3ReqDecorator.decorate(putObjectRequestBuilder.build()))
                             .build());
             upload.completionFuture().join();
         } catch (Exception e) {
@@ -529,6 +541,15 @@ public class S3Backend extends AbstractSharedBackend {
         } finally {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
+            }
+            executor.shutdown();
+            try {
+                if (!executor.awaitTermination(60, TimeUnit.SECONDS)) {
+                    executor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                executor.shutdownNow();
+                Thread.currentThread().interrupt();
             }
         }
     }

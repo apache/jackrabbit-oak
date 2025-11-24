@@ -454,7 +454,6 @@ public final class Utils {
                 .connectionMaxIdleTime(Duration.ofSeconds(idleTimeSeconds))
                 .connectionTimeToLive(Duration.ofSeconds(ttlSeconds))
                 .useIdleConnectionReaper(true)
-                .connectionAcquisitionTimeout(Duration.ofSeconds(10)) // Connection acquisition timeout
                 .tcpKeepAlive(true) // TCP keepalive
                 .expectContinueEnabled(true); // Expect-continue handshake (reduces overhead for large uploads)
 
@@ -500,7 +499,6 @@ public final class Utils {
                 .connectionMaxIdleTime(Duration.ofSeconds(idleTimeSeconds))
                 .connectionTimeToLive(Duration.ofSeconds(ttlSeconds))
                 .useIdleConnectionReaper(true)
-                .connectionAcquisitionTimeout(Duration.ofSeconds(10)) // Don't wait too long for a connection from pool
                 .tcpKeepAlive(true) // TCP optimizations
                 .eventLoopGroup(
                         SdkEventLoopGroup.builder()
@@ -576,8 +574,11 @@ public final class Utils {
         builder.crossRegionAccessEnabled(Boolean.parseBoolean(prop.getProperty(S3Constants.S3_CROSS_REGION_ACCESS)));
 
         // Disable checksums (replaces deprecated checksumValidationEnabled)
-        builder.requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED);
-        builder.responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED);
+        if (isGCP) {
+            // disable checksum for GCP, not working with AWS sdk
+            builder.requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED);
+            builder.responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED);
+        }
 
         builder.serviceConfiguration(
                 S3Configuration.builder()
