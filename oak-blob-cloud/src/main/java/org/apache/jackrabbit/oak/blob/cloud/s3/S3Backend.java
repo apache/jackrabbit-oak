@@ -18,8 +18,11 @@ package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -524,10 +527,39 @@ public class S3Backend extends AbstractSharedBackend {
                 body = AsyncRequestBody.fromInputStream(input, null, executor);
             } else {
                 // for GCP we need to know the length in advance, else it won't work.
-                byte[] bytes = input.readAllBytes();
-                InputStream is = new ByteArrayInputStream(bytes);
-                body = AsyncRequestBody.fromInputStream(is, (long) bytes.length, executor);
-                putObjectRequestBuilder.contentLength((long) bytes.length);
+                final long length;
+                final InputStream is;
+                if (input instanceof FileInputStream) {
+                    final FileInputStream fis = (FileInputStream) input;
+                    // if the file is modified after opening, the size may not reflect the latest changes
+                    length = fis.getChannel().size();
+                    is = input;
+                } else if (input instanceof ByteArrayInputStream) {
+                    length = input.available();
+                    is = input;
+                } else if (input.markSupported()) {
+                    // in case the inputStream supports mark & reset
+                    input.mark(Integer.MAX_VALUE);
+                    length = IOUtils.consume(input);
+                    input.reset();
+                    is = input;
+                } else {
+                    // we have to read all the stream to get the actual length
+                    // last else block: store to temp file and re-read
+                    final File tempFile = File.createTempFile("inputstream-", ".tmp");
+                    tempFile.deleteOnExit(); // Clean up after JVM exits
+
+                    try (OutputStream out = new FileOutputStream(tempFile)) {
+                        IOUtils.copy(input, out); // Copy all bytes to file
+                    }
+                    // Get length from file
+                    length = tempFile.length();
+                    // Re-create InputStream from temp file
+                    is = new FileInputStream(tempFile);
+                }
+
+                body = AsyncRequestBody.fromInputStream(is, length, executor);
+                putObjectRequestBuilder.contentLength(length);
             }
             final Upload upload = tmx.upload(uploadReq ->
                     uploadReq.requestBody(body).
