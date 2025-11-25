@@ -34,7 +34,11 @@ import org.junit.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
@@ -76,14 +80,96 @@ public class NamespaceRegistryCommandTest {
     }
 
     @Test
-    public void breakAndFix() throws Exception {
+    public void breakAndFixNoReverseMapping() throws Exception {
         NodeBuilder rootBuilder = store.getRoot().builder();
         NodeBuilder namespaces = rootBuilder.getChildNode(JcrConstants.JCR_SYSTEM).getChildNode(NamespaceConstants.REP_NAMESPACES);
+        //inconsistent mapping: no reverse mapping
         namespaces.setProperty("foo", "urn:foo");
         store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         store.runBackgroundOperations();
+        //complete information: automatic fix
         testCmd(new String[] { MongoUtils.URL, "--analyse" }, new String[] { "This namespace registry model is inconsistent. The inconsistency can be fixed.", "The repaired registry would contain the following mappings:", "foo -> urn:foo" });
         testCmd(new String[] { MongoUtils.URL, "--fix", "--read-write" }, new String[] { "This namespace registry model is consistent, containing the following mappings from prefixes to namespace uris:", "foo -> urn:foo" });
+    }
+
+    @Test
+    public void breakAndFixPrefixAmbiguity() throws Exception {
+        NodeBuilder rootBuilder = store.getRoot().builder();
+        NodeBuilder namespaces = rootBuilder.getChildNode(JcrConstants.JCR_SYSTEM).getChildNode(NamespaceConstants.REP_NAMESPACES);
+        NodeBuilder nsdata = namespaces.getChildNode(NamespaceConstants.REP_NSDATA);
+        //inconsistent mapping: one URI, two prefixes
+        namespaces.setProperty("foo", "urn:foo");
+        nsdata.setProperty(Namespaces.encodeUri("urn:foo"), "bar");
+        store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store.runBackgroundOperations();
+        //ambiguous information: no automatic fix
+        testCmd(new String[] { MongoUtils.URL, "--analyse" }, new String[] { "This namespace registry model is inconsistent. The inconsistency can NOT be fixed." });
+        //consistent with supplied specific mapping
+        testCmd(new String[] { MongoUtils.URL, "--analyse", "--mappings", "foo=urn:foo" }, new String[] { "This namespace registry model is consistent, containing the following mappings from prefixes to namespace uris:", "foo -> urn:foo" });
+        testCmd(new String[] { MongoUtils.URL, "--fix", "--read-write", "--mappings", "foo=urn:foo" }, new String[] { "This namespace registry model is consistent, containing the following mappings from prefixes to namespace uris:", "foo -> urn:foo" });
+    }
+
+    @Test
+    public void breakAndFixUriAmbiguity() throws Exception {
+        NodeBuilder rootBuilder = store.getRoot().builder();
+        NodeBuilder namespaces = rootBuilder.getChildNode(JcrConstants.JCR_SYSTEM).getChildNode(NamespaceConstants.REP_NAMESPACES);
+        NodeBuilder nsdata = namespaces.getChildNode(NamespaceConstants.REP_NSDATA);
+        //inconsistent mapping: one prefix, two URIs
+        namespaces.setProperty("foo", "urn:foo");
+        nsdata.setProperty(Namespaces.encodeUri("urn:bar"), "foo");
+        store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store.runBackgroundOperations();
+        //ambiguous information: no automatic fix
+        testCmd(new String[] { MongoUtils.URL, "--analyse" }, new String[] { "This namespace registry model is inconsistent. The inconsistency can NOT be fixed." });
+        //consistent with supplied specific mapping
+        testCmd(new String[] { MongoUtils.URL, "--analyse", "--mappings", "foo=urn:foo" }, new String[] { "This namespace registry model is consistent, containing the following mappings from prefixes to namespace uris:", "foo -> urn:foo" });
+        testCmd(new String[] { MongoUtils.URL, "--fix", "--read-write", "--mappings", "foo=urn:foo" }, new String[] { "This namespace registry model is consistent, containing the following mappings from prefixes to namespace uris:", "foo -> urn:foo" });
+    }
+
+    @Test
+    public void breakAndFixDanglingPrefix() throws Exception {
+        NodeBuilder rootBuilder = store.getRoot().builder();
+        NodeBuilder namespaces = rootBuilder.getChildNode(JcrConstants.JCR_SYSTEM).getChildNode(NamespaceConstants.REP_NAMESPACES);
+        NodeBuilder nsdata = namespaces.child(NamespaceConstants.REP_NSDATA);
+        //adding a prefix without any mapping to an URI
+        Iterable<String> prefixes = Objects.requireNonNull(nsdata.getProperty(NamespaceConstants.REP_PREFIXES)).getValue(STRINGS);
+        List<String> newValue = new ArrayList<>();
+        prefixes.forEach(newValue::add);
+        newValue.add("foo");
+        nsdata.setProperty(NamespaceConstants.REP_PREFIXES, newValue, STRINGS);
+        store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store.runBackgroundOperations();
+        //missing information: no automatic fix
+        testCmd(new String[] { MongoUtils.URL, "--analyse" }, new String[] { "This namespace registry model is inconsistent. The inconsistency can NOT be fixed." });
+        //consistent after removal of unmapped data.
+        testCmd(new String[] { MongoUtils.URL, "--analyse", "--prune" }, new String[] { "This namespace registry model is consistent" });
+        //consistent with supplied complete information.
+        testCmd(new String[] { MongoUtils.URL, "--analyse", "--mappings",  "foo=urn:foo" }, new String[] { "This namespace registry model is consistent, containing the following mappings from prefixes to namespace uris:", "foo -> urn:foo" });
+        testCmd(new String[] { MongoUtils.URL, "--fix", "--read-write" }, new String[] { "This namespace registry model is inconsistent. The inconsistency can NOT be fixed." });
+        testCmd(new String[] { MongoUtils.URL, "--fix", "--read-write", "--prune" }, new String[] { "This namespace registry model is consistent" });
+    }
+
+    @Test
+    public void breakAndFixDanglingUri() throws Exception {
+        NodeBuilder rootBuilder = store.getRoot().builder();
+        NodeBuilder namespaces = rootBuilder.getChildNode(JcrConstants.JCR_SYSTEM).getChildNode(NamespaceConstants.REP_NAMESPACES);
+        NodeBuilder nsdata = namespaces.child(NamespaceConstants.REP_NSDATA);
+        //adding an URI without any mapping to a prefix
+        Iterable<String> prefixes = Objects.requireNonNull(nsdata.getProperty(NamespaceConstants.REP_URIS)).getValue(STRINGS);
+        List<String> newValue = new ArrayList<>();
+        prefixes.forEach(newValue::add);
+        newValue.add("urn:foo");
+        nsdata.setProperty(NamespaceConstants.REP_URIS, newValue, STRINGS);
+        store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store.runBackgroundOperations();
+        //missing information: no automatic fix
+        testCmd(new String[] { MongoUtils.URL, "--analyse" }, new String[] { "This namespace registry model is inconsistent. The inconsistency can NOT be fixed." });
+        //consistent after removal of unmapped data.
+        testCmd(new String[] { MongoUtils.URL, "--analyse", "--prune" }, new String[] { "This namespace registry model is consistent" });
+        //consistent with supplied complete information.
+        testCmd(new String[] { MongoUtils.URL, "--analyse", "--mappings",  "foo=urn:foo" }, new String[] { "This namespace registry model is consistent, containing the following mappings from prefixes to namespace uris:", "foo -> urn:foo" });
+        testCmd(new String[] { MongoUtils.URL, "--fix", "--read-write" }, new String[] { "This namespace registry model is inconsistent. The inconsistency can NOT be fixed." });
+        testCmd(new String[] { MongoUtils.URL, "--fix", "--read-write", "--prune" }, new String[] { "This namespace registry model is consistent" });
     }
 
     @Test

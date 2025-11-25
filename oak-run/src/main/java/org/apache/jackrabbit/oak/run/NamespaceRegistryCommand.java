@@ -23,7 +23,6 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceRegistryModel;
-import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
@@ -41,7 +40,7 @@ import java.util.Map;
 
 /**
  * Command to analyze and repair the namespace registry in an Oak repository ({@link NamespaceRegistryModel}).
- * Possible options are: --analyse, --fix, and --mappings, which will execute corresponding operations on
+ * Possible options are: --analyse, --fix, --prune and --mappings, which will execute corresponding operations on
  * the namespace registry.
  * <p>
  * --analyse executes an operation that will print the current consistency state of the namespace registry to
@@ -51,7 +50,9 @@ import java.util.Map;
  * --fix executes an operation that will attempt to repair an inconsistent the namespace registry.
  * <p>
  * --mappings is an option for both operations, allowing to specify additional namespace mappings in
- * the format "prefix=uri", which will be applied during the operation.
+ * the format "prefix=uri", which will be applied during the operation. It may be used multiple times.
+ * <p>
+ * --prune is an option for both operations. All unmapped data will be removed.
  */
 public class NamespaceRegistryCommand implements Command {
 
@@ -110,32 +111,31 @@ public class NamespaceRegistryCommand implements Command {
             throws IOException, RepositoryException, CommitFailedException {
         boolean analyse = namespaceRegistryOptions.analyse();
         boolean fix = namespaceRegistryOptions.fix();
+        boolean prune = namespaceRegistryOptions.prune();
         List<String> mappings = namespaceRegistryOptions.mappings();
         Oak oak = new Oak(fixture.getStore()).with(new OpenSecurityProvider());
         try (ContentSession contentSession = oak.createContentSession()) {
             Root root = contentSession.getLatestRoot();
-            ReadWriteNamespaceRegistry namespaceRegistry = new ReadWriteNamespaceRegistry(root) {
-                @Override
-                protected Root getWriteRoot() {
-                    return root;
-                }
-            };
             if (analyse || fix) {
-                NamespaceRegistryModel registryModel = NamespaceRegistryModel.create(root);
-                if (fix) {
-                    Map<String, String> additionalMappings = new HashMap<>();
-                    if (mappings != null) {
-                        for (String mapping : mappings) {
-                            String[] parts = mapping.split("=");
-                            if (parts.length != 2) {
-                                System.err.println("Invalid mapping: " + mapping);
-                                return;
-                            }
-                            additionalMappings.put(parts[0].trim(), parts[1].trim());
+                NamespaceRegistryModel originalModel = NamespaceRegistryModel.create(root);
+                NamespaceRegistryModel registryModel = originalModel;
+                Map<String, String> additionalMappings = new HashMap<>();
+                if (mappings != null) {
+                    for (String mapping : mappings) {
+                        String[] parts = mapping.split("=");
+                        if (parts.length != 2) {
+                            System.err.println("Invalid mapping: " + mapping);
+                            return;
                         }
+                        additionalMappings.put(parts[0].trim(), parts[1].trim());
                     }
-                    registryModel = registryModel.setMappings(additionalMappings);
-                    if (registryModel.isConsistent() && additionalMappings.isEmpty()) {
+                }
+                registryModel = registryModel.setMappings(additionalMappings);
+                if (prune) {
+                    registryModel = registryModel.prune();
+                }
+                if (fix) {
+                    if (originalModel.isConsistent() && additionalMappings.isEmpty()) {
                         System.out.println("The namespace registry is already consistent. No action is required.");
                     } else if (registryModel.isFixable()) {
                         registryModel.dump(System.out);

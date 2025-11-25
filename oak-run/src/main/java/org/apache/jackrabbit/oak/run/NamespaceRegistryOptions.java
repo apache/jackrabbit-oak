@@ -38,11 +38,13 @@ public class NamespaceRegistryOptions implements OptionsBean {
 
     private final OptionSpec<Void> analyseOpt;
     private final OptionSpec<Void> fixOpt;
+    private final OptionSpec<Void> pruneOpt;
     private final OptionSpec<String> mappingsOpt;
 
     public NamespaceRegistryOptions(OptionParser parser) {
         analyseOpt = parser.accepts("analyse", "List the prefix to namespace map and check for consistency.");
         fixOpt = parser.accepts("fix", "List the prefix to namespace map, check for consistency and fix any inconsistencies, if possible.");
+        pruneOpt = parser.accepts("prune", "Remove any unmapped uris and prefixes");
         mappingsOpt = parser.accepts("mappings", "Optionally specify explicit prefix to namespace mappings ad a list of prefix=uri expressions").withRequiredArg();
         actionOpts = Set.of(analyseOpt, fixOpt);
         operationNames = collectionOperationNames(actionOpts);
@@ -89,6 +91,8 @@ public class NamespaceRegistryOptions implements OptionsBean {
     public boolean fix() {
         return  options.has(fixOpt);
     }
+
+    public boolean prune() { return  options.has(pruneOpt); }
 
     public List<String> mappings() {
         return  options.valuesOf(mappingsOpt);
