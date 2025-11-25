@@ -34,27 +34,27 @@ public class XPathToSQL2Test {
     @Test
     public void testOrToUnionConversionFeatureDisabled() throws ParseException {
         // Default behavior (feature disabled): OR conditions should be converted to UNION
-        verify("//*[@a = 1 or @b = 2]", 
-                false, 
+        verify("//*[@a = 1 or @b = 2]",
+                false,
                     "select ... where [a] = 1 union select ... where [b] = 2 ");
     }
-    
+
     @Test
     public void testOrToUnionConversionFeatureEnabled() throws ParseException {
         // When feature is enabled: OR conditions should NOT be converted to UNION
-        verify("//*[@a = 1 or @b = 2]", 
-                true, 
+        verify("//*[@a = 1 or @b = 2]",
+                true,
                 "select ... where [a] = 1 or [b] = 2 ");
     }
-    
+
     @Test
     public void testMultipleOrConditionsFeatureDisabled() throws ParseException {
         // Test multiple OR conditions with feature disabled (default)
-        verify("//*[@a = 1 or @b = 2 or @c = 3]", 
+        verify("//*[@a = 1 or @b = 2 or @c = 3]",
                 false, 
                 "select ... where [a] = 1 union select ... where [b] = 2 union select ... where [c] = 3 ");
     }
-    
+ 
     @Test
     public void testMultipleOrConditionsFeatureEnabled() throws ParseException {
         // Test multiple OR conditions with feature enabled
@@ -62,7 +62,7 @@ public class XPathToSQL2Test {
                 true, 
                 "select ... where [a] = 1 or [b] = 2 or [c] = 3 ");
     }
-    
+ 
     @Test
     public void testNestedOrWithAndFeatureDisabled() throws ParseException {
         // Test nested OR with AND conditions, feature disabled
@@ -70,7 +70,7 @@ public class XPathToSQL2Test {
                 false, 
                 "select ... where [x] = 1 and [a] = 1 union select ... where [x] = 1 and [b] = 2 ");
     }
-    
+ 
     @Test
     public void testNestedOrWithAndFeatureEnabled() throws ParseException {
         // Test nested OR with AND conditions, feature enabled
@@ -78,7 +78,7 @@ public class XPathToSQL2Test {
                 true, 
                 "select ... where [x] = 1 and ([a] = 1 or [b] = 2) ");
     }
-    
+ 
     @Test
     public void testSimpleOrQueryFeatureDisabled() throws ParseException {
         // Simple OR query with feature disabled
@@ -86,7 +86,7 @@ public class XPathToSQL2Test {
                 false, 
                 "select ... where [name] in('foo', 'bar') ");
     }
-    
+ 
     @Test
     public void testSimpleOrQueryFeatureEnabled() throws ParseException {
         // Simple OR query with feature enabled
@@ -94,7 +94,7 @@ public class XPathToSQL2Test {
                 true, 
                 "select ... where [name] in('foo', 'bar') ");
     }
-    
+ 
     @Test
     public void testComplexNestedOrFeatureDisabled() throws ParseException {
         // Complex nested query: (a AND (b OR c)) OR d
@@ -102,7 +102,7 @@ public class XPathToSQL2Test {
                 false, 
                 "select ... where [a] = 1 and [b] = 2 union select ... where [a] = 1 and [c] = 3 union select ... where [d] = 4 ");
     }
-    
+ 
     @Test
     public void testComplexNestedOrFeatureEnabled() throws ParseException {
         // Complex nested query: (a AND (b OR c)) OR d
@@ -110,7 +110,7 @@ public class XPathToSQL2Test {
                 true, 
                 "select ... where [a] = 1 and ([b] = 2 or [c] = 3) or [d] = 4 ");
     }
-    
+ 
     @Test
     public void testOrWithDifferentPathsFeatureDisabled() throws ParseException {
         // Test OR conditions with different paths
@@ -118,7 +118,7 @@ public class XPathToSQL2Test {
                 false, 
                 "select ... where [title] = 'Test' union select ... where [desc] = 'Test' ");
     }
-    
+ 
     @Test
     public void testOrWithDifferentPathsFeatureEnabled() throws ParseException {
         // Test OR conditions with different paths
@@ -126,7 +126,7 @@ public class XPathToSQL2Test {
                 true, 
                 "select ... where [title] = 'Test' or [desc] = 'Test' ");
     }
-    
+ 
     @Test
     public void testOrWithFunctionCallFeatureDisabled() throws ParseException {
         // Test OR with function calls
@@ -134,14 +134,14 @@ public class XPathToSQL2Test {
                 false, 
                 "select ... where contains(*, 'test') union select ... where [type] = 'page' ");
     }
-    
+ 
     @Test
     public void testOrWithFunctionCallFeatureEnabled() throws ParseException {
         verify("//*[jcr:contains(., 'test') or @type = 'page']", 
                 true, 
                 "select ... where contains(*, 'test') or [type] = 'page' ");
     }
-    
+ 
     /**
      * Helper method to create a Feature mock with the specified enabled state.
      */
@@ -161,7 +161,7 @@ public class XPathToSQL2Test {
         assertEquals(expectedSql2, sql2);
     }
 
-    static String formatSQL(String sql) {   
+    static String formatSQL(String sql) { 
         sql = sql.replace('\n', ' ');
         sql = sql.replaceAll("\\[jcr:path\\], \\[jcr:score\\], \\* from \\[nt:base\\] as a", "...");
         sql = sql.replaceAll("\\/\\*.*\\*/", "");
