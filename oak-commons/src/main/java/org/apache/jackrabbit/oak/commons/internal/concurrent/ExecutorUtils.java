@@ -25,6 +25,8 @@ import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -47,6 +49,15 @@ public class ExecutorUtils {
     public static ExecutorService getExitingExecutorService(ThreadPoolExecutor executor) {
         setDeamonThreadFactory(executor);
         final ExecutorService service = Executors.unconfigurableExecutorService(executor);
+        // JVM shutdown hook for graceful executor shutdown
+        addRuntimeShutdownHook(executor);
+        return service;
+
+    }
+
+    public static ScheduledExecutorService getExitingScheduledExecutorService(ScheduledThreadPoolExecutor executor) {
+        setDeamonThreadFactory(executor);
+        ScheduledExecutorService service = Executors.unconfigurableScheduledExecutorService(executor);
         // JVM shutdown hook for graceful executor shutdown
         addRuntimeShutdownHook(executor);
         return service;
