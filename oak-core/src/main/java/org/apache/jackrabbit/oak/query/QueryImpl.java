@@ -1267,7 +1267,7 @@ public class QueryImpl implements Query {
             }
             String caller = IndexUtils.getCaller(settings.getIgnoredClassNamesInCallTrace());
             String message = "Traversal query (query without index): " + statement + "; called by " + caller + "; consider creating an index";
-            if (traversal != Traversal.OK) {
+            if (traversal == Traversal.FAIL || traversal == Traversal.WARN && !potentiallySlowTraversalQueryLogged) {
                 String plan = getPlan();
                 List<QueryIndex> indexList = context.getIndexProvider().getQueryIndexes(context.getBaseState())
                         .stream()
