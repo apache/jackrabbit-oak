@@ -190,6 +190,8 @@ public class QueryImpl implements Query {
 
     private boolean potentiallySlowTraversalQuery;
 
+    private List<? extends QueryIndex> queryIndexes;
+
     QueryImpl(String statement, SourceImpl source, ConstraintImpl constraint,
         ColumnImpl[] columns, NamePathMapper mapper, QueryEngineSettings settings,
         QueryExecutionStats stats) {
@@ -1085,7 +1087,7 @@ public class QueryImpl implements Query {
 
         // Sort the indexes according to their minimum cost to be able to skip the remaining indexes if the cost of the
         // current index is below the minimum cost of the next index.
-        List<? extends QueryIndex> queryIndexes = indexProvider.getQueryIndexes(rootState).stream()
+        queryIndexes = indexProvider.getQueryIndexes(rootState).stream()
                 .sorted(MINIMAL_COST_ORDERING).collect(Collectors.toList());
         List<OrderEntry> sortOrder = getSortOrder(filter); 
         for (int i = 0; i < queryIndexes.size(); i++) {
@@ -1268,12 +1270,7 @@ public class QueryImpl implements Query {
             String caller = IndexUtils.getCaller(settings.getIgnoredClassNamesInCallTrace());
             String message = "Traversal query (query without index): " + statement + "; called by " + caller + "; consider creating an index";
             if (traversal == Traversal.FAIL || traversal == Traversal.WARN && !potentiallySlowTraversalQueryLogged) {
-                String plan = getPlan();
-                List<QueryIndex> indexList = context.getIndexProvider().getQueryIndexes(context.getBaseState())
-                        .stream()
-                        .sorted(MINIMAL_COST_ORDERING)
-                        .collect(Collectors.toList());
-                message += "\n" + plan + "\n" + "Available indexes at the time of query execution:" + "\n" + indexList;
+                message += "\n" + getPlan() + "\n" + "Available indexes at the time of query execution:" + "\n" + queryIndexes;
             }
             switch (traversal) {
             case DEFAULT:
