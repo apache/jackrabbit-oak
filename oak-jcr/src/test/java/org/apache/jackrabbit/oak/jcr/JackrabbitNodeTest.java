@@ -323,7 +323,13 @@ public class JackrabbitNodeTest extends AbstractJCRTest {
         assertNotNull(jn.getNodeOrNull("a"));
         assertNotNull(jn.getNodeOrNull("a/aa"));
     }
-    
+
+    public void testEstimated() throws Exception {
+        // needs a proper test scenario
+        JackrabbitNode jn = (JackrabbitNode) testRootNode;
+        assertTrue(-2 < jn.getEstimatedChildNodes());
+    }
+
     public void testGetPropertyOrNull() throws Exception {
         JackrabbitNode jn = (JackrabbitNode) testRootNode;
         Node aa = jn.addNode("a/aa", NodeTypeConstants.NT_OAK_UNSTRUCTURED);

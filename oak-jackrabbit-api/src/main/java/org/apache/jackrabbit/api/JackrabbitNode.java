@@ -103,4 +103,8 @@ public interface JackrabbitNode extends Node {
             return null;
         }
     }
+
+    default long getEstimatedChildNodes() throws RepositoryException {
+        return -1;
+    }
 }

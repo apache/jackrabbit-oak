@@ -1695,6 +1695,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         });
     }
 
+    @Override
+    public long getEstimatedChildNodes() throws RepositoryException {
+        return sessionContext.getNodeCounterMBean().getEstimatedNodeCount(dlg.getPath());
+    }
+
     /**
      * Provide current node path. Should be invoked from within
      * the SessionDelegate#perform and preferred instead of getPath
