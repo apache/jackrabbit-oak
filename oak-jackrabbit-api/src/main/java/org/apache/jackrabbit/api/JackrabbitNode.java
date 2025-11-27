@@ -104,7 +104,12 @@ public interface JackrabbitNode extends Node {
         }
     }
 
-    default long getEstimatedChildNodes() throws RepositoryException {
+    /**
+     * Returns the <em>estimated</em> number of child nodes (can be incorrect)
+     * @return number of nodes or {@code -1} when unknown (or not supported by the implementation)
+     * @throws RepositoryException
+     */
+    default long getEstimatedChildNodeCount() throws RepositoryException {
         return -1;
     }
 }

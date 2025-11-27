@@ -1697,7 +1697,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
     }
 
     @Override
-    public long getEstimatedChildNodes() {
+    public long getEstimatedChildNodeCount() {
         NodeCounterMBean nodeCounterMBean = sessionContext.getNodeCounterMBeanSupplier().get();
         return nodeCounterMBean != null ? nodeCounterMBean.getEstimatedNodeCount(dlg.getPath()) : -1;
     }
