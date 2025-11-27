@@ -139,6 +139,25 @@ public class QueryTest extends AbstractRepositoryTest {
     }
 
     @Test
+    public void traversalExtendedDiagnosis() throws Exception {
+        Session session = getAdminSession();
+        QueryManager qm = session.getWorkspace().getQueryManager();
+
+        try {
+            qm.createQuery("select * from [nt:base] where [x] = 1 or [y] = 2 option(traversal fail)", Query.JCR_SQL2).execute();
+            fail("traversing query should not succeed");
+        } catch (RepositoryException e) {
+            String message = e.getMessage();
+            assertTrue(message.contains("Traversal query (query without index)"));
+            assertTrue(message.contains("Available indexes at the time of query execution"));
+            assertTrue(message.contains("ReferenceIndex"));
+            assertTrue(message.contains("NodeTypeIndex"));
+            assertTrue(message.contains("Execution plan"));
+            assertTrue(message.contains("[nt:base] as [nt:base] /* traverse"));
+        }
+    }
+
+    @Test
     public void traversalOption() throws Exception {
         Session session = getAdminSession();
         QueryManager qm = session.getWorkspace().getQueryManager();
