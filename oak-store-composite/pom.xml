@@ -31,6 +31,10 @@
   <name>Oak Composite Store</name>
   <packaging>bundle</packaging>
 
+  <properties>
+    <pax-exam.version>4.13.1</pax-exam.version>
+  </properties>
+
   <build>
     <plugins>
       <plugin>
@@ -221,16 +225,19 @@
     <dependency>
       <groupId>org.ops4j.pax.exam</groupId>
       <artifactId>pax-exam-junit4</artifactId>
+      <version>${pax-exam.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.ops4j.pax.exam</groupId>
       <artifactId>pax-exam-link-mvn</artifactId>
+      <version>${pax-exam.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.ops4j.pax.exam</groupId>
       <artifactId>pax-exam-cm</artifactId>
+      <version>${pax-exam.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -251,11 +258,13 @@
     <dependency>
       <groupId>org.ops4j.pax.exam</groupId>
       <artifactId>pax-exam</artifactId>
+      <version>${pax-exam.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.ops4j.pax.exam</groupId>
-      <artifactId>pax-exam-container-native</artifactId>
+      <artifactId>pax-exam-container-forked</artifactId>
+      <version>${pax-exam.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
