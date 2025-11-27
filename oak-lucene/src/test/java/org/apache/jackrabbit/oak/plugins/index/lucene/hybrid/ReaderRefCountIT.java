@@ -32,7 +32,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.oak.commons.internal.concurrent.DirectExecutor;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexNode;
@@ -67,7 +67,7 @@ public class ReaderRefCountIT {
 
     @Before
     public void setUp() throws IOException {
-        indexCopier = new IndexCopier(DirectExecutor.INSTANCE, temporaryFolder.getRoot());
+        indexCopier = new IndexCopier(ExecutorUtils.directExecutor(), temporaryFolder.getRoot());
     }
 
     @Test
@@ -132,7 +132,7 @@ public class ReaderRefCountIT {
             }
         };
 
-        DocumentQueue queue = new DocumentQueue(100, tracker, DirectExecutor.INSTANCE);
+        DocumentQueue queue = new DocumentQueue(100, tracker, ExecutorUtils.directExecutor());
         queue.setExceptionHandler(uh);
 
 

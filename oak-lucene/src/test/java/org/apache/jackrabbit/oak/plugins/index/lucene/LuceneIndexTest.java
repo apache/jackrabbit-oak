@@ -68,7 +68,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
-import org.apache.jackrabbit.oak.commons.internal.concurrent.DirectExecutor;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
@@ -670,7 +670,7 @@ public class LuceneIndexTest {
         NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
 
         File indexRootDir = new File(getIndexDir());
-        tracker = new IndexTracker(new IndexCopier(DirectExecutor.INSTANCE, indexRootDir));
+        tracker = new IndexTracker(new IndexCopier(ExecutorUtils.directExecutor(), indexRootDir));
         tracker.update(indexed);
 
         assertQuery(tracker, indexed, "foo", "bar");
@@ -696,7 +696,7 @@ public class LuceneIndexTest {
 
         NodeState indexed = HOOK.processCommit(before, builder.getNodeState(),CommitInfo.EMPTY);
 
-        IndexCopier copier = new IndexCopier(DirectExecutor.INSTANCE, new File(getIndexDir()));
+        IndexCopier copier = new IndexCopier(ExecutorUtils.directExecutor(), new File(getIndexDir()));
         tracker = new IndexTracker(copier);
         tracker.update(indexed);
 

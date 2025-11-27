@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
-import org.apache.jackrabbit.oak.commons.internal.concurrent.DirectExecutor;
 import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorUtils;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
@@ -241,7 +240,7 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
         ActiveDeletedBlobCollectorMBeanImpl bean =
                 new ActiveDeletedBlobCollectorMBeanImpl(ActiveDeletedBlobCollectorFactory.NOOP, wb, failingNodeStore,
                         indexPathService, asyncIndexInfoService,
-                        new MemoryBlobStore(), DirectExecutor.INSTANCE);
+                        new MemoryBlobStore(), ExecutorUtils.directExecutor());
         bean.clock = clock;
 
         bean.flagActiveDeletionUnsafeForCurrentState();
@@ -274,7 +273,7 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
                     return null;
                 }), wb, nodeStore,
                         indexPathService, asyncIndexInfoService,
-                        new MemoryBlobStore(), DirectExecutor.INSTANCE);
+                        new MemoryBlobStore(), ExecutorUtils.directExecutor());
         bean.clock = clock;
 
         bean.flagActiveDeletionUnsafeForCurrentState();
@@ -312,7 +311,7 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
         ActiveDeletedBlobCollectorMBeanImpl bean =
                 new ActiveDeletedBlobCollectorMBeanImpl(ActiveDeletedBlobCollectorFactory.NOOP, wb, dns1,
                         indexPathService, asyncIndexInfoService,
-                        new MemoryBlobStore(), DirectExecutor.INSTANCE);
+                        new MemoryBlobStore(), ExecutorUtils.directExecutor());
         bean.clock = clock;
 
         bean.flagActiveDeletionUnsafeForCurrentState();

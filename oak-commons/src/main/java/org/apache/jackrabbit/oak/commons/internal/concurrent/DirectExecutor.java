@@ -21,8 +21,9 @@ package org.apache.jackrabbit.oak.commons.internal.concurrent;
 import java.util.concurrent.Executor;
 
 /**
- * An @{@link Executor} that runs the task in calling thread
+ * An {@link Executor} that runs the task in calling thread
  */
+// Note: Direct usage of this class is discouraged, please use {@link ExecutorUtils#directExecutor}
 public enum DirectExecutor implements Executor {
     INSTANCE;
 
