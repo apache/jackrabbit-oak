@@ -47,6 +47,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -57,7 +59,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections4.ListValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFutureTask;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -730,9 +731,14 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
             if (!markOnly) {
                 // Find all blobs available in the blob store
-                ListenableFutureTask<Integer> blobIdRetriever = ListenableFutureTask.create(new BlobIdRetriever(fs,
-                        true));
-                executor.execute(blobIdRetriever);
+                CompletableFuture<Integer> blobIdRetriever = CompletableFuture.supplyAsync(() -> {
+                    try {
+                        return new BlobIdRetriever(fs, true).call();
+                    } catch (Exception e) {
+                        throw new CompletionException(e);
+                    }
+                }, executor);
+
 
                 try {
                     blobIdRetriever.get();
