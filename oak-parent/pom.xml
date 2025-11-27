@@ -828,6 +828,12 @@
       </dependency>
       <dependency>
         <groupId>org.ops4j.pax.exam</groupId>
+        <artifactId>pax-exam-container-forked</artifactId>
+        <version>${pax-exam.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.ops4j.pax.exam</groupId>
         <artifactId>pax-exam-container-native</artifactId>
         <version>${pax-exam.version}</version>
         <scope>test</scope>
