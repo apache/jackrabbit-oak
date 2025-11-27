@@ -34,6 +34,7 @@ import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorServi
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorUtils;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -46,7 +47,6 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -102,7 +102,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
         closer.register(new ExecutorCloser(scheduledExecutor, 500, TimeUnit.MILLISECONDS));
 
-        fileCacheExecutor = newDirectExecutorService();
+        fileCacheExecutor = ExecutorUtils.newDirectExecutorService();
 
         //cache instance
         cache =

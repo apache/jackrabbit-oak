@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -35,6 +34,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobTracker;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
@@ -70,7 +70,7 @@ public abstract class AbstractActiveDeletedBlobTest extends AbstractQueryTest {
     @Rule
     public TemporaryFolder fileDataStoreRoot = new TemporaryFolder(new File("target"));
 
-    protected ExecutorService executorService = MoreExecutors.newDirectExecutorService();
+    protected ExecutorService executorService = ExecutorUtils.newDirectExecutorService();
 
     protected CountingBlobStore blobStore = null;
 
