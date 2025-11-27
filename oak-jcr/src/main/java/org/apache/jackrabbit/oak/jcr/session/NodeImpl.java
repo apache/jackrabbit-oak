@@ -91,6 +91,7 @@ import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.jcr.version.VersionHistoryImpl;
 import org.apache.jackrabbit.oak.jcr.version.VersionImpl;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounterMBean;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.nodetype.EffectiveNodeType;
 import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
@@ -1696,8 +1697,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
     }
 
     @Override
-    public long getEstimatedChildNodes() throws RepositoryException {
-        return sessionContext.getNodeCounterMBean().getEstimatedNodeCount(dlg.getPath());
+    public long getEstimatedChildNodes() {
+        NodeCounterMBean nodeCounterMBean = sessionContext.getNodeCounterMBeanSupplier().get();
+        return nodeCounterMBean != null ? nodeCounterMBean.getEstimatedNodeCount(dlg.getPath()) : -1;
     }
 
     /**

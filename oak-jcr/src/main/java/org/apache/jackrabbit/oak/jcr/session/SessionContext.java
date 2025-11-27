@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.jcr.session;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.oak.commons.internal.function.Suppliers.memoize;
 import static org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory.DEFAULT_BLOB_ACCESS_PROVIDER;
 
 import java.util.ArrayList;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Supplier;
 
 import javax.jcr.PathNotFoundException;
 import javax.jcr.Repository;
@@ -41,6 +43,7 @@ import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
+import org.apache.jackrabbit.oak.commons.internal.function.Suppliers;
 import org.apache.jackrabbit.oak.jcr.delegate.AccessControlManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.delegate.JackrabbitAccessControlManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
@@ -110,7 +113,7 @@ public class SessionContext implements NamePathMapper {
     private PrivilegeManager privilegeManager;
     private ObservationManagerImpl observationManager;
     private BlobAccessProvider blobAccessProvider;
-    private NodeCounterMBean nodeCounterMBean;
+    private Supplier<NodeCounterMBean> nodeCounterMBeanSupplier;
 
     /** Paths (tokens) of all open scoped locks held by this session. */
     private final Set<String> openScopedLocks = new TreeSet<>();
@@ -155,7 +158,7 @@ public class SessionContext implements NamePathMapper {
         this.valueFactory = new ValueFactoryImpl(
                 delegate.getRoot(), namePathMapper, this.blobAccessProvider);
         this.sessionQuerySettings = sessionQuerySettings;
-        this.nodeCounterMBean = WhiteboardUtils.getService(whiteboard, NodeCounterMBean.class);
+        this.nodeCounterMBeanSupplier = Suppliers.memoize(() -> WhiteboardUtils.getService(whiteboard, NodeCounterMBean.class));
     }
 
     public final Map<String, Object> getAttributes() {
@@ -337,9 +340,9 @@ public class SessionContext implements NamePathMapper {
         return mountInfoProvider;
     }
 
-    @Nullable
-    public NodeCounterMBean getNodeCounterMBean() {
-        return nodeCounterMBean;
+    @NotNull
+    public Supplier<NodeCounterMBean> getNodeCounterMBeanSupplier() {
+        return nodeCounterMBeanSupplier;
     }
 
     //-----------------------------------------------------< NamePathMapper >---
