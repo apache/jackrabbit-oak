@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.commons.internal.concurrent.DirectExecutor;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
@@ -59,7 +59,7 @@ public class LocalIndexWriterFactoryTest {
     @Before
     public void setUp() throws IOException {
         tracker = new IndexTracker();
-        DocumentQueue queue = new DocumentQueue(100, tracker, DirectExecutor.INSTANCE);
+        DocumentQueue queue = new DocumentQueue(100, tracker, ExecutorUtils.directExecutor());
         editorProvider = new LuceneIndexEditorProvider(
                 null,
                 null,
@@ -147,7 +147,7 @@ public class LocalIndexWriterFactoryTest {
     public void inMemoryDocLimit() throws Exception{
         NodeState indexed = createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode.NRT);
         editorProvider.setInMemoryDocsLimit(5);
-        editorProvider.setIndexingQueue(new DocumentQueue(1, tracker, DirectExecutor.INSTANCE));
+        editorProvider.setIndexingQueue(new DocumentQueue(1, tracker, ExecutorUtils.directExecutor()));
         builder = indexed.builder();
         for (int i = 0; i < 10; i++) {
             builder.child("b" + i).setProperty("foo", "bar");

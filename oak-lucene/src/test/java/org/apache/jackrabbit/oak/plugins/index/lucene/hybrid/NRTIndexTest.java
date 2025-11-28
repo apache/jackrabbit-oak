@@ -23,7 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.jackrabbit.oak.commons.internal.concurrent.DirectExecutor;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
@@ -64,7 +64,7 @@ public class NRTIndexTest {
 
     @Before
     public void setUp() throws IOException {
-        indexCopier = new IndexCopier(DirectExecutor.INSTANCE, temporaryFolder.getRoot());
+        indexCopier = new IndexCopier(ExecutorUtils.directExecutor(), temporaryFolder.getRoot());
         indexFactory = new NRTIndexFactory(indexCopier, StatisticsProvider.NOOP);
         indexFactory.setAssertAllResourcesClosed(true);
         LuceneIndexEditorContext.configureUniqueId(builder);

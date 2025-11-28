@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
-import org.apache.jackrabbit.oak.commons.internal.concurrent.DirectExecutor;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorUtils;
 import org.apache.jackrabbit.oak.commons.junit.TemporarySystemProperty;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
@@ -97,7 +97,7 @@ public class ConcurrentCopyOnReadDirectoryTest {
         IndexInput remoteInput = remote.openInput("file", IOContext.READ);
         assertTrue(remoteInput.length() > 1);
 
-        copier = new IndexCopier(DirectExecutor.INSTANCE, temporaryFolder.newFolder(), true);
+        copier = new IndexCopier(ExecutorUtils.directExecutor(), temporaryFolder.newFolder(), true);
 
         NodeState root = InitialContentHelper.INITIAL_CONTENT;
         defn = new LuceneIndexDefinition(root, root, "/foo");

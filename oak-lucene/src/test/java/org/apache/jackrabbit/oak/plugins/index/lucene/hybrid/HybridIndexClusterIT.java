@@ -36,7 +36,7 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 
 import org.apache.jackrabbit.commons.JcrUtils;
-import org.apache.jackrabbit.oak.commons.internal.concurrent.DirectExecutor;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorUtils;
 import org.apache.jackrabbit.oak.fixture.DocumentMemoryFixture;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
@@ -100,7 +100,7 @@ public class HybridIndexClusterIT extends AbstractClusterTest {
         LuceneIndexReaderFactory indexReaderFactory = new DefaultIndexReaderFactory(mip, copier);
         IndexTracker tracker = new IndexTracker(indexReaderFactory,nrtIndexFactory);
         LuceneIndexProvider provider = new LuceneIndexProvider(tracker);
-        DocumentQueue queue = new DocumentQueue(100, tracker, DirectExecutor.INSTANCE);
+        DocumentQueue queue = new DocumentQueue(100, tracker, ExecutorUtils.directExecutor());
         LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(copier,
                 tracker,
                 null,
