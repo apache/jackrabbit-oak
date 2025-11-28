@@ -97,7 +97,8 @@ public class XPathToSQL2Converter {
      */
     public String convert(String query) throws ParseException {
         Statement statement = convertToStatement(query);
-        statement = statement.optimize();
+        boolean convertOrToUnion = settings == null || !settings.isOptimizeXPathUnionEnabled();
+        statement = statement.optimize(convertOrToUnion);
         return statement.toString();
     }
 

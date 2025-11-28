@@ -36,52 +36,52 @@ public class QueryCostOverheadTest {
         QueryImpl query;
         UnionQueryImpl union;
         ConstraintImpl c, c1, c2, c3, c4, c5;
-        
+
         c1 = new ComparisonImpl(null, null, null);
-        c2 = new FullTextSearchImpl(null, null, null);
+        c2 = new FullTextSearchImpl(null, null, null, null);
         union = new UnionQueryImpl(false,
                 createQuery(c1),
                 createQuery(c2),
                 null);
-        assertFalse("we always expect false from a `UnionQueryImpl`", 
+        assertFalse("we always expect false from a `UnionQueryImpl`",
                 union.containsUnfilteredFullTextCondition());
-        
+
         c1 = new ComparisonImpl(null, null, null);
-        c2 = new FullTextSearchImpl(null, null, null);
+        c2 = new FullTextSearchImpl(null, null, null, null);
         c = new OrImpl(c1, c2);
         query = createQuery(c);
         assertTrue(query.containsUnfilteredFullTextCondition());
 
         c1 = new ComparisonImpl(null, null, null);
-        c2 = new FullTextSearchImpl(null, null, null);
-        c3 = new FullTextSearchImpl(null, null, null);
+        c2 = new FullTextSearchImpl(null, null, null, null);
+        c3 = new FullTextSearchImpl(null, null, null, null);
         c = new OrImpl(List.of(c1, c2, c3));
         query = createQuery(c);
         assertTrue(query.containsUnfilteredFullTextCondition());
-        
-        c2 = new FullTextSearchImpl(null, null, null);
-        c3 = new FullTextSearchImpl(null, null, null);
+
+        c2 = new FullTextSearchImpl(null, null, null, null);
+        c3 = new FullTextSearchImpl(null, null, null, null);
         c4 = new ComparisonImpl(null, null, null);
         c1 = new OrImpl(List.of(c2, c3, c4));
         c5 = mock(DescendantNodeImpl.class);
         c = new AndImpl(c1, c5);
         query = createQuery(c);
         assertTrue(query.containsUnfilteredFullTextCondition());
-        
-        c = new FullTextSearchImpl(null, null, null);
+
+        c = new FullTextSearchImpl(null, null, null, null);
         query = createQuery(c);
         assertFalse(query.containsUnfilteredFullTextCondition());
 
-        c1 = new FullTextSearchImpl(null, null, null);
-        c2 = new FullTextSearchImpl(null, null, null);
-        c3 = new FullTextSearchImpl(null, null, null);
+        c1 = new FullTextSearchImpl(null, null, null, null);
+        c2 = new FullTextSearchImpl(null, null, null, null);
+        c3 = new FullTextSearchImpl(null, null, null, null);
         c = new OrImpl(List.of(c1, c2, c3));
         query = createQuery(c);
         assertFalse(query.containsUnfilteredFullTextCondition());
-        
+
         c1 = new ComparisonImpl(null, null, null);
-        c2 = new FullTextSearchImpl(null, null, null);
-        c3 = new FullTextSearchImpl(null, null, null);
+        c2 = new FullTextSearchImpl(null, null, null, null);
+        c3 = new FullTextSearchImpl(null, null, null, null);
         c = new AndImpl(List.of(c1, c2, c3));
         query = createQuery(c);
         assertFalse(query.containsUnfilteredFullTextCondition());
@@ -92,7 +92,7 @@ public class QueryCostOverheadTest {
         query = createQuery(c);
         assertFalse(query.containsUnfilteredFullTextCondition());
     }
-    
+
     QueryImpl createQuery(ConstraintImpl c) {
         return new QueryImpl(null, null, c, null, null, null, null);
     }
