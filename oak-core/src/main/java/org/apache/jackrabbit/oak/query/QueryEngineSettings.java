@@ -69,6 +69,8 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     public static final String FT_SORT_UNION_QUERY_BY_SCORE = "FT_OAK-11949";
 
+    public static final String FT_OPTIMIZE_XPATH_UNION = "FT_OAK-12007";
+
     public static final int DEFAULT_PREFETCH_COUNT = Integer.getInteger(OAK_QUERY_PREFETCH_COUNT, -1);
 
     public static final String OAK_QUERY_FAIL_TRAVERSAL = "oak.queryFailTraversal";
@@ -127,6 +129,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     private Feature improvedIsNullCostFeature;
     private Feature optimizeInRestrictionsForFunctions;
     private Feature sortUnionQueryByScoreFeature;
+    private Feature optimizeXPathUnion;
 
     private String autoOptionsMappingJson = "{}";
     private QueryOptions.AutomaticQueryOptionsMapping autoOptionsMapping = new QueryOptions.AutomaticQueryOptionsMapping(autoOptionsMappingJson);
@@ -258,6 +261,15 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     public boolean isSortUnionQueryByScoreEnabled() {
         // disable if the feature toggle is not used
         return sortUnionQueryByScoreFeature != null && sortUnionQueryByScoreFeature.isEnabled();
+    }
+
+    public void setOptimizeXPathUnion(@Nullable Feature feature) {
+        this.optimizeXPathUnion = feature;
+    }
+
+    public boolean isOptimizeXPathUnionEnabled() {
+        // disable if the feature toggle is not used
+        return optimizeXPathUnion != null && optimizeXPathUnion.isEnabled();
     }
 
     public String getStrictPathRestriction() {
