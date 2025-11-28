@@ -28,8 +28,8 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.Counting;
 import com.codahale.metrics.MetricRegistry;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorUtils;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
-import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.index.ConsoleIndexingReporter;
 import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
@@ -102,7 +102,7 @@ public class NodeStoreFixtureProvider {
 
     public static StatisticsProvider createStatsProvider(Whiteboard wb, Closer closer) {
         ScheduledExecutorService executorService =
-                MoreExecutors.getExitingScheduledExecutorService(new ScheduledThreadPoolExecutor(1));
+                ExecutorUtils.getExitingScheduledExecutorService(new ScheduledThreadPoolExecutor(1));
         MetricStatisticsProvider statsProvider = new MetricStatisticsProvider(getPlatformMBeanServer(), executorService);
         closer.register(statsProvider);
         closer.register(() -> reportMetrics(statsProvider));

@@ -51,13 +51,13 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorUtils;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
@@ -497,7 +497,7 @@ public class JsonIndexCommand implements Command {
 
     private static LuceneIndexEditorProvider createLuceneIndexEditorProvider() {
         LuceneIndexEditorProvider ep = new LuceneIndexEditorProvider();
-        ScheduledExecutorService executorService = MoreExecutors.getExitingScheduledExecutorService(
+        ScheduledExecutorService executorService = ExecutorUtils.getExitingScheduledExecutorService(
                 (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(5));
         StatisticsProvider statsProvider = StatisticsProvider.NOOP;
         int queueSize = Integer.getInteger("queueSize", 1000);
