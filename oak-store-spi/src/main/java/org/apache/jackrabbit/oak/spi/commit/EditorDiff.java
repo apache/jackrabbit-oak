@@ -21,6 +21,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NO
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.jetbrains.annotations.NotNull;
@@ -47,20 +48,21 @@ public class EditorDiff implements NodeStateDiff {
             try {
                 editor.enter(before, after);
 
-                EditorDiff diff = new EditorDiff(editor);
+                EditorDiff diff = new EditorDiff(editor, "/");
                 if (!after.compareAgainstBaseState(before, diff)) {
                     return diff.exception;
                 }
 
                 editor.leave(before, after);
             } catch (CommitFailedException e) {
-                return e;
+                return enhanceExceptionWithPath(e, "/");
             }
         }
         return null;
     }
 
     private final Editor editor;
+    private final String path;
 
     /**
      * Checked exceptions don't compose. So we need to hack around.
@@ -69,8 +71,9 @@ public class EditorDiff implements NodeStateDiff {
      */
     private CommitFailedException exception;
 
-    private EditorDiff(Editor editor) {
+    private EditorDiff(Editor editor, String path) {
         this.editor = editor;
+        this.path = path;
     }
 
     //-------------------------------------------------< NodeStateDiff >--
@@ -81,7 +84,7 @@ public class EditorDiff implements NodeStateDiff {
             editor.propertyAdded(after);
             return true;
         } catch (CommitFailedException e) {
-            exception = e;
+            exception = enhanceExceptionWithPath(e, path);
             return false;
         }
     }
@@ -92,7 +95,7 @@ public class EditorDiff implements NodeStateDiff {
             editor.propertyChanged(before, after);
             return true;
         } catch (CommitFailedException e) {
-            exception = e;
+            exception = enhanceExceptionWithPath(e, path);
             return false;
         }
     }
@@ -103,7 +106,7 @@ public class EditorDiff implements NodeStateDiff {
             editor.propertyDeleted(before);
             return true;
         } catch (CommitFailedException e) {
-            exception = e;
+            exception = enhanceExceptionWithPath(e, path);
             return false;
         }
     }
@@ -120,7 +123,8 @@ public class EditorDiff implements NodeStateDiff {
             if (childEditor != null) {
                 childEditor.enter(before, after);
 
-                EditorDiff diff = new EditorDiff(childEditor);
+                String childPath = PathUtils.concat(path, name);
+                EditorDiff diff = new EditorDiff(childEditor, childPath);
                 if (!after.compareAgainstBaseState(before, diff)) {
                     exception = diff.exception;
                     return false;
@@ -130,7 +134,8 @@ public class EditorDiff implements NodeStateDiff {
             }
             return true;
         } catch (CommitFailedException e) {
-            exception = e;
+            String childPath = PathUtils.concat(path, name);
+            exception = enhanceExceptionWithPath(e, childPath);
             return false;
         }
     }
@@ -143,7 +148,8 @@ public class EditorDiff implements NodeStateDiff {
             if (childEditor != null) {
                 childEditor.enter(before, after);
 
-                EditorDiff diff = new EditorDiff(childEditor);
+                String childPath = PathUtils.concat(path, name);
+                EditorDiff diff = new EditorDiff(childEditor, childPath);
                 if (!after.compareAgainstBaseState(before, diff)) {
                     exception = diff.exception;
                     return false;
@@ -153,7 +159,8 @@ public class EditorDiff implements NodeStateDiff {
             }
             return true;
         } catch (CommitFailedException e) {
-            exception = e;
+            String childPath = PathUtils.concat(path, name);
+            exception = enhanceExceptionWithPath(e, childPath);
             return false;
         }
     }
@@ -166,7 +173,8 @@ public class EditorDiff implements NodeStateDiff {
             if (childEditor != null) {
                 childEditor.enter(before, after);
 
-                EditorDiff diff = new EditorDiff(childEditor);
+                String childPath = PathUtils.concat(path, name);
+                EditorDiff diff = new EditorDiff(childEditor, childPath);
                 if (!after.compareAgainstBaseState(before, diff)) {
                     exception = diff.exception;
                     return false;
@@ -176,9 +184,29 @@ public class EditorDiff implements NodeStateDiff {
             }
             return true;
         } catch (CommitFailedException e) {
-            exception = e;
+            String childPath = PathUtils.concat(path, name);
+            exception = enhanceExceptionWithPath(e, childPath);
             return false;
         }
+    }
+
+    /**
+     * Enhances a CommitFailedException with path information if it doesn't already contain it.
+     * @param e the original exception
+     * @param path the path where the exception occurred
+     * @return the enhanced exception (or the original if it already contains path info)
+     */
+    private static CommitFailedException enhanceExceptionWithPath(
+            CommitFailedException e, String path) {
+        String message = e.getMessage();
+        // Check if path is already in the message to avoid duplication
+        if (message != null && message.contains("(path: ")) {
+            return e;
+        }
+        // Create a new exception with the path information
+        String enhancedMessage = message + " (path: " + path + ")";
+        return new CommitFailedException(e.getSource(), e.getType(), e.getCode(), 
+                enhancedMessage, e.getCause());
     }
 
 }
