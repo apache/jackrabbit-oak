@@ -30,8 +30,8 @@ import javax.management.MBeanServer;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.Slf4jReporter;
-import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorUtils;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
@@ -88,7 +88,7 @@ public class ReadPropertyTest extends AbstractTest {
                         log.info("Enabling Metrics integration");
                         MBeanServer server = ManagementFactory.getPlatformMBeanServer();
                         ScheduledExecutorService executor =
-                                MoreExecutors.getExitingScheduledExecutorService(new ScheduledThreadPoolExecutor(1));
+                                ExecutorUtils.getExitingScheduledExecutorService(new ScheduledThreadPoolExecutor(1));
                         MetricStatisticsProvider statsProvider = new MetricStatisticsProvider(server, executor);
                         oak.getWhiteboard().register(StatisticsProvider.class,
                                 statsProvider, Collections.emptyMap());

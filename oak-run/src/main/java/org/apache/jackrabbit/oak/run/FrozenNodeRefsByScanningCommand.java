@@ -41,6 +41,7 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorUtils;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
@@ -56,8 +57,6 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-
-import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -244,7 +243,7 @@ public class FrozenNodeRefsByScanningCommand implements Command {
     // from JsonIndexCommand, unmodified
     private static LuceneIndexEditorProvider createLuceneIndexEditorProvider() {
         LuceneIndexEditorProvider ep = new LuceneIndexEditorProvider();
-        ScheduledExecutorService executorService = MoreExecutors
+        ScheduledExecutorService executorService = ExecutorUtils
                 .getExitingScheduledExecutorService((ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(5));
         StatisticsProvider statsProvider = StatisticsProvider.NOOP;
         int queueSize = Integer.getInteger("queueSize", 1000);
