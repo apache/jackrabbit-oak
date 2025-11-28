@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.jcr.session;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.oak.commons.internal.function.Suppliers.memoize;
 import static org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory.DEFAULT_BLOB_ACCESS_PROVIDER;
 
 import java.util.ArrayList;
