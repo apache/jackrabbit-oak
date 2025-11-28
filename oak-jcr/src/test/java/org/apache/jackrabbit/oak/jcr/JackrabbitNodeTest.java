@@ -327,7 +327,7 @@ public class JackrabbitNodeTest extends AbstractJCRTest {
     public void testEstimated() throws Exception {
         // needs a proper test scenario
         JackrabbitNode jn = (JackrabbitNode) testRootNode;
-        assertTrue(-2 < jn.getEstimatedChildNodeCount());
+        assertTrue(-2 < jn.getEstimatedDescendantNodeCount());
     }
 
     public void testGetPropertyOrNull() throws Exception {
