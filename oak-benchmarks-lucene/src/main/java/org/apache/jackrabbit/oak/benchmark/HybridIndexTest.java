@@ -42,13 +42,13 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorUtils;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
@@ -154,7 +154,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     private List<TestContext> contexts = new ArrayList<>();
     private final StatisticsProvider statsProvider;
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final ExecutorService executorService = MoreExecutors.getExitingExecutorService(
+    private final ExecutorService executorService = ExecutorUtils.getExitingExecutorService(
             (ThreadPoolExecutor) Executors.newFixedThreadPool(5));
     private final List<Registration> regs = new ArrayList<>();
     private BackgroundObserver backgroundObserver;
