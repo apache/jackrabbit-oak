@@ -325,7 +325,9 @@ public class JackrabbitNodeTest extends AbstractJCRTest {
     }
 
     public void testEstimated() throws Exception {
-        // needs a proper test scenario
+        // in these tests, async indexing is not enabled, so
+        // we can only test the JackrabbitNode interface for
+        // a *valid* return value
         JackrabbitNode jn = (JackrabbitNode) testRootNode;
         assertTrue(-2 < jn.getEstimatedDescendantNodeCount());
     }
