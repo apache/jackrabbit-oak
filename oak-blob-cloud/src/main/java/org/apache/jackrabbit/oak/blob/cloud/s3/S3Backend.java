@@ -18,8 +18,11 @@ package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -362,7 +365,7 @@ public class S3Backend extends AbstractSharedBackend {
                             uploadReq.source(file).
                                     putObjectRequest(
                                             s3ReqDecorator.decorate(
-                                                    PutObjectRequest.builder().bucket(bucket).key(key)
+                                                    PutObjectRequest.builder().bucket(bucket).key(key).contentLength(file.length())
                                                             .build()))
                                     .build());
 
@@ -513,12 +516,17 @@ public class S3Backend extends AbstractSharedBackend {
         final ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
+            final PutObjectRequest.Builder builder = PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .contentType("application/octet-stream")
+                    .key(addMetaKeyPrefix(name));
+
             // Specify `null` for the content length when you don't know the content length.
-            final AsyncRequestBody body = AsyncRequestBody.fromInputStream(input, null, executor);
+            final AsyncRequestBody body = getRequestBody(input, executor, builder);
             final Upload upload = tmx.upload(uploadReq ->
                     uploadReq.requestBody(body).
                             putObjectRequest(
-                                    s3ReqDecorator.decorate(PutObjectRequest.builder().bucket(bucket).key(addMetaKeyPrefix(name)).build()))
+                                    s3ReqDecorator.decorate(builder.build()))
                             .build());
             upload.completionFuture().join();
         } catch (Exception e) {
@@ -553,7 +561,7 @@ public class S3Backend extends AbstractSharedBackend {
                     uploadReq.source(input).
                             putObjectRequest(
                                     s3ReqDecorator.decorate(
-                                            PutObjectRequest.builder().bucket(bucket).key(addMetaKeyPrefix(name)).build()))
+                                            PutObjectRequest.builder().bucket(bucket).contentLength(input.length()).key(addMetaKeyPrefix(name)).build()))
                             .build());
 
             upload.completionFuture().join();
@@ -1321,6 +1329,48 @@ public class S3Backend extends AbstractSharedBackend {
             return key;
         }
         return key.substring(0, 4) + key.substring(5);
+    }
+
+    @NotNull
+    private AsyncRequestBody getRequestBody(final InputStream input, final ExecutorService executor,
+                                            final PutObjectRequest.Builder builder) throws IOException {
+        final AsyncRequestBody body;
+        if (Objects.equals(RemoteStorageMode.S3, properties.get(S3Constants.MODE))) {
+            body = AsyncRequestBody.fromInputStream(input, null, executor);
+        } else {
+            // for GCP we need to know the length in advance, else it won't work.
+            final long length;
+            if (input instanceof FileInputStream) {
+                final FileInputStream fis = (FileInputStream) input;
+                // if the file is modified after opening, the size may not reflect the latest changes
+                length = fis.getChannel().size();
+                body = AsyncRequestBody.fromInputStream(input, length, executor);
+            } else if (input instanceof ByteArrayInputStream) {
+                length = input.available();
+                body = AsyncRequestBody.fromInputStream(input, length, executor);
+            } else if (input.markSupported()) {
+                // in case the inputStream supports mark & reset
+                input.mark(Integer.MAX_VALUE);
+                length = IOUtils.consume(input);
+                input.reset();
+                body = AsyncRequestBody.fromInputStream(input, length, executor);
+            } else {
+                // we have to read all the stream to get the actual length
+                // last else block: store to temp file and re-read
+                final File tempFile = File.createTempFile("inputstream-", ".tmp");
+                tempFile.deleteOnExit(); // Clean up after JVM exits
+
+                try (OutputStream out = new FileOutputStream(tempFile)) {
+                    IOUtils.copy(input, out); // Copy all bytes to file
+                }
+                // Get length from file
+                length = tempFile.length();
+                // Re-create InputStream from temp file
+                body = AsyncRequestBody.fromInputStream(new FileInputStream(tempFile), length, executor);
+            }
+            builder.contentLength(length);
+        }
+        return body;
     }
 
     /**
