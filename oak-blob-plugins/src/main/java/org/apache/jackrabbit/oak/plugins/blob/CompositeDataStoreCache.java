@@ -35,8 +35,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
-
 /**
  */
 public class CompositeDataStoreCache extends AbstractCache<String, File> implements Closeable {
@@ -62,7 +60,7 @@ public class CompositeDataStoreCache extends AbstractCache<String, File> impleme
 
     public CompositeDataStoreCache(String path, File home, long size, int uploadSplitPercentage,
         int uploadThreads, CacheLoader<String, InputStream> loader, final StagingUploader uploader,
-        StatisticsProvider statsProvider, ListeningExecutorService listeningExecutor,
+        StatisticsProvider statsProvider, ExecutorService executorService,
         ScheduledExecutorService scheduledExecutor /* purge scheduled executor */,
         ExecutorService executor /* File cache executor */,
         int purgeInterval /* async purge interval secs */,
@@ -82,7 +80,7 @@ public class CompositeDataStoreCache extends AbstractCache<String, File> impleme
                 uploadSplitPercentage, uploadThreads);
         this.stagingCache = UploadStagingCache
             .build(directory, home, uploadThreads, uploadSize, uploader, null, statsProvider,
-                listeningExecutor, scheduledExecutor, purgeInterval, stagingRetryInterval);
+                executorService, scheduledExecutor, purgeInterval, stagingRetryInterval);
         this.downloadCache = FileCache.build(fileCacheSize, directory, loader, executor);
         stagingCache.setDownloadCache(downloadCache);
     }

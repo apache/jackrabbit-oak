@@ -32,8 +32,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
@@ -44,15 +46,9 @@ import java.util.stream.Stream;
 
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.jackrabbit.guava.common.cache.Weigher;
-import org.apache.jackrabbit.guava.common.util.concurrent.FutureCallback;
-import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
-import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
-import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
-import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
-import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
@@ -105,7 +101,7 @@ public class UploadStagingCache implements Closeable {
     /**
      * Executor for async uploads
      */
-    private ListeningExecutorService executor;
+    private ExecutorService executor;
 
     /**
      * Scheduled executor for build and remove
@@ -155,7 +151,7 @@ public class UploadStagingCache implements Closeable {
 
     private UploadStagingCache(File dir, File home, int uploadThreads, long size /* bytes */,
         StagingUploader uploader, @Nullable FileCache cache, StatisticsProvider statisticsProvider,
-        @Nullable ListeningExecutorService executor,
+        @Nullable ExecutorService executor,
         @Nullable ScheduledExecutorService scheduledExecutor,
         int purgeInterval /* secs */, int retryInterval /* secs */) {
 
@@ -163,9 +159,8 @@ public class UploadStagingCache implements Closeable {
         this.size = size;
         this.executor = executor;
         if (executor == null) {
-            this.executor = MoreExecutors.listeningDecorator(Executors
-                .newFixedThreadPool(uploadThreads,
-                        BasicThreadFactory.builder().namingPattern("oak-ds-async-upload-thread-%d").build()));
+            this.executor = Executors.newFixedThreadPool(uploadThreads,
+                    BasicThreadFactory.builder().namingPattern("oak-ds-async-upload-thread-%d").build());
         }
 
         this.scheduledExecutor = scheduledExecutor;
@@ -200,7 +195,7 @@ public class UploadStagingCache implements Closeable {
 
     public static UploadStagingCache build(File dir, File home, int uploadThreads, long size
         /* bytes */, StagingUploader uploader, @Nullable FileCache cache,
-        StatisticsProvider statisticsProvider, @Nullable ListeningExecutorService executor,
+        StatisticsProvider statisticsProvider, @Nullable ExecutorService executor,
         @Nullable ScheduledExecutorService scheduledExecutor, int purgeInterval /* secs */,
         int retryInterval /* secs */) {
         if (size > 0) {
@@ -362,7 +357,7 @@ public class UploadStagingCache implements Closeable {
 
         try {
             // create an async job
-            ListenableFuture<Integer> future = executor.submit(() -> {
+            CompletableFuture<Integer> future = CompletableFuture.supplyAsync(() -> {
                 try (TimerStats.Context uploadContext = cacheStats.startUpLoaderTimer()) {
 
                     uploader.write(id, upload);
@@ -371,13 +366,13 @@ public class UploadStagingCache implements Closeable {
                     return 1;
                 } catch (Exception e) {
                     LOG.error("Error adding file to backend", e);
-                    throw e;
+                    throw new CompletionException(e);
                 }
-            });
+            }, executor);
 
             // Add a callback to the returned Future object for handling success and error
-            Futures.addCallback(future, new FutureCallback<>() {
-                @Override public void onSuccess(@Nullable Integer r) {
+            future.whenComplete( (r, t) -> {
+                if (t == null) {
                     LOG.info("Successfully added [{}], [{}]", id, upload);
 
                     try {
@@ -398,14 +393,12 @@ public class UploadStagingCache implements Closeable {
                         LOG.warn("Error in cleaning up [{}] from staging", upload);
                     }
                     result.complete(r);
-                }
-
-                @Override public void onFailure(Throwable t) {
+                } else {
                     LOG.error("Error adding [{}] with file [{}] to backend", id, upload, t);
                     result.completeExceptionally(t);
                     retryQueue.add(id);
                 }
-            }, ExecutorUtils.newDirectExecutorService());
+            });
             LOG.debug("File [{}] scheduled for upload [{}]", upload, result);
         } catch (Exception e) {
             LOG.error("Error staging file for upload [{}]", upload, e);

@@ -130,7 +130,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         dataStore.setStatisticsProvider(statsProvider);
         dataStore.setCacheSize(cacheSize);
         dataStore.setStagingSplitPercentage(uploadSplit);
-        dataStore.listeningExecutor = listeningExecutor;
+        dataStore.executorService = listeningExecutor;
         dataStore.schedulerExecutor = scheduledExecutor;
         dataStore.executor = ExecutorUtils.newDirectExecutorService();
         dsPath = new File(root.getAbsolutePath(), "ds").getAbsolutePath();
