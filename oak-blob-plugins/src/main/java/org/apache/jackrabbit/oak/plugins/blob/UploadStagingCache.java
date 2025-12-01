@@ -52,6 +52,7 @@ import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
@@ -404,7 +405,7 @@ public class UploadStagingCache implements Closeable {
                     result.completeExceptionally(t);
                     retryQueue.add(id);
                 }
-            }, new SameThreadExecutorService());
+            }, ExecutorUtils.newDirectExecutorService());
             LOG.debug("File [{}] scheduled for upload [{}]", upload, result);
         } catch (Exception e) {
             LOG.error("Error staging file for upload [{}]", upload, e);
