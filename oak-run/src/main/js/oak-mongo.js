@@ -355,25 +355,6 @@ var oak = (function(global){
      * Removes the complete subtree rooted at the given path, deleting leaf nodes first and then parents.
      * This ensures that if the operation is interrupted, parent nodes remain available for resuming.
      *
-     * Optimizations:
-     * - Sequential depth checking (checks depth+1, depth+2, etc. until no nodes found)
-     *   * Each query targets a specific depth (exact match) - very index-friendly
-     *   * Stops immediately when no nodes found (early termination)
-     *   * Separate queries for regular vs long path nodes (optimal index usage)
-     *   * Much faster than aggregation when max depth is low (< 50)
-     * - Uses bulk write operations for efficient deletions
-     * - Includes root deletions in bulk operation
-     * - Batches large operations to avoid MongoDB limits
-     *
-     * Performance comparison:
-     * - Aggregation approach: Scans all matching documents to find max depth
-     *   * For subtree with 1M nodes: ~2-3 seconds
-     * - Sequential approach: Checks specific depths one by one until none found
-     *   * For subtree with max depth 10: ~10 queries × 0.01s = ~0.1 seconds
-     *   * For subtree with max depth 50: ~50 queries × 0.01s = ~0.5 seconds
-     *   * Naturally terminates when no nodes found - no limit needed
-     *   * Much faster than aggregation for typical use cases!
-     *
      * @memberof oak
      * @method removeDescendantsAndSelfWithLeavesFirst
      * @param {string} path the path of the subtree to remove.
@@ -385,30 +366,26 @@ var oak = (function(global){
         var prefix = path + "/";
         var escapedPrefix = escapeForRegExp(prefix);
 
-        // OPTIMIZATION: Early exit - check if root exists
+        // check if root exists
         var rootExists = db.nodes.findOne({_id: depth + ":" + path}) !== null;
         print("Checked root existence at depth " + depth + ": " + (rootExists ? "found" : "not found"));
         if (!rootExists) {
             return {deletedCount: 0};
         }
 
-        // OPTIMIZATION: Sequential depth checking - much faster than aggregation
-        // Check depth+1, depth+2, etc. until we find no nodes
-        // Uses separate targeted queries for better index usage
-        // Loop naturally terminates when no nodes are found - no limit needed
+        // Check each depth level one at a time, until no more nodes are found.
+        // The process stops automatically when there are no nodes at the next depth
         var maxDepth = depth;
         var currentDepth = depth + 1;
 
         while (true) {
-            // Check regular nodes at this depth (uses exact depth prefix - very index-friendly)
-            // Using findOne with projection is fastest for existence checks
+            // Check regular nodes at this depth
             var hasRegularNodes = db.nodes.findOne({
                 _id: new RegExp("^" + currentDepth + ":" + escapedPrefix)
             }, {_id: 1}) !== null;
             print("Checked regular nodes at depth " + currentDepth + ": " + (hasRegularNodes ? "found" : "not found"));
 
-            // Check long path nodes at this depth (exact _id match + prefix on _path)
-            // Separate query allows MongoDB to use optimal index for each
+            // Check long path nodes at this depth
             var hasLongPathNodes = db.nodes.findOne({
                 _id: currentDepth + ":h",
                 _path: new RegExp("^" + escapedPrefix)
@@ -426,7 +403,7 @@ var oak = (function(global){
 
         print("Max depth found: " + maxDepth + " (root depth: " + depth + ")");
 
-        // If maxDepth equals depth, only root exists (already checked above)
+        // If maxDepth equals depth, only root exists
         if (maxDepth === depth) {
             var rootResult = db.nodes.deleteMany({_id: depth + ":" + path});
             print("Deleted root regular nodes at depth " + depth + ": " + rootResult.deletedCount + " nodes");
@@ -435,22 +412,13 @@ var oak = (function(global){
             return {deletedCount: rootResult.deletedCount + longPathResult.deletedCount};
         }
 
-        // OPTIMIZATION: Process one depth at a time - add bulk ops, execute, then continue to upper level
         // Delete from deepest level to root (children only, excludes root)
         for (var d = maxDepth; d > depth; d--) {
             var bulkOps = [];
 
             // Add bulk operations for this depth level
-            bulkOps.push({
-                deleteMany: {
-                    filter: longPathFilter(d, prefix)
-                }
-            });
-            bulkOps.push({
-                deleteMany: {
-                    filter: {_id: pathFilter(d, prefix)}
-                }
-            });
+            bulkOps.push({ deleteMany: { filter: longPathFilter(d, prefix)}});
+            bulkOps.push({ deleteMany: { filter: {_id: pathFilter(d, prefix)}}});
 
             // Execute bulk operations for this depth level
             if (bulkOps.length > 0) {
@@ -463,18 +431,10 @@ var oak = (function(global){
             }
         }
 
-        // OPTIMIZATION: Process root deletions separately
+        // now remove root
         var rootBulkOps = [];
-        rootBulkOps.push({
-            deleteMany: {
-                filter: longPathQuery(path)
-            }
-        });
-        rootBulkOps.push({
-            deleteMany: {
-                filter: {_id: depth + ":" + path}
-            }
-        });
+        rootBulkOps.push({ deleteMany: { filter: longPathQuery(path)}});
+        rootBulkOps.push({ deleteMany: { filter: {_id: depth + ":" + path}}});
 
         if (rootBulkOps.length > 0) {
             var rootBulkResult = db.nodes.bulkWrite(rootBulkOps, {
