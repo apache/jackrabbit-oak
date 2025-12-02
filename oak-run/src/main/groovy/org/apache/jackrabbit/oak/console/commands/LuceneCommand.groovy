@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.console.commands
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch
 import org.apache.jackrabbit.oak.commons.PathUtils
+import org.apache.jackrabbit.oak.commons.time.Stopwatch
 import org.apache.jackrabbit.oak.console.ConsoleSession
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory
