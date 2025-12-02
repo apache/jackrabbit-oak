@@ -103,4 +103,13 @@ public interface JackrabbitNode extends Node {
             return null;
         }
     }
+
+    /**
+     * Returns the <em>estimated</em> number of descendant nodes (can be incorrect)
+     * @return number of nodes or {@code -1} when unknown (or not supported by the implementation)
+     * @throws RepositoryException if an error occurs.
+     */
+    default long getEstimatedDescendantNodeCount() throws RepositoryException {
+        return -1;
+    }
 }

@@ -323,7 +323,15 @@ public class JackrabbitNodeTest extends AbstractJCRTest {
         assertNotNull(jn.getNodeOrNull("a"));
         assertNotNull(jn.getNodeOrNull("a/aa"));
     }
-    
+
+    public void testEstimated() throws Exception {
+        // in these tests, async indexing is not enabled, so
+        // we can only test the JackrabbitNode interface for
+        // a *valid* return value
+        JackrabbitNode jn = (JackrabbitNode) testRootNode;
+        assertTrue(-2 < jn.getEstimatedDescendantNodeCount());
+    }
+
     public void testGetPropertyOrNull() throws Exception {
         JackrabbitNode jn = (JackrabbitNode) testRootNode;
         Node aa = jn.addNode("a/aa", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
