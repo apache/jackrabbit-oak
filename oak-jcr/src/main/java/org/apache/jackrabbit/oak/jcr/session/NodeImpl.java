@@ -75,6 +75,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.api.jmx.NodeCounterMBean;
 import org.apache.jackrabbit.oak.commons.LazyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
@@ -1693,6 +1694,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 }
             }
         });
+    }
+
+    @Override
+    public long getEstimatedDescendantNodeCount() {
+        NodeCounterMBean nodeCounterMBean = sessionContext.getNodeCounterMBeanSupplier().get();
+        return nodeCounterMBean != null ? nodeCounterMBean.getEstimatedNodeCount(dlg.getPath()) : -1;
     }
 
     /**
