@@ -30,6 +30,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -41,15 +42,12 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.management.openmbean.TabularData;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.ForwardingListeningExecutorService;
-import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
-import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
-import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
-import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorUtils;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ForwardingExecutorService;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureUtils;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LocalIndexFile;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -332,16 +330,16 @@ public class IndexCopierTest {
         Directory baseDir = new RAMDirectory();
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
 
-        final List<ListenableFuture<?>> submittedTasks = new ArrayList<>();
-        ExecutorService executor = new ForwardingListeningExecutorService() {
+        final List<CompletableFuture<?>> submittedTasks = new ArrayList<>();
+        ExecutorService executor = new ForwardingExecutorService() {
             @Override
-            protected ListeningExecutorService delegate() {
-                return MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
+            public ExecutorService delegate() {
+                return Executors.newSingleThreadExecutor();
             }
 
             @Override
             public void execute(Runnable command) {
-                submittedTasks.add(super.submit(command));
+                submittedTasks.add(CompletableFuture.runAsync(command, delegate()));
             }
         };
 
@@ -382,7 +380,7 @@ public class IndexCopierTest {
 
         //3. Perform copy
         copyProceed.countDown();
-        Futures.allAsList(submittedTasks).get();
+        FutureUtils.allAsList(submittedTasks).get();
         remote.reset();
 
         //4. Now read again after copy is done
