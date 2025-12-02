@@ -58,8 +58,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
-
 /**
  * Cache files locally and stage files locally for async uploads.
  * Configuration:
@@ -137,7 +135,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
      */
     protected AbstractSharedBackend backend;
 
-    protected ListeningExecutorService listeningExecutor;
+    protected ExecutorService executorService;
 
     protected ScheduledExecutorService schedulerExecutor;
 
@@ -174,7 +172,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
                 @Override public void adopt(File f, File moved) throws IOException {
                     FileUtils.moveFile(f, moved);
                 }
-            }, statisticsProvider, listeningExecutor, schedulerExecutor, executor, stagingPurgeInterval,
+            }, statisticsProvider, executorService, schedulerExecutor, executor, stagingPurgeInterval,
                 stagingRetryInterval);
     }
 
