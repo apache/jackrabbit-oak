@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
+import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureUtils;
+
 import static java.util.Collections.synchronizedList;
 
 import static java.util.Collections.synchronizedSet;
@@ -49,11 +51,6 @@ import javax.jcr.Value;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
-
-import org.apache.jackrabbit.guava.common.util.concurrent.ForwardingListenableFuture;
-import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
-import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
-import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureConverter;
 
 import static org.apache.jackrabbit.oak.jcr.observation.EventFactory.AFTERVALUE;
 import static org.apache.jackrabbit.oak.jcr.observation.EventFactory.BEFOREVALUE;
@@ -184,7 +181,7 @@ public class ExpectationListener implements EventListener {
             throws ExecutionException, InterruptedException {
         List<Expectation> missing = new ArrayList<>();
         try {
-            Futures.allAsList(expected).get(time, timeUnit);
+            FutureUtils.allAsList(expected).get(time, timeUnit);
         }
         catch (TimeoutException e) {
             for (Expectation exp : expected) {
@@ -209,13 +206,13 @@ public class ExpectationListener implements EventListener {
                 for (Expectation exp : expected) {
                     if (exp.isEnabled() && !exp.isComplete() && exp.onEvent(event)) {
                         found = true;
-                        exp.complete(event);
+                        exp.completeEvent(event);
                     }
                 }
                 for (Expectation opt : optional) {
                     if (opt.isEnabled() && !opt.isComplete() && opt.onEvent(event)) {
                         found = true;
-                        opt.complete(event);
+                        opt.completeEvent(event);
                     }
                 }
                 if (!found) {
@@ -231,8 +228,7 @@ public class ExpectationListener implements EventListener {
         }
     }
 
-    public static class Expectation extends ForwardingListenableFuture<Event> {
-        private final CompletableFuture<Event> future = new  CompletableFuture<>();
+    public static class Expectation extends CompletableFuture<Event> {
         private final String name;
 
         private volatile boolean enabled = true;
@@ -246,11 +242,6 @@ public class ExpectationListener implements EventListener {
             this(name, true);
         }
 
-        @Override
-        protected ListenableFuture<Event> delegate() {
-            return FutureConverter.toListenableFuture(future);
-        }
-
         public void enable(boolean enabled) {
             this.enabled = enabled;
         }
@@ -259,21 +250,21 @@ public class ExpectationListener implements EventListener {
             return enabled;
         }
 
-        public void complete(Event event) {
-            future.complete(event);
+        public void completeEvent(Event event) {
+            this.complete(event);
         }
 
         public boolean isComplete() {
-            return future.isDone();
+            return this.isDone();
         }
 
         public void fail(Exception e) {
-            future.completeExceptionally(e);
+            this.completeExceptionally(e);
         }
 
         public boolean wait(long timeout, TimeUnit unit) {
             try {
-                future.get(timeout, unit);
+                this.get(timeout, unit);
                 return true;
             }
             catch (Exception e) {
