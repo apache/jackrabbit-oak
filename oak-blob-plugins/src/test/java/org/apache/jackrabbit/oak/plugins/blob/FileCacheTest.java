@@ -81,7 +81,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         beforeLatch.countDown();
         afterLatch.countDown();
         cache = FileCache.build(4 * 1024/* KB */, root, loader, executor);
-        FutureUtils.successfulAsList(FutureConverter.toCompletableFuture(executor.futures)).get();
+        FutureUtils.successfulAsList(executor.futures).get();
 
         closer.register(cache);
 
@@ -160,8 +160,8 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         assertCache(0, cache, f);
         assertCacheStats(cache, 1, 4 * 1024, 1, 1);
         assertEquals("Memory weight different",
-            getWeight(ID_PREFIX + 0, cache.getIfPresent(ID_PREFIX + 0)),
-            cache.getStats().estimateCurrentMemoryWeight());
+                getWeight(ID_PREFIX + 0, cache.getIfPresent(ID_PREFIX + 0)),
+                cache.getStats().estimateCurrentMemoryWeight());
 
         LOG.info("Finished add");
     }
@@ -206,16 +206,16 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
 
         File f = createFile(0, loader, cache, folder);
         ListeningExecutorService executorService =
-            MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
+                MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
         closer.register(new ExecutorCloser(executorService, 5, TimeUnit.MILLISECONDS));
 
         CountDownLatch thread1Start = new CountDownLatch(1);
         CompletableFuture<File> future1 =
-            retrieveThread(executorService, ID_PREFIX + 0, cache, thread1Start);
+                retrieveThread(executorService, ID_PREFIX + 0, cache, thread1Start);
 
         CountDownLatch thread2Start = new CountDownLatch(1);
         CompletableFuture<File> future2 =
-            retrieveThread(executorService, ID_PREFIX + 0, cache, thread2Start);
+                retrieveThread(executorService, ID_PREFIX + 0, cache, thread2Start);
 
         thread1Start.countDown();
         thread2Start.countDown();
@@ -237,7 +237,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
     @Test
     public void getDifferentConcurrent() throws Exception {
         LOG.info("Started getDifferentConcurrent");
-        
+
         cache = FileCache.build(4 * 1024/* KB */, root, loader, null);
         closer.register(cache);
 
@@ -245,16 +245,16 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         File f2 = createFile(1, loader, cache, folder);
 
         ListeningExecutorService executorService =
-            MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
+                MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
         closer.register(new ExecutorCloser(executorService, 5, TimeUnit.MILLISECONDS));
 
         CountDownLatch thread1Start = new CountDownLatch(1);
         CompletableFuture<File> future1 =
-            retrieveThread(executorService, ID_PREFIX + 0, cache, thread1Start);
+                retrieveThread(executorService, ID_PREFIX + 0, cache, thread1Start);
 
         CountDownLatch thread2Start = new CountDownLatch(1);
         CompletableFuture<File> future2 =
-            retrieveThread(executorService, ID_PREFIX + 1, cache, thread2Start);
+                retrieveThread(executorService, ID_PREFIX + 1, cache, thread2Start);
 
         thread1Start.countDown();
         thread2Start.countDown();
@@ -283,12 +283,12 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         File f2 = copyToFile(randomStream(1, 4 * 1024), folder.newFile());
 
         ListeningExecutorService executorService =
-            MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
+                MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
         closer.register(new ExecutorCloser(executorService, 5, TimeUnit.MILLISECONDS));
 
         CountDownLatch thread1Start = new CountDownLatch(1);
         CompletableFuture<File> future1 =
-            retrieveThread(executorService, ID_PREFIX + 0, cache, thread1Start);
+                retrieveThread(executorService, ID_PREFIX + 0, cache, thread1Start);
 
         CountDownLatch thread2Start = new CountDownLatch(1);
         CompletableFuture<Boolean> future2 = putThread(executorService, 1, f2, cache, thread2Start);
@@ -336,7 +336,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
 
         cache = FileCache.build(60 * 1024/* KB */, root, loader, null);
         closer.register(cache);
-        
+
         for (int i = 0; i < 15; i++) {
             File f = createFile(i, loader, cache, folder);
             assertCache(i, cache, f);
@@ -387,18 +387,18 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         }
         LOG.info("Finished creating load");
         ListeningExecutorService executorService =
-            MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
+                MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
         closer.register(new ExecutorCloser(executorService, 5, TimeUnit.MILLISECONDS));
 
         CountDownLatch thread1Start = new CountDownLatch(1);
         CompletableFuture<File> future1 =
-            retrieveThread(executorService, ID_PREFIX + 10, cache, thread1Start);
+                retrieveThread(executorService, ID_PREFIX + 10, cache, thread1Start);
         thread1Start.countDown();
 
         createFile(4, loader, cache, folder);
         CountDownLatch thread2Start = new CountDownLatch(1);
         CompletableFuture<File> future2 =
-            retrieveThread(executorService, ID_PREFIX + 4, cache, thread2Start);
+                retrieveThread(executorService, ID_PREFIX + 4, cache, thread2Start);
         thread2Start.countDown();
 
         File f10 = future1.get();
@@ -518,7 +518,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
     /**------------------------------ Helper methods --------------------------------------------**/
 
     private static CompletableFuture<File> retrieveThread(ListeningExecutorService executor,
-        final String id, final FileCache cache, final CountDownLatch start) {
+                                                          final String id, final FileCache cache, final CountDownLatch start) {
         final CompletableFuture<File> future = new CompletableFuture<>();
         executor.submit(new Runnable() {
             @Override public void run() {
@@ -538,7 +538,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
     }
 
     private static CompletableFuture<Boolean> putThread(ListeningExecutorService executor,
-        final int seed, final File f, final FileCache cache, final CountDownLatch start) {
+                                                        final int seed, final File f, final FileCache cache, final CountDownLatch start) {
         final CompletableFuture<Boolean> future = new CompletableFuture<>();
         executor.submit(new Runnable() {
             @Override public void run() {
@@ -574,21 +574,21 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
     }
 
     private static File createFile(int seed, TestCacheLoader loader, FileCache cache, TemporaryFolder folder)
-        throws Exception {
+            throws Exception {
         return createFile(seed, loader, cache, folder, 4 * 1024);
     }
 
     private static File createFile(int seed, TestCacheLoader loader, FileCache cache,
-        TemporaryFolder folder, int size) throws Exception {
+                                   TemporaryFolder folder, int size) throws Exception {
         File f = copyToFile(randomStream(0, size),
-            folder.newFile());
+                folder.newFile());
         loader.write(ID_PREFIX + seed, f);
         assertNull(cache.getIfPresent(ID_PREFIX + seed));
         return f;
     }
 
     private static void assertCacheStats(FileCache cache, long elems, long weight, long loads,
-        long loadSuccesses) {
+                                         long loadSuccesses) {
         assertEquals(elems, cache.getStats().getElementCount());
         assertEquals(weight, cache.getStats().estimateCurrentWeight());
         assertEquals(loads, cache.getStats().getLoadCount());
