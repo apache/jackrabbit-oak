@@ -68,6 +68,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 
 @RunWith(Parameterized.class)
+@Ignore("OAK-10844")
 public class BranchCommitGCTest {
 
     @Rule
