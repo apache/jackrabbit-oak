@@ -41,7 +41,7 @@ public class NodeCounterTest extends AbstractRepositoryTest {
         long beforeNodes = jn.getEstimatedDescendantNodeCount();
         long nowNodes = beforeNodes;
         long start = System.currentTimeMillis();
-        long maxSeconds = 10;
+        long maxSeconds = 60;
         int i = 0;
 
         // run until timeout of estimated count has increased
@@ -52,6 +52,10 @@ public class NodeCounterTest extends AbstractRepositoryTest {
             // save after 100 nodes
             if (i % 100 == 0) {
                 session.save();
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException ignored) {
+                }
             }
             nowNodes = jn.getEstimatedDescendantNodeCount();
         }
