@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
@@ -52,7 +53,7 @@ import javax.jcr.observation.EventListener;
 import org.apache.jackrabbit.guava.common.util.concurrent.ForwardingListenableFuture;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
-import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureConverter;
 
 import static org.apache.jackrabbit.oak.jcr.observation.EventFactory.AFTERVALUE;
 import static org.apache.jackrabbit.oak.jcr.observation.EventFactory.BEFOREVALUE;
@@ -231,7 +232,7 @@ public class ExpectationListener implements EventListener {
     }
 
     public static class Expectation extends ForwardingListenableFuture<Event> {
-        private final SettableFuture<Event> future = SettableFuture.create();
+        private final CompletableFuture<Event> future = new  CompletableFuture<>();
         private final String name;
 
         private volatile boolean enabled = true;
@@ -247,7 +248,7 @@ public class ExpectationListener implements EventListener {
 
         @Override
         protected ListenableFuture<Event> delegate() {
-            return future;
+            return FutureConverter.toListenableFuture(future);
         }
 
         public void enable(boolean enabled) {
@@ -259,7 +260,7 @@ public class ExpectationListener implements EventListener {
         }
 
         public void complete(Event event) {
-            future.set(event);
+            future.complete(event);
         }
 
         public boolean isComplete() {
@@ -267,7 +268,7 @@ public class ExpectationListener implements EventListener {
         }
 
         public void fail(Exception e) {
-            future.setException(e);
+            future.completeExceptionally(e);
         }
 
         public boolean wait(long timeout, TimeUnit unit) {
