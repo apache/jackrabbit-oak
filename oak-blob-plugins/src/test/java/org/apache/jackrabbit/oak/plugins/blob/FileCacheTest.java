@@ -31,7 +31,6 @@ import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureUtils;
-import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureConverter;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.junit.After;
 import org.junit.Before;
@@ -81,7 +80,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         beforeLatch.countDown();
         afterLatch.countDown();
         cache = FileCache.build(4 * 1024/* KB */, root, loader, executor);
-        FutureUtils.successfulAsList(FutureConverter.toCompletableFuture(executor.futures)).get();
+        FutureUtils.successfulAsList(executor.futures).get();
 
         closer.register(cache);
 
@@ -438,7 +437,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         cache = FileCache.build(4 * 1024/* bytes */, root, loader, executor);
         closer.register(cache);
         afterExecuteLatch.await();
-        FutureUtils.successfulAsList(FutureConverter.toCompletableFuture(executor.futures)).get();
+        FutureUtils.successfulAsList(executor.futures).get();
         LOG.info("Cache rebuilt");
 
         assertCacheIfPresent(0, cache, f);
@@ -473,7 +472,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         cache = FileCache.build(4 * 1024/* bytes */, root, loader, executor);
         closer.register(cache);
         afterExecuteLatch.await();
-        FutureUtils.successfulAsList(FutureConverter.toCompletableFuture(executor.futures)).get();
+        FutureUtils.successfulAsList(executor.futures).get();
         LOG.info("Cache rebuilt");
 
         assertCacheIfPresent(0, cache, f);
