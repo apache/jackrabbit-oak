@@ -22,12 +22,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
-import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureUtils;
@@ -204,8 +203,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         LOG.info("Started retrieveSameConcurrent");
 
         File f = createFile(0, loader, cache, folder);
-        ListeningExecutorService executorService =
-            MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
         closer.register(new ExecutorCloser(executorService, 5, TimeUnit.MILLISECONDS));
 
         CountDownLatch thread1Start = new CountDownLatch(1);
@@ -236,15 +234,14 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
     @Test
     public void getDifferentConcurrent() throws Exception {
         LOG.info("Started getDifferentConcurrent");
-        
+
         cache = FileCache.build(4 * 1024/* KB */, root, loader, null);
         closer.register(cache);
 
         File f = createFile(0, loader, cache, folder);
         File f2 = createFile(1, loader, cache, folder);
 
-        ListeningExecutorService executorService =
-            MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
         closer.register(new ExecutorCloser(executorService, 5, TimeUnit.MILLISECONDS));
 
         CountDownLatch thread1Start = new CountDownLatch(1);
@@ -281,8 +278,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         final File f = createFile(0, loader, cache, folder);
         File f2 = copyToFile(randomStream(1, 4 * 1024), folder.newFile());
 
-        ListeningExecutorService executorService =
-            MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
         closer.register(new ExecutorCloser(executorService, 5, TimeUnit.MILLISECONDS));
 
         CountDownLatch thread1Start = new CountDownLatch(1);
@@ -335,7 +331,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
 
         cache = FileCache.build(60 * 1024/* KB */, root, loader, null);
         closer.register(cache);
-        
+
         for (int i = 0; i < 15; i++) {
             File f = createFile(i, loader, cache, folder);
             assertCache(i, cache, f);
@@ -385,8 +381,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
             }
         }
         LOG.info("Finished creating load");
-        ListeningExecutorService executorService =
-            MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
         closer.register(new ExecutorCloser(executorService, 5, TimeUnit.MILLISECONDS));
 
         CountDownLatch thread1Start = new CountDownLatch(1);
@@ -516,7 +511,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
 
     /**------------------------------ Helper methods --------------------------------------------**/
 
-    private static CompletableFuture<File> retrieveThread(ListeningExecutorService executor,
+    private static CompletableFuture<File> retrieveThread(ExecutorService executor,
         final String id, final FileCache cache, final CountDownLatch start) {
         final CompletableFuture<File> future = new CompletableFuture<>();
         executor.submit(new Runnable() {
@@ -536,7 +531,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         return future;
     }
 
-    private static CompletableFuture<Boolean> putThread(ListeningExecutorService executor,
+    private static CompletableFuture<Boolean> putThread(ExecutorService executor,
         final int seed, final File f, final FileCache cache, final CountDownLatch start) {
         final CompletableFuture<Boolean> future = new CompletableFuture<>();
         executor.submit(new Runnable() {
