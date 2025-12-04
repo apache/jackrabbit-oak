@@ -14,6 +14,10 @@
 package org.apache.jackrabbit.oak.query;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.query.ast.AstElementFactory.copyElementAndCheckReference;
 
 import java.math.BigInteger;
@@ -32,9 +36,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
@@ -189,8 +195,6 @@ public class QueryImpl implements Query {
     private boolean isInternal;
 
     private boolean potentiallySlowTraversalQuery;
-
-    private List<? extends QueryIndex> queryIndexes;
 
     QueryImpl(String statement, SourceImpl source, ConstraintImpl constraint,
         ColumnImpl[] columns, NamePathMapper mapper, QueryEngineSettings settings,
@@ -1087,7 +1091,7 @@ public class QueryImpl implements Query {
 
         // Sort the indexes according to their minimum cost to be able to skip the remaining indexes if the cost of the
         // current index is below the minimum cost of the next index.
-        queryIndexes = indexProvider.getQueryIndexes(rootState).stream()
+        List<? extends QueryIndex> queryIndexes = indexProvider.getQueryIndexes(rootState).stream()
                 .sorted(MINIMAL_COST_ORDERING).collect(Collectors.toList());
         List<OrderEntry> sortOrder = getSortOrder(filter); 
         for (int i = 0; i < queryIndexes.size(); i++) {
@@ -1270,7 +1274,24 @@ public class QueryImpl implements Query {
             String caller = IndexUtils.getCaller(settings.getIgnoredClassNamesInCallTrace());
             String message = "Traversal query (query without index): " + statement + "; called by " + caller + "; consider creating an index";
             if (traversal == Traversal.FAIL || traversal == Traversal.WARN && !potentiallySlowTraversalQueryLogged) {
-                message += "\n\nAvailable indexes at the time of query execution:\n" + queryIndexes + "\n\nExecution plan:\n" + getPlan();
+                HashSet<String> reindex = new HashSet<>();
+                Iterable<Tree> indexes = context.getRoot().getTree("/" + INDEX_DEFINITIONS_NAME).getChildren();
+                for (Tree index : indexes) {
+                    String name = index.getName();
+                    PropertyState primaryType = index.getProperty(JCR_PRIMARYTYPE);
+                    if (primaryType != null && INDEX_DEFINITIONS_NODE_TYPE.equals(primaryType.getValue(Type.STRING))) {
+                        PropertyState reindexProp = index.getProperty(REINDEX_PROPERTY_NAME);
+                        if (reindexProp != null && reindexProp.getValue(Type.BOOLEAN)) {
+                            reindex.add(name);
+                        }
+                    }
+                }
+                message += "\n\nExecution plan:\n" + getPlan();
+                if (!reindex.isEmpty()) {
+                    String reindexNames = reindex.stream().map(name -> name + ",").collect(Collectors.joining());
+                    message += "\n\nNote that the following indexes were unavailable because of re-indexing:\n"
+                        + reindexNames.substring(0, reindexNames.length() - 1);
+                }
             }
             switch (traversal) {
             case DEFAULT:
