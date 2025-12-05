@@ -773,13 +773,9 @@ public class Oak {
             regs.add(registerMBean(whiteboard, NodeCounterMBean.class,
                     new NodeCounterOld(store), NodeCounterMBean.TYPE, "nodeCounter"));
         } else {
-            NodeCounter nc = new NodeCounter(store);
-            // register both backwards-compatibly
-            regs.add(registerMBean(whiteboard, NodeCounterMBean.class,
-                    nc, NodeCounterMBean.TYPE, "nodeCounter"));
-            // and using org.apache.jackrabbit.oak.api.jmx.NodeCounterMBean, with a different name
+            // new NodeCounterMBean (moved) is compatible
             regs.add(registerMBean(whiteboard, org.apache.jackrabbit.oak.api.jmx.NodeCounterMBean.class,
-                    nc, NodeCounterMBean.TYPE, "nodeCounter2"));
+                    new NodeCounter(store), NodeCounterMBean.TYPE, "nodeCounter"));
         }
 
         regs.add(registerMBean(whiteboard, QueryEngineSettingsMBean.class,
