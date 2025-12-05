@@ -51,7 +51,6 @@ import java.util.function.Supplier;
 import javax.sql.DataSource;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import com.mongodb.ConnectionString;
 
 import org.apache.commons.io.FilenameUtils;
@@ -1120,15 +1119,15 @@ public class DocumentNodeStoreService {
 
         /**
          * Returns the result of the last revision GC run. This method throws
-         * an {@link UncheckedExecutionException} if the last run failed with an
+         * an {@link RuntimeException} if the last run failed with an
          * exception.
          *
          * @return result of the last revision GC run.
          */
         @Override
-        public String get() throws UncheckedExecutionException {
+        public String get() throws RuntimeException {
             if (lastResult instanceof Exception) {
-                throw new UncheckedExecutionException((Exception) lastResult);
+                throw new RuntimeException((Exception) lastResult);
             }
             return String.valueOf(lastResult);
         }
