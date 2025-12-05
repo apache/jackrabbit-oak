@@ -36,7 +36,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.segment.RecordId;
@@ -517,7 +516,7 @@ public class FileStore extends AbstractFileStore {
     public Segment readSegment(final SegmentId id) {
         try (ShutDownCloser ignored = shutDown.keepAlive()) {
             return segmentCache.getSegment(id, () -> readSegmentUncached(id));
-        } catch (ExecutionException | UncheckedExecutionException e) {
+        } catch (ExecutionException | RuntimeException e) {
             if (e.getCause() instanceof RepositoryNotReachableException) {
                 RepositoryNotReachableException re = (RepositoryNotReachableException) e.getCause();
                 log.warn("Unable to access repository", re);

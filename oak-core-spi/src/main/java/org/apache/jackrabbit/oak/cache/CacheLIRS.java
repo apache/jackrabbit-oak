@@ -38,7 +38,6 @@ import org.apache.jackrabbit.guava.common.cache.RemovalCause;
 import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
-import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import org.apache.jackrabbit.oak.commons.annotations.Internal;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -294,19 +293,19 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     /**
      * Get the value, loading it if needed.
      * <p>
-     * If there is an exception loading, an UncheckedExecutionException is
+     * If there is an exception loading, an RuntimeException is
      * thrown.
      *
      * @param key the key
      * @return the value
-     * @throws UncheckedExecutionException
+     * @throws RuntimeException
      */
     @Override
     public V getUnchecked(K key) {
         try {
             return get(key);
         } catch (ExecutionException e) {
-            throw new UncheckedExecutionException(e);
+            throw new RuntimeException(e);
         }
     }
 

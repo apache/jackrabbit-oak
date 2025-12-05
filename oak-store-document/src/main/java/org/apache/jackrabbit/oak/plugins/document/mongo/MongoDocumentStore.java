@@ -44,7 +44,6 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
@@ -643,8 +642,6 @@ public class MongoDocumentStore implements DocumentStore {
             } else {
                 return (T) doc;
             }
-        } catch (UncheckedExecutionException e) {
-            t = e.getCause();
         } catch (ExecutionException e) {
             t = e.getCause();
         } catch (RuntimeException e) {
@@ -1834,7 +1831,7 @@ public class MongoDocumentStore implements DocumentStore {
                 }
             }
             return;
-        } catch (UncheckedExecutionException | ExecutionException e) {
+        } catch (ExecutionException e) {
             t = e.getCause();
         } catch (RuntimeException e) {
             t = e;
