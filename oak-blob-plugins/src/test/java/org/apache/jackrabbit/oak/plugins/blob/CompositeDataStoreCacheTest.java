@@ -30,8 +30,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
-import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorUtils;
@@ -434,8 +432,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
 
         // Add 2 files to backend
         // Concurrently get both
-        ListeningExecutorService executorService =
-            MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
         closer.register(new ExecutorCloser(executorService, 5, TimeUnit.MILLISECONDS));
 
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
@@ -489,8 +486,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         // Stop upload execution
         // Concurrently get 1 & 2
         // continue upload execution
-        ListeningExecutorService executorService =
-            MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
         closer.register(new ExecutorCloser(executorService, 5, TimeUnit.MILLISECONDS));
 
         // Add file to backend
@@ -554,8 +550,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         // Same as above but concurrently
         // Get
         // Continue upload execution
-        ListeningExecutorService executorService =
-            MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
         closer.register(new ExecutorCloser(executorService, 5, TimeUnit.MILLISECONDS));
 
         // stage for upload
@@ -595,7 +590,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
 
     /**--------------------------- Helper Methods -----------------------------------------------**/
 
-    private static CompletableFuture<File> retrieveThread(ListeningExecutorService executor,
+    private static CompletableFuture<File> retrieveThread(ExecutorService executor,
         final String id, final CompositeDataStoreCache cache, final CountDownLatch start) {
         final CompletableFuture<File> future = new CompletableFuture<>();
         executor.submit(new Runnable() {
