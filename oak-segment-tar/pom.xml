@@ -124,6 +124,12 @@
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
                     <execution>
+                        <id>properties</id>
+                        <goals>
+                            <goal>properties</goal>
+                        </goals>
+                    </execution>
+                    <execution>
                         <phase>pre-integration-test</phase>
                         <goals><goal>copy</goal></goals>
                         <configuration>

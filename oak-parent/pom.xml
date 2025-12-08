@@ -262,9 +262,19 @@
           </configuration>
         </plugin>
         <plugin>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <executions>
+            <execution>
+              <goals>
+                <goal>properties</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
-            <argLine>${test.opts}</argLine>
+            <argLine>${test.opts} -javaagent:${org.mockito:mockito-core:jar}</argLine>
             <trimStackTrace>false</trimStackTrace>
             <systemPropertyVariables>
               <!-- evaluated in oak-jcr/src/test/java/org/apache/jackrabbit/oak/jcr/util/KnownIssuesIgnoreRule.java (JUnit4) and
@@ -287,7 +297,7 @@
         <plugin>
           <artifactId>maven-failsafe-plugin</artifactId>
           <configuration>
-            <argLine>${test.opts}</argLine>
+            <argLine>${test.opts} -javaagent:${org.mockito:mockito-core:jar}</argLine>
             <trimStackTrace>false</trimStackTrace>
             <systemPropertyVariables>
               <!-- evaluated in oak-jcr/src/test/java/org/apache/jackrabbit/oak/jcr/util/KnownIssuesIgnoreRule.java (JUnit4) and
@@ -359,6 +369,9 @@
       </plugins>
     </pluginManagement>
     <plugins>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+      </plugin>
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
