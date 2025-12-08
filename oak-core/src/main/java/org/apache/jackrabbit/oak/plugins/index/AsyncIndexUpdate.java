@@ -674,8 +674,13 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             return;
         }
         TabularData slow = stats.getSlowQueries();
+
         @SuppressWarnings("unchecked")
-        Collection<CompositeData> coll = (Collection<CompositeData>) slow.values();
+        Collection<CompositeData> coll = new ArrayList<>((Collection<CompositeData>) slow.values());
+
+        // Find inefficient queries and add to collection for index diff generation
+        coll.addAll(findInefficientQueries(stats));
+
         if (coll.isEmpty()) {
             return;
         }
@@ -683,11 +688,10 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         for (CompositeData cd : coll) {
             String language = (String) cd.get("language");
             String statement = (String) cd.get("statement");
+
             log.info("language {} statement {}", language, statement);
             String indexDef = IndexDefinitionGenerator.generateIndexDefinition(language, statement);
-            if (indexDef != null) {
-                changed |= DiffIndexUpdater.applyIndexDefinition(store, rootState, builder, indexDef);
-            }
+            changed |= DiffIndexUpdater.applyIndexDefinition(store, rootState, builder, indexDef);
         }
         if (changed) {
             stats.resetStats();
@@ -697,6 +701,29 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 log.warn("Can not store indexes", e);
             }
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<CompositeData> findInefficientQueries(final QueryStatsMBean stats) {
+        final TabularData popularQueries = stats.getPopularQueries();
+        final List<CompositeData> inefficientQueries = new ArrayList<>();
+
+        for (CompositeData queryData : (Collection<? extends CompositeData>) popularQueries.values()) {
+            final Long rowsRead = (Long) queryData.get("rowsRead");
+            final Long rowsScanned = (Long) queryData.get("rowsScanned");
+
+            int readEfficiency = 100;
+
+            if (rowsScanned > 0) {
+                readEfficiency = (int) ((rowsRead * 100f) / rowsScanned);
+            }
+
+            if (readEfficiency < 30) {
+                inefficientQueries.add(queryData);
+            }
+        }
+
+        return inefficientQueries;
     }
 
     private void clearLease() throws CommitFailedException {
