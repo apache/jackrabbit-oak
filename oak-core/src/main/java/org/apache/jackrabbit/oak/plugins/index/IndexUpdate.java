@@ -48,6 +48,8 @@ import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback.IndexProgress;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback.PathSource;
+import org.apache.jackrabbit.oak.plugins.index.diff.DiffIndex;
+import org.apache.jackrabbit.oak.plugins.index.diff.DiffIndexMerger;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
 import org.apache.jackrabbit.oak.plugins.index.progress.NodeCountEstimator;
 import org.apache.jackrabbit.oak.plugins.index.progress.TraversalRateEstimator;
@@ -60,6 +62,7 @@ import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 import org.apache.jackrabbit.util.ISO8601;
 import org.jetbrains.annotations.NotNull;
@@ -108,6 +111,8 @@ public class IndexUpdate implements Editor, PathSource {
         }
     }
 
+    private final NodeStore store;
+
     private final IndexUpdateRootState rootState;
 
     private final NodeBuilder builder;
@@ -150,6 +155,16 @@ public class IndexUpdate implements Editor, PathSource {
             NodeState root, NodeBuilder builder,
             IndexUpdateCallback updateCallback, NodeTraversalCallback traversalCallback,
             CommitInfo commitInfo, CorruptIndexHandler corruptIndexHandler) {
+        this(provider, async, root, builder, updateCallback, traversalCallback, commitInfo, corruptIndexHandler, null);
+    }
+
+    public IndexUpdate(
+            IndexEditorProvider provider, String async,
+            NodeState root, NodeBuilder builder,
+            IndexUpdateCallback updateCallback, NodeTraversalCallback traversalCallback,
+            CommitInfo commitInfo, CorruptIndexHandler corruptIndexHandler,
+            @Nullable NodeStore store) {
+        this.store = store;
         this.parent = null;
         this.name = null;
         this.path = "/";
@@ -158,6 +173,7 @@ public class IndexUpdate implements Editor, PathSource {
     }
 
     private IndexUpdate(IndexUpdate parent, String name) {
+        this.store = parent.store;
         this.parent = requireNonNull(parent);
         this.name = name;
         this.rootState = parent.rootState;
@@ -281,6 +297,11 @@ public class IndexUpdate implements Editor, PathSource {
     private void collectIndexEditors(NodeBuilder definitions, NodeState before) throws CommitFailedException {
         for (String name : definitions.getChildNodeNames()) {
             NodeBuilder definition = definitions.getChildNode(name);
+            if (store != null
+                    && name.equals(DiffIndexMerger.DIFF_INDEX)
+                    && definition.hasChildNode("diff.json")) {
+                DiffIndex.applyChange(store, name, definition);
+            }
             if (isIncluded(rootState.async, definition)) {
                 String type = definition.getString(TYPE_PROPERTY_NAME);
                 String primaryType = definition.getName(JcrConstants.JCR_PRIMARYTYPE);

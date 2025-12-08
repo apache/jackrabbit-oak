@@ -1,0 +1,249 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.jackrabbit.oak.plugins.index.diff;
+
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+
+import java.util.List;
+
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.json.JsonObject;
+import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
+import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.Test;
+
+/**
+ * Tests for DiffIndex functionality.
+ */
+public class DiffIndexTest {
+
+    @Test
+    public void listIndexes() {
+        NodeStore store = new MemoryNodeStore(INITIAL_CONTENT);
+        JsonObject indexDefs = RootIndexesListService.getRootIndexDefinitions(store, "property");
+        // expect at least one index
+        assertFalse(indexDefs.getChildren().isEmpty());
+    }
+
+    @Test
+    public void testDiffIndexUpdate() throws Exception {
+        // Create a memory node store
+        NodeStore store = new MemoryNodeStore(INITIAL_CONTENT);
+
+        storeDiff(store, ""
+                + "{ \"acme.testIndex\": {\n"
+                + "        \"async\": [ \"async\", \"nrt\" ],\n"
+                + "        \"compatVersion\": 2,\n"
+                + "        \"evaluatePathRestrictions\": true,\n"
+                + "        \"includedPaths\": [ \"/content/dam\" ],\n"
+                + "        \"jcr:primaryType\": \"oak:QueryIndexDefinition\",\n"
+                + "        \"queryPaths\": [ \"/content/dam\" ],\n"
+                + "        \"selectionPolicy\": \"tag\",\n"
+                + "        \"tags\": [ \"abc\" ],\n"
+                + "        \"type\": \"lucene\",\n"
+                + "        \"indexRules\": {\n"
+                + "            \"jcr:primaryType\": \"nt:unstructured\",\n"
+                + "            \"dam:Asset\": {\n"
+                + "                \"jcr:primaryType\": \"nt:unstructured\",\n"
+                + "                \"properties\": {\n"
+                + "                    \"jcr:primaryType\": \"nt:unstructured\",\n"
+                + "                    \"created\": {\n"
+                + "                        \"jcr:primaryType\": \"nt:unstructured\",\n"
+                + "                        \"name\": \"str:jcr:created\",\n"
+                + "                        \"ordered\": true,\n"
+                + "                        \"propertyIndex\": true,\n"
+                + "                        \"type\": \"Date\"\n"
+                + "                    }\n"
+                + "                }\n"
+                + "            }\n"
+                + "        }\n"
+                + "    } }");
+
+        JsonObject repositoryDefinitions = RootIndexesListService.getRootIndexDefinitions(store, "lucene");
+        assertSameJson("{\n"
+                + "  \"/oak:index/acme.testIndex-1-custom-1\": {\n"
+                + "    \"compatVersion\": 2,\n"
+                + "    \"async\": [\"async\", \"nrt\"],\n"
+                + "    \"mergeChecksum\": \"34e7f7f0eb480ea781317b56134bc85fc59ed97031d95f518fdcff230aec28a2\",\n"
+                + "    \"mergeInfo\": \"This index was auto-merged. See also https://thomasmueller.github.io/oakTools/simplified.html\",\n"
+                + "    \"selectionPolicy\": \"tag\",\n"
+                + "    \"queryPaths\": [\"/content/dam\"],\n"
+                + "    \"includedPaths\": [\"/content/dam\"],\n"
+                + "    \"jcr:primaryType\": \"nam:oak:QueryIndexDefinition\",\n"
+                + "    \"evaluatePathRestrictions\": true,\n"
+                + "    \"type\": \"lucene\",\n"
+                + "    \"tags\": [\"abc\"],\n"
+                + "    \"merges\": [\"/oak:index/acme.testIndex\"],\n"
+                + "    \"indexRules\": {\n"
+                + "      \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                + "      \"dam:Asset\": {\n"
+                + "        \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                + "        \"properties\": {\n"
+                + "          \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                + "          \"created\": {\n"
+                + "            \"ordered\": true,\n"
+                + "            \"name\": \"str:jcr:created\",\n"
+                + "            \"propertyIndex\": true,\n"
+                + "            \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                + "            \"type\": \"Date\"\n"
+                + "          }\n"
+                + "        }\n"
+                + "      }\n"
+                + "    }\n"
+                + "  }\n"
+                + "}", repositoryDefinitions.toString());
+
+        storeDiff(store, ""
+                + "{ \"acme.testIndex\": {\n"
+                + "        \"async\": [ \"async\", \"nrt\" ],\n"
+                + "        \"compatVersion\": 2,\n"
+                + "        \"evaluatePathRestrictions\": true,\n"
+                + "        \"includedPaths\": [ \"/content/dam\" ],\n"
+                + "        \"jcr:primaryType\": \"oak:QueryIndexDefinition\",\n"
+                + "        \"queryPaths\": [ \"/content/dam\" ],\n"
+                + "        \"selectionPolicy\": \"tag\",\n"
+                + "        \"tags\": [ \"abc\" ],\n"
+                + "        \"type\": \"lucene\",\n"
+                + "        \"indexRules\": {\n"
+                + "            \"jcr:primaryType\": \"nt:unstructured\",\n"
+                + "            \"dam:Asset\": {\n"
+                + "                \"jcr:primaryType\": \"nt:unstructured\",\n"
+                + "                \"properties\": {\n"
+                + "                    \"jcr:primaryType\": \"nt:unstructured\",\n"
+                + "                    \"created\": {\n"
+                + "                        \"jcr:primaryType\": \"nt:unstructured\",\n"
+                + "                        \"name\": \"str:jcr:created\",\n"
+                + "                        \"propertyIndex\": true\n"
+                + "                    },\n"
+                + "                    \"modified\": {\n"
+                + "                        \"jcr:primaryType\": \"nt:unstructured\",\n"
+                + "                        \"name\": \"str:jcr:modified\",\n"
+                + "                        \"propertyIndex\": true\n"
+                + "                    }\n"
+                + "                }\n"
+                + "            }\n"
+                + "        }\n"
+                + "    } }");
+
+        repositoryDefinitions = RootIndexesListService.getRootIndexDefinitions(store, "lucene");
+        assertSameJson("{\n"
+                + "  \"/oak:index/acme.testIndex-1-custom-2\": {\n"
+                + "    \"compatVersion\": 2,\n"
+                + "    \"async\": [\"async\", \"nrt\"],\n"
+                + "    \"mergeChecksum\": \"41df9c87e4d4fca446aed3f55e6d188304a2cb49bae442b75403dc23a89b266f\",\n"
+                + "    \"mergeInfo\": \"This index was auto-merged. See also https://thomasmueller.github.io/oakTools/simplified.html\",\n"
+                + "    \"selectionPolicy\": \"tag\",\n"
+                + "    \"queryPaths\": [\"/content/dam\"],\n"
+                + "    \"includedPaths\": [\"/content/dam\"],\n"
+                + "    \"jcr:primaryType\": \"nam:oak:QueryIndexDefinition\",\n"
+                + "    \"evaluatePathRestrictions\": true,\n"
+                + "    \"type\": \"lucene\",\n"
+                + "    \"tags\": [\"abc\"],\n"
+                + "    \"merges\": [\"/oak:index/acme.testIndex\"],\n"
+                + "    \"indexRules\": {\n"
+                + "      \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                + "      \"dam:Asset\": {\n"
+                + "        \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                + "        \"properties\": {\n"
+                + "          \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                + "          \"created\": {\n"
+                + "            \"name\": \"str:jcr:created\",\n"
+                + "            \"propertyIndex\": true,\n"
+                + "            \"jcr:primaryType\": \"nam:nt:unstructured\"\n"
+                + "          },\n"
+                + "          \"modified\": {\n"
+                + "            \"name\": \"str:jcr:modified\",\n"
+                + "            \"propertyIndex\": true,\n"
+                + "            \"jcr:primaryType\": \"nam:nt:unstructured\"\n"
+                + "          }\n"
+                + "        }\n"
+                + "      }\n"
+                + "    }\n"
+                + "  }\n"
+                + "}", repositoryDefinitions.toString());
+
+        storeDiff(store, ""
+                + "{}");
+
+        repositoryDefinitions = RootIndexesListService.getRootIndexDefinitions(store, "lucene");
+        assertSameJson("{}", repositoryDefinitions.toString());
+    }
+
+    private void assertSameJson(String a, String b) {
+        JsonObject ja = JsonObject.fromJson(a, true);
+        JsonObject jb = JsonObject.fromJson(b, true);
+        if (!DiffIndexMerger.isSameIgnorePropertyOrder(ja, jb)) {
+            assertEquals(a, b);
+        }
+    }
+
+    private void storeDiff(NodeStore store, String json) throws CommitFailedException {
+        // Get the root builder
+        NodeBuilder builder = store.getRoot().builder();
+
+        List<IndexEditorProvider> indexEditors = List.of(
+                new ReferenceEditorProvider(), new PropertyIndexEditorProvider(), new NodeCounterEditorProvider());
+        IndexEditorProvider provider = CompositeIndexEditorProvider.compose(indexEditors);
+        EditorHook hook = new EditorHook(new IndexUpdateProvider(provider));
+
+        // Create the index definition at /oak:index/diff.index
+        NodeBuilder indexDefs = builder.child(INDEX_DEFINITIONS_NAME);
+        NodeBuilder diffIndex = indexDefs.child("diff.index");
+
+        // Set index properties
+        diffIndex.setProperty("jcr:primaryType", IndexConstants.INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
+        diffIndex.setProperty(TYPE_PROPERTY_NAME, "disabled");
+
+        // Create the diff.json child node with primary type nt:file
+        NodeBuilder diffJson = diffIndex.child("diff.json");
+        diffJson.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FILE, Type.NAME);
+
+        // Create jcr:content child node (required for nt:file) with empty text
+        NodeBuilder content = diffJson.child(JcrConstants.JCR_CONTENT);
+        content.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_RESOURCE, Type.NAME);
+
+        content.setProperty("jcr:data", json);
+
+        // Merge changes to the store
+        store.merge(builder, hook, CommitInfo.EMPTY);
+
+        // Run async indexing explicitly
+        for (int i = 0; i < 5; i++) {
+            try (AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider)) {
+                async.run();
+            }
+        }
+    }
+}
+

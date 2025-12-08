@@ -18,10 +18,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_DONE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
@@ -30,6 +30,7 @@ import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -50,7 +51,6 @@ import javax.management.openmbean.OpenType;
 import javax.management.openmbean.SimpleType;
 import javax.management.openmbean.TabularData;
 
-import com.codahale.metrics.MetricRegistry;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -65,10 +65,13 @@ import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate.MissingIndexProviderStrategy;
 import org.apache.jackrabbit.oak.plugins.index.TrackingCorruptIndexHandler.CorruptIndexInfo;
+import org.apache.jackrabbit.oak.plugins.index.optimizer.DiffIndexUpdater;
+import org.apache.jackrabbit.oak.plugins.index.optimizer.IndexDefinitionGenerator;
 import org.apache.jackrabbit.oak.plugins.index.progress.MetricRateEstimator;
 import org.apache.jackrabbit.oak.plugins.index.progress.NodeCounterMBeanEstimator;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
+import org.apache.jackrabbit.oak.query.stats.QueryStatsMBean;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -77,6 +80,7 @@ import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.ResetCommitAttributeHook;
 import org.apache.jackrabbit.oak.spi.commit.SimpleCommitContext;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -86,6 +90,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.Counting;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
@@ -99,6 +104,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.codahale.metrics.MetricRegistry;
 
 public class AsyncIndexUpdate implements Runnable, Closeable {
     /**
@@ -214,13 +221,22 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
     private final StatisticsProvider statisticsProvider;
 
+    private final Tracker<QueryStatsMBean> statsTracker;
+
     public AsyncIndexUpdate(@NotNull String name, @NotNull NodeStore store,
                             @NotNull IndexEditorProvider provider, boolean switchOnSync) {
-        this(name, store, provider, StatisticsProvider.NOOP, switchOnSync);
+        this(name, store, provider, StatisticsProvider.NOOP, switchOnSync, null);
     }
 
     public AsyncIndexUpdate(@NotNull String name, @NotNull NodeStore store,
-                            @NotNull IndexEditorProvider provider, StatisticsProvider statsProvider, boolean switchOnSync) {
+            @NotNull IndexEditorProvider provider, StatisticsProvider statsProvider,
+            boolean switchOnSync) {
+        this(name, store, provider, statsProvider, switchOnSync, null);
+    }
+
+    public AsyncIndexUpdate(@NotNull String name, @NotNull NodeStore store,
+                            @NotNull IndexEditorProvider provider, StatisticsProvider statsProvider,
+                            boolean switchOnSync, @Nullable Tracker<QueryStatsMBean> statsTracker) {
         this.name = checkValidName(name);
         this.lastIndexedTo = lastIndexedTo(name);
         this.store = requireNonNull(store);
@@ -230,6 +246,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         this.statisticsProvider = statsProvider;
         this.indexStats = new AsyncIndexStats(name, statsProvider);
         this.corruptIndexHandler.setMeterStats(statsProvider.getMeter(TrackingCorruptIndexHandler.CORRUPT_INDEX_METER_NAME, StatsOptions.METRICS_ONLY));
+        this.statsTracker = statsTracker;
     }
 
     public AsyncIndexUpdate(@NotNull String name, @NotNull NodeStore store,
@@ -515,6 +532,10 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             }
         }
 
+        if (name.equals("async")) {
+            improveIndexes(store);
+        }
+
         // start collecting runtime statistics
         preAsyncRunStatsStats(indexStats);
 
@@ -628,6 +649,52 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
             if (updatePostRunStatus) {
                 postAsyncRunStatsStatus(indexStats);
+            }
+        }
+    }
+
+    private void improveIndexes(NodeStore store) {
+        NodeState rootState = store.getRoot();
+        NodeBuilder builder = rootState.builder();
+        if (statsTracker == null) {
+            return;
+        }
+        if (!rootState.hasChildNode("oak:index")) {
+            return;
+        }
+        if (!rootState.getChildNode("oak:index").hasChildNode("diff.index")) {
+            return;
+        }
+        List<QueryStatsMBean> list = statsTracker.getServices();
+        if (list.isEmpty()) {
+            return;
+        }
+        QueryStatsMBean stats = list.get(0);
+        if (stats == null) {
+            return;
+        }
+        TabularData slow = stats.getSlowQueries();
+        @SuppressWarnings("unchecked")
+        Collection<CompositeData> coll = (Collection<CompositeData>) slow.values();
+        if (coll.isEmpty()) {
+            return;
+        }
+        boolean changed = false;
+        for (CompositeData cd : coll) {
+            String language = (String) cd.get("language");
+            String statement = (String) cd.get("statement");
+            log.info("language {} statement {}", language, statement);
+            String indexDef = IndexDefinitionGenerator.generateIndexDefinition(language, statement);
+            if (indexDef != null) {
+                changed |= DiffIndexUpdater.applyIndexDefinition(store, rootState, builder, indexDef);
+            }
+        }
+        if (changed) {
+            stats.resetStats();
+            try {
+                store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            } catch (CommitFailedException e) {
+                log.warn("Can not store indexes", e);
             }
         }
     }
@@ -807,7 +874,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             CommitInfo info = new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN,
                     Map.of(IndexConstants.CHECKPOINT_CREATION_TIME, afterTime));
             indexUpdate =
-                    new IndexUpdate(provider, name, after, builder, callback, callback, info, corruptIndexHandler)
+                    new IndexUpdate(provider, name, after, builder, callback, callback, info, corruptIndexHandler, store)
                             .withMissingProviderStrategy(missingStrategy);
             configureRateEstimator(indexUpdate);
             CommitFailedException exception =

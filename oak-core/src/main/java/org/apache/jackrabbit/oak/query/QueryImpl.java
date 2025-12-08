@@ -112,7 +112,7 @@ import org.apache.jackrabbit.oak.commons.collections.AbstractIterator;
  */
 public class QueryImpl implements Query {
 
-    public static final UnsupportedOperationException TOO_MANY_UNION = 
+    public static final UnsupportedOperationException TOO_MANY_UNION =
             new UnsupportedOperationException("Too many union queries");
     public final static int MAX_UNION = Integer.getInteger("oak.sql2MaxUnion", 1000);
 
@@ -129,17 +129,17 @@ public class QueryImpl implements Query {
     SourceImpl source;
     private String statement;
     final HashMap<String, PropertyValue> bindVariableMap = new HashMap<>();
-    
+
     /**
      * The map of indexes (each selector uses one index)
      */
     final HashMap<String, Integer> selectorIndexes = new HashMap<>();
-    
+
     /**
      * The list of selectors of this query. For a join, there can be multiple selectors.
      */
     final ArrayList<SelectorImpl> selectors = new ArrayList<>();
-    
+
     ConstraintImpl constraint;
 
     /**
@@ -148,7 +148,7 @@ public class QueryImpl implements Query {
      * purposes.
      */
     private boolean traversalEnabled = true;
-    
+
     /**
      * The query option to be used for this query.
      */
@@ -156,13 +156,13 @@ public class QueryImpl implements Query {
 
     private OrderingImpl[] orderings;
     private ColumnImpl[] columns;
-    
+
     /**
      * The columns that make a row distinct. This is all columns
      * except for "jcr:score".
      */
     private boolean[] distinctColumns;
-    
+
     private boolean explain, measure;
     private boolean distinct;
     private Optional<Long> limit = Optional.empty();
@@ -170,7 +170,7 @@ public class QueryImpl implements Query {
     private long size = -1;
     private boolean prepared;
     private ExecutionContext context;
-    
+
     /**
      * whether the object has been initialised or not
      */
@@ -179,7 +179,7 @@ public class QueryImpl implements Query {
     private boolean isSortedByIndex;
 
     private final NamePathMapper namePathMapper;
-    
+
     private double estimatedCost;
 
     private final QueryEngineSettings settings;
@@ -222,7 +222,7 @@ public class QueryImpl implements Query {
                 bindVariableMap.put(node.getBindVariableName(), null);
                 return true;
             }
-            
+
              @Override
             public boolean visit(ChildNodeImpl node) {
                 node.setQuery(query);
@@ -289,14 +289,14 @@ public class QueryImpl implements Query {
                 node.bindSelector(source);
                 return super.visit(node);
             }
-            
+
             @Override
             public boolean visit(SimilarImpl node) {
                 node.setQuery(query);
                 node.bindSelector(source);
                 return super.visit(node);
             }
-            
+
             @Override
             public boolean visit(SpellcheckImpl node) {
                 node.setQuery(query);
@@ -351,7 +351,7 @@ public class QueryImpl implements Query {
                 node.bindSelector(source);
                 return true;
             }
-            
+
             @Override
             public boolean visit(PropertyInexistenceImpl node) {
                 node.setQuery(query);
@@ -420,7 +420,7 @@ public class QueryImpl implements Query {
                 node.setQuery(query);
                 return super.visit(node);
             }
-            
+
             @Override
             public boolean visit(AndImpl node) {
                 node.setQuery(query);
@@ -455,7 +455,7 @@ public class QueryImpl implements Query {
             }
             distinctColumns[i] = distinct;
         }
-        
+
         init = true;
     }
 
@@ -508,7 +508,7 @@ public class QueryImpl implements Query {
     public void setMeasure(boolean measure) {
         this.measure = measure;
     }
-    
+
     public void setDistinct(boolean distinct) {
         this.distinct = distinct;
     }
@@ -521,7 +521,7 @@ public class QueryImpl implements Query {
     /**
      * If one of the indexes wants a warning to be logged due to path mismatch,
      * then get the warning message. Otherwise, return null.
-     * 
+     *
      * @return null (in the normal case) or the list of index plan names (if
      *         some index wants a warning to be logged)
      */
@@ -574,7 +574,7 @@ public class QueryImpl implements Query {
             }
         }
     }
-    
+
     @Override
     public Iterator<ResultRowImpl> getRows() {
         prepare();
@@ -702,7 +702,7 @@ public class QueryImpl implements Query {
     public String getPlan() {
         return source.getPlan(context.getBaseState());
     }
-    
+
     @Override
     public String getIndexCostInfo() {
         return source.getIndexCostInfo(context.getBaseState());
@@ -770,7 +770,7 @@ public class QueryImpl implements Query {
         source = result;
         isSortedByIndex = canSortByIndex();
     }
-    
+
     private static SourceImpl buildJoin(SourceImpl result, SourceImpl last, List<JoinConditionImpl> conditions) {
         if (result == null) {
             return last;
@@ -790,14 +790,14 @@ public class QueryImpl implements Query {
         // no join condition was found
         return null;
     }
- 
+
     /**
      * <b>!Test purpose only! <b>
-     * 
+     *
      * this creates a filter for the given query
-     * 
+     *
      */
-    Filter createFilter(boolean preparing) {
+    public Filter createFilter(boolean preparing) {
         return source.createFilter(preparing);
     }
 
@@ -1013,7 +1013,7 @@ public class QueryImpl implements Query {
     public int getColumnIndex(String columnName) {
         return getColumnIndex(columns, columnName);
     }
-    
+
     static int getColumnIndex(ColumnImpl[] columns, String columnName) {
         for (int i = 0, size = columns.length; i < size; i++) {
             ColumnImpl c = columns[i];
@@ -1039,7 +1039,7 @@ public class QueryImpl implements Query {
         for (int i = 0; i < list.length; i++) {
             list[i] = selectors.get(i).getSelectorName();
         }
-        // reverse names to that for xpath, 
+        // reverse names to that for xpath,
         // the first selector is the same as the node iterator
         Collections.reverse(Arrays.asList(list));
         return list;
@@ -1087,7 +1087,7 @@ public class QueryImpl implements Query {
         // current index is below the minimum cost of the next index.
         List<? extends QueryIndex> queryIndexes = indexProvider.getQueryIndexes(rootState).stream()
                 .sorted(MINIMAL_COST_ORDERING).collect(Collectors.toList());
-        List<OrderEntry> sortOrder = getSortOrder(filter); 
+        List<OrderEntry> sortOrder = getSortOrder(filter);
         for (int i = 0; i < queryIndexes.size(); i++) {
             QueryIndex index = queryIndexes.get(i);
             double minCost = index.getMinimumCost();
@@ -1112,7 +1112,7 @@ public class QueryImpl implements Query {
                         filter, sortOrder, rootState);
                 cost = Double.POSITIVE_INFINITY;
                 for (IndexPlan p : ipList) {
-                    
+
                     long entryCount = p.getEstimatedEntryCount();
                     if (p.getSupportsPathRestriction()) {
                         entryCount = scaleEntryCount(rootState, filter, entryCount);
@@ -1196,12 +1196,12 @@ public class QueryImpl implements Query {
 
         if (potentiallySlowTraversalQuery || bestIndex == null) {
             // Log warning for fulltext queries without index, since these cannot return results
-            if(!filter.getFulltextConditions().isEmpty()) { 
+            if(!filter.getFulltextConditions().isEmpty()) {
                 LOG.warn("Fulltext query without index for filter {}; no results will be returned", filter);
             } else {
-                LOG.debug("no proper index was found for filter {}", filter);      
+                LOG.debug("no proper index was found for filter {}", filter);
             }
-            
+
             StatisticsProvider statisticsProvider = getSettings().getStatisticsProvider();
             if (statisticsProvider != null) {
                 HistogramStats histogram = statisticsProvider.getHistogram(INDEX_UNAVAILABLE, StatsOptions.METRICS_ONLY);
@@ -1214,7 +1214,7 @@ public class QueryImpl implements Query {
         return new SelectorExecutionPlan(filter.getSelector(), bestIndex,
                 bestPlan, bestCost);
     }
-    
+
     private long scaleEntryCount(NodeState rootState, FilterImpl filter, long count) {
         PathRestriction r = filter.getPathRestriction();
         if (r != PathRestriction.ALL_CHILDREN) {
@@ -1235,14 +1235,14 @@ public class QueryImpl implements Query {
             totalNodesCount = 1;
         }
         // same logic as for the property index (see ContentMirrorStoreStrategy):
-        
+
         // assume nodes in the index are evenly distributed in the repository (old idea)
         long countScaledDown = (long) ((double) count / totalNodesCount * filterPathCount);
         // assume 80% of the indexed nodes are in this subtree
         long mostNodesFromThisSubtree = (long) (filterPathCount * 0.8);
         // count can at most be the assumed subtree size
         count = Math.min(count, mostNodesFromThisSubtree);
-        // this in theory should not have any effect, 
+        // this in theory should not have any effect,
         // except if the above estimates are incorrect,
         // so this is just for safety feature
         count = Math.max(count, countScaledDown);
@@ -1253,7 +1253,7 @@ public class QueryImpl implements Query {
     public boolean isPotentiallySlow() {
         return potentiallySlowTraversalQuery;
     }
-    
+
     @Override
     public void verifyNotPotentiallySlow() {
         if (potentiallySlowTraversalQuery) {
@@ -1285,7 +1285,7 @@ public class QueryImpl implements Query {
             }
         }
     }
-    
+
     private List<OrderEntry> getSortOrder(FilterImpl filter) {
         if (orderings == null) {
             return null;
@@ -1304,7 +1304,7 @@ public class QueryImpl implements Query {
         }
         return sortOrder;
     }
-    
+
     private void logDebug(String msg) {
         if (isInternal) {
             LOG.trace(msg);
@@ -1347,7 +1347,7 @@ public class QueryImpl implements Query {
     /**
      * Validate the path is syntactically correct, and convert it to an Oak
      * internal path (including namespace remapping if needed).
-     * 
+     *
      * @param path the path
      * @return the the converted path
      */
@@ -1397,7 +1397,7 @@ public class QueryImpl implements Query {
     public long getSize() {
         return size;
     }
-    
+
     @Override
     public long getSize(SizePrecision precision, long max) {
         // Note: DISTINCT is ignored
@@ -1425,10 +1425,10 @@ public class QueryImpl implements Query {
     public ExecutionContext getExecutionContext() {
         return context;
     }
-    
+
     /**
      * Add two values, but don't let it overflow or underflow.
-     * 
+     *
      * @param x the first value
      * @param y the second value
      * @return the sum, or Long.MIN_VALUE for underflow, or Long.MAX_VALUE for
@@ -1444,7 +1444,7 @@ public class QueryImpl implements Query {
     @Override
     public Query buildAlternativeQuery() {
         Query result = this;
-        
+
         if (constraint != null) {
             Set<ConstraintImpl> unionList;
             try {
@@ -1477,14 +1477,14 @@ public class QueryImpl implements Query {
                     // re-composing the statement for better debug messages
                     left.statement = recomposeStatement(left);
                 }
-                
+
                 result = newAlternativeUnionQuery(left, right);
             }
         }
-        
+
         return result;
     }
-    
+
     private static String recomposeStatement(@NotNull QueryImpl query) {
         requireNonNull(query);
         String original = query.getStatement();
@@ -1493,7 +1493,7 @@ public class QueryImpl implements Query {
         final String where = " WHERE ";
         final String orderBy = " ORDER BY ";
         int whereOffset = where.length();
-        
+
         if (query.getConstraint() == null) {
             recomputed.append(original);
         } else {
@@ -1505,18 +1505,18 @@ public class QueryImpl implements Query {
         }
         return recomputed.toString();
     }
-    
+
     /**
      * Convenience method for creating a UnionQueryImpl with proper settings.
-     * 
+     *
      * @param left the first subquery
      * @param right the second subquery
      * @return the union query
      */
     private UnionQueryImpl newAlternativeUnionQuery(@NotNull Query left, @NotNull Query right) {
         UnionQueryImpl u = new UnionQueryImpl(
-            false, 
-            requireNonNull(left, "`left` cannot be null"), 
+            false,
+            requireNonNull(left, "`left` cannot be null"),
             requireNonNull(right, "`right` cannot be null"),
             this.settings);
         u.setExplain(explain);
@@ -1526,20 +1526,20 @@ public class QueryImpl implements Query {
         u.setOrderings(orderings);
         return u;
     }
-    
+
     @Override
     public Query copyOf() {
         if (isInit()) {
             throw new IllegalStateException("QueryImpl cannot be cloned once initialised.");
         }
-        
+
         List<ColumnImpl> cols = new ArrayList<>();
         for (ColumnImpl c : columns) {
             cols.add((ColumnImpl) copyElementAndCheckReference(c));
         }
-                
+
         QueryImpl copy = new QueryImpl(
-            this.statement, 
+            this.statement,
             (SourceImpl) copyElementAndCheckReference(this.source),
             this.constraint,
             cols.toArray(new ColumnImpl[0]),
@@ -1552,7 +1552,7 @@ public class QueryImpl implements Query {
         copy.distinct = this.distinct;
         copy.queryOptions = this.queryOptions;
 
-        return copy;        
+        return copy;
     }
 
     @Override

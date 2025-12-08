@@ -66,7 +66,7 @@ public class IndexInfoServiceImpl implements IndexInfoService{
         if (indexPathService.getMountInfoProvider().hasNonDefaultMounts()) {
             activeIndexes.addAll(IndexName.filterReplacedIndexes(allIndexes, nodeStore.getRoot(), true));
         } else {
-            activeIndexes.addAll(allIndexes);
+            activeIndexes.addAll(IndexName.filterNewestIndexes(allIndexes, nodeStore.getRoot()));
         }
         return IterableUtils.filter(IterableUtils.transform(indexPathService.getIndexPaths(), indexPath -> {
             try {
