@@ -42,9 +42,10 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.Monitor;
-import org.apache.jackrabbit.guava.common.util.concurrent.Monitor.Guard;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
@@ -257,20 +258,23 @@ public class FileStoreIT {
         /* A blob that blocks on read until unblocked */
         class BlockingBlob extends AbstractBlob {
             private final AtomicBoolean blocking = new AtomicBoolean(true);
-            private final Monitor readMonitor = new Monitor();
+            private final Lock lock = new ReentrantLock();
+            private final Condition readingCondition = lock.newCondition();
             private boolean reading = false;
 
             public boolean waitForRead(int time, TimeUnit unit) throws InterruptedException {
-                readMonitor.enter();
+                long nanos = unit.toNanos(time);
+                lock.lock();
                 try {
-                    return readMonitor.waitFor(new Guard(readMonitor) {
-                        @Override
-                        public boolean isSatisfied() {
-                            return reading;
+                    while (!reading) {
+                        if (nanos <= 0L) {
+                            return false; // timed out
                         }
-                    }, time, unit);
+                        nanos = readingCondition.awaitNanos(nanos);
+                    }
+                    return true; // reading == true
                 } finally {
-                    readMonitor.leave();
+                    lock.unlock();
                 }
             }
 
@@ -295,13 +299,15 @@ public class FileStoreIT {
 
                     private int readOrEnd() {
                         if (blocking.get()) {
-                            if (!reading) {
-                                readMonitor.enter();
-                                try {
+                            lock.lock();
+                            try {
+                                if (!reading) {
                                     reading = true;
-                                } finally {
-                                    readMonitor.leave();
+                                    // wake up any threads waiting in waitForRead
+                                    readingCondition.signalAll();
                                 }
+                            } finally {
+                                lock.unlock();
                             }
                             return 0;
                         } else {
