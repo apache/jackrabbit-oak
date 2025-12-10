@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.optimizer.IndexDefinitionBuilder.IndexRule;
 import org.apache.jackrabbit.oak.plugins.index.optimizer.IndexDefinitionBuilder.PropertyRule;
 import org.apache.jackrabbit.oak.query.ExecutionContext;
@@ -55,8 +56,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 class IndexConfigGenerator {
 
-    private QueryEngine queryEngine;
-    private IndexDefinitionBuilder builder = new IndexDefinitionBuilder();
+    private final QueryEngine queryEngine;
+    private final IndexDefinitionBuilder builder = new IndexDefinitionBuilder();
     private final Set<String> propsWithFulltextConstraints = new HashSet<>();
 
     public IndexConfigGenerator() {
@@ -112,10 +113,19 @@ class IndexConfigGenerator {
     private void processFilter(Filter filter, List<OrderEntry> sortOrder) {
         addPathRestrictions(filter);
         IndexRule rule = processNodeTypeConstraint(filter);
+        processTags(filter);
         processFulltextConstraints(filter, rule);
         processPropertyRestrictions(filter, rule);
         processSortConditions(sortOrder, rule);
         processPureNodeTypeConstraints(filter, rule);
+    }
+
+    private void processTags(Filter filter) {
+        PropertyRestriction indexTag = filter.getPropertyRestriction(IndexConstants.INDEX_TAG_OPTION);
+
+        if (indexTag != null && indexTag.first != null) {
+            builder.tags(indexTag.first.getValue(Type.STRING));
+        }
     }
 
     private void addPathRestrictions(Filter filter) {
@@ -209,7 +219,6 @@ class IndexConfigGenerator {
             }
         }
     }
-
 
     /**
      * Returns if the propertyName is a function. If it is, it will be in Polish notation.
