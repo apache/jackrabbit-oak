@@ -46,7 +46,7 @@ public class CachingSegmentArchiveReaderTest {
 
     @Test
     public void containsSegmentDoesNotUsePersistentDiskCache() throws IOException {
-        PersistentCache persistentCache = new CachingPersistenceTest.MemoryPersistentCache(false);
+        PersistentCache persistentCache = new MemoryPersistentCache(false);
         // Create a CachingArchiveManager with 2 tar files and a shared persistence disk cache. Each tar file contains a
         // single segment. When looking up for a segment in a particular tar file, we should not find segments that are
         // present in the other tar files. That is, the shared cache should not expose segments from other tar files.
