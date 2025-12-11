@@ -24,7 +24,7 @@ public class IndexDefinitionGeneratorTest {
 
     @Test
     public void test() {
-        String def = IndexDefinitionGenerator.generateIndexDefinition("xpath", "/jcr:root/content//element(*, acme:test)[@test=1]");
+        String def = IndexDefinitionGenerator.generateIndexDefinition("xpath", "/jcr:root/content//element(*, acme:test)[@test=1]  option (index tag testTag)");
         assertEquals("{\n"
                 + "  \"index\": {\n"
                 + "    \"compatVersion\": 2,\n"
@@ -34,6 +34,7 @@ public class IndexDefinitionGeneratorTest {
                 + "    \"jcr:primaryType\": \"nam:oak:QueryIndexDefinition\",\n"
                 + "    \"evaluatePathRestrictions\": true,\n"
                 + "    \"type\": \"lucene\",\n"
+                + "    \"tags\": [\"testTag\"],\n"
                 + "    \"indexRules\": {\n"
                 + "      \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
                 + "      \"acme:test\": {\n"
