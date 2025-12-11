@@ -51,11 +51,7 @@ public class CachingSegmentArchiveReader implements SegmentArchiveReader {
 
     @Override
     public boolean containsSegment(long msb, long lsb) {
-        if (persistentCache.containsSegment(msb, lsb)) {
-            return true;
-        } else {
-            return delegate.containsSegment(msb, lsb);
-        }
+        return delegate.containsSegment(msb, lsb);
     }
 
     @Override
