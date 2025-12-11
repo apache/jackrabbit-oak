@@ -44,7 +44,7 @@ public class IndexDefinitionBuilder {
     private final NodeBuilder indexRule;
     private NodeBuilder aggregateBuilder;
 
-    public IndexDefinitionBuilder(){
+    public IndexDefinitionBuilder() {
         builder.setProperty("compatVersion", 2);
         builder.setProperty("async", "async");
         builder.setProperty("type", "lucene");
@@ -70,6 +70,11 @@ public class IndexDefinitionBuilder {
 
     public IndexDefinitionBuilder excludedPaths(String ... paths){
         builder.setProperty(createProperty(PathFilter.PROP_EXCLUDED_PATHS, Arrays.asList(paths), Type.STRINGS));
+        return this;
+    }
+
+    public IndexDefinitionBuilder tags(String... tags) {
+        builder.setProperty(IndexConstants.INDEX_TAGS, Arrays.asList(tags), Type.STRINGS);
         return this;
     }
 
