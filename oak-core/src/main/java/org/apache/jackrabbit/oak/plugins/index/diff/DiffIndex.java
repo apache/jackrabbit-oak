@@ -19,7 +19,13 @@ package org.apache.jackrabbit.oak.plugins.index.diff;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -30,11 +36,17 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexName;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.diff.predicates.IncludedPathsPredicate;
+import org.apache.jackrabbit.oak.plugins.index.diff.predicates.NoTagsPredicate;
+import org.apache.jackrabbit.oak.plugins.index.diff.predicates.NodeTypesPredicate;
+import org.apache.jackrabbit.oak.plugins.index.diff.predicates.TagsPredicate;
+import org.apache.jackrabbit.oak.plugins.index.optimizer.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
@@ -43,6 +55,76 @@ import org.slf4j.LoggerFactory;
 public class DiffIndex {
 
     private static final Logger LOG = LoggerFactory.getLogger(DiffIndex.class);
+
+    public static Optional<String> findMatchingIndexName(NodeStore store, String jsonString) {
+        Map<String, JsonObject> indexes = RootIndexesListService.getRootIndexDefinitions(store, "lucene").getChildren();
+        JsonObject json = JsonObject.fromJson(jsonString, true);
+        JsonObject index = json.getChildren().get(FulltextIndexConstants.PROP_INDEX);
+
+        Set<String> nodeTypes = getNodeTypesForIndex(index);
+
+        Set<Map.Entry<String, JsonObject>> candidateIndexes = indexes.entrySet()
+            .stream()
+            .filter(entry -> new NodeTypesPredicate(nodeTypes).test(entry.getValue()))
+            .collect(Collectors.toSet());
+
+        if (candidateIndexes.size() == 1) {
+            // If only one index matches the node type, return it
+            return candidateIndexes.stream().map(Map.Entry::getKey).findFirst();
+        }
+
+        // Found multiple indexes matching node type, proceed with further filtering/matching
+        candidateIndexes = findIndexesWithMatchingTags(index, candidateIndexes);
+
+        if (candidateIndexes.size() == 1) {
+            // If only one index matches the node type and tags, return it
+            return candidateIndexes.stream().map(Map.Entry::getKey).findFirst();
+        }
+
+        // Found multiple indexes matching node type and tags, proceed with further filtering/matching
+        candidateIndexes = findIndexesWithMatchingIncludedPaths(index, candidateIndexes);
+
+        return candidateIndexes.stream().map(Map.Entry::getKey).findFirst();
+    }
+
+    private static Set<Map.Entry<String, JsonObject>> findIndexesWithMatchingIncludedPaths(JsonObject index,
+        Set<Map.Entry<String, JsonObject>> candidateIndexes) {
+        Set<String> includedPaths = getIncludedPathsForIndex(index);
+
+        if (includedPaths.isEmpty()) {
+            return candidateIndexes;
+        } else {
+            Set<Map.Entry<String, JsonObject>> matchingIndexes = candidateIndexes.stream()
+                .filter(entry -> new IncludedPathsPredicate(includedPaths).test(entry.getValue()))
+                .collect(Collectors.toSet());
+
+            // If no existing indexes match the included paths, return all candidates for further evaluation
+            return matchingIndexes.isEmpty() ? candidateIndexes : matchingIndexes;
+        }
+    }
+
+    private static Set<Map.Entry<String, JsonObject>> findIndexesWithMatchingTags(JsonObject index,
+        Set<Map.Entry<String, JsonObject>> candidateIndexes) {
+        Set<String> tags = getTagsForIndex(index);
+
+        if (tags.isEmpty()) {
+            return candidateIndexes;
+        } else {
+            // Need to find an index with either a matching tag, or an index with no tags
+            Set<Map.Entry<String, JsonObject>> matchingIndexes = candidateIndexes.stream()
+                .filter(entry -> new TagsPredicate(tags).test(entry.getValue()))
+                .collect(Collectors.toSet());
+
+            if (matchingIndexes.isEmpty()) {
+                // No indexes with matching tags, instead try to find an index without tags
+                return candidateIndexes.stream()
+                    .filter(entry -> new NoTagsPredicate().test(entry.getValue()))
+                    .collect(Collectors.toSet());
+            } else {
+                return matchingIndexes;
+            }
+        }
+    }
 
     public static void applyChange(NodeStore store, String name, NodeBuilder definition) {
         if (!"disabled".equals(definition.getString("type"))) {
@@ -153,4 +235,66 @@ public class DiffIndex {
         }
     }
 
+    /**
+     * Get the included paths for the given index.
+     *
+     * @param index index JSON
+     * @return set of included paths or empty set if no <code>includedPaths</code> property is defined in the index
+     */
+    private static Set<String> getIncludedPathsForIndex(JsonObject index) {
+        Set<String> includedPaths;
+
+        if (index.getProperties().containsKey(PathFilter.PROP_INCLUDED_PATHS)) {
+            String[] includedPathsArray = JsonNodeBuilder.oakStringArrayValue(index, PathFilter.PROP_INCLUDED_PATHS);
+
+            includedPaths = Set.of(ArrayUtils.nullToEmpty(includedPathsArray));
+        } else {
+            includedPaths = Set.of();
+        }
+
+        return includedPaths;
+    }
+
+    /**
+     * Get the tags for the given index.
+     *
+     * @param index index JSON
+     * @return set of tags or empty set if no <code>tags</code> property is defined in the index
+     */
+    private static Set<String> getTagsForIndex(JsonObject index) {
+        Set<String> tags;
+
+        if (index.getProperties().containsKey(IndexConstants.INDEX_TAGS)) {
+            String[] tagsArray = JsonNodeBuilder.oakStringArrayValue(index, IndexConstants.INDEX_TAGS);
+
+            tags = Set.of(ArrayUtils.nullToEmpty(tagsArray));
+        } else {
+            tags = Set.of();
+        }
+
+        return tags;
+    }
+
+    /**
+     * Get the node types defined in the index rules for the given index.
+     *
+     * @param index index JSON
+     * @return set of node types or empty set if no node types are defined in the index
+     */
+    private static Set<String> getNodeTypesForIndex(JsonObject index) {
+        Set<String> nodeTypes;
+
+        if (index.getChildren().containsKey(FulltextIndexConstants.INDEX_RULES)) {
+            JsonObject indexRules = index.getChildren().get(FulltextIndexConstants.INDEX_RULES);
+
+            nodeTypes = indexRules.getChildren().keySet()
+                .stream()
+                .filter(name -> !name.equals(JcrConstants.JCR_PRIMARYTYPE))
+                .collect(Collectors.toSet());
+        } else {
+            nodeTypes = Set.of(JcrConstants.NT_BASE);
+        }
+
+        return nodeTypes;
+    }
 }
