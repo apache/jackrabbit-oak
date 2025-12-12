@@ -21,12 +21,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
+import java.util.Optional;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.plugins.index.diff.DiffIndex;
 import org.apache.jackrabbit.oak.query.stats.QueryRecorder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -74,21 +76,34 @@ public class DiffIndexUpdater {
                 return false;
             }
         }
-        // get the last number
-        String prefix = "auto.indexOptimizer";
-        int lastNumber = 0;
-        for (String existing : jsonContent.getChildren().keySet()) {
-            if (existing.startsWith(prefix)) {
-                String n = existing.substring(prefix.length());
-                try {
-                    lastNumber = Math.max(lastNumber, Integer.parseInt(n));
-                } catch (NumberFormatException e) {
-                    // ignore
+        Optional<String> bestIndexName = DiffIndex.findMatchingIndexName(store, json.toString());
+        String newIndexName = null;
+        if (bestIndexName.isEmpty()) {
+            // get the last number
+            String prefix = "auto.indexOptimizer";
+            int lastNumber = 0;
+            for (String existing : jsonContent.getChildren().keySet()) {
+                if (existing.startsWith(prefix)) {
+                    String n = existing.substring(prefix.length());
+                    try {
+                        lastNumber = Math.max(lastNumber, Integer.parseInt(n));
+                    } catch (NumberFormatException e) {
+                        // ignore
+                    }
                 }
             }
+            newIndexName = "auto.indexOptimizer" + (lastNumber + 1);
+        } else {
+            newIndexName = bestIndexName.get();
+            if (newIndexName.startsWith("/oak:index/")) {
+                newIndexName = newIndexName.substring("/oak:index/".length());
+            }
+            int dash = newIndexName.indexOf('-');
+            if (dash >= 0) {
+                newIndexName = newIndexName.substring(0, dash);
+            }
         }
-
-        jsonContent.getChildren().put("auto.indexOptimizer" + (lastNumber + 1), index);
+        jsonContent.getChildren().put(newIndexName, index);
         String newJsonContent = jsonContent.toString();
         InputStream inputStream = new ByteArrayInputStream(newJsonContent.getBytes(StandardCharsets.UTF_8));
         try {

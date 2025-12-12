@@ -61,7 +61,11 @@ class RootIndexesListService implements IndexPathService {
         JsonObject result = JsonObject.fromJson(json, true);
         if (typePattern != null) {
             for (String c : new ArrayList<>(result.getChildren().keySet())) {
-                String type = JsopTokenizer.decodeQuoted(result.getChildren().get(c).getProperties().get("type"));
+                String type = result.getChildren().get(c).getProperties().get("type");
+                if (type == null) {
+                    continue;
+                }
+                type = JsopTokenizer.decodeQuoted(type);
                 if (type != null && !type.matches(typePattern)) {
                     result.getChildren().remove(c);
                 }
