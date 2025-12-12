@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.ArrayUtils;
@@ -34,11 +35,13 @@ import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexName;
+import org.apache.jackrabbit.oak.plugins.index.IndexSelectionPolicy;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.diff.predicates.IncludedPathsPredicate;
 import org.apache.jackrabbit.oak.plugins.index.diff.predicates.NoTagsPredicate;
 import org.apache.jackrabbit.oak.plugins.index.diff.predicates.NodeTypesPredicate;
+import org.apache.jackrabbit.oak.plugins.index.diff.predicates.TagSelectionPolicyPredicate;
 import org.apache.jackrabbit.oak.plugins.index.diff.predicates.TagsPredicate;
 import org.apache.jackrabbit.oak.plugins.index.optimizer.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
@@ -131,7 +134,10 @@ public class DiffIndex {
         Set<String> tags = getTagsForIndex(index);
 
         if (tags.isEmpty()) {
-            return candidateIndexes;
+            // Filter indexes with a selection policy
+            return candidateIndexes.stream()
+                .filter(entry -> Predicate.not(TagSelectionPolicyPredicate.INSTANCE).test(entry.getValue()))
+                .collect(Collectors.toSet());
         } else {
             // Need to find an index with either a matching tag, or an index with no tags
             Set<Map.Entry<String, JsonObject>> matchingIndexes = candidateIndexes.stream()
