@@ -26,6 +26,8 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.query.stats.QueryRecorder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -37,8 +39,12 @@ public class DiffIndexUpdater {
 
     private static final Logger LOG = LoggerFactory.getLogger(DiffIndexUpdater.class);
 
-    public static boolean applyIndexDefinition(NodeStore store, NodeState rootState, NodeBuilder builder, String jsonString) {
+    public static boolean applyIndexDefinition(NodeStore store, NodeState rootState, NodeBuilder builder, String jsonString, String statement) {
+        String simplifiedStatement = QueryRecorder.simplifySafely(statement);
         LOG.info("indexDef {}", jsonString);
+        if (!jsonString.trim().startsWith("{")) {
+            return false;
+        }
         NodeBuilder optimizer = builder.child("oak:index").child("diff.index.optimizer");
         optimizer.setProperty("jcr:primaryType", "oak:QueryIndexDefinition", Type.NAME);
         optimizer.setProperty("type", "disabled", Type.STRING);
@@ -60,7 +66,29 @@ public class DiffIndexUpdater {
         } else {
             index.getProperties().put("selectionPolicy", "\"tag\"");
         }
-        jsonContent.getChildren().put("auto.indexOptimizer", index);
+        index.getProperties().put("statement", JsopBuilder.encode(simplifiedStatement));
+        // search in old indexes if we already optimized for this query
+        for (JsonObject existing : jsonContent.getChildren().values()) {
+            String oldStatement = existing.getProperties().get("statement");
+            if (oldStatement != null && oldStatement.equals("\"" + simplifiedStatement + "\"")) {
+                return false;
+            }
+        }
+        // get the last number
+        String prefix = "auto.indexOptimizer";
+        int lastNumber = 0;
+        for (String existing : jsonContent.getChildren().keySet()) {
+            if (existing.startsWith(prefix)) {
+                String n = existing.substring(prefix.length());
+                try {
+                    lastNumber = Math.max(lastNumber, Integer.parseInt(n));
+                } catch (NumberFormatException e) {
+                    // ignore
+                }
+            }
+        }
+
+        jsonContent.getChildren().put("auto.indexOptimizer" + (lastNumber + 1), index);
         String newJsonContent = jsonContent.toString();
         InputStream inputStream = new ByteArrayInputStream(newJsonContent.getBytes(StandardCharsets.UTF_8));
         try {

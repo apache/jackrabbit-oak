@@ -688,13 +688,14 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         for (CompositeData cd : coll) {
             String language = (String) cd.get("language");
             String statement = (String) cd.get("statement");
-
+            if (statement.startsWith("explain") || statement.indexOf("/* oak-internal */") >= 0) {
+                continue;
+            }
             log.info("language {} statement {}", language, statement);
             String indexDef = IndexDefinitionGenerator.generateIndexDefinition(language, statement);
-            changed |= DiffIndexUpdater.applyIndexDefinition(store, rootState, builder, indexDef);
+            changed |= DiffIndexUpdater.applyIndexDefinition(store, rootState, builder, indexDef, statement);
         }
         if (changed) {
-            stats.resetStats();
             try {
                 store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             } catch (CommitFailedException e) {
@@ -718,7 +719,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 readEfficiency = (int) ((rowsRead * 100f) / rowsScanned);
             }
 
-            if (readEfficiency < 30) {
+            if (readEfficiency <= stats.getIndexOptimizerLimit()) {
                 inefficientQueries.add(queryData);
             }
         }

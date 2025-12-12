@@ -36,29 +36,30 @@ import org.apache.jackrabbit.oak.query.stats.QueryStatsData.QueryExecutionStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class QueryStatsMBeanImpl extends AnnotatedStandardMBean 
+public class QueryStatsMBeanImpl extends AnnotatedStandardMBean
         implements QueryStatsMBean, QueryStatsReporter {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final int SLOW_QUERY_LIMIT_SCANNED = 
+    private final int SLOW_QUERY_LIMIT_SCANNED =
             Integer.getInteger("oak.query.slowScanLimit", 5000);
     private final int MAX_STATS_DATA =
             Integer.getInteger("oak.query.stats", 5000);
-    private final int MAX_POPULAR_QUERIES = 
+    private final int MAX_POPULAR_QUERIES =
             Integer.getInteger("oak.query.slowLimit", 100);
     private final int MAX_QUERY_SIZE =
             Integer.getInteger("oak.query.maxQuerySize", 2048);
-    private final ConcurrentSkipListMap<String, QueryStatsData> statistics = 
+    private final ConcurrentSkipListMap<String, QueryStatsData> statistics =
             new ConcurrentSkipListMap<String, QueryStatsData>();
     private final QueryEngineSettings settings;
     private boolean captureStackTraces;
     private int evictionCount;
+    private int indexOptimizerLimit = 30;
 
     public QueryStatsMBeanImpl(QueryEngineSettings settings) {
         super(QueryStatsMBean.class);
         this.settings = settings;
     }
-    
+
     @Override
     public TabularData getSlowQueries() {
         ArrayList<QueryStatsData> list = new ArrayList<QueryStatsData>();
@@ -76,7 +77,7 @@ public class QueryStatsMBeanImpl extends AnnotatedStandardMBean
         });
         return asTabularData(list);
     }
-    
+
     @Override
     public TabularData getPopularQueries() {
         ArrayList<QueryStatsData> list = new ArrayList<QueryStatsData>(statistics.values());
@@ -96,7 +97,7 @@ public class QueryStatsMBeanImpl extends AnnotatedStandardMBean
     public void resetStats() {
         statistics.clear();
     }
-    
+
     @Override
     public void setCaptureStackTraces(boolean captureStackTraces) {
         this.captureStackTraces = captureStackTraces;
@@ -106,7 +107,17 @@ public class QueryStatsMBeanImpl extends AnnotatedStandardMBean
     public boolean getCaptureStackTraces() {
         return captureStackTraces;
     }
-    
+
+    @Override
+    public int getIndexOptimizerLimit() {
+        return indexOptimizerLimit;
+    }
+
+    @Override
+    public void setIndexOptimizerLimit(int limit) {
+        this.indexOptimizerLimit = limit;
+    }
+
     @Override
     public String asJson() {
         ArrayList<QueryStatsData> list = new ArrayList<QueryStatsData>(statistics.values());
@@ -155,7 +166,7 @@ public class QueryStatsMBeanImpl extends AnnotatedStandardMBean
     private void evict() {
         evictionCount++;
         // retain 50% of the slowest entries
-        // of the rest, retain the newest entries 
+        // of the rest, retain the newest entries
         ArrayList<QueryStatsData> list = new ArrayList<QueryStatsData>(statistics.values());
         Collections.sort(list, new Comparator<QueryStatsData>() {
             @Override
@@ -177,11 +188,11 @@ public class QueryStatsMBeanImpl extends AnnotatedStandardMBean
             statistics.remove(list.get(i).getKey());
         }
     }
-    
+
     public int getEvictionCount() {
         return evictionCount;
     }
-    
+
     private TabularData asTabularData(ArrayList<QueryStatsData> list) {
         TabularDataSupport tds = null;
         try {
@@ -201,13 +212,13 @@ public class QueryStatsMBeanImpl extends AnnotatedStandardMBean
             return null;
         }
     }
-    
+
     private static class QueryStatsCompositeTypeFactory {
 
         private final static String[] index = { "position" };
 
-        private final static String[] names = { "position", 
-                "maxTimeMillis", "totalTimeMillis", "executeCount", 
+        private final static String[] names = { "position",
+                "maxTimeMillis", "totalTimeMillis", "executeCount",
                 "rowsRead", "rowsScanned", "maxRowsRead", "maxRowsScanned",
                 "language", "statement", "lastExecuted",
                 "lastThread"};
@@ -228,11 +239,11 @@ public class QueryStatsMBeanImpl extends AnnotatedStandardMBean
 
         public static Object[] getValues(QueryStatsData q, int position) {
             return new Object[] { (long) position,
-                    q.getMaxTimeNanos() / 1000000, q.getTotalTimeNanos() / 1000000, q.getExecuteCount(), 
+                    q.getMaxTimeNanos() / 1000000, q.getTotalTimeNanos() / 1000000, q.getExecuteCount(),
                     q.getTotalRowsRead(), q.getTotalRowsScanned(), q.getMaxRowsRead(), q.getMaxRowsScanned(),
                     q.getLanguage(), q.getQuery(), QueryStatsData.getTimeString(q.getLastExecutedMillis()),
                     q.isInternal() ? "(internal query)" : q.getLastThreadName()};
         }
     }
-    
+
 }

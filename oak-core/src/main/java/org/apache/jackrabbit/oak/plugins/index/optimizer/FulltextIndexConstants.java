@@ -98,7 +98,7 @@ public interface FulltextIndexConstants {
      * use this as the function name to ensure that this index gets used for invoking
      * the index
      */
-    String FUNC_NAME = "functionName";
+    String FUNC_NAME = "function";
 
     /**
      * Child node name under which property details are provided

@@ -111,12 +111,13 @@ class IndexConfigGenerator {
     }
 
     private void processFilter(Filter filter, List<OrderEntry> sortOrder) {
+        boolean xpath = isOriginallyXPath(filter.getQueryStatement());
         addPathRestrictions(filter);
         IndexRule rule = processNodeTypeConstraint(filter);
         processTags(filter);
         processFulltextConstraints(filter, rule);
         processPropertyRestrictions(filter, rule);
-        processSortConditions(sortOrder, rule);
+        processSortConditions(sortOrder, rule, xpath);
         processPureNodeTypeConstraints(filter, rule);
     }
 
@@ -140,7 +141,7 @@ class IndexConfigGenerator {
         if (filter.getFullTextConstraint() == null
             && filter.getPropertyRestrictions().isEmpty()
             && !"nt:base".equals(filter.getNodeType())) {
-            rule.property("SHOULD_ADD_PROPERTY_CONSTRAINT");
+            rule.property("jcr:primaryType");
         }
     }
 
@@ -197,7 +198,7 @@ class IndexConfigGenerator {
         return fulltextTermPath.endsWith("/*");
     }
 
-    private void processSortConditions(List<OrderEntry> sortOrder, IndexRule rule) {
+    private void processSortConditions(List<OrderEntry> sortOrder, IndexRule rule, boolean isXPath) {
         if (sortOrder == null) {
             return;
         }
@@ -208,6 +209,16 @@ class IndexConfigGenerator {
             }
 
             if (o.getPropertyType().isArray()) {
+                continue;
+            }
+
+            String propertyName = o.getPropertyName();
+            if (isFunction(propertyName)) {
+                String queryFunc = PolishToQueryConverter.apply(propertyName, isXPath);
+                propertyName = FunctionNameConverter.apply(propertyName, isXPath);
+                PropertyRule prop = rule.property(propertyName);
+                prop.function(queryFunc);
+                prop.ordered();
                 continue;
             }
 

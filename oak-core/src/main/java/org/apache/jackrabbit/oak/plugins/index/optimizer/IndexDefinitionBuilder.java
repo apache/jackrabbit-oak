@@ -113,8 +113,13 @@ public class IndexDefinitionBuilder {
 
         public PropertyRule property(String name){
             PropertyRule propRule = props.get(name);
-            if (propRule == null){
-                propRule = new PropertyRule(this, createChild(propertiesBuilder, createPropNodeName(name)), name);
+            if (propRule == null) {
+                if (name.equals("jcr:path")) {
+                    propRule = new PropertyRule(this, createChild(propertiesBuilder, createPropNodeName(name)), name);
+                    propRule.function("path()");
+                } else {
+                    propRule = new PropertyRule(this, createChild(propertiesBuilder, createPropNodeName(name)), name);
+                }
                 props.put(name, propRule);
             }
             return propRule;
@@ -122,10 +127,10 @@ public class IndexDefinitionBuilder {
 
         private String createPropNodeName(String name) {
             name = getSafePropName(name);
-            if (name.isEmpty()){
+            if (name.isEmpty()) {
                 name = "prop";
             }
-            if (propNodeNames.contains(name)){
+            if (propNodeNames.contains(name)) {
                 name = name + "_" + propNodeNames.size();
             }
             propNodeNames.add(name);
@@ -185,7 +190,7 @@ public class IndexDefinitionBuilder {
 
         public PropertyRule ordered(String type){
             //This would throw an IAE if type is invalid
-            int typeValue = PropertyType.valueFromName(type);
+            PropertyType.valueFromName(type);
             builder.setProperty(LuceneIndexConstants.PROP_ORDERED, true);
             builder.setProperty(LuceneIndexConstants.PROP_TYPE, type);
             return this;
@@ -208,6 +213,7 @@ public class IndexDefinitionBuilder {
 
         public PropertyRule function(String fnName) {
             builder.setProperty(LuceneIndexConstants.FUNC_NAME, fnName);
+            builder.removeProperty(LuceneIndexConstants.PROP_NAME);
             return this;
         }
 
