@@ -20,6 +20,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Calendar;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -28,6 +29,7 @@ import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,11 +39,17 @@ public class DiffIndexUpdater {
 
     public static boolean applyIndexDefinition(NodeStore store, NodeState rootState, NodeBuilder builder, String jsonString) {
         LOG.info("indexDef {}", jsonString);
-        builder.child("oak:index").child("diff.index").setProperty("index", jsonString, Type.STRING);
+        NodeBuilder optimizer = builder.child("oak:index").child("diff.index.optimizer");
+        optimizer.setProperty("jcr:primaryType", "oak:QueryIndexDefinition", Type.NAME);
+        optimizer.setProperty("type", "disabled", Type.STRING);
+
         JsonObject json = JsonObject.fromJson(jsonString, true);
-        PropertyState ps = rootState.getChildNode("oak:index").getChildNode("diff.index").getChildNode("diff.json").getChildNode("jcr:content").getProperty("jcr:data");
-        String old = ps.getValue(Type.STRING);
-        LOG.info("Old diff.index {}", old);
+        PropertyState ps = rootState.getChildNode("oak:index").getChildNode("diff.index.optimizer").getChildNode("diff.json").getChildNode("jcr:content").getProperty("jcr:data");
+        String old = "{}";
+        if (ps != null) {
+            old = ps.getValue(Type.STRING);
+            LOG.info("Old diff.index {}", old);
+        }
         JsonObject jsonContent = JsonObject.fromJson(old, true);
         JsonObject index = json.getChildren().get("index");
         if (!index.getProperties().containsKey("includedPaths")) {
@@ -57,7 +65,15 @@ public class DiffIndexUpdater {
         InputStream inputStream = new ByteArrayInputStream(newJsonContent.getBytes(StandardCharsets.UTF_8));
         try {
             Blob blob = store.createBlob(inputStream);
-            builder.child("oak:index").child("diff.index").child("diff.json").child("jcr:content").setProperty("jcr:data", blob);
+            NodeBuilder diffJson = optimizer.child("diff.json");
+            diffJson.setProperty("jcr:primaryType", "nt:file", Type.NAME);
+            NodeBuilder diffJsonContent = diffJson.child("jcr:content");
+            diffJsonContent.setProperty("jcr:primaryType", "nt:resource", Type.NAME);
+            diffJsonContent.setProperty("jcr:mimeType", "application/json");
+            diffJsonContent.setProperty("jcr:lastModifiedBy", "Optimizer Service");
+            diffJsonContent.setProperty("jcr:lastModified", ISO8601.format(Calendar.getInstance()), Type.DATE);
+            diffJsonContent.setProperty("jcr:encoding", "utf-8");
+            diffJsonContent.setProperty("jcr:data", blob);
         } catch (IOException e) {
             LOG.warn("Error writing blob", e);
         }

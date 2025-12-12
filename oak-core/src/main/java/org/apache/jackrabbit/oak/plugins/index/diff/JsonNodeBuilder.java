@@ -233,7 +233,7 @@ public class JsonNodeBuilder {
         } else if (value.startsWith("[")) {
             return JsonNodeBuilder.getStringSet(value).toArray(new String[0]);
         } else {
-            DiffIndexMerger.LOG.warn("Unsupported value type: {}", value);
+            LOG.warn("Unsupported value type: {}", value);
             return null;
         }
     }

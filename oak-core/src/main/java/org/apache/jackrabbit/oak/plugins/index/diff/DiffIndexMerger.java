@@ -48,6 +48,7 @@ public class DiffIndexMerger {
     final static Logger LOG = LoggerFactory.getLogger(DiffIndexMerger.class);
 
     public final static String DIFF_INDEX = "diff.index";
+    public final static String DIFF_INDEX_OPTIMIZER = "diff.index.optimizer";
 
     private final static String MERGE_INFO = "This index was auto-merged. See also https://thomasmueller.github.io/oakTools/simplified.html";
 
@@ -83,15 +84,16 @@ public class DiffIndexMerger {
         // because it's a not a regular index definition,
         // and so in the repositoryDefinitions
         if (repositoryNodeStore != null) {
-            Map<String, JsonObject> diffInRepo = readDiffIndex(repositoryNodeStore);
+            Map<String, JsonObject> diffInRepo = readDiffIndex(repositoryNodeStore, DIFF_INDEX_OPTIMIZER);
             combined.getChildren().putAll(diffInRepo);
         }
 
         // overwrite with the provided definitions (if any)
         combined.getChildren().putAll(newImageLuceneDefinitions.getChildren());
 
-        // check if there "diff.index"
-        boolean found = combined.getChildren().containsKey("/oak:index/" + DIFF_INDEX);
+        // check if there "diff.index" or "diff.index.optimizer"
+        boolean found = combined.getChildren().containsKey("/oak:index/" + DIFF_INDEX)
+                || combined.getChildren().containsKey("/oak:index/" + DIFF_INDEX_OPTIMIZER);
         if (!found) {
             // early exit, so that the risk of merging the PR
             // is very small for customers that do not use this
@@ -102,7 +104,8 @@ public class DiffIndexMerger {
     }
 
     /**
-     * If there is a diff index (hardcoded node "/oak:index/diff.index"), then iterate over all entries and create new
+     * If there is a diff index (hardcoded node "/oak:index/diff.index" or
+     * "/oak:index/diff.index.optimizer"), then iterate over all entries and create new
      * (merged) versions if needed.
      *
      * @param newImageLuceneDefinitions
@@ -120,6 +123,7 @@ public class DiffIndexMerger {
         // collect the diff index(es)
         HashMap<String, JsonObject> toProcess = new HashMap<>();
         extractDiffIndex(combined, "/oak:index/" + DIFF_INDEX, toProcess);
+        extractDiffIndex(combined, "/oak:index/" + DIFF_INDEX_OPTIMIZER, toProcess);
         // if the diff index exists, but doesn't contain some of the previous indexes
         // (indexes with mergeInfo), then we need to disable those (using /dummy includedPath)
         extractExistingMergedIndexes(combined, toProcess);
@@ -152,7 +156,8 @@ public class DiffIndexMerger {
      * indexing job, the nested JSON is much easier.
      *
      * @param indexDefs the set of index definitions (may be empty)
-     * @param name      the name of the diff.index (either diff.index)
+     * @param name      the name of the diff.index (either diff.index or
+     *                  diff.index.optimizer)
      * @param target    the target map of diff.index definitions
      */
     private static void extractDiffIndex(JsonObject indexDefs, String name, HashMap<String, JsonObject> target) {
@@ -217,9 +222,9 @@ public class DiffIndexMerger {
     }
 
     /**
-     * Merge diff from "diff.index" and another "diff.index".
-     * The customer can define a damAssetLucene diff (stored in "diff.index")
-     * and someone else can define one (stored in "diff.index....").
+     * Merge diff from "diff.index" and "diff.index.optimizer".
+     * The customer can define a diff (stored in "diff.index")
+     * and someone else (or the optimizer) can define one (stored in "diff.index.optimizer").
      *
      * @param a the first diff
      * @param b the second diff (overwrites entries in a)
@@ -723,10 +728,10 @@ public class DiffIndexMerger {
      * @param repositoryNodeStore the node store
      * @return a map, possibly with a single entry with key /oak:index/diff.index
      */
-    static Map<String, JsonObject> readDiffIndex(NodeStore repositoryNodeStore) {
+    static Map<String, JsonObject> readDiffIndex(NodeStore repositoryNodeStore, String name) {
         HashMap<String, JsonObject> map = new HashMap<>();
         NodeState root = repositoryNodeStore.getRoot();
-        String indexPath = "/oak:index/" + DIFF_INDEX;
+        String indexPath = "/oak:index/" + name;
         NodeState idxState = NodeStateUtils.getNode(root, indexPath);
         LOG.debug("Searching index {}: found={}", indexPath, idxState.exists());
         if (!idxState.exists()) {

@@ -298,7 +298,7 @@ public class IndexUpdate implements Editor, PathSource {
         for (String name : definitions.getChildNodeNames()) {
             NodeBuilder definition = definitions.getChildNode(name);
             if (store != null
-                    && name.equals(DiffIndexMerger.DIFF_INDEX)
+                    && name.startsWith(DiffIndexMerger.DIFF_INDEX)
                     && definition.hasChildNode("diff.json")) {
                 DiffIndex.applyChange(store, name, definition);
             }
