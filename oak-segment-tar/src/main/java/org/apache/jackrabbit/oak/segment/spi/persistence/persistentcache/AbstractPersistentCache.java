@@ -125,6 +125,7 @@ public abstract class AbstractPersistentCache implements PersistentCache, Closea
      * @return Statistics for this cache.
      */
     @NotNull
+    @Override
     public AbstractCacheStats getCacheStats() {
         return segmentCacheStats;
     }

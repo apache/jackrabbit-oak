@@ -278,6 +278,11 @@ public class SegmentCompactionIT {
         CacheStatsMBean segmentCacheStats = fileStore.getSegmentCacheStats();
         registrations.add(registerMBean(segmentCacheStats,
                 new ObjectName("IT:TYPE=" + segmentCacheStats.getName())));
+        CacheStatsMBean persistentCacheStats = fileStore.getPersistentCacheStats();
+        if (persistentCacheStats != null) {
+            registrations.add(registerMBean(persistentCacheStats,
+                    new ObjectName("IT:TYPE=" + persistentCacheStats.getName())));
+        }
         CacheStatsMBean stringCacheStats = fileStore.getStringCacheStats();
         registrations.add(registerMBean(stringCacheStats,
                 new ObjectName("IT:TYPE=" + stringCacheStats.getName())));

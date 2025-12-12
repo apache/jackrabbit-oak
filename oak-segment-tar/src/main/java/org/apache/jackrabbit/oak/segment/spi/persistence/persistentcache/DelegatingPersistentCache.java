@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache;
 
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -50,5 +51,10 @@ public abstract class DelegatingPersistentCache implements PersistentCache {
     @Override
     public void cleanUp() {
         delegate().cleanUp();
+    }
+
+    @Override
+    public AbstractCacheStats getCacheStats() {
+        return delegate().getCacheStats();
     }
 }
