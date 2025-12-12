@@ -56,6 +56,13 @@ public class DiffIndex {
 
     private static final Logger LOG = LoggerFactory.getLogger(DiffIndex.class);
 
+    /**
+     * Try to find an existing index that matches the node type, tag, and included paths of the provided index JSON.
+     *
+     * @param store node store
+     * @param jsonString index JSON
+     * @return name of matching index or <code>Optional.empty()</code> if not found
+     */
     public static Optional<String> findMatchingIndexName(NodeStore store, String jsonString) {
         Map<String, JsonObject> indexes = RootIndexesListService.getRootIndexDefinitions(store, "lucene").getChildren();
         JsonObject json = JsonObject.fromJson(jsonString, true);
@@ -87,6 +94,13 @@ public class DiffIndex {
         return candidateIndexes.stream().map(Map.Entry::getKey).findFirst();
     }
 
+    /**
+     * Find existing indexes that include the paths required for the provided index JSON.
+     *
+     * @param index index JSON
+     * @param candidateIndexes set of existing candidate indexes
+     * @return set of existing indexes that include the required paths
+     */
     private static Set<Map.Entry<String, JsonObject>> findIndexesWithMatchingIncludedPaths(JsonObject index,
         Set<Map.Entry<String, JsonObject>> candidateIndexes) {
         Set<String> includedPaths = getIncludedPathsForIndex(index);
@@ -103,6 +117,15 @@ public class DiffIndex {
         }
     }
 
+    /**
+     * Find existing indexes that include the tags required for the provided index JSON. If the provided index does not
+     * have any tags, then all candidates are returned. If no candidates have matching tags, then attempt to find
+     * candidate indexes with no tags.
+     *
+     * @param index index JSON
+     * @param candidateIndexes set of existing candidate indexes
+     * @return set of existing indexes that include the required tags
+     */
     private static Set<Map.Entry<String, JsonObject>> findIndexesWithMatchingTags(JsonObject index,
         Set<Map.Entry<String, JsonObject>> candidateIndexes) {
         Set<String> tags = getTagsForIndex(index);
