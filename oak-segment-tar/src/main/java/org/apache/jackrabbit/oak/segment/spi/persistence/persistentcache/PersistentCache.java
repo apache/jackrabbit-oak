@@ -17,6 +17,7 @@
  */
 package org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache;
 
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -64,4 +65,11 @@ public interface PersistentCache {
      * cache size, maximum number of entries, etc.)
      */
     void cleanUp();
+
+    /**
+     * Returns the cache statistics.
+     * @return the cache statistics, or {@code null} if statistics are not available
+     */
+    @Nullable
+    AbstractCacheStats getCacheStats();
 }

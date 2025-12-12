@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.segment.file.preloader;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
@@ -379,6 +380,11 @@ public class SegmentPreloaderTest {
         @Override
         public void cleanUp() {
             segments.clear();
+        }
+
+        @Override
+        public @Nullable AbstractCacheStats getCacheStats() {
+            return null;
         }
     }
 

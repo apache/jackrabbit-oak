@@ -192,6 +192,11 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         return segmentCache.getCacheStats();
     }
 
+    @Nullable
+    public CacheStatsMBean getPersistentCacheStats() {
+        return persistentCache == null ? null : persistentCache.getCacheStats();
+    }
+
     @NotNull
     public CacheStatsMBean getStringCacheStats() {
         return segmentReader.getStringCacheStats();
