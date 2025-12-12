@@ -42,11 +42,11 @@ public final class TagsPredicate implements Predicate<JsonObject> {
         final String[] indexTags = JsonNodeBuilder.oakStringArrayValue(indexJson, IndexConstants.INDEX_TAGS);
 
         if (indexTags == null) {
-            LOG.info("Candidate index has no tags, skipping: {}", indexJson);
+            LOG.debug("Candidate index has no tags, skipping: {}", indexJson);
 
             return false;
         } else {
-            LOG.info("Generated index tags: {}, candidate index tags: {}", tags, Arrays.toString(indexTags));
+            LOG.debug("Generated index tags: {}, candidate index tags: {}", tags, Arrays.toString(indexTags));
 
             return tags.stream().allMatch(path -> ArrayUtils.contains(indexTags, path));
         }

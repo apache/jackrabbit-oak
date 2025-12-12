@@ -46,12 +46,12 @@ public final class NodeTypesPredicate implements Predicate<JsonObject> {
                 .filter(name -> !name.equals(JcrConstants.JCR_PRIMARYTYPE))
                 .collect(Collectors.toSet());
 
-            LOG.info("Generated index node types: {}, candidate index node types: {}", nodeTypes, indexNodeTypes);
+            LOG.debug("Generated index node types: {}, candidate index node types: {}", nodeTypes, indexNodeTypes);
 
             // Existing index must include all the node types in the generated index
             return indexNodeTypes.containsAll(nodeTypes);
         } else {
-            LOG.info("Candidate index has no index rules, skipping: {}", indexJson);
+            LOG.debug("Candidate index has no index rules, skipping: {}", indexJson);
 
             return false;
         }

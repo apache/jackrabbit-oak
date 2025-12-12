@@ -40,9 +40,7 @@ public final class IncludedPathsPredicate implements Predicate<JsonObject> {
         final String[] indexIncludedPaths = JsonNodeBuilder.oakStringArrayValue(indexJson, "includedPaths");
 
         if (indexIncludedPaths == null) {
-            LOG.info("Candidate index has no included paths, skipping: {}", indexJson);
-
-            return false;
+            return true;
         } else {
             LOG.info("Generated index included paths: {}, candidate index included paths: {}", includedPaths,
                 Arrays.toString(indexIncludedPaths));
