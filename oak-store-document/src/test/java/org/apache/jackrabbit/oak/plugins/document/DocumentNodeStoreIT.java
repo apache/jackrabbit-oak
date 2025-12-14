@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.InputStream;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -26,8 +25,9 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.apache.jackrabbit.guava.common.util.concurrent.Monitor;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
@@ -454,20 +454,23 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
      */
     class BlockingBlob extends AbstractBlob {
         private final AtomicBoolean blocking = new AtomicBoolean(true);
-        private final Monitor readMonitor = new Monitor();
+        private final Lock lock = new ReentrantLock();
+        private final Condition readingCondition = lock.newCondition();
         private boolean reading = false;
 
         boolean waitForRead(int time, TimeUnit unit) throws InterruptedException {
-            readMonitor.enter();
+            long nanos = unit.toNanos(time);
+            lock.lock();
             try {
-                return readMonitor.waitFor(new Monitor.Guard(readMonitor) {
-                    @Override
-                    public boolean isSatisfied() {
-                        return reading;
+                while (!reading) {
+                    if (nanos <= 0L) {
+                        return false; // timed out
                     }
-                }, time, unit);
+                    nanos = readingCondition.awaitNanos(nanos);
+                }
+                return true; // reading == true
             } finally {
-                readMonitor.leave();
+                lock.unlock();
             }
         }
 
@@ -483,13 +486,15 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
                 @Override
                 public int read() {
                     while (blocking.get()) {
-                        if (!reading) {
-                            readMonitor.enter();
-                            try {
+                        lock.lock();
+                        try {
+                            if (!reading) {
                                 reading = true;
-                            } finally {
-                                readMonitor.leave();
+                                // wake up anyone waiting in waitForRead()
+                                readingCondition.signalAll();
                             }
+                        } finally {
+                            lock.unlock();
                         }
                     }
                     return -1;
