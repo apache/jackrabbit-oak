@@ -76,9 +76,9 @@ public class DiffIndexUpdater {
                 return false;
             }
         }
-        Optional<String> bestIndexName = DiffIndex.findMatchingIndexName(store, json.toString());
+//        Optional<String> bestIndexName = DiffIndex.findMatchingIndexName(store, json.toString());
         String newIndexName = null;
-        if (bestIndexName.isEmpty()) {
+//        if (bestIndexName.isEmpty()) {
             // get the last number
             String prefix = "auto.indexOptimizer";
             int lastNumber = 0;
@@ -93,16 +93,16 @@ public class DiffIndexUpdater {
                 }
             }
             newIndexName = "auto.indexOptimizer" + (lastNumber + 1);
-        } else {
-            newIndexName = bestIndexName.get();
-            if (newIndexName.startsWith("/oak:index/")) {
-                newIndexName = newIndexName.substring("/oak:index/".length());
-            }
-            int dash = newIndexName.indexOf('-');
-            if (dash >= 0) {
-                newIndexName = newIndexName.substring(0, dash);
-            }
-        }
+//        } else {
+//            newIndexName = bestIndexName.get();
+//            if (newIndexName.startsWith("/oak:index/")) {
+//                newIndexName = newIndexName.substring("/oak:index/".length());
+//            }
+//            int dash = newIndexName.indexOf('-');
+//            if (dash >= 0) {
+//                newIndexName = newIndexName.substring(0, dash);
+//            }
+//        }
         jsonContent.getChildren().put(newIndexName, index);
         String newJsonContent = jsonContent.toString();
         InputStream inputStream = new ByteArrayInputStream(newJsonContent.getBytes(StandardCharsets.UTF_8));
