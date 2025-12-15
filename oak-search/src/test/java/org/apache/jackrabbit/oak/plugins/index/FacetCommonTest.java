@@ -446,6 +446,6 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
     }
 
     protected void assertEventually(Runnable r) {
-        TestUtil.assertEventually(r, ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 2000) + 3000) * 5);
+        TestUtil.assertEventually(r, ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
     }
 }
