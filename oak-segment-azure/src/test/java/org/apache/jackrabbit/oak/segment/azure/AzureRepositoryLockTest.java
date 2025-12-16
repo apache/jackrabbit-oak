@@ -204,4 +204,85 @@ public class AzureRepositoryLockTest {
 
         Mockito.doCallRealMethod().when(blobLeaseMocked).renewLeaseWithResponse((RequestConditions) any(), any(), any());
     }
+
+    @Test
+    public void testClientSideTimeoutExceptionIsRecoverable() throws Exception {
+        BlockBlobClient blockBlobClient = readBlobContainerClient.getBlobClient("oak/repo.lock").getBlockBlobClient();
+        BlockBlobClient noRetryBlockBlobClient = noRetryBlobContainerClient.getBlobClient("oak/repo.lock").getBlockBlobClient();
+        BlobLeaseClient blobLeaseClient = new BlobLeaseClientBuilder().blobClient(noRetryBlockBlobClient).buildClient();
+
+        BlockBlobClient blobMocked = Mockito.spy(blockBlobClient);
+        BlobLeaseClient blobLeaseMocked = Mockito.spy(blobLeaseClient);
+
+        // Simulate the reactor client-side timeout exception (IllegalStateException wrapping TimeoutException)
+        // This is what happens when Mono.block() times out
+        IllegalStateException clientSideTimeout = new IllegalStateException(
+                "Timeout on blocking read for 5000000000 NANOSECONDS",
+                new TimeoutException("Timeout on blocking read for 5000000000 NANOSECONDS"));
+
+        // Track if shutdown hook was called
+        final boolean[] shutdownCalled = {false};
+        Runnable shutdownHook = () -> shutdownCalled[0] = true;
+
+        // Instrument the mock to throw the client-side timeout exception twice, then succeed
+        Mockito.doThrow(clientSideTimeout)
+                .doThrow(clientSideTimeout)
+                .doCallRealMethod()
+                .when(blobLeaseMocked).renewLeaseWithResponse((RequestConditions) any(), any(), any());
+
+        WriteAccessController writeAccessController = new WriteAccessController();
+
+        AzureRepositoryLock lock = new AzureRepositoryLock(blobMocked, blobLeaseMocked, shutdownHook, writeAccessController);
+        lock.lock();
+
+        // Wait for at least 3 calls (2 failures + 1 success) with a timeout
+        Mockito.verify(blobLeaseMocked, Mockito.timeout(10000).atLeast(3))
+                .renewLeaseWithResponse((RequestConditions) any(), any(), any());
+
+        // Verify that shutdown hook was NOT called - the timeout should be treated as recoverable
+        assertFalse("Shutdown hook should not be called for client-side timeout exceptions", shutdownCalled[0]);
+
+        // Clean up: stop the renewal thread and release the lease
+        lock.unlock();
+    }
+
+    @Test
+    public void testIOExceptionIsRecoverable() throws Exception {
+        BlockBlobClient blockBlobClient = readBlobContainerClient.getBlobClient("oak/repo.lock").getBlockBlobClient();
+        BlockBlobClient noRetryBlockBlobClient = noRetryBlobContainerClient.getBlobClient("oak/repo.lock").getBlockBlobClient();
+        BlobLeaseClient blobLeaseClient = new BlobLeaseClientBuilder().blobClient(noRetryBlockBlobClient).buildClient();
+
+        BlockBlobClient blobMocked = Mockito.spy(blockBlobClient);
+        BlobLeaseClient blobLeaseMocked = Mockito.spy(blobLeaseClient);
+
+        // Simulate network error wrapped in UncheckedIOException (as reactor does with IOException)
+        java.io.UncheckedIOException networkError = new java.io.UncheckedIOException(
+                "Connection reset",
+                new java.io.IOException("Connection reset by peer"));
+
+        // Track if shutdown hook was called
+        final boolean[] shutdownCalled = {false};
+        Runnable shutdownHook = () -> shutdownCalled[0] = true;
+
+        // Instrument the mock to throw the IO exception twice, then succeed
+        Mockito.doThrow(networkError)
+                .doThrow(networkError)
+                .doCallRealMethod()
+                .when(blobLeaseMocked).renewLeaseWithResponse((RequestConditions) any(), any(), any());
+
+        WriteAccessController writeAccessController = new WriteAccessController();
+
+        AzureRepositoryLock lock = new AzureRepositoryLock(blobMocked, blobLeaseMocked, shutdownHook, writeAccessController);
+        lock.lock();
+
+        // Wait for at least 3 calls (2 failures + 1 success) with a timeout
+        Mockito.verify(blobLeaseMocked, Mockito.timeout(10000).atLeast(3))
+                .renewLeaseWithResponse((RequestConditions) any(), any(), any());
+
+        // Verify that shutdown hook was NOT called - the IO exception should be treated as recoverable
+        assertFalse("Shutdown hook should not be called for IO exceptions", shutdownCalled[0]);
+
+        // Clean up: stop the renewal thread and release the lease
+        lock.unlock();
+    }
 }

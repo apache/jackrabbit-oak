@@ -160,6 +160,8 @@ public class AzureRepositoryLock implements RepositoryLock {
                         } else {
                             log.warn("Could not renew lease due to storage exception. Retry in progress ... ", e);
                         }
+                    } else if (isTransientClientSideException(e)) {
+                        log.warn("Could not renew the lease due to transient client-side error. Retry in progress ...", e);
                     } else {
                         log.error("Can't renew the lease", e);
                         shutdownHook.run();
@@ -209,6 +211,26 @@ public class AzureRepositoryLock implements RepositoryLock {
 
     private boolean isInError() {
         return inError;
+    }
+
+    /**
+     * Checks if the exception is a transient client-side exception that should be retried.
+     * This includes timeouts and IO/network errors that can occur when communicating with Azure.
+     * <p>
+     * Per Azure SDK documentation, the timeout parameter causes a RuntimeException to be raised.
+     * @param e the exception to check
+     * @return true if this is a transient exception that should be retried
+     */
+    private boolean isTransientClientSideException(Exception e) {
+        Throwable current = e;
+        while (current != null) {
+            if (current instanceof java.util.concurrent.TimeoutException ||
+                current instanceof java.io.IOException) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     private void waitABit(long millis) {
