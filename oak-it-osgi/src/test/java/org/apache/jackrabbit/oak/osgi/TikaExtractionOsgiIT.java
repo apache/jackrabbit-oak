@@ -116,7 +116,7 @@ public class TikaExtractionOsgiIT {
         return composite(
                 composite(
                         mavenBundle("org.apache.tika", "tika-core", versions.get(TIKA_VERSION))
-                        , mavenBundle("org.apache.tika", "tika-parsers", versions.get(TIKA_VERSION))
+                        , mavenBundle("org.apache.tika", "tika-parsers-standard-package", versions.get(TIKA_VERSION))
                         // for csv parsing
                         , mavenBundle("org.apache.commons", "commons-csv", versions.get(COMMONS_CSV_VERSION))
                         // poi dependency start
