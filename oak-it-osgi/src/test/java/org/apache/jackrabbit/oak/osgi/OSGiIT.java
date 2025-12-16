@@ -27,8 +27,8 @@ import static org.ops4j.pax.exam.CoreOptions.vmOption;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URISyntaxException;
 
 import javax.inject.Inject;
@@ -52,6 +52,7 @@ import org.osgi.framework.BundleContext;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.Version;
+import org.osgi.framework.wiring.BundleRevision;
 
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerClass.class)
@@ -148,9 +149,15 @@ public class OSGiIT {
     @Test
     public void bundleStates() {
         for (Bundle bundle : context.getBundles()) {
-            assertEquals(
-                String.format("Bundle %s not active. have a look at the logs", bundle.toString()), 
-                Bundle.ACTIVE, bundle.getState());
+            if ((bundle.adapt(BundleRevision.class).getTypes() & BundleRevision.TYPE_FRAGMENT) != 0) {
+                assertEquals(
+                        String.format("Bundle fragment %s not resolved. have a look at the logs", bundle.toString()), 
+                        Bundle.RESOLVED, bundle.getState());
+            } else {
+                assertEquals(
+                    String.format("Bundle %s not active. have a look at the logs", bundle.toString()), 
+                    Bundle.ACTIVE, bundle.getState());
+            }
         }
     }
 
