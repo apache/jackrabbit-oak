@@ -57,7 +57,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 
 public abstract class FacetCommonTest extends AbstractJcrTest {
-    private static final Logger LOG = LoggerFactory.getLogger(AbstractJcrTest.class);
+    private static final Logger LOG = LoggerFactory.getLogger(FacetCommonTest.class);
     private static final PerfLogger LOG_PERF = new PerfLogger(LOG);
     protected TestRepository repositoryOptionsUtil;
     protected Node indexNode;
@@ -72,7 +72,6 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
     private final Map<String, Integer> actualAclLabelCount = new HashMap<>();
     private final Map<String, Integer> actualAclPar1LabelCount = new HashMap<>();
     private static final Random INDEX_SUFFIX_RANDOMIZER = new Random(7);
-
 
     @Before
     public void createIndex() throws RepositoryException {
