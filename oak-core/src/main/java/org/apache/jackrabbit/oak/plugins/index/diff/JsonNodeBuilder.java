@@ -187,7 +187,7 @@ public class JsonNodeBuilder {
         }
     }
 
-    static String oakStringValue(JsonObject json, String propertyName) {
+    public static String oakStringValue(JsonObject json, String propertyName) {
         String value = json.getProperties().get(propertyName);
         if (value == null) {
             return null;
