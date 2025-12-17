@@ -17,9 +17,13 @@
 package org.apache.jackrabbit.oak.segment.azure;
 
 import com.azure.core.util.BinaryData;
+import com.azure.core.util.Context;
 import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.models.BlobRequestConditions;
 import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.blob.options.BlockBlobSimpleUploadOptions;
 import com.azure.storage.blob.specialized.BlockBlobClient;
+import com.azure.storage.common.implementation.Constants;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.segment.azure.util.Retrier;
@@ -77,8 +81,9 @@ public class AzureSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWrite
         ioMonitor.beforeSegmentWrite(new File(blob.getBlobName()), msb, lsb, size);
         Stopwatch stopwatch = Stopwatch.createStarted();
         try {
-            blob.upload(BinaryData.fromBytes(Arrays.copyOfRange(data, offset, offset + size)), true);
-            blob.setMetadata(AzureBlobMetadata.toSegmentMetadata(indexEntry));
+            BlockBlobSimpleUploadOptions options = new BlockBlobSimpleUploadOptions(BinaryData.fromBytes(Arrays.copyOfRange(data, offset, offset + size)))
+                    .setMetadata(AzureBlobMetadata.toSegmentMetadata(indexEntry));
+            blob.uploadWithResponse(options, null, Context.NONE);
         } catch (BlobStorageException e) {
             throw new IOException(e);
         }
