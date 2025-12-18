@@ -220,6 +220,8 @@ public class AzureRepositoryLock implements RepositoryLock {
      * This includes timeouts and IO/network errors that can occur when communicating with Azure.
      * <p>
      * Per Azure SDK documentation, the timeout parameter causes a RuntimeException to be raised.
+     * Reactor-core throws IllegalStateException with message "Timeout on blocking read" when
+     * the timeout expires (see BlockingSingleSubscriber.blockingGet in reactor-core).
      * @param e the exception to check
      * @return true if this is a transient exception that should be retried
      */
@@ -227,7 +229,8 @@ public class AzureRepositoryLock implements RepositoryLock {
         Throwable current = e;
         while (current != null) {
             if (current instanceof java.util.concurrent.TimeoutException ||
-                current instanceof java.io.IOException) {
+                current instanceof java.io.IOException ||
+                current instanceof IllegalStateException) {
                 return true;
             }
             current = current.getCause();
