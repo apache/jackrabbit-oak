@@ -79,6 +79,9 @@ public class AzureSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWrite
         ioMonitor.beforeSegmentWrite(new File(blob.getBlobName()), msb, lsb, size);
         Stopwatch stopwatch = Stopwatch.createStarted();
         try {
+            // Upload the binary data and set its metadata using a single HTTP call,
+            // overwriting an existing blob if necessary. Wrapping the byte array in a
+            // ByteArrayInputStream avoids creating a copy of the data range.
             BinaryData binaryData = BinaryData.fromStream(new ByteArrayInputStream(data, offset, size), (long) size);
             BlockBlobSimpleUploadOptions options = new BlockBlobSimpleUploadOptions(binaryData)
                     .setMetadata(AzureBlobMetadata.toSegmentMetadata(indexEntry));
