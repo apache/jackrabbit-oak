@@ -22,21 +22,39 @@ import java.util.ArrayList;
 
 import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.json.Base64BlobSerializer;
+import org.apache.jackrabbit.oak.json.JsonSerializer;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.inventory.IndexDefinitionPrinter;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.Nullable;
 
-class RootIndexesListService implements IndexPathService {
+public class RootIndexesListService implements IndexPathService {
 
     private final NodeStore nodeStore;
 
     private RootIndexesListService(NodeStore nodeStore) {
         this.nodeStore = nodeStore;
+    }
+
+    public static JsonObject getRootIndexDefinitions(NodeBuilder definitions) {
+        JsopBuilder json = new JsopBuilder();
+        String filter = "{\"properties\":[\"*\", \"-:childOrder\"],\"nodes\":[\"*\", \"-:*\"]}";
+        json.object();
+        for (String indexPath : definitions.getChildNodeNames()) {
+            NodeState node = definitions.child(indexPath).getNodeState();
+            json.key("/oak:index/" + indexPath);
+            JsonSerializer s = new JsonSerializer(json, filter, new Base64BlobSerializer());
+            s.serialize(node);
+        }
+        json.endObject();
+        return JsonObject.fromJson(json.toString(), true);
     }
 
     /**

@@ -117,13 +117,13 @@ public class DiffIndexMerger {
      *        (input)
      * @return whether a new version of an index was added
      */
-    private static boolean mergeDiff(JsonObject newImageLuceneDefinitions, JsonObject combined) {
+    static boolean mergeDiff(JsonObject newImageLuceneDefinitions, JsonObject combined) {
         // iterate again, this time process
 
         // collect the diff index(es)
         HashMap<String, JsonObject> toProcess = new HashMap<>();
-        extractDiffIndex(combined, "/oak:index/" + DIFF_INDEX, toProcess);
-        extractDiffIndex(combined, "/oak:index/" + DIFF_INDEX_OPTIMIZER, toProcess);
+        tryExtractDiffIndex(combined, "/oak:index/" + DIFF_INDEX, toProcess);
+        tryExtractDiffIndex(combined, "/oak:index/" + DIFF_INDEX_OPTIMIZER, toProcess);
         // if the diff index exists, but doesn't contain some of the previous indexes
         // (indexes with mergeInfo), then we need to disable those (using /dummy includedPath)
         extractExistingMergedIndexes(combined, toProcess);
@@ -159,11 +159,12 @@ public class DiffIndexMerger {
      * @param name      the name of the diff.index (either diff.index or
      *                  diff.index.optimizer)
      * @param target    the target map of diff.index definitions
+     * @return the error message trying to parse the JSON file, or null
      */
-    private static void extractDiffIndex(JsonObject indexDefs, String name, HashMap<String, JsonObject> target) {
+    static String tryExtractDiffIndex(JsonObject indexDefs, String name, HashMap<String, JsonObject> target) {
         JsonObject diffIndex = indexDefs.getChildren().get(name);
         if (diffIndex == null) {
-            return;
+            return null;
         }
         // extract either the file, or the nested json
         JsonObject file = diffIndex.getChildren().get("diff.json");
@@ -172,15 +173,17 @@ public class DiffIndexMerger {
             // file
             JsonObject jcrContent = file.getChildren().get("jcr:content");
             if (jcrContent == null) {
-                LOG.warn("jcr:content child node is missing in diff.json");
-                return;
+                String message = "jcr:content child node is missing in diff.json";
+                LOG.warn(message);
+                return message;
             }
             String jcrData = JsonNodeBuilder.oakStringValue(jcrContent, "jcr:data");
             try {
                 diff = JsonObject.fromJson(jcrData, true);
             } catch (Exception e) {
                 LOG.warn("Illegal Json, ignoring: {}", jcrData, e);
-                return;
+                String message = "Illegal Json, ignoring: " + e.getMessage();
+                return message;
             }
         } else {
             // nested json
@@ -193,6 +196,7 @@ public class DiffIndexMerger {
                 target.put(key, mergeDiffs(target.get(key), e.getValue()));
             }
         }
+        return null;
     }
 
     /**

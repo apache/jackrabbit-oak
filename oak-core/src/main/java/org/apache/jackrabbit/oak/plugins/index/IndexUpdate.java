@@ -295,13 +295,12 @@ public class IndexUpdate implements Editor, PathSource {
     }
 
     private void collectIndexEditors(NodeBuilder definitions, NodeState before) throws CommitFailedException {
+        if (definitions.hasChildNode(DiffIndexMerger.DIFF_INDEX)
+                && "disabled".equals(definitions.child(DiffIndexMerger.DIFF_INDEX).getString("type"))) {
+            DiffIndex.createNewIndexesIfNeeded(store, definitions);
+        }
         for (String name : definitions.getChildNodeNames()) {
             NodeBuilder definition = definitions.getChildNode(name);
-            if (store != null
-                    && name.startsWith(DiffIndexMerger.DIFF_INDEX)
-                    && definition.hasChildNode("diff.json")) {
-                DiffIndex.applyChange(store, name, definition);
-            }
             if (isIncluded(rootState.async, definition)) {
                 String type = definition.getString(TYPE_PROPERTY_NAME);
                 String primaryType = definition.getName(JcrConstants.JCR_PRIMARYTYPE);

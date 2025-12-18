@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.optimizer.DiffIndexUpdater;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -100,7 +101,7 @@ public class DiffIndexTest {
             mockedStatic.when(() -> RootIndexesListService.getRootIndexDefinitions(eq(store), anyString()))
                 .thenReturn(JsonObject.fromJson(indexesJsonString, true));
 
-            Optional<String> matchingIndexName = DiffIndex.findMatchingIndexName(store, indexJson);
+            Optional<String> matchingIndexName = DiffIndexUpdater.findMatchingIndexName(store, indexJson);
 
             assertTrue(matchingIndexName.isPresent());
         }
