@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.composite.CompositeMemoryStoreFixture;
 import org.apache.jackrabbit.oak.composite.CompositeSegmentStoreFixture;
 import org.apache.jackrabbit.oak.segment.aws.fixture.SegmentAwsFixture;
 import org.apache.jackrabbit.oak.segment.azure.fixture.SegmentAzureFixture;
-import org.apache.jackrabbit.oak.segment.azure.fixture.SegmentAzureFixtureV8;
 import org.apache.jackrabbit.oak.segment.fixture.SegmentTarFixture;
 
 public class NodeStoreFixtures {
@@ -43,8 +42,6 @@ public class NodeStoreFixtures {
     public static final NodeStoreFixture SEGMENT_TAR = new SegmentTarFixture();
 
     public static final NodeStoreFixture SEGMENT_AWS = new SegmentAwsFixture();
-
-    public static final NodeStoreFixture SEGMENT_AZURE_V8 = new SegmentAzureFixtureV8();
 
     public static final NodeStoreFixture SEGMENT_AZURE = new SegmentAzureFixture();
 
@@ -82,9 +79,6 @@ public class NodeStoreFixtures {
         }
         if (fixtures.contains(FixturesHelper.Fixture.SEGMENT_AZURE)) {
             configuredFixtures.add(SEGMENT_AZURE);
-        }
-        if (fixtures.contains(FixturesHelper.Fixture.SEGMENT_AZURE_V8)) {
-            configuredFixtures.add(SEGMENT_AZURE_V8);
         }
         if (fixtures.contains(FixturesHelper.Fixture.COMPOSITE_SEGMENT)) {
             configuredFixtures.add(COMPOSITE_SEGMENT);

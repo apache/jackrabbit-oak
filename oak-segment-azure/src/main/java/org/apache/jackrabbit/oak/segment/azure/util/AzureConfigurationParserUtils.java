@@ -123,6 +123,7 @@ public class AzureConfigurationParserUtils {
         config.put(KEY_CONTAINER_NAME, tempConfig.get(CONTAINER_NAME));
         config.put(KEY_DIR, tempConfig.get(DIRECTORY));
         config.put(KEY_SHARED_ACCESS_SIGNATURE, tempConfig.get(SHARED_ACCESS_SIGNATURE));
+        config.put(KEY_ACCOUNT_NAME, tempConfig.get(ACCOUNT_NAME));
         return config;
     }
 

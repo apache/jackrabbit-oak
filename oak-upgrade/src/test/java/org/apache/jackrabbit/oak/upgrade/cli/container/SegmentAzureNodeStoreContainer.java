@@ -18,21 +18,19 @@ package org.apache.jackrabbit.oak.upgrade.cli.container;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
-import java.security.InvalidKeyException;
 
-import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.blob.models.ListBlobsOptions;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.azure.v8.AzurePersistenceV8;
-import org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8;
+import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
+import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import org.apache.jackrabbit.oak.upgrade.AzuriteDockerRule;
 
 public class SegmentAzureNodeStoreContainer implements NodeStoreContainer {
     private static final String AZURE_ACCOUNT_NAME = "devstoreaccount1";
@@ -42,7 +40,7 @@ public class SegmentAzureNodeStoreContainer implements NodeStoreContainer {
 
     private final BlobStoreContainer blob;
 
-    private final CloudBlobContainer container;
+    private final BlobContainerClient blobContainerClient;
 
     private final int mappedPort;
 
@@ -67,19 +65,19 @@ public class SegmentAzureNodeStoreContainer implements NodeStoreContainer {
         this.blob = blob;
         this.dir = dir == null ? "repository" : dir;
         try {
-            this.container = azurite.getContainer("oak-test");
+            this.blobContainerClient = azurite.getReadBlobContainerClient("oak-test");
             this.mappedPort = azurite.getMappedPort();
-        } catch (InvalidKeyException | URISyntaxException | StorageException e) {
+        } catch (BlobStorageException e) {
             throw new IOException(e);
         }
     }
 
     @Override
     public NodeStore open() throws IOException {
-        AzurePersistenceV8 azPersistence = null;
+        AzurePersistence azPersistence = null;
         try {
-            azPersistence = new AzurePersistenceV8(container.getDirectoryReference(dir));
-        } catch (URISyntaxException e) {
+            azPersistence = new AzurePersistence(blobContainerClient, dir);
+        } catch (BlobStorageException e) {
             throw new IllegalStateException(e);
         }
 
@@ -113,8 +111,10 @@ public class SegmentAzureNodeStoreContainer implements NodeStoreContainer {
     @Override
     public void clean() throws IOException {
         try {
-            AzureUtilitiesV8.deleteAllEntries(container.getDirectoryReference(dir));
-        } catch (URISyntaxException e) {
+            ListBlobsOptions options = new ListBlobsOptions();
+            options.setPrefix(dir);
+            AzureUtilities.deleteAllEntries(blobContainerClient, options);
+        } catch (BlobStorageException e) {
             throw new IOException(e);
         }
     }
@@ -126,7 +126,7 @@ public class SegmentAzureNodeStoreContainer implements NodeStoreContainer {
         description.append("AccountName=").append(AZURE_ACCOUNT_NAME).append(';');
         description.append("AccountKey=").append(AZURE_ACCOUNT_KEY).append(';');
         description.append("BlobEndpoint=http://127.0.0.1:").append(mappedPort).append("/devstoreaccount1;");
-        description.append("ContainerName=").append(container.getName()).append(";");
+        description.append("ContainerName=").append(blobContainerClient.getBlobContainerName()).append(";");
         description.append("Directory=").append(dir);
 
         return description.toString();

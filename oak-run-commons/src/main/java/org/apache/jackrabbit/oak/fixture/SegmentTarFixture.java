@@ -28,10 +28,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import com.microsoft.azure.storage.CloudStorageAccount;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.microsoft.azure.storage.blob.CloudBlobDirectory;
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.models.BlobStorageException;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.Oak;
@@ -44,7 +42,8 @@ import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
 import org.apache.jackrabbit.oak.segment.aws.AwsContext;
 import org.apache.jackrabbit.oak.segment.aws.AwsPersistence;
 import org.apache.jackrabbit.oak.segment.aws.Configuration;
-import org.apache.jackrabbit.oak.segment.azure.v8.AzurePersistenceV8;
+import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
+import org.apache.jackrabbit.oak.segment.azure.AzurePersistenceManager;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
@@ -183,7 +182,7 @@ public class SegmentTarFixture extends OakFixture {
     private StandbyClientSync[] clientSyncs;
     private ScheduledExecutorService[] executors;
 
-    private CloudBlobContainer[] containers;
+    private BlobContainerClient[] containers;
 
     public SegmentTarFixture(SegmentTarFixtureBuilder builder) {
         this(builder, false, -1);
@@ -285,11 +284,9 @@ public class SegmentTarFixture extends OakFixture {
         }
 
         if (azureConnectionString != null) {
-            CloudStorageAccount cloud = CloudStorageAccount.parse(azureConnectionString);
-            CloudBlobContainer container = cloud.createCloudBlobClient().getContainerReference(azureContainerName);
-            container.createIfNotExists();
-            CloudBlobDirectory directory = container.getDirectoryReference(azureRootPath);
-            fileStoreBuilder.withCustomPersistence(new AzurePersistenceV8(directory));
+            String azureAccountName = getAzureAccountName(azureConnectionString);
+            AzurePersistence azurePersistence = AzurePersistenceManager.createAzurePersistence(azureConnectionString, null, azureAccountName, azureContainerName, azureRootPath, false, true);
+            fileStoreBuilder.withCustomPersistence(azurePersistence);
         }
 
         BlobStore blobStore = null;
@@ -336,12 +333,10 @@ public class SegmentTarFixture extends OakFixture {
             }
 
             if (azureConnectionString != null) {
-                CloudStorageAccount cloud = CloudStorageAccount.parse(azureConnectionString);
-                CloudBlobContainer container = cloud.createCloudBlobClient().getContainerReference(azureContainerName);
-                container.createIfNotExists();
-                containers[i] = container;
-                CloudBlobDirectory directory = container.getDirectoryReference(azureRootPath + "/primary-" + i);
-                builder.withCustomPersistence(new AzurePersistenceV8(directory));
+                String azureAccountName = getAzureAccountName(azureConnectionString);
+                AzurePersistence azurePersistence = AzurePersistenceManager.createAzurePersistence(azureConnectionString, null, azureAccountName, azureContainerName, azureRootPath + "/primary-" + i, false, true);
+                containers[i] = azurePersistence.getReadBlobContainerClient();
+                builder.withCustomPersistence(azurePersistence);
             }
 
             if (blobStore != null) {
@@ -481,7 +476,7 @@ public class SegmentTarFixture extends OakFixture {
         blobStoreFixtures = new BlobStoreFixture[blobStoresLength];
 
         if (azureConnectionString != null) {
-            containers = new CloudBlobContainer[n];
+            containers = new BlobContainerClient[n];
         }
     }
 
@@ -514,11 +509,11 @@ public class SegmentTarFixture extends OakFixture {
         }
 
         if (containers != null) {
-            for (CloudBlobContainer container : containers) {
+            for (BlobContainerClient container : containers) {
                 if (container != null) {
                     try {
                         container.deleteIfExists();
-                    } catch (StorageException e) {
+                    } catch (BlobStorageException e) {
                         log.error("Can't remove container", e);
                     }
                 }
@@ -526,6 +521,27 @@ public class SegmentTarFixture extends OakFixture {
         }
 
         FileUtils.deleteQuietly(parentPath);
+    }
+
+    /**
+     * Extracts the Azure Storage Account Name from a connection string.
+     * @param azureConnectionString The full Azure Storage connection string.
+     * @return The account name, or null if not found.
+     */
+    private String getAzureAccountName(String azureConnectionString) {
+        if (azureConnectionString == null || azureConnectionString.isEmpty()) {
+            return null;
+        }
+
+        String[] parts = azureConnectionString.split(";");
+        for (String part : parts) {
+            String[] keyValue = part.split("=", 2);
+            if (keyValue.length == 2 && keyValue[0].trim().equalsIgnoreCase("AccountName")) {
+                return keyValue[1].trim();
+            }
+        }
+
+        return null;
     }
 
     public BlobStoreFixture[] getBlobStoreFixtures() {
