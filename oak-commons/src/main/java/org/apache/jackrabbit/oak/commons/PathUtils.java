@@ -317,8 +317,11 @@ public final class PathUtils {
         } else if (isAbsolutePath(subPath)) {
             throw new IllegalArgumentException("Cannot append absolute path " + subPath);
         }
-        String separator = denotesRootPath(parentPath) ? "" : "/";
-        return parentPath + separator + subPath;
+        if (denotesRootPath(parentPath)) {
+            return parentPath + subPath;
+        } else {
+            return parentPath + "/" + subPath;
+        }
     }
 
     /**
