@@ -297,7 +297,9 @@ public class IndexUpdate implements Editor, PathSource {
     private void collectIndexEditors(NodeBuilder definitions, NodeState before) throws CommitFailedException {
         if (definitions.hasChildNode(DiffIndexMerger.DIFF_INDEX)
                 && "disabled".equals(definitions.child(DiffIndexMerger.DIFF_INDEX).getString("type"))) {
-            DiffIndex.createNewIndexesIfNeeded(store, definitions);
+            if (rootState.async == null || rootState.async.equals("async")) {
+                DiffIndex.createNewIndexesIfNeeded(store, definitions);
+            }
         }
         for (String name : definitions.getChildNodeNames()) {
             NodeBuilder definition = definitions.getChildNode(name);

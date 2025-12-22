@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.json.Base64BlobSerializer;
 import org.apache.jackrabbit.oak.json.JsonSerializer;
 import org.apache.jackrabbit.oak.plugins.index.IndexName;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -380,12 +381,12 @@ public class DiffIndexMerger {
                 // could be eg. due to numbers formatting issues (-0.0 vs 0.0, 0.001 vs 1e-3)
                 // but unexpected because we do not normally have such cases
                 LOG.warn("Indexes do not match, but checksums match. Possible normalization issue.");
-                LOG.warn("latest: {}\nmerged: {}", latestDef, mergedDef);
+                LOG.warn("Index: {}, latest: {}\nmerged: {}", indexName, latestDef, mergedDef);
                 // if checksums match, we consider it a match
                 return false;
             }
-            LOG.debug("Indexes do not match, with");
-            LOG.debug("latest: {}\nmerged: {}", latestDef, mergedDef);
+            LOG.info("Indexes do not match, with");
+            LOG.info("Index: {}, latest: {}\nmerged: {}", indexName, latestDef, mergedDef);
             // a new merged index definition
             if (latestProduct == null) {
                 // fully custom index: increment version
@@ -411,6 +412,7 @@ public class DiffIndexMerger {
         merged.getProperties().remove("reindex");
         if (!DELETE_COPIES_OOTB && indexDiff.toString().equals("{}")) {
             merged.getProperties().put("type", "\"disabled\"");
+            merged.getProperties().put("mergeComment", "\"This index is superseeded and can be removed\"");
         }
         newImageLuceneDefinitions.getChildren().put(key, merged);
         return true;

@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.diff;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 
@@ -64,7 +68,8 @@ public class DiffIndex {
             }
             // store now, so a change is only processed once
             jcrContent.setProperty(":lastProcessed", modified);
-            String diff = jcrContent.getProperty("jcr:data").getValue(Type.STRING);
+            PropertyState jcrData = jcrContent.getProperty("jcr:data");
+            String diff = readString(jcrData);
             if (diff == null) {
                 continue;
             }
@@ -76,15 +81,16 @@ public class DiffIndex {
                 }
                 newImageLuceneDefinitions.getChildren().put("/oak:index/" + diffIndex, diffObj);
             } catch (Exception e) {
-                LOG.warn("Error parsing diff.index: {}", e.getMessage(), e);
-                diffIndexDefinition.setProperty("error", e.getMessage());
+                String message = "Error parsing diff.index";
+                LOG.warn(message + ": {}", e.getMessage(), e);
+                diffIndexDefinition.setProperty("error", message + ": " + e.getMessage());
             }
         }
         if (newImageLuceneDefinitions == null) {
             // not a valid diff index, or already processed
             return;
         }
-        LOG.info("Processing a new diff.index");
+        LOG.info("Processing a new diff.index with node store {}", store);
         JsonObject repositoryDefinitions = RootIndexesListService.getRootIndexDefinitions(indexDefinitions);
         LOG.debug("Index list {}", repositoryDefinitions.toString());
         try {
@@ -96,13 +102,24 @@ public class DiffIndex {
                 JsonObject newDef = newImageLuceneDefinitions.getChildren().get(m);
                 String indexNodeName = PathUtils.getName(m);
                 JsonNodeBuilder.addOrReplace(indexDefinitions, store, indexNodeName, IndexConstants.INDEX_DEFINITIONS_NODE_TYPE, newDef.toString());
+                updateNodetypeIndexForPath(indexDefinitions, indexNodeName, true);
                 disableOrRemoveOldVersions(indexDefinitions, m, indexNodeName);
             }
+            removeDisabledMergedIndexes(indexDefinitions);
             sortIndexes(indexDefinitions);
         } catch (Exception e) {
             LOG.warn("Error merging diff.index: {}", e.getMessage(), e);
             NodeBuilder diffIndexDefinition = indexDefinitions.child(DiffIndexMerger.DIFF_INDEX);
             diffIndexDefinition.setProperty("error", e.getMessage());
+        }
+    }
+
+    public static String readString(PropertyState jcrData) {
+        InputStream in = jcrData.getValue(Type.BINARY).getNewStream();
+        try {
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            return null;
         }
     }
 
@@ -115,13 +132,30 @@ public class DiffIndex {
         builder.setProperty(TreeConstants.OAK_CHILD_ORDER, list, Type.NAMES);
     }
 
-    private static void disableOrRemoveOldVersions(NodeBuilder builder, String m, String except) {
+    private static void removeDisabledMergedIndexes(NodeBuilder definitions) {
+        ArrayList<String> toRemove = new ArrayList<>();
+        for (String child : definitions.getChildNodeNames()) {
+            if (!definitions.getChildNode(child).hasProperty("mergeChecksum")) {
+                continue;
+            }
+            if ("disabled".equals(definitions.getChildNode(child).getString("type"))) {
+                toRemove.add(child);
+            }
+        }
+        for (String r : toRemove) {
+            LOG.info("Removing disabled index " + r);
+            definitions.child(r).remove();
+            updateNodetypeIndexForPath(definitions, r, false);
+        }
+    }
+
+    private static void disableOrRemoveOldVersions(NodeBuilder definitions, String m, String except) {
         if (m.startsWith("/oak:index/")) {
             m = m.substring("/oak:index/".length());
         }
         IndexName name = IndexName.parse(m);
         ArrayList<String> toRemove = new ArrayList<>();
-        for (String child : builder.getChildNodeNames()) {
+        for (String child : definitions.getChildNodeNames()) {
             if (child.indexOf("-custom-") < 0) {
                 // not a customized or custom index
                 continue;
@@ -132,19 +166,48 @@ public class DiffIndex {
             IndexName n2 = IndexName.parse(child);
             if (name.getBaseName().equals(n2.getBaseName())) {
                 if (m.equals(child)) {
-                    if (!"disabled".equals(builder.getChildNode(m).getString("type"))) {
+                    if (!"disabled".equals(definitions.getChildNode(m).getString("type"))) {
                         continue;
                     }
                 }
                 toRemove.add(child);
             }
         }
-        if (toRemove.isEmpty()) {
-            return;
-        }
         for (String r : toRemove) {
             LOG.info("Removing old index " + r);
-            builder.child(r).remove();
+            definitions.child(r).remove();
+            updateNodetypeIndexForPath(definitions, r, false);
+        }
+    }
+
+    private static void updateNodetypeIndexForPath(NodeBuilder indexDefinitions,
+            String indexName, boolean add) {
+        LOG.info("nodetype index update add={} name={}", add, indexName);
+        if (!indexDefinitions.hasChildNode("nodetype")) {
+            return;
+        }
+        NodeBuilder nodetypeIndex = indexDefinitions.getChildNode("nodetype");
+        NodeBuilder indexContent = nodetypeIndex.child(":index");
+        String key = URLEncoder.encode("oak:QueryIndexDefinition", StandardCharsets.UTF_8);
+        String path = "/oak:index/" + indexName;
+        if (add) {
+            // insert entry
+            NodeBuilder builder = indexContent.child(key);
+            for (String name : PathUtils.elements(path)) {
+                builder = builder.child(name);
+            }
+            LOG.info("nodetype index match");
+            builder.setProperty("match", true);
+        } else {
+            // remove entry (for deleted indexes)
+            NodeBuilder builder = indexContent.getChildNode(key);
+            for (String name : PathUtils.elements(path)) {
+                builder = builder.getChildNode(name);
+            }
+            if (builder.exists()) {
+                LOG.info("nodetype index remove");
+                builder.removeProperty("match");
+            }
         }
     }
 

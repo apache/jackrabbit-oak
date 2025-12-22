@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -132,9 +133,14 @@ public class JsonNodeBuilder {
             if (value.startsWith(":blobId:")) {
                 String base64 = value.substring(":blobId:".length());
                 byte[] bytes = Base64.getDecoder().decode(base64.getBytes(StandardCharsets.UTF_8));
-                Blob blob;
-                blob = nodeStore.createBlob(new ByteArrayInputStream(bytes));
-                builder.setProperty(propertyName, blob);
+                if (nodeStore == null) {
+                    MemoryNodeStore mns = new MemoryNodeStore();
+                    Blob blob = mns.createBlob(new ByteArrayInputStream(bytes));
+                    builder.setProperty(propertyName, blob);
+                } else {
+                    Blob blob = nodeStore.createBlob(new ByteArrayInputStream(bytes));
+                    builder.setProperty(propertyName, blob);
+                }
             } else {
                 if (value.startsWith("str:") || value.startsWith("nam:") || value.startsWith("dat:")) {
                     value = value.substring("str:".length());
