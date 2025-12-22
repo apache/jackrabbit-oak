@@ -116,6 +116,7 @@
             </Export-Package>
             <Import-Package>
                 org.apache.lucene.sandbox.*;resolution:=optional,
+                org.apache.tika.parser.pdf;resolution:=optional, <!-- Allow configuring the PDFParser -->
                 !org.apache.lucene.*,
                 !org.apache.jackrabbit.oak.cache,
                 !com.sun.management.*,
