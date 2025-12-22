@@ -32,10 +32,10 @@ public class QueryResultDebugIterator<K> implements Iterator<K> {
 
     private static final Logger LOG = LoggerFactory.getLogger(QueryResultDebugIterator.class);
 
-    private Iterator<K> iter;
+    private final Iterator<K> iter;
+    private final String query;
+    private final String queryLanguage;
     private int count;
-    private String query;
-    private String queryLanguage;
 
     private static final int FIRST_LOG_THRESHOLD = 1_000;
     private static final int SECOND_LOG_THRESHOLD = 10_000;
