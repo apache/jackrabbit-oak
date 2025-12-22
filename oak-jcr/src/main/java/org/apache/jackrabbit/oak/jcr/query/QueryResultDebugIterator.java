@@ -35,7 +35,7 @@ public class QueryResultDebugIterator<K> implements Iterator<K> {
     private final Iterator<K> iter;
     private final String query;
     private final String queryLanguage;
-    private int count;
+    private int resultsRead;
 
     private static final int FIRST_LOG_THRESHOLD = 1_000;
     private static final int SECOND_LOG_THRESHOLD = 10_000;
@@ -54,28 +54,23 @@ public class QueryResultDebugIterator<K> implements Iterator<K> {
 
     @Override
     public K next() {
-        mark();
-        if (count >= FIRST_LOG_THRESHOLD) {
+        resultsRead++;
+        if (resultsRead >= FIRST_LOG_THRESHOLD) {
             potentiallyLog();
         }
         return iter.next();
     }
 
-    protected void mark() {
-        count++;
-    }
-
     private void potentiallyLog() {
-        if (count == FIRST_LOG_THRESHOLD) {
-            LOG.warn("Read {} results from result set of query='{}', query language='{}')", count, query, queryLanguage);
-            return;
+        
+        boolean shouldWarn = ((resultsRead == FIRST_LOG_THRESHOLD)
+                || (resultsRead == SECOND_LOG_THRESHOLD));
+        
+        if (shouldWarn) {
+            LOG.warn("Read {} results from result set of query='{}', query language='{}')", resultsRead, query, queryLanguage);
         }
-        if (count == SECOND_LOG_THRESHOLD) {
-            LOG.warn("Read {} results from result set of query='{}', query language='{}')", count, query, queryLanguage);
-            return;
-        }
-        if (count > SECOND_LOG_THRESHOLD && count % 1000 == 0) {
-            LOG.trace("Read {} results from result set of query='{}', query language='{}')", count, query, queryLanguage);
+        if (resultsRead > SECOND_LOG_THRESHOLD && resultsRead % 1000 == 0) {
+            LOG.trace("Read {} results from result set of query='{}', query language='{}')", resultsRead, query, queryLanguage);
         }
     }
 
