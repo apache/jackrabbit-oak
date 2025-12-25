@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.88.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.90.0
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.88.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.90.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
@@ -15,79 +15,70 @@ production use.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.88.0
+Changes in Oak 1.90.0
 ---------------------
 
-Technical task
+** Technical task
+    * [OAK-11916] - Create getExitingExecutorService API in ExecutorUtils
+    * [OAK-11917] - Create a new getExitingScheduledExecutorService API
+    * [OAK-11918] - Remove usage of Guava's ListeningExecutorService
+    * [OAK-11919] - Remove usage of Guava's ListenableFutureTask [Part 2] [Prod files]
+    * [OAK-11920] - Remove usage of Guava's MoreExecutors.newDirectExecutorService [Part 2]
+    * [OAK-11921] - Remove usage of Guava's AbstractListeningExecutorService
+    * [OAK-11922] - Remove usage of Guava's MoreExecutors.listeningDecorator
+    * [OAK-11923] - Remove usage of Guava's ForwardingListenableFuture
+    * [OAK-11924] - Remove usage of Guava's ForwardingListeningExecutorService
+    * [OAK-11925] - Remove usage of Guava's Futures.allAsList [Part 2]
+    * [OAK-12018] - Remove usage of DirectExecutor.INSTANCE with ExecutorUtils
+    * [OAK-12019] - Remove usage of Guava's MoreExecutors.getExitingExecutorService
+    * [OAK-12020] - Remove usage of Guava's MoreExecutors.getExitingScheduledExecutorService
+    * [OAK-12023] - Remove usage of Guava's FutureCallback
+    * [OAK-12024] - Remove usage of Guava's Futures.addCallback
+    * [OAK-12025] - Remove usage of Guava's SameThreadExecutorService
+    * [OAK-12029] - Remove usage of Guava's SettableFuture from ExpectationListener
+    * [OAK-12032] - Remove usage of Guava's UncheckedExecutionException
+    * [OAK-12033] - Remove usage of Guava's Monitor [unit cases only]
 
-    [OAK-11911] - expose DirectExecutor in Oak from ExecutorUtils
-    [OAK-11912] - Create a new DirectExecutorService
-    [OAK-11913] - Create a new ForwardingExecutorService
-    [OAK-11914] - Remove usage of Guava's HashBasedTable
-    [OAK-11926] - Remove usage of Guava's Functions
-    [OAK-11927] - Remove usage of Guava's Queues.newLinkedBlockingQueue
-    [OAK-11928] - Remove usage of Guava's Queues.newSynchronousQueue
-    [OAK-11972] - eliminate uses of org.apache.jackrabbit.core.data.RandomInputStream
-    [OAK-11974] - remove usage of jackrabbit-data - NamedThreadFactory
 
-Bug
+** Bug
+    * [OAK-10618] - ArrayIndexOutOfBoundsException in TikaExtractionOsgiIT
+    * [OAK-12030] - CWE-125: Out-of-bounds Read in LZ4
+    * [OAK-12034] - CachingSegmentArchiveReader#containsSegment should not check the persistence cache for the segment
 
-    [OAK-11848] - oak-standalone does not start anymore
-    [OAK-11895] - CheckpointCompactor writes to "after" instead of "onto" NodeState
-    [OAK-11899] - Empty tokenLength property values cause token not being generated
-    [OAK-11902] - TarWriterTest unstable
-    [OAK-11931] - Wrong default value for PREV_NO_PROP_CACHE
-    [OAK-11955] - oak-examples: The metrics page of the standalone app doesn't work
-    [OAK-11959] - oak-examples: The webapp doesn't work at all
-    [OAK-11965] - Persist new base states as complete during compaction
-    [OAK-11987] - org.apache.jackrabbit.oak.segment.azure.tool.SegmentStoreMigrator.migrateBinaryRef is missing a null check
 
-Epic
 
-    [OAK-11904] - Oak should compile & test on Java 25
 
-Story
+** Improvement
+    * [OAK-10662] - improve Reproducible Builds
+    * [OAK-11731] - expose NodeCounter (getEstimatedChildNodeCounts) in JackrabbitNode
+    * [OAK-12001] - run CI on branch 1.22 as well
+    * [OAK-12004] - Datastore: speedup datastore copy / download
+    * [OAK-12005] - segment preloading graph-cache uses too much heap
+    * [OAK-12007] - XPath with "or" conditions should not always be converted to "union"
+    * [OAK-12012] - Sporadic SessionSaveDelayerConfigTest failure
+    * [OAK-12015] - Improve diagnostics on property related constraint violations
+    * [OAK-12036] - Expose persistence disk cache statistics in FileStore
+    * [OAK-12038] - Fix flaky ElasticFacetTest
+    * [OAK-12040] - segment-azure: reduce HTTP requests for writes
+    * [OAK-12043] - Avoid object allocation in SegmentId.compareTo
+    * [OAK-12044] - Optimize PathUtils.concat
 
-    [OAK-11936] - Allow updating the inference config via JMX
-    [OAK-11949] - Union queries should still order by score
+** Test
+    * [OAK-12011] - backgroundPurge interferes with fullgc tests
 
-Improvement
 
-    [OAK-11898] - ElasticSecureFacets should be decoupled from the AsyncIterator
-    [OAK-11929] - NPE in Lucene's implementation of secure facets
-    [OAK-11930] - JCR observation events should not serialize the propertyState for binary properties
-    [OAK-11934] - segment preloading for PersistentCache
-    [OAK-11969] - NodeDelegate: remove double check for existence of child tree
-    [OAK-11977] - Tree store: BufferOverflowException
-    [OAK-11980] - improve parallelization of I/O during segment-azure initialization
-    [OAK-11982] - Remove initialization of constant value from NodeImpl c'tor
-    [OAK-11984] - Support UserId Change for External Users
-    [OAK-11997] - Log slow Mongo queries in DocumentNodeStore
-
-Task
-
-    [OAK-11892] - Expose hidden mount for elasticsearch indexes in IndexStats
-    [OAK-11935] - Upgrade oak-blob-cloud aws java sdk from 1.x to 2.x
-    [OAK-11937] - Upgrade mockito-core to 5.20.0
-    [OAK-11938] - Upgrade assertj-core to 3.27.5
-    [OAK-11939] - Upgrade groovy version to 3.0.25
-    [OAK-11940] - Upgrade org.jetbrains.annotations to 26.0.2-1
-    [OAK-11942] - jdk 25 is unhappy with annotations on shaded types not directly referenced in the POM
-    [OAK-11943] - Upgrade netty version to 4.1.127.Final
-    [OAK-11944] - Upgrade aws-java-sdk-s3 version to 1.12.791
-    [OAK-11957] - oak-benchmarks/oak-it-osgi: update commons-compress dependency to 1.28.0
-    [OAK-11962] - Update commons-lang3 dependency to 3.19.0
-    [OAK-11964] - refactor parallel compaction inheritance
-    [OAK-11968] - SystemPropertySupplier should not declare IllegalArgumentExceptions
-    [OAK-11970] - Update MongoDockerRule to use Mongo 8 docker image
-    [OAK-11971] - Update MongodProcess to use Mongo 8 process
-    [OAK-11981] - blob-plugins - remove use of TransientFileFactory
-    [OAK-11983] - benchmarks: remove jackrabbit-core dependency
-    [OAK-11985] - Add MongoServerUnavailableException to transient error list
-    [OAK-11994] - [oak-run] remove dependency to joda-time
-    [OAK-11996] - Expand oak/docs/participating wrt to test coverage and Sonar
-    [OAK-11998] - Bump elasticsearch version to 8.19.5 / lucene 9.12.2
-
+** Task
+    * [OAK-11617] - Provide oak-run commands to analyze and fix inconsistencies in the namespace registry
+    * [OAK-11830] - Update pax-exam test dependency to 4.14.0 
+    * [OAK-11910] - Create ExecutorUtils in oak-commons
+    * [OAK-11991] - Optimize the oak-segment recovery process
+    * [OAK-12003] - Refactor code in AzurePersistenceManager
+    * [OAK-12008] - Embed Aws Sdk 2.x dependencies in oak-blob-cloud
+    * [OAK-12009] - Support GCP with oak-blob-cloud with aws sdk 2.x
+    * [OAK-12021] - cleanup oak-blob-plugins pom (oak-commons dependency)
+    * [OAK-12027] - Create a method in oak-mongo.js to remove nodes under a path starting from leaf
+    * [OAK-12031] - Add jackrabbit-jcr-commons dependency to oak-upgrade
+    * [OAK-12041] - bump testcontainers to v1.21.4
 
 In addition to the above-mentioned changes, this release contains all
 changes up to the previous release.
