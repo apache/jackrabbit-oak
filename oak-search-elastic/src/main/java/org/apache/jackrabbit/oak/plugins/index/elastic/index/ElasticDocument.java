@@ -90,7 +90,12 @@ public class ElasticDocument {
     }
 
     void addFulltext(String value) {
-        fulltext.add(value);
+        if (value != null) {
+            String cleaned = value.strip();
+            if (!cleaned.isEmpty()) {
+                fulltext.add(cleaned);
+            }
+        }
     }
 
     void addFulltextRelative(String path, String value) {
