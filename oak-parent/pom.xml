@@ -72,6 +72,7 @@
     <testcontainers.version>1.19.7</testcontainers.version>
     <groovy.version>2.5.23</groovy.version>
     <netty.version>4.1.127.Final</netty.version>
+    <aws.sdk.version>2.34.1</aws.sdk.version>
     <!-- determines the bytecode version (i.e. the minimum JRE required to run the build artifact) -->
     <javaTargetVersion>8</javaTargetVersion>
     <maven.compiler.release>${javaTargetVersion}</maven.compiler.release>
@@ -692,7 +693,7 @@
       <dependency>
         <groupId>software.amazon.awssdk</groupId>
         <artifactId>bom</artifactId>
-        <version>2.34.1</version>
+        <version>${aws.sdk.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
