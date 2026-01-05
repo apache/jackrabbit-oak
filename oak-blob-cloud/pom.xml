@@ -50,7 +50,6 @@
 
                             <!-- Jackrabbit/Oak -->
                             org.apache.jackrabbit.core.data,
-                            org.apache.jackrabbit.guava.common.cache,
                             org.apache.jackrabbit.oak.commons.*,
                             org.apache.jackrabbit.oak.plugins.blob.*,
                             org.apache.jackrabbit.oak.spi.blob,
