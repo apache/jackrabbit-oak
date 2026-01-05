@@ -16,10 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.Ignore;
@@ -32,6 +34,7 @@ import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.StreamSupport;
 
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticTestUtils.randomString;
 import static org.hamcrest.CoreMatchers.endsWith;
@@ -39,6 +42,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.AdditionalMatchers.geq;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -329,4 +333,43 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
             assertThat(indexAlias, not(endsWith("_v" + ElasticIndexDefinition.MAPPING_VERSION)));
         }
     }
+
+    @Test
+    public void fulltextFieldValuesCleanup() throws Exception {
+        IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        builder.includedPaths("/content");
+        builder.indexRule("nt:base").property("a").nodeScopeIndex();
+        Tree index = setIndex(UUID.randomUUID().toString(), builder);
+        root.commit();
+
+        Tree content = root.getTree("/").addChild("content");
+        content.addChild("indexed1").setProperty("a", "foo bar baz");
+        content.addChild("indexed2").setProperty("a", "\nfoo foo baz\n");
+        content.addChild("indexed3").setProperty("a", "\n\n\n  foo foo baz  \n\n\n");
+        root.commit();
+
+        assertEventually(() -> {
+            ObjectNode indexed1 = getDocument(index, "/content/indexed1");
+            List<String> values1 = StreamSupport.stream(
+                    indexed1.get(ElasticIndexUtils.fieldName(FieldNames.FULLTEXT)).spliterator(), false)
+                    .map(JsonNode::asText)
+                    .collect(Collectors.toList());
+            assertThat(values1, hasItem("foo bar baz"));
+
+            ObjectNode indexed2 = getDocument(index, "/content/indexed2");
+            List<String> values2 = StreamSupport.stream(
+                    indexed2.get(ElasticIndexUtils.fieldName(FieldNames.FULLTEXT)).spliterator(), false)
+                    .map(JsonNode::asText)
+                    .collect(Collectors.toList());
+            assertThat(values2, hasItem("foo foo baz"));
+
+            ObjectNode indexed3 = getDocument(index, "/content/indexed3");
+            List<String> values3 = StreamSupport.stream(
+                    indexed3.get(ElasticIndexUtils.fieldName(FieldNames.FULLTEXT)).spliterator(), false)
+                    .map(JsonNode::asText)
+                    .collect(Collectors.toList());
+            assertThat(values3, hasItem("foo foo baz"));
+        });
+    }
+
 }
