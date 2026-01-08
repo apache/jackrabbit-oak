@@ -79,6 +79,13 @@ public class CachingSegmentArchiveReaderTest {
         SegmentArchiveReader tar2 = cachingArchiveManager.open(archive2Name);
         assertEquals(Buffer.wrap(data2), tar2.readSegment(msb2, lsb2));
 
+        // Both segments are cached
+        // Now check that each tar file only contains its own segment, that is, when searching for a segment that is
+        // not in the archive, it should not be retrieved from the cache
+        assertNull(tar1.readSegment(msb2, lsb2));
+        assertNull(tar2.readSegment(msb1, lsb1));
+
+        // Check that contains also respects archive boundaries
         assertTrue(tar1.containsSegment(msb1, lsb1));
         assertFalse(tar1.containsSegment(msb2, lsb2));
         assertFalse(tar2.containsSegment(msb1, lsb1));
