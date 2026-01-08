@@ -471,6 +471,45 @@ public class UnionQueryTest extends AbstractQueryTest {
         assertPathOrder(results, new String[]{"/left/doc1", "/left/doc2", "/right/doc1", "/right/doc2"});
     }
 
+    @Test
+    public void testUnionMergingWithNullScoreValue() throws Exception {
+        MockQueryBuilder leftQuery = new MockQueryBuilder(true)
+                .addResult("/left/doc1", 0.8)
+                .addResult("/left/docNull", (Double) null);
+        MockQueryBuilder rightQuery = new MockQueryBuilder(true)
+                .addResult("/right/doc1", 0.9)
+                .addResult("/right/doc2", 0.6);
+
+        UnionQueryImpl unionQuery = new UnionQueryImpl(true, leftQuery.build(), rightQuery.build(), qeSettings);
+        List<ScoredResult> results = executeUnionAndGetScoredResults(unionQuery);
+
+        assertPathOrder(results, new String[]{"/right/doc1", "/left/doc1", "/right/doc2", "/left/docNull"});
+    }
+
+    @Test
+    public void testNestedUnionWithMixedScores() throws Exception {
+        // Simulates scenario where score exists for some rows, and is null for others
+        MockQueryBuilder queryA = new MockQueryBuilder(true)
+                .addResult("/a/doc1", 0.9)
+                .addResult("/a/doc2", 0.5);
+        MockQueryBuilder queryB = new MockQueryBuilder(false)
+                .addResult("/b/doc1")
+                .addResult("/b/doc2");
+        MockQueryBuilder queryC = new MockQueryBuilder(true)
+                .addResult("/c/doc1", 0.8)
+                .addResult("/c/doc2", 0.3);
+
+        // Inner union: A (has score) UNION B (no score)
+        UnionQueryImpl innerUnion = new UnionQueryImpl(true, queryA.build(), queryB.build(), qeSettings);
+        // Outer union: innerUnion UNION C
+        UnionQueryImpl outerUnion = new UnionQueryImpl(true, innerUnion, queryC.build(), qeSettings);
+        List<ScoredResult> results = executeUnionAndGetScoredResults(outerUnion);
+
+        assertPathOrder(results, new String[]{
+                "/a/doc1", "/c/doc1", "/a/doc2", "/c/doc2", "/b/doc1", "/b/doc2"
+        });
+    }
+
     private QueryImpl createQuery (String statement, ConstraintImpl c, SourceImpl sImpl) throws Exception {
 
         NamePathMapper namePathMapper = new NamePathMapperImpl(new GlobalNameMapper(root));
@@ -515,9 +554,16 @@ public class UnionQueryTest extends AbstractQueryTest {
             if (!hasScore) {
                 throw new IllegalStateException("Cannot provide score");
             }
+            return addResult(path, Double.valueOf(score));
+        }
+
+        public MockQueryBuilder addResult(String path, Double score) {
+            if (!hasScore) {
+                throw new IllegalStateException("Cannot provide score");
+            }
             PropertyValue[] values = new PropertyValue[] {
                     PropertyValues.newString(path),
-                    PropertyValues.newDouble(score)
+                    score == null ? null : PropertyValues.newDouble(score)
             };
             results.add(new ResultRowImpl(mockQuery, null, values, null, null));
             return this;

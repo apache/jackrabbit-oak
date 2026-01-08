@@ -568,16 +568,16 @@ public class UnionQueryImpl implements Query {
 
     /**
      * @param row the result row
-     * @return the jcr:score as a double
-     * Precondition: {@link #isScorePresent(Query)} must be true. If the row lacks a jcr:score, 0.0 is returned and
-     * the issue is logged.
+     * @return the jcr:score as a double, or 0.0 if the row lacks a score value
      */
     private double getScoreFromRow(ResultRowImpl row) {
         try {
             PropertyValue scoreValue = row.getValue(QueryConstants.JCR_SCORE);
+            if (scoreValue == null) {
+                return 0.0;
+            }
             return scoreValue.getValue(Type.DOUBLE);
         } catch (IllegalArgumentException e) {
-            LOG.warn("Failed to get jcr:score for path={}", row.getPath(), e);
             return 0.0;
         }
     }
