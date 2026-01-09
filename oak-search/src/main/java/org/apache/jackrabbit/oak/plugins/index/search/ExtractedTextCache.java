@@ -32,12 +32,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
@@ -45,6 +42,7 @@ import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorHelper;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText.ExtractionResult;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
@@ -64,8 +62,8 @@ public class ExtractedTextCache {
             Boolean.getBoolean("oak.extracted.cacheOnlySuccess");
     private static final int EXTRACTION_TIMEOUT_SECONDS =
             Integer.getInteger("oak.extraction.timeoutSeconds", 60);
-    private static final int EXTRACTION_MAX_THREADS =
-            Integer.getInteger("oak.extraction.maxThreads", 10);
+    private static final int EXTRACTION_POOL_SIZE =
+            Integer.getInteger("oak.extraction.poolSize", 1);
     private static final boolean EXTRACT_IN_CALLER_THREAD =
             Boolean.getBoolean("oak.extraction.inCallerThread");
     private static final boolean EXTRACT_FORGET_TIMEOUT =
@@ -346,26 +344,9 @@ public class ExtractedTextCache {
             return;
         }
         log.debug("ExtractedTextCache createExecutor {}", this);
-        ThreadPoolExecutor executor = new ThreadPoolExecutor(1, EXTRACTION_MAX_THREADS,
-                60L, TimeUnit.SECONDS,
-            new LinkedBlockingQueue<>(), new ThreadFactory() {
-            private final AtomicInteger counter = new AtomicInteger();
-            private final Thread.UncaughtExceptionHandler handler = (t, e) -> log.warn("Error occurred in asynchronous processing ", e);
-            @Override
-            public Thread newThread(@NotNull Runnable r) {
-                Thread thread = new Thread(r, createName());
-                thread.setDaemon(true);
-                thread.setPriority(Thread.MIN_PRIORITY);
-                thread.setUncaughtExceptionHandler(handler);
-                return thread;
-            }
-
-            private String createName() {
-                int index = counter.getAndIncrement();
-                return "oak binary text extractor" + (index == 0 ? "" : " " + index);
-            }
-        });
-        executor.setKeepAliveTime(1, TimeUnit.MINUTES);
+        ThreadPoolExecutor executor = ExecutorHelper.linkedQueueExecutor(
+                EXTRACTION_POOL_SIZE, "oak-binary-text-extractor-%d", 
+                (t, e) -> log.warn("Error occurred in asynchronous processing ", e));
         executor.allowCoreThreadTimeOut(true);
         executorService = executor;
     }
