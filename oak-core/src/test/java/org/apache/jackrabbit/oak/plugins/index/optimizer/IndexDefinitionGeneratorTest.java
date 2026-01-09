@@ -23,8 +23,9 @@ import org.junit.Test;
 public class IndexDefinitionGeneratorTest {
 
     @Test
-    public void test() {
-        String def = IndexDefinitionGenerator.generateIndexDefinition("xpath", "/jcr:root/content//element(*, acme:test)[@test=1]  option (index tag testTag)");
+    public void simple() {
+        String def = IndexDefinitionGenerator.generateIndexDefinition("xpath",
+                "/jcr:root/content//element(*, acme:test)[@test=1] option (index tag testTag)");
         assertEquals("{\n"
                 + "  \"index\": {\n"
                 + "    \"compatVersion\": 2,\n"
@@ -52,4 +53,52 @@ public class IndexDefinitionGeneratorTest {
                 + "  }\n"
                 + "}", def);
     }
+
+    @Test
+    public void dotInPropertyNameRule() {
+        assertEquals("testHello", IndexDefinitionBuilder.getPropertyRuleNameFromJcrProperty("test.hello"));
+    }
+
+    @Test
+    public void dotInPropertyName() {
+        String def = IndexDefinitionGenerator.generateIndexDefinition("xpath",
+                "/jcr:root/var//element(*,slingevent:Job)[@event.job.topic = 'x' and not(@slingevent:finishedState)] order by @slingevent:created ascending");
+        assertEquals("{\n"
+                + "  \"index\": {\n"
+                + "    \"compatVersion\": 2,\n"
+                + "    \"async\": \"async\",\n"
+                + "    \"queryPaths\": [\"/var\"],\n"
+                + "    \"includedPaths\": [\"/var\"],\n"
+                + "    \"jcr:primaryType\": \"nam:oak:QueryIndexDefinition\",\n"
+                + "    \"evaluatePathRestrictions\": true,\n"
+                + "    \"type\": \"lucene\",\n"
+                + "    \"indexRules\": {\n"
+                + "      \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                + "      \"slingevent:Job\": {\n"
+                + "        \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                + "        \"properties\": {\n"
+                + "          \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                + "          \"finishedState\": {\n"
+                + "            \"name\": \"slingevent:finishedState\",\n"
+                + "            \"propertyIndex\": true,\n"
+                + "            \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                + "            \"nullCheckEnabled\": true\n"
+                + "          },\n"
+                + "          \"eventJobTopic\": {\n"
+                + "            \"name\": \"event.job.topic\",\n"
+                + "            \"propertyIndex\": true,\n"
+                + "            \"jcr:primaryType\": \"nam:nt:unstructured\"\n"
+                + "          },\n"
+                + "          \"created\": {\n"
+                + "            \"name\": \"slingevent:created\",\n"
+                + "            \"ordered\": true,\n"
+                + "            \"jcr:primaryType\": \"nam:nt:unstructured\"\n"
+                + "          }\n"
+                + "        }\n"
+                + "      }\n"
+                + "    }\n"
+                + "  }\n"
+                + "}", def);
+    }
+
 }

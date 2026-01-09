@@ -126,7 +126,7 @@ public class IndexDefinitionBuilder {
         }
 
         private String createPropNodeName(String name) {
-            name = getSafePropName(name);
+            name = getPropertyRuleNameFromJcrProperty(name);
             if (name.isEmpty()) {
                 name = "prop";
             }
@@ -287,16 +287,37 @@ public class IndexDefinitionBuilder {
         return result;
     }
 
-    // TODO: document examples of this
-    // when the property is like jcr:primaryType or something like this.
-    static String getSafePropName(String relativePropName) {
+    /**
+     * Convert a JCR property name to a name in the index rules.
+     * This removes the namespace, if any, and converts dots to camel case.
+     * Only ascii-characters are retained.
+     *
+     * @param relativePropName the JCR property name
+     * @return the the index rule name
+     */
+    public static String getPropertyRuleNameFromJcrProperty(String relativePropName) {
         String propName = PathUtils.getName(relativePropName);
         int indexOfColon = propName.indexOf(':');
         if (indexOfColon > 0){
             propName = propName.substring(indexOfColon + 1);
         }
+        // convert dot syntax to camel case, e.g. test.hello => testHello
+        StringBuilder buff = new StringBuilder();
+        boolean nextToUpper = false;
+        for(char c : propName.toCharArray()) {
+            if (c == '.') {
+                nextToUpper = true;
+                continue;
+            }
+            if (nextToUpper) {
+                c = Character.toUpperCase(c);
+                nextToUpper = false;
+            }
+            buff.append(c);
+        }
+        propName = buff.toString();
 
-        //Just keep ascii chars
+        // Keep just ASCII chars
         propName = propName.replaceAll("\\W", "");
         return propName;
     }

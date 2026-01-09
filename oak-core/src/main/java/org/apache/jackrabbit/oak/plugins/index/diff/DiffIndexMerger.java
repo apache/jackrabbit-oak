@@ -34,7 +34,6 @@ import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.json.Base64BlobSerializer;
 import org.apache.jackrabbit.oak.json.JsonSerializer;
 import org.apache.jackrabbit.oak.plugins.index.IndexName;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -81,7 +80,7 @@ public class DiffIndexMerger {
         // index definitions in the repository
         combined.getChildren().putAll(repositoryDefinitions.getChildren());
 
-        // read the diff.index explicitly,
+        // read the diff.index.optimizer explicitly,
         // because it's a not a regular index definition,
         // and so in the repositoryDefinitions
         if (repositoryNodeStore != null) {
@@ -421,6 +420,7 @@ public class DiffIndexMerger {
     /**
      * Check whether the includedPaths covers unsupported paths,
      * if there are any unsupported path (eg. "/apps" or "/libs").
+     * In this case, simplified index management is not supported.
      *
      * @param includedPaths the includedPaths list
      * @return true if any unsupported path is included
@@ -600,7 +600,7 @@ public class DiffIndexMerger {
      * @param diff the diff (from the diff.index definition)
      * @return the index definition of the merged index
      */
-    private static JsonObject processMerge(JsonObject productIndex, JsonObject diff) {
+    public static JsonObject processMerge(JsonObject productIndex, JsonObject diff) {
         JsonObject result;
         if (productIndex == null) {
             // fully custom index
@@ -656,18 +656,45 @@ public class DiffIndexMerger {
                 }
             }
             if (target.getProperties().containsKey(p)) {
-                // we do not currently allow to overwrite existing properties
-                LOG.warn("Ignoring existing property {} at {}", p, path);
+                // we do not currently allow to overwrite most existing properties
+                if (p.equals("boost")) {
+                    // allow overwriting the boost value
+                    LOG.info("Overwrite property {} value at {}", p, path);
+                    target.getProperties().put(p, diff.getProperties().get(p));
+                } else {
+                    LOG.warn("Ignoring existing property {} at {}", p, path);
+                }
             } else {
                 target.getProperties().put(p, diff.getProperties().get(p));
             }
         }
         for (String c : diff.getChildren().keySet()) {
+            String targetChildName = c;
             if (!target.getChildren().containsKey(c)) {
-                // only create the child (properties are added below)
-                target.getChildren().put(c, new JsonObject());
+                if (path.endsWith("/properties")) {
+                    // search for a property with the same "name" value
+                    String propertyName = diff.getChildren().get(c).getProperties().get("name");
+                    if (propertyName != null) {
+                        String c2 = getChildWithKeyValuePair(target, "name", propertyName);
+                        if (c2 != null) {
+                            targetChildName = c2;
+                        }
+                    }
+                    // search for a property with the same "function" value
+                    String function = diff.getChildren().get(c).getProperties().get("function");
+                    if (function != null) {
+                        String c2 = getChildWithKeyValuePair(target, "function", function);
+                        if (c2 != null) {
+                            targetChildName = c2;
+                        }
+                    }
+                }
+                if (targetChildName.equals(c)) {
+                    // only create the child (properties are added below)
+                    target.getChildren().put(c, new JsonObject());
+                }
             }
-            mergeInto(path + "/" + c, diff.getChildren().get(c), target.getChildren().get(c));
+            mergeInto(path + "/" + c, diff.getChildren().get(c), target.getChildren().get(targetChildName));
         }
         if (target.getProperties().isEmpty() && target.getChildren().isEmpty()) {
             if (DELETE_CREATES_DUMMY) {
@@ -691,6 +718,15 @@ public class DiffIndexMerger {
                 target.getProperties().put("type", "\"disabled\"");
             }
         }
+    }
+
+    static String getChildWithKeyValuePair(JsonObject obj, String key, String value) {
+        for(Entry<String, JsonObject> c : obj.getChildren().entrySet()) {
+            if (value.equals(c.getValue().getProperties().get(key))) {
+                return c.getKey();
+            }
+        }
+        return null;
     }
 
     /**
@@ -727,12 +763,12 @@ public class DiffIndexMerger {
     }
 
     /**
-     * Read the "diff.index" from the repository, if it exists.
+     * Read a diff.index from the repository, if it exists.
      * This is needed because the build-transform job doesn't have this
      * data: it is only available in the writeable repository.
      *
      * @param repositoryNodeStore the node store
-     * @return a map, possibly with a single entry with key /oak:index/diff.index
+     * @return a map, possibly with a single entry with this key
      */
     static Map<String, JsonObject> readDiffIndex(NodeStore repositoryNodeStore, String name) {
         HashMap<String, JsonObject> map = new HashMap<>();

@@ -120,7 +120,7 @@ public class DiffIndexTest {
         // Create a memory node store
         NodeStore store = new MemoryNodeStore(INITIAL_CONTENT);
 
-        storeDiff(store, ""
+        storeDiff(store, "2026-01-01T00:00:00.000Z", ""
                 + "{ \"acme.testIndex\": {\n"
                 + "        \"async\": [ \"async\", \"nrt\" ],\n"
                 + "        \"compatVersion\": 2,\n"
@@ -183,7 +183,7 @@ public class DiffIndexTest {
                 + "  }\n"
                 + "}", repositoryDefinitions.toString());
 
-        storeDiff(store, ""
+        storeDiff(store, "2026-01-01T00:00:00.001Z", ""
                 + "{ \"acme.testIndex\": {\n"
                 + "        \"async\": [ \"async\", \"nrt\" ],\n"
                 + "        \"compatVersion\": 2,\n"
@@ -252,7 +252,7 @@ public class DiffIndexTest {
                 + "  }\n"
                 + "}", repositoryDefinitions.toString());
 
-        storeDiff(store, ""
+        storeDiff(store, "2026-01-01T00:00:00.002Z", ""
                 + "{}");
 
         repositoryDefinitions = RootIndexesListService.getRootIndexDefinitions(store, "lucene");
@@ -267,7 +267,7 @@ public class DiffIndexTest {
         }
     }
 
-    private void storeDiff(NodeStore store, String json) throws CommitFailedException {
+    private void storeDiff(NodeStore store, String timestamp, String json) throws CommitFailedException {
         // Get the root builder
         NodeBuilder builder = store.getRoot().builder();
 
@@ -290,6 +290,7 @@ public class DiffIndexTest {
 
         // Create jcr:content child node (required for nt:file) with empty text
         NodeBuilder content = diffJson.child(JcrConstants.JCR_CONTENT);
+        content.setProperty(JcrConstants.JCR_LASTMODIFIED, timestamp);
         content.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_RESOURCE, Type.NAME);
 
         content.setProperty("jcr:data", json);
