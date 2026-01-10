@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -29,6 +30,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -73,6 +75,7 @@ public abstract class ExcerptTest extends AbstractQueryTest {
         def.setProperty(REINDEX_PROPERTY_NAME, true);
         def.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
         def.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
+        def.setProperty(PathFilter.PROP_INCLUDED_PATHS, List.of("/testRoot"), Type.STRINGS);
 
         Tree properties = def.addChild(FulltextIndexConstants.INDEX_RULES)
                 .addChild("nt:base")
@@ -315,6 +318,29 @@ public abstract class ExcerptTest extends AbstractQueryTest {
                 String expected = binaryText.replaceAll(" fox ", " <strong>fox</strong> ");
                 assertTrue("rep:excerpt didn't evaluate correctly - got '" + excerpt + "'",
                         excerpt.contains(expected));
+            } catch (ParseException e) {
+                fail(e.getMessage());
+            }
+        });
+    }
+
+    @Test
+    public void excerptOnLargeField() throws Exception {
+        Tree contentRoot = root.getTree("/").addChild("testRoot");
+        StringBuilder largeContent = new StringBuilder("fox ");
+        for (int i = 0; i < 1_000_000; i++) {
+            largeContent.append(RandomStringUtils.insecure().nextAlphabetic(5)).append(" ");
+        }
+        largeContent.append(" foxing");
+        contentRoot.addChild("relative").setProperty("baz", largeContent.toString());
+        root.commit();
+
+        String query = "SELECT [rep:excerpt(.)] FROM [nt:base] WHERE CONTAINS(*, 'fox')";
+        assertEventually(() -> {
+            try {
+                Result result = executeQuery(query, SQL2, NO_BINDINGS);
+                Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
+                assertTrue(resultIter.hasNext());
             } catch (ParseException e) {
                 fail(e.getMessage());
             }

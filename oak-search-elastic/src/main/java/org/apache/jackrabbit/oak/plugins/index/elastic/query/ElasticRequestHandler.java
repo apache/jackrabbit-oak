@@ -82,7 +82,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.jcr.PropertyType;
 import java.io.IOException;
-import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -131,6 +130,9 @@ public class ElasticRequestHandler {
 
     private static final String HIGHLIGHT_PREFIX = "<strong>";
     private static final String HIGHLIGHT_SUFFIX = "</strong>";
+    // by default, elastic highlights up to 1000000 characters. If the content is larger than that, an error is thrown.
+    // we set a slightly lower limit to be on the safe side.
+    private static final int HIGHLIGHT_MAX_ANALYZED_OFFSET = 999_999;
 
     // Match Lucene 4.x fuzzy queries (e.g., roam~0.8), but not 5.x and beyond (e.g., roam~2)
     private static final Pattern LUCENE_4_FUZZY_PATTERN = Pattern.compile("\\b(\\w+)~([0-9]*\\.?[0-9]+)\\b");
@@ -941,13 +943,18 @@ public class ElasticRequestHandler {
      * @return a Highlight object representing the excerpts to request or null if none should be requested
      */
     public Highlight highlight() {
+        // if the query does not have a full text constraint, the excerpt makes no sense (it will always be empty)
+        if (indexPlan.getFilter().getFullTextConstraint() == null) {
+            return null;
+        }
+
         Map<String, HighlightField> excerpts = indexPlan.getFilter().getPropertyRestrictions().stream()
                 .filter(pr -> pr.propertyName.startsWith(QueryConstants.REP_EXCERPT))
                 .map(this::excerptField)
                 .distinct()
                 .collect(Collectors.toMap(
                         Function.identity(),
-                        field -> HighlightField.of(hf -> hf.withJson(new StringReader("{}"))))
+                        field -> HighlightField.of(hf -> hf.maxAnalyzedOffset(HIGHLIGHT_MAX_ANALYZED_OFFSET)))
                 );
 
         if (excerpts.isEmpty()) {
