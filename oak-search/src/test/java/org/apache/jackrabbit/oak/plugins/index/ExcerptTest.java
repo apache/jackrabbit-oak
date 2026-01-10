@@ -36,8 +36,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -107,7 +105,7 @@ public abstract class ExcerptTest extends AbstractQueryTest {
         contentRoot.setProperty("baz", "fox ifoxing");
         root.commit();
 
-        List<String> columns = new ArrayList<>(Arrays.asList("rep:excerpt", "rep:excerpt(.)", "rep:excerpt(foo)", "rep:excerpt(bar)"));
+        List<String> columns = List.of("rep:excerpt", "rep:excerpt(.)", "rep:excerpt(foo)", "rep:excerpt(bar)");
         String selectColumns = columns.stream().map(col -> "[" + col + "]").collect(Collectors.joining(","));
         String query = "SELECT " + selectColumns + " FROM [nt:base] WHERE CONTAINS(*, 'fox')";
         assertEventually(() -> {
