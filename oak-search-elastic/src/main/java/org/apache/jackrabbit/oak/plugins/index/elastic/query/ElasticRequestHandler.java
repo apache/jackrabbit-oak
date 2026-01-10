@@ -130,7 +130,7 @@ public class ElasticRequestHandler {
 
     private static final String HIGHLIGHT_PREFIX = "<strong>";
     private static final String HIGHLIGHT_SUFFIX = "</strong>";
-    // by default, elastic highlights analyzes up to 1M characters. If the content is larger than that, an error is thrown.
+    // by default, highlight analyzes up to 1M characters. If the content is larger than that, an error is thrown.
     // To avoid that we need to set a limit lower than that.
     private static final int HIGHLIGHT_MAX_ANALYZED_OFFSET = 999_999;
 
