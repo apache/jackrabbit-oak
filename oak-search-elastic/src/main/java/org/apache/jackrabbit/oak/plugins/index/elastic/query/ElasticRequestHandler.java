@@ -130,8 +130,8 @@ public class ElasticRequestHandler {
 
     private static final String HIGHLIGHT_PREFIX = "<strong>";
     private static final String HIGHLIGHT_SUFFIX = "</strong>";
-    // by default, elastic highlights analyzes up to 1000000 characters. If the content is larger than that, an error is thrown.
-    // we set a slightly lower limit to be on the safe side.
+    // by default, elastic highlights analyzes up to 1M characters. If the content is larger than that, an error is thrown.
+    // To avoid that we need to set a limit lower than that.
     private static final int HIGHLIGHT_MAX_ANALYZED_OFFSET = 999_999;
 
     // Match Lucene 4.x fuzzy queries (e.g., roam~0.8), but not 5.x and beyond (e.g., roam~2)
