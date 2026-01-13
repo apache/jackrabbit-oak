@@ -50,7 +50,7 @@ public class DiffIndexMerger {
     public final static String DIFF_INDEX = "diff.index";
     public final static String DIFF_INDEX_OPTIMIZER = "diff.index.optimizer";
 
-    private final static String MERGE_INFO = "This index was auto-merged. See also https://thomasmueller.github.io/oakTools/simplified.html";
+    private final static String MERGE_INFO = "This index was auto-merged. See also https://oak-indexing.github.io/oakTools/simplified.html";
 
     // the list of unsupported included paths, e.g. "/apps,/libs"
     // by default all paths are supported
@@ -675,6 +675,7 @@ public class DiffIndexMerger {
                     // search for a property with the same "name" value
                     String propertyName = diff.getChildren().get(c).getProperties().get("name");
                     if (propertyName != null) {
+                        propertyName = JsonNodeBuilder.oakStringValue(propertyName);
                         String c2 = getChildWithKeyValuePair(target, "name", propertyName);
                         if (c2 != null) {
                             targetChildName = c2;
@@ -683,6 +684,7 @@ public class DiffIndexMerger {
                     // search for a property with the same "function" value
                     String function = diff.getChildren().get(c).getProperties().get("function");
                     if (function != null) {
+                        function = JsonNodeBuilder.oakStringValue(function);
                         String c2 = getChildWithKeyValuePair(target, "function", function);
                         if (c2 != null) {
                             targetChildName = c2;
@@ -694,7 +696,7 @@ public class DiffIndexMerger {
                     target.getChildren().put(c, new JsonObject());
                 }
             }
-            mergeInto(path + "/" + c, diff.getChildren().get(c), target.getChildren().get(targetChildName));
+            mergeInto(path + "/" + targetChildName, diff.getChildren().get(c), target.getChildren().get(targetChildName));
         }
         if (target.getProperties().isEmpty() && target.getChildren().isEmpty()) {
             if (DELETE_CREATES_DUMMY) {
@@ -720,9 +722,14 @@ public class DiffIndexMerger {
         }
     }
 
-    static String getChildWithKeyValuePair(JsonObject obj, String key, String value) {
+    public static String getChildWithKeyValuePair(JsonObject obj, String key, String value) {
         for(Entry<String, JsonObject> c : obj.getChildren().entrySet()) {
-            if (value.equals(c.getValue().getProperties().get(key))) {
+            String v2 = c.getValue().getProperties().get(key);
+            if (v2 == null) {
+                continue;
+            }
+            v2 = JsonNodeBuilder.oakStringValue(v2);
+            if (value.equals(v2)) {
                 return c.getKey();
             }
         }

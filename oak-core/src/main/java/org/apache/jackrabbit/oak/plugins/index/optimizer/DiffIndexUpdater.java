@@ -55,7 +55,7 @@ public class DiffIndexUpdater {
 
     public static boolean applyIndexDefinition(NodeStore store, NodeState rootState, NodeBuilder builder, String jsonString, String statement) {
         String simplifiedStatement = QueryRecorder.simplifySafely(statement);
-        LOG.info("indexDef {}", jsonString);
+        LOG.debug("indexDef {}", jsonString);
         if (!jsonString.trim().startsWith("{")) {
             return false;
         }
@@ -68,7 +68,7 @@ public class DiffIndexUpdater {
         String old = "{}";
         if (jcrData != null) {
             old = DiffIndex.readString(jcrData);
-            LOG.info("Old diff.index {}", old);
+            LOG.debug("Old diff.index {}", old);
         }
         JsonObject jsonContent = JsonObject.fromJson(old, true);
         JsonObject index = json.getChildren().get("index");

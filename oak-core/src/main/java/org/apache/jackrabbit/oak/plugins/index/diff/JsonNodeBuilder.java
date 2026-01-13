@@ -73,7 +73,7 @@ public class JsonNodeBuilder {
      * @throws IOException if storing a blob failed
      */
     public static void addOrReplace(NodeBuilder builder, NodeStore nodeStore, String targetPath, String nodeType, String jsonString) throws CommitFailedException, IOException {
-        LOG.debug("Storing {}: {}", targetPath, jsonString);
+        LOG.info("Storing {}: {}", targetPath, jsonString);
         if (nodeType.indexOf("/") >= 0) {
             throw new IllegalStateException("Illegal node type: " + nodeType);
         }
@@ -237,7 +237,7 @@ public class JsonNodeBuilder {
         } else if (value.startsWith("\"")) {
             return new String[] { oakStringValue(value) };
         } else if (value.startsWith("[")) {
-            return JsonNodeBuilder.getStringSet(value).toArray(new String[0]);
+            return getStringSet(value).toArray(new String[0]);
         } else {
             LOG.warn("Unsupported value type: {}", value);
             return null;

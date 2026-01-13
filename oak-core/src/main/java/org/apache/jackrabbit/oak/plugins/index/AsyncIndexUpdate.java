@@ -674,6 +674,9 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             return;
         }
         TabularData slow = stats.getSlowQueries();
+        if (stats.getIndexOptimizerLimit() == 0) {
+            return;
+        }
 
         @SuppressWarnings("unchecked")
         Collection<CompositeData> coll = new ArrayList<>((Collection<CompositeData>) slow.values());
@@ -691,7 +694,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             if (statement.startsWith("explain") || statement.indexOf("/* oak-internal */") >= 0) {
                 continue;
             }
-            log.info("language {} statement {}", language, statement);
+            log.info("Language {} statement {}", language, statement);
             String indexDef = IndexDefinitionGenerator.generateIndexDefinition(language, statement);
             changed |= DiffIndexUpdater.applyIndexDefinition(store, rootState, builder, indexDef, statement);
         }
