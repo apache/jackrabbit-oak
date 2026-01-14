@@ -82,7 +82,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.jcr.PropertyType;
 import java.io.IOException;
-import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -131,6 +130,11 @@ public class ElasticRequestHandler {
 
     private static final String HIGHLIGHT_PREFIX = "<strong>";
     private static final String HIGHLIGHT_SUFFIX = "</strong>";
+    // by default, highlight analyzes up to 1M characters. If the content is larger than that, an error is thrown.
+    // To avoid that we need to set a limit lower than that.
+    // TODO: when upgrading to 9.x this value can be set to -1 to implicitly set the limit to index.higihlight.max_analyzed_offset
+    // https://github.com/elastic/elasticsearch/pull/118895
+    private static final int HIGHLIGHT_MAX_ANALYZED_OFFSET = 999_999;
 
     // Match Lucene 4.x fuzzy queries (e.g., roam~0.8), but not 5.x and beyond (e.g., roam~2)
     private static final Pattern LUCENE_4_FUZZY_PATTERN = Pattern.compile("\\b(\\w+)~([0-9]*\\.?[0-9]+)\\b");
@@ -941,13 +945,18 @@ public class ElasticRequestHandler {
      * @return a Highlight object representing the excerpts to request or null if none should be requested
      */
     public Highlight highlight() {
+        // if the query does not have a full text constraint, the excerpt makes no sense (it will always be empty)
+        if (indexPlan.getFilter().getFullTextConstraint() == null) {
+            return null;
+        }
+
         Map<String, HighlightField> excerpts = indexPlan.getFilter().getPropertyRestrictions().stream()
                 .filter(pr -> pr.propertyName.startsWith(QueryConstants.REP_EXCERPT))
                 .map(this::excerptField)
                 .distinct()
                 .collect(Collectors.toMap(
                         Function.identity(),
-                        field -> HighlightField.of(hf -> hf.withJson(new StringReader("{}"))))
+                        field -> HighlightField.of(hf -> hf))
                 );
 
         if (excerpts.isEmpty()) {
@@ -958,6 +967,7 @@ public class ElasticRequestHandler {
                 .preTags(HIGHLIGHT_PREFIX)
                 .postTags(HIGHLIGHT_SUFFIX)
                 .fields(excerpts)
+                .maxAnalyzedOffset(HIGHLIGHT_MAX_ANALYZED_OFFSET)
                 .numberOfFragments(1)
                 .requireFieldMatch(false));
     }
