@@ -132,6 +132,8 @@ public class ElasticRequestHandler {
     private static final String HIGHLIGHT_SUFFIX = "</strong>";
     // by default, highlight analyzes up to 1M characters. If the content is larger than that, an error is thrown.
     // To avoid that we need to set a limit lower than that.
+    // TODO: when upgrading to 9.x this value can be set to -1 to implicitly set the limit to index.higihlight.max_analyzed_offset
+    // https://github.com/elastic/elasticsearch/pull/118895
     private static final int HIGHLIGHT_MAX_ANALYZED_OFFSET = 999_999;
 
     // Match Lucene 4.x fuzzy queries (e.g., roam~0.8), but not 5.x and beyond (e.g., roam~2)
@@ -954,7 +956,7 @@ public class ElasticRequestHandler {
                 .distinct()
                 .collect(Collectors.toMap(
                         Function.identity(),
-                        field -> HighlightField.of(hf -> hf.maxAnalyzedOffset(HIGHLIGHT_MAX_ANALYZED_OFFSET)))
+                        field -> HighlightField.of(hf -> hf))
                 );
 
         if (excerpts.isEmpty()) {
@@ -965,6 +967,7 @@ public class ElasticRequestHandler {
                 .preTags(HIGHLIGHT_PREFIX)
                 .postTags(HIGHLIGHT_SUFFIX)
                 .fields(excerpts)
+                .maxAnalyzedOffset(HIGHLIGHT_MAX_ANALYZED_OFFSET)
                 .numberOfFragments(1)
                 .requireFieldMatch(false));
     }
