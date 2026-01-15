@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
@@ -26,9 +29,12 @@ import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -38,6 +44,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
@@ -47,26 +54,42 @@ import static org.junit.Assume.assumeTrue;
  */
 public class NamespaceRegistryCommandTest {
 
-    private final NamespaceRegistryCommand cmd = new NamespaceRegistryCommand();
-    private DocumentNodeStore store;
+    private static final NamespaceRegistryCommand CMD = new NamespaceRegistryCommand();
+    private static DocumentNodeStore STORE;
+    private Oak oak;
 
-    @Before
-    public void before() throws CommitFailedException {
+    @BeforeClass
+    public static void setupStore() {
         assumeTrue(MongoUtils.isAvailable());
         try {
-            NodeStoreFixture fixture = NodeStoreFixtureProvider.create(cmd.getOptions(MongoUtils.URL, "--fix", "--read-write"));
-            store = (DocumentNodeStore) fixture.getStore();
+            NodeStoreFixture fixture = NodeStoreFixtureProvider.create(CMD.getOptions(MongoUtils.URL, "--fix", "--read-write"));
+            STORE = (DocumentNodeStore) fixture.getStore();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        NodeBuilder rootBuilder = store.getRoot().builder();
-        new InitialContent().initialize(rootBuilder);
-        NodeBuilder system = rootBuilder.getChildNode(JcrConstants.JCR_SYSTEM);
-        NodeBuilder namespaces = system.getChildNode(NamespaceConstants.REP_NAMESPACES);
-        namespaces.remove();
-        Namespaces.setupNamespaces(rootBuilder.getChildNode(JcrConstants.JCR_SYSTEM));
-        store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        store.runBackgroundOperations();
+    }
+
+    @Before
+    public void before() throws Exception {
+        //Make sure all revisions are stable
+        Thread.sleep(1000);
+        STORE.runBackgroundOperations();
+        oak = new Oak(STORE)
+                .with(new OpenSecurityProvider())
+                .with((RepositoryInitializer) rootBuilder -> {
+                    new InitialContent().initialize(rootBuilder);
+                    NodeBuilder system = rootBuilder.getChildNode(JCR_SYSTEM);
+                    NodeBuilder namespaces = system.getChildNode(NamespaceConstants.REP_NAMESPACES);
+                    namespaces.remove();
+                    Namespaces.setupNamespaces(rootBuilder.getChildNode(JCR_SYSTEM));
+                    try {
+                        STORE.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                    } catch (CommitFailedException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+        oak.createContentRepository();
+        STORE.runBackgroundOperations();
     }
 
     @Test
@@ -81,12 +104,14 @@ public class NamespaceRegistryCommandTest {
 
     @Test
     public void breakAndFixNoReverseMapping() throws Exception {
-        NodeBuilder rootBuilder = store.getRoot().builder();
-        NodeBuilder namespaces = rootBuilder.getChildNode(JcrConstants.JCR_SYSTEM).getChildNode(NamespaceConstants.REP_NAMESPACES);
-        //inconsistent mapping: no reverse mapping
-        namespaces.setProperty("foo", "urn:foo");
-        store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        store.runBackgroundOperations();
+        try (ContentSession contentSession = oak.createContentSession()) {
+            Root root = contentSession.getLatestRoot();
+            Tree namespaces = root.getTree(NamespaceConstants.NAMESPACES_PATH);
+            //inconsistent mapping: no reverse mapping
+            namespaces.setProperty("foo", "urn:foo");
+            root.commit();
+        }
+        STORE.runBackgroundOperations();
         //complete information: automatic fix
         testCmd(new String[] { MongoUtils.URL, "--analyse" }, new String[] { "This namespace registry model is inconsistent. The inconsistency can be fixed.", "The repaired registry would contain the following mappings:", "foo -> urn:foo" });
         testCmd(new String[] { MongoUtils.URL, "--fix", "--read-write" }, new String[] { "This namespace registry model is consistent, containing the following mappings from prefixes to namespace uris:", "foo -> urn:foo" });
@@ -94,14 +119,16 @@ public class NamespaceRegistryCommandTest {
 
     @Test
     public void breakAndFixPrefixAmbiguity() throws Exception {
-        NodeBuilder rootBuilder = store.getRoot().builder();
-        NodeBuilder namespaces = rootBuilder.getChildNode(JcrConstants.JCR_SYSTEM).getChildNode(NamespaceConstants.REP_NAMESPACES);
-        NodeBuilder nsdata = namespaces.getChildNode(NamespaceConstants.REP_NSDATA);
-        //inconsistent mapping: one URI, two prefixes
-        namespaces.setProperty("foo", "urn:foo");
-        nsdata.setProperty(Namespaces.encodeUri("urn:foo"), "bar");
-        store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        store.runBackgroundOperations();
+        try (ContentSession contentSession = oak.createContentSession()) {
+            Root root = contentSession.getLatestRoot();
+            Tree namespaces = root.getTree(NamespaceConstants.NAMESPACES_PATH);
+            Tree nsdata = namespaces.getChild(NamespaceConstants.REP_NSDATA);
+            //inconsistent mapping: one URI, two prefixes
+            namespaces.setProperty("foo", "urn:foo");
+            nsdata.setProperty(Namespaces.encodeUri("urn:foo"), "bar");
+            root.commit();
+        }
+        STORE.runBackgroundOperations();
         //ambiguous information: no automatic fix
         testCmd(new String[] { MongoUtils.URL, "--analyse" }, new String[] { "This namespace registry model is inconsistent. The inconsistency can NOT be fixed." });
         //consistent with supplied specific mapping
@@ -111,14 +138,16 @@ public class NamespaceRegistryCommandTest {
 
     @Test
     public void breakAndFixUriAmbiguity() throws Exception {
-        NodeBuilder rootBuilder = store.getRoot().builder();
-        NodeBuilder namespaces = rootBuilder.getChildNode(JcrConstants.JCR_SYSTEM).getChildNode(NamespaceConstants.REP_NAMESPACES);
-        NodeBuilder nsdata = namespaces.getChildNode(NamespaceConstants.REP_NSDATA);
-        //inconsistent mapping: one prefix, two URIs
-        namespaces.setProperty("foo", "urn:foo");
-        nsdata.setProperty(Namespaces.encodeUri("urn:bar"), "foo");
-        store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        store.runBackgroundOperations();
+        try (ContentSession contentSession = oak.createContentSession()) {
+            Root root = contentSession.getLatestRoot();
+            Tree namespaces = root.getTree(NamespaceConstants.NAMESPACES_PATH);
+            Tree nsdata = namespaces.getChild(NamespaceConstants.REP_NSDATA);
+            //inconsistent mapping: one prefix, two URIs
+            namespaces.setProperty("foo", "urn:foo");
+            nsdata.setProperty(Namespaces.encodeUri("urn:bar"), "foo");
+            root.commit();
+        }
+        STORE.runBackgroundOperations();
         //ambiguous information: no automatic fix
         testCmd(new String[] { MongoUtils.URL, "--analyse" }, new String[] { "This namespace registry model is inconsistent. The inconsistency can NOT be fixed." });
         //consistent with supplied specific mapping
@@ -128,17 +157,19 @@ public class NamespaceRegistryCommandTest {
 
     @Test
     public void breakAndFixDanglingPrefix() throws Exception {
-        NodeBuilder rootBuilder = store.getRoot().builder();
-        NodeBuilder namespaces = rootBuilder.getChildNode(JcrConstants.JCR_SYSTEM).getChildNode(NamespaceConstants.REP_NAMESPACES);
-        NodeBuilder nsdata = namespaces.child(NamespaceConstants.REP_NSDATA);
-        //adding a prefix without any mapping to an URI
-        Iterable<String> prefixes = Objects.requireNonNull(nsdata.getProperty(NamespaceConstants.REP_PREFIXES)).getValue(STRINGS);
-        List<String> newValue = new ArrayList<>();
-        prefixes.forEach(newValue::add);
-        newValue.add("foo");
-        nsdata.setProperty(NamespaceConstants.REP_PREFIXES, newValue, STRINGS);
-        store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        store.runBackgroundOperations();
+        try (ContentSession contentSession = oak.createContentSession()) {
+            Root root = contentSession.getLatestRoot();
+            Tree namespaces = root.getTree(NamespaceConstants.NAMESPACES_PATH);
+            Tree nsdata = namespaces.getChild(NamespaceConstants.REP_NSDATA);
+            //adding a prefix without any mapping to an URI
+            Iterable<String> prefixes = Objects.requireNonNull(nsdata.getProperty(NamespaceConstants.REP_PREFIXES)).getValue(STRINGS);
+            List<String> newValue = new ArrayList<>();
+            prefixes.forEach(newValue::add);
+            newValue.add("foo");
+            nsdata.setProperty(NamespaceConstants.REP_PREFIXES, newValue, STRINGS);
+            root.commit();
+        }
+        STORE.runBackgroundOperations();
         //missing information: no automatic fix
         testCmd(new String[] { MongoUtils.URL, "--analyse" }, new String[] { "This namespace registry model is inconsistent. The inconsistency can NOT be fixed." });
         //consistent after removal of unmapped data.
@@ -151,17 +182,19 @@ public class NamespaceRegistryCommandTest {
 
     @Test
     public void breakAndFixDanglingUri() throws Exception {
-        NodeBuilder rootBuilder = store.getRoot().builder();
-        NodeBuilder namespaces = rootBuilder.getChildNode(JcrConstants.JCR_SYSTEM).getChildNode(NamespaceConstants.REP_NAMESPACES);
-        NodeBuilder nsdata = namespaces.child(NamespaceConstants.REP_NSDATA);
-        //adding an URI without any mapping to a prefix
-        Iterable<String> prefixes = Objects.requireNonNull(nsdata.getProperty(NamespaceConstants.REP_URIS)).getValue(STRINGS);
-        List<String> newValue = new ArrayList<>();
-        prefixes.forEach(newValue::add);
-        newValue.add("urn:foo");
-        nsdata.setProperty(NamespaceConstants.REP_URIS, newValue, STRINGS);
-        store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        store.runBackgroundOperations();
+        try (ContentSession contentSession = oak.createContentSession()) {
+            Root root = contentSession.getLatestRoot();
+            Tree namespaces = root.getTree(NamespaceConstants.NAMESPACES_PATH);
+            Tree nsdata = namespaces.getChild(NamespaceConstants.REP_NSDATA);
+            //adding an URI without any mapping to a prefix
+            Iterable<String> prefixes = Objects.requireNonNull(nsdata.getProperty(NamespaceConstants.REP_URIS)).getValue(STRINGS);
+            List<String> newValue = new ArrayList<>();
+            prefixes.forEach(newValue::add);
+            newValue.add("urn:foo");
+            nsdata.setProperty(NamespaceConstants.REP_URIS, newValue, STRINGS);
+            root.commit();
+        }
+        STORE.runBackgroundOperations();
         //missing information: no automatic fix
         testCmd(new String[] { MongoUtils.URL, "--analyse" }, new String[] { "This namespace registry model is inconsistent. The inconsistency can NOT be fixed." });
         //consistent after removal of unmapped data.
@@ -182,7 +215,7 @@ public class NamespaceRegistryCommandTest {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try(PrintStream printStream = new PrintStream(out)) {
             System.setOut(printStream);
-            cmd.execute(opts);
+            CMD.execute(opts);
             printStream.flush();
             for (String expected : output) {
                 String s = out.toString(StandardCharsets.UTF_8);
