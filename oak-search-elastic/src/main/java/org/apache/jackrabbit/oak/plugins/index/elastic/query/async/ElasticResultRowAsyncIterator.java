@@ -427,11 +427,11 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
             }
 
             if (t instanceof ElasticsearchException) {
-                LOG.error("Elastic could not process the request for jcr query [{}] :: Corresponding ES query {} :: ES Response {} : closing scanner, notifying listeners",
-                        indexPlan.getFilter(), query, ((ElasticsearchException) t).error(), t);
+                LOG.error("Elastic could not process the request for jcr query [{}] :: Corresponding ES request {} :: ES Response {} : closing scanner, notifying listeners",
+                        indexPlan.getFilter(), searchRequest, ((ElasticsearchException) t).error(), t);
             } else {
-                LOG.error("Error retrieving data for jcr query [{}] :: Corresponding ES query {} : closing scanner, notifying listeners",
-                        indexPlan.getFilter(), query, t);
+                LOG.error("Error retrieving data for jcr query [{}] :: Corresponding ES request {} : closing scanner, notifying listeners",
+                        indexPlan.getFilter(), searchRequest, t);
             }
             // closing scanner immediately after a failure avoiding them to hang (potentially) forever
             close();
