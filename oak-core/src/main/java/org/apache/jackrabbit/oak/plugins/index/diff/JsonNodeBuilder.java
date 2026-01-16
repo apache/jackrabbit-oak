@@ -201,7 +201,7 @@ public class JsonNodeBuilder {
         return oakStringValue(value);
     }
 
-    static String oakStringValue(String value) {
+    public static String oakStringValue(String value) {
         if (!value.startsWith("\"")) {
             // support numbers
             return value;
