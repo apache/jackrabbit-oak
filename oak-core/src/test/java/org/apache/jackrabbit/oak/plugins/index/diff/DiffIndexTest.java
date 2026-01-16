@@ -21,11 +21,13 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,8 +37,11 @@ import java.util.Optional;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
@@ -113,6 +118,54 @@ public class DiffIndexTest {
         JsonObject indexDefs = RootIndexesListService.getRootIndexDefinitions(store, "property");
         // expect at least one index
         assertFalse(indexDefs.getChildren().isEmpty());
+    }
+
+    @Test
+    public void tryReadStringNull() {
+        assertNull(DiffIndex.tryReadString(null));
+    }
+
+    @Test
+    public void tryReadStringValidContent() {
+        String content = "Hello, World!";
+        PropertyState prop = BinaryPropertyState.binaryProperty("jcr:data",
+                content.getBytes(StandardCharsets.UTF_8));
+        assertEquals(content, DiffIndex.tryReadString(prop));
+    }
+
+    @Test
+    public void tryReadStringEmpty() {
+        PropertyState prop = BinaryPropertyState.binaryProperty("jcr:data", new byte[0]);
+        assertEquals("", DiffIndex.tryReadString(prop));
+    }
+
+    @Test
+    public void tryReadStringJsonContent() {
+        String content = "{ \"key\": \"value\", \"array\": [1, 2, 3] }";
+        PropertyState prop = BinaryPropertyState.binaryProperty("jcr:data",
+                content.getBytes(StandardCharsets.UTF_8));
+        assertEquals(content, DiffIndex.tryReadString(prop));
+    }
+
+    @Test
+    public void tryReadStringIOException() throws IOException {
+        PropertyState prop = mock(PropertyState.class);
+        Blob blob = mock(Blob.class);
+        InputStream failingStream = new InputStream() {
+            @Override
+            public int read() throws IOException {
+                throw new IOException("Simulated read failure");
+            }
+            @Override
+            public byte[] readAllBytes() throws IOException {
+                throw new IOException("Simulated read failure");
+            }
+        };
+        when(prop.getValue(Type.BINARY)).thenReturn(blob);
+        when(blob.getNewStream()).thenReturn(failingStream);
+
+        // Should return null (not throw exception)
+        assertNull(DiffIndex.tryReadString(prop));
     }
 
     @Test
@@ -221,7 +274,7 @@ public class DiffIndexTest {
                 + "    \"compatVersion\": 2,\n"
                 + "    \"async\": [\"async\", \"nrt\"],\n"
                 + "    \"mergeChecksum\": \"41df9c87e4d4fca446aed3f55e6d188304a2cb49bae442b75403dc23a89b266f\",\n"
-                + "    \"mergeInfo\": \"This index was auto-merged. See also https://thomasmueller.github.io/oakTools/simplified.html\",\n"
+                + "    \"mergeInfo\": \"This index was auto-merged. See also https://oak-indexing.github.io/oakTools/simplified.html\",\n"
                 + "    \"selectionPolicy\": \"tag\",\n"
                 + "    \"queryPaths\": [\"/content/dam\"],\n"
                 + "    \"includedPaths\": [\"/content/dam\"],\n"

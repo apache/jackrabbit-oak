@@ -298,7 +298,7 @@ public class IndexUpdate implements Editor, PathSource {
         if (definitions.hasChildNode(DiffIndexMerger.DIFF_INDEX)
                 && "disabled".equals(definitions.child(DiffIndexMerger.DIFF_INDEX).getString("type"))
                 && rootState.async == null) {
-            DiffIndex.createNewIndexesIfNeeded(store, definitions);
+            DiffIndex.applyDiffIndexChanges(store, definitions);
         }
         for (String name : definitions.getChildNodeNames()) {
             NodeBuilder definition = definitions.getChildNode(name);

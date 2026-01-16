@@ -67,7 +67,7 @@ public class DiffIndexUpdater {
         PropertyState jcrData = rootState.getChildNode("oak:index").getChildNode("diff.index.optimizer").getChildNode("diff.json").getChildNode("jcr:content").getProperty("jcr:data");
         String old = "{}";
         if (jcrData != null) {
-            old = DiffIndex.readString(jcrData);
+            old = DiffIndex.tryReadString(jcrData);
             LOG.debug("Old diff.index {}", old);
         }
         JsonObject jsonContent = JsonObject.fromJson(old, true);
