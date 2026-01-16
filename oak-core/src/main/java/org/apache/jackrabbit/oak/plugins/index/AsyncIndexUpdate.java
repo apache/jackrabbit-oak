@@ -532,7 +532,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             }
         }
 
-        if (name.equals("async")) {
+        if ("async".equals(name)) {
             improveIndexes(store);
         }
 
@@ -653,16 +653,11 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private void improveIndexes(NodeStore store) {
         NodeState rootState = store.getRoot();
         NodeBuilder builder = rootState.builder();
-        if (statsTracker == null) {
-            return;
-        }
-        if (!rootState.hasChildNode("oak:index")) {
-            return;
-        }
-        if (!rootState.getChildNode("oak:index").hasChildNode("diff.index")) {
+        if (statsTracker == null || !rootState.getChildNode("oak:index").hasChildNode("diff.index")) {
             return;
         }
         List<QueryStatsMBean> list = statsTracker.getServices();
@@ -670,23 +665,15 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             return;
         }
         QueryStatsMBean stats = list.get(0);
-        if (stats == null) {
+        if (stats == null || stats.getIndexOptimizerLimit() == 0) {
             return;
         }
         TabularData slow = stats.getSlowQueries();
-        if (stats.getIndexOptimizerLimit() == 0) {
-            return;
-        }
 
-        @SuppressWarnings("unchecked")
-        Collection<CompositeData> coll = new ArrayList<>((Collection<CompositeData>) slow.values());
-
-        // Find inefficient queries and add to collection for index diff generation
+        Collection<CompositeData> coll = new ArrayList<>();
+        coll.addAll((Collection<CompositeData>) slow.values());
         coll.addAll(findInefficientQueries(stats));
 
-        if (coll.isEmpty()) {
-            return;
-        }
         boolean changed = false;
         for (CompositeData cd : coll) {
             String language = (String) cd.get("language");
@@ -708,26 +695,21 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     }
 
     @SuppressWarnings("unchecked")
-    private List<CompositeData> findInefficientQueries(final QueryStatsMBean stats) {
-        final TabularData popularQueries = stats.getPopularQueries();
-        final List<CompositeData> inefficientQueries = new ArrayList<>();
-
+    private List<CompositeData> findInefficientQueries(QueryStatsMBean stats) {
+        TabularData popularQueries = stats.getPopularQueries();
+        List<CompositeData> result = new ArrayList<>();
         for (CompositeData queryData : (Collection<? extends CompositeData>) popularQueries.values()) {
-            final Long rowsRead = (Long) queryData.get("rowsRead");
-            final Long rowsScanned = (Long) queryData.get("rowsScanned");
-
+            Long rowsRead = (Long) queryData.get("rowsRead");
+            Long rowsScanned = (Long) queryData.get("rowsScanned");
             int readEfficiency = 100;
-
             if (rowsScanned > 0) {
                 readEfficiency = (int) ((rowsRead * 100f) / rowsScanned);
             }
-
             if (readEfficiency <= stats.getIndexOptimizerLimit()) {
-                inefficientQueries.add(queryData);
+                result.add(queryData);
             }
         }
-
-        return inefficientQueries;
+        return result;
     }
 
     private void clearLease() throws CommitFailedException {
