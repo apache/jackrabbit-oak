@@ -514,6 +514,7 @@ public class S3Backend extends AbstractSharedBackend {
 
         // Executor required to handle reading from the InputStream on a separate thread so the main upload is not blocked.
         final ExecutorService executor = Executors.newSingleThreadExecutor();
+        File tempFile = null;
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
             final PutObjectRequest.Builder builder = PutObjectRequest.builder()
@@ -521,8 +522,33 @@ public class S3Backend extends AbstractSharedBackend {
                     .contentType("application/octet-stream")
                     .key(addMetaKeyPrefix(name));
 
+            InputStream uploadStream = input;
+            final long length;
+
+            if (input instanceof FileInputStream) {
+                // if the file is modified after opening, the size may not reflect the latest changes
+                FileInputStream fis = (FileInputStream) input;
+                length = fis.getChannel().size();
+            } else if (input instanceof ByteArrayInputStream) {
+                length = input.available();
+            } else if (input.markSupported()) {
+                // in case the inputStream supports mark & reset
+                input.mark(Integer.MAX_VALUE);
+                length = IOUtils.consume(input);
+                input.reset();
+            } else {
+                // we have to read all the stream to get the actual length
+                // last else block: store to temp file and re-read
+                tempFile = File.createTempFile("s3backend-", ".tmp");
+                try (OutputStream out = Files.newOutputStream(tempFile.toPath())) {
+                    IOUtils.copy(input, out);
+                }
+                length = tempFile.length();
+                uploadStream = Files.newInputStream(tempFile.toPath());
+            }
+
             // Specify `null` for the content length when you don't know the content length.
-            final AsyncRequestBody body = getRequestBody(input, executor, builder);
+            final AsyncRequestBody body = getRequestBody(uploadStream, length, executor, builder);
             final Upload upload = tmx.upload(uploadReq ->
                     uploadReq.requestBody(body).
                             putObjectRequest(
@@ -535,6 +561,13 @@ public class S3Backend extends AbstractSharedBackend {
         } finally {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
+            }
+            if (tempFile != null) {
+                try {
+                    Files.deleteIfExists(tempFile.toPath());
+                } catch (IOException e) {
+                    LOG.warn("Failed to delete temp file {}", tempFile, e);
+                }
             }
             executor.shutdown();
             try {
@@ -1332,39 +1365,10 @@ public class S3Backend extends AbstractSharedBackend {
     }
 
     @NotNull
-    private AsyncRequestBody getRequestBody(final InputStream input, final ExecutorService executor,
-                                            final PutObjectRequest.Builder builder) throws IOException {
+    private AsyncRequestBody getRequestBody(final InputStream input, final long length, final ExecutorService executor,
+                                            final PutObjectRequest.Builder builder) {
         // for both AWS/GCP we need to know the length in advance, else it won't work.
-        final AsyncRequestBody body;
-        final long length;
-        if (input instanceof FileInputStream) {
-            final FileInputStream fis = (FileInputStream) input;
-            // if the file is modified after opening, the size may not reflect the latest changes
-            length = fis.getChannel().size();
-            body = AsyncRequestBody.fromInputStream(input, length, executor);
-        } else if (input instanceof ByteArrayInputStream) {
-            length = input.available();
-            body = AsyncRequestBody.fromInputStream(input, length, executor);
-        } else if (input.markSupported()) {
-            // in case the inputStream supports mark & reset
-            input.mark(Integer.MAX_VALUE);
-            length = IOUtils.consume(input);
-            input.reset();
-            body = AsyncRequestBody.fromInputStream(input, length, executor);
-        } else {
-            // we have to read all the stream to get the actual length
-            // last else block: store to temp file and re-read
-            final File tempFile = File.createTempFile("inputstream-", ".tmp");
-            tempFile.deleteOnExit(); // Clean up after JVM exits
-
-            try (OutputStream out = Files.newOutputStream(tempFile.toPath())) {
-                IOUtils.copy(input, out); // Copy all bytes to file
-            }
-            // Get length from file
-            length = tempFile.length();
-            // Re-create InputStream from temp file
-            body = AsyncRequestBody.fromInputStream(Files.newInputStream(tempFile.toPath()), length, executor);
-        }
+        AsyncRequestBody body = AsyncRequestBody.fromInputStream(input, length, executor);
         builder.contentLength(length);
         return body;
     }
