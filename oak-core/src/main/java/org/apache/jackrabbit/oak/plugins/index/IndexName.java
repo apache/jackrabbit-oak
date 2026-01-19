@@ -234,6 +234,23 @@ public class IndexName implements Comparable<IndexName> {
         return result;
     }
 
+    public static Collection<String> filterNewestIndexes(Collection<String> indexPaths, NodeState rootState) {
+        HashMap<String, IndexName> latestVersions = new HashMap<>();
+        for (String p : indexPaths) {
+            IndexName indexName = IndexName.parse(p);
+            IndexName stored = latestVersions.get(indexName.baseName);
+            if (stored == null || stored.compareTo(indexName) < 0) {
+                // no old version, or old version is smaller: use
+                latestVersions.put(indexName.baseName, indexName);
+            }
+        }
+        ArrayList<String> result = new ArrayList<>(latestVersions.size());
+        for (IndexName n : latestVersions.values()) {
+            result.add(n.nodeName);
+        }
+        return result;
+    }
+
     public String nextCustomizedName() {
         return baseName + "-" + productVersion + "-custom-" + (customerVersion + 1);
     }

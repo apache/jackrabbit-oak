@@ -118,6 +118,8 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
                 .collectIndexNodePaths(filter);
         if (filterReplacedIndexes()) {
             indexPaths = IndexName.filterReplacedIndexes(indexPaths, rootState, runIsActiveIndexCheck());
+        } else {
+            indexPaths = IndexName.filterNewestIndexes(indexPaths, rootState);
         }
         List<IndexPlan> plans = new ArrayList<>(indexPaths.size());
         for (String path : indexPaths) {
