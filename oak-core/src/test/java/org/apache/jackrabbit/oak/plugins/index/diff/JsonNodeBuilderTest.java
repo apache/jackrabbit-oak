@@ -16,9 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.diff;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.TreeSet;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
@@ -145,6 +152,73 @@ public class JsonNodeBuilderTest {
                 + "      \"jcr:primaryType\" : \"nt:test\",\n"
                 + "      \":childOrder\" : [ ]\n"
                 + "    }\n"
+                + "  }\n"
+                + "}", JsonUtils.nodeStateToJson(ns.getRoot(), 5));
+    }
+
+    @Test
+    public void oakStringValue() {
+        assertEquals("123", JsonNodeBuilder.oakStringValue("123"));
+        assertEquals("45.67", JsonNodeBuilder.oakStringValue("45.67"));
+        assertEquals("-10", JsonNodeBuilder.oakStringValue("-10"));
+
+        String helloBase64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
+        assertEquals("hello", JsonNodeBuilder.oakStringValue("\":blobId:" + helloBase64 + "\""));
+
+        assertEquals("hello", JsonNodeBuilder.oakStringValue("\"str:hello\""));
+        assertEquals("acme:Test", JsonNodeBuilder.oakStringValue("\"nam:acme:Test\""));
+        assertEquals("2024-01-19", JsonNodeBuilder.oakStringValue("\"dat:2024-01-19\""));
+    }
+
+    @Test
+    public void getStringSet() {
+        assertNull(JsonNodeBuilder.getStringSet(null));
+        assertEquals(new TreeSet<>(Arrays.asList("hello")), JsonNodeBuilder.getStringSet("\"hello\""));
+        assertEquals(null, JsonNodeBuilder.getStringSet("123"));
+        assertEquals(new TreeSet<>(Arrays.asList("content/abc")), JsonNodeBuilder.getStringSet("\"content\\/abc\""));
+        assertTrue(JsonNodeBuilder.getStringSet("[]").isEmpty());
+        assertEquals(new TreeSet<>(Arrays.asList("a")), JsonNodeBuilder.getStringSet("[\"a\"]"));
+        assertEquals(new TreeSet<>(Arrays.asList("content/abc")), JsonNodeBuilder.getStringSet("[\"content\\/abc\"]"));
+        assertEquals(new TreeSet<>(Arrays.asList("a")), JsonNodeBuilder.getStringSet("[\"a\",\"a\"]"));
+        assertEquals(new TreeSet<>(Arrays.asList("a", "z")), JsonNodeBuilder.getStringSet("[\"z\",\"a\"]"));
+    }
+
+    @Test
+    public void oakStringArrayValue() throws IOException {
+        assertNull(JsonNodeBuilder.oakStringArrayValue(JsonObject.fromJson("{}", true), "p"));
+        assertArrayEquals(new String[]{"hello"}, JsonNodeBuilder.oakStringArrayValue(JsonObject.fromJson("{\"p\":\"hello\"}", true), "p"));
+        assertNull(JsonNodeBuilder.oakStringArrayValue(JsonObject.fromJson("{\"p\":123}", true), "p"));
+        assertArrayEquals(new String[]{"content/abc"}, JsonNodeBuilder.oakStringArrayValue(JsonObject.fromJson("{\"p\":\"content\\/abc\"}", true), "p"));
+        assertArrayEquals(new String[]{}, JsonNodeBuilder.oakStringArrayValue(JsonObject.fromJson("{\"p\":[]}", true), "p"));
+        assertArrayEquals(new String[]{"a"}, JsonNodeBuilder.oakStringArrayValue(JsonObject.fromJson("{\"p\":[\"a\"]}", true), "p"));
+        assertArrayEquals(new String[]{"content/abc"}, JsonNodeBuilder.oakStringArrayValue(JsonObject.fromJson("{\"p\":[\"content\\/abc\"]}", true), "p"));
+        assertArrayEquals(new String[]{"a"}, JsonNodeBuilder.oakStringArrayValue(JsonObject.fromJson("{\"p\":[\"a\",\"a\"]}", true), "p"));
+        assertArrayEquals(new String[]{"a", "z"}, JsonNodeBuilder.oakStringArrayValue(JsonObject.fromJson("{\"p\":[\"z\",\"a\"]}", true), "p"));
+    }
+
+    @Test
+    public void addOrReplacePrefixesBooleansAndEscapes() throws CommitFailedException, IOException {
+        MemoryNodeStore ns = new MemoryNodeStore();
+        JsonObject json = JsonObject.fromJson(
+                "{\"strValue\":\"str:hello\"," +
+                "\"namValue\":\"nam:acme:Test\"," +
+                "\"datValue\":\"dat:2024-01-19\"," +
+                "\"boolTrue\":true," +
+                "\"boolFalse\":false," +
+                "\"escapedArray\":[\"\\/content\\/path\"]}", true);
+        NodeBuilder builder = ns.getRoot().builder();
+        JsonNodeBuilder.addOrReplace(builder, ns, "/test", "nt:test", json.toString());
+        ns.merge(builder, new EmptyHook(), CommitInfo.EMPTY);
+        assertEquals("{\n"
+                + "  \"test\" : {\n"
+                + "    \"namValue\" : \"acme:Test\",\n"
+                + "    \"boolTrue\" : true,\n"
+                + "    \"boolFalse\" : false,\n"
+                + "    \"datValue\" : \"2024-01-19\",\n"
+                + "    \"escapedArray\" : [ \"/content/path\" ],\n"
+                + "    \"jcr:primaryType\" : \"nt:test\",\n"
+                + "    \"strValue\" : \"hello\",\n"
+                + "    \":childOrder\" : [ ]\n"
                 + "  }\n"
                 + "}", JsonUtils.nodeStateToJson(ns.getRoot(), 5));
     }

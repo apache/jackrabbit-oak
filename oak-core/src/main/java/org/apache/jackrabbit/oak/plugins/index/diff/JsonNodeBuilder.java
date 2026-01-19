@@ -166,7 +166,7 @@ public class JsonNodeBuilder {
                     if (!tokenizer.matches(JsopReader.STRING)) {
                         throw new IllegalArgumentException("Could not process string array " + value + " for property " + propertyName);
                     }
-                    result.add(tokenizer.getEscapedToken());
+                    result.add(tokenizer.getToken());
                 } while (tokenizer.matches(','));
                 tokenizer.read(']');
             }
@@ -252,7 +252,7 @@ public class JsonNodeBuilder {
             JsopTokenizer tokenizer = new JsopTokenizer(value);
             TreeSet<String> result = new TreeSet<>();
             if (tokenizer.matches(JsopReader.STRING)) {
-                result.add(tokenizer.getEscapedToken());
+                result.add(tokenizer.getToken());
                 return result;
             }
             if (!tokenizer.matches('[')) {
@@ -264,13 +264,14 @@ public class JsonNodeBuilder {
                         // not a string
                         return null;
                     }
-                    result.add(tokenizer.getEscapedToken());
+                    result.add(tokenizer.getToken());
                 } while (tokenizer.matches(','));
                 tokenizer.read(']');
             }
             tokenizer.read(JsopReader.END);
             return result;
         } catch (IllegalArgumentException e) {
+            LOG.warn("Unsupported value: {}", value);
             return null;
         }
     }

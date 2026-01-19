@@ -515,6 +515,7 @@ public class DiffIndexMerger {
      * Convert the JSON object to a new object, where index definition
      * properties that are unimportant for comparison are removed.
      * Example of important properties are "reindex", "refresh", "seed" etc.
+     * The order of properties is not relevant (but the order of children is).
      *
      * @param obj the input (is not changed by the method)
      * @return a new JSON object
