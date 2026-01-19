@@ -19,13 +19,13 @@ package org.apache.jackrabbit.oak.blob.cloud.s3;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -530,7 +530,7 @@ public class S3Backend extends AbstractSharedBackend {
                             .build());
             upload.completionFuture().join();
         } catch (Exception e) {
-            LOG.error("Exception in uploading {}", e.getMessage());
+            LOG.error("Exception in uploading metadata file", e);
             throw new DataStoreException("Error in uploading metadata file", e);
         } finally {
             if (contextClassLoader != null) {
@@ -1334,42 +1334,38 @@ public class S3Backend extends AbstractSharedBackend {
     @NotNull
     private AsyncRequestBody getRequestBody(final InputStream input, final ExecutorService executor,
                                             final PutObjectRequest.Builder builder) throws IOException {
+        // for both AWS/GCP we need to know the length in advance, else it won't work.
         final AsyncRequestBody body;
-        if (Objects.equals(RemoteStorageMode.S3, properties.get(S3Constants.MODE))) {
-            body = AsyncRequestBody.fromInputStream(input, null, executor);
+        final long length;
+        if (input instanceof FileInputStream) {
+            final FileInputStream fis = (FileInputStream) input;
+            // if the file is modified after opening, the size may not reflect the latest changes
+            length = fis.getChannel().size();
+            body = AsyncRequestBody.fromInputStream(input, length, executor);
+        } else if (input instanceof ByteArrayInputStream) {
+            length = input.available();
+            body = AsyncRequestBody.fromInputStream(input, length, executor);
+        } else if (input.markSupported()) {
+            // in case the inputStream supports mark & reset
+            input.mark(Integer.MAX_VALUE);
+            length = IOUtils.consume(input);
+            input.reset();
+            body = AsyncRequestBody.fromInputStream(input, length, executor);
         } else {
-            // for GCP we need to know the length in advance, else it won't work.
-            final long length;
-            if (input instanceof FileInputStream) {
-                final FileInputStream fis = (FileInputStream) input;
-                // if the file is modified after opening, the size may not reflect the latest changes
-                length = fis.getChannel().size();
-                body = AsyncRequestBody.fromInputStream(input, length, executor);
-            } else if (input instanceof ByteArrayInputStream) {
-                length = input.available();
-                body = AsyncRequestBody.fromInputStream(input, length, executor);
-            } else if (input.markSupported()) {
-                // in case the inputStream supports mark & reset
-                input.mark(Integer.MAX_VALUE);
-                length = IOUtils.consume(input);
-                input.reset();
-                body = AsyncRequestBody.fromInputStream(input, length, executor);
-            } else {
-                // we have to read all the stream to get the actual length
-                // last else block: store to temp file and re-read
-                final File tempFile = File.createTempFile("inputstream-", ".tmp");
-                tempFile.deleteOnExit(); // Clean up after JVM exits
+            // we have to read all the stream to get the actual length
+            // last else block: store to temp file and re-read
+            final File tempFile = File.createTempFile("inputstream-", ".tmp");
+            tempFile.deleteOnExit(); // Clean up after JVM exits
 
-                try (OutputStream out = new FileOutputStream(tempFile)) {
-                    IOUtils.copy(input, out); // Copy all bytes to file
-                }
-                // Get length from file
-                length = tempFile.length();
-                // Re-create InputStream from temp file
-                body = AsyncRequestBody.fromInputStream(new FileInputStream(tempFile), length, executor);
+            try (OutputStream out = Files.newOutputStream(tempFile.toPath())) {
+                IOUtils.copy(input, out); // Copy all bytes to file
             }
-            builder.contentLength(length);
+            // Get length from file
+            length = tempFile.length();
+            // Re-create InputStream from temp file
+            body = AsyncRequestBody.fromInputStream(Files.newInputStream(tempFile.toPath()), length, executor);
         }
+        builder.contentLength(length);
         return body;
     }
 
