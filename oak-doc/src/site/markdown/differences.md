@@ -29,8 +29,8 @@ check against Jackrabbit 2 before reporting an issue against Oak.
 
 If you encounter a problem where functionality is missing or Oak does not behave as expected please
 check whether this is a [known change in behaviour](https://issues.apache.org/jira/browse/OAK-14) or
-a [known issue](https://issues.apache.org/jira/browse/OAK). If in doubt ask on the [Oak dev list]
-(http://oak.markmail.org/). Otherwise create a [new issue](https://issues.apache.org/jira/browse/OAK).
+a [known issue](https://issues.apache.org/jira/browse/OAK). If in doubt ask on the [Oak Dev Mailing List](https://lists.apache.org/list.html?oak-dev@jackrabbit.apache.org).
+Otherwise create a [new issue](https://issues.apache.org/jira/browse/OAK).
 
 ## Notable changes
 
@@ -54,8 +54,8 @@ See also [OAK-2644](https://issues.apache.org/jira/browse/OAK-2644) and
 ### Session state and refresh behaviour
 
 In Jackrabbit 2 sessions always reflects the latest state of the repository. With Oak a session
-reflects a stable view of the repository from the time the session was acquired ([MVCC model]
-(http://en.wikipedia.org/wiki/MVCC)). This is a fundamental design aspect for achieving the
+reflects a stable view of the repository from the time the session was acquired ([MVCC model](http://en.wikipedia.org/wiki/MVCC)).
+This is a fundamental design aspect for achieving the
 distributed nature of an Oak repository. A rarely encountered side effect of this is that sessions
 expose [write skew](architecture/transactional-model.html).
 

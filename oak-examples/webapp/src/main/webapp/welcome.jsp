@@ -46,11 +46,9 @@ request.setAttribute("title", "Apache Jackrabbit JCR Server");
   <li><a href="webdav-remoting.jsp">JCR remoting over WebDAV (including Batch Read/Write)</a></li>
 </ul>
 <p>
-  Clients can also access the repository using the JCR API. Both local
-  and remote access is supported.
+  Clients can also access the repository using the JCR API.
 </p>
 <ul>
-  <li><a href="remote.jsp">Remote repository access</a></li>
   <li><a href="local.jsp">Local repository access</a></li>
 </ul>
 <p>

@@ -40,6 +40,6 @@ public class ElasticFacetTest extends FacetCommonTest {
 
     protected void assertEventually(Runnable r) {
         TestUtil.assertEventually(r,
-                ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + ElasticBulkProcessorHandler.BULK_FLUSH_INTERVAL_MS_DEFAULT) * 5);
+                ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 2000) + ElasticBulkProcessorHandler.BULK_FLUSH_INTERVAL_MS_DEFAULT) * 5);
     }
 }

@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.89-SNAPSHOT</version>
+    <version>1.91-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -153,9 +153,9 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.lz4</groupId>
+      <groupId>at.yawk.lz4</groupId>
       <artifactId>lz4-java</artifactId>
-      <version>1.8.0</version>
+      <version>1.10.1</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

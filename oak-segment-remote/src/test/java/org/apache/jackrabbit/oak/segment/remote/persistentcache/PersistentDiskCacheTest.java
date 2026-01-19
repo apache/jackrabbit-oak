@@ -18,8 +18,8 @@
 package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
-import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -51,6 +51,12 @@ public class PersistentDiskCacheTest extends AbstractPersistentCacheTest {
     @Before
     public void setUp() throws Exception {
         persistentCache = new PersistentDiskCache(temporaryFolder.newFolder(), 10 * 1024, new DiskCacheIOMonitor(StatisticsProvider.NOOP));
+    }
+
+    @After
+    public void tearDown() {
+        persistentCache.close();
+        persistentCache = null;
     }
 
     @Test
