@@ -46,11 +46,14 @@ class ElasticIndex extends FulltextIndex {
     private final ElasticIndexTracker elasticIndexTracker;
     private final long asyncIteratorEnqueueTimeoutMs;
     private final long facetsEvaluationTimeoutMs;
-
-    ElasticIndex(ElasticIndexTracker elasticIndexTracker, long asyncIteratorEnqueueTimeoutMs, long facetsEvaluationTimeoutMs) {
+    private final ElasticRequestCache requestCache;
+    private final boolean cacheEnabled;
+    ElasticIndex(ElasticIndexTracker elasticIndexTracker, long asyncIteratorEnqueueTimeoutMs, long facetsEvaluationTimeoutMs, boolean frequentQueryCacheEnabled) {
         this.elasticIndexTracker = elasticIndexTracker;
         this.asyncIteratorEnqueueTimeoutMs = asyncIteratorEnqueueTimeoutMs;
         this.facetsEvaluationTimeoutMs = facetsEvaluationTimeoutMs;
+        this.requestCache = new ElasticRequestCache();
+        this.cacheEnabled = frequentQueryCacheEnabled;
     }
 
     @Override
@@ -99,25 +102,39 @@ class ElasticIndex extends FulltextIndex {
 
     @Override
     protected String getFulltextRequestString(IndexPlan plan, IndexNode indexNode, NodeState rootState) {
-        try (ElasticQueryIterator eqi = queryIterator(plan, rootState)) {
+        var requestHandler = requestHandlerOf(plan, rootState);
+        try (ElasticQueryIterator eqi = baseQueryIterator(requestHandler)) {
             return eqi.explain();
         }
     }
 
     @Override
     public Cursor query(IndexPlan plan, NodeState rootState) {
-        return new FulltextPathCursor(queryIterator(plan, rootState), REWOUND_STATE_PROVIDER_NOOP,
+        return new FulltextPathCursor(cachingQueryIterator(plan, rootState), REWOUND_STATE_PROVIDER_NOOP,
                 plan, plan.getFilter().getQueryLimits(), getSizeEstimator(plan));
     }
 
-    private @NotNull ElasticQueryIterator queryIterator(IndexPlan plan, NodeState rootState) {
-        Filter filter = plan.getFilter();
-        FulltextIndexPlanner.PlanResult planResult = getPlanResult(plan);
+    private ElasticQueryIterator cachingQueryIterator(IndexPlan plan, NodeState rootState) {
+        var requestHandler = requestHandlerOf(plan, rootState);
+        var baseIterator = baseQueryIterator(requestHandler);
+        if(cacheEnabled) {
+            return requestCache.iteratorFor(requestHandler, baseIterator);
+        } else {
+            return baseIterator;
+        }
+    }
 
-        ElasticRequestHandler requestHandler = new ElasticRequestHandler(plan, planResult, rootState, facetsEvaluationTimeoutMs);
-        ElasticResponseHandler responseHandler = new ElasticResponseHandler(planResult, filter);
+    private ElasticRequestHandler requestHandlerOf(IndexPlan plan, NodeState rootState) {
+        FulltextIndexPlanner.PlanResult planResult = getPlanResult(plan);
+        return new ElasticRequestHandler(plan, planResult, rootState, facetsEvaluationTimeoutMs);
+    }
+
+    private @NotNull ElasticQueryIterator baseQueryIterator(ElasticRequestHandler requestHandler) {
+        Filter filter = requestHandler.getPlanFilter();
+        ElasticResponseHandler responseHandler = new ElasticResponseHandler(requestHandler.getPlanResult(), filter);
 
         ElasticQueryIterator itr;
+        var plan = requestHandler.getPlan();
         ElasticIndexNode indexNode = acquireIndexNode(plan);
         try {
             if (requestHandler.requiresSpellCheck()) {

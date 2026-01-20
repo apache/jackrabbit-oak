@@ -122,6 +122,18 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
         this.elasticQueryScanner = initScanner();
     }
 
+    public long getTotalHits() {
+        if (elasticQueryScanner.totalHits == null) {
+            if(!hasNext()) {
+                return 0;
+            }
+        }
+        if (elasticQueryScanner.totalHits == null) {
+            return 0;
+        }
+        return elasticQueryScanner.totalHits;
+    }
+
     @Override
     public boolean hasNext() {
         // if nextRow is not null it means the caller invoked hasNext() before without calling next()
@@ -289,6 +301,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
         // Semaphore to guarantee only one in-flight request to Elastic
         private final Semaphore semaphore = new Semaphore(1);
         volatile private CompletableFuture<SearchResponse<ObjectNode>> ongoingRequest;
+        private Long totalHits = null;
 
         ElasticQueryScanner(List<ElasticResponseListener> listeners) {
             this.query = elasticRequestHandler.baseQuery();
@@ -362,7 +375,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
             metricHandler.measureQuery(indexNode.getDefinition().getIndexPath(), hitsSize, searchResponse.took(),
                     searchTotalTime, searchResponse.timedOut());
             if (hitsSize > 0) {
-                long totalHits = searchResponse.hits().total().value();
+                this.totalHits = searchResponse.hits().total().value();
                 LOG.debug("Processing search response that took {} ms to read {}/{} docs", searchResponse.took(), hitsSize, totalHits);
                 lastHitSortValues = searchHits.get(hitsSize - 1).sort();
                 scannedRows += hitsSize;

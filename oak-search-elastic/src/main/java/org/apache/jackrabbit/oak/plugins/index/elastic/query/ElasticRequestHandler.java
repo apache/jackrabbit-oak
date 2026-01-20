@@ -419,7 +419,7 @@ public class ElasticRequestHandler {
                 : null;
     }
 
-    private boolean requiresFacets() {
+    protected boolean requiresFacets() {
         return filter.getPropertyRestrictions().stream()
                 .anyMatch(pr -> QueryConstants.REP_FACET.equals(pr.propertyName));
     }
@@ -1215,5 +1215,17 @@ public class ElasticRequestHandler {
             return FieldNames.FULLTEXT;
         }
         return ElasticIndexUtils.fieldName(propertyName);
+    }
+
+    public Filter getPlanFilter() {
+        return this.indexPlan.getFilter();
+    }
+
+    public @NotNull PlanResult getPlanResult() {
+        return this.planResult;
+    }
+
+    public IndexPlan getPlan() {
+        return this.indexPlan;
     }
 }

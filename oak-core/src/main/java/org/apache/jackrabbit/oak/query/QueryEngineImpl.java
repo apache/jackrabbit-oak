@@ -380,7 +380,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
         return result;
     }
     
-    protected void setTraversalEnabled(boolean traversalEnabled) {
+    public void setTraversalEnabled(boolean traversalEnabled) {
         this.traversalEnabled = traversalEnabled;
     }
 

@@ -27,10 +27,9 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;

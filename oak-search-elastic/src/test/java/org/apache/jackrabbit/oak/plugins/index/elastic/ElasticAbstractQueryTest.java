@@ -26,11 +26,7 @@ import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
-import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.TestUtil;
-import org.apache.jackrabbit.oak.plugins.index.TrackingCorruptIndexHandler;
+import org.apache.jackrabbit.oak.plugins.index.*;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticRetryPolicy;
@@ -166,7 +162,9 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
         ElasticIndexProvider indexProvider = new ElasticIndexProvider(
                 indexTracker,
                 getAsyncIteratorEnqueueTimeoutMs(),
-                getFacetsEvaluationTimeoutMs());
+                getFacetsEvaluationTimeoutMs(),
+                true
+        );
 
 
         asyncIndexUpdate = getAsyncIndexUpdate("async", nodeStore, CompositeIndexEditorProvider.compose(

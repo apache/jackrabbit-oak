@@ -31,23 +31,26 @@ public class ElasticIndexProvider implements QueryIndexProvider {
     public static final long DEFAULT_ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS = 60000L; // 60 seconds
     public static final String FACETS_EVALUATION_TIMEOUT_MS_PROPERTY = "oak.index.elastic.query.facetsEvaluationTimeoutMs";
     public static final long DEFAULT_FACETS_EVALUATION_TIMEOUT_MS = 15000L; // 15 seconds
-
-    private final ElasticIndexTracker indexTracker;
+    public static final String FREQUENT_QUERY_CACHE_ENABLED_PROPERTY = "oak.index.elastic.query.frequentQueryCacheEnabled";
+    public static final boolean DEFAULT_FREQUENT_QUERY_CACHE_ENABLED = false;
     private final long asyncIteratorEnqueueTimeoutMs;
     private final long facetsEvaluationTimeoutMs;
+    private final List<? extends QueryIndex> queryIndexes;
 
     public ElasticIndexProvider(ElasticIndexTracker indexTracker,
                                 long asyncIteratorEnqueueTimeoutMs,
-                                long facetsEvaluationTimeoutMs) {
-        this.indexTracker = indexTracker;
+                                long facetsEvaluationTimeoutMs,
+                                boolean frequentQueryCacheEnabled) {
         this.asyncIteratorEnqueueTimeoutMs = asyncIteratorEnqueueTimeoutMs;
         this.facetsEvaluationTimeoutMs = facetsEvaluationTimeoutMs;
+        queryIndexes = List.of(new ElasticIndex(indexTracker, asyncIteratorEnqueueTimeoutMs, facetsEvaluationTimeoutMs, frequentQueryCacheEnabled));
     }
 
     public ElasticIndexProvider(ElasticIndexTracker indexTracker) {
         this(indexTracker,
                 ConfigHelper.getSystemPropertyAsLong(ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS_PROPERTY, DEFAULT_ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS),
-                ConfigHelper.getSystemPropertyAsLong(FACETS_EVALUATION_TIMEOUT_MS_PROPERTY, DEFAULT_FACETS_EVALUATION_TIMEOUT_MS)
+                ConfigHelper.getSystemPropertyAsLong(FACETS_EVALUATION_TIMEOUT_MS_PROPERTY, DEFAULT_FACETS_EVALUATION_TIMEOUT_MS),
+                ConfigHelper.getSystemPropertyAsBoolean(FREQUENT_QUERY_CACHE_ENABLED_PROPERTY, DEFAULT_FREQUENT_QUERY_CACHE_ENABLED)
         );
     }
 
@@ -61,6 +64,6 @@ public class ElasticIndexProvider implements QueryIndexProvider {
 
     @Override
     public @NotNull List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
-        return List.of(new ElasticIndex(indexTracker, asyncIteratorEnqueueTimeoutMs, facetsEvaluationTimeoutMs));
+        return queryIndexes;
     }
 }

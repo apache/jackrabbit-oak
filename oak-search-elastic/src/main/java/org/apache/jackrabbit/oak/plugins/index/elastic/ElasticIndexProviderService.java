@@ -20,6 +20,7 @@ import org.apache.jackrabbit.oak.api.jmx.InferenceMBean;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
+import org.apache.jackrabbit.oak.plugins.index.ConfigHelper;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfoProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
@@ -77,6 +78,7 @@ public class ElasticIndexProviderService {
     protected static final String PROP_ELASTIC_MAX_RETRY_TIME = "elasticsearch.maxRetryTime";
     protected static final String PROP_ELASTIC_ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS = "elasticsearch.asyncIteratorEnqueueTimeoutMs";
     protected static final String PROP_ELASTIC_FACETS_EVALUATION_TIMEOUT_MS = "elasticsearch.facetsEvaluationTimeoutMs";
+    protected static final String PROP_ELASTIC_FREQUENT_QUERY_CACHE_ENABLED = "elasticsearch.frequentQueryCacheEnabled";
     protected static final String PROP_LOCAL_TEXT_EXTRACTION_DIR = "localTextExtractionDir";
     private static final boolean DEFAULT_IS_INFERENCE_ENABLED = false;
     private static final String ENV_VAR_OAK_INFERENCE_STATISTICS_DISABLED = "OAK_INFERENCE_STATISTICS_DISABLED";
@@ -138,6 +140,11 @@ public class ElasticIndexProviderService {
                 description = "Time in milliseconds to wait for facets to be evaluated before timing out the client query. " +
                         "Default is 15000 ms (15 seconds).")
         long elasticsearch_facetsEvaluationTimeoutMs() default ElasticIndexProvider.DEFAULT_FACETS_EVALUATION_TIMEOUT_MS;
+
+        @AttributeDefinition(
+                name = "Elasticsearch Frequent Query Cache Enabled",
+                description = "If true, enables caching of small and very frequent queries. Default is false.")
+        boolean elasticsearch_frequentQueryCacheEnabled() default ElasticIndexProvider.DEFAULT_FREQUENT_QUERY_CACHE_ENABLED;
 
         @AttributeDefinition(name = "Local text extraction cache path",
                 description = "Local file system path where text extraction cache stores/load entries to recover from timed out operation")
@@ -296,7 +303,14 @@ public class ElasticIndexProviderService {
                 config.elasticsearch_asyncIteratorEnqueueTimeoutMs());
         long facetsEvaluationTimeoutMs = Long.getLong(PROP_ELASTIC_FACETS_EVALUATION_TIMEOUT_MS,
                 config.elasticsearch_facetsEvaluationTimeoutMs());
-        ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker, asyncIteratorEnqueueTimeoutMs, facetsEvaluationTimeoutMs);
+        boolean frequentQueryCacheEnabled = ConfigHelper.getSystemPropertyAsBoolean(PROP_ELASTIC_FREQUENT_QUERY_CACHE_ENABLED,
+                config.elasticsearch_frequentQueryCacheEnabled());
+        ElasticIndexProvider indexProvider = new ElasticIndexProvider(
+                indexTracker,
+                asyncIteratorEnqueueTimeoutMs,
+                facetsEvaluationTimeoutMs,
+                frequentQueryCacheEnabled
+        );
 
         Dictionary<String, Object> props = new Hashtable<>();
         props.put("type", ElasticIndexDefinition.TYPE_ELASTICSEARCH);
