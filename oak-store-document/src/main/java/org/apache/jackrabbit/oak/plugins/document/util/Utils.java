@@ -1236,8 +1236,8 @@ public class Utils {
                                 "while most recent external time is '{}'. " +
                                 "Threshold: {}ms, Difference: {}ms. " +
                                 "Current _lastRev entries: {}",
-                        DateTimeFormatter.ISO_INSTANT.format(Instant.ofEpochMilli(localTime)),
-                        DateTimeFormatter.ISO_INSTANT.format(Instant.ofEpochMilli(externalTime)),
+                        asISO8601(localTime),
+                        asISO8601(externalTime),
                         warnThresholdMillis, timeDiff,
                         lastRevMap.values());
                 String msg = String.format(fmt, delay);
