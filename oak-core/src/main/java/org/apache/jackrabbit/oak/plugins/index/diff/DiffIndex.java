@@ -109,7 +109,7 @@ public class DiffIndex {
         JsonObject repositoryDefinitions = RootIndexesListService.getRootIndexDefinitions(indexDefinitions);
         LOG.debug("Index list {}", repositoryDefinitions.toString());
         try {
-            DiffIndexMerger.merge(newImageLuceneDefinitions, repositoryDefinitions, store);
+            DiffIndexMerger.instance().merge(newImageLuceneDefinitions, repositoryDefinitions, store);
             for (String indexPath : newImageLuceneDefinitions.getChildren().keySet()) {
                 if (indexPath.startsWith("/oak:index/" + DiffIndexMerger.DIFF_INDEX)) {
                     continue;

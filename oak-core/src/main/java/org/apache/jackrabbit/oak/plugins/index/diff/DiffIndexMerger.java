@@ -62,6 +62,22 @@ public class DiffIndexMerger {
     // in case a customization was removed, create a copy of the OOTB index
     private final static boolean DELETE_COPIES_OOTB = Boolean.getBoolean("oak.diffIndex.deleteCopiesOOTB");
 
+    private final String[] unsupportedIncludedPaths;
+    private final boolean deleteCreatesDummyIndex;
+    private final boolean deleteCopiesOutOfTheBoxIndex;
+
+    static final DiffIndexMerger INSTANCE = new DiffIndexMerger(UNSUPPORTED_INCLUDED_PATHS, DELETE_CREATES_DUMMY, DELETE_COPIES_OOTB);
+
+    public static DiffIndexMerger instance() {
+        return INSTANCE;
+    }
+
+    DiffIndexMerger(String[] unsupportedIncludedPaths, boolean deleteCreatesDummyIndex, boolean deleteCopiesOutOfTheBoxIndex) {
+        this.unsupportedIncludedPaths = unsupportedIncludedPaths;
+        this.deleteCreatesDummyIndex = deleteCreatesDummyIndex;
+        this.deleteCopiesOutOfTheBoxIndex = deleteCopiesOutOfTheBoxIndex;
+    }
+
     /**
      * If there is a diff index, that is an index with prefix "diff.", then try to merge it.
      *
@@ -73,7 +89,7 @@ public class DiffIndexMerger {
      *        (input)
      * @param repositoryNodeStore
      */
-    public static void merge(JsonObject newImageLuceneDefinitions, JsonObject repositoryDefinitions, NodeStore repositoryNodeStore) {
+    public void merge(JsonObject newImageLuceneDefinitions, JsonObject repositoryDefinitions, NodeStore repositoryNodeStore) {
         // combine all definitions into one object
         JsonObject combined = new JsonObject();
 
@@ -117,7 +133,7 @@ public class DiffIndexMerger {
      *        (input)
      * @return whether a new version of an index was added
      */
-    static boolean mergeDiff(JsonObject newImageLuceneDefinitions, JsonObject combined) {
+    boolean mergeDiff(JsonObject newImageLuceneDefinitions, JsonObject combined) {
         // iterate again, this time process
 
         // collect the diff index(es)
@@ -268,7 +284,7 @@ public class DiffIndexMerger {
      *                                  (input)
      * @return whether a new version of an index was added
      */
-    public static boolean processMerge(String indexName, JsonObject indexDiff, JsonObject newImageLuceneDefinitions, JsonObject combined) {
+    public boolean processMerge(String indexName, JsonObject indexDiff, JsonObject newImageLuceneDefinitions, JsonObject combined) {
         // extract the latest product index (eg. damAssetLucene-12)
         // and customized index (eg. damAssetLucene-12-custom-3) - if any
         IndexName latestProduct = null;
@@ -321,7 +337,7 @@ public class DiffIndexMerger {
                 includedPaths = JsonNodeBuilder.oakStringArrayValue(indexDiff, "includedPaths");
                 if (includesUnsupportedPaths(includedPaths)) {
                     LOG.warn("New custom index {} is not supported because it contains an unsupported path ({})",
-                            indexName, Arrays.toString(UNSUPPORTED_INCLUDED_PATHS));
+                            indexName, Arrays.toString(unsupportedIncludedPaths));
                     return false;
                 }
             }
@@ -329,7 +345,7 @@ public class DiffIndexMerger {
             includedPaths = JsonNodeBuilder.oakStringArrayValue(latestProductIndex, "includedPaths");
             if (includesUnsupportedPaths(includedPaths)) {
                 LOG.warn("Customizing index {} is not supported because it contains an unsupported path ({})",
-                        latestProductKey, Arrays.toString(UNSUPPORTED_INCLUDED_PATHS));
+                        latestProductKey, Arrays.toString(unsupportedIncludedPaths));
                 return false;
             }
         }
@@ -409,7 +425,7 @@ public class DiffIndexMerger {
         merged.getProperties().put("merges", "[" + JsopBuilder.encode("/oak:index/" + indexName) + "]");
         merged.getProperties().remove("reindexCount");
         merged.getProperties().remove("reindex");
-        if (!DELETE_COPIES_OOTB && indexDiff.toString().equals("{}")) {
+        if (!deleteCopiesOutOfTheBoxIndex && indexDiff.toString().equals("{}")) {
             merged.getProperties().put("type", "\"disabled\"");
             merged.getProperties().put("mergeComment", "\"This index is superseeded and can be removed\"");
         }
@@ -425,8 +441,8 @@ public class DiffIndexMerger {
      * @param includedPaths the includedPaths list
      * @return true if any unsupported path is included
      */
-    public static boolean includesUnsupportedPaths(String[] includedPaths) {
-        if (UNSUPPORTED_INCLUDED_PATHS.length == 1 && "".equals(UNSUPPORTED_INCLUDED_PATHS[0])) {
+    public boolean includesUnsupportedPaths(String[] includedPaths) {
+        if (unsupportedIncludedPaths.length == 1 && "".equals(unsupportedIncludedPaths[0])) {
             // set to an empty string
             return false;
         }
@@ -439,7 +455,7 @@ public class DiffIndexMerger {
                 // all
                 return true;
             }
-            for (String unsupported : UNSUPPORTED_INCLUDED_PATHS) {
+            for (String unsupported : unsupportedIncludedPaths) {
                 if (unsupported.isEmpty()) {
                     continue;
                 }
@@ -601,7 +617,7 @@ public class DiffIndexMerger {
      * @param diff the diff (from the diff.index definition)
      * @return the index definition of the merged index
      */
-    public static JsonObject processMerge(JsonObject productIndex, JsonObject diff) {
+    public JsonObject processMerge(JsonObject productIndex, JsonObject diff) {
         JsonObject result;
         if (productIndex == null) {
             // fully custom index
@@ -649,7 +665,7 @@ public class DiffIndexMerger {
      * @param diff the diff (what to merge)
      * @param target where to merge into
      */
-    private static void mergeInto(String path, JsonObject diff, JsonObject target) {
+    private void mergeInto(String path, JsonObject diff, JsonObject target) {
         for (String p : diff.getProperties().keySet()) {
             if (path.isEmpty()) {
                 if ("jcr:primaryType".equals(p)) {
@@ -700,7 +716,7 @@ public class DiffIndexMerger {
             mergeInto(path + "/" + targetChildName, diff.getChildren().get(c), target.getChildren().get(targetChildName));
         }
         if (target.getProperties().isEmpty() && target.getChildren().isEmpty()) {
-            if (DELETE_CREATES_DUMMY) {
+            if (deleteCreatesDummyIndex) {
                 // dummy index
                 target.getProperties().put("async", "\"async\"");
                 target.getProperties().put("includedPaths", "\"/dummy\"");
@@ -778,7 +794,7 @@ public class DiffIndexMerger {
      * @param repositoryNodeStore the node store
      * @return a map, possibly with a single entry with this key
      */
-    static Map<String, JsonObject> readDiffIndex(NodeStore repositoryNodeStore, String name) {
+    public static Map<String, JsonObject> readDiffIndex(NodeStore repositoryNodeStore, String name) {
         HashMap<String, JsonObject> map = new HashMap<>();
         NodeState root = repositoryNodeStore.getRoot();
         String indexPath = "/oak:index/" + name;
