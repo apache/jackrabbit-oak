@@ -161,7 +161,7 @@ public class DiffIndexMerger {
      * @param target    the target map of diff.index definitions
      * @return the error message trying to parse the JSON file, or null
      */
-    static String tryExtractDiffIndex(JsonObject indexDefs, String name, HashMap<String, JsonObject> target) {
+    public static String tryExtractDiffIndex(JsonObject indexDefs, String name, HashMap<String, JsonObject> target) {
         JsonObject diffIndex = indexDefs.getChildren().get(name);
         if (diffIndex == null) {
             return null;
@@ -234,7 +234,7 @@ public class DiffIndexMerger {
      * @param b the second diff (overwrites entries in a)
      * @return the merged entry
      */
-    private static JsonObject mergeDiffs(JsonObject a, JsonObject b) {
+    public static JsonObject mergeDiffs(JsonObject a, JsonObject b) {
         if (a == null) {
             return b;
         } else if (b == null) {
@@ -496,7 +496,7 @@ public class DiffIndexMerger {
         return obj;
     }
 
-    private static void switchToLuceneChildren(JsonObject indexDef) {
+    public static void switchToLuceneChildren(JsonObject indexDef) {
         // clone the keys to avoid ConcurrentModificationException
         for (String p : new ArrayList<>(indexDef.getProperties().keySet())) {
             if (!p.endsWith("@lucene")) {
