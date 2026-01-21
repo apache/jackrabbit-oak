@@ -61,20 +61,16 @@ public class DiffIndex {
                 continue;
             }
             NodeBuilder diffIndexDefinition = indexDefinitions.child(diffIndex);
-            NodeBuilder diffJson = diffIndexDefinition.getChildNode("diff.json");
-            if (!diffJson.exists()) {
+            NodeBuilder diffContent = diffIndexDefinition.getChildNode("diff.json").getChildNode("jcr:content");
+            if (!diffContent.exists()) {
                 continue;
             }
-            NodeBuilder jcrContent = diffJson.getChildNode("jcr:content");
-            if (!jcrContent.exists()) {
-                continue;
-            }
-            PropertyState lastMod = jcrContent.getProperty("jcr:lastModified");
+            PropertyState lastMod = diffContent.getProperty("jcr:lastModified");
             if (lastMod == null) {
                 continue;
             }
             String modified = lastMod.getValue(Type.DATE);
-            PropertyState lastProcessed = jcrContent.getProperty(":lastProcessed");
+            PropertyState lastProcessed = diffContent.getProperty(":lastProcessed");
             if (lastProcessed != null) {
                 if (modified.equals(lastProcessed.getValue(Type.STRING))) {
                     // already processed
@@ -82,8 +78,8 @@ public class DiffIndex {
                 }
             }
             // store now, so a change is only processed once
-            jcrContent.setProperty(":lastProcessed", modified);
-            PropertyState jcrData = jcrContent.getProperty("jcr:data");
+            diffContent.setProperty(":lastProcessed", modified);
+            PropertyState jcrData = diffContent.getProperty("jcr:data");
             String diff = tryReadString(jcrData);
             if (diff == null) {
                 continue;
@@ -109,7 +105,7 @@ public class DiffIndex {
         JsonObject repositoryDefinitions = RootIndexesListService.getRootIndexDefinitions(indexDefinitions);
         LOG.debug("Index list {}", repositoryDefinitions.toString());
         try {
-            DiffIndexMerger.merge(newImageLuceneDefinitions, repositoryDefinitions, store);
+            DiffIndexMerger.instance().merge(newImageLuceneDefinitions, repositoryDefinitions, store);
             for (String indexPath : newImageLuceneDefinitions.getChildren().keySet()) {
                 if (indexPath.startsWith("/oak:index/" + DiffIndexMerger.DIFF_INDEX)) {
                     continue;

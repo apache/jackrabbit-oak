@@ -16,13 +16,22 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.diff;
 
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.Map;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
 public class MergeTest {
@@ -101,7 +110,7 @@ public class MergeTest {
         // A property might be indexed twice, by adding two children to the "properties" node
         // that both have the same "name" value.
         // Alternatively, they could have the same "function" value.
-        String merged = DiffIndexMerger.processMerge(JsonObject.fromJson("{\n"
+        String merged = DiffIndexMerger.instance().processMerge(JsonObject.fromJson("{\n"
                 + "    \"jcr:primaryType\": \"nam:oak:QueryIndexDefinition\",\n"
                 + "    \"type\": \"lucene\",\n"
                 + "    \"indexRules\": {\n"
@@ -155,7 +164,7 @@ public class MergeTest {
     public void renamedFunction() {
         // A function might be indexed twice, by adding two children to the "properties" node
         // that both have the same "function" value.
-        String merged = DiffIndexMerger.processMerge(JsonObject.fromJson("{\n"
+        String merged = DiffIndexMerger.instance().processMerge(JsonObject.fromJson("{\n"
                 + "    \"jcr:primaryType\": \"nam:oak:QueryIndexDefinition\",\n"
                 + "    \"type\": \"lucene\",\n"
                 + "    \"indexRules\": {\n"
@@ -206,11 +215,37 @@ public class MergeTest {
     }
 
     @Test
+    public void createDummy() {
+        // when enabling "deleteCreatesDummyIndex", then a dummy index is created
+        // (that indexes /dummy, which doesn't exist)
+        String merged = new DiffIndexMerger(new String[0], true, true, false).processMerge(JsonObject.fromJson("{}"
+                + "", true), JsonObject.fromJson("{}", true)).toString();
+        assertEquals("{\n"
+                + "  \"async\": \"async\",\n"
+                + "  \"includedPaths\": \"/dummy\",\n"
+                + "  \"queryPaths\": \"/dummy\",\n"
+                + "  \"type\": \"lucene\",\n"
+                + "  \"jcr:primaryType\": \"nam:oak:QueryIndexDefinition\",\n"
+                + "  \"indexRules\": {\n"
+                + "    \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                + "    \"properties\": {\n"
+                + "      \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                + "      \"dummy\": {\n"
+                + "        \"name\": \"dummy\",\n"
+                + "        \"propertyIndex\": true,\n"
+                + "        \"jcr:primaryType\": \"nam:nt:unstructured\"\n"
+                + "      }\n"
+                + "    }\n"
+                + "  }\n"
+                + "}", merged);
+    }
+
+    @Test
     public void boost() {
         // - "analyzed" must not be overwritten
         // - "ordered" is added
         // - "boost" is overwritten
-        String merged = DiffIndexMerger.processMerge(JsonObject.fromJson("{\n"
+        String merged = DiffIndexMerger.instance().processMerge(JsonObject.fromJson("{\n"
                 + "    \"jcr:primaryType\": \"nam:oak:QueryIndexDefinition\",\n"
                 + "    \"type\": \"lucene\",\n"
                 + "    \"indexRules\": {\n"
@@ -348,5 +383,55 @@ public class MergeTest {
                 + "    }\n"
                 + "  }\n"
                 + "}", result);
+    }
+
+    @Test
+    public void includesUnsupportedPathsTest() {
+        DiffIndexMerger merger = new DiffIndexMerger(new String[]{"/apps", "/libs"}, false, false, false);
+
+        assertEquals(true, merger.includesUnsupportedPaths(null));
+        assertEquals(true, merger.includesUnsupportedPaths(new String[]{"/"}));
+        assertEquals(true, merger.includesUnsupportedPaths(new String[]{"/apps"}));
+        assertEquals(true, merger.includesUnsupportedPaths(new String[]{"/apps/acme"}));
+        assertEquals(true, merger.includesUnsupportedPaths(new String[]{"/apps/acme/test"}));
+        assertEquals(true, merger.includesUnsupportedPaths(new String[]{"/libs"}));
+        assertEquals(true, merger.includesUnsupportedPaths(new String[]{"/libs/foundation"}));
+        assertEquals(true, merger.includesUnsupportedPaths(new String[]{"/content", "/apps"}));
+        assertEquals(true, merger.includesUnsupportedPaths(new String[]{"/content", "/libs/test"}));
+
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/content"}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/content/dam"}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/var"}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/etc"}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/content", "/var", "/etc"}));
+    }
+
+    @Test
+    public void readDiffIndexTest() throws CommitFailedException {
+        NodeStore store = new MemoryNodeStore(INITIAL_CONTENT);
+        NodeBuilder root = store.getRoot().builder();
+        NodeBuilder oakIndex = root.child("oak:index");
+        NodeBuilder diffIndex = oakIndex.child("diff.index.optimizer");
+        diffIndex.setProperty("jcr:primaryType", "nt:unstructured");
+        diffIndex.setProperty("type", "lucene");
+        diffIndex.setProperty("async", "async");
+        diffIndex.setProperty("includedPaths", "/content");
+        NodeBuilder indexRules = diffIndex.child("indexRules");
+        NodeBuilder damAsset = indexRules.child("dam:Asset");
+        NodeBuilder properties = damAsset.child("properties");
+        NodeBuilder testProp = properties.child("test");
+        testProp.setProperty("name", "jcr:content/metadata/test");
+        testProp.setProperty("propertyIndex", true);
+        store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        Map<String, JsonObject> result = DiffIndexMerger.instance().readDiffIndex(store, "diff.index.optimizer");
+
+        assertEquals(1, result.size());
+        assertTrue(result.containsKey("/oak:index/diff.index.optimizer"));
+        JsonObject indexDef = result.get("/oak:index/diff.index.optimizer");
+        assertEquals("\"lucene\"", indexDef.getProperties().get("type"));
+        assertEquals("\"async\"", indexDef.getProperties().get("async"));
+        assertEquals("\"/content\"", indexDef.getProperties().get("includedPaths"));
+        assertTrue(indexDef.getChildren().containsKey("indexRules"));
     }
 }

@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
  */
 public class DiffIndexMerger {
 
-    final static Logger LOG = LoggerFactory.getLogger(DiffIndexMerger.class);
+    private final static Logger LOG = LoggerFactory.getLogger(DiffIndexMerger.class);
 
     public final static String DIFF_INDEX = "diff.index";
     public final static String DIFF_INDEX_OPTIMIZER = "diff.index.optimizer";
@@ -62,6 +62,30 @@ public class DiffIndexMerger {
     // in case a customization was removed, create a copy of the OOTB index
     private final static boolean DELETE_COPIES_OOTB = Boolean.getBoolean("oak.diffIndex.deleteCopiesOOTB");
 
+    // whether to log at info level
+    private final static boolean LOG_AT_INFO_LEVEL = Boolean.getBoolean("oak.diffIndex.logAtInfoLevel");
+
+    private final String[] unsupportedIncludedPaths;
+    private final boolean deleteCreatesDummyIndex;
+    private final boolean deleteCopiesOutOfTheBoxIndex;
+    private final boolean logAtInfoLevel;
+
+    static final DiffIndexMerger INSTANCE = new DiffIndexMerger(UNSUPPORTED_INCLUDED_PATHS,
+            DELETE_CREATES_DUMMY, DELETE_COPIES_OOTB, LOG_AT_INFO_LEVEL);
+
+    public static DiffIndexMerger instance() {
+        return INSTANCE;
+    }
+
+    DiffIndexMerger(String[] unsupportedIncludedPaths,
+            boolean deleteCreatesDummyIndex, boolean deleteCopiesOutOfTheBoxIndex,
+            boolean logAtInfoLevel) {
+        this.unsupportedIncludedPaths = unsupportedIncludedPaths;
+        this.deleteCreatesDummyIndex = deleteCreatesDummyIndex;
+        this.deleteCopiesOutOfTheBoxIndex = deleteCopiesOutOfTheBoxIndex;
+        this.logAtInfoLevel = logAtInfoLevel;
+    }
+
     /**
      * If there is a diff index, that is an index with prefix "diff.", then try to merge it.
      *
@@ -73,7 +97,7 @@ public class DiffIndexMerger {
      *        (input)
      * @param repositoryNodeStore
      */
-    public static void merge(JsonObject newImageLuceneDefinitions, JsonObject repositoryDefinitions, NodeStore repositoryNodeStore) {
+    public void merge(JsonObject newImageLuceneDefinitions, JsonObject repositoryDefinitions, NodeStore repositoryNodeStore) {
         // combine all definitions into one object
         JsonObject combined = new JsonObject();
 
@@ -97,7 +121,7 @@ public class DiffIndexMerger {
         if (!found) {
             // early exit, so that the risk of merging the PR
             // is very small for customers that do not use this
-            LOG.debug("No 'diff.index' definition");
+            log("No 'diff.index' definition");
             return;
         }
         mergeDiff(newImageLuceneDefinitions, combined);
@@ -117,7 +141,7 @@ public class DiffIndexMerger {
      *        (input)
      * @return whether a new version of an index was added
      */
-    static boolean mergeDiff(JsonObject newImageLuceneDefinitions, JsonObject combined) {
+    boolean mergeDiff(JsonObject newImageLuceneDefinitions, JsonObject combined) {
         // iterate again, this time process
 
         // collect the diff index(es)
@@ -128,7 +152,7 @@ public class DiffIndexMerger {
         // (indexes with mergeInfo), then we need to disable those (using /dummy includedPath)
         extractExistingMergedIndexes(combined, toProcess);
         if (toProcess.isEmpty()) {
-            LOG.debug("No diff index definitions found.");
+            log("No diff index definitions found.");
             return false;
         }
         boolean hasChanges = false;
@@ -139,7 +163,7 @@ public class DiffIndexMerger {
                 LOG.warn("The key should contains just the index name, without the '/oak:index' prefix for key {}", key);
                 key = key.substring("/oak:index/".length());
             }
-            LOG.debug("Processing {}", key);
+            log("Processing {}", key);
             hasChanges |= processMerge(key, value, newImageLuceneDefinitions, combined);
         }
         return hasChanges;
@@ -268,7 +292,7 @@ public class DiffIndexMerger {
      *                                  (input)
      * @return whether a new version of an index was added
      */
-    public static boolean processMerge(String indexName, JsonObject indexDiff, JsonObject newImageLuceneDefinitions, JsonObject combined) {
+    public boolean processMerge(String indexName, JsonObject indexDiff, JsonObject newImageLuceneDefinitions, JsonObject combined) {
         // extract the latest product index (eg. damAssetLucene-12)
         // and customized index (eg. damAssetLucene-12-custom-3) - if any
         IndexName latestProduct = null;
@@ -279,7 +303,7 @@ public class DiffIndexMerger {
         for (String key : combined.getChildren().keySet()) {
             IndexName name = IndexName.parse(key.substring(prefix.length()));
             if (!name.isVersioned()) {
-                LOG.debug("Ignoring unversioned index {}", name);
+                log("Ignoring unversioned index {}", name);
                 continue;
             }
             if (!name.getBaseName().equals(indexName)) {
@@ -300,14 +324,14 @@ public class DiffIndexMerger {
                 }
             }
         }
-        LOG.debug("Latest product: {}", latestProductKey);
-        LOG.debug("Latest customized: {}", latestCustomizedKey);
+        log("Latest product: {}", latestProductKey);
+        log("Latest customized: {}", latestCustomizedKey);
         if (latestProduct == null) {
             if (indexName.indexOf('.') >= 0) {
                 // a fully custom index needs to contains a dot
-                LOG.debug("Fully custom index {}", indexName);
+                log("Fully custom index {}", indexName);
             } else {
-                LOG.debug("No product version for {}", indexName);
+                log("No product version for {}", indexName);
                 return false;
             }
         }
@@ -316,12 +340,12 @@ public class DiffIndexMerger {
         if (latestProductIndex == null) {
             if (indexDiff.getProperties().isEmpty() && indexDiff.getChildren().isEmpty()) {
                 // there is no customization (any more), which means a dummy index may be needed
-                LOG.debug("No customization for {}", indexName);
+                log("No customization for {}", indexName);
             } else {
                 includedPaths = JsonNodeBuilder.oakStringArrayValue(indexDiff, "includedPaths");
                 if (includesUnsupportedPaths(includedPaths)) {
                     LOG.warn("New custom index {} is not supported because it contains an unsupported path ({})",
-                            indexName, Arrays.toString(UNSUPPORTED_INCLUDED_PATHS));
+                            indexName, Arrays.toString(unsupportedIncludedPaths));
                     return false;
                 }
             }
@@ -329,7 +353,7 @@ public class DiffIndexMerger {
             includedPaths = JsonNodeBuilder.oakStringArrayValue(latestProductIndex, "includedPaths");
             if (includesUnsupportedPaths(includedPaths)) {
                 LOG.warn("Customizing index {} is not supported because it contains an unsupported path ({})",
-                        latestProductKey, Arrays.toString(UNSUPPORTED_INCLUDED_PATHS));
+                        latestProductKey, Arrays.toString(unsupportedIncludedPaths));
                 return false;
             }
         }
@@ -339,7 +363,7 @@ public class DiffIndexMerger {
         if (indexDiff == null) {
             // no diff definition: use to the OOTB index
             if (latestCustomized == null) {
-                LOG.debug("Only a product index found, nothing to do");
+                log("Only a product index found, nothing to do");
                 return false;
             }
             merged = latestProductIndex;
@@ -368,7 +392,7 @@ public class DiffIndexMerger {
             if (isSameIgnorePropertyOrder(mergedDef, latestDef)) {
                 // normal case: no change
                 // (even if checksums do not match: checksums might be missing or manipulated)
-                LOG.debug("Latest index matches");
+                log("Latest index matches");
                 if (latestMergeChecksum != null && !latestMergeChecksum.equals(mergeChecksum)) {
                     LOG.warn("Indexes do match, but checksums do not. Possibly checksum was changed: {} vs {}", latestMergeChecksum, mergeChecksum);
                     LOG.warn("latest: {}\nmerged: {}", latestDef, mergedDef);
@@ -409,7 +433,7 @@ public class DiffIndexMerger {
         merged.getProperties().put("merges", "[" + JsopBuilder.encode("/oak:index/" + indexName) + "]");
         merged.getProperties().remove("reindexCount");
         merged.getProperties().remove("reindex");
-        if (!DELETE_COPIES_OOTB && indexDiff.toString().equals("{}")) {
+        if (!deleteCopiesOutOfTheBoxIndex && indexDiff.toString().equals("{}")) {
             merged.getProperties().put("type", "\"disabled\"");
             merged.getProperties().put("mergeComment", "\"This index is superseeded and can be removed\"");
         }
@@ -425,8 +449,8 @@ public class DiffIndexMerger {
      * @param includedPaths the includedPaths list
      * @return true if any unsupported path is included
      */
-    public static boolean includesUnsupportedPaths(String[] includedPaths) {
-        if (UNSUPPORTED_INCLUDED_PATHS.length == 1 && "".equals(UNSUPPORTED_INCLUDED_PATHS[0])) {
+    public boolean includesUnsupportedPaths(String[] includedPaths) {
+        if (unsupportedIncludedPaths.length == 1 && "".equals(unsupportedIncludedPaths[0])) {
             // set to an empty string
             return false;
         }
@@ -439,7 +463,7 @@ public class DiffIndexMerger {
                 // all
                 return true;
             }
-            for (String unsupported : UNSUPPORTED_INCLUDED_PATHS) {
+            for (String unsupported : unsupportedIncludedPaths) {
                 if (unsupported.isEmpty()) {
                     continue;
                 }
@@ -601,7 +625,7 @@ public class DiffIndexMerger {
      * @param diff the diff (from the diff.index definition)
      * @return the index definition of the merged index
      */
-    public static JsonObject processMerge(JsonObject productIndex, JsonObject diff) {
+    public JsonObject processMerge(JsonObject productIndex, JsonObject diff) {
         JsonObject result;
         if (productIndex == null) {
             // fully custom index
@@ -649,7 +673,7 @@ public class DiffIndexMerger {
      * @param diff the diff (what to merge)
      * @param target where to merge into
      */
-    private static void mergeInto(String path, JsonObject diff, JsonObject target) {
+    private void mergeInto(String path, JsonObject diff, JsonObject target) {
         for (String p : diff.getProperties().keySet()) {
             if (path.isEmpty()) {
                 if ("jcr:primaryType".equals(p)) {
@@ -700,7 +724,7 @@ public class DiffIndexMerger {
             mergeInto(path + "/" + targetChildName, diff.getChildren().get(c), target.getChildren().get(targetChildName));
         }
         if (target.getProperties().isEmpty() && target.getChildren().isEmpty()) {
-            if (DELETE_CREATES_DUMMY) {
+            if (deleteCreatesDummyIndex) {
                 // dummy index
                 target.getProperties().put("async", "\"async\"");
                 target.getProperties().put("includedPaths", "\"/dummy\"");
@@ -750,9 +774,9 @@ public class DiffIndexMerger {
      * @param b the second object
      * @return true if the keys and values are equal
      */
-    public static boolean isSameIgnorePropertyOrder(JsonObject a, JsonObject b) {
+    public boolean isSameIgnorePropertyOrder(JsonObject a, JsonObject b) {
         if (!a.getChildren().keySet().equals(b.getChildren().keySet())) {
-            LOG.debug("Child (order) difference: {} vs {}",
+            log("Child (order) difference: {} vs {}",
                     a.getChildren().keySet(), b.getChildren().keySet());
             return false;
         }
@@ -765,7 +789,7 @@ public class DiffIndexMerger {
         TreeMap<String, String> pa = new TreeMap<>(a.getProperties());
         TreeMap<String, String> pb = new TreeMap<>(b.getProperties());
         if (!pa.toString().equals(pb.toString())) {
-            LOG.debug("Property value difference: {} vs {}", pa.toString(), pb.toString());
+            log("Property value difference: {} vs {}", pa.toString(), pb.toString());
         }
         return pa.toString().equals(pb.toString());
     }
@@ -778,12 +802,12 @@ public class DiffIndexMerger {
      * @param repositoryNodeStore the node store
      * @return a map, possibly with a single entry with this key
      */
-    static Map<String, JsonObject> readDiffIndex(NodeStore repositoryNodeStore, String name) {
+    public Map<String, JsonObject> readDiffIndex(NodeStore repositoryNodeStore, String name) {
         HashMap<String, JsonObject> map = new HashMap<>();
         NodeState root = repositoryNodeStore.getRoot();
         String indexPath = "/oak:index/" + name;
         NodeState idxState = NodeStateUtils.getNode(root, indexPath);
-        LOG.debug("Searching index {}: found={}", indexPath, idxState.exists());
+        log("Searching index {}: found={}", indexPath, idxState.exists());
         if (!idxState.exists()) {
             return map;
         }
@@ -793,9 +817,17 @@ public class DiffIndexMerger {
         serializer.serialize(idxState);
         JsonObject jsonObj = JsonObject.fromJson(builder.toString(), true);
         jsonObj = cleanedAndNormalized(jsonObj);
-        LOG.debug("Found {}", jsonObj.toString());
+        log("Found {}", jsonObj.toString());
         map.put(indexPath, jsonObj);
         return map;
+    }
+
+    private void log(String format, Object... arguments) {
+        if (logAtInfoLevel) {
+            LOG.info(format, arguments);
+        } else {
+            LOG.debug(format, arguments);
+        }
     }
 
 }
