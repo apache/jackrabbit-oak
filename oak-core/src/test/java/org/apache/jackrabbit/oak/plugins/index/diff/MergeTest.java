@@ -218,7 +218,7 @@ public class MergeTest {
     public void createDummy() {
         // when enabling "deleteCreatesDummyIndex", then a dummy index is created
         // (that indexes /dummy, which doesn't exist)
-        String merged = new DiffIndexMerger(new String[0], true, true).processMerge(JsonObject.fromJson("{}"
+        String merged = new DiffIndexMerger(new String[0], true, true, false).processMerge(JsonObject.fromJson("{}"
                 + "", true), JsonObject.fromJson("{}", true)).toString();
         assertEquals("{\n"
                 + "  \"async\": \"async\",\n"
@@ -387,7 +387,7 @@ public class MergeTest {
 
     @Test
     public void includesUnsupportedPathsTest() {
-        DiffIndexMerger merger = new DiffIndexMerger(new String[]{"/apps", "/libs"}, false, false);
+        DiffIndexMerger merger = new DiffIndexMerger(new String[]{"/apps", "/libs"}, false, false, false);
 
         assertEquals(true, merger.includesUnsupportedPaths(null));
         assertEquals(true, merger.includesUnsupportedPaths(new String[]{"/"}));
@@ -424,7 +424,7 @@ public class MergeTest {
         testProp.setProperty("propertyIndex", true);
         store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        Map<String, JsonObject> result = DiffIndexMerger.readDiffIndex(store, "diff.index.optimizer");
+        Map<String, JsonObject> result = DiffIndexMerger.instance().readDiffIndex(store, "diff.index.optimizer");
 
         assertEquals(1, result.size());
         assertTrue(result.containsKey("/oak:index/diff.index.optimizer"));
