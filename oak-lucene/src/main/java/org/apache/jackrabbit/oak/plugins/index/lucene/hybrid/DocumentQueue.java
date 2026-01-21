@@ -35,10 +35,10 @@ import java.util.concurrent.locks.Lock;
 
 import org.apache.commons.collections4.ListValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
-import org.apache.jackrabbit.guava.common.util.concurrent.Striped;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.concurrent.NotifyingFutureTask;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.StripedLocks;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProviderService;
@@ -62,7 +62,7 @@ public class DocumentQueue implements Closeable, IndexingQueue {
     private final CounterStats queueSizeStats;
     private final MeterStats added;
     private final MeterStats dropped;
-    private final Striped<Lock> locks = Striped.lock(64);
+    private final StripedLocks locks = new StripedLocks(64);
     private UncaughtExceptionHandler delegate = (t, e) -> {};
 
     /**
