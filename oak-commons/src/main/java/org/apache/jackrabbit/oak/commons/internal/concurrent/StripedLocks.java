@@ -27,6 +27,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class StripedLocks {
 
     private final Lock[] stripes;
+    private final int len;
 
     public StripedLocks(final int stripesCount) {
         if (stripesCount <= 0) {
@@ -36,17 +37,20 @@ public class StripedLocks {
         for (int i = 0; i < stripesCount; i++) {
             this.stripes[i] = new ReentrantLock();
         }
+        this.len = stripesCount;
     }
 
     public Lock get(Object key) {
         int h = (key == null) ? 0 : key.hashCode();
-        // Spread bits to reduce collisions, similar to ConcurrentHashMap
-        h ^= (h >>> 16);
-        int index = (h & 0x7fffffff) % stripes.length;
+        // Spread bits to reduce collisions, using
+        // https://stackoverflow.com/questions/664014/what-integer-hash-function-are-good-that-accepts-an-integer-hash-key/12996028#12996028
+        h *= 0x45d9f3b;
+        // http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
+        int index = (int) (((h & 0xffffffffL) * len) >>> 32);
         return stripes[index];
     }
 
     public int stripesCount() {
-        return stripes.length;
+        return len;
     }
 }
