@@ -17,19 +17,17 @@
 package org.apache.jackrabbit.oak.segment.azure;
 
 import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.models.ListBlobsOptions;
 import com.azure.storage.blob.specialized.BlockBlobClient;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.remote.AbstractRemoteSegmentArchiveReader;
-import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.readBufferFully;
 
@@ -37,45 +35,29 @@ public class AzureSegmentArchiveReader extends AbstractRemoteSegmentArchiveReade
 
     private final BlobContainerClient blobContainerClient;
 
-    private final long length;
-
-    private final String archiveName;
-
     private final String archivePathPrefix;
 
-    AzureSegmentArchiveReader(BlobContainerClient blobContainerClient, String rootPrefix, String archiveName, IOMonitor ioMonitor) throws IOException {
-        super(ioMonitor);
+    AzureSegmentArchiveReader(BlobContainerClient blobContainerClient, String rootPrefix, String archiveName, IOMonitor ioMonitor) {
+        super(ioMonitor, AzureUtilities.ensureNoTrailingSlash(archiveName),
+                createEntryIterable(blobContainerClient, AzureUtilities.asAzurePrefix(rootPrefix, archiveName)));
         this.blobContainerClient = blobContainerClient;
-        this.archiveName = AzureUtilities.ensureNoTrailingSlash(archiveName);
         this.archivePathPrefix = AzureUtilities.asAzurePrefix(rootPrefix, archiveName);
-        this.length = computeArchiveIndexAndLength();
     }
 
-    @Override
-    public long length() {
-        return length;
-    }
-
-    @Override
-    public String getName() {
-        return archiveName;
-    }
-
-    @Override
-    protected long computeArchiveIndexAndLength() throws IOException {
-        long length = 0;
+    private static Iterable<ArchiveEntry> createEntryIterable(BlobContainerClient blobContainerClient, @NotNull String archivePathPrefix) {
         ListBlobsOptions listBlobsOptions = new ListBlobsOptions();
         listBlobsOptions.setPrefix(archivePathPrefix);
-        for (BlobItem blob : AzureUtilities.getBlobs(blobContainerClient, listBlobsOptions)) {
-            Map<String, String> metadata = blob.getMetadata();
-            if (AzureBlobMetadata.isSegment(metadata)) {
-                RemoteSegmentArchiveEntry indexEntry = AzureBlobMetadata.toIndexEntry(metadata, blob.getProperties().getContentLength().intValue());
-                index.put(new UUID(indexEntry.getMsb(), indexEntry.getLsb()), indexEntry);
-            }
-            length += blob.getProperties().getContentLength();
-        }
-
-        return length;
+        return AzureUtilities.getBlobs(blobContainerClient, listBlobsOptions).stream()
+                .map(blobItem -> {
+                    Map<String, String> metadata = blobItem.getMetadata();
+                    int length = blobItem.getProperties().getContentLength().intValue();
+                    if (AzureBlobMetadata.isSegment(metadata)) {
+                        return new ArchiveEntry(AzureBlobMetadata.toIndexEntry(metadata, length));
+                    } else {
+                        return new ArchiveEntry(length);
+                    }
+                })
+                ::iterator;
     }
 
     @Override

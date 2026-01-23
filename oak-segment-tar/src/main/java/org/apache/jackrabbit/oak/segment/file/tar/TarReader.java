@@ -25,6 +25,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -283,10 +284,7 @@ public class TarReader implements Closeable {
     private TarReader(SegmentArchiveManager archiveManager, SegmentArchiveReader archive) {
         this.archiveManager = archiveManager;
         this.archive = archive;
-        this.segmentUUIDs = archive.listSegments()
-                .stream()
-                .map(e -> new UUID(e.getMsb(), e.getLsb()))
-                .collect(Collectors.toUnmodifiableSet());
+        this.segmentUUIDs = archive.getSegmentUUIDs();
     }
 
     long size() {
