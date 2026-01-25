@@ -21,6 +21,7 @@ import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.OFF_HEAP;
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.remote.AbstractRemoteSegmentArchiveReader;
@@ -46,6 +47,10 @@ public class AwsSegmentArchiveReader extends AbstractRemoteSegmentArchiveReader 
 
             @Override
             public ArchiveEntry next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+
                 long msb = buffer.getLong();
                 long lsb = buffer.getLong();
                 int position = buffer.getInt();
