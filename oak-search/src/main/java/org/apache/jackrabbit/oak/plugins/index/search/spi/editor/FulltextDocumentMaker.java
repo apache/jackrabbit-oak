@@ -194,8 +194,8 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             }
 
             var indexed = indexProperty(path, document, state, property, pname, pd);
-            dirty |= indexed;
             if (indexed) {
+                dirty = true;
                 // property was indexed, so remove from the removed list
                 propertiesToRemove.remove(pname);
             }
