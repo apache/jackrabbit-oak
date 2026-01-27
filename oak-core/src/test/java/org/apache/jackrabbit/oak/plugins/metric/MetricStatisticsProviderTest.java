@@ -37,9 +37,9 @@ import javax.management.Query;
 import javax.management.QueryExp;
 
 import com.codahale.metrics.JmxReporter;
-import org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.UninterruptibleUtils;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.GaugeStats;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
@@ -175,7 +175,7 @@ public class MetricStatisticsProviderTest {
             threads.add(new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    Uninterruptibles.awaitUninterruptibly(latch);
+                    UninterruptibleUtils.awaitUninterruptibly(latch);
                     statsQueue.add(statsProvider.getMeter("foo", StatsOptions.DEFAULT));
                 }
             }));
