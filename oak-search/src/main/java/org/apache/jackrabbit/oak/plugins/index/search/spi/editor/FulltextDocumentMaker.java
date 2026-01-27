@@ -41,10 +41,12 @@ import javax.jcr.PropertyType;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
@@ -143,17 +145,32 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         }
     }
 
+    /**
+     * Remove properties from the document. Default implementation is a no-op since the entire document is rebuilt
+     * on update. For implementations that support partial updates, this method should be overridden.
+     * @param doc the document
+     * @param propertyName the property name to be removed
+     */
+    protected void removeProperty(D doc, String propertyName) {
+        // Default no-op
+    }
+
     @Nullable
     public D makeDocument(NodeState state) throws IOException {
         return makeDocument(state, false, List.of());
     }
 
     @Nullable
-    public D makeDocument(NodeState state, boolean isUpdate, List<PropertyState> propertiesModified) throws IOException {
+    public D makeDocument(NodeState state, boolean isUpdate, @NotNull List<PropertyState> propertiesModified) throws IOException {
         boolean facet = false;
 
         D document = initDoc();
         boolean dirty = false;
+
+        // we make a copy of the modified properties names. These will be removed while iterating over all properties.
+        // The remaining properties are the ones that were removed.
+        Map<String, PropertyState> propertiesToRemove = propertiesModified.stream()
+                .collect(Collectors.toMap(PropertyState::getName, ps -> ps));
 
         String nodeName = PathUtils.getName(path);
         //We 'intentionally' are indexing node names only on root state as we don't support indexing relative or
@@ -176,7 +193,12 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                 dirty |= addTypedOrderedFields(document, property, pname, pd);
             }
 
-            dirty |= indexProperty(path, document, state, property, pname, pd);
+            var indexed = indexProperty(path, document, state, property, pname, pd);
+            if (indexed) {
+                dirty = true;
+                // property was indexed, so remove from the removed list
+                propertiesToRemove.remove(pname);
+            }
 
             facet |= pd.facet;
         }
@@ -189,9 +211,8 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         dirty |= indexNotNullCheckEnabledProps(path, document, state);
         dirty |= augmentCustomFields(path, document, state);
 
-        // Check if a node having a single property was modified/deleted
-        if (!dirty) {
-            dirty = indexIfSinglePropertyRemoved(propertiesModified);
+        if (!propertiesToRemove.isEmpty()) {
+            dirty |= removeProperties(document, propertiesToRemove);
         }
 
         if (isUpdate && !dirty) {
@@ -327,6 +348,21 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
         }
 
+        return dirty;
+    }
+
+    private boolean removeProperties(D doc, Map<String, PropertyState> properties) {
+        boolean dirty = false;
+        for (PropertyState ps : properties.values()) {
+            PropertyDefinition pd = indexingRule.getConfig(ps.getName());
+            if (pd != null
+                    && pd.index
+                    && (pd.includePropertyType(ps.getType().tag())
+                    || indexingRule.includePropertyType(ps.getType().tag()))) {
+                removeProperty(doc, ps.getName());
+                dirty = true;
+            }
+        }
         return dirty;
     }
 
@@ -501,23 +537,6 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                     Arrays.toString(functionCode), path, e);
             throw e;
         }
-    }
-
-    private boolean indexIfSinglePropertyRemoved(List<PropertyState> propertiesModified) {
-        boolean dirty = false;
-        // Performance critical code: using indexed traversal to avoid creating an iterator instance.
-        for (int i = 0; i < propertiesModified.size(); i++) {
-            PropertyState ps = propertiesModified.get(i);
-            PropertyDefinition pd = indexingRule.getConfig(ps.getName());
-            if (pd != null
-                    && pd.index
-                    && (pd.includePropertyType(ps.getType().tag())
-                    || indexingRule.includePropertyType(ps.getType().tag()))) {
-                dirty = true;
-                break;
-            }
-        }
-        return dirty;
     }
 
     /*

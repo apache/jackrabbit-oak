@@ -35,6 +35,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 
 import javax.jcr.query.Query;
 
@@ -75,11 +76,10 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         logCustomizer.finished();
     }
 
-
     @Override
     protected void createTestIndexNode() throws Exception {
         Tree index = root.getTree("/");
-        indexDefn = createTestIndexNode(index, indexOptions.getIndexType());
+        indexDefn = createTestIndexNode(UUID.randomUUID().toString(), index, indexOptions.getIndexType());
         TestUtil.useV2(indexDefn);
         indexDefn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
         indexDefn.setProperty("tags", "x");
@@ -142,9 +142,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         final String query = "select [jcr:path] from [nt:base] where isdescendantnode('/test') and contains(*, 'hello')";
 
         assertEventually(() -> {
-            Iterator<String> result = executeQuery(query, Query.JCR_SQL2).iterator();
-            List<String> paths = new ArrayList<>();
-            result.forEachRemaining(paths::add);
+            List<String> paths = new ArrayList<>(executeQuery(query, Query.JCR_SQL2));
             assertEquals(2, paths.size());
             assertEquals(paths.get(0), a.getPath());
             assertEquals(paths.get(1), b.getPath());
@@ -155,9 +153,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            Iterator<String> result = executeQuery(query, Query.JCR_SQL2).iterator();
-            List<String> paths = new ArrayList<>();
-            result.forEachRemaining(paths::add);
+            List<String> paths = new ArrayList<>(executeQuery(query, Query.JCR_SQL2));
             assertEquals(1, paths.size());
             assertEquals(paths.get(0), b.getPath());
         });
@@ -485,15 +481,15 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
 
         test.getChild(child).setProperty(mulValuedProp, List.of(), STRINGS);
         root.commit();
-        assertEventually(() -> assertQuery("/jcr:root//*[jcr:contains(@" + mulValuedProp + ", 'foo')]", "xpath", new ArrayList<>()));
+        assertEventually(() -> assertQuery("/jcr:root//*[jcr:contains(@" + mulValuedProp + ", 'foo')]", "xpath", List.of()));
 
         test.getChild(child).setProperty(mulValuedProp, List.of("bar"), STRINGS);
         root.commit();
-        assertEventually(() -> assertQuery("/jcr:root//*[jcr:contains(@" + mulValuedProp + ", 'foo')]", "xpath", new ArrayList<>()));
+        assertEventually(() -> assertQuery("/jcr:root//*[jcr:contains(@" + mulValuedProp + ", 'foo')]", "xpath", List.of()));
 
         test.getChild(child).removeProperty(mulValuedProp);
         root.commit();
-        assertEventually(() -> assertQuery("/jcr:root//*[jcr:contains(@" + mulValuedProp + ", 'foo')]", "xpath", new ArrayList<>()));
+        assertEventually(() -> assertQuery("/jcr:root//*[jcr:contains(@" + mulValuedProp + ", 'bar')]", "xpath", List.of()));
     }
 
     @SuppressWarnings("unused")
@@ -544,7 +540,6 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         setTraversalEnabled(true);
     }
 
-
     @Test
     public void fullTextQueryTestAllowLeadingWildcards() throws Exception {
 
@@ -561,7 +556,6 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         String query = "//*[jcr:contains(@propa, 'Hello *ship')] ";
         assertEventually(() -> assertQuery(query, XPATH, List.of("/test/e")));
     }
-
 
     @Test
     public void fullTextQueryTestAllowLeadingWildcards2() throws Exception {
@@ -701,7 +695,6 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         assertEventually(() -> assertQuery(query2, XPATH, List.of("/test/test1")));
     }
 
-
     @Test
     public void testEqualityQuery_native() throws Exception {
 
@@ -832,7 +825,8 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         };
     }
 
-    protected static void assertEventually(Runnable r) {
-        TestUtil.assertEventually(r, 3000 * 3);
+    protected void assertEventually(Runnable r) {
+        TestUtil.assertEventually(r,
+                ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds * 1000 : 0) + 3000) * 5);
     }
 }
