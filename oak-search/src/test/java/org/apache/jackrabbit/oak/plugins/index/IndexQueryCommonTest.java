@@ -75,7 +75,6 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         logCustomizer.finished();
     }
 
-
     @Override
     protected void createTestIndexNode() throws Exception {
         Tree index = root.getTree("/");
@@ -489,7 +488,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
 
         test.getChild(child).removeProperty(mulValuedProp);
         root.commit();
-        assertEventually(() -> assertQuery("/jcr:root//*[jcr:contains(@" + mulValuedProp + ", 'foo')]", "xpath", List.of()));
+        assertEventually(() -> assertQuery("/jcr:root//*[jcr:contains(@" + mulValuedProp + ", 'bar')]", "xpath", List.of()));
     }
 
     @SuppressWarnings("unused")
@@ -540,7 +539,6 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         setTraversalEnabled(true);
     }
 
-
     @Test
     public void fullTextQueryTestAllowLeadingWildcards() throws Exception {
 
@@ -557,7 +555,6 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         String query = "//*[jcr:contains(@propa, 'Hello *ship')] ";
         assertEventually(() -> assertQuery(query, XPATH, List.of("/test/e")));
     }
-
 
     @Test
     public void fullTextQueryTestAllowLeadingWildcards2() throws Exception {
@@ -696,7 +693,6 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         // /test/test6 should NOT be returned because for it propa = null
         assertEventually(() -> assertQuery(query2, XPATH, List.of("/test/test1")));
     }
-
 
     @Test
     public void testEqualityQuery_native() throws Exception {
