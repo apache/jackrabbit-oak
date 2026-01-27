@@ -35,6 +35,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 
 import javax.jcr.query.Query;
 
@@ -78,7 +79,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
     @Override
     protected void createTestIndexNode() throws Exception {
         Tree index = root.getTree("/");
-        indexDefn = createTestIndexNode(index, indexOptions.getIndexType());
+        indexDefn = createTestIndexNode(UUID.randomUUID().toString(), index, indexOptions.getIndexType());
         TestUtil.useV2(indexDefn);
         indexDefn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
         indexDefn.setProperty("tags", "x");
