@@ -179,9 +179,6 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         for (PropertyState property : IterableUtils.chainedIterable(state.getProperties(), List.of(nodeNamePS))) {
             String pname = property.getName();
 
-            // remove from properties to remove list
-            propertiesToRemove.remove(pname);
-
             if (!isVisible(pname) && !FieldNames.NODE_NAME.equals(pname)) {
                 continue;
             }
@@ -196,7 +193,12 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                 dirty |= addTypedOrderedFields(document, property, pname, pd);
             }
 
-            dirty |= indexProperty(path, document, state, property, pname, pd);
+            var indexed = indexProperty(path, document, state, property, pname, pd);
+            dirty |= indexed;
+            if (indexed) {
+                // property was indexed, so remove from the removed list
+                propertiesToRemove.remove(pname);
+            }
 
             facet |= pd.facet;
         }
