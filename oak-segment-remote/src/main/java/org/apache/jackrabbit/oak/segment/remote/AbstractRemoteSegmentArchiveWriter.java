@@ -66,7 +66,7 @@ public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchi
         } else {
             doWriteArchiveEntry(entry, data, offset, size);
         }
-        index.put(new UUID(msb, lsb), entry);
+        index.put(entry.getUuid(), entry);
 
         totalLength += size;
         monitor.written(size);
@@ -80,7 +80,7 @@ public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchi
             return segment.get().toBuffer();
         }
 
-        RemoteSegmentArchiveEntry indexEntry = index.get(new UUID(msb, lsb));
+        RemoteSegmentArchiveEntry indexEntry = index.get(uuid);
         if (indexEntry == null) {
             return null;
         }
@@ -95,7 +95,7 @@ public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchi
         if (segment.isPresent()) {
             return true;
         }
-        return index.containsKey(new UUID(msb, lsb));
+        return index.containsKey(uuid);
     }
 
     @Override

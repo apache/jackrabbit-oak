@@ -28,7 +28,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -1235,8 +1234,12 @@ public class Utils {
             if (timeDiff > warnThresholdMillis) {
                 LOG.warn("Detected clock differences. Local time is '{}', " +
                                 "while most recent external time is '{}'. " +
+                                "Threshold: {}ms, Difference: {}ms. " +
                                 "Current _lastRev entries: {}",
-                        new Date(localTime), new Date(externalTime), lastRevMap.values());
+                        asISO8601(localTime),
+                        asISO8601(externalTime),
+                        warnThresholdMillis, timeDiff,
+                        lastRevMap.values());
                 String msg = String.format(fmt, delay);
                 LOG.warn(msg);
             }

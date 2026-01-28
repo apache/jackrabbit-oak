@@ -17,9 +17,11 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -34,7 +36,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import org.apache.jackrabbit.guava.common.collect.Queues;
 import org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles;
 
 import org.junit.Test;
@@ -230,7 +231,7 @@ public class RevisionTest {
 
                 while (!stop.get()) {
                     List<Revision> revs = new ArrayList<>();
-                    Queues.drainUninterruptibly(revisionQueue, revs, 5, 100, TimeUnit.MILLISECONDS);
+                    drainUninterruptibly(revisionQueue, revs);
                     record(revs);
                 }
 
@@ -263,5 +264,49 @@ public class RevisionTest {
             t.join();
         }
         assertTrue(String.format("Duplicate rev seen %s %n Seen %s", duplicates, seenRevs), duplicates.isEmpty());
+    }
+
+
+
+    // helper methods
+
+    private <E> void drainUninterruptibly(final BlockingQueue<E> q, final Collection<? super E> buffer) {
+
+        Objects.requireNonNull(buffer, "buffer");
+
+        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(100);
+        int added = 0;
+        boolean interrupted = false;
+        try {
+            while (added < 5) {
+                // First drain whatever is readily available
+                added += q.drainTo(buffer, 5 - added);
+
+                if (added < 5) {
+                    E e;
+                    while (true) {
+                        try {
+                            long nanosLeft = deadline - System.nanoTime();
+                            if (nanosLeft <= 0L) {
+                                return;
+                            }
+                            e = q.poll(nanosLeft, TimeUnit.NANOSECONDS);
+                            break;
+                        } catch (InterruptedException ex) {
+                            interrupted = true; // remember and retry
+                        }
+                    }
+                    if (e == null) {
+                        break; // timeout elapsed, nothing more available
+                    }
+                    buffer.add(e);
+                    added++;
+                }
+            }
+        } finally {
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 }

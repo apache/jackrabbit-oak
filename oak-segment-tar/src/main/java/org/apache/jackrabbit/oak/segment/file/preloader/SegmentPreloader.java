@@ -21,22 +21,21 @@ package org.apache.jackrabbit.oak.segment.file.preloader;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.internal.function.Suppliers;
 import org.apache.jackrabbit.oak.segment.SegmentId;
+import org.apache.jackrabbit.oak.segment.data.SegmentData;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.DelegatingPersistentCache;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.PersistentCache;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.PersistentCachePreloadingConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -60,9 +59,15 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
 
     private static final Logger LOG = LoggerFactory.getLogger(SegmentPreloader.class);
 
-    private final Map<Integer, String> inProgressPrefetch;
+    private static final Thread.UncaughtExceptionHandler UNCAUGHT_EXCEPTION_HANDLER = (t, e) -> {
+        if (!(e instanceof InterruptedException)) {
+            LOG.warn("Uncaught exception in thread {} ({}, {})", t.getName(), e.getClass(), e.getMessage(), e);
+        }
+    };
 
-    private final ConcurrentHashMap<String, Map<UUID, Set<UUID>>> graphCache;
+    private static final int DISPATCH_QUEUE_MAX_SIZE = 10_000;
+
+    private final Map<Integer, String> inProgressPrefetch;
 
     private final PersistentCache delegate;
 
@@ -70,9 +75,11 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
 
     private final ExecutorService preloadPool;
 
-    private final int preloadDepth;
-
     private final Supplier<TarFiles> tarFiles;
+
+    private final int maxPreloadDepth;
+
+    private volatile int preloadDepth;
 
     /**
      * Factory method that decorates the given {@link PersistentCache} with a
@@ -95,18 +102,45 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
         this.delegate = delegate;
         this.tarFiles = Suppliers.memoize(tarFiles);
         this.inProgressPrefetch = new ConcurrentHashMap<>();
-        this.graphCache = new ConcurrentHashMap<>();
-        this.preloadDepth = config.getMaxPreloadDepth();
+        this.maxPreloadDepth = config.getMaxPreloadDepth();
+        this.preloadDepth = adaptPreloadDepth(this.maxPreloadDepth, 0);
         this.dispatchPool = new ThreadPoolExecutor(1,1,
                 1, TimeUnit.SECONDS,
                 new PriorityBlockingQueue<>(),
-                r -> new Thread(r, "segment-preload-dispatcher")) {
+                r -> {
+                    Thread thread = new Thread(r, "segment-preload-dispatcher");
+                    thread.setUncaughtExceptionHandler(UNCAUGHT_EXCEPTION_HANDLER);
+                    return thread;
+                }) {
+
+            private volatile long lastLoggedTime = System.currentTimeMillis();
+
+            @Override
+            public void execute(@NotNull Runnable command) {
+                if (getQueue().size() < DISPATCH_QUEUE_MAX_SIZE) {
+                    super.execute(command);
+                }
+            }
+
             @Override
             protected void afterExecute(Runnable r, Throwable t) {
                 super.afterExecute(r, t);
                 clearInProgressTask(r);
+                int size = getQueue().size();
+                int adaptedPreloadDepth = adaptPreloadDepth(maxPreloadDepth, size / (double) DISPATCH_QUEUE_MAX_SIZE);
+                if (adaptedPreloadDepth != preloadDepth) {
+                    preloadDepth = adaptedPreloadDepth;
+                    LOG.debug("Adjusted preload depth to {} (queue size: {})", preloadDepth, size);
+                }
+
+                long now = System.currentTimeMillis();
+                if (lastLoggedTime + 15_000 < now) {
+                    lastLoggedTime = now;
+                    LOG.info("Dispatch pool queue size: {}, current preload depth: {}", size, preloadDepth);
+                }
             }
         };
+
         int preloadThreads = config.getConcurrency();
         ThreadPoolExecutor preloadPool = new ThreadPoolExecutor(Math.max(1, preloadThreads / 4), preloadThreads,
                 5, TimeUnit.SECONDS,
@@ -114,11 +148,8 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
                 r -> {
                     String threadName = String.format("segment-preload-%s", Long.toHexString(System.nanoTime() & 0xFFFFF));
                     Thread thread = new Thread(r, threadName);
-                    thread.setUncaughtExceptionHandler((t, e) -> {
-                        if (!(e instanceof InterruptedException)) {
-                            LOG.warn("Uncaught exception in thread {}", t.getName(), e);
-                        }
-                    });
+                    thread.setPriority(Thread.MIN_PRIORITY);
+                    thread.setUncaughtExceptionHandler(UNCAUGHT_EXCEPTION_HANDLER);
                     return thread;
                 },
                 (r, executor) -> {
@@ -141,6 +172,18 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
         this.preloadPool = preloadPool;
     }
 
+    @VisibleForTesting
+    static int adaptPreloadDepth(int maxPreloadDepth, double queueFillPercentage) {
+        double remainingCapacity = 1.0 - queueFillPercentage;
+        double capacitySlice = 1.0 / maxPreloadDepth;
+        for (int i = 1; i < maxPreloadDepth; i++) {
+            if (remainingCapacity <= i * capacitySlice) {
+                return i;
+            }
+        }
+        return maxPreloadDepth;
+    }
+
     @Override
     protected PersistentCache delegate() {
         return delegate;
@@ -148,21 +191,19 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
 
     @Override
     public @Nullable Buffer readSegment(long msb, long lsb, @NotNull Callable<Buffer> loader) {
-        dispatch(msb, lsb);
-        return delegate().readSegment(msb, lsb, loader);
+        Buffer buffer = super.readSegment(msb, lsb, loader);
+        dispatch(msb, lsb, getReferencedSegments(lsb, buffer), 1);
+        return buffer;
     }
 
-    private void dispatch(long msb, long lsb) {
-        dispatch(msb, lsb, 1);
+    private void dispatch(long msb, long lsb, SegmentIds referencedSegments, int depth) {
+        if (depth <= preloadDepth && !referencedSegments.isEmpty() && SegmentId.isDataSegmentId(lsb)) {
+            execute(dispatchPool, createDispatchTask(msb, lsb, referencedSegments, depth));
+        }
     }
 
-    private void dispatch(long msb, long lsb, int depth) {
-        execute(dispatchPool, createDispatchTask(msb, lsb, depth));
-    }
-
-    @NotNull SegmentPreloader.DispatchTask createDispatchTask(long msb, long lsb, int depth) {
-        TarFiles tars = tarFiles.get();
-        return new DispatchTask(tars, tars::getIndices, msb, lsb, depth);
+    @NotNull DispatchTask createDispatchTask(long msb, long lsb, SegmentIds referencedSegments, int depth) {
+        return new DispatchTask(msb, lsb, referencedSegments, depth);
     }
 
     private void preload(long msb, long lsb, int depth) {
@@ -205,26 +246,34 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
         }
     }
 
+    private boolean wrapsInterruptedException(RuntimeException e) {
+        Throwable candidate = e;
+        while (candidate.getCause() != null) {
+            if (candidate.getCause() instanceof InterruptedException) {
+                return true;
+            }
+            candidate = candidate.getCause();
+        }
+        return false;
+    }
+
     class DispatchTask implements Runnable, Comparable<DispatchTask> {
-
-        private final TarFiles tarFiles;
-
-        private final Supplier<Map<String, Set<UUID>>> indicesSupplier;
 
         private final long msb;
 
         private final long lsb;
 
+        private final SegmentIds references;
+
         private final int depth;
 
         private final long creationTime = System.nanoTime();
 
-        private DispatchTask(@NotNull TarFiles tarFiles, Supplier<Map<String, Set<UUID>>> indicesSupplier, long msb, long lsb, int depth) {
-            checkArgument(depth <= preloadDepth, "depth must be <= %d, is %d", preloadDepth, depth);
-            this.tarFiles = tarFiles;
-            this.indicesSupplier = indicesSupplier;
+        private DispatchTask(long msb, long lsb, SegmentIds references, int depth) {
+            checkArgument(depth <= maxPreloadDepth, "depth must be <= %d, is %d", maxPreloadDepth, depth);
             this.msb = msb;
             this.lsb = lsb;
+            this.references = references;
             this.depth = depth;
             LOG.debug("Created: {}", this);
         }
@@ -232,30 +281,19 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
         @Override
         public void run() {
             LOG.debug("Running: {}", this);
-            UUID uuid = new UUID(msb, lsb);
-            Map<String, Set<UUID>> indices = indicesSupplier.get();
-            String archiveName = indices.entrySet().stream()
-                    .filter(entry -> entry.getValue().contains(uuid))
-                    .findFirst()
-                    .map(Map.Entry::getKey)
-                    .orElse(null);
 
-            Map<UUID, Set<UUID>> graph = graphCache.computeIfAbsent(archiveName, name -> {
-                try {
-                    return tarFiles.getGraph(name);
-                } catch (IOException e) {
-                    throw new UncheckedIOException(e);
-                }
-            });
-
-            for (UUID reference : graph.get(uuid)) {
-                long refMsb = reference.getMostSignificantBits();
-                long refLsb = reference.getLeastSignificantBits();
-                if (!delegate.containsSegment(refMsb, refLsb)) {
+            try {
+                for (int i = 0; i < references.size(); i++) {
+                    long refMsb = references.getMsb(i);
+                    long refLsb = references.getLsb(i);
                     preload(refMsb, refLsb, depth);
-                } else if (depth < preloadDepth && SegmentId.isDataSegmentId(refLsb)) {
-                    dispatch(refMsb, refLsb, depth + 1);
                 }
+            } catch (RuntimeException e) {
+                if (wrapsInterruptedException(e)) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+                throw e;
             }
         }
 
@@ -278,7 +316,7 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
 
         @Override
         public String toString() {
-            return "DispatchTask{segmentId=" + new UUID(msb, lsb) + ", depth=" + depth + '}';
+            return "DispatchTask{segmentId=" + new UUID(msb, lsb) + ", depth=" + depth + ", references=" + references.size() + '}';
         }
 
         private int getPreloadDepth() {
@@ -298,6 +336,22 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
         }
     }
 
+    private static SegmentIds getReferencedSegments(long lsb, @Nullable Buffer buffer) {
+        if (buffer == null || !SegmentId.isDataSegmentId(lsb)) {
+            return SegmentIds.EMPTY;
+        }
+        SegmentData segmentData = SegmentData.newSegmentData(buffer);
+        int referencedSegmentsCount = segmentData.getSegmentReferencesCount();
+        if (referencedSegmentsCount == 0) {
+            return SegmentIds.EMPTY;
+        }
+        SegmentIds segmentIds = new SegmentIds(referencedSegmentsCount);
+        for (int i = 0; i < referencedSegmentsCount; i++) {
+            segmentIds.add(i, segmentData.getSegmentReferenceMsb(i), segmentData.getSegmentReferenceLsb(i));
+        }
+        return segmentIds;
+    }
+
     class PreloadTask implements Runnable {
 
         private final TarFiles tarFiles;
@@ -309,7 +363,7 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
         private final int depth;
 
         private PreloadTask(TarFiles tarFiles, long msb, long lsb, int depth) {
-            checkArgument(depth <= preloadDepth, "depth must be <= %d, is %d", preloadDepth, depth);
+            checkArgument(depth <= maxPreloadDepth, "depth must be <= %d, is %d", maxPreloadDepth, depth);
             this.tarFiles = tarFiles;
             this.msb = msb;
             this.lsb = lsb;
@@ -320,14 +374,17 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
         @Override
         public void run() {
             LOG.debug("Running: {}", this);
-            if (depth < preloadDepth && SegmentId.isDataSegmentId(lsb)) {
-                dispatch(msb, lsb, depth + 1);
-            }
-            if (!delegate.containsSegment(msb, lsb)) {
-                Buffer segmentBuffer = tarFiles.readSegment(msb, lsb);
-                if (segmentBuffer != null) {
-                    delegate.writeSegment(msb, lsb, segmentBuffer);
+            try {
+                if (depth < preloadDepth || !containsSegment(msb, lsb)) {
+                    Buffer buffer = delegate().readSegment(msb, lsb, () -> tarFiles.readSegment(msb, lsb));
+                    dispatch(msb, lsb, getReferencedSegments(lsb, buffer), depth + 1);
                 }
+            } catch (RuntimeException e) {
+                if (wrapsInterruptedException(e)) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+                throw e;
             }
         }
 

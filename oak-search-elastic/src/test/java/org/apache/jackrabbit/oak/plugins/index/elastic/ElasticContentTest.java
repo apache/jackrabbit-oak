@@ -372,4 +372,41 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
         });
     }
 
+    @Test
+    public void propertyRemoval() throws Exception {
+        IndexDefinitionBuilder builder = createIndex("a", "b", "c").noAsync();
+        builder.includedPaths("/content");
+        builder.indexRule("nt:base").property("a").propertyIndex();
+        builder.indexRule("nt:base").property("b").propertyIndex();
+        builder.indexRule("nt:base").property("c").propertyIndex();
+        // partial updates only happen when the index is externally modifiable, aka inference config is enabled
+        builder.getBuilderTree().addChild(ElasticIndexDefinition.INFERENCE_CONFIG);
+        Tree index = setIndex(UUID.randomUUID().toString(), builder);
+        root.commit();
+
+        Tree content = root.getTree("/").addChild("content");
+        Tree node = content.addChild("node");
+        node.setProperty("a", "foo");
+        node.setProperty("b", "foo");
+        node.setProperty("c", List.of("foo", "bar"), Type.STRINGS);
+        root.commit();
+        assertEventually(() -> {
+            ObjectNode doc = getDocument(index, "/content/node");
+            assertThat(doc.get(ElasticIndexUtils.fieldName("a")).asText(), equalTo("foo"));
+            assertThat(doc.get(ElasticIndexUtils.fieldName("b")).asText(), equalTo("foo"));
+            assertThat(doc.get(ElasticIndexUtils.fieldName("c")).size(), equalTo(2));
+        });
+
+        node.removeProperty(ElasticIndexUtils.fieldName("a"));
+        node.setProperty("b", "bar");
+        node.setProperty("c", List.of(), Type.STRINGS);
+        root.commit();
+        assertEventually(() -> {
+            ObjectNode doc = getDocument(index, "/content/node");
+            assertThat(doc.get(ElasticIndexUtils.fieldName("a")), equalTo(null));
+            assertThat(doc.get(ElasticIndexUtils.fieldName("b")).asText(), equalTo("bar"));
+            assertThat(doc.get(ElasticIndexUtils.fieldName("c")), equalTo(null));
+        });
+    }
+
 }
