@@ -17,7 +17,6 @@
  */
 package org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
@@ -34,10 +33,6 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.Callable;
 
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertNotNull;
@@ -108,52 +103,5 @@ public class CachingPersistenceTest {
         SegmentNodeStorePersistence customPersistence = new CachingPersistence(new MemoryPersistentCache(repoNotReachable), new TarPersistence(getFileStoreFolder()));
         fileStoreBuilder.withCustomPersistence(customPersistence);
         return fileStoreBuilder;
-    }
-
-    class MemoryPersistentCache extends AbstractPersistentCache {
-
-        private final Map<String, Buffer> segments = Collections.synchronizedMap(new HashMap<String, Buffer>());
-
-        private boolean throwException = false;
-
-        public MemoryPersistentCache(boolean throwException) {
-            this.throwException = throwException;
-            segmentCacheStats = new SegmentCacheStats(
-                    "Memory Cache",
-                    () -> null,
-                    () -> null,
-                    () -> null,
-                    () -> null);
-        }
-
-        @Override
-        protected Buffer readSegmentInternal(long msb, long lsb) {
-            return segments.get(String.valueOf(msb) + lsb);
-        }
-
-        @Override
-        public boolean containsSegment(long msb, long lsb) {
-            return segments.containsKey(String.valueOf(msb) + lsb);
-        }
-
-        @Override
-        public void writeSegment(long msb, long lsb, Buffer buffer) {
-            segments.put(String.valueOf(msb) + lsb, buffer);
-        }
-
-        @Override
-        public Buffer readSegment(long msb, long lsb, @NotNull Callable<Buffer> loader) throws RepositoryNotReachableException {
-            return super.readSegment(msb, lsb, () -> {
-                if (throwException) {
-                    throw new RepositoryNotReachableException(null);
-                }
-                return loader.call();
-            });
-        }
-
-        @Override
-        public void cleanUp() {
-
-        }
     }
 }

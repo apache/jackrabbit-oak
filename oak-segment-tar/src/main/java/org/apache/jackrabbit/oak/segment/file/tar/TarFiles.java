@@ -40,6 +40,7 @@ import java.util.UUID;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -336,7 +337,7 @@ public class TarFiles implements Closeable {
 
     private final long maxFileSize;
 
-    private SegmentArchiveManager archiveManager;
+    private final SegmentArchiveManager archiveManager;
 
     /**
      * Guards access to the {@link #readers} and {@link #writer} references.
@@ -905,10 +906,15 @@ public class TarFiles implements Closeable {
 
         for (TarReader reader : iterable(head)) {
             if (fileName.equals(reader.getFileName())) {
-                Map<UUID, Set<UUID>> result = new HashMap<>();
-                reader.getUUIDs().forEach((uuid -> result.put(uuid, emptySet())));
-                result.putAll(reader.getGraph().getEdges());
-                return result;
+                SegmentGraph graph = reader.getGraph();
+                Set<UUID> uuids = reader.getUUIDs();
+                return uuids.stream()
+                        .collect(Collectors.toMap(
+                                Function.identity(),
+                                graph::getEdges,
+                                (a, b) -> { a.addAll(b); return a; },
+                                () -> new HashMap<>(Math.toIntExact(uuids.size()), 1.0f)
+                        ));
             }
         }
         return emptyMap();
@@ -924,7 +930,7 @@ public class TarFiles implements Closeable {
             lock.readLock().unlock();
         }
 
-        Map<String, Set<UUID>> index = new HashMap<>();
+        Map<String, Set<UUID>> index = new HashMap<>(Math.toIntExact(getSize(head)), 1.0f);
         for (TarReader reader : iterable(head)) {
             index.put(reader.getFileName(), reader.getUUIDs());
         }

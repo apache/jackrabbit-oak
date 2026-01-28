@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>1.87-SNAPSHOT</version>
+        <version>1.91-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
@@ -34,7 +34,7 @@
         <jetty.version>8.2.0.v20160908</jetty.version>
         <!--
         Size History:
-        120 MB : Added Azure SDK v12 with embeddings in oak-cloud-blob-azure
+        131 MB : Added Azure SDK v12 with embeddings in oak-cloud-blob-azure
         105 MB : Setting constraint to default oak-run jar post adding the build plugin to rename the fat jar with embedded dependencies as the default jar.
         121 MB : add Elasticsearch Java client along with RHLC: the latter can be removed when the code can be fully migrated to use the new client
         125 MB : shaded Guava
@@ -44,8 +44,9 @@
         107 MB: RDB/Tomcat (OAK-10752)
         120 MB: added commons-csv for csv parsing (OAK-10790)
         124 MB: Aws Sdk 2.x (OAK-11935)
+        130 MB: Embed Aws Sdk 2.x in oak-blob-cloud (OAK-12008)
         -->
-        <max.jar.size>130000000</max.jar.size>
+        <max.jar.size>140000000</max.jar.size>
                       
     </properties>
 

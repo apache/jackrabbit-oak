@@ -21,6 +21,9 @@ package org.apache.jackrabbit.oak.segment.spi.persistence;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.file.tar.SegmentGraph;
@@ -51,6 +54,19 @@ public interface SegmentArchiveReader extends Closeable {
      * @return {@code true} if the segment exists
      */
     boolean containsSegment(long msb, long lsb);
+
+    /**
+     * Returns an immutable {@code Set} of the UUIDs of all segments contained in this archive.
+     * No guarantees are made regarding the iteration order of the elements.
+     *
+     * @return set of segment UUIDs
+     */
+    default Set<UUID> getSegmentUUIDs() {
+        return listSegments()
+                .stream()
+                .map(e -> new UUID(e.getMsb(), e.getLsb()))
+                .collect(Collectors.toUnmodifiableSet());
+    }
 
     /**
      * List all the segments, in the order as they have been written to the archive.

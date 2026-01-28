@@ -18,44 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.counter.jmx;
 
-import org.apache.jackrabbit.oak.api.jmx.Description;
-import org.apache.jackrabbit.oak.api.jmx.Name;
-
 /**
  * An MBean that provides an approximate node count for a given path.
  */
-public interface NodeCounterMBean {
-    
-    String TYPE = "NodeCounter";
-
-    /**
-     * Get the estimated number of nodes below a given path.
-     * 
-     * @param path the path
-     * @return the estimated number of nodes, or -1 if unknown (if not index is
-     *         available)
-     */
-    @Description("Get the estimated number of nodes below a given path.")
-    long getEstimatedNodeCount(
-            @Description("the path")
-            @Name("path")
-            String path);
-    
-    /**
-     * Get the estimated number of nodes for the child nodes of a given path.
-     * 
-     * @param path the path
-     * @param level the depth of the child nodes to list
-     * @return a comma separated list of child nodes with the respective
-     *         estimated counts
-     */    
-    @Description("Get the estimated number of nodes below a given path.")
-    String getEstimatedChildNodeCounts(
-            @Description("the path")
-            @Name("path")
-            String path, 
-            @Description("the depth of the child nodes to list (the higher the number, the slower)")
-            @Name("level")
-            int level);
-    
+public interface NodeCounterMBean extends org.apache.jackrabbit.oak.api.jmx.NodeCounterMBean {
 }

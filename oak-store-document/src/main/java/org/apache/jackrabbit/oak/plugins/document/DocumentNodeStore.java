@@ -75,7 +75,6 @@ import javax.jcr.PropertyType;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -1413,9 +1412,7 @@ public final class DocumentNodeStore
                     || node.equals(missing) ? null : node;
             PERFLOG.end(start, 1, "getNode: path={}, rev={}", path, rev);
             return result;
-        } catch (UncheckedExecutionException e) {
-            throw DocumentStoreException.convert(e.getCause());
-        } catch (ExecutionException e) {
+        } catch (RuntimeException | ExecutionException e) {
             throw DocumentStoreException.convert(e.getCause());
         }
     }
@@ -1474,11 +1471,7 @@ public final class DocumentNodeStore
                 nodeChildrenCache.put(key, children);
             }
             return children;
-        } catch (UncheckedExecutionException e) {
-            throw DocumentStoreException.convert(e.getCause(),
-                    "Error occurred while fetching children for path "
-                            + path);
-        } catch (ExecutionException e) {
+        } catch (RuntimeException | ExecutionException e) {
             throw DocumentStoreException.convert(e.getCause(),
                     "Error occurred while fetching children for path "
                             + path);

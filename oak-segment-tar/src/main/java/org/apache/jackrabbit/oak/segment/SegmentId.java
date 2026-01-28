@@ -252,9 +252,9 @@ public class SegmentId implements Comparable<SegmentId> {
 
     @Override
     public int compareTo(@NotNull SegmentId that) {
-        int d = Long.valueOf(this.msb).compareTo(that.msb);
+        int d = Long.compare(this.msb, that.msb);
         if (d == 0) {
-            d = Long.valueOf(this.lsb).compareTo(that.lsb);
+            d = Long.compare(this.lsb, that.lsb);
         }
         return d;
     }

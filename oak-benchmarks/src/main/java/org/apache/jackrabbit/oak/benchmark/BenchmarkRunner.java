@@ -22,7 +22,6 @@ import com.codahale.metrics.Counting;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
-import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import org.apache.commons.io.FileUtils;
@@ -48,6 +47,7 @@ import org.apache.jackrabbit.oak.benchmark.authorization.principalbased.HasItemG
 import org.apache.jackrabbit.oak.benchmark.authorization.principalbased.PermissionEvaluationTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.principalbased.PrinicipalBasedReadTest;
 import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorUtils;
 import org.apache.jackrabbit.oak.fixture.JackrabbitRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.OakFixture;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
@@ -577,7 +577,7 @@ public class BenchmarkRunner {
 
     protected static StatisticsProvider getStatsProvider() {
         if (statsProvider == null) {
-            ScheduledExecutorService executorService = MoreExecutors.getExitingScheduledExecutorService(
+            ScheduledExecutorService executorService = ExecutorUtils.getExitingScheduledExecutorService(
                     (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(1));
 
             return new MetricStatisticsProvider(null, executorService);

@@ -18,11 +18,14 @@ package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -362,7 +365,7 @@ public class S3Backend extends AbstractSharedBackend {
                             uploadReq.source(file).
                                     putObjectRequest(
                                             s3ReqDecorator.decorate(
-                                                    PutObjectRequest.builder().bucket(bucket).key(key)
+                                                    PutObjectRequest.builder().bucket(bucket).key(key).contentLength(file.length())
                                                             .build()))
                                     .build());
 
@@ -511,22 +514,60 @@ public class S3Backend extends AbstractSharedBackend {
 
         // Executor required to handle reading from the InputStream on a separate thread so the main upload is not blocked.
         final ExecutorService executor = Executors.newSingleThreadExecutor();
+        File tempFile = null;
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
+            final PutObjectRequest.Builder builder = PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .contentType("application/octet-stream")
+                    .key(addMetaKeyPrefix(name));
+
+            InputStream uploadStream = input;
+            final long length;
+
+            if (input instanceof FileInputStream) {
+                // if the file is modified after opening, the size may not reflect the latest changes
+                FileInputStream fis = (FileInputStream) input;
+                length = fis.getChannel().size();
+            } else if (input instanceof ByteArrayInputStream) {
+                length = input.available();
+            } else if (input.markSupported()) {
+                // in case the inputStream supports mark & reset
+                input.mark(Integer.MAX_VALUE);
+                length = IOUtils.consume(input);
+                input.reset();
+            } else {
+                // we have to read all the stream to get the actual length
+                // last else block: store to temp file and re-read
+                tempFile = File.createTempFile("s3backend-", ".tmp");
+                try (OutputStream out = Files.newOutputStream(tempFile.toPath())) {
+                    IOUtils.copy(input, out);
+                }
+                length = tempFile.length();
+                uploadStream = Files.newInputStream(tempFile.toPath());
+            }
+
             // Specify `null` for the content length when you don't know the content length.
-            final AsyncRequestBody body = AsyncRequestBody.fromInputStream(input, null, executor);
+            final AsyncRequestBody body = getRequestBody(uploadStream, length, executor, builder);
             final Upload upload = tmx.upload(uploadReq ->
                     uploadReq.requestBody(body).
                             putObjectRequest(
-                                    s3ReqDecorator.decorate(PutObjectRequest.builder().bucket(bucket).key(addMetaKeyPrefix(name)).build()))
+                                    s3ReqDecorator.decorate(builder.build()))
                             .build());
             upload.completionFuture().join();
         } catch (Exception e) {
-            LOG.error("Exception in uploading {}", e.getMessage());
+            LOG.error("Exception in uploading metadata file", e);
             throw new DataStoreException("Error in uploading metadata file", e);
         } finally {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
+            }
+            if (tempFile != null) {
+                try {
+                    Files.deleteIfExists(tempFile.toPath());
+                } catch (IOException e) {
+                    LOG.warn("Failed to delete temp file {}", tempFile, e);
+                }
             }
             executor.shutdown();
             try {
@@ -553,7 +594,7 @@ public class S3Backend extends AbstractSharedBackend {
                     uploadReq.source(input).
                             putObjectRequest(
                                     s3ReqDecorator.decorate(
-                                            PutObjectRequest.builder().bucket(bucket).key(addMetaKeyPrefix(name)).build()))
+                                            PutObjectRequest.builder().bucket(bucket).contentLength(input.length()).key(addMetaKeyPrefix(name)).build()))
                             .build());
 
             upload.completionFuture().join();
@@ -1321,6 +1362,15 @@ public class S3Backend extends AbstractSharedBackend {
             return key;
         }
         return key.substring(0, 4) + key.substring(5);
+    }
+
+    @NotNull
+    private AsyncRequestBody getRequestBody(final InputStream input, final long length, final ExecutorService executor,
+                                            final PutObjectRequest.Builder builder) {
+        // for both AWS/GCP we need to know the length in advance, else it won't work.
+        AsyncRequestBody body = AsyncRequestBody.fromInputStream(input, length, executor);
+        builder.contentLength(length);
+        return body;
     }
 
     /**

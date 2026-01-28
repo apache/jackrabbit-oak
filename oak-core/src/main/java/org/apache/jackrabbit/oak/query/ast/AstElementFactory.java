@@ -86,7 +86,20 @@ public class AstElementFactory {
 
     public FullTextSearchImpl fullTextSearch(String selectorName, String propertyName,
             StaticOperandImpl fullTextSearchExpression) {
-        return new FullTextSearchImpl(selectorName, propertyName, fullTextSearchExpression);
+
+        int slash = -1;
+        if (propertyName != null) {
+            slash = propertyName.lastIndexOf('/');
+        }
+        String relativePath = null;
+        if (slash >= 0) {
+            relativePath = propertyName.substring(0, slash);
+            propertyName = propertyName.substring(slash + 1);
+        }
+        if ("*".equals(propertyName)) {
+            propertyName = null;
+        }
+        return new FullTextSearchImpl(selectorName, relativePath, propertyName, fullTextSearchExpression);
     }
 
     public FullTextSearchScoreImpl fullTextSearchScore(String selectorName) {
@@ -136,7 +149,7 @@ public class AstElementFactory {
     public PropertyExistenceImpl propertyExistence(String selectorName, String propertyName) {
         return new PropertyExistenceImpl(selectorName, propertyName);
     }
-    
+
     public PropertyInexistenceImpl propertyInexistence(String selectorName, String propertyName) {
         return new PropertyInexistenceImpl(selectorName, propertyName);
     }
@@ -186,7 +199,7 @@ public class AstElementFactory {
     public ConstraintImpl suggest(String selectorName, StaticOperandImpl expression) {
         return new SuggestImpl(selectorName, expression);
     }
-    
+
     /**
      * <p>
      * as the {@link AstElement#copyOf()} can return {@code this} is the cloning is not implemented
@@ -199,13 +212,13 @@ public class AstElementFactory {
     @NotNull
     public static AstElement copyElementAndCheckReference(@NotNull final AstElement e) {
         AstElement clone = requireNonNull(e).copyOf();
-        
+
         if (clone == e && LOG.isDebugEnabled()) {
             LOG.debug(
                 "Failed to clone the AstElement. Returning same reference; the client may fail. {} - {}",
                 e.getClass().getName(), e);
         }
-        
+
         return clone;
     }
 

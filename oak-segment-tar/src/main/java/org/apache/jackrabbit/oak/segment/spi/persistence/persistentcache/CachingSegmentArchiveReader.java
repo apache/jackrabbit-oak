@@ -27,6 +27,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 public class CachingSegmentArchiveReader implements SegmentArchiveReader {
 
@@ -46,21 +48,26 @@ public class CachingSegmentArchiveReader implements SegmentArchiveReader {
     @Override
     @Nullable
     public Buffer readSegment(long msb, long lsb) throws IOException {
-        return persistentCache.readSegment(msb, lsb, () -> delegate.readSegment(msb, lsb));
+        if (delegate.containsSegment(msb, lsb)) {
+            return persistentCache.readSegment(msb, lsb, () -> delegate.readSegment(msb, lsb));
+        } else {
+            return null;
+        }
     }
 
     @Override
     public boolean containsSegment(long msb, long lsb) {
-        if (persistentCache.containsSegment(msb, lsb)) {
-            return true;
-        } else {
-            return delegate.containsSegment(msb, lsb);
-        }
+        return delegate.containsSegment(msb, lsb);
     }
 
     @Override
     public List<SegmentArchiveEntry> listSegments() {
         return delegate.listSegments();
+    }
+
+    @Override
+    public Set<UUID> getSegmentUUIDs() {
+        return delegate.getSegmentUUIDs();
     }
 
     @Override

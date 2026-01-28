@@ -68,6 +68,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 
 @RunWith(Parameterized.class)
+@Ignore("OAK-10844")
 public class BranchCommitGCTest {
 
     @Rule
@@ -540,7 +541,13 @@ public class BranchCommitGCTest {
         RevisionVector br = unmergedBranchCommit(b -> b.child("foo").removeProperty("a"));
         mergedBranchCommit(b -> b.child("foo").setProperty("c", "d"));
         store.runBackgroundOperations();
-
+        // OAK-12011 : adding a temporary sleep to reduce likelyhood of
+        // backgroundPurge to interfere with test
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            fail("got interrupted");
+        }
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour

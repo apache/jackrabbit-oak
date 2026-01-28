@@ -19,28 +19,15 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.query.async;
 import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.osgi.annotation.versioning.ProviderType;
 
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Generic listener of Elastic response
  */
 @ProviderType
 public interface ElasticResponseListener {
-
-    Set<String> DEFAULT_SOURCE_FIELDS = Set.of(FieldNames.PATH);
-
-    /**
-     * Returns the source fields this listener is interested on
-     *
-     * @return the list of fields to listen to (only PATH as default)
-     */
-    default Set<String> sourceFields() {
-        return DEFAULT_SOURCE_FIELDS;
-    }
 
     /**
      * This method is invoked when there is no more data to process.
@@ -51,13 +38,6 @@ public interface ElasticResponseListener {
      * {@link ElasticResponseListener} extension to subscribe on response hit events
      */
     interface SearchHitListener extends ElasticResponseListener {
-
-        /**
-         * Returns {@code true} if the listener is interested in the entire result set
-         */
-        default boolean isFullScan() {
-            return false;
-        }
 
         /**
          * This method is invoked at the beginning of the listener lifecycle to notify the number of hits this

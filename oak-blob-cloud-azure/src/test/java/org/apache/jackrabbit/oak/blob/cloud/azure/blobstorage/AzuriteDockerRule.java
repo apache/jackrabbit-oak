@@ -127,7 +127,7 @@ public class AzuriteDockerRule extends ExternalResource {
         String blobEndpoint = "BlobEndpoint=" + getBlobEndpoint();
         String accountName = "AccountName=" + ACCOUNT_NAME;
         String accountKey = "AccountKey=" + ACCOUNT_KEY;
-        return CloudStorageAccount.parse("DefaultEndpointsProtocol=http;" + ";" + accountName + ";" + accountKey + ";" + blobEndpoint);
+        return CloudStorageAccount.parse("DefaultEndpointsProtocol=http;" + accountName + ";" + accountKey + ";" + blobEndpoint);
     }
 
     public int getMappedPort() {

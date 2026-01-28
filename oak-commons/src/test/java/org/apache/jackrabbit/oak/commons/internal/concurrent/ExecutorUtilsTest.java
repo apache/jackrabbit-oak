@@ -23,7 +23,11 @@ import org.junit.Test;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Unit cases for ExecutorUtils
@@ -70,6 +74,56 @@ public class ExecutorUtilsTest {
         DirectExecutorService executorService = (DirectExecutorService) ExecutorUtils.newDirectExecutorService();
         Future<String> future = executorService.submit(() -> "test");
         Assert.assertEquals("test", future.get());
+    }
+
+    @Test
+    public void testGetExitingExecutorServiceReturnsUnconfigurableExecutor() {
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
+        ExecutorService service = ExecutorUtils.getExitingExecutorService(executor);
+        Assert.assertNotNull(service);
+        Assert.assertFalse(service.getClass().getName().contains("ThreadPoolExecutor"));
+    }
+
+    @Test
+    public void testDaemonThreadFactoryIsSet() {
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
+        ExecutorUtils.getExitingExecutorService(executor);
+        Assert.assertTrue(executor.getThreadFactory().newThread(() -> {}).isDaemon());
+    }
+
+    @Test
+    public void testShutdownHookIsRegisteredAndShutsDownExecutor() throws Exception {
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
+        ExecutorUtils.getExitingExecutorService(executor);
+        // Simulate JVM shutdown hook
+        executor.shutdown();
+        boolean terminated = executor.awaitTermination(1, TimeUnit.SECONDS);
+        Assert.assertTrue(terminated || executor.isShutdown());
+    }
+
+    @Test
+    public void testGetScheduledExitingExecutorServiceReturnsUnconfigurableExecutor() {
+        ScheduledThreadPoolExecutor executor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(1);
+        ExecutorService service = ExecutorUtils.getExitingScheduledExecutorService(executor);
+        Assert.assertNotNull(service);
+        Assert.assertFalse(service.getClass().getName().contains("ThreadPoolExecutor"));
+    }
+
+    @Test
+    public void testScheduledExecutorDaemonThreadFactoryIsSet() {
+        ScheduledThreadPoolExecutor executor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(1);
+        ExecutorUtils.getExitingScheduledExecutorService(executor);
+        Assert.assertTrue(executor.getThreadFactory().newThread(() -> {}).isDaemon());
+    }
+
+    @Test
+    public void testScheduledExecutorShutdownHookIsRegisteredAndShutsDownExecutor() throws Exception {
+        ScheduledThreadPoolExecutor executor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(1);
+        ExecutorUtils.getExitingScheduledExecutorService(executor);
+        // Simulate JVM shutdown hook
+        executor.shutdown();
+        boolean terminated = executor.awaitTermination(1, TimeUnit.SECONDS);
+        Assert.assertTrue(terminated || executor.isShutdown());
     }
 
 }

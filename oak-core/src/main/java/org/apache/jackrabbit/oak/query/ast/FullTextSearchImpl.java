@@ -44,33 +44,17 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 public class FullTextSearchImpl extends ConstraintImpl {
 
     final String selectorName;
-    private final String relativePath;
+    final String relativePath;
     final String propertyName;
     final StaticOperandImpl fullTextSearchExpression;
     private SelectorImpl selector;
 
     public FullTextSearchImpl(
-            String selectorName, String propertyName,
+            String selectorName, String relativePath, String propertyName,
             StaticOperandImpl fullTextSearchExpression) {
         this.selectorName = selectorName;
-
-        int slash = -1;
-        if (propertyName != null) {
-            slash = propertyName.lastIndexOf('/');
-        }
-        if (slash == -1) {
-            this.relativePath = null;
-        } else {
-            this.relativePath = propertyName.substring(0, slash);
-            propertyName = propertyName.substring(slash + 1);
-        }
-
-        if (propertyName == null || "*".equals(propertyName)) {
-            this.propertyName = null;
-        } else {
-            this.propertyName = propertyName;
-        }
-
+        this.relativePath = relativePath;
+        this.propertyName = propertyName;
         this.fullTextSearchExpression = fullTextSearchExpression;
     }
 
@@ -253,7 +237,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
     private static void appendString(StringBuilder buff, PropertyValue p) {
         if (p.isArray()) {
             if (p.getType() == Type.BINARIES) {
-                // OAK-2050: don't try to load binaries as this would 
+                // OAK-2050: don't try to load binaries as this would
                 // run out of memory
             } else {
                 for (String v : p.getValue(STRINGS)) {
@@ -262,7 +246,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
             }
         } else {
             if (p.getType() == Type.BINARY) {
-                // OAK-2050: don't try to load binaries as this would 
+                // OAK-2050: don't try to load binaries as this would
                 // run out of memory
             } else {
                 buff.append(p.getValue(STRING)).append(' ');
@@ -299,7 +283,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
 
     @Override
     public AstElement copyOf() {
-        return new FullTextSearchImpl(selectorName, propertyName, fullTextSearchExpression);
+        return new FullTextSearchImpl(selectorName, relativePath, propertyName, fullTextSearchExpression);
     }
 
     @Override

@@ -20,6 +20,8 @@ import java.io.IOException;
 import java.time.Clock;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -29,6 +31,7 @@ import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.jackrabbit.guava.common.base.Ticker;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureConverter;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.jetbrains.annotations.NotNull;
@@ -39,7 +42,6 @@ import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.guava.common.cache.CacheLoader;
 import org.apache.jackrabbit.guava.common.cache.LoadingCache;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
-import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFutureTask;
 
 import co.elastic.clients.elasticsearch._types.Bytes;
 import co.elastic.clients.elasticsearch.cat.indices.IndicesRecord;
@@ -219,9 +221,14 @@ public class ElasticIndexStatistics implements IndexStatistics {
 
         @Override
         public @NotNull ListenableFuture<Integer> reload(@NotNull StatsRequestDescriptor crd, @NotNull Integer oldValue) {
-            ListenableFutureTask<Integer> task = ListenableFutureTask.create(() -> count(crd));
-            REFRESH_EXECUTOR.execute(task);
-            return task;
+            CompletableFuture<Integer> task = CompletableFuture.supplyAsync(() -> {
+                try {
+                    return count(crd);
+                } catch (IOException e) {
+                    throw new CompletionException(e);
+                }
+            }, REFRESH_EXECUTOR);
+            return FutureConverter.toListenableFuture(task);
         }
 
         private int count(StatsRequestDescriptor crd) throws IOException {
@@ -247,9 +254,14 @@ public class ElasticIndexStatistics implements IndexStatistics {
 
         @Override
         public @NotNull ListenableFuture<StatsResponse> reload(@NotNull StatsRequestDescriptor crd, @NotNull StatsResponse oldValue) {
-            ListenableFutureTask<StatsResponse> task = ListenableFutureTask.create(() -> stats(crd));
-            REFRESH_EXECUTOR.execute(task);
-            return task;
+            CompletableFuture<StatsResponse> task = CompletableFuture.supplyAsync(() -> {
+                try {
+                    return stats(crd);
+                } catch (IOException e) {
+                    throw new CompletionException(e);
+                }
+            }, REFRESH_EXECUTOR);
+            return FutureConverter.toListenableFuture(task);
         }
 
         private StatsResponse stats(StatsRequestDescriptor crd) throws IOException {

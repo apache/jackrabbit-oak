@@ -68,13 +68,15 @@ public class SessionSaveDelayerConfigTest {
         List<SessionSaveDelayerConfig.DelayEntry> entries = config.getEntries();
         assertEquals(2, entries.size());
 
+        long timeMillis = System.currentTimeMillis();
+
         SessionSaveDelayerConfig.DelayEntry first = entries.get(0);
-        assertEquals(500_000L, first.getDelayNanos());
+        assertEquals(500_000L, first.getDelayNanos(timeMillis));
         assertEquals("worker-\\d+", first.getThreadNamePattern().pattern());
         assertNull(first.getStackTracePattern());
 
         SessionSaveDelayerConfig.DelayEntry second = entries.get(1);
-        assertEquals(1_000_000L, second.getDelayNanos());
+        assertEquals(1_000_000L, second.getDelayNanos(timeMillis));
         assertEquals("thread-.*", second.getThreadNamePattern().pattern());
         assertNotNull(second.getStackTracePattern());
         assertEquals(".*SomeClass.*", second.getStackTracePattern().pattern());
@@ -137,9 +139,11 @@ public class SessionSaveDelayerConfigTest {
         List<SessionSaveDelayerConfig.DelayEntry> entries = config.getEntries();
         // Only the first entry should be valid (has both delay and threadNameRegex)
         assertEquals(1, entries.size());
-        
+
+        long timeMillis = System.currentTimeMillis();
+
         SessionSaveDelayerConfig.DelayEntry entry = entries.get(0);
-        assertEquals(1000_000L, entry.getDelayNanos());
+        assertEquals(1000_000L, entry.getDelayNanos(timeMillis));
         assertEquals("thread-.*", entry.getThreadNamePattern().pattern());
         assertNull(entry.getStackTracePattern());
     }
@@ -217,7 +221,7 @@ public class SessionSaveDelayerConfigTest {
                 "}";
 
         SessionSaveDelayerConfig config = SessionSaveDelayerConfig.fromJson(json);
-        
+
         assertEquals("{\n"
                 + "  \"entries\": [{\n"
                 + "    \"delayMillis\": 1.0, \"threadNameRegex\": \"thread-.*\", \"stackTraceRegex\": \".*SomeClass.*\"\n"
@@ -243,13 +247,15 @@ public class SessionSaveDelayerConfigTest {
         List<SessionSaveDelayerConfig.DelayEntry> entries = config.getEntries();
         assertEquals(1, entries.size());
 
+        long timeMillis = System.currentTimeMillis();
+
         SessionSaveDelayerConfig.DelayEntry entry = entries.get(0);
-        assertEquals(2_000_000L, entry.getDelayNanos());
+        assertEquals(2_000_000L, entry.getDelayNanos(timeMillis));
 
         // Test case-insensitive thread name matching
         assertTrue(entry.matches("pool-1-thread-5", null, "at com.example.Service.save()"));
         assertTrue(entry.matches("POOL-2-THREAD-10", null, "at com.example.Service.update()"));
-        
+
         // Test stack trace pattern matching
         assertTrue(entry.matches("pool-1-thread-1", null, "at com.example.Repository.delete(Repository.java:100)"));
         assertFalse(entry.matches("pool-1-thread-1", null, "at com.example.Service.get()"));
@@ -273,8 +279,10 @@ public class SessionSaveDelayerConfigTest {
         List<SessionSaveDelayerConfig.DelayEntry> entries = config.getEntries();
         assertEquals(1, entries.size());
 
+        long timeMillis = System.currentTimeMillis();
+
         SessionSaveDelayerConfig.DelayEntry entry = entries.get(0);
-        assertEquals(1_000_000L, entry.getDelayNanos());
+        assertEquals(1_000_000L, entry.getDelayNanos(timeMillis));
 
         // Test userDataPattern matching
         assertTrue(entry.matches("any-thread", "admin", null));
@@ -365,7 +373,7 @@ public class SessionSaveDelayerConfigTest {
                 "}";
 
         SessionSaveDelayerConfig config = SessionSaveDelayerConfig.fromJson(json);
-        
+
         // Test that first matching entry is used
         assertEquals(100_000L, config.getDelayNanos("thread-1", "admin", null));
         assertEquals(200_000L, config.getDelayNanos("thread-1", "guest123", null));
@@ -446,7 +454,7 @@ public class SessionSaveDelayerConfigTest {
         assertFalse(entry.matches("any-thread", "user", null));
     }
 
-    @Test 
+    @Test
     public void testGetDelayNanosWithUserDataPattern() {
         String json = "{\n" +
                 "  \"entries\": [\n" +
@@ -463,15 +471,15 @@ public class SessionSaveDelayerConfigTest {
                 "}";
 
         SessionSaveDelayerConfig config = SessionSaveDelayerConfig.fromJson(json);
-        
+
         // When userData matches first entry's pattern
         assertEquals(1_000_000L, config.getDelayNanos("thread-1", "admin", null));
         assertEquals(1_000_000L, config.getDelayNanos("thread-1", "admin123", null));
-        
+
         // When userData doesn't match first entry but matches second (no userData pattern)
         assertEquals(500_000L, config.getDelayNanos("thread-1", "user", null));
         assertEquals(500_000L, config.getDelayNanos("thread-1", "guest", null));
-        
+
         // When userData is null, first entry shouldn't match but second should
         assertEquals(500_000L, config.getDelayNanos("thread-1", null, null));
     }
@@ -498,14 +506,16 @@ public class SessionSaveDelayerConfigTest {
         assertEquals(100_000L, entry.getBaseDelayNanos());
         assertEquals(2.0, entry.getMaxSavesPerSecond(), 0.001);
 
+        long timeMillis = System.currentTimeMillis();
+
         // First call should only have base delay
-        long firstDelay = entry.getDelayNanos();
+        long firstDelay = entry.getDelayNanos(timeMillis);
         assertEquals(100_000L, firstDelay);
 
         // Second call immediately should have additional rate limit delay
         // With 2 saves per second, minimum interval is 500ms
-        long secondDelay = entry.getDelayNanos();
-        assertTrue("Second delay should be >= base delay + rate limit delay", 
+        long secondDelay = entry.getDelayNanos(timeMillis);
+        assertTrue("Second delay should be >= base delay + rate limit delay, was " + secondDelay,
                 secondDelay >= 100_000L + 400_000_000L); // ~500ms in nanos
     }
 
@@ -530,10 +540,12 @@ public class SessionSaveDelayerConfigTest {
         SessionSaveDelayerConfig.DelayEntry entry = entries.get(0);
         assertEquals(0.0, entry.getMaxSavesPerSecond(), 0.001);
 
+        long timeMillis = System.currentTimeMillis();
+
         // All calls should only have base delay since rate limiting is disabled
-        assertEquals(100_000L, entry.getDelayNanos());
-        assertEquals(100_000L, entry.getDelayNanos());
-        assertEquals(100_000L, entry.getDelayNanos());
+        assertEquals(100_000L, entry.getDelayNanos(timeMillis));
+        assertEquals(100_000L, entry.getDelayNanos(timeMillis));
+        assertEquals(100_000L, entry.getDelayNanos(timeMillis));
     }
 
     @Test
@@ -589,18 +601,20 @@ public class SessionSaveDelayerConfigTest {
         SessionSaveDelayerConfig config = SessionSaveDelayerConfig.fromJson(json);
         SessionSaveDelayerConfig.DelayEntry entry = config.getEntries().get(0);
 
+        long timeMillis = System.currentTimeMillis();
+
         // With 10 saves per second, minimum interval is 100ms
-        long firstDelay = entry.getDelayNanos();
+        long firstDelay = entry.getDelayNanos(timeMillis);
         assertEquals(0L, firstDelay); // No base delay
 
-        long secondDelay = entry.getDelayNanos();
-        assertTrue("Should have rate limit delay", secondDelay >= 90_000_000L); // ~100ms in nanos
+        long secondDelay = entry.getDelayNanos(timeMillis);
+        assertTrue("Should have rate limit delay, was " + secondDelay, secondDelay >= 90_000_000L); // ~100ms in nanos
     }
 
 
 
     @Test
-    public void testRateLimitingCombinedWithUserDataPattern() {
+    public void testRateLimitingCombinedWithUserDataPattern() throws InterruptedException {
         String json = "{\n" +
                 "  \"entries\": [\n" +
                 "    {\n" +
@@ -619,12 +633,14 @@ public class SessionSaveDelayerConfigTest {
         assertTrue(entry.matches("thread-1", "admin", null));
         assertFalse(entry.matches("thread-1", "user", null));
 
+        long timeMillis = System.currentTimeMillis();
+
         // Rate limiting should work for matching entries
-        long firstDelay = entry.getDelayNanos();
+        long firstDelay = entry.getDelayNanos(timeMillis);
         assertEquals(100_000L, firstDelay);
 
-        long secondDelay = entry.getDelayNanos();
-        assertTrue("Should have rate limit delay", secondDelay >= 1_000_000_000L); // ~1000ms
+        long secondDelay = entry.getDelayNanos(timeMillis);
+        assertTrue("Should have rate limit delay, was " + secondDelay, secondDelay >= 1_000_000_000L); // ~1000ms
     }
 
     @Test
@@ -679,13 +695,13 @@ public class SessionSaveDelayerConfigTest {
                 "}";
 
         SessionSaveDelayerConfig config = SessionSaveDelayerConfig.fromJson(json);
-        
+
         // First call should only have base delay
         long firstDelay = config.getDelayNanos("thread-1", null, null);
         assertEquals(100_000L, firstDelay);
 
         // Second call should have additional rate limit delay
         long secondDelay = config.getDelayNanos("thread-1", null, null);
-        assertTrue("Should have rate limit delay", secondDelay >= 400_000_000L);
+        assertTrue("Should have rate limit delay, was " + secondDelay, secondDelay >= 400_000_000L);
     }
-} 
+}

@@ -21,9 +21,7 @@ package org.apache.jackrabbit.oak.commons.jmx;
 
 import static java.lang.Thread.currentThread;
 import static java.lang.Thread.sleep;
-import static java.util.concurrent.Executors.newCachedThreadPool;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.listeningDecorator;
 import static org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean.StatusCode.FAILED;
 import static org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean.StatusCode.RUNNING;
 import static org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean.StatusCode.SUCCEEDED;
@@ -34,24 +32,25 @@ import static org.junit.Assert.fail;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeoutException;
 
 import javax.management.openmbean.CompositeData;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
-import org.apache.jackrabbit.oak.commons.internal.concurrent.DirectExecutor;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorUtils;
 import org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 public class ManagementOperationTest {
-    private ListeningExecutorService executor;
+    private ExecutorService executor;
 
     @Before
     public void setup() {
-        executor = listeningDecorator(newCachedThreadPool());
+        executor = Executors.newCachedThreadPool();
     }
 
     @After
@@ -64,7 +63,7 @@ public class ManagementOperationTest {
         ManagementOperation<Integer> op = ManagementOperation.done("test", 42);
         assertTrue(op.isDone());
         assertEquals(42, (int) op.get());
-        DirectExecutor.INSTANCE.execute(op);
+        ExecutorUtils.directExecutor().execute(op);
     }
 
     @Test

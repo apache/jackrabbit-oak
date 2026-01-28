@@ -492,7 +492,7 @@ public class NodeDelegate extends ItemDelegate {
                 getNodeTypes(tree), name, type, exactTypeMatch);
         if (definition == null) {
             throw new ConstraintViolationException(
-                    "No matching property definition: " + propertyState);
+                    "No matching property definition: " + propertyState + " - in: " + getNodeTypes(tree));
         } else if (!setProtected && TreeUtil.getBoolean(definition, JCR_PROTECTED)) {
             throw new ConstraintViolationException(
                     "Property is protected: " + propertyState);

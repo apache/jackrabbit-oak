@@ -449,7 +449,7 @@ public class ElasticBulkProcessorHandler {
 
         @Override
         public void afterBulk(long executionId, BulkRequest request, List<OperationContext> contexts, BulkResponse response) {
-            // Bullk request has been processed successfully. Some operations may have failed, but the request itself was successful.
+            // Bulk request has been processed successfully. Some operations may have failed, but the request itself was successful.
             try {
                 LOG.debug("Bulk with id {} processed in {} ms", executionId, response.took());
                 if (LOG.isTraceEnabled()) {

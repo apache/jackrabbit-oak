@@ -18,10 +18,9 @@ package org.apache.jackrabbit.oak.plugins.document.locks;
 
 import java.util.concurrent.locks.Lock;
 
+import org.apache.jackrabbit.oak.commons.internal.concurrent.StripedLocks;
 import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-
-import org.apache.jackrabbit.guava.common.util.concurrent.Striped;
 
 public class StripedNodeDocumentLocks implements NodeDocumentLocks {
 
@@ -30,8 +29,8 @@ public class StripedNodeDocumentLocks implements NodeDocumentLocks {
     /**
      * Locks to ensure cache consistency on reads, writes and invalidation.
      */
-    private final Striped<Lock> locks = Striped.lock(4096);
-    private final Lock rootLock = Striped.lock(1).get(ROOT);
+    private final StripedLocks locks = new StripedLocks(4096);
+    private final Lock rootLock = new StripedLocks(1).get(ROOT);
 
     @Override
     public Lock acquire(String key) {

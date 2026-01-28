@@ -30,6 +30,9 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
@@ -40,7 +43,6 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.Monitor;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
@@ -95,7 +97,8 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     private final AtomicLong downloadTime = new AtomicLong();
     private final AtomicLong uploadTime = new AtomicLong();
 
-    private final Monitor copyCompletionMonitor = new Monitor();
+    private final Lock copyCompletionLock = new ReentrantLock();
+    private final Condition notCopyingCondition = copyCompletionLock.newCondition();
 
     private final Map<String, String> indexPathVersionMapping = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, LocalIndexFile> failedToDeleteFiles = new ConcurrentHashMap<>();
@@ -363,28 +366,31 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
      * @param timeoutMillis
      */
     public void waitForCopyCompletion(LocalIndexFile file, long timeoutMillis) {
-        final Monitor.Guard notCopyingGuard = new Monitor.Guard(copyCompletionMonitor) {
-            @Override
-            public boolean isSatisfied() {
-                return !isCopyInProgress(file);
-            }
-        };
         long localLength = file.actualSize();
         long lastLocalLength = localLength;
 
         boolean notCopying = !isCopyInProgress(file);
         while (!notCopying) {
+            final long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
+            copyCompletionLock.lock();
             try {
                 if (log.isDebugEnabled()) {
                     log.debug("Checking for copy completion of {} - {}", file.getKey(), file.copyLog());
                 }
-                notCopying = copyCompletionMonitor.enterWhen(notCopyingGuard, timeoutMillis, TimeUnit.MILLISECONDS);
-                if (notCopying) {
-                    copyCompletionMonitor.leave();
+                while (isCopyInProgress(file)) {
+                    long remaining = deadline - System.nanoTime();
+                    if (remaining <= 0) {
+                        // timeout
+                        break;
+                    }
+                    notCopyingCondition.awaitNanos(remaining);
                 }
+                notCopying = !isCopyInProgress(file);
             } catch (InterruptedException e) {
                 // ignore and reset interrupt flag
                 Thread.currentThread().interrupt();
+            }  finally {
+                copyCompletionLock.unlock();
             }
 
             localLength = file.actualSize();
@@ -405,11 +411,13 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     }
 
     public void doneCopy(LocalIndexFile file, long start) {
-        copyCompletionMonitor.enter();
+        copyCompletionLock.lock();
         try {
             copyInProgressFiles.remove(file);
+            // wake up any threads waiting in waitForCopyCompletion(...)
+            notCopyingCondition.signalAll();
         } finally {
-            copyCompletionMonitor.leave();
+            copyCompletionLock.unlock();
         }
         copyInProgressCount.decrementAndGet();
         copyInProgressSize.addAndGet(-file.getSize());

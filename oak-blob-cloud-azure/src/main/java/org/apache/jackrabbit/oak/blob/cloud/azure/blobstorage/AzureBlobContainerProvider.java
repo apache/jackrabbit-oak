@@ -232,8 +232,9 @@ public class AzureBlobContainerProvider {
 
         AzureHttpRequestLoggingPolicy loggingPolicy = new AzureHttpRequestLoggingPolicy();
 
+        String endpoint = getEndpointUrl(accountName, blobEndpoint);
         BlobServiceClient blobServiceClient = new BlobServiceClientBuilder()
-                .endpoint(String.format(String.format("https://%s.%s", accountName, DEFAULT_ENDPOINT_SUFFIX)))
+                .endpoint(endpoint)
                 .credential(getClientSecretCredential())
                 .addPolicy(loggingPolicy)
                 .buildClient();
@@ -260,8 +261,10 @@ public class AzureBlobContainerProvider {
         ClientSecretCredential clientSecretCredential = getClientSecretCredential();
         AzureHttpRequestLoggingPolicy loggingPolicy = new AzureHttpRequestLoggingPolicy();
 
+        String endpoint = getEndpointUrl(accountName, blobEndpoint);
         return new BlobContainerClientBuilder()
-                .endpoint(String.format(String.format("https://%s.%s", accountName, DEFAULT_ENDPOINT_SUFFIX)))
+                .endpoint(endpoint)
+                .containerName(containerName)
                 .credential(clientSecretCredential)
                 .retryOptions(retryOptions)
                 .addPolicy(loggingPolicy)
@@ -272,5 +275,28 @@ public class AzureBlobContainerProvider {
     private String generateSas(BlockBlobClient blob,
                                BlobServiceSasSignatureValues blobServiceSasSignatureValues) {
         return blob.generateSas(blobServiceSasSignatureValues, null);
+    }
+
+    /**
+     * Constructs the Azure Storage endpoint URL.
+     * If a custom blobEndpoint is configured, it will be used.
+     * Otherwise, constructs the default endpoint using the account name.
+     *
+     * @param accountName the storage account name
+     * @param customBlobEndpoint optional custom blob endpoint (can be null or empty)
+     * @return the endpoint URL to use
+     */
+    @NotNull
+    private static String getEndpointUrl(String accountName, String customBlobEndpoint) {
+        if (StringUtils.isNotBlank(customBlobEndpoint)) {
+            // Use custom endpoint (e.g., for private endpoints)
+            // Ensure it starts with https:// if not already present
+            if (!customBlobEndpoint.startsWith("http://") && !customBlobEndpoint.startsWith("https://")) {
+                return "https://" + customBlobEndpoint;
+            }
+            return customBlobEndpoint;
+        }
+        // Default public endpoint
+        return String.format("https://%s.blob.%s", accountName, DEFAULT_ENDPOINT_SUFFIX);
     }
 }

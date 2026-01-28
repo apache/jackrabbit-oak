@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
-import org.apache.jackrabbit.oak.commons.internal.concurrent.DirectExecutor;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorUtils;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -74,7 +74,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
-import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_DONE;
 import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_RUNNING;
 import static org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback.IndexProgress.COMMIT_SUCCEDED;
@@ -241,7 +240,7 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
         ActiveDeletedBlobCollectorMBeanImpl bean =
                 new ActiveDeletedBlobCollectorMBeanImpl(ActiveDeletedBlobCollectorFactory.NOOP, wb, failingNodeStore,
                         indexPathService, asyncIndexInfoService,
-                        new MemoryBlobStore(), DirectExecutor.INSTANCE);
+                        new MemoryBlobStore(), ExecutorUtils.directExecutor());
         bean.clock = clock;
 
         bean.flagActiveDeletionUnsafeForCurrentState();
@@ -274,7 +273,7 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
                     return null;
                 }), wb, nodeStore,
                         indexPathService, asyncIndexInfoService,
-                        new MemoryBlobStore(), DirectExecutor.INSTANCE);
+                        new MemoryBlobStore(), ExecutorUtils.directExecutor());
         bean.clock = clock;
 
         bean.flagActiveDeletionUnsafeForCurrentState();
@@ -312,7 +311,7 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
         ActiveDeletedBlobCollectorMBeanImpl bean =
                 new ActiveDeletedBlobCollectorMBeanImpl(ActiveDeletedBlobCollectorFactory.NOOP, wb, dns1,
                         indexPathService, asyncIndexInfoService,
-                        new MemoryBlobStore(), DirectExecutor.INSTANCE);
+                        new MemoryBlobStore(), ExecutorUtils.directExecutor());
         bean.clock = clock;
 
         bean.flagActiveDeletionUnsafeForCurrentState();
@@ -496,7 +495,7 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
         private final ActiveDeletedBlobCollector delegate;
 
         DeletedFileTrackingADBC(File tempFolder) {
-            delegate = ActiveDeletedBlobCollectorFactory.newInstance(tempFolder, newDirectExecutorService());
+            delegate = ActiveDeletedBlobCollectorFactory.newInstance(tempFolder, ExecutorUtils.newDirectExecutorService());
         }
 
         @Override
@@ -577,7 +576,7 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
         ActiveDeletedBlobCollectorMBeanImpl bean =
                 new ActiveDeletedBlobCollectorMBeanImpl(ActiveDeletedBlobCollectorFactory.NOOP, wb, nodeStore,
                         indexPathService, asyncIndexInfoService,
-                        new MemoryBlobStore(), newDirectExecutorService());
+                        new MemoryBlobStore(), ExecutorUtils.directExecutor());
         bean.clock = clock;
 
         return bean;

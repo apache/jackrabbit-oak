@@ -593,6 +593,10 @@ public class Oak {
             LOG.info("Registered sort union query by score feature: " + QueryEngineSettings.FT_SORT_UNION_QUERY_BY_SCORE);
             closer.register(sortUnionQueryByScoreFeature);
             queryEngineSettings.setSortUnionQueryByScoreFeature(sortUnionQueryByScoreFeature);
+            Feature optimizeXPathUnion = newFeature(QueryEngineSettings.FT_OPTIMIZE_XPATH_UNION, whiteboard);
+            LOG.info("Registered optimize XPath union feature: " + QueryEngineSettings.FT_OPTIMIZE_XPATH_UNION);
+            closer.register(optimizeXPathUnion);
+            queryEngineSettings.setOptimizeXPathUnion(optimizeXPathUnion);
         }
 
         return this;
@@ -769,8 +773,13 @@ public class Oak {
             regs.add(registerMBean(whiteboard, NodeCounterMBean.class,
                     new NodeCounterOld(store), NodeCounterMBean.TYPE, "nodeCounter"));
         } else {
+            NodeCounter nc = new NodeCounter(store);
+            // register both backwards-compatibly
             regs.add(registerMBean(whiteboard, NodeCounterMBean.class,
-                    new NodeCounter(store), NodeCounterMBean.TYPE, "nodeCounter"));
+                    nc, NodeCounterMBean.TYPE, "nodeCounter"));
+            // and using org.apache.jackrabbit.oak.api.jmx.NodeCounterMBean, with a different name
+            regs.add(registerMBean(whiteboard, org.apache.jackrabbit.oak.api.jmx.NodeCounterMBean.class,
+                    nc, NodeCounterMBean.TYPE, "nodeCounter2"));
         }
 
         regs.add(registerMBean(whiteboard, QueryEngineSettingsMBean.class,
@@ -1006,6 +1015,10 @@ public class Oak {
 
         public void setSortUnionQueryByScoreFeature(@Nullable Feature feature) {
             settings.setSortUnionQueryByScoreFeature(feature);
+        }
+
+        public void setOptimizeXPathUnion(@Nullable Feature feature) {
+            settings.setOptimizeXPathUnion(feature);
         }
 
         @Override

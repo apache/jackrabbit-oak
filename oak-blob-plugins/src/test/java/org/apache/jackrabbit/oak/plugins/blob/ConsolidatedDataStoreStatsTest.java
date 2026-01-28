@@ -137,7 +137,7 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
             }
         };
         dataStore.setStatisticsProvider(statsProvider);
-        dataStore.listeningExecutor = executor;
+        dataStore.executorService = executor;
         dataStore.schedulerExecutor = scheduledExecutor;
         dataStore.init(root.getAbsolutePath());
 

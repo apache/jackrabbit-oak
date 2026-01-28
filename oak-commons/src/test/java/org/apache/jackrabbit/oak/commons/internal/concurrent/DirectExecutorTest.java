@@ -31,7 +31,7 @@ public class DirectExecutorTest {
         final String callingThread = Thread.currentThread().getName();
         final String[] executedThread = new String[1];
 
-        DirectExecutor.INSTANCE.execute(() -> executedThread[0] = Thread.currentThread().getName());
+        ExecutorUtils.directExecutor().execute(() -> executedThread[0] = Thread.currentThread().getName());
 
         Assert.assertEquals(callingThread, executedThread[0]);
     }
@@ -39,7 +39,7 @@ public class DirectExecutorTest {
     @Test
     public void testExecuteRunsImmediately() {
         final boolean[] ran = {false};
-        DirectExecutor.INSTANCE.execute(() -> ran[0] = true);
+        ExecutorUtils.directExecutor().execute(() -> ran[0] = true);
         Assert.assertTrue(ran[0]);
     }
 }

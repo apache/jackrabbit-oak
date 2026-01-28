@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.86.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.90.0
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.86.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.90.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
@@ -15,73 +15,70 @@ production use.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.86.0
+Changes in Oak 1.90.0
 ---------------------
 
-Sub-task
+** Technical task
+    * [OAK-11916] - Create getExitingExecutorService API in ExecutorUtils
+    * [OAK-11917] - Create a new getExitingScheduledExecutorService API
+    * [OAK-11918] - Remove usage of Guava's ListeningExecutorService
+    * [OAK-11919] - Remove usage of Guava's ListenableFutureTask [Part 2] [Prod files]
+    * [OAK-11920] - Remove usage of Guava's MoreExecutors.newDirectExecutorService [Part 2]
+    * [OAK-11921] - Remove usage of Guava's AbstractListeningExecutorService
+    * [OAK-11922] - Remove usage of Guava's MoreExecutors.listeningDecorator
+    * [OAK-11923] - Remove usage of Guava's ForwardingListenableFuture
+    * [OAK-11924] - Remove usage of Guava's ForwardingListeningExecutorService
+    * [OAK-11925] - Remove usage of Guava's Futures.allAsList [Part 2]
+    * [OAK-12018] - Remove usage of DirectExecutor.INSTANCE with ExecutorUtils
+    * [OAK-12019] - Remove usage of Guava's MoreExecutors.getExitingExecutorService
+    * [OAK-12020] - Remove usage of Guava's MoreExecutors.getExitingScheduledExecutorService
+    * [OAK-12023] - Remove usage of Guava's FutureCallback
+    * [OAK-12024] - Remove usage of Guava's Futures.addCallback
+    * [OAK-12025] - Remove usage of Guava's SameThreadExecutorService
+    * [OAK-12029] - Remove usage of Guava's SettableFuture from ExpectationListener
+    * [OAK-12032] - Remove usage of Guava's UncheckedExecutionException
+    * [OAK-12033] - Remove usage of Guava's Monitor [unit cases only]
 
-    [OAK-11856] - oak-run-commons: remove usage of "old" Oak bloom filter, use oak-commons instead
-    [OAK-11858] - Remove remains of Oak bloom filter in oak-run-commons
-    [OAK-11881] - Remove usage of Guava Maps.map()
-    [OAK-11883] - Remove usage of Guava collect.Range
-    [OAK-11885] - Remove usage of Guava collect.ListMultiMap
-    [OAK-11887] - oak-it: exclude *db artefacts
-    [OAK-11888] - Remove usage of Guava ThreadBuilderFactory
 
-Technical task
+** Bug
+    * [OAK-10618] - ArrayIndexOutOfBoundsException in TikaExtractionOsgiIT
+    * [OAK-12030] - CWE-125: Out-of-bounds Read in LZ4
+    * [OAK-12034] - CachingSegmentArchiveReader#containsSegment should not check the persistence cache for the segment
 
-    [OAK-11656] - Remove usage of Guava Suppliers.memoize
-    [OAK-11832] - Remove usage of Guava's Tree Traverser
-    [OAK-11833] - Remove usage of Guava's Traverser
-    [OAK-11836] - Remove usage of Guava's AbstractIterator
-    [OAK-11842] - Copy Bloom Filter implementation from oak-run-commons to oak-commons for re-use
-    [OAK-11852] - Use new Bloom filter implementation in document store
-    [OAK-11855] - update oak-blob to use oak-commons bloom filter
-    [OAK-11869] - Remove usage of Guava's Hashing
-    [OAK-11886] - Remove usage of Guava's Futures.immediateFuture()
-    [OAK-11889] - Remove usage of Guava's Futures.successfulAsList()
-    [OAK-11890] - Remove usage of Guava's Futures.allAsList [Part 1]
-    [OAK-11893] - Remove usage of Guava's ListenableFuture [Part 1]
-    [OAK-11896] - Remove usage of Guava's SettableFuture [Part 1] [Test cases only]
-    [OAK-11903] - Remove usage of Guava's SettableFuture [Part 2] [Prod + Test]
-    [OAK-11906] - Remove usage of Guava's ListenableFutureTask [Part 1] [Test cases]
-    [OAK-11907] - Remove usage of Guava's MoreExecutors.directExecutor()
-    [OAK-11909] - Remove usage of Guava's MoreExecutors.newDirectExecutorService [Part 1] [Test cases]
 
-Bug
 
-    [OAK-9586] - SysViewImportHandler does not support expanded names in sv:name attributes
-    [OAK-9897] - SplitPersistence: FileReaper cannot finish cleanup
-    [OAK-11808] - Segment graph may need to be recomputed
-    [OAK-11846] - oak-segment-azure - recovery will recover from .bak
-    [OAK-11862] - oak-search-elastic: missing facets for multi-valued fields
-    [OAK-11864] - Create a new FullGC mode ALL_ORPHANS without empty properties
-    [OAK-11875] - FullGC.EMPTY_PROPS should not delete if there are previous documents with that property
-    [OAK-11884] - AzureArchiveManage.listArchives() should delete segments only if write acces is allowed
-    [OAK-11891] - Add metrics for documents Skipped due to FullGC.EMPTY_PROPS not deleting if there are previous documents with that property
-    [OAK-11905] - Update Mockito dependency to 5.19.0
 
-Improvement
+** Improvement
+    * [OAK-10662] - improve Reproducible Builds
+    * [OAK-11731] - expose NodeCounter (getEstimatedChildNodeCounts) in JackrabbitNode
+    * [OAK-12001] - run CI on branch 1.22 as well
+    * [OAK-12004] - Datastore: speedup datastore copy / download
+    * [OAK-12005] - segment preloading graph-cache uses too much heap
+    * [OAK-12007] - XPath with "or" conditions should not always be converted to "union"
+    * [OAK-12012] - Sporadic SessionSaveDelayerConfigTest failure
+    * [OAK-12015] - Improve diagnostics on property related constraint violations
+    * [OAK-12036] - Expose persistence disk cache statistics in FileStore
+    * [OAK-12038] - Fix flaky ElasticFacetTest
+    * [OAK-12040] - segment-azure: reduce HTTP requests for writes
+    * [OAK-12043] - Avoid object allocation in SegmentId.compareTo
+    * [OAK-12044] - Optimize PathUtils.concat
 
-    [OAK-11841] - Optimizations and additional logging of performance metrics to statistical facets
-    [OAK-11849] - Make timeout for querying facets with Elasticsearch configurable
-    [OAK-11850] - Use MutableInt to compute facets to avoid boxing/unboxing between Int and Integer
-    [OAK-11851] - Log performance metrics of statistical facets and simplify logic
-    [OAK-11857] - Improve path handling in oak-segment-azure
-    [OAK-11861] - segment store initialization should run in parallel
-    [OAK-11866] - Support for datastore files without length
-    [OAK-11878] - ClusterNodeStoreLock LOCK_TIMEOUT is too large
-    [OAK-11894] - DocViewImport: Resolve the IdentifierManager lazily
+** Test
+    * [OAK-12011] - backgroundPurge interferes with fullgc tests
 
-Task
 
-    [OAK-10674] - use Oak's Bloom filter instead Guava's
-    [OAK-11859] - update Tomcat dependency to 9.0.108
-    [OAK-11870] - Allow passing fullGCGeneration parameter to RevisionsCommand
-    [OAK-11897] - Remove exports from oak-segment-azure
-    [OAK-11900] - SplitPersistenceTest: disable three tests on Windows platform
-    [OAK-11908] - Update Easymock dependency to 5.6.0
-
+** Task
+    * [OAK-11617] - Provide oak-run commands to analyze and fix inconsistencies in the namespace registry
+    * [OAK-11830] - Update pax-exam test dependency to 4.14.0 
+    * [OAK-11910] - Create ExecutorUtils in oak-commons
+    * [OAK-11991] - Optimize the oak-segment recovery process
+    * [OAK-12003] - Refactor code in AzurePersistenceManager
+    * [OAK-12008] - Embed Aws Sdk 2.x dependencies in oak-blob-cloud
+    * [OAK-12009] - Support GCP with oak-blob-cloud with aws sdk 2.x
+    * [OAK-12021] - cleanup oak-blob-plugins pom (oak-commons dependency)
+    * [OAK-12027] - Create a method in oak-mongo.js to remove nodes under a path starting from leaf
+    * [OAK-12031] - Add jackrabbit-jcr-commons dependency to oak-upgrade
+    * [OAK-12041] - bump testcontainers to v1.21.4
 
 In addition to the above-mentioned changes, this release contains all
 changes up to the previous release.
