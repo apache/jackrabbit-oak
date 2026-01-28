@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
 import org.junit.Before;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Test {@link org.apache.jackrabbit.core.data.CachingDataStore} with AzureBlobStoreBackend
@@ -31,9 +29,7 @@ import org.slf4j.LoggerFactory;
  */
 public class TestAzureDsCacheOff extends TestAzureDS {
 
-    protected static final Logger LOG = LoggerFactory.getLogger(TestAzureDsCacheOff.class);
-
-    @Override
+  @Override
     @Before
     public void setUp() throws Exception {
         props.setProperty("cacheSize", "0");
