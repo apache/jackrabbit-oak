@@ -554,7 +554,6 @@ public class S3Backend extends AbstractSharedBackend {
                 uploadStream = Files.newInputStream(tempFile.toPath());
             }
 
-            // Specify `null` for the content length when you don't know the content length.
             final AsyncRequestBody body = getRequestBody(uploadStream, length, executor, builder);
             final Upload upload = tmx.upload(uploadReq ->
                     uploadReq.requestBody(body).
