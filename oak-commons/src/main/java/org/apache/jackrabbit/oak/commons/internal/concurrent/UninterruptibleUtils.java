@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.commons.internal.concurrent;
 
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Utility methods for waiting on synchronization primitives without
@@ -61,6 +62,51 @@ public class UninterruptibleUtils {
         } finally {
             if (interrupted) {
                 Thread.currentThread().interrupt(); // restore flag
+            }
+        }
+    }
+
+    /**
+     * Causes the current thread to sleep for the specified duration,
+     * ignoring {@link InterruptedException} until the full sleep time
+     * has elapsed, then restores the interrupted status before returning.
+     * <p>
+     * This behaves like Guava's
+     * {@code Uninterruptibles.sleepUninterruptibly(long, TimeUnit)}:
+     * it repeatedly invokes {@link TimeUnit#sleep(long)} until the
+     * requested time has passed, catching and recording interruptions
+     * and recomputing the remaining time from a fixed deadline.
+     *
+     * @param sleep the time to sleep; must be non-negative
+     * @param unit     the time unit of the {@code sleep} argument; must not be {@code null}
+     * @throws NullPointerException     if {@code unit} is {@code null}
+     * @throws IllegalArgumentException if {@code sleep} is negative
+     */
+    public static void sleepUninterruptibly(final long sleep, final TimeUnit unit) {
+
+        Objects.requireNonNull(unit, "timeunit is null");
+
+        if (sleep < 0L) {
+            throw new IllegalArgumentException("sleep must be >= 0");
+        }
+
+        boolean interrupted = false;
+        try {
+            long remainingNanos = unit.toNanos(sleep);
+            long end = System.nanoTime() + remainingNanos;
+            for (;;) {
+                try {
+                    // TimeUnit.sleep() treats negative timeouts just like zero.
+                    TimeUnit.NANOSECONDS.sleep(remainingNanos);
+                    return;
+                } catch (InterruptedException e) {
+                    interrupted = true;
+                    remainingNanos = end - System.nanoTime();
+                }
+            }
+        } finally {
+            if (interrupted) {
+                Thread.currentThread().interrupt();
             }
         }
     }
