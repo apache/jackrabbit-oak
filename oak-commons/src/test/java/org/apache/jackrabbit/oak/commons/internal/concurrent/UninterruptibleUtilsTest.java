@@ -23,6 +23,7 @@ import org.junit.Test;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Unit cases for {@link UninterruptibleUtils}
@@ -217,10 +218,16 @@ public class UninterruptibleUtilsTest {
 
         worker.start();
 
+        final AtomicReference<Throwable> t = new AtomicReference<>();
+
         Thread joiningThread = new Thread(() -> {
-            UninterruptibleUtils.joinUninterruptibly(worker);
-            // After returning, interrupted flag should be set if we interrupted during join
-            Assert.assertTrue("Interrupt flag should be restored", Thread.currentThread().isInterrupted());
+            try {
+                UninterruptibleUtils.joinUninterruptibly(worker);
+                // After returning, interrupted flag should be set if we interrupted during join
+                Assert.assertTrue("Interrupt flag should be restored", Thread.currentThread().isInterrupted());
+            } catch (Throwable e) {
+                t.set(e);
+            }
         });
 
         joiningThread.start();
@@ -232,6 +239,11 @@ public class UninterruptibleUtilsTest {
         joiningThread.interrupt();
 
         joiningThread.join();
+
+        // fail if any exception occurred in the thread
+        if (t.get() != null) {
+            Assert.fail("Got exception: " + t.get());
+        }
     }
 
     @Test
@@ -245,10 +257,16 @@ public class UninterruptibleUtilsTest {
 
         worker.start();
 
+        final AtomicReference<Throwable> t = new AtomicReference<>();
+
         Thread joiningThread = new Thread(() -> {
-            UninterruptibleUtils.joinUninterruptibly(worker);
-            Assert.assertTrue("Interrupt flag should be restored after multiple interrupts",
-                    Thread.currentThread().isInterrupted());
+            try {
+                UninterruptibleUtils.joinUninterruptibly(worker);
+                Assert.assertTrue("Interrupt flag should be restored after multiple interrupts",
+                        Thread.currentThread().isInterrupted());
+            }  catch (Throwable e) {
+                t.set(e);
+            }
         });
 
         joiningThread.start();
@@ -260,6 +278,11 @@ public class UninterruptibleUtilsTest {
         }
 
         joiningThread.join();
+
+        // fail if any exception occurred in the thread
+        if (t.get() != null) {
+            Assert.fail("Got exception: " + t.get());
+        }
     }
 
 }
