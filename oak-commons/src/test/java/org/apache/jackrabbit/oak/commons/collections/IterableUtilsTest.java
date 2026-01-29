@@ -42,6 +42,8 @@ import java.util.function.Predicate;
  */
 public class IterableUtilsTest {
 
+    private static final Comparator<Integer> INT_COMPARATOR = Integer::compareTo;
+
 
     @Test
     public void testTwoChainedIterable() {
@@ -1126,5 +1128,85 @@ public class IterableUtilsTest {
         set.add("c");
         String result = IterableUtils.getLast(set);
         Assert.assertEquals("c", result);
+    }
+
+    @Test
+    public void testIsInOrderNullValues() {
+        Assert.assertThrows(NullPointerException.class, () -> IterableUtils.isInOrder(null, INT_COMPARATOR));
+        Assert.assertThrows(NullPointerException.class, () -> IterableUtils.isInOrder(Collections.<Integer>emptyList(), null));
+    }
+
+    @Test
+    public void isInOrder_emptyIterableIsInOrder() {
+        List<Integer> list = Collections.emptyList();
+
+        boolean result = IterableUtils.isInOrder(list, INT_COMPARATOR);
+
+        Assert.assertTrue("Empty iterable should be considered in order", result);
+    }
+
+    @Test
+    public void isInOrder_singleElementIterableIsInOrder() {
+        List<Integer> list = Collections.singletonList(42);
+
+        boolean result = IterableUtils.isInOrder(list, INT_COMPARATOR);
+
+        Assert.assertTrue("Single-element iterable should be considered in order", result);
+    }
+
+    @Test
+    public void isInOrder_sortedAscendingIsTrue() {
+        List<Integer> list = Arrays.asList(1, 2, 3, 4, 5);
+
+        boolean result = IterableUtils.isInOrder(list, INT_COMPARATOR);
+
+        Assert.assertTrue("Ascending list should be in order", result);
+    }
+
+    @Test
+    public void isInOrder_withEqualAdjacentElementsIsTrue() {
+        List<Integer> list = Arrays.asList(1, 2, 2, 3, 3, 3, 4);
+
+        boolean result = IterableUtils.isInOrder(list, INT_COMPARATOR);
+
+        Assert.assertTrue("List with equal adjacent elements should be in non-decreasing order", result);
+    }
+
+    @Test
+    public void isInOrder_notSortedAscendingIsFalse() {
+        List<Integer> list = Arrays.asList(1, 3, 2, 4, 5);
+
+        boolean result = IterableUtils.isInOrder(list, INT_COMPARATOR);
+
+        Assert.assertFalse("List with a decreasing pair should not be in order", result);
+    }
+
+    @Test
+    public void isInOrder_strictlyDescendingIsFalse() {
+        List<Integer> list = Arrays.asList(5, 4, 3, 2, 1);
+
+        boolean result = IterableUtils.isInOrder(list, INT_COMPARATOR);
+
+        Assert.assertFalse("Strictly descending list should not be in order", result);
+    }
+
+    @Test
+    public void isInOrder_customComparatorDescendingOrder() {
+        Comparator<Integer> descending = Comparator.reverseOrder();
+        List<Integer> list = Arrays.asList(5, 4, 4, 3, 1);
+
+        boolean result = IterableUtils.isInOrder(list, descending);
+
+        Assert.assertTrue("List should be in order according to descending comparator", result);
+    }
+
+    @Test
+    public void isInOrder_customComparatorDescendingOrderDetectsViolation() {
+        Comparator<Integer> descending = Comparator.reverseOrder();
+        List<Integer> list = Arrays.asList(5, 3, 4, 1);
+
+        boolean result = IterableUtils.isInOrder(list, descending);
+
+        Assert.assertFalse("List should not be in order according to descending comparator", result);
     }
 }
