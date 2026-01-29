@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.UninterruptibleUtils;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
@@ -38,7 +39,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles.awaitUninterruptibly;
 import static org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles.joinUninterruptibly;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 import static org.junit.Assert.fail;
@@ -89,7 +89,7 @@ public class HierarchyConflictTest {
                         public void edit(NodeBuilder builder) {
                             builder.getChildNode("foo").getChildNode("bar").remove();
                             nodeRemoved.countDown();
-                            awaitUninterruptibly(nodeAdded);
+                            UninterruptibleUtils.awaitUninterruptibly(nodeAdded);
                         }
                     });
                 } catch (CommitFailedException e) {
@@ -100,7 +100,7 @@ public class HierarchyConflictTest {
         t.start();
 
         // wait for r2 to enter merge phase
-        awaitUninterruptibly(nodeRemoved);
+        UninterruptibleUtils.awaitUninterruptibly(nodeRemoved);
         try {
             // must fail because /foo/bar was removed
             merge(store, r1, new EditorCallback() {
@@ -147,7 +147,7 @@ public class HierarchyConflictTest {
                         public void edit(NodeBuilder builder) {
                             builder.getChildNode("foo").getChildNode("bar").child("qux");
                             nodeAdded.countDown();
-                            awaitUninterruptibly(nodeRemoved);
+                            UninterruptibleUtils.awaitUninterruptibly(nodeRemoved);
                         }
                     });
                 } catch (CommitFailedException e) {
@@ -158,7 +158,7 @@ public class HierarchyConflictTest {
         t.start();
 
         // wait for r1 to enter merge phase
-        awaitUninterruptibly(nodeAdded);
+        UninterruptibleUtils.awaitUninterruptibly(nodeAdded);
         try {
             // must fail because /foo/bar/qux was added
             merge(store, r2, new EditorCallback() {
