@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Integer.getInteger;
 import static java.lang.String.valueOf;
 import static java.util.concurrent.Executors.newFixedThreadPool;
@@ -566,7 +565,7 @@ public class CompactionAndCleanupIT {
         });
 
         // Give the compaction thread a head start
-        sleepUninterruptibly(1, SECONDS);
+        UninterruptibleUtils.sleepUninterruptibly(1, SECONDS);
 
         fileStore.close();
         try {
@@ -599,7 +598,7 @@ public class CompactionAndCleanupIT {
                 @Override
                 public Void call() throws Exception {
                     // Give the compaction thread a head start
-                    sleepUninterruptibly(1000, MILLISECONDS);
+                    UninterruptibleUtils.sleepUninterruptibly(1000, MILLISECONDS);
                     fileStore.cancelGC();
                     return null;
                 }
