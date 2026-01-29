@@ -36,8 +36,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles;
-
+import org.apache.jackrabbit.oak.commons.internal.concurrent.UninterruptibleUtils;
 import org.junit.Test;
 
 /**
@@ -213,7 +212,7 @@ public class RevisionTest {
             workers.add(new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    Uninterruptibles.awaitUninterruptibly(startLatch);
+                    UninterruptibleUtils.awaitUninterruptibly(startLatch);
                     for (int j = 0; j < noOfLoops && !stop.get(); j++) {
                         revisionQueue.add(Revision.newRevision(1));
                     }

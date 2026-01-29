@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles.awaitUninterruptibly;
 import static org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Integer.getInteger;
 import static java.lang.String.valueOf;
@@ -66,6 +65,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.UninterruptibleUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
@@ -723,7 +723,7 @@ public class CompactionAndCleanupIT {
                 @Override
                 public String getValue() {
                     readyToCompact.countDown();
-                    awaitUninterruptibly(compactionCompleted);
+                    UninterruptibleUtils.awaitUninterruptibly(compactionCompleted);
                     return super.getValue();
                 }
             });
