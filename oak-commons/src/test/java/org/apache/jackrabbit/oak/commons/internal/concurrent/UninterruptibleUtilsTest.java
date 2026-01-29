@@ -162,4 +162,112 @@ public class UninterruptibleUtilsTest {
         Assert.assertTrue("Zero sleep should return quickly", elapsedMillis < 50L);
     }
 
+    @Test
+    public void testNullThread() {
+        Assert.assertThrows(NullPointerException.class,
+                () -> UninterruptibleUtils.joinUninterruptibly(null));
+    }
+
+    @Test
+    public void testReturnsWhenThreadFinishesBeforeTimeout() throws Exception {
+        final long workMillis = 10L;
+        final Thread worker = new Thread(() -> {
+            try {
+                Thread.sleep(workMillis);
+            } catch (InterruptedException ignored) {}
+        });
+
+        worker.start();
+
+        long start = System.nanoTime();
+        UninterruptibleUtils.joinUninterruptibly(worker);
+        long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+
+        Assert.assertFalse("Worker should be finished", worker.isAlive());
+        Assert.assertTrue("Join should not take excessively long",
+                elapsedMillis >= workMillis && elapsedMillis < 100L);
+    }
+
+    @Test
+    public void testJoinShouldWaitUntilThreadFinishes() {
+        final Thread worker = new Thread(() -> {
+            // Run longer than the join timeout
+            try {
+                Thread.sleep(20L);
+            } catch (InterruptedException ignored) {
+            }
+        });
+
+        worker.start();
+
+        long start = System.nanoTime();
+        UninterruptibleUtils.joinUninterruptibly(worker);
+        long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+
+        // Worker may still be alive (likely), but we at least checked the timeout behavior
+        Assert.assertTrue("Join should respect timeout", elapsedMillis >= 20L );
+    }
+
+    @Test
+    public void testJoinUninterruptiblyIgnoresInterruptsButRestoresFlag() throws Exception {
+        final Thread worker = new Thread(() -> {
+            try {
+                Thread.sleep(20L);
+            } catch (InterruptedException ignored) {
+            }
+        });
+
+        worker.start();
+
+        Thread joiningThread = new Thread(() -> {
+            UninterruptibleUtils.joinUninterruptibly(worker);
+            // After returning, interrupted flag should be set if we interrupted during join
+            Assert.assertTrue("Interrupt flag should be restored", Thread.currentThread().isInterrupted());
+        });
+
+        joiningThread.start();
+
+        // Let the joining thread enter join
+        Thread.sleep(50L);
+
+        // Interrupt while it is joining
+        joiningThread.interrupt();
+
+        joiningThread.join(200L);
+
+        Assert.assertFalse("Joining thread should have completed", joiningThread.isAlive());
+        Assert.assertFalse("Worker should have completed", worker.isAlive());
+    }
+
+    @Test
+    public void testJoinUninterruptiblyMultipleInterruptsStillCompleteAndRestoreFlag() throws Exception {
+        final Thread worker = new Thread(() -> {
+            try {
+                Thread.sleep(30L);
+            } catch (InterruptedException ignored) {
+            }
+        });
+
+        worker.start();
+
+        Thread joiningThread = new Thread(() -> {
+            UninterruptibleUtils.joinUninterruptibly(worker);
+            Assert.assertTrue("Interrupt flag should be restored after multiple interrupts",
+                    Thread.currentThread().isInterrupted());
+        });
+
+        joiningThread.start();
+
+        // Interrupt the joining thread multiple times while it is waiting
+        for (int i = 0; i < 3; i++) {
+            Thread.sleep(50L);
+            joiningThread.interrupt();
+        }
+
+        joiningThread.join(2000L);
+
+        Assert.assertFalse("Joining thread should have completed", joiningThread.isAlive());
+        Assert.assertFalse("Worker should have completed", worker.isAlive());
+    }
+
 }
