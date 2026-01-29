@@ -266,6 +266,7 @@
           <configuration>
             <argLine>${test.opts}</argLine>
             <trimStackTrace>false</trimStackTrace>
+            <useModulePath>false</useModulePath>
             <systemPropertyVariables>
               <!-- evaluated in oak-jcr/src/test/java/org/apache/jackrabbit/oak/jcr/util/KnownIssuesIgnoreRule.java (JUnit4) and
                    https://github.com/apache/jackrabbit/blob/ed3124e5fe223dada33ce6ddf53bc666063c3f2f/jackrabbit-jcr-tests/src/main/java/org/apache/jackrabbit/test/AbstractJCRTest.java#L476 (JUnit3)
@@ -289,6 +290,7 @@
           <configuration>
             <argLine>${test.opts}</argLine>
             <trimStackTrace>false</trimStackTrace>
+            <useModulePath>false</useModulePath>
             <systemPropertyVariables>
               <!-- evaluated in oak-jcr/src/test/java/org/apache/jackrabbit/oak/jcr/util/KnownIssuesIgnoreRule.java (JUnit4) and
                    https://github.com/apache/jackrabbit/blob/ed3124e5fe223dada33ce6ddf53bc666063c3f2f/jackrabbit-jcr-tests/src/main/java/org/apache/jackrabbit/test/AbstractJCRTest.java#L476 (JUnit3)
