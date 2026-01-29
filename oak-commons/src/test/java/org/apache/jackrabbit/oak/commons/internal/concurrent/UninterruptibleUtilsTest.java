@@ -210,7 +210,7 @@ public class UninterruptibleUtilsTest {
     public void testJoinUninterruptiblyIgnoresInterruptsButRestoresFlag() throws Exception {
         final Thread worker = new Thread(() -> {
             try {
-                Thread.sleep(20L);
+                Thread.sleep(200L);
             } catch (InterruptedException ignored) {
             }
         });
@@ -226,19 +226,19 @@ public class UninterruptibleUtilsTest {
         joiningThread.start();
 
         // Let the joining thread enter join
-        Thread.sleep(50L);
+        Thread.sleep(5L);
 
         // Interrupt while it is joining
         joiningThread.interrupt();
 
-        joiningThread.join(200L);
+        joiningThread.join();
     }
 
     @Test
     public void testJoinUninterruptiblyMultipleInterruptsStillCompleteAndRestoreFlag() throws Exception {
         final Thread worker = new Thread(() -> {
             try {
-                Thread.sleep(30L);
+                Thread.sleep(300L);
             } catch (InterruptedException ignored) {
             }
         });
@@ -255,11 +255,11 @@ public class UninterruptibleUtilsTest {
 
         // Interrupt the joining thread multiple times while it is waiting
         for (int i = 0; i < 3; i++) {
-            Thread.sleep(50L);
+            Thread.sleep(5L);
             joiningThread.interrupt();
         }
 
-        joiningThread.join(2000L);
+        joiningThread.join();
     }
 
 }
