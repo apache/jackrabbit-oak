@@ -134,9 +134,9 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
                 }
 
                 long now = System.currentTimeMillis();
-                if (lastLoggedTime + 15_000 < now) {
+                if (LOG.isDebugEnabled() && lastLoggedTime + 15_000 < now) {
                     lastLoggedTime = now;
-                    LOG.info("Dispatch pool queue size: {}, current preload depth: {}", size, preloadDepth);
+                    LOG.debug("Dispatch pool queue size: {}, current preload depth: {}", size, preloadDepth);
                 }
             }
         };
