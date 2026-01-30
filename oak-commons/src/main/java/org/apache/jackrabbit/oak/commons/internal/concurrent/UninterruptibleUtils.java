@@ -110,4 +110,39 @@ public class UninterruptibleUtils {
             }
         }
     }
+
+    /**
+     * Invokes {@link TimeUnit#timedJoin(Thread, long)} uninterruptibly.
+     * <p>
+     * This method repeatedly calls {@link TimeUnit#timedJoin(Thread, long)} until the
+     * specified timeout has elapsed or the target thread terminates, ignoring
+     * {@link InterruptedException} but remembering that an interruption
+     * occurred. When the method finally returns, it restores the current
+     * thread's interrupted status if any interruptions were detected.
+     *
+     * @param toJoin the thread to wait for; must not be {@code null}
+     * @throws NullPointerException     if {@code toJoin} or {@code unit} is {@code null}
+     * @throws IllegalArgumentException if {@code timeout} is negative
+     */
+    public static void joinUninterruptibly(final Thread toJoin) {
+
+        Objects.requireNonNull(toJoin, "thread to join is null");
+
+        boolean interrupted = false;
+
+        try {
+            for(;;) {
+                try {
+                    toJoin.join();
+                    return;
+                } catch (InterruptedException var6) {
+                    interrupted = true;
+                }
+            }
+        } finally {
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
 }
