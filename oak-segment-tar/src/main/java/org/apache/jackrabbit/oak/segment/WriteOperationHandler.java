@@ -21,9 +21,11 @@ package org.apache.jackrabbit.oak.segment;
 
 import java.io.IOException;
 
+import org.apache.jackrabbit.oak.segment.data.PartialSegmentState;
 import org.jetbrains.annotations.NotNull;
 
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A {@code WriteOperationHandler} executes {@link WriteOperation
@@ -73,4 +75,10 @@ interface WriteOperationHandler {
      * @throws IOException
      */
     void flush(@NotNull SegmentStore store) throws IOException;
+
+    /** @see SegmentWriter#readPartialSegmentState(SegmentId) */
+    @Nullable
+    default PartialSegmentState readPartialSegmentState(@NotNull SegmentId sid) {
+        throw new UnsupportedOperationException("Trying to read partial segment state from a WriteOperationHandler that doesn’t support it.");
+    }
 }

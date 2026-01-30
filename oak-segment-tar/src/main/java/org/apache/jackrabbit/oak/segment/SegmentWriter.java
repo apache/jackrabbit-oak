@@ -22,6 +22,7 @@ import java.io.InputStream;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.data.PartialSegmentState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -32,6 +33,19 @@ import org.jetbrains.annotations.Nullable;
 public interface SegmentWriter {
 
     void flush() throws IOException;
+
+    /**
+     * Get the {@link PartialSegmentState partial state} of a segment
+     * that has started being written to but hasn’t been flushed yet.
+     *
+     * @param sid The ID of the segment
+     * @return The partial state or {@code null} if no partial state was found for the given segment ID.
+     * @throws UnsupportedOperationException if reading partial segment states is not supported.
+     */
+    @Nullable
+    default PartialSegmentState readPartialSegmentState(@NotNull SegmentId sid) {
+        throw new UnsupportedOperationException("Trying to read partial segment state from a SegmentWriter that doesn’t support it.");
+    }
 
     /**
      * Write a blob (as list of block records)
