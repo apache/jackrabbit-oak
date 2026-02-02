@@ -93,7 +93,7 @@ public class DiffIndex {
                 newImageLuceneDefinitions.getChildren().put("/oak:index/" + diffIndex, diffObj);
             } catch (Exception e) {
                 String message = "Error parsing " + diffIndex;
-                LOG.warn(message + ": {}", e.getMessage(), e);
+                LOG.warn("{}: {}", message, e.getMessage(), e);
                 diffIndexDefinition.setProperty("error", message + ": " + e.getMessage());
             }
         }
