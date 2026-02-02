@@ -61,7 +61,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     public static final String OAK_QUERY_PREFETCH_COUNT = "oak.prefetchCount";
 
-    public static final String FT_SORT_UNION_QUERY_BY_SCORE = "FT_OAK-11949";
+    public static final String FT_SORT_UNION_QUERY_BY_SCORE = "FT_OAK-12051";
 
     public static final String FT_OPTIMIZE_XPATH_UNION = "FT_OAK-12007";
 
