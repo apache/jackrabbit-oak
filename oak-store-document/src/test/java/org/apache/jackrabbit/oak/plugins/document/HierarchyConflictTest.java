@@ -39,7 +39,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles.joinUninterruptibly;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 import static org.junit.Assert.fail;
 
@@ -109,7 +108,7 @@ public class HierarchyConflictTest {
                     builder.getChildNode("foo").getChildNode("bar").child("qux");
                     nodeAdded.countDown();
                     // wait until r2 commits
-                    joinUninterruptibly(t);
+                    UninterruptibleUtils.joinUninterruptibly(t);
                 }
             });
 
@@ -167,7 +166,7 @@ public class HierarchyConflictTest {
                     builder.getChildNode("foo").getChildNode("bar").remove();
                     nodeRemoved.countDown();
                     // wait until r1 commits
-                    joinUninterruptibly(t);
+                    UninterruptibleUtils.joinUninterruptibly(t);
                 }
             });
 
