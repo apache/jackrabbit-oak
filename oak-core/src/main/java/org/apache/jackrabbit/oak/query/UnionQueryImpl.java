@@ -324,8 +324,8 @@ public class UnionQueryImpl implements Query {
             rightIter = ((MeasuringIterator) rightRows).getDelegate();
         }
         if (orderBy == null) {
-            if(!settings.isSortUnionQueryByScoreEnabled()) {
-                // Default old behavior
+            if(settings.isSortUnionQueryLegacyModeEnabled()) {
+                // Legacy mode: concatenate results without score-based merging
                 it = IteratorUtils.chainedIterator(leftIter, rightIter);
             } else {
                 boolean leftHasScore = isScorePresent(left);

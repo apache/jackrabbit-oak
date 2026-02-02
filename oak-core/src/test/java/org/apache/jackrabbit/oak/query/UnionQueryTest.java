@@ -69,8 +69,8 @@ public class UnionQueryTest extends AbstractQueryTest {
     protected ContentRepository createRepository() {
         store = new MemoryNodeStore();
         qeSettings = new QueryEngineSettings();
-        Feature sortFeature = createFeature(true);
-        qeSettings.setSortUnionQueryByScoreFeature(sortFeature);
+        Feature sortFeature = createFeature(false);
+        qeSettings.setSortUnionQueryLegacyModeFeature(sortFeature);
 
         return new Oak(store)
                 .with(new OpenSecurityProvider())
@@ -439,10 +439,11 @@ public class UnionQueryTest extends AbstractQueryTest {
     }
 
     @Test
-    public void testSortUnionQueryScoreFlagDisabled() throws Exception {
-        QueryEngineSettings disabledSettings = new QueryEngineSettings();
-        Feature sortFeature = createFeature(false);
-        disabledSettings.setSortUnionQueryByScoreFeature(sortFeature);
+    public void testSortUnionQueryLegacyModeEnabled() throws Exception {
+        // When legacy mode is enabled, query results should be concatenated
+        QueryEngineSettings legacySettings = new QueryEngineSettings();
+        Feature legacyModeFeature = createFeature(true);
+        legacySettings.setSortUnionQueryLegacyModeFeature(legacyModeFeature);
         MockQueryBuilder leftQuery = new MockQueryBuilder(true)
                 .addResult("/left/doc1", 0.8)
                 .addResult("/left/doc2", 0.7);
@@ -450,15 +451,15 @@ public class UnionQueryTest extends AbstractQueryTest {
                 .addResult("/right/doc1", 0.9)
                 .addResult("/right/doc2", 0.6);
 
-        UnionQueryImpl unionQuery = new UnionQueryImpl(true, leftQuery.build(), rightQuery.build(), disabledSettings);
+        UnionQueryImpl unionQuery = new UnionQueryImpl(true, leftQuery.build(), rightQuery.build(), legacySettings);
         List<ScoredResult> results = executeUnionAndGetScoredResults(unionQuery);
         assertPathOrder(results, new String[]{"/left/doc1", "/left/doc2", "/right/doc1", "/right/doc2"});
     }
 
     @Test
-    public void testSortUnionQueryScoreFlagIsNull() throws Exception {
-        QueryEngineSettings disabledSettings = new QueryEngineSettings();
-        disabledSettings.setSortUnionQueryByScoreFeature(null);
+    public void testSortUnionQueryLegacyModeNotSet() throws Exception {
+        QueryEngineSettings defaultSettings = new QueryEngineSettings();
+        defaultSettings.setSortUnionQueryLegacyModeFeature(null);
         MockQueryBuilder leftQuery = new MockQueryBuilder(true)
                 .addResult("/left/doc1", 0.8)
                 .addResult("/left/doc2", 0.7);
@@ -466,9 +467,9 @@ public class UnionQueryTest extends AbstractQueryTest {
                 .addResult("/right/doc1", 0.9)
                 .addResult("/right/doc2", 0.6);
 
-        UnionQueryImpl unionQuery = new UnionQueryImpl(true, leftQuery.build(), rightQuery.build(), disabledSettings);
+        UnionQueryImpl unionQuery = new UnionQueryImpl(true, leftQuery.build(), rightQuery.build(), defaultSettings);
         List<ScoredResult> results = executeUnionAndGetScoredResults(unionQuery);
-        assertPathOrder(results, new String[]{"/left/doc1", "/left/doc2", "/right/doc1", "/right/doc2"});
+        assertPathOrder(results, new String[]{"/right/doc1", "/left/doc1", "/left/doc2", "/right/doc2"});
     }
 
     @Test

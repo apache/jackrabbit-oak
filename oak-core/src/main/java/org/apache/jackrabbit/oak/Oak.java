@@ -577,11 +577,10 @@ public class Oak {
         }
 
         if (queryEngineSettings != null) {
-            Feature sortUnionQueryByScoreFeature = newFeature(QueryEngineSettings.FT_SORT_UNION_QUERY_BY_SCORE, whiteboard);
-            LOG.info("Registered sort union query by score feature: " + QueryEngineSettings.FT_SORT_UNION_QUERY_BY_SCORE);
-            closer.register(sortUnionQueryByScoreFeature);
-            queryEngineSettings.setSortUnionQueryByScoreFeature(sortUnionQueryByScoreFeature);
-
+            Feature sortUnionQueryLegacyModeFeature = newFeature(QueryEngineSettings.FT_SORT_UNION_QUERY_LEGACY_MODE, whiteboard);
+            LOG.info("Registered sort union query legacy mode feature: " + QueryEngineSettings.FT_SORT_UNION_QUERY_LEGACY_MODE);
+            closer.register(sortUnionQueryLegacyModeFeature);
+            queryEngineSettings.setSortUnionQueryLegacyModeFeature(sortUnionQueryLegacyModeFeature);
             Feature optimizeXPathUnion = newFeature(QueryEngineSettings.FT_OPTIMIZE_XPATH_UNION, whiteboard);
             LOG.info("Registered optimize XPath union feature: " + QueryEngineSettings.FT_OPTIMIZE_XPATH_UNION);
             closer.register(optimizeXPathUnion);
@@ -994,8 +993,8 @@ public class Oak {
             settings.setPrefetchFeature(prefetch);
         }
 
-        public void setSortUnionQueryByScoreFeature(@Nullable Feature feature) {
-            settings.setSortUnionQueryByScoreFeature(feature);
+        public void setSortUnionQueryLegacyModeFeature(@Nullable Feature feature) {
+            settings.setSortUnionQueryLegacyModeFeature(feature);
         }
 
         public void setOptimizeXPathUnion(@Nullable Feature feature) {
