@@ -20,13 +20,22 @@ import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 
 import java.text.ParseException;
+import java.util.List;
 
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsData;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -40,14 +49,12 @@ public class SQL2ParserTest {
     private static final SQL2Parser p = createTestSQL2Parser();
 
     public static SQL2Parser createTestSQL2Parser() {
-        return createTestSQL2Parser(NamePathMapper.DEFAULT, nodeTypes, new QueryEngineSettings());
+        return createTestSQL2Parser(NamePathMapper.DEFAULT, nodeTypes);
     }
 
-    public static SQL2Parser createTestSQL2Parser(NamePathMapper mappings, NodeTypeInfoProvider nodeTypes2,
-            QueryEngineSettings qeSettings) {
+    public static SQL2Parser createTestSQL2Parser(NamePathMapper mappings, NodeTypeInfoProvider nodeTypes2) {
         QueryStatsData data = new QueryStatsData("", "");
-        return new SQL2Parser(mappings, nodeTypes2, new QueryEngineSettings(),
-                data.new QueryExecutionStats());
+        return new SQL2Parser(mappings, nodeTypes2, new QueryEngineSettings(), data.new QueryExecutionStats());
     }
 
 
@@ -85,6 +92,60 @@ public class SQL2ParserTest {
                 .convert("/jcr:root/home//test/* [@type='t1' or @type='t2' or @type='t3']");
         String token = "and b.[type] in('t1', 't2', 't3')";
         assertTrue(q.contains(token));
+    }
+
+    /*
+     * When a query with LIMIT option, it should still select the index with the least entries
+     * as those might require being traversed during post-filtering.
+     *
+     * See OAK-12057
+     */
+    @Test
+    public void testPlanningWithLimit() throws ParseException {
+        // Given
+        var query = "SELECT * \n" +
+                "FROM [nt:base] AS s \n" +
+                "WHERE ISDESCENDANTNODE(s, '/content') AND s.[j:c]='/conf/wknd'\n" +
+                "OPTION (LIMIT 2)";
+
+        // - the first available option
+        var indexA = mock(QueryIndex.AdvancedQueryIndex.class);
+        var planA = mock(QueryIndex.IndexPlan.class);
+        given(indexA.getPlans(any(), any(), any())).willReturn(List.of(planA));
+        given(planA.getPlanName()).willReturn("planA");
+        given(planA.getEstimatedEntryCount()).willReturn(10000L);   // more entries
+        given(planA.getCostPerEntry()).willReturn(1.0);
+        given(planA.getCostPerExecution()).willReturn(100.0);
+
+        // - the better option
+        var indexB = mock(QueryIndex.AdvancedQueryIndex.class);
+        var planB = mock(QueryIndex.IndexPlan.class);
+        given(indexB.getPlans(any(), any(), any())).willReturn(List.of(planB));
+        given(planB.getPlanName()).willReturn("planB");
+        given(planB.getEstimatedEntryCount()).willReturn(100L);     // less entries
+        given(planB.getCostPerEntry()).willReturn(1.0);
+        given(planB.getCostPerExecution()).willReturn(100.0);
+        given(indexB.getPlanDescription(eq(planB), any())).willReturn("planB");
+
+        var indexProvider = new QueryIndexProvider() {
+            @Override
+            public @NotNull List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
+                return List.of(indexA, indexB);
+            }
+        };
+
+        var context = mock(ExecutionContext.class);
+        given(context.getIndexProvider()).willReturn(indexProvider);
+
+        // When
+        var parsedQuery = p.parse(query,false);
+        parsedQuery.init();
+        parsedQuery.setExecutionContext(context);
+        parsedQuery.setTraversalEnabled(false);
+        parsedQuery.prepare();
+
+        // Then
+        assertEquals("[nt:base] as [s] /* planB */", parsedQuery.getPlan());
     }
 
     @Test
@@ -188,4 +249,5 @@ public class SQL2ParserTest {
         xpath = "//(element(*, type1) | element(*, type2))[@a='b' or @c='d'] order by @foo";
         assertTrue("Converted xpath " + xpath + "doesn't end with 'order by [foo]'", c.convert(xpath).endsWith("order by [foo]"));
     }
+
 }

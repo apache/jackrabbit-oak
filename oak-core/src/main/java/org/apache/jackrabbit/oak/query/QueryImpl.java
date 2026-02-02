@@ -1081,8 +1081,6 @@ public class QueryImpl implements Query {
         double almostBestCost = Double.POSITIVE_INFINITY;
         IndexPlan almostBestPlan = null;
 
-        long maxEntryCount = saturatedAdd(offset.orElse(0L), limit.orElse(Long.MAX_VALUE));
-
         // Sort the indexes according to their minimum cost to be able to skip the remaining indexes if the cost of the
         // current index is below the minimum cost of the next index.
         List<? extends QueryIndex> queryIndexes = indexProvider.getQueryIndexes(rootState).stream()
@@ -1116,12 +1114,6 @@ public class QueryImpl implements Query {
                     long entryCount = p.getEstimatedEntryCount();
                     if (p.getSupportsPathRestriction()) {
                         entryCount = scaleEntryCount(rootState, filter, entryCount);
-                    }
-                    if (sortOrder == null || p.getSortOrder() != null) {
-                        // if the query is unordered, or
-                        // if the query contains "order by" and the index can sort on that,
-                        // then we don't need to read all entries from the index
-                        entryCount = Math.min(maxEntryCount, entryCount);
                     }
                     double c = p.getCostPerExecution() + entryCount * p.getCostPerEntry();
 
