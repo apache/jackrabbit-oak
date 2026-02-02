@@ -61,7 +61,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     public static final String OAK_QUERY_PREFETCH_COUNT = "oak.prefetchCount";
 
-    public static final String FT_SORT_UNION_QUERY_BY_SCORE = "FT_OAK-12051";
+    public static final String FT_SORT_UNION_QUERY_LEGACY_MODE = "FT_OAK-12051";
 
     public static final String FT_OPTIMIZE_XPATH_UNION = "FT_OAK-12007";
 
@@ -120,7 +120,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     private final long queryLengthErrorLimit = Long.getLong(OAK_QUERY_LENGTH_ERROR_LIMIT, 100 * 1024 * 1024); //100MB
 
     private Feature prefetchFeature;
-    private Feature sortUnionQueryByScoreFeature;
+    private Feature sortUnionQueryLegacyModeFeature;
     private Feature optimizeXPathUnion;
 
     private String autoOptionsMappingJson = "{}";
@@ -226,13 +226,13 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
         System.setProperty(OAK_FAST_QUERY_SIZE, String.valueOf(fastQuerySize));
     }
 
-    public void setSortUnionQueryByScoreFeature(@Nullable Feature feature) {
-        this.sortUnionQueryByScoreFeature = feature;
+    public void setSortUnionQueryLegacyModeFeature(@Nullable Feature feature) {
+        this.sortUnionQueryLegacyModeFeature = feature;
     }
 
-    public boolean isSortUnionQueryByScoreEnabled() {
-        // disable if the feature toggle is not used
-        return sortUnionQueryByScoreFeature != null && sortUnionQueryByScoreFeature.isEnabled();
+    public boolean isSortUnionQueryLegacyModeEnabled() {
+        // Legacy mode (concatenate) is disabled by default; score-based sorting is the default behavior
+        return sortUnionQueryLegacyModeFeature != null && sortUnionQueryLegacyModeFeature.isEnabled();
     }
 
     public void setOptimizeXPathUnion(@Nullable Feature feature) {
