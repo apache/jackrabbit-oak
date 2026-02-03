@@ -16,36 +16,42 @@
  */
 package org.apache.jackrabbit.oak.segment.remote;
 
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
-
-import java.util.UUID;
 
 public class RemoteSegmentArchiveEntry implements SegmentArchiveEntry {
 
-    private final UUID uuid;
+    private final long msb;
+
+    private final long lsb;
 
     private final int position;
 
     private final int length;
 
-    private final GCGeneration gcGeneration;
+    private final int generation;
+
+    private final int fullGeneration;
+
+    private final boolean compacted;
 
     public RemoteSegmentArchiveEntry(long msb, long lsb, int position, int length, int generation, int fullGeneration, boolean compacted) {
-        this.uuid = new UUID(msb, lsb);
+        this.msb = msb;
+        this.lsb = lsb;
         this.position = position;
         this.length = length;
-        this.gcGeneration = GCGeneration.newGCGeneration(generation, fullGeneration, compacted);
+        this.generation = generation;
+        this.fullGeneration = fullGeneration;
+        this.compacted = compacted;
     }
 
     @Override
     public long getMsb() {
-        return uuid.getMostSignificantBits();
+        return msb;
     }
 
     @Override
     public long getLsb() {
-        return uuid.getLeastSignificantBits();
+        return lsb;
     }
 
     public int getPosition() {
@@ -59,20 +65,16 @@ public class RemoteSegmentArchiveEntry implements SegmentArchiveEntry {
 
     @Override
     public int getGeneration() {
-        return gcGeneration.getGeneration();
+        return generation;
     }
 
     @Override
     public int getFullGeneration() {
-        return gcGeneration.getFullGeneration();
+        return fullGeneration;
     }
 
     @Override
     public boolean isCompacted() {
-        return gcGeneration.isCompacted();
-    }
-
-    UUID getUuid() {
-        return uuid;
+        return compacted;
     }
 }
