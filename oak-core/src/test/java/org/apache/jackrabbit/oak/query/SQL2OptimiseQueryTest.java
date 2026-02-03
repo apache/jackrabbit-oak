@@ -36,6 +36,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.text.ParseException;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.jcr.RepositoryException;
 
@@ -86,7 +88,7 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
                 + "  AND ((CONTAINS(*, '10') AND ([jcr:uuid] LIKE '11' OR [jcr:uuid] LIKE '12'))\n"
                 + "       OR (CONTAINS(*, '13') AND ([jcr:uuid] LIKE '14' OR [jcr:uuid] LIKE '15')))";
         SQL2Parser parser = SQL2ParserTest.createTestSQL2Parser(
-                getMappings(), getNodeTypes());
+                getMappings(), getNodeTypes(), qeSettings);
         Query original;
         original = parser.parse(query, false);
         assertNotNull(original);
@@ -217,7 +219,7 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
     @Test
     public void optimise() throws ParseException {
         SQL2Parser parser = SQL2ParserTest.createTestSQL2Parser(
-                getMappings(), getNodeTypes());
+                getMappings(), getNodeTypes(), qeSettings);
         String statement;
         Query original, optimised;
 
@@ -292,7 +294,7 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
     
     private void optimiseAndOrAnd(String statement, String expected) throws ParseException {
         SQL2Parser parser = SQL2ParserTest.createTestSQL2Parser(
-                getMappings(), getNodeTypes());
+                getMappings(), getNodeTypes(), qeSettings);
         Query original;
         original = parser.parse(statement, false);
         assertNotNull(original);
@@ -308,7 +310,7 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
     @Test
     public void optimizeKeepsQueryOptions() throws ParseException {
         SQL2Parser parser = SQL2ParserTest.createTestSQL2Parser(
-                getMappings(), getNodeTypes());
+                getMappings(), getNodeTypes(), qeSettings);
         Query original;
         String statement = "select * from [nt:unstructured] as [c] " + 
                 "where [a]=1 or [b]=2 option(index tag x)";
