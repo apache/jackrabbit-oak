@@ -18,7 +18,7 @@
 /**
  * This package contains oak query index related classes.
  */
-@Version("4.0.0")
+@Version("3.2.1")
 package org.apache.jackrabbit.oak.spi.query;
 
 import org.osgi.annotation.versioning.Version;
