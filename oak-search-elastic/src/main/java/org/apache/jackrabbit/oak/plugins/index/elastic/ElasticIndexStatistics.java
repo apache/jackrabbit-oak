@@ -23,14 +23,12 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 
-import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.jackrabbit.guava.common.base.Ticker;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorHelper;
 import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureConverter;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
@@ -69,12 +67,10 @@ public class ElasticIndexStatistics implements IndexStatistics {
     private static final String REFRESH_SECONDS = "oak.elastic.statsRefreshSeconds";
     private static final Long REFRESH_SECONDS_DEFAULT = 60L;
 
-    private static final ExecutorService REFRESH_EXECUTOR = new ThreadPoolExecutor(
-            0, 4, 60L, TimeUnit.SECONDS,
-            new LinkedBlockingQueue<>(),
-            BasicThreadFactory.builder().namingPattern("elastic-statistics-cache-refresh-thread-%d").daemon().build()
-    );
+    private static final int REFRESH_POOL_SIZE = 4;
 
+    private static final ExecutorService REFRESH_EXECUTOR = ExecutorHelper.linkedQueueExecutor(
+            REFRESH_POOL_SIZE, "elastic-statistics-cache-refresh-%d");
     private final ElasticConnection elasticConnection;
     private final ElasticIndexDefinition indexDefinition;
     private final LoadingCache<StatsRequestDescriptor, Integer> countCache;
