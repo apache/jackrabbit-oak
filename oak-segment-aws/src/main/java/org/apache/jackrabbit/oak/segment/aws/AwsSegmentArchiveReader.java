@@ -20,8 +20,7 @@ import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.OFF_HEAP;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
+import java.util.UUID;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.remote.AbstractRemoteSegmentArchiveReader;
@@ -32,35 +31,47 @@ public class AwsSegmentArchiveReader extends AbstractRemoteSegmentArchiveReader 
 
     private final S3Directory directory;
 
+    private final String archiveName;
+
+    private final long length;
+
     AwsSegmentArchiveReader(S3Directory directory, String archiveName, IOMonitor ioMonitor) throws IOException {
-        super(ioMonitor, archiveName, createEntryIterable(directory, archiveName));
+        super(ioMonitor);
         this.directory = directory;
+        this.archiveName = archiveName;
+        this.length = computeArchiveIndexAndLength();
     }
 
-    private static Iterable<ArchiveEntry> createEntryIterable(S3Directory directory, String archiveName) throws IOException{
+    @Override
+    public long length() {
+        return length;
+    }
+
+    @Override
+    public String getName() {
+        return archiveName;
+    }
+
+    @Override
+    protected long computeArchiveIndexAndLength() throws IOException {
+        long length = 0;
         Buffer buffer = directory.readObjectToBuffer(archiveName + ".idx", OFF_HEAP);
-        return () -> new Iterator<>() {
-            @Override
-            public boolean hasNext() {
-                return buffer.hasRemaining();
-            }
+        while (buffer.hasRemaining()) {
+            long msb = buffer.getLong();
+            long lsb = buffer.getLong();
+            int position = buffer.getInt();
+            int contentLength = buffer.getInt();
+            int generation = buffer.getInt();
+            int fullGeneration = buffer.getInt();
+            boolean compacted = buffer.get() != 0;
 
-            @Override
-            public ArchiveEntry next() {
-                if (!hasNext()) {
-                    throw new NoSuchElementException();
-                }
+            RemoteSegmentArchiveEntry indexEntry = new RemoteSegmentArchiveEntry(msb, lsb, position, contentLength,
+                    generation, fullGeneration, compacted);
+            index.put(new UUID(indexEntry.getMsb(), indexEntry.getLsb()), indexEntry);
+            length += contentLength;
+        }
 
-                long msb = buffer.getLong();
-                long lsb = buffer.getLong();
-                int position = buffer.getInt();
-                int contentLength = buffer.getInt();
-                int generation = buffer.getInt();
-                int fullGeneration = buffer.getInt();
-                boolean compacted = buffer.get() != 0;
-                return new ArchiveEntry(new RemoteSegmentArchiveEntry(msb, lsb, position, contentLength, generation, fullGeneration, compacted));
-            }
-        };
+        return length;
     }
 
     @Override

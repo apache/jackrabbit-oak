@@ -39,6 +39,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.Segment;
@@ -282,7 +283,10 @@ public class TarReader implements Closeable {
     private TarReader(SegmentArchiveManager archiveManager, SegmentArchiveReader archive) {
         this.archiveManager = archiveManager;
         this.archive = archive;
-        this.segmentUUIDs = archive.getSegmentUUIDs();
+        this.segmentUUIDs = archive.listSegments()
+                .stream()
+                .map(e -> new UUID(e.getMsb(), e.getLsb()))
+                .collect(Collectors.toUnmodifiableSet());
     }
 
     long size() {
