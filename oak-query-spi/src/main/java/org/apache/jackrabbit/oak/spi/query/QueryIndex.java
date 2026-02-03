@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.util.stream.Collectors.toMap;
 import static org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 
 /**
@@ -173,7 +174,7 @@ public interface QueryIndex {
      * (returning the rows in a specific order), and that can provide detailed
      * information about the cost.
      */
-    interface AdvancedQueryIndex extends QueryIndex {
+    interface AdvancedQueryIndex {
 
         /**
          * Return the possible index plans for the given filter and sort order.
@@ -372,6 +373,9 @@ public interface QueryIndex {
          * A builder for index plans.
          */
         class Builder {
+
+            private static Logger LOG = LoggerFactory.getLogger(QueryIndex.IndexPlan.Builder.class);
+
             protected double costPerExecution = 1.0;
             protected double costPerEntry = 1.0;
             protected long estimatedEntryCount = 1000000;
