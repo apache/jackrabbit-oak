@@ -21,7 +21,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.function.Predicate;
 
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.jetbrains.annotations.NotNull;
 
 /**

@@ -15,13 +15,12 @@
  * limitations under the License.
  *
  */
-package org.apache.jackrabbit.oak.segment.file.tar;
+package org.apache.jackrabbit.oak.segment.spi.persistence;
 
 import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
 
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.jetbrains.annotations.NotNull;
 
 /**

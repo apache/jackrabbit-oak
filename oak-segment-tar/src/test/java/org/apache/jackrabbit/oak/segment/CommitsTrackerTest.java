@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static java.lang.Math.min;
-import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
+import static org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration.newGCGeneration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.segment.CommitsTracker.Commit;
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.junit.Test;
 
 public class CommitsTrackerTest {

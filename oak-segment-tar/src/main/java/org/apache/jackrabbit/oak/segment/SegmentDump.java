@@ -29,7 +29,7 @@ import java.util.function.Consumer;
 
 import org.apache.commons.io.output.WriterOutputStream;
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 
 class SegmentDump {
 
