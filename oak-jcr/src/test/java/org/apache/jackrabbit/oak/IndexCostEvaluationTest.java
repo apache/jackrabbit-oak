@@ -17,8 +17,8 @@
 package org.apache.jackrabbit.oak;
 
 import ch.qos.logback.classic.Level;
-import org.apache.jackrabbit.api.JackrabbitRepository;
-import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexPlan;
@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
@@ -36,66 +37,61 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import javax.jcr.Node;
-import javax.jcr.Repository;
-import javax.jcr.SimpleCredentials;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static javax.jcr.query.Query.JCR_SQL2;
 import static org.junit.Assert.assertTrue;
 
 public class IndexCostEvaluationTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
-    private static final String TEST_USER_NAME = "testUserName";
-
-    private Repository repository = null;
-    private JackrabbitSession session = null;
-    private Node root = null;
-    private LogCustomizer custom;
+    private ContentSession session = null;
+    private LogCustomizer logCollector;
 
     @Before
     public void before() throws Exception {
-        custom = LogCustomizer
+        logCollector = LogCustomizer
                 .forLogger(
                         "org.apache.jackrabbit.oak.query.QueryImpl")
                 .enable(Level.DEBUG).create();
-        custom.starting();
+        logCollector.starting();
+        double luceneMinCost = 2.2;
+        double elasticMinCost = 2.1;
+        TestIndexProvider testProvider = new TestIndexProvider("test-index", luceneMinCost);
+        TestIndexProvider testProvider2 = new TestIndexProvider("test-index2", luceneMinCost);
+        TestIndexProvider testProvider3 = new TestIndexProvider("test-index3", elasticMinCost);
 
+        Jcr jcr = new Jcr(new Oak(), false)
+                .with(new OpenSecurityProvider())
+                .with(new InitialContent())
+                .with(testProvider)
+                .with(testProvider2)
+                .with(testProvider3);
 
-        TestIndexProvider testProvider = new TestIndexProvider();
-        TestIndexProvider2 testProvider2 = new TestIndexProvider2();
-        TestIndexProvider3 testProvider3 = new TestIndexProvider3();
-
-        Jcr jcr = new Jcr()
-                .with((QueryIndexProvider) testProvider)
-                .with((QueryIndexProvider) testProvider2)
-                .with((QueryIndexProvider) testProvider3);
-
-        repository = jcr.createRepository();
-        session = (JackrabbitSession) repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
-        root = session.getRootNode();
+        ContentRepository repository = jcr.createContentRepository();
+        session = repository.login(null, null);
     }
 
-
     @After
-    public void after() {
-        custom.finished();
-        session.logout();
-        if (repository instanceof JackrabbitRepository) {
-            ((JackrabbitRepository) repository).shutdown();
-        }
+    public void after() throws IOException {
+        session.close();
+        logCollector.finished();
     }
 
     // In cases where two indexes have same min cost i.e. both indexes are on par, we don't skip cost evaluation
     // even of cost from previous index is less than min cost of new index.
     @Test
     public void costEvaluationTest() throws Exception {
+        String query = "SELECT * FROM [rep:Authorizable] WHERE [rep:principalName] = 'anonymous'";
+        session.getLatestRoot().getQueryEngine().executeQuery(query, JCR_SQL2, 1, 0, null, null);
+
         boolean evaluationContinueLogPresent = false;
         boolean evaluationSkipLogPresent = false;
-        for (String log : custom.getLogs()) {
+        for (String log : logCollector.getLogs()) {
             if (log.equals("minCost: 2.1 of index :test-index2 > best Cost: 2.0 from index: test-index, but both indexes have same minimum cost - cost evaluation will continue")) {
                 evaluationContinueLogPresent = true;
             }
@@ -107,8 +103,12 @@ public class IndexCostEvaluationTest {
         assertTrue(evaluationSkipLogPresent);
     }
 
-    private class TestIndexProvider implements QueryIndexProvider {
-        TestIndex index = new TestIndex();
+    private static class TestIndexProvider implements QueryIndexProvider {
+        private final TestIndex index;
+
+        public TestIndexProvider(String indexName, double minimumCost) {
+            this.index = new TestIndex(indexName, minimumCost);
+        }
 
         @Override
         public @NotNull List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
@@ -116,35 +116,19 @@ public class IndexCostEvaluationTest {
         }
     }
 
-    private class TestIndexProvider2 extends TestIndexProvider {
-        public TestIndexProvider2() {
-            this.index = new TestIndex() {
-                public String getIndexName() {
-                    return "test-index2";
-                }
-            };
+    private static class TestIndex implements QueryIndex, QueryIndex.AdvancedQueryIndex {
+
+        private final String name;
+        private final double minimumCost;
+
+        public TestIndex(String indexName, double minimumCost) {
+            this.name = indexName;
+            this.minimumCost = minimumCost;
         }
-    }
-
-    private class TestIndexProvider3 extends TestIndexProvider {
-        public TestIndexProvider3() {
-            this.index = new TestIndex() {
-                public String getIndexName() {
-                    return "test-index3";
-                }
-
-                public double getMinimumCost() {
-                    return PropertyIndexPlan.COST_OVERHEAD + 0.11;
-                }
-            };
-        }
-    }
-
-    private class TestIndex implements QueryIndex, QueryIndex.AdvancedQueryIndex {
 
         @Override
         public double getMinimumCost() {
-            return PropertyIndexPlan.COST_OVERHEAD + 0.1;
+            return minimumCost;
         }
 
         @Override
@@ -164,7 +148,7 @@ public class IndexCostEvaluationTest {
 
         @Override
         public String getIndexName() {
-            return "test-index";
+            return name;
         }
 
         @Override
@@ -172,7 +156,7 @@ public class IndexCostEvaluationTest {
             IndexPlan.Builder b = new IndexPlan.Builder();
             Filter f = new FilterImpl(null, "SELECT * FROM [nt:file]", new QueryEngineSettings());
             IndexPlan plan1 = b.setEstimatedEntryCount(10).setPlanName("testIndexPlan1").setFilter(f).build();
-            List<IndexPlan> indexList = new ArrayList<IndexPlan>();
+            List<IndexPlan> indexList = new ArrayList<>();
 
             indexList.add(plan1);
             return indexList;
