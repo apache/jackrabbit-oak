@@ -19,7 +19,11 @@ package org.apache.jackrabbit.oak.segment.spi.persistence;
 
 import static java.util.Objects.requireNonNull;
 
+import java.lang.ref.WeakReference;
+import java.util.Iterator;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -53,12 +57,31 @@ public final class GCGeneration {
 
     public static final GCGeneration NULL = new GCGeneration(0, 0, false);
 
+    private static final Set<WeakReference<GCGeneration>> gcGenerations = ConcurrentHashMap.newKeySet();
+
     public static GCGeneration newGCGeneration(int generation, int fullGeneration, boolean isCompacted) {
-        return new GCGeneration(generation, fullGeneration, isCompacted);
+        Iterator<WeakReference<GCGeneration>> iterator = gcGenerations.iterator();
+        GCGeneration gen = null;
+        while(iterator.hasNext()) {
+            WeakReference<GCGeneration> next = iterator.next();
+            GCGeneration gcGeneration = next.get();
+            if (gcGeneration == null) {
+                iterator.remove();
+            } else if (gcGeneration.generation == generation
+                    && gcGeneration.fullGeneration == fullGeneration
+                    && gcGeneration.isCompacted == isCompacted) {
+                gen = gcGeneration;
+            }
+        }
+        if (gen == null) {
+            gen = new GCGeneration(generation, fullGeneration, isCompacted);
+            gcGenerations.add(new WeakReference<>(gen));
+        }
+        return gen;
     }
 
     public static GCGeneration newGCGeneration(SegmentArchiveEntry indexEntry) {
-        return new GCGeneration(indexEntry.getGeneration(), indexEntry.getFullGeneration(), indexEntry.isCompacted());
+        return newGCGeneration(indexEntry.getGeneration(), indexEntry.getFullGeneration(), indexEntry.isCompacted());
     }
 
     private final int generation;

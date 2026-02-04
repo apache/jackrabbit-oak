@@ -30,20 +30,53 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public abstract class AbstractRemoteSegmentArchiveReader implements SegmentArchiveReader {
+
     protected final IOMonitor ioMonitor;
 
-    protected final Map<UUID, RemoteSegmentArchiveEntry> index = new LinkedHashMap<>();
+    /**
+     * Unordered immutable map of segment UUIDs to their corresponding archive entries.
+     */
+    private final Map<UUID, RemoteSegmentArchiveEntry> index;
 
-    public AbstractRemoteSegmentArchiveReader(IOMonitor ioMonitor) throws IOException {
+    /**
+     * The name of the archive.
+     */
+    private final String archiveName;
+
+    /**
+     * The total size of the archive in bytes.
+     */
+    private final long length;
+
+    protected AbstractRemoteSegmentArchiveReader(IOMonitor ioMonitor, String archiveName, Iterable<ArchiveEntry> entries) {
         this.ioMonitor = ioMonitor;
+        this.archiveName = archiveName;
+
+        IndexBuilder indexBuilder = new IndexBuilder();
+        entries.forEach(indexBuilder::addEntry);
+        this.index = indexBuilder.createIndex();
+        this.length = indexBuilder.getLength();
+    }
+
+    @Override
+    public @NotNull String getName() {
+        return archiveName;
+    }
+
+    @Override
+    public long length() {
+        return length;
     }
 
     @Override
@@ -74,8 +107,15 @@ public abstract class AbstractRemoteSegmentArchiveReader implements SegmentArchi
     }
 
     @Override
+    public Set<UUID> getSegmentUUIDs() {
+        return Collections.unmodifiableSet(index.keySet());
+    }
+
+    @Override
     public List<SegmentArchiveEntry> listSegments() {
-        return new ArrayList<>(index.values());
+        return index.values().stream()
+                .sorted(Comparator.comparing(RemoteSegmentArchiveEntry::getPosition))
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -103,12 +143,6 @@ public abstract class AbstractRemoteSegmentArchiveReader implements SegmentArchi
     }
 
     /**
-     * Populates the archive index, summing up each entry's length.
-     * @return length, the total length of the archive
-     */
-    protected abstract long computeArchiveIndexAndLength() throws IOException;
-
-    /**
      * Reads the segment from the remote storage.
      * @param segmentFileName, the name of the segment (msb + lsb) prefixed by its position in the archive
      * @param buffer, the buffer to which to read
@@ -131,5 +165,54 @@ public abstract class AbstractRemoteSegmentArchiveReader implements SegmentArchi
     @Override
     public boolean isRemote() {
         return true;
+    }
+
+    protected static final class ArchiveEntry {
+
+        private final RemoteSegmentArchiveEntry entry;
+
+        private final int length;
+
+        public ArchiveEntry(RemoteSegmentArchiveEntry entry) {
+            this.entry = entry;
+            this.length = entry.getLength();
+        }
+
+        public ArchiveEntry(int length) {
+            this.entry = null;
+            this.length = length;
+        }
+
+        int getLength() {
+            return length;
+        }
+
+        RemoteSegmentArchiveEntry getRemoteSegmentArchiveEntry() {
+            return entry;
+        }
+    }
+
+    private static final class IndexBuilder {
+
+        private final List<Map.Entry<UUID, RemoteSegmentArchiveEntry>> entries = new LinkedList<>();
+
+        private long length = 0;
+
+        private void addEntry(ArchiveEntry entry) {
+            RemoteSegmentArchiveEntry archiveEntry = entry.getRemoteSegmentArchiveEntry();
+            if (archiveEntry != null) {
+                this.entries.add(Map.entry(archiveEntry.getUuid(), archiveEntry));
+            }
+            this.length += entry.getLength();
+        }
+
+        @SuppressWarnings("unchecked")
+        private Map<UUID, RemoteSegmentArchiveEntry> createIndex() {
+            return Map.ofEntries(entries.toArray(Map.Entry[]::new));
+        }
+
+        private long getLength() {
+            return length;
+        }
     }
 }
