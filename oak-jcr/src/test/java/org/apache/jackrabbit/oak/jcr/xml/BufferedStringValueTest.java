@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.jcr.xml;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import javax.jcr.*;
@@ -28,7 +27,9 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Calendar;
+import java.util.function.Function;
 
 import static org.junit.Assert.assertEquals;
 
@@ -185,7 +186,6 @@ public class BufferedStringValueTest {
     }
 
     @Test
-    @Ignore("Bug in base64 decoder (Jackrabbit")
     public void getStringBase64NoPadding() throws IOException {
         bufferedStringValue.dispose();
         // with base64
@@ -268,5 +268,44 @@ public class BufferedStringValueTest {
         bufferedStringValue.append(test.toCharArray(), 0, test.length());
         Value x = bufferedStringValue.getValue(PropertyType.BINARY);
         assertEquals(sb.toString(), x.getString());
+    }
+
+    private void testEnc(String input, String expected, Function<String, String> enc, Function<String, String> dec) {
+        String encoded = enc.apply(input);
+        assertEquals("incorrect encoding", expected, encoded);
+        String decoded = dec.apply(encoded);
+        assertEquals("encoded value does not round trip", input, decoded);
+
+        // check after removal of padding; this is where Jackrabbit.Base64 fails
+        String encodedNoPadding = encoded.replace("=", "");
+        String decodedFromNoPadding = dec.apply(encodedNoPadding);
+        assertEquals("failure to decode unpadded", input, decodedFromNoPadding);
+    }
+
+    private void testVectors(Function<String, String> enc, Function<String, String> dec) {
+        // see https://datatracker.ietf.org/doc/html/rfc4648#section-10
+        testEnc("", "", enc, dec);
+        testEnc("f", "Zg==", enc, dec);
+        testEnc("fo", "Zm8=", enc, dec);
+        testEnc("foo", "Zm9v", enc, dec);
+        testEnc("foob", "Zm9vYg==", enc, dec);
+        testEnc("fooba", "Zm9vYmE=", enc, dec);
+        testEnc("foobar", "Zm9vYmFy", enc, dec);
+    }
+
+    @Test
+    public void verifyJavaUtilBase64() {
+        final Base64.Decoder decoder = Base64.getDecoder();
+        final Base64.Encoder encoder = Base64.getEncoder();
+
+        Function<String, String> enc = s -> encoder.encodeToString(s.getBytes());
+        Function<String, String> dec = s -> new String(decoder.decode(s));
+
+        testVectors(enc, dec);
+    }
+
+    @Test
+    public void verifyJackrabbitBase64() {
+        testVectors(org.apache.jackrabbit.util.Base64::encode, org.apache.jackrabbit.util.Base64::decode);
     }
 }
