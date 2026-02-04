@@ -39,7 +39,7 @@ import java.util.concurrent.TimeoutException;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.internal.concurrent.UninterruptibleUtils;
 import org.apache.jackrabbit.oak.segment.WriteOperationHandler.WriteOperation;
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

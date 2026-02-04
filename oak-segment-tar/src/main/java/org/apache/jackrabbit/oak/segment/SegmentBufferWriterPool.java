@@ -38,7 +38,7 @@ import java.util.function.Supplier;
 
 import org.apache.jackrabbit.guava.common.util.concurrent.Monitor;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.jetbrains.annotations.NotNull;
 
 /**

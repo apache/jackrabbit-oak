@@ -25,7 +25,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.segment.file.tar.CleanupContext;
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.jetbrains.annotations.NotNull;
 

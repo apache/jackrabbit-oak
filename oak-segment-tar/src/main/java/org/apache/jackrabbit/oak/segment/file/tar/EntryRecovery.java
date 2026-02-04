@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.segment.file.tar;
 
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 
 import java.io.IOException;
 import java.util.Map;

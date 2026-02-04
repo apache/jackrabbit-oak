@@ -24,7 +24,7 @@ import static org.apache.jackrabbit.oak.segment.SegmentStore.EMPTY_STORE;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
