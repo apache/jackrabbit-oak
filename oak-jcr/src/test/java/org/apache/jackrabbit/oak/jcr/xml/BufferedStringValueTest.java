@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.xml;
 
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.util.Base64;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import javax.jcr.*;
@@ -186,14 +185,16 @@ public class BufferedStringValueTest {
     }
 
     @Test
+    @Ignore("Bug in base64 decoder (Jackrabbit")
     public void getStringBase64NoPadding() throws IOException {
         bufferedStringValue.dispose();
         // with base64
         bufferedStringValue = new BufferedStringValue(null, null, true);
         String s = "Zm9vYg";
         bufferedStringValue.append(s.toCharArray(), 0, s.length());
-        // BUG in Base64 class!
-        assertEquals(Base64.decode(s), bufferedStringValue.getString());
+        String j = new String( java.util.Base64.getDecoder().decode("Zm9vYg"));
+        // BUG in Base64 class! -- this should be "foob" == j
+        assertEquals(j, bufferedStringValue.getString());
     }
 
     @Test
