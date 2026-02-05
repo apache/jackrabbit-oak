@@ -1313,7 +1313,7 @@ public class AsyncIndexUpdateTest {
         // merge it back in
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider, statsProvider, false);
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider, statsProvider, false, null);
         runOneCycle(async);
         assertEquals(1, async.getIndexStats().getExecutionStats().getExecutionCounter().getCount());
 
@@ -1350,7 +1350,7 @@ public class AsyncIndexUpdateTest {
         AsyncIndexUpdate async = new AsyncIndexUpdate("async",
                 new MemoryNodeStore(),
                 new PropertyIndexEditorProvider(),
-                statsProvider, false);
+                statsProvider, false, null);
 
         long execCnt1 = async.getIndexStats().getTotalExecutionCount();
         runOneCycle(async);

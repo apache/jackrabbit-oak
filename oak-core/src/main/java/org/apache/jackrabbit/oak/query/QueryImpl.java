@@ -797,7 +797,7 @@ public class QueryImpl implements Query {
      * this creates a filter for the given query
      * 
      */
-    Filter createFilter(boolean preparing) {
+    public Filter createFilter(boolean preparing) {
         return source.createFilter(preparing);
     }
 

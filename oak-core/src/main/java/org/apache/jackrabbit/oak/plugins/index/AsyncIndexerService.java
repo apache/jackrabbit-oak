@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,11 +34,13 @@ import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindex;
 import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindexMBean;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeCollectorProvider;
+import org.apache.jackrabbit.oak.query.stats.QueryStatsMBean;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
+import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -51,9 +56,6 @@ import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 @Component(
         configurationPolicy = ConfigurationPolicy.REQUIRE,
@@ -116,6 +118,8 @@ public class AsyncIndexerService {
 
     private WhiteboardExecutor executor;
 
+    private Tracker<QueryStatsMBean> statsTracker;
+
     @Activate
     public void activate(BundleContext bundleContext, Configuration config) {
         List<AsyncConfig> asyncIndexerConfig = getAsyncConfig(config.asyncConfigs());
@@ -124,12 +128,13 @@ public class AsyncIndexerService {
         indexEditorProvider.start(whiteboard);
         executor = new WhiteboardExecutor();
         executor.start(whiteboard);
+        statsTracker = whiteboard.track(QueryStatsMBean.class);
 
         TrackingCorruptIndexHandler corruptIndexHandler = createCorruptIndexHandler(config);
 
         for (AsyncConfig c : asyncIndexerConfig) {
             AsyncIndexUpdate task = new AsyncIndexUpdate(c.name, nodeStore, indexEditorProvider,
-                    statisticsProvider, false);
+                    statisticsProvider, false, statsTracker);
             task.setCorruptIndexHandler(corruptIndexHandler);
             task.setValidatorProviders(Collections.singletonList(validatorProvider));
 
@@ -158,7 +163,7 @@ public class AsyncIndexerService {
     private void registerAsyncReindexSupport(Whiteboard whiteboard) {
         // async reindex
         String name = IndexConstants.ASYNC_REINDEX_VALUE;
-        AsyncIndexUpdate task = new AsyncIndexUpdate(name, nodeStore, indexEditorProvider, statisticsProvider, true);
+        AsyncIndexUpdate task = new AsyncIndexUpdate(name, nodeStore, indexEditorProvider, statisticsProvider, true, null);
         PropertyIndexAsyncReindex asyncPI = new PropertyIndexAsyncReindex(task, executor);
 
         final Registration reg = new CompositeRegistration(
@@ -176,6 +181,9 @@ public class AsyncIndexerService {
         if (executor != null) {
             executor.stop();
             executor = null;
+        }
+        if (statsTracker != null) {
+            statsTracker.stop();
         }
 
         //Close the task *after* unregistering the jobs
