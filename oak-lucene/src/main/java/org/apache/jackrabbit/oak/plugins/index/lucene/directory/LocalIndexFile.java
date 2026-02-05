@@ -121,7 +121,8 @@ public final class LocalIndexFile {
         }
 
         if (dir instanceof FSDirectory){
-            return ((FSDirectory) dir).getDirectory();
+            // In Lucene 5.x, FSDirectory.getDirectory() returns Path instead of File
+            return ((FSDirectory) dir).getDirectory().toFile();
         }
 
         return null;

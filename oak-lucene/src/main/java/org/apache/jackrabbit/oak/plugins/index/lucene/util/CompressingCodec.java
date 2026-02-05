@@ -18,47 +18,35 @@
 */
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
-import org.apache.lucene.codecs.*;
+import org.apache.lucene.codecs.FilterCodec;
+import org.apache.lucene.codecs.StoredFieldsFormat;
+import org.apache.lucene.codecs.TermVectorsFormat;
 import org.apache.lucene.codecs.compressing.CompressingStoredFieldsFormat;
 import org.apache.lucene.codecs.compressing.CompressingTermVectorsFormat;
 import org.apache.lucene.codecs.compressing.CompressionMode;
-import org.apache.lucene.codecs.lucene40.Lucene40LiveDocsFormat;
-import org.apache.lucene.codecs.lucene42.Lucene42NormsFormat;
-import org.apache.lucene.codecs.lucene46.Lucene46Codec;
-import org.apache.lucene.codecs.lucene46.Lucene46FieldInfosFormat;
-import org.apache.lucene.codecs.lucene46.Lucene46SegmentInfoFormat;
+import org.apache.lucene.codecs.lucene54.Lucene54Codec;
 
 /**
  * Lucene Codec aimed to reduce index size as much as possible by enabling highest possible compression on term vectors and stored fields.
+ * Updated for Lucene 5.5.x - uses Lucene54Codec as base and only overrides stored fields and term vectors formats.
  */
 public class CompressingCodec extends FilterCodec {
 
     private static final int CHUNK_SIZE = 1024;
+    private static final int MAX_DOCS_PER_CHUNK = 128;
+    private static final int BLOCK_SIZE = 1024;
     private static final String SEGMENT_SUFFIX = "ctv";
 
-    private final TermVectorsFormat vectorsFormat = new CompressingTermVectorsFormat("Lucene41",
-            SEGMENT_SUFFIX, CompressionMode.HIGH_COMPRESSION, CHUNK_SIZE);
-    private final FieldInfosFormat fieldInfosFormat = new Lucene46FieldInfosFormat();
-    private final SegmentInfoFormat segmentInfosFormat = new Lucene46SegmentInfoFormat();
-    private final LiveDocsFormat liveDocsFormat = new Lucene40LiveDocsFormat();
-    private final PostingsFormat defaultFormat = PostingsFormat.forName("Lucene41");
-    private final DocValuesFormat defaultDVFormat = DocValuesFormat.forName("Lucene45");
-    private final NormsFormat normsFormat = new Lucene42NormsFormat();
-    private final StoredFieldsFormat fieldsFormat = new CompressingStoredFieldsFormat("Lucene41",
-            CompressionMode.HIGH_COMPRESSION, CHUNK_SIZE);
+    // In Lucene 5.x, CompressingTermVectorsFormat requires 5 parameters
+    private final TermVectorsFormat vectorsFormat = new CompressingTermVectorsFormat("Lucene50",
+            SEGMENT_SUFFIX, CompressionMode.HIGH_COMPRESSION, CHUNK_SIZE, BLOCK_SIZE);
+    // In Lucene 5.x, CompressingStoredFieldsFormat requires 6 parameters:
+    // formatName, segmentSuffix, compressionMode, chunkSize, maxDocsPerChunk, blockSize
+    private final StoredFieldsFormat fieldsFormat = new CompressingStoredFieldsFormat("Lucene50",
+            SEGMENT_SUFFIX, CompressionMode.HIGH_COMPRESSION, CHUNK_SIZE, MAX_DOCS_PER_CHUNK, BLOCK_SIZE);
 
     public CompressingCodec() {
-        super("compressingCodec", new Lucene46Codec());
-    }
-
-    @Override
-    public PostingsFormat postingsFormat() {
-        return defaultFormat;
-    }
-
-    @Override
-    public DocValuesFormat docValuesFormat() {
-        return defaultDVFormat;
+        super("compressingCodec", new Lucene54Codec());
     }
 
     @Override
@@ -69,25 +57,5 @@ public class CompressingCodec extends FilterCodec {
     @Override
     public TermVectorsFormat termVectorsFormat() {
         return vectorsFormat;
-    }
-
-    @Override
-    public FieldInfosFormat fieldInfosFormat() {
-        return fieldInfosFormat;
-    }
-
-    @Override
-    public SegmentInfoFormat segmentInfoFormat() {
-        return segmentInfosFormat;
-    }
-
-    @Override
-    public NormsFormat normsFormat() {
-        return normsFormat;
-    }
-
-    @Override
-    public LiveDocsFormat liveDocsFormat() {
-        return liveDocsFormat;
     }
 }

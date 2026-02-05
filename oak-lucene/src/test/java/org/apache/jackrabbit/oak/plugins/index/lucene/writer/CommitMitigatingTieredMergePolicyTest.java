@@ -16,9 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
+import org.apache.lucene.analysis.core.SimpleAnalyzer;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.MergePolicy;
-import org.apache.lucene.index.MergePolicy.MergeTrigger;
+import org.apache.lucene.index.MergeTrigger;
 import org.apache.lucene.index.SegmentInfos;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.RAMDirectory;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNull;
@@ -32,9 +37,20 @@ public class CommitMitigatingTieredMergePolicyTest {
     public void testMergeWithNoSegments() throws Exception {
         CommitMitigatingTieredMergePolicy mergePolicy = new CommitMitigatingTieredMergePolicy();
 
-        SegmentInfos infos = new SegmentInfos();
-        MergePolicy.MergeSpecification merges = mergePolicy.findMerges(MergeTrigger.SEGMENT_FLUSH, infos);
-        assertNull(merges);
+        // In Lucene 5.x, findMerges requires an IndexWriter parameter
+        Directory directory = new RAMDirectory();
+        IndexWriterConfig config = new IndexWriterConfig(new SimpleAnalyzer());
+        config.setMergePolicy(mergePolicy);
+        IndexWriter writer = new IndexWriter(directory, config);
+
+        try {
+            SegmentInfos infos = new SegmentInfos();
+            MergePolicy.MergeSpecification merges = mergePolicy.findMerges(MergeTrigger.SEGMENT_FLUSH, infos, writer);
+            assertNull(merges);
+        } finally {
+            writer.close();
+            directory.close();
+        }
     }
 
 }

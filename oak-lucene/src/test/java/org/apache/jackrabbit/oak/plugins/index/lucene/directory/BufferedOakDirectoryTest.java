@@ -63,7 +63,8 @@ public class BufferedOakDirectoryTest {
 
         // must not be visible yet in base
         Directory base = createDir(builder, false);
-        assertFalse(base.fileExists("file"));
+        // In Lucene 5.x, fileExists() was removed from Directory interface
+        assertFalse(fileExists(base, "file"));
         base.close();
 
         buffered.close();
@@ -173,7 +174,8 @@ public class BufferedOakDirectoryTest {
             IndexOutput multiBlobIndexOutput = multiBlobDir.createOutput("foo", IOContext.DEFAULT);
 
             multiBlobIndexOutput.writeBytes(randomBytes(100), 0, 100);
-            multiBlobIndexOutput.flush();
+            // In Lucene 5.x, IndexOutput.flush() was removed. Data is flushed on close().
+            multiBlobIndexOutput.close();
         }
 
         PropertyState jcrData = builder.getChildNode(":data").getChildNode("foo").getProperty("jcr:data");
@@ -184,7 +186,8 @@ public class BufferedOakDirectoryTest {
             IndexOutput multiBlobIndexOutput = multiBlobDir.createOutput("foo", IOContext.DEFAULT);
 
             multiBlobIndexOutput.writeBytes(randomBytes(100), 0, 100);
-            multiBlobIndexOutput.flush();
+            // In Lucene 5.x, IndexOutput.flush() was removed. Data is flushed on close().
+            multiBlobIndexOutput.close();
         }
 
         jcrData = builder.getChildNode(":data").getChildNode("foo").getProperty("jcr:data");
@@ -194,7 +197,8 @@ public class BufferedOakDirectoryTest {
             IndexOutput multiBlobIndexOutput = multiBlobDir.createOutput("foo", IOContext.DEFAULT);
 
             multiBlobIndexOutput.writeBytes(randomBytes(100), 0, 100);
-            multiBlobIndexOutput.flush();
+            // In Lucene 5.x, IndexOutput.flush() was removed. Data is flushed on close().
+            multiBlobIndexOutput.close();
         }
 
         jcrData = builder.getChildNode(":data").getChildNode("foo").getProperty("jcr:data");
@@ -212,7 +216,8 @@ public class BufferedOakDirectoryTest {
             IndexOutput multiBlobIndexOutput = multiBlobDir.createOutput("foo", IOContext.DEFAULT);
 
             multiBlobIndexOutput.writeBytes(randomBytes(100), 0, 100);
-            multiBlobIndexOutput.flush();
+            // In Lucene 5.x, IndexOutput.flush() was removed. Data is flushed on close().
+            multiBlobIndexOutput.close();
         }
 
         // Enable feature... reader shouldn't care about the flag.
@@ -237,7 +242,8 @@ public class BufferedOakDirectoryTest {
             IndexOutput multiBlobIndexOutput = multiBlobDir.createOutput("foo", IOContext.DEFAULT);
 
             multiBlobIndexOutput.writeBytes(randomBytes(100), 0, 100);
-            multiBlobIndexOutput.flush();
+            // In Lucene 5.x, IndexOutput.flush() was removed. Data is flushed on close().
+            multiBlobIndexOutput.close();
         }
 
         // Enable feature... reader shouldn't care about the flag.
@@ -396,13 +402,22 @@ public class BufferedOakDirectoryTest {
 
     private void assertFile(Directory dir, String file, byte[] expected)
             throws IOException {
-        assertTrue(dir.fileExists(file));
+        // In Lucene 5.x, fileExists() was removed from Directory interface
+        assertTrue(fileExists(dir, file));
         assertEquals(expected.length, dir.fileLength(file));
         IndexInput in = dir.openInput(file, IOContext.DEFAULT);
         byte[] data = new byte[expected.length];
         in.readBytes(data, 0, data.length);
         in.close();
         assertTrue(Arrays.equals(expected, data));
+    }
+
+    /**
+     * Helper method to check if a file exists in a directory.
+     * In Lucene 5.x, Directory.fileExists() was removed.
+     */
+    private static boolean fileExists(Directory dir, String name) throws IOException {
+        return Arrays.asList(dir.listAll()).contains(name);
     }
 
     private Directory createDir(NodeBuilder builder, boolean buffered) {

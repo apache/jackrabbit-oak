@@ -13,5 +13,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-org.apache.lucene.codecs.lucene42.Lucene42DocValuesFormat
-org.apache.lucene.codecs.lucene45.Lucene45DocValuesFormat
+# Note: Backward compatibility DocValuesFormats (Lucene42, Lucene45, etc.) are provided
+# by the lucene-backward-codecs module and registered via its own SPI file.
+# These allow reading indexes created with older Lucene versions.

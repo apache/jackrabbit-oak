@@ -148,7 +148,8 @@ public class IndexConsistencyCheckerTest {
 
         NodeBuilder builder = rootState.builder();
 
-        idx.getChildNode(":data").getChildNode("segments.gen").remove();
+        // In Lucene 5.x, segments.gen was removed. Use segments_1 instead.
+        idx.getChildNode(":data").getChildNode("segments_1").remove();
 
         builder.setChildNode("fooIndex", idx.getNodeState());
         NodeState indexState = builder.getNodeState();
@@ -192,7 +193,8 @@ public class IndexConsistencyCheckerTest {
     }
 
     private void createIndex(Directory dir, int numOfDocs) throws IOException {
-        IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(Version.LUCENE_47, new OakAnalyzer(Version.LUCENE_47)));
+        // In Lucene 5.x, IndexWriterConfig no longer takes a Version parameter
+        IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(new OakAnalyzer(Version.LATEST)));
         for (int i = 0; i < numOfDocs; i++) {
             Document d1 = new Document();
             d1.add(newPathField("/a/b"));

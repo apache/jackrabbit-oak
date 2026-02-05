@@ -29,6 +29,11 @@
         </encoder>
     </appender>
 
+    <!-- Enable debug logging for index planner -->
+    <logger name="org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner" level="DEBUG"/>
+    <logger name="org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition" level="DEBUG"/>
+    <logger name="org.apache.jackrabbit.oak.plugins.index.lucene" level="DEBUG"/>
+
     <root level="INFO">
         <!--
         <appender-ref ref="console"/>

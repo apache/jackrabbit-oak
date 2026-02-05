@@ -254,7 +254,12 @@ public class LuceneIndexNodeManager {
         for (LuceneIndexReader r : IterableUtils.chainedIterable(readers, nrtReaders)){
             readerArr[i++] = r.getReader();
         }
-        return new MultiReader(readerArr, false);
+        try {
+            return new MultiReader(readerArr, false);
+        } catch (IOException e) {
+            // In Lucene 5.x, MultiReader constructor throws IOException
+            throw new IllegalStateException("Failed to create MultiReader", e);
+        }
     }
 
     private List<LuceneIndexReader> getNRTReaders() {

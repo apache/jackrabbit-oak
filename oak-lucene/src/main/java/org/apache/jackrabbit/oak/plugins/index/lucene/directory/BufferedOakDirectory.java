@@ -33,7 +33,6 @@ import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.Lock;
-import org.apache.lucene.store.LockFactory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -135,8 +134,11 @@ public final class BufferedOakDirectory extends Directory {
         return all.toArray(new String[all.size()]);
     }
 
-    @Override
-    public boolean fileExists(String name) throws IOException {
+    /**
+     * Check if a file exists. This method is no longer part of the Directory interface
+     * in Lucene 5.x, but is kept for internal use.
+     */
+    public boolean fileExists(String name) {
         LOG.debug("[{}]fileExists({})", definition.getIndexPath(), name);
         if (bufferedForDelete.contains(name)) {
             return false;
@@ -203,20 +205,17 @@ public final class BufferedOakDirectory extends Directory {
     }
 
     @Override
-    public Lock makeLock(String name) {
-        return base.makeLock(name);
-    }
-
-    @Override
-    public void clearLock(String name) throws IOException {
-        base.clearLock(name);
+    public Lock obtainLock(String name) throws IOException {
+        // In Lucene 5.x, obtainLock replaces makeLock/clearLock
+        return base.obtainLock(name);
     }
 
     @Override
     public void close() throws IOException {
         LOG.debug("[{}]close()", definition.getIndexPath());
         buffered.close();
-        // copy buffered files to base
+        // Use OakDirectory.copy() which handles read-only destinations properly
+        // (Lucene 5.x's copyFrom() calls createOutput() on the destination which fails for read-only)
         for (String name : buffered.listAll()) {
             buffered.copy(base, name);
         }
@@ -227,14 +226,29 @@ public final class BufferedOakDirectory extends Directory {
         base.close();
     }
 
+    /**
+     * Renames a file. Required by Lucene 5.x Directory API.
+     */
     @Override
-    public void setLockFactory(LockFactory lockFactory) throws IOException {
-        base.setLockFactory(lockFactory);
-    }
-
-    @Override
-    public LockFactory getLockFactory() {
-        return base.getLockFactory();
+    public void renameFile(String source, String dest) throws IOException {
+        LOG.debug("[{}]renameFile({}, {})", definition.getIndexPath(), source, dest);
+        // Check if file is in buffered directory
+        if (buffered.fileExists(source)) {
+            // Copy to new name and delete old
+            base.copyFrom(buffered, source, dest, IOContext.DEFAULT);
+            buffered.deleteFile(source);
+        } else if (base.fileExists(source)) {
+            // For base directory, we need to copy and delete
+            // This is not atomic but matches the semantics
+            try (IndexInput in = base.openInput(source, IOContext.DEFAULT);
+                 IndexOutput out = base.createOutput(dest, IOContext.DEFAULT)) {
+                out.copyBytes(in, in.length());
+            }
+            base.deleteFile(source);
+        } else {
+            throw new IOException("File not found: " + source);
+        }
+        bufferedForDelete.remove(dest);
     }
 
     private void fileDeleted() throws IOException {

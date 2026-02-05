@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.Reader;
 import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
@@ -36,7 +35,6 @@ import org.apache.lucene.search.suggest.Lookup;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.util.Version;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,9 +48,14 @@ public class SuggestHelper {
     private static final Logger log = LoggerFactory.getLogger(SuggestHelper.class);
 
     private static final Analyzer analyzer = new Analyzer() {
+        /**
+         * Creates the TokenStreamComponents for this analyzer.
+         * In Lucene 5.x, createComponents no longer takes a Reader parameter.
+         */
         @Override
-        protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
-            return new TokenStreamComponents(new CRTokenizer(Version.LUCENE_47, reader));
+        protected TokenStreamComponents createComponents(String fieldName) {
+            CRTokenizer tokenizer = new CRTokenizer();
+            return new TokenStreamComponents(tokenizer);
         }
     };
 
@@ -70,11 +73,20 @@ public class SuggestHelper {
             tempDir = Files.createTempDirectory(SuggestHelper.class.getSimpleName() + "-").toFile();
             File tempSubChild = new File(tempDir, "non-existing-sub-child");
 
-            if (reader.getDocCount(FieldNames.SUGGEST) > 0) {
+            int suggestDocCount = reader.getDocCount(FieldNames.SUGGEST);
+            log.debug("updateSuggester: reader.getDocCount(SUGGEST) = {}", suggestDocCount);
+            if (suggestDocCount > 0) {
                 Dictionary dictionary = new LuceneDictionary(reader, FieldNames.SUGGEST);
                 AnalyzingInfixSuggester suggester = closer.register(getLookup(directory, analyzer, tempSubChild));
                 shouldCloseDirectory = false;
                 suggester.build(dictionary);
+                log.debug("updateSuggester: suggester.build() completed, getCount() = {}", suggester.getCount());
+                // In Lucene 5.x (LUCENE-5889), commit() must be called after build()
+                // to make the suggestions visible for lookups
+                suggester.commit();
+                log.debug("updateSuggester: suggester.commit() completed");
+            } else {
+                log.debug("updateSuggester: skipping suggester build because no SUGGEST documents found");
             }
         } catch (RuntimeException e) {
             log.debug("could not update the suggester", e);
@@ -134,16 +146,59 @@ public class SuggestHelper {
     }
     public static AnalyzingInfixSuggester getLookup(final Directory suggestDirectory, Analyzer analyzer,
                                                     final File tempDir) throws IOException {
-        return new AnalyzingInfixSuggester(Version.LUCENE_47, tempDir, analyzer, analyzer, 3) {
+        // Log the directory contents for debugging
+        if (log.isDebugEnabled()) {
+            try {
+                String[] files = suggestDirectory.listAll();
+                log.debug("Suggester directory contains {} files: {}", files.length,
+                    files.length > 0 ? String.join(", ", files) : "(empty)");
+                // Check if index exists
+                boolean indexExists = org.apache.lucene.index.DirectoryReader.indexExists(suggestDirectory);
+                log.debug("DirectoryReader.indexExists() returns: {}", indexExists);
+            } catch (IOException e) {
+                log.debug("Could not list suggester directory contents", e);
+            }
+        }
+
+        AnalyzingInfixSuggester suggester = new AnalyzingInfixSuggester(suggestDirectory, analyzer, analyzer, 3, false) {
             @Override
-            protected Directory getDirectory(File path) throws IOException {
-                if (tempDir == null || tempDir.getAbsolutePath().equals(path.getAbsolutePath())) {
+            protected Directory getDirectory(java.nio.file.Path path) throws IOException {
+                if (tempDir == null || tempDir.toPath().equals(path)) {
                     return suggestDirectory; // use oak directory for writing suggest index
                 } else {
-                    return FSDirectory.open(path); // use FS for temp index used at build time
+                    // In Lucene 5.x, FSDirectory.open() takes a Path instead of File
+                    return FSDirectory.open(path);
                 }
             }
         };
+
+        // Log the suggester state after construction
+        if (log.isDebugEnabled()) {
+            try {
+                log.debug("Suggester created, getCount() = {}", suggester.getCount());
+            } catch (IOException e) {
+                log.debug("Could not get suggester count", e);
+            }
+        }
+
+        // In Lucene 5.x, when opening an existing suggester index, we need to call refresh()
+        // to initialize the SearcherManager and make the committed data visible for lookups.
+        // This is required because we use commitOnBuild=false and call commit() explicitly.
+        // Note: refresh() is only needed if the suggester was built but searcherMgr wasn't
+        // initialized in the constructor (which happens when DirectoryReader.indexExists() returns true).
+        // If getCount() > 0, the searcherMgr was already initialized and refresh() is not needed.
+        try {
+            if (suggester.getCount() == 0) {
+                // Try refresh in case the index exists but searcherMgr wasn't initialized
+                suggester.refresh();
+                log.debug("Suggester refreshed, new getCount() = {}", suggester.getCount());
+            }
+        } catch (IllegalStateException e) {
+            // refresh() throws IllegalStateException if the suggester has never been built
+            // (i.e., the directory is empty). This is expected for new indexes.
+            log.debug("Suggester refresh skipped - index may be empty or not yet built", e);
+        }
+        return suggester;
     }
 
     public static Analyzer getAnalyzer() {

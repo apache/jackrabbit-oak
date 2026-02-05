@@ -19,8 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -70,7 +68,8 @@ public class IndexWriterUtils {
                 analyzers.put(FieldNames.SUGGEST, SuggestHelper.getAnalyzer());
             }
             Analyzer analyzer = new PerFieldAnalyzerWrapper(definitionAnalyzer, analyzers);
-            IndexWriterConfig config = new IndexWriterConfig(VERSION, analyzer);
+            // In Lucene 5.x, IndexWriterConfig constructor no longer takes Version parameter
+            IndexWriterConfig config = new IndexWriterConfig(analyzer);
             if (serialScheduler) {
                 config.setMergeScheduler(new SerialMergeScheduler());
             } else {

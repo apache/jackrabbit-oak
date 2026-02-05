@@ -78,9 +78,14 @@ public final class TokenizerChain extends Analyzer {
         return Arrays.copyOf(filters, filters.length);
     }
 
+    /**
+     * Creates the TokenStreamComponents for this analyzer.
+     * In Lucene 5.x, createComponents no longer takes a Reader parameter.
+     * The Reader is set via Tokenizer.setReader() which is called by the Analyzer framework.
+     */
     @Override
-    protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
-        Tokenizer tk = tokenizer.create(reader);
+    protected TokenStreamComponents createComponents(String fieldName) {
+        Tokenizer tk = tokenizer.create();
         TokenStream ts = tk;
         for (TokenFilterFactory filter : filters) {
             ts = filter.create(ts);
@@ -91,9 +96,11 @@ public final class TokenizerChain extends Analyzer {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder("TokenizerChain(");
-        for (CharFilterFactory filter : charFilters) {
-            sb.append(filter);
-            sb.append(", ");
+        if (charFilters != null) {
+            for (CharFilterFactory filter : charFilters) {
+                sb.append(filter);
+                sb.append(", ");
+            }
         }
         sb.append(tokenizer);
         for (TokenFilterFactory filter : filters) {

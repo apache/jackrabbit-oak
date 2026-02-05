@@ -108,6 +108,7 @@ import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.NumericRangeQuery;
 import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.search.Query;
@@ -491,7 +492,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                         SuggestWord[] suggestWords = SpellcheckHelper.getSpellcheck(spellcheckQuery);
 
                         // ACL filter spellchecks
-                        QueryParser qp = new QueryParser(Version.LUCENE_47, aclCheckField, indexNode.getDefinition().getAnalyzer());
+                        QueryParser qp = new QueryParser(aclCheckField, indexNode.getDefinition().getAnalyzer());
                         for (SuggestWord suggestion : suggestWords) {
                             Query query = qp.createPhraseQuery(aclCheckField, QueryParserBase.escape(suggestion.string));
 
@@ -519,7 +520,7 @@ public class LucenePropertyIndex extends FulltextIndex {
 
                         List<Lookup.LookupResult> lookupResults = SuggestHelper.getSuggestions(indexNode.getLookup(), suggestQuery);
 
-                        QueryParser qp = new QueryParser(Version.LUCENE_47, FieldNames.SUGGEST,
+                        QueryParser qp = new QueryParser(FieldNames.SUGGEST,
                                 indexNode.getDefinition().isSuggestAnalyzed() ? indexNode.getDefinition().getAnalyzer() :
                                 SuggestHelper.getAnalyzer());
 
@@ -898,7 +899,7 @@ public class LucenePropertyIndex extends FulltextIndex {
 
         if (pr != null) {
             String query = String.valueOf(pr.first.getValue(pr.first.getType()));
-            QueryParser queryParser = new QueryParser(VERSION, "", analyzer);
+            QueryParser queryParser = new QueryParser("", analyzer);
             if (query.startsWith("mlt?")) {
                 String mltQueryString = query.replace("mlt?", "");
                 if (reader != null) {
@@ -933,6 +934,14 @@ public class LucenePropertyIndex extends FulltextIndex {
                     qs.add(queryParser.parse(query));
                 } catch (ParseException e) {
                     throw new RuntimeException(e);
+                } catch (StackOverflowError e) {
+                    // This can happen with very large regexp patterns (e.g., /aaa.../ with 50000+ chars)
+                    // due to recursive descent parsing in Lucene's RegExp class.
+                    // See https://github.com/apache/lucene/issues/11537
+                    // Return a query that matches nothing instead of crashing.
+                    LOG.warn("StackOverflowError while parsing native query, returning empty result: {}",
+                            query.length() > 100 ? query.substring(0, 100) + "..." : query);
+                    qs.add(new MatchNoDocsQuery());
                 }
             }
         } else if (planResult.evaluateNonFullTextConstraints()) {
@@ -1334,7 +1343,11 @@ public class LucenePropertyIndex extends FulltextIndex {
                             pr.firstIncluding, pr.lastIncluding);
                 } else if (pr.first != null && pr.last == null) {
                     // '>' & '>=' use cases
-                    return TermRangeQuery.newStringRange(propertyName, first, null, pr.firstIncluding, true);
+                    // In Lucene 5.x, TermRangeQuery with exclusive empty string lower bound returns no results
+                    // because empty string is the smallest possible term. Use null as lower bound instead.
+                    String lowerBound = (first.isEmpty() && !pr.firstIncluding) ? null : first;
+                    boolean lowerInclusive = (first.isEmpty() && !pr.firstIncluding) ? true : pr.firstIncluding;
+                    return TermRangeQuery.newStringRange(propertyName, lowerBound, null, lowerInclusive, true);
                 } else if (pr.last != null && !pr.last.equals(pr.first)) {
                     // '<' & '<='
                     return TermRangeQuery.newStringRange(propertyName, null, last, true, pr.lastIncluding);
@@ -1494,9 +1507,28 @@ public class LucenePropertyIndex extends FulltextIndex {
                     q.setBoost(Float.parseFloat(boost));
                 }
                 if (not) {
-                    BooleanQuery bq = new BooleanQuery();
-                    bq.add(q, MUST_NOT);
-                    result.set(bq);
+                    // Check if the query is already a BooleanQuery with only MUST_NOT clauses.
+                    // This can happen when the text already contains negation (e.g., "-bar")
+                    // which is parsed by StandardQueryParser into a MUST_NOT query.
+                    // In this case, we should NOT wrap it again to avoid double negation.
+                    boolean alreadyNegated = false;
+                    if (q instanceof BooleanQuery) {
+                        BooleanQuery bq = (BooleanQuery) q;
+                        alreadyNegated = bq.clauses().size() > 0;
+                        for (BooleanClause clause : bq.clauses()) {
+                            if (clause.getOccur() != BooleanClause.Occur.MUST_NOT) {
+                                alreadyNegated = false;
+                                break;
+                            }
+                        }
+                    }
+                    if (alreadyNegated) {
+                        result.set(q);
+                    } else {
+                        BooleanQuery bq = new BooleanQuery();
+                        bq.add(q, MUST_NOT);
+                        result.set(bq);
+                    }
                 } else {
                     result.set(q);
                 }

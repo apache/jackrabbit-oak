@@ -650,12 +650,16 @@ public class LuceneIndexProviderService {
     }
 
     private void initializeClasses() {
-        // prevent LUCENE-6482
-        // (also done in IndexDefinition, just to be save)
-        OakCodec ensureLucene46CodecLoaded = new OakCodec();
+        // Ensure OakCodec5 (based on Lucene54Codec) is loaded to prevent SPI issues
+        // (also done in IndexDefinition, just to be safe)
+        OakCodec5 ensureOakCodec5Loaded = new OakCodec5();
         // to ensure the JVM doesn't optimize away object creation
-        // (probably not really needed; just to be save)
-        log.debug("Lucene46Codec is loaded: {}", ensureLucene46CodecLoaded);
+        // (probably not really needed; just to be safe)
+        log.debug("OakCodec5 is loaded: {}", ensureOakCodec5Loaded);
+
+        // Also ensure OakCodec (Lucene 4.x backward compatibility) is loaded
+        OakCodec ensureOakCodecLoaded = new OakCodec();
+        log.debug("OakCodec (backward compat) is loaded: {}", ensureOakCodecLoaded);
     }
 
     private void initializeExtractedTextCache(BundleContext bundleContext, Configuration config, StatisticsProvider statisticsProvider) {

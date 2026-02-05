@@ -220,8 +220,10 @@ public class NRTIndex implements Closeable {
                     // (we anyway delete the directory after closing)
                     indexWriter.deleteAll();
                 }
-                // don't merge, as anyway only keep two generations
-                indexWriter.close(false);
+                // In Lucene 5.x, IndexWriter.close(boolean) was removed
+                // Use rollback() to close without committing, or close() to commit
+                // Since we want to avoid merging, we use rollback() which discards uncommitted changes
+                indexWriter.rollback();
             }
             time = System.nanoTime() - time;
             if (time > 100_000_000) {

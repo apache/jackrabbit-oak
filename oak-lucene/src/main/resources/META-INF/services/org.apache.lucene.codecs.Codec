@@ -12,10 +12,19 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-org.apache.lucene.codecs.lucene40.Lucene40Codec
-org.apache.lucene.codecs.lucene41.Lucene41Codec
-org.apache.lucene.codecs.lucene42.Lucene42Codec
-org.apache.lucene.codecs.lucene45.Lucene45Codec
-org.apache.lucene.codecs.lucene46.Lucene46Codec
+
+# Oak custom codecs
+
+# OakCodec5: Default codec for new indexes (Lucene 5.x), delegates to Lucene54Codec
+org.apache.jackrabbit.oak.plugins.index.lucene.OakCodec5
+
+# OakCodec: Backward compatibility codec for reading indexes created with Lucene 4.x
+# Uses Lucene46Codec with Lucene40-46 formats to read old "oakCodec" indexes
 org.apache.jackrabbit.oak.plugins.index.lucene.OakCodec
+
+# CompressingCodec: High compression codec for smaller index size
 org.apache.jackrabbit.oak.plugins.index.lucene.util.CompressingCodec
+
+# Note: Additional backward compatibility codecs (Lucene40-46, Lucene50, Lucene53) are provided
+# by the lucene-backward-codecs module and registered via its own SPI file.
+# These allow reading indexes created with older Lucene versions.

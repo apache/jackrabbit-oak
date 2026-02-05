@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.spi.IndexFieldProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
+import org.apache.lucene.index.IndexOptions;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,16 +88,19 @@ public class IndexFieldProviderImpl implements IndexFieldProvider {
     private static class AugmentedField extends Field {
         private static final FieldType ft = new FieldType();
         static {
-            ft.setIndexed(true);
+            // In Lucene 5.x, setIndexed() was removed - use setIndexOptions() instead
             ft.setStored(false);
             ft.setTokenized(false);
             ft.setOmitNorms(false);
-            ft.setIndexOptions(org.apache.lucene.index.FieldInfo.IndexOptions.DOCS_ONLY);
+            // IndexOptions moved from FieldInfo.IndexOptions to IndexOptions in Lucene 5.x
+            ft.setIndexOptions(IndexOptions.DOCS);
             ft.freeze();
         }
-    
+
         AugmentedField(String name, double weight) {
             super(name, "1", ft);
+            // Note: setBoost() is deprecated in Lucene 5.x and removed in later versions
+            // For now, we keep it for compatibility but it may need to be handled differently
             setBoost((float) weight);
         }
     }

@@ -203,7 +203,8 @@ abstract public class OakDirectoryTestBase {
         o.writeBytes(data, data.length);
         o.close();
 
-        assertTrue(dir.fileExists("test"));
+        // In Lucene 5.x, fileExists() was removed from Directory interface
+        assertTrue(Arrays.asList(dir.listAll()).contains("test"));
         assertEquals(fileSize, dir.fileLength("test"));
 
         IndexInput i = dir.openInput("test", IOContext.DEFAULT);

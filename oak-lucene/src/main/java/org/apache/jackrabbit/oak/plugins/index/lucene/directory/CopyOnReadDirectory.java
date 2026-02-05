@@ -90,7 +90,20 @@ public class CopyOnReadDirectory extends FilterDirectory {
 
     @Override
     public void deleteFile(String name) throws IOException {
-        throw new UnsupportedOperationException("Cannot delete in a ReadOnly directory");
+        // In Lucene 5.x, AnalyzingInfixSuggester creates an IndexWriter internally
+        // which tries to delete old files via IndexFileDeleter.
+        // We allow deletion from the local directory only to support this use case.
+        // The remote directory remains unchanged (read-only semantics preserved for remote).
+        log.trace("[{}] deleteFile called for {}", indexPath, name);
+
+        // Remove from our file tracking
+        files.remove(name);
+
+        // Delete from local directory if it exists there
+        if (Arrays.asList(local.listAll()).contains(name)) {
+            local.deleteFile(name);
+            log.trace("[{}] deleted file {} from local directory", indexPath, name);
+        }
     }
 
     @Override
@@ -121,7 +134,8 @@ public class CopyOnReadDirectory extends FilterDirectory {
 
         //If file does not exist then just delegate to remote and not
         //schedule a copy task
-        if (!remote.fileExists(name)){
+        // In Lucene 5.x, fileExists() was removed from Directory interface
+        if (!Arrays.asList(remote.listAll()).contains(name)){
             if (log.isDebugEnabled()) {
                 log.debug("[{}] Looking for non existent file {}. Current known files {}",
                         indexPath, name, Arrays.toString(remote.listAll()));
@@ -191,7 +205,8 @@ public class CopyOnReadDirectory extends FilterDirectory {
         boolean copyAttempted = false;
         long fileSize = 0;
         try {
-            if (!local.fileExists(name)) {
+            // In Lucene 5.x, fileExists() was removed from Directory interface
+            if (!Arrays.asList(local.listAll()).contains(name)) {
                 long perfStart = -1;
                 if (logDuration) {
                     perfStart = PERF_LOGGER.start();
@@ -202,7 +217,8 @@ public class CopyOnReadDirectory extends FilterDirectory {
                 long start = indexCopier.startCopy(file);
                 copyAttempted = true;
 
-                remote.copy(local, name, name, IOContext.READ);
+                // In Lucene 5.x, copy() was replaced with copyFrom()
+                local.copyFrom(remote, name, name, IOContext.READ);
                 reference.markValid();
 
                 if (sync) {
@@ -250,7 +266,8 @@ public class CopyOnReadDirectory extends FilterDirectory {
         } finally {
             if (copyAttempted && !success){
                 try {
-                    if (local.fileExists(name)) {
+                    // In Lucene 5.x, fileExists() was removed from Directory interface
+                    if (Arrays.asList(local.listAll()).contains(name)) {
                         local.deleteFile(name);
                     }
                 } catch (IOException e) {

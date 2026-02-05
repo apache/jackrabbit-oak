@@ -38,7 +38,7 @@
     <!-- see https://maven.apache.org/guides/mini/guide-reproducible-builds.html -->
     <project.build.outputTimestamp>1766922812</project.build.outputTimestamp>
     <minimalMavenBuildVersion>3.6.1</minimalMavenBuildVersion><!-- due to https://issues.apache.org/jira/browse/MNG-6059 -->
-    <test.opts.memory>-Xmx512m</test.opts.memory>
+    <test.opts.memory>-Xmx2048m</test.opts.memory>
     <test.opts>${test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
     <skip.deployment>false</skip.deployment>
     <skip.coverage>true</skip.coverage>
@@ -56,7 +56,7 @@
     <mongo.url />
     <mongo.version>3.6</mongo.version>
     <segment.db>SegmentMK</segment.db>
-    <lucene.version>4.7.2</lucene.version>
+    <lucene.version>5.5.5</lucene.version>
     <mongo.driver.version>5.2.1</mongo.driver.version>
     <slf4j.api.version>1.7.36</slf4j.api.version>
     <slf4j.version>1.7.36</slf4j.version> <!-- sync with logback version -->

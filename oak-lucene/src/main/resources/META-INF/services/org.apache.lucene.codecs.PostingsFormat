@@ -13,5 +13,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-org.apache.lucene.codecs.lucene40.Lucene40PostingsFormat
-org.apache.lucene.codecs.lucene41.Lucene41PostingsFormat
+# Note: Backward compatibility PostingsFormats (Lucene40, Lucene41, etc.) are provided
+# by the lucene-backward-codecs module and registered via its own SPI file.
+# These allow reading indexes created with older Lucene versions.

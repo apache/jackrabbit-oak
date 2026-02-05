@@ -59,7 +59,7 @@ public class ChunkedOakDirectoryTest extends OakDirectoryTestBase {
     }
 
     @Test
-    public void dirNameInException_Flush() throws Exception{
+    public void dirNameInException_Close() throws Exception{
         FailOnDemandBlobStore blobStore = new FailOnDemandBlobStore();
         FileStore store = FileStoreBuilder.fileStoreBuilder(tempFolder.getRoot())
                 .withMemoryMapping(false)
@@ -81,7 +81,8 @@ public class ChunkedOakDirectoryTest extends OakDirectoryTestBase {
 
         blobStore.startFailing();
         try {
-            o3.flush();
+            // In Lucene 5.x, flush() was removed from IndexOutput - use close() instead
+            o3.close();
             fail();
         } catch (IOException e) {
             assertThat(e.getMessage(), containsString(indexPath));

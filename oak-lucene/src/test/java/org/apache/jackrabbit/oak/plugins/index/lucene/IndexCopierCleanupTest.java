@@ -202,7 +202,7 @@ public class IndexCopierCleanupTest {
         Directory cor1 = copier.getCoRDir(remoteSnapshowCow1);
         // local listing
         assertEquals(Set.of("a", "b", "c", "d"),
-                SetUtils.toSet(new SimpleFSDirectory(localFSDir).listAll()));
+                SetUtils.toSet(new SimpleFSDirectory(localFSDir.toPath()).listAll()));
         // reader listing
         assertEquals(Set.of("a", "b"),
                 SetUtils.toSet(cor1.listAll()));
@@ -223,7 +223,7 @@ public class IndexCopierCleanupTest {
         Directory cor2 = copier.getCoRDir(remoteSnapshotCow2);
         // local listing
         assertEquals(Set.of("a", "b", "c", "d", "e", "f"),
-                SetUtils.toSet(new SimpleFSDirectory(localFSDir).listAll()));
+                SetUtils.toSet(new SimpleFSDirectory(localFSDir.toPath()).listAll()));
         // reader listing
         assertEquals(Set.of("c", "d"),
                 SetUtils.toSet(cor2.listAll()));
@@ -233,7 +233,7 @@ public class IndexCopierCleanupTest {
 
         // nothing should get deleted as CoR1 sees "a", "b" and everything else is newer
         assertEquals(Set.of("a", "b", "c", "d", "e", "f"),
-                SetUtils.toSet(new SimpleFSDirectory(localFSDir).listAll()));
+                SetUtils.toSet(new SimpleFSDirectory(localFSDir.toPath()).listAll()));
     }
 
     @Test
@@ -350,7 +350,7 @@ public class IndexCopierCleanupTest {
         copier.getCoRDir().close();
 
         assertEquals(Set.of("within-margin", "a"),
-                SetUtils.toSet(new SimpleFSDirectory(localFSDir).listAll()));
+                SetUtils.toSet(new SimpleFSDirectory(localFSDir.toPath()).listAll()));
     }
 
     @Test
@@ -496,7 +496,7 @@ public class IndexCopierCleanupTest {
 
     private static class DelayCopyingSimpleFSDirectory extends SimpleFSDirectory {
         DelayCopyingSimpleFSDirectory(File dir) throws IOException {
-            super(dir);
+            super(dir.toPath());
         }
 
         static void updateLastModified(Directory dir, String name) throws IOException {
@@ -517,7 +517,8 @@ public class IndexCopierCleanupTest {
 
         void updateLastModified(String name) throws IOException {
             try {
-                updateLastModified(directory, name);
+                // In Lucene 5.x, directory field is a Path, not File
+                updateLastModified(getDirectory().toFile(), name);
 
                 CLOCK.waitUntil(CLOCK.getTime() + SAFE_MARGIN_FOR_DELETION + MARGIN_BUFFER_FOR_FS_GRANULARITY);
             } catch (InterruptedException ie) {
@@ -532,6 +533,13 @@ public class IndexCopierCleanupTest {
                 throw new IOException("Failed to update last modified for " + name);
             }
         }
+
+        @Override
+        public void copyFrom(Directory from, String src, String dest, IOContext context) throws IOException {
+            super.copyFrom(from, src, dest, context);
+            // Update last modified time on the copied file
+            updateLastModified(dest);
+        }
     }
 
     private static class CloseSafeRemoteRAMDirectory extends RAMDirectory {
@@ -543,27 +551,27 @@ public class IndexCopierCleanupTest {
             closer.register(this::close0);
         }
 
-        CloseSafeRemoteRAMDirectory(CloseSafeRemoteRAMDirectory that) throws IOException {
-            super(that, IOContext.READ);
-            this.closer = that.closer;
+        CloseSafeRemoteRAMDirectory(CloseSafeRemoteRAMDirectory that, Closer closer) throws IOException {
+            super();
+            this.closer = closer;
             closer.register(this::close0);
+            // In Lucene 5.x, RAMDirectory(Directory, IOContext) constructor only accepts FSDirectory.
+            // Manually copy files from the source RAMDirectory.
+            for (String file : that.listAll()) {
+                this.copyFrom(that, file, file, IOContext.READ);
+            }
         }
 
         @Override
         public void close() {
         }
 
-        @Override
-        public void copy(Directory to, String src, String dest, IOContext context) throws IOException {
-            super.copy(to, src, dest, context);
-
-            if (to instanceof DelayCopyingSimpleFSDirectory) {
-                ((DelayCopyingSimpleFSDirectory)to).updateLastModified(dest);
-            }
-        }
+        // In Lucene 5.x, Directory.copy() was removed. The copyFrom() method is on the
+        // destination directory. The DelayCopyingSimpleFSDirectory already handles
+        // updating last modified time in its copyFrom() override.
 
         CloseSafeRemoteRAMDirectory snapshot() throws IOException {
-            return new CloseSafeRemoteRAMDirectory(this);
+            return new CloseSafeRemoteRAMDirectory(this, this.closer);
         }
 
         private void close0() {

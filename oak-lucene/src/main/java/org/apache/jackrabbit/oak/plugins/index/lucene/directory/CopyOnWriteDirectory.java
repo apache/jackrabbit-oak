@@ -152,8 +152,11 @@ public class CopyOnWriteDirectory extends FilterDirectory {
         return IterableUtils.toArray(fileMap.keySet(), String.class);
     }
 
-    @Override
-    public boolean fileExists(String name) throws IOException {
+    /**
+     * Check if a file exists. This method is no longer part of the Directory interface
+     * in Lucene 5.x, but is kept for internal use.
+     */
+    public boolean fileExists(String name) {
         return fileMap.containsKey(name);
     }
 
@@ -276,11 +279,39 @@ public class CopyOnWriteDirectory extends FilterDirectory {
         return String.format("[COW][%s] Local %s, Remote %s", indexPath, local, remote);
     }
 
+    /**
+     * Renames a file. Required by Lucene 5.x Directory API.
+     * In Lucene 5.x, this is used during commit to rename pending_segments_N to segments_N.
+     * We need to ensure the renamed file is copied to the remote directory.
+     */
+    @Override
+    public void renameFile(String source, String dest) throws IOException {
+        log.trace("[COW][{}] Renamed file {} to {}", indexPath, source, dest);
+        COWFileReference ref = fileMap.remove(source);
+        if (ref != null) {
+            // For local files, rename in local directory
+            local.renameFile(source, dest);
+            // Create a new reference for the renamed file
+            fileMap.put(dest, new COWLocalFileReference(dest));
+            // Schedule a copy task to copy the renamed file to the remote directory
+            // This is critical for Lucene 5.x commit which renames pending_segments_N to segments_N
+            addCopyTask(dest);
+            // If the source file was already copied to remote, schedule a delete task
+            if (ref instanceof COWRemoteFileReference) {
+                addDeleteTask(source);
+            } else {
+                // Mark the source as deleted locally so it won't be copied
+                deletedFilesLocal.add(source);
+            }
+        }
+    }
+
     private long getSkippedFilesSize() {
         long size = 0;
         for (String name : skippedFiles){
             try{
-                if (local.fileExists(name)){
+                // In Lucene 5.x, fileExists() was removed from Directory interface
+                if (Arrays.asList(local.listAll()).contains(name)){
                     size += local.fileLength(name);
                 }
             } catch (Exception ignore){
@@ -315,12 +346,21 @@ public class CopyOnWriteDirectory extends FilterDirectory {
                     log.trace("[COW][{}] Skip copying of deleted file {}", indexPath, name);
                     return null;
                 }
+                // Check if file exists in local directory before trying to copy
+                // This handles the case where a file was renamed (e.g., pending_segments_N to segments_N)
+                // before this copy task executes
+                if (!Arrays.asList(local.listAll()).contains(name)) {
+                    skippedFiles.add(name);
+                    log.trace("[COW][{}] Skip copying of non-existent file {} (may have been renamed)", indexPath, name);
+                    return null;
+                }
                 long fileSize = local.fileLength(name);
                 LocalIndexFile file = new LocalIndexFile(local, name, fileSize, false);
                 long perfStart = PERF_LOGGER.start();
                 long start = indexCopier.startCopy(file);
 
-                local.copy(remote, name, name, IOContext.DEFAULT);
+                // In Lucene 5.x, copy() was replaced with copyFrom()
+                remote.copyFrom(local, name, name, IOContext.DEFAULT);
 
                 indexCopier.doneCopy(file, start);
                 PERF_LOGGER.end(perfStart, 0, "[COW][{}] Copied to remote {} -- size: {}",
@@ -431,7 +471,8 @@ public class CopyOnWriteDirectory extends FilterDirectory {
         }
 
         private boolean checkIfLocalValid() throws IOException {
-            boolean validLocalCopyPresent = local.fileExists(name);
+            // In Lucene 5.x, fileExists() was removed from Directory interface
+            boolean validLocalCopyPresent = Arrays.asList(local.listAll()).contains(name);
 
             if (validLocalCopyPresent) {
                 long localFileLength = local.fileLength(name);
@@ -485,18 +526,20 @@ public class CopyOnWriteDirectory extends FilterDirectory {
         /**
          * Implementation note - As we are decorating existing implementation
          * we would need to ensure that we also override methods (non abstract)
-         * which might be implemented in say FSIndexInput like setLength
+         * which might be implemented in say FSIndexInput like setLength.
+         *
+         * In Lucene 5.x, IndexOutput API changed significantly:
+         * - Constructor requires resourceDescription and name
+         * - flush(), seek(), length(), setLength() methods removed
+         * - getChecksum() method required
          */
         private class CopyOnCloseIndexOutput extends IndexOutput {
             private final IndexOutput delegate;
 
             public CopyOnCloseIndexOutput(IndexOutput delegate) {
+                // In Lucene 5.x, IndexOutput constructor requires only resource description
+                super("CopyOnCloseIndexOutput(" + name + ")");
                 this.delegate = delegate;
-            }
-
-            @Override
-            public void flush() throws IOException {
-                delegate.flush();
             }
 
             @Override
@@ -511,15 +554,10 @@ public class CopyOnWriteDirectory extends FilterDirectory {
                 return delegate.getFilePointer();
             }
 
-            @SuppressWarnings("deprecation")
             @Override
-            public void seek(long pos) throws IOException {
-                delegate.seek(pos);
-            }
-
-            @Override
-            public long length() throws IOException {
-                return delegate.length();
+            public long getChecksum() throws IOException {
+                // Delegate to the underlying IndexOutput's checksum
+                return delegate.getChecksum();
             }
 
             @Override
@@ -530,11 +568,6 @@ public class CopyOnWriteDirectory extends FilterDirectory {
             @Override
             public void writeBytes(byte[] b, int offset, int length) throws IOException {
                 delegate.writeBytes(b, offset, length);
-            }
-
-            @Override
-            public void setLength(long length) throws IOException {
-                delegate.setLength(length);
             }
         }
     }

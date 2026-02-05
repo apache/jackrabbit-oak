@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import java.io.Reader;
-
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.LowerCaseFilter;
@@ -58,11 +56,15 @@ public class OakAnalyzer extends Analyzer {
         preserveOriginal = indexOriginalTerm ? WordDelimiterFilter.PRESERVE_ORIGINAL : 0;
     }
 
+    /**
+     * Creates the TokenStreamComponents for this analyzer.
+     * In Lucene 5.x, createComponents no longer takes a Reader parameter.
+     * The Reader is set via Tokenizer.setReader() which is called by the Analyzer framework.
+     */
     @Override
-    protected TokenStreamComponents createComponents(final String fieldName,
-            final Reader reader) {
-        StandardTokenizer src = new StandardTokenizer(matchVersion, reader);
-        TokenStream tok = new LowerCaseFilter(matchVersion, src);
+    protected TokenStreamComponents createComponents(final String fieldName) {
+        StandardTokenizer src = new StandardTokenizer();
+        TokenStream tok = new LowerCaseFilter(src);
         tok = new WordDelimiterFilter(tok,
                 WordDelimiterFilter.GENERATE_WORD_PARTS
                         | WordDelimiterFilter.STEM_ENGLISH_POSSESSIVE

@@ -80,7 +80,8 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class LuceneIndexDefinitionTest {
-    private Codec oakCodec = new OakCodec();
+    // Use OakCodec5 since that's the default codec for new indexes in Lucene 5.x
+    private Codec oakCodec = new OakCodec5();
 
     private NodeState root = INITIAL_CONTENT;
 

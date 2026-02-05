@@ -156,7 +156,8 @@ public class NRTIndexFactory implements Closeable{
 
         @Override
         public Directory createNRTDir(IndexDefinition definition, File indexDir) throws IOException {
-            Directory fsdir = FSDirectory.open(indexDir);
+            // In Lucene 5.x, FSDirectory.open() takes Path instead of File
+            Directory fsdir = FSDirectory.open(indexDir.toPath());
             //TODO make these configurable
             return new NRTCachingDirectory(fsdir, 1, 1);
         }

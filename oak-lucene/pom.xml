@@ -107,7 +107,7 @@
             <_exportcontents>
               !org.apache.lucene.queryparser.xml,
               !org.apache.lucene.queryparser.xml.builders,
-              org.apache.lucene.*;version=4.7.2-oak2<!-- second Oak modification of original lucence-core 4.7.2 source code, see OAK-10786 for further information -->
+              org.apache.lucene.*;version=${lucene.version}
             </_exportcontents>
             <Export-Package>
                 org.apache.jackrabbit.oak.plugins.index.lucene,
@@ -258,6 +258,12 @@
     <dependency>
       <groupId>org.apache.lucene</groupId>
       <artifactId>lucene-facet</artifactId>
+      <version>${lucene.version}</version>
+    </dependency>
+    <!-- Backward compatibility codecs for reading indexes created with Lucene 4.x -->
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-backward-codecs</artifactId>
       <version>${lucene.version}</version>
     </dependency>
 

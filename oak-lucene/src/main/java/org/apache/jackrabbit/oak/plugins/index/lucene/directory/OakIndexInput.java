@@ -104,9 +104,98 @@ class OakIndexInput extends IndexInput {
         }
     }
 
+    /**
+     * Creates a slice of this index input, with the given description, offset, and length.
+     * Required by Lucene 5.x IndexInput API.
+     */
+    @Override
+    public IndexInput slice(String sliceDescription, long offset, long length) throws IOException {
+        checkNotClosed();
+        if (offset < 0 || length < 0 || offset + length > this.length()) {
+            throw new IllegalArgumentException("slice() " + sliceDescription + " out of bounds: offset=" + offset + ",length=" + length + ",fileLength=" + this.length() + ": " + this);
+        }
+        return new SlicedOakIndexInput(sliceDescription, this, offset, length);
+    }
+
     private void checkNotClosed() {
         if (file.isClosed()) {
             throw new AlreadyClosedException("Already closed: [" + dirDetails + "] " + this);
+        }
+    }
+
+    /**
+     * A sliced view of an OakIndexInput.
+     */
+    private static final class SlicedOakIndexInput extends IndexInput {
+        private final OakIndexInput base;
+        private final long offset;
+        private final long length;
+        private long pos;
+
+        SlicedOakIndexInput(String sliceDescription, OakIndexInput base, long offset, long length) {
+            super("SlicedOakIndexInput(" + sliceDescription + " in " + base + ")");
+            this.base = base.clone();
+            this.offset = offset;
+            this.length = length;
+            this.pos = 0;
+        }
+
+        @Override
+        public void close() throws IOException {
+            base.close();
+        }
+
+        @Override
+        public long getFilePointer() {
+            return pos;
+        }
+
+        @Override
+        public void seek(long pos) throws IOException {
+            if (pos < 0 || pos > length) {
+                throw new IllegalArgumentException("seek position out of bounds: pos=" + pos + ",length=" + length);
+            }
+            this.pos = pos;
+        }
+
+        @Override
+        public long length() {
+            return length;
+        }
+
+        @Override
+        public IndexInput slice(String sliceDescription, long offset, long length) throws IOException {
+            if (offset < 0 || length < 0 || offset + length > this.length) {
+                throw new IllegalArgumentException("slice() " + sliceDescription + " out of bounds: offset=" + offset + ",length=" + length + ",fileLength=" + this.length + ": " + this);
+            }
+            return new SlicedOakIndexInput(sliceDescription, base, this.offset + offset, length);
+        }
+
+        @Override
+        public byte readByte() throws IOException {
+            if (pos >= length) {
+                throw new IOException("read past EOF: pos=" + pos + " vs length=" + length);
+            }
+            base.seek(offset + pos);
+            pos++;
+            return base.readByte();
+        }
+
+        @Override
+        public void readBytes(byte[] b, int off, int len) throws IOException {
+            if (pos + len > length) {
+                throw new IOException("read past EOF: pos=" + pos + " + len=" + len + " vs length=" + length);
+            }
+            base.seek(offset + pos);
+            base.readBytes(b, off, len);
+            pos += len;
+        }
+
+        @Override
+        public IndexInput clone() {
+            SlicedOakIndexInput clone = new SlicedOakIndexInput(toString(), base, offset, length);
+            clone.pos = pos;
+            return clone;
         }
     }
 

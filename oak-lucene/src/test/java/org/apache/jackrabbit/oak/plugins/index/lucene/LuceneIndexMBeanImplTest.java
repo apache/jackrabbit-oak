@@ -42,7 +42,6 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
-import org.apache.lucene.util.Version;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -66,8 +65,9 @@ public class LuceneIndexMBeanImplTest {
 
     private IndexWriter addNodeIndex(String path) throws IOException {
         Directory directory = new RAMDirectory();
-        Analyzer analyzer = new SimpleAnalyzer(Version.LUCENE_47);
-        IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_47, analyzer);
+        // In Lucene 5.x, SimpleAnalyzer and IndexWriterConfig constructors no longer take Version parameter
+        Analyzer analyzer = new SimpleAnalyzer();
+        IndexWriterConfig config = new IndexWriterConfig(analyzer);
         IndexWriter writer = new IndexWriter(directory, config);
         LuceneIndexNode indexNode = mock(LuceneIndexNode.class);
         when(indexNode.getSearcher()).thenAnswer(inv -> new IndexSearcher(DirectoryReader.open(directory)));
@@ -106,10 +106,10 @@ public class LuceneIndexMBeanImplTest {
         assertTermsMatch("LuceneIndexMBeanImplTest-expected-int-field.txt", intValues);
 
         String[] longValues = luceneIndexMBean.getFieldTermsInfo(INDEX_PATH, "long",
-                "long", 10);
+                "long", 15);  // Increased max to see all terms
         assertTermsMatch("LuceneIndexMBeanImplTest-expected-long-field.txt", longValues);
         longValues = luceneIndexMBean.getFieldTermsInfo(INDEX_PATH, "long",
-                "java.lang.Long", 10);
+                "java.lang.Long", 15);  // Increased max to see all terms
         assertTermsMatch("LuceneIndexMBeanImplTest-expected-long-field.txt", longValues);
     }
 

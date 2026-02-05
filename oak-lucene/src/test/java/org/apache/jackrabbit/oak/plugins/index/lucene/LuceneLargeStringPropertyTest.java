@@ -161,7 +161,8 @@ public class LuceneLargeStringPropertyTest extends AbstractQueryTest {
                     dir = unwrap(dir);
 
                     if (dir instanceof FSDirectory) {
-                        return ((FSDirectory) dir).getDirectory().getAbsolutePath();
+                        // In Lucene 5.x, FSDirectory.getDirectory() returns Path instead of File
+                        return ((FSDirectory) dir).getDirectory().toAbsolutePath().toString();
                     }
                     return null;
                 }

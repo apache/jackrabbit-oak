@@ -75,9 +75,10 @@ public class NodeStateAnalyzerFactoryTest {
         assertNotNull(analyzer);
         assertEquals(LuceneIndexConstants.VERSION, analyzer.matchVersion);
 
-        nb.setProperty(LuceneIndexConstants.ANL_LUCENE_MATCH_VERSION, Version.LUCENE_31.toString());
+        // In Lucene 5.x, LUCENE_31 is no longer available. Use LUCENE_5_5_5 instead.
+        nb.setProperty(LuceneIndexConstants.ANL_LUCENE_MATCH_VERSION, Version.LUCENE_5_5_5.toString());
         analyzer = (TestAnalyzer) factory.createInstance(nb.getNodeState());
-        assertEquals("Version field not picked from config",Version.LUCENE_31, analyzer.matchVersion);
+        assertEquals("Version field not picked from config", Version.LUCENE_5_5_5, analyzer.matchVersion);
 
         byte[] stopWords = newCharArraySet("foo", "bar");
         createFileNode(nb, FulltextIndexConstants.ANL_STOPWORDS, stopWords);
@@ -112,7 +113,8 @@ public class NodeStateAnalyzerFactoryTest {
         filters.child("LowerCase").setProperty(ANL_NAME, "LowerCase");
         filters.child("LowerCase").setProperty(JCR_PRIMARYTYPE, "nt:unstructured");
         //name is optional. Derived from nodeName
-        filters.child("stop").setProperty(ANL_LUCENE_MATCH_VERSION, Version.LUCENE_31.toString());
+        // In Lucene 5.x, LUCENE_31 is no longer available. Use LUCENE_5_5_5 instead.
+        filters.child("stop").setProperty(ANL_LUCENE_MATCH_VERSION, Version.LUCENE_5_5_5.toString());
 
         TokenizerChain analyzer = (TokenizerChain) factory.createInstance(nb.getNodeState());
         assertEquals(2, analyzer.getFilters().length);
@@ -205,22 +207,30 @@ public class NodeStateAnalyzerFactoryTest {
         return baos.toByteArray();
     }
 
-    public static class TestAnalyzer extends StopwordAnalyzerBase{
+    /**
+     * Test analyzer for Lucene 5.x.
+     * In Lucene 5.x:
+     * - StopwordAnalyzerBase constructor no longer takes Version parameter
+     * - createComponents no longer takes Reader parameter
+     * - LowerCaseTokenizer constructor no longer takes Version and Reader parameters
+     */
+    public static class TestAnalyzer extends StopwordAnalyzerBase {
         final Version matchVersion;
 
         public TestAnalyzer(Version matchVersion) {
-            super(matchVersion);
+            super();
             this.matchVersion = matchVersion;
         }
 
         public TestAnalyzer(Version version, CharArraySet stopwords) {
-            super(version, stopwords);
+            super(stopwords);
             this.matchVersion = version;
         }
 
         @Override
-        protected TokenStreamComponents createComponents(final String fieldName, final Reader reader) {
-            return new TokenStreamComponents(new LowerCaseTokenizer(matchVersion, reader));
+        protected TokenStreamComponents createComponents(final String fieldName) {
+            LowerCaseTokenizer tokenizer = new LowerCaseTokenizer();
+            return new TokenStreamComponents(tokenizer);
         }
     }
 

@@ -39,10 +39,11 @@ public class PathStoredFieldVisitor extends StoredFieldVisitor {
     }
 
     @Override
-    public void stringField(FieldInfo fieldInfo, String value)
+    public void stringField(FieldInfo fieldInfo, byte[] value)
             throws IOException {
+        // In Lucene 5.x, stringField() receives byte[] instead of String
         if (FieldNames.PATH.equals(fieldInfo.name)) {
-            path = value;
+            path = new String(value, java.nio.charset.StandardCharsets.UTF_8);
             pathVisited = true;
         }
     }

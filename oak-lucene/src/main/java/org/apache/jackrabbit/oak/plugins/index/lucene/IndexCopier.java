@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -169,7 +170,8 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
         //By design indexing in Oak is single threaded so Lucene locking
         //can be disabled
-        Directory dir = FSDirectory.open(indexWriterDir, NoLockFactory.getNoLockFactory());
+        // In Lucene 5.x, FSDirectory.open() takes Path and NoLockFactory.INSTANCE
+        Directory dir = FSDirectory.open(indexWriterDir.toPath(), NoLockFactory.INSTANCE);
 
         log.debug("IndexWriter would use {}", indexWriterDir);
         return dir;
@@ -177,7 +179,8 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
     protected Directory createLocalDirForIndexReader(String indexPath, LuceneIndexDefinition definition, String dirName) throws IOException {
         File indexDir = getIndexDir(definition, indexPath, dirName);
-        Directory result = FSDirectory.open(indexDir);
+        // In Lucene 5.x, FSDirectory.open() takes Path instead of File
+        Directory result = FSDirectory.open(indexDir.toPath());
 
         String newPath = indexDir.getAbsolutePath();
         String oldPath = indexPathVersionMapping.put(createIndexPathKey(indexPath, dirName), newPath);
@@ -262,7 +265,8 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
         boolean successFullyDeleted = false;
         try {
             boolean fileExisted = false;
-            if (dir.fileExists(fileName)) {
+            // In Lucene 5.x, fileExists() was removed from Directory interface
+            if (Arrays.asList(dir.listAll()).contains(fileName)) {
                 fileExisted = true;
                 dir.deleteFile(fileName);
             }

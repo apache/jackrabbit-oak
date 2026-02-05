@@ -54,7 +54,8 @@ public class FSDirectoryFactory implements DirectoryFactory {
         }
         meta.addDirectoryMapping(dirName, subDir.getName());
         DirectoryUtils.writeMeta(indexDir, meta);
-        return FSDirectory.open(subDir, NoLockFactory.getNoLockFactory());
+        // In Lucene 5.x, FSDirectory.open() takes Path and NoLockFactory.INSTANCE
+        return FSDirectory.open(subDir.toPath(), NoLockFactory.INSTANCE);
     }
 
     @Override

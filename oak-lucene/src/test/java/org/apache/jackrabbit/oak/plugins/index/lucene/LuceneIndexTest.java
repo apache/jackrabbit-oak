@@ -360,6 +360,7 @@ public class LuceneIndexTest {
         IndexWriter writer = new IndexWriter(dir, getIndexWriterConfig(definition, true));
         writer.forceMergeDeletes();
         writer.close();
+        dir.close();
     }
 
     public int getDeletedDocCount(NodeBuilder idx, LuceneIndexDefinition definition) throws IOException {
@@ -367,6 +368,7 @@ public class LuceneIndexTest {
         IndexReader reader = DirectoryReader.open(dir);
         int numDeletes = reader.numDeletedDocs();
         reader.close();
+        dir.close();
         return numDeletes;
     }
 

@@ -23,6 +23,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPath
 import static org.apache.jackrabbit.oak.plugins.index.lucene.writer.IndexWriterUtils.getIndexWriterConfig;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
@@ -280,11 +281,13 @@ class DefaultIndexWriter implements LuceneIndexWriter {
         log.trace("Writer for directory {} - docs: {}, ramDocs: {}", definition, docs, ram);
 
         String[] files = directory.listAll();
+        // In Lucene 5.x, fileExists() was removed from Directory interface
+        java.util.Set<String> fileSet = new java.util.HashSet<>(Arrays.asList(files));
         long overallSize = 0;
         StringBuilder sb = new StringBuilder();
         for (String f : files) {
             sb.append(f).append(":");
-            if (directory.fileExists(f)) {
+            if (fileSet.contains(f)) {
                 long size = directory.fileLength(f);
                 overallSize += size;
                 sb.append(size);

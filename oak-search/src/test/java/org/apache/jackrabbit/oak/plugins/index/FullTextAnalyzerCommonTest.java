@@ -349,7 +349,7 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             addFilter(filters, "LowerCase");
             Tree stopFilter = addFilter(filters, "Stop");
             stopFilter.setProperty("format", "snowball");
-            stopFilter.setProperty("enablePositionIncrements", "true");
+            // Note: enablePositionIncrements was removed in Lucene 5.0
             stopFilter.setProperty("ignoreCase", "true");
             stopFilter.setProperty("words", "stopwords-snowball.txt");
             stopFilter.addChild("stopwords-snowball.txt").addChild(JCR_CONTENT)

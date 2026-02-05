@@ -173,7 +173,8 @@ public class IndexComparator {
         builder.endObject();
         builder.key("luceneIndex").object();
         builder.key("jcrPath").value(dir.getJcrPath());
-        try (SimpleFSDirectory luceneDir = new SimpleFSDirectory(new File(directory, "data"))) {
+        // In Lucene 5.x, SimpleFSDirectory constructor takes Path instead of File
+        try (SimpleFSDirectory luceneDir = new SimpleFSDirectory(new File(directory, "data").toPath())) {
             try (LuceneIndexReader luceneReader = new DefaultIndexReader(luceneDir, null, null)) {
                 IndexReader reader = luceneReader.getReader();
                 builder.key("numDocs").value(reader.numDocs());
@@ -186,7 +187,8 @@ public class IndexComparator {
                         builder.key(f).object();
                         builder.key("docCount").value(reader.getDocCount(f));
                         Terms terms = MultiFields.getTerms(reader, f);
-                        TermsEnum iterator = terms.iterator(null);
+                        // In Lucene 5.x, Terms.iterator() no longer takes a parameter
+                        TermsEnum iterator = terms.iterator();
                         BytesRef byteRef;
                         Function<BytesRef, String> handler = BytesRef::utf8ToString;
                         int termCount = 0;

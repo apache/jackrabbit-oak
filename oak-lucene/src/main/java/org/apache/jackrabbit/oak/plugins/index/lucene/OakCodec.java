@@ -36,10 +36,27 @@ import org.apache.lucene.codecs.lucene46.Lucene46FieldInfosFormat;
 import org.apache.lucene.codecs.lucene46.Lucene46SegmentInfoFormat;
 
 /**
- * Oak specific {@link org.apache.lucene.codecs.Codec}.
+ * Oak specific {@link org.apache.lucene.codecs.Codec} for backward compatibility.
  *
- * It simply mimics {@link Lucene46Codec} but
- * with uncompressed {@link StoredFieldsFormat}.
+ * This codec is registered as "oakCodec" and uses Lucene 4.x formats to maintain
+ * backward compatibility with indexes created before the Lucene 5.x upgrade.
+ * It mimics the original OakCodec that was based on {@link Lucene46Codec} with
+ * uncompressed {@link StoredFieldsFormat}.
+ *
+ * <p><b>Important:</b> This codec should only be used for reading existing indexes.
+ * For new indexes, use {@link OakCodec5} which is based on Lucene 5.x formats.</p>
+ *
+ * <p>Formats used:</p>
+ * <ul>
+ *   <li>SegmentInfoFormat: Lucene46SegmentInfoFormat</li>
+ *   <li>FieldInfosFormat: Lucene46FieldInfosFormat</li>
+ *   <li>PostingsFormat: Lucene41</li>
+ *   <li>DocValuesFormat: Lucene45</li>
+ *   <li>StoredFieldsFormat: Lucene40StoredFieldsFormat (uncompressed)</li>
+ *   <li>TermVectorsFormat: Lucene42TermVectorsFormat</li>
+ *   <li>LiveDocsFormat: Lucene40LiveDocsFormat</li>
+ *   <li>NormsFormat: Lucene42NormsFormat</li>
+ * </ul>
  */
 public class OakCodec extends FilterCodec {
 

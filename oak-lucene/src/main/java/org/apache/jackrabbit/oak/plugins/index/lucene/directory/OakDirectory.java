@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
-import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.BaseDirectory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
@@ -59,10 +59,11 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 /**
- * Implementation of the Lucene {@link Directory} (a flat list of files)
+ * Implementation of the Lucene {@link BaseDirectory} (a flat list of files)
  * based on an Oak {@link NodeBuilder}.
+ * In Lucene 5.x, we extend BaseDirectory instead of Directory to get LockFactory support.
  */
-public class OakDirectory extends Directory {
+public class OakDirectory extends BaseDirectory {
     static final PerfLogger PERF_LOGGER = new PerfLogger(LoggerFactory.getLogger(OakDirectory.class.getName() + ".perf"));
     static final Logger LOG = LoggerFactory.getLogger(OakDirectory.class.getName());
     public static final String PROP_DIR_LISTING = "dirListing";
@@ -77,7 +78,6 @@ public class OakDirectory extends Directory {
     protected final String dataNodeName;
     protected final NodeBuilder directoryBuilder;
     private final LuceneIndexDefinition definition;
-    private LockFactory lockFactory;
     private final boolean readOnly;
     private final boolean streamingWriteEnabled;
     private final Set<String> fileNames = SetUtils.newConcurrentHashSet();
@@ -123,8 +123,8 @@ public class OakDirectory extends Directory {
                         boolean readOnly, BlobFactory blobFactory,
                         @NotNull ActiveDeletedBlobCollectorFactory.BlobDeletionCallback blobDeletionCallback,
                         boolean streamingWriteEnabled) {
-
-        this.lockFactory = NoLockFactory.getNoLockFactory();
+        // In Lucene 5.x, Directory constructor takes a LockFactory
+        super(NoLockFactory.INSTANCE);
         this.builder = builder;
         this.dataNodeName = dataNodeName;
         this.directoryBuilder = readOnly ? builder.getChildNode(dataNodeName) : builder.child(dataNodeName);
@@ -143,8 +143,11 @@ public class OakDirectory extends Directory {
         return fileNames.toArray(new String[fileNames.size()]);
     }
 
-    @Override
-    public boolean fileExists(String name) throws IOException {
+    /**
+     * Check if a file exists. This method is no longer part of the Directory interface
+     * in Lucene 5.x, but is kept for internal use.
+     */
+    public boolean fileExists(String name) {
         return fileNames.contains(name);
     }
 
@@ -241,15 +244,8 @@ public class OakDirectory extends Directory {
         }
     }
 
-    @Override
-    public Lock makeLock(String name) {
-        return lockFactory.makeLock(name);
-    }
-
-    @Override
-    public void clearLock(String name) throws IOException {
-        lockFactory.clearLock(name);
-    }
+    // In Lucene 5.x, obtainLock() is final in BaseDirectory and delegates to the LockFactory
+    // passed to the constructor. Since we pass NoLockFactory.INSTANCE, no override is needed.
 
     @Override
     public void sync(Collection<String> names) throws IOException {
@@ -270,18 +266,32 @@ public class OakDirectory extends Directory {
     }
 
     @Override
-    public void setLockFactory(LockFactory lockFactory) throws IOException {
-        this.lockFactory = lockFactory;
-    }
-
-    @Override
-    public LockFactory getLockFactory() {
-        return lockFactory;
-    }
-
-    @Override
     public String toString() {
         return "Directory for " + definition.getIndexName();
+    }
+
+    /**
+     * Renames a file. Required by Lucene 5.x Directory API.
+     * This implementation copies the file to the new name and deletes the old one.
+     */
+    @Override
+    public void renameFile(String source, String dest) throws IOException {
+        checkArgument(!readOnly, "Read only directory");
+        NodeBuilder sourceFile = directoryBuilder.getChildNode(source);
+        if (!sourceFile.exists()) {
+            throw new IOException("File not found: " + source);
+        }
+        // Copy the source node to dest
+        NodeBuilder destFile = directoryBuilder.child(dest);
+        for (PropertyState ps : sourceFile.getProperties()) {
+            destFile.setProperty(ps);
+        }
+        // Update file names
+        fileNames.remove(source);
+        fileNames.add(dest);
+        // Delete source
+        sourceFile.remove();
+        markDirty();
     }
 
     /**

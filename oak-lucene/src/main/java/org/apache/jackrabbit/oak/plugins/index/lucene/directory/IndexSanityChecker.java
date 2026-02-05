@@ -21,6 +21,9 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.HashSet;
 
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.lucene.store.Directory;
@@ -58,8 +61,10 @@ public class IndexSanityChecker {
             allFine = false;
         } else {
             //Remove local files which are not found in remote
+            // In Lucene 5.x, fileExists() was removed from Directory interface
+            Set<String> remoteFiles = new HashSet<>(Arrays.asList(remote.listAll()));
             for (String fileName : local.listAll()) {
-                if (!remote.fileExists(fileName)) {
+                if (!remoteFiles.contains(fileName)) {
                     local.deleteFile(fileName);
                 }
             }

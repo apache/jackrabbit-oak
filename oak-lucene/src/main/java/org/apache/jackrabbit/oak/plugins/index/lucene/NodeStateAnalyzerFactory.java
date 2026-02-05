@@ -152,35 +152,52 @@ final class NodeStateAnalyzerFactory {
         String clazz = state.getString(FulltextIndexConstants.ANL_CLASS);
         Class<? extends Analyzer> analyzerClazz = defaultLoader.findClass(clazz, Analyzer.class);
 
-        Version matchVersion = getVersion(state);
         CharArraySet stopwords = null;
         if (StopwordAnalyzerBase.class.isAssignableFrom(analyzerClazz)
                 && state.hasChildNode(FulltextIndexConstants.ANL_STOPWORDS)) {
             try {
                 stopwords = loadStopwordSet(state.getChildNode(FulltextIndexConstants.ANL_STOPWORDS),
-                        FulltextIndexConstants.ANL_STOPWORDS, matchVersion);
+                        FulltextIndexConstants.ANL_STOPWORDS);
             } catch (IOException e) {
                 throw new RuntimeException("Error occurred while loading stopwords", e);
             }
         }
-        Constructor<? extends Analyzer> c = null;
 
         try {
+            // In Lucene 5.x, most analyzers no longer take Version as a constructor parameter.
+            // Try the Lucene 5.x constructors first (without Version), then fall back to
+            // Lucene 4.x style constructors (with Version) for backward compatibility.
             if (stopwords != null) {
-                c = analyzerClazz.getConstructor(Version.class, CharArraySet.class);
-                return c.newInstance(matchVersion, stopwords);
+                // Try Lucene 5.x style: Analyzer(CharArraySet)
+                try {
+                    Constructor<? extends Analyzer> c = analyzerClazz.getConstructor(CharArraySet.class);
+                    return c.newInstance(stopwords);
+                } catch (NoSuchMethodException e) {
+                    // Fall back to Lucene 4.x style: Analyzer(Version, CharArraySet)
+                    Version matchVersion = getVersion(state);
+                    Constructor<? extends Analyzer> c = analyzerClazz.getConstructor(Version.class, CharArraySet.class);
+                    return c.newInstance(matchVersion, stopwords);
+                }
             } else {
-                c = analyzerClazz.getConstructor(Version.class);
-                return c.newInstance(matchVersion);
+                // Try Lucene 5.x style: Analyzer()
+                try {
+                    Constructor<? extends Analyzer> c = analyzerClazz.getConstructor();
+                    return c.newInstance();
+                } catch (NoSuchMethodException e) {
+                    // Fall back to Lucene 4.x style: Analyzer(Version)
+                    Version matchVersion = getVersion(state);
+                    Constructor<? extends Analyzer> c = analyzerClazz.getConstructor(Version.class);
+                    return c.newInstance(matchVersion);
+                }
             }
         } catch (NoSuchMethodException e) {
-            throw new RuntimeException("Error occurred while instantiating Analyzer for " + analyzerClazz, e);
+            throw new RuntimeException("Error occurred while instantiating Analyzer for class " + analyzerClazz, e);
         } catch (InstantiationException e) {
-            throw new RuntimeException("Error occurred while instantiating Analyzer for " + analyzerClazz, e);
+            throw new RuntimeException("Error occurred while instantiating Analyzer for class " + analyzerClazz, e);
         } catch (IllegalAccessException e) {
-            throw new RuntimeException("Error occurred while instantiating Analyzer for " + analyzerClazz, e);
+            throw new RuntimeException("Error occurred while instantiating Analyzer for class " + analyzerClazz, e);
         } catch (InvocationTargetException e) {
-            throw new RuntimeException("Error occurred while instantiating Analyzer for " + analyzerClazz, e);
+            throw new RuntimeException("Error occurred while instantiating Analyzer for class " + analyzerClazz, e);
         }
     }
 
@@ -228,7 +245,13 @@ final class NodeStateAnalyzerFactory {
 
     @SuppressWarnings("deprecation")
     private static Version parseLuceneVersionString(final String matchVersion) {
-        final Version version = Version.parseLeniently(matchVersion);
+        final Version version;
+        try {
+            version = Version.parseLeniently(matchVersion);
+        } catch (java.text.ParseException e) {
+            log.warn("Failed to parse Lucene version string '{}', using LUCENE_CURRENT", matchVersion, e);
+            return Version.LUCENE_CURRENT;
+        }
         if (version == Version.LUCENE_CURRENT && !versionWarningAlreadyLogged.getAndSet(true)) {
             log.warn(
                     "You should not use LATEST as luceneMatchVersion property: "+
@@ -240,12 +263,11 @@ final class NodeStateAnalyzerFactory {
         return version;
     }
 
-    private static CharArraySet loadStopwordSet(NodeState file, String name,
-                                                Version matchVersion) throws IOException {
+    private static CharArraySet loadStopwordSet(NodeState file, String name) throws IOException {
         Blob blob = ConfigUtil.getBlob(file, name);
         Reader stopwords = new InputStreamReader(blob.getNewStream(), IOUtils.CHARSET_UTF_8);
         try {
-            return WordlistLoader.getWordSet(stopwords, matchVersion);
+            return WordlistLoader.getWordSet(stopwords);
         } finally {
             IOUtils.close(stopwords);
         }

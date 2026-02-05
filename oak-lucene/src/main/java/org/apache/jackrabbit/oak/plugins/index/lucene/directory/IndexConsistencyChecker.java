@@ -299,7 +299,8 @@ public class IndexConsistencyChecker {
                                      File workDir, String dirName, Closer closer) throws IOException {
         File idxDir = createWorkDir(workDir, dirName);
         Directory sourceDir = new OakDirectory(new ReadOnlyBuilder(idx), dirName, defn, true);
-        Directory targetDir = FSDirectory.open(idxDir);
+        // In Lucene 5.x, FSDirectory.open() takes Path instead of File
+        Directory targetDir = FSDirectory.open(idxDir.toPath());
 
         closer.register(sourceDir);
         closer.register(targetDir);
@@ -308,7 +309,8 @@ public class IndexConsistencyChecker {
         for (String file : sourceDir.listAll()) {
             log.debug("[{}][{}] Checking {}", indexPath, dirName, file);
             try {
-                sourceDir.copy(targetDir, file, file, IOContext.DEFAULT);
+                // In Lucene 5.x, copy() was replaced with copyFrom()
+                targetDir.copyFrom(sourceDir, file, file, IOContext.DEFAULT);
             } catch (FileNotFoundException ignore){
                 dirStatus.missingFiles.add(file);
                 clean = false;

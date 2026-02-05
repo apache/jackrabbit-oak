@@ -231,7 +231,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
                     dir = unwrap(dir);
 
                     if (dir instanceof FSDirectory){
-                        return ((FSDirectory) dir).getDirectory().getAbsolutePath();
+                        // In Lucene 5.x, FSDirectory.getDirectory() returns Path instead of File
+                        return ((FSDirectory) dir).getDirectory().toAbsolutePath().toString();
                     }
                     return null;
                 }
@@ -500,7 +501,10 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         String query = "select [oak:scoreExplanation] from [nt:base] where propa='a'";
         List<String> result = executeQuery(query, SQL2, false, false);
         assertEquals(1, result.size());
-        assertTrue(result.get(0).contains("(MATCH)"));
+        // In Lucene 4.x, the explanation contained "(MATCH)".
+        // In Lucene 5.x, the format changed to "weight(field:term in docId)".
+        // We check for "weight(" which is present in both formats.
+        assertTrue("Score explanation should contain 'weight('", result.get(0).contains("weight("));
     }
 
     //OAK-2568

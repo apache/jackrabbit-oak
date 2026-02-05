@@ -669,7 +669,8 @@ public class LuceneIndexPlannerCommonTest extends IndexPlannerCommonTest {
 
     private static Directory createSampleDirectory(long numOfDocs, Iterable<Document> docs) throws IOException {
         Directory dir = new RAMDirectory();
-        IndexWriterConfig config = new IndexWriterConfig(VERSION, LuceneIndexConstants.ANALYZER);
+        // In Lucene 5.x, IndexWriterConfig constructor no longer takes Version parameter
+        IndexWriterConfig config = new IndexWriterConfig(LuceneIndexConstants.ANALYZER);
         IndexWriter writer = new  IndexWriter(dir, config);
         for (int i = 0; i < numOfDocs; i++) {
             Document doc = new Document();

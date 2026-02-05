@@ -184,16 +184,18 @@ public class LuceneIndexDefinition extends IndexDefinition {
         String codecName = getOptionalValue(definition, LuceneIndexConstants.CODEC_NAME, null);
         Codec codec = null;
         if (codecName != null) {
-            // prevent LUCENE-6482
-            // (also done in LuceneIndexProviderService, just to be save)
-            OakCodec ensureLucene46CodecLoaded = new OakCodec();
+            // Ensure OakCodec5 (based on Lucene54Codec) is loaded to prevent SPI issues
+            // (also done in LuceneIndexProviderService, just to be safe)
+            OakCodec5 ensureOakCodec5Loaded = new OakCodec5();
             // to ensure the JVM doesn't optimize away object creation
-            // (probably not really needed; just to be save)
-            log.debug("Lucene46Codec is loaded: {}", ensureLucene46CodecLoaded);
+            // (probably not really needed; just to be safe)
+            log.debug("OakCodec5 is loaded: {}", ensureOakCodec5Loaded);
             codec = Codec.forName(codecName);
             log.debug("Codec is loaded: {}", codecName);
         } else if (fullTextEnabled) {
-            codec = new OakCodec();
+            // Use OakCodec5 for new indexes (Lucene 5.x formats)
+            // OakCodec (Lucene 4.x formats) is still available for reading old indexes
+            codec = new OakCodec5();
         }
         return codec;
     }
@@ -208,7 +210,8 @@ public class LuceneIndexDefinition extends IndexDefinition {
         MergePolicy mergePolicy = null;
         if (mergePolicyName != null) {
             if (mergePolicyName.equalsIgnoreCase("no")) {
-                mergePolicy = NoMergePolicy.COMPOUND_FILES;
+                // In Lucene 5.x, NoMergePolicy.COMPOUND_FILES was replaced with NoMergePolicy.INSTANCE
+                mergePolicy = NoMergePolicy.INSTANCE;
             } else if (mergePolicyName.equalsIgnoreCase("mitigated")) {
                 mergePolicy = new CommitMitigatingTieredMergePolicy();
             } else if (mergePolicyName.equalsIgnoreCase("tiered") || mergePolicyName.equalsIgnoreCase("default")) {

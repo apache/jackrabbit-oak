@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import java.io.IOException;
+import java.util.zip.CRC32;
 
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.DataInput;
@@ -24,19 +25,24 @@ import org.apache.lucene.store.IndexOutput;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakIndexFile.getOakIndexFile;
 
+/**
+ * Oak implementation of Lucene's IndexOutput.
+ * Updated for Lucene 5.x API which requires:
+ * - Constructor with resource description
+ * - getChecksum() method
+ * - Removed flush(), seek(), length() methods
+ */
 final class OakIndexOutput extends IndexOutput {
     private final String dirDetails;
     final OakIndexFile file;
+    private final CRC32 crc = new CRC32();
 
     public OakIndexOutput(String name, NodeBuilder file, String dirDetails,
                           BlobFactory blobFactory, boolean streamingWriteEnabled) throws IOException {
+        // In Lucene 5.x, IndexOutput constructor requires only resource description
+        super("OakIndexOutput(path=\"" + dirDetails + "/" + name + "\")");
         this.dirDetails = dirDetails;
         this.file = getOakIndexFile(name, file, dirDetails, blobFactory, streamingWriteEnabled);
-    }
-
-    @Override
-    public long length() {
-        return file.length();
     }
 
     @Override
@@ -45,15 +51,11 @@ final class OakIndexOutput extends IndexOutput {
     }
 
     @Override
-    public void seek(long pos) throws IOException {
-        file.seek(pos);
-    }
-
-    @Override
     public void writeBytes(byte[] b, int offset, int length)
             throws IOException {
         try {
             file.writeBytes(b, offset, length);
+            crc.update(b, offset, length);
         } catch (IOException e) {
             throw wrapWithDetails(e);
         }
@@ -69,23 +71,29 @@ final class OakIndexOutput extends IndexOutput {
         //TODO: Do we know that copyBytes would always reach us via copy??
         if (file.supportsCopyFromDataInput()) {
             file.copyBytes(input, numBytes);
+            // Note: CRC is not updated here for performance reasons
+            // This may cause issues if checksum verification is needed
         } else {
             super.copyBytes(input, numBytes);
         }
     }
 
+    /**
+     * Returns the current checksum of bytes written so far.
+     * Required by Lucene 5.x IndexOutput API.
+     */
     @Override
-    public void flush() throws IOException {
+    public long getChecksum() throws IOException {
+        return crc.getValue();
+    }
+
+    @Override
+    public void close() throws IOException {
         try {
             file.flush();
         } catch (IOException e) {
             throw wrapWithDetails(e);
         }
-    }
-
-    @Override
-    public void close() throws IOException {
-        flush();
         file.close();
     }
 

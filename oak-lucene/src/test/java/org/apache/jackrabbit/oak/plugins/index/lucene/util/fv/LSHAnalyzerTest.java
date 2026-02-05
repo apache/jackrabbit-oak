@@ -31,7 +31,6 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
-import org.apache.lucene.util.Version;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.fv.SimSearchUtils.getSimQuery;
@@ -53,7 +52,8 @@ public class LSHAnalyzerTest {
         for (String text : texts) {
             LSHAnalyzer analyzer = new LSHAnalyzer();
             Directory directory = new RAMDirectory();
-            IndexWriter writer = new IndexWriter(directory, new IndexWriterConfig(Version.LUCENE_47, analyzer));
+            // In Lucene 5.x, IndexWriterConfig constructor no longer takes Version parameter
+            IndexWriter writer = new IndexWriter(directory, new IndexWriterConfig(analyzer));
             DirectoryReader reader = null;
             try {
                 Document document = new Document();
@@ -61,7 +61,9 @@ public class LSHAnalyzerTest {
                 writer.addDocument(document);
                 writer.commit();
 
-                reader = DirectoryReader.open(writer, false);
+                // In Lucene 5.x, DirectoryReader.open(IndexWriter, boolean) is deprecated.
+                // Use DirectoryReader.open(IndexWriter) instead.
+                reader = DirectoryReader.open(writer);
                 assertSimQuery(analyzer, fieldName, text, reader);
             } finally {
                 if (reader != null) {
@@ -77,7 +79,8 @@ public class LSHAnalyzerTest {
     public void testBinaryFVIndexAndSearch() throws Exception {
       LSHAnalyzer analyzer = new LSHAnalyzer();
       Directory directory = new RAMDirectory();
-      IndexWriter writer = new IndexWriter(directory, new IndexWriterConfig(Version.LUCENE_47, analyzer));
+      // In Lucene 5.x, IndexWriterConfig constructor no longer takes Version parameter
+      IndexWriter writer = new IndexWriter(directory, new IndexWriterConfig(analyzer));
       DirectoryReader reader = null;
       try {
           List<Double> values = new LinkedList<>();
@@ -101,7 +104,8 @@ public class LSHAnalyzerTest {
           writer.addDocument(document);
           writer.commit();
 
-          reader = DirectoryReader.open(writer, false);
+          // In Lucene 5.x, DirectoryReader.open(IndexWriter, boolean) is deprecated.
+          reader = DirectoryReader.open(writer);
           assertSimQuery(analyzer, fieldName, fvString, reader);
       } finally {
           if (reader != null) {

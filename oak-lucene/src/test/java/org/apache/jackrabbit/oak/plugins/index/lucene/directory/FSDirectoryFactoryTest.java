@@ -85,11 +85,12 @@ public class FSDirectoryFactoryTest {
         FSDirectoryFactory factory = new FSDirectoryFactory(temporaryFolder.getRoot());
 
         Directory dir = factory.newInstance(defn, idx, ":data", false);
-        File fsDir1 = ((FSDirectory)dir).getDirectory();
+        // In Lucene 5.x, FSDirectory.getDirectory() returns Path instead of File
+        java.nio.file.Path fsDir1 = ((FSDirectory)dir).getDirectory();
         dir.close();
 
         Directory dir2 = factory.newInstance(defn, idx, ":data", false);
-        File fsDir2 = ((FSDirectory)dir2).getDirectory();
+        java.nio.file.Path fsDir2 = ((FSDirectory)dir2).getDirectory();
         dir2.close();
 
         assertEquals(fsDir1, fsDir2);

@@ -40,7 +40,6 @@ import org.apache.lucene.facet.sortedset.DefaultSortedSetDocValuesReaderState;
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetCounts;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.Sort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,7 +92,7 @@ public class FacetHelper {
                 try {
                     DefaultSortedSetDocValuesReaderState state = new DefaultSortedSetDocValuesReaderState(
                             searcher.getIndexReader(), FieldNames.createFacetFieldName(facetField));
-                    FacetsCollector.search(searcher, query, null,1, Sort.INDEXORDER, facetsCollector);
+                    FacetsCollector.search(searcher, query, 10, facetsCollector);
 
                     switch (secureFacetConfiguration.getMode()) {
                         case INSECURE:

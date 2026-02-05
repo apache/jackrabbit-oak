@@ -132,7 +132,11 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
         } else if (tag == Type.BOOLEAN.tag()) {
             f = new StringField(pname, property.getValue(Type.BOOLEAN, i).toString(), Field.Store.NO);
         } else {
-            f = new StringField(pname, property.getValue(Type.STRING, i), Field.Store.NO);
+            String stringValue = property.getValue(Type.STRING, i);
+            // Truncate the value as Lucene limits the length of a StringField term to
+            // STRING_PROPERTY_MAX_LENGTH (32766 bytes) and throws IllegalArgumentException if over the limit
+            BytesRef truncatedRef = getTruncatedBytesRef(pname, stringValue, this.path, STRING_PROPERTY_MAX_LENGTH);
+            f = new StringField(pname, truncatedRef.utf8ToString(), Field.Store.NO);
         }
 
         doc.add(f);
@@ -486,16 +490,18 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
         private static final FieldType ft = new FieldType();
 
         static {
-            ft.setIndexed(true);
+            // In Lucene 5.x, setIndexed() was removed - use setIndexOptions() instead
             ft.setStored(false);
             ft.setTokenized(false);
             ft.setOmitNorms(false);
-            ft.setIndexOptions(org.apache.lucene.index.FieldInfo.IndexOptions.DOCS_ONLY);
+            // In Lucene 5.x, IndexOptions moved to org.apache.lucene.index.IndexOptions
+            ft.setIndexOptions(org.apache.lucene.index.IndexOptions.DOCS);
             ft.freeze();
         }
 
         AugmentedField(String name, double weight) {
             super(name, "1", ft);
+            // Note: In Lucene 5.x, index-time boosting is deprecated but still works
             setBoost((float) weight);
         }
     }

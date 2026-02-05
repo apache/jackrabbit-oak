@@ -23,7 +23,6 @@ import java.util.List;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.WhitespaceTokenizer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
-import org.apache.lucene.util.Version;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -35,8 +34,11 @@ public class TruncateTokenFilterTest {
 
     @Test
     public void testFiltering() throws Exception {
-        TokenStream stream = new WhitespaceTokenizer(Version.LUCENE_47, new StringReader("0.10 0.20 0.30 0.40"));
-        TruncateTokenFilter filter = new TruncateTokenFilter(stream, 3);
+        // In Lucene 5.x, tokenizers no longer take Version and Reader in constructor.
+        // Reader is set via setReader() method.
+        WhitespaceTokenizer tokenizer = new WhitespaceTokenizer();
+        tokenizer.setReader(new StringReader("0.10 0.20 0.30 0.40"));
+        TruncateTokenFilter filter = new TruncateTokenFilter(tokenizer, 3);
         filter.reset();
         List<String> expectedTokens = new LinkedList<>();
         expectedTokens.add("0.1");

@@ -28,6 +28,7 @@ import java.util.Map;
 
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.MergePolicy;
+import org.apache.lucene.index.MergeTrigger;
 import org.apache.lucene.index.SegmentCommitInfo;
 import org.apache.lucene.index.SegmentInfos;
 import org.slf4j.Logger;
@@ -96,12 +97,10 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
     private double timeSeriesCount = 0d;
 
     /**
-     * single exponential smoothing ratio (0 < alpha < 1)
-     *
-     * values towards 0 tend to give more weight to past inputs
-     * values close to 1 weigh recent values more
+     * Current IndexWriter - stored during method calls for use by helper methods.
+     * In Lucene 5.x, IndexWriter is passed as a parameter to MergePolicy methods.
      */
-    private double alpha = 0.7;
+    private IndexWriter currentWriter;
 
     /** Sole constructor, setting all settings to their
      *  defaults. */
@@ -329,8 +328,9 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
         @Override
         public int compare(SegmentCommitInfo o1, SegmentCommitInfo o2) {
             try {
-                final long sz1 = size(o1);
-                final long sz2 = size(o2);
+                // In Lucene 5.x, size() requires IndexWriter parameter
+                final long sz1 = size(o1, currentWriter);
+                final long sz2 = size(o2, currentWriter);
                 if (sz1 > sz2) {
                     return -1;
                 } else if (sz2 > sz1) {
@@ -362,7 +362,9 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
     }
 
     @Override
-    public MergeSpecification findMerges(MergeTrigger mergeTrigger, SegmentInfos infos) throws IOException {
+    public MergeSpecification findMerges(MergeTrigger mergeTrigger, SegmentInfos infos, IndexWriter writer) throws IOException {
+        // Store writer for use by helper methods and comparators
+        this.currentWriter = writer;
         int segmentSize = infos.size();
         timeSeriesCount++;
 
@@ -399,14 +401,16 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
 
         long now = System.currentTimeMillis();
         double timeDelta = (now / 1000d) - (time / 1000d);
-        double commitRate = Math.abs(docCount - infos.totalDocCount()) / timeDelta;
+        // In Lucene 5.x, totalDocCount() was renamed to totalMaxDoc()
+        double commitRate = Math.abs(docCount - infos.totalMaxDoc()) / timeDelta;
         time = now;
 
         avgCommitRateDocs = singleExpSmoothing(commitRate, avgCommitRateDocs);
 
         log.debug("commit rate: current {}, average {}, max {} docs/sec", commitRate, avgCommitRateDocs, maxCommitRateDocs);
 
-        docCount = infos.totalDocCount();
+        // In Lucene 5.x, totalDocCount() was renamed to totalMaxDoc()
+        docCount = infos.totalMaxDoc();
 
         if (verbose()) {
             message(commitRate + "doc/s (max: " + maxCommitRateDocs + ", avg: " + avgCommitRateDocs + " doc/s)");
@@ -419,7 +423,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
             return null;
         }
 
-        final Collection<SegmentCommitInfo> merging = writer.get().getMergingSegments();
+        final Collection<SegmentCommitInfo> merging = writer.getMergingSegments();
         final Collection<SegmentCommitInfo> toBeMerged = new HashSet<SegmentCommitInfo>();
 
         final List<SegmentCommitInfo> infosSorted = new ArrayList<SegmentCommitInfo>(infos.asList());
@@ -429,7 +433,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
         long totIndexBytes = 0;
         long minSegmentBytes = Long.MAX_VALUE;
         for (SegmentCommitInfo info : infosSorted) {
-            final long segBytes = size(info);
+            final long segBytes = size(info, writer);
             if (verbose()) {
                 String extra = merging.contains(info) ? " [merging]" : "";
                 if (segBytes >= maxMergedSegmentBytes / 2.0) {
@@ -437,7 +441,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
                 } else if (segBytes < floorSegmentBytes) {
                     extra += " [floored]";
                 }
-                message("  seg=" + writer.get().segString(info) + " size=" + String.format(Locale.ROOT, "%.3f", segBytes / 1024 / 1024.) + " MB" + extra);
+                message("  seg=" + segmentInfoString(info) + " size=" + String.format(Locale.ROOT, "%.3f", segBytes / 1024 / 1024.) + " MB" + extra);
             }
 
             minSegmentBytes = Math.min(segBytes, minSegmentBytes);
@@ -448,8 +452,8 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
         // If we have too-large segments, grace them out
         // of the maxSegmentCount:
         int tooBigCount = 0;
-        while (tooBigCount < infosSorted.size() && size(infosSorted.get(tooBigCount)) >= maxMergedSegmentBytes / 2.0) {
-            totIndexBytes -= size(infosSorted.get(tooBigCount));
+        while (tooBigCount < infosSorted.size() && size(infosSorted.get(tooBigCount), writer) >= maxMergedSegmentBytes / 2.0) {
+            totIndexBytes -= size(infosSorted.get(tooBigCount), writer);
             tooBigCount++;
         }
 
@@ -541,7 +545,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
                     boolean hitTooLarge = false;
                     for (int idx = startIdx; idx < eligible.size() && candidate.size() < maxMergeAtOnce; idx++) {
                         final SegmentCommitInfo info = eligible.get(idx);
-                        final long segBytes = size(info);
+                        final long segBytes = size(info, writer);
 
                         if (totAfterMergeBytes + segBytes > maxMergedSegmentBytes) {
                             hitTooLarge = true;
@@ -557,9 +561,9 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
                         totAfterMergeBytes += segBytes;
                     }
 
-                    final MergeScore score = score(candidate, hitTooLarge, mergingBytes);
+                    final MergeScore score = score(candidate, hitTooLarge);
                     if (verbose()) {
-                        message("  maybe=" + writer.get().segString(candidate) + " score=" + score.getScore() + " " + score.getExplanation() + " tooLarge=" + hitTooLarge + " size=" + String.format(Locale.ROOT, "%.3f MB", totAfterMergeBytes / 1024. / 1024.));
+                        message("  maybe=" + segmentListString(candidate) + " score=" + score.getScore() + " " + score.getExplanation() + " tooLarge=" + hitTooLarge + " size=" + String.format(Locale.ROOT, "%.3f MB", totAfterMergeBytes / 1024. / 1024.));
                     }
 
                     // If we are already running a max sized merge
@@ -583,7 +587,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
                         toBeMerged.add(info);
                     }
                     if (verbose()) {
-                        message("  add merge=" + writer.get().segString(merge.segments) + " size=" + String.format(Locale.ROOT, "%.3f MB", bestMergeBytes / 1024. / 1024.) + " score=" + String.format(Locale.ROOT, "%.3f", bestScore.getScore()) + " " + bestScore.getExplanation() + (bestTooLarge ? " [max merge]" : ""));
+                        message("  add merge=" + segmentListString(merge.segments) + " size=" + String.format(Locale.ROOT, "%.3f MB", bestMergeBytes / 1024. / 1024.) + " score=" + String.format(Locale.ROOT, "%.3f", bestScore.getScore()) + " " + bestScore.getExplanation() + (bestTooLarge ? " [max merge]" : ""));
                     }
                 } else {
                     return spec;
@@ -601,21 +605,27 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
      * @return the new smoothed value
      */
     private double singleExpSmoothing(double input, double smoothedValue) {
+        /**
+         * single exponential smoothing ratio (0 < alpha < 1)
+         *
+         * values towards 0 tend to give more weight to past inputs
+         * values close to 1 weigh recent values more
+         */
+        double alpha = 0.7;
         return alpha * input + (1 - alpha) * smoothedValue;
     }
 
     /** Expert: scores one merge; subclasses can override.
      * @param candidate a list of candidate segments
      * @param hitTooLarge hit too large setting
-     * @param mergingBytes the bytes to merge
      * @return a merge score
      **/
-    protected MergeScore score(List<SegmentCommitInfo> candidate, boolean hitTooLarge, long mergingBytes) throws IOException {
+    protected MergeScore score(List<SegmentCommitInfo> candidate, boolean hitTooLarge) throws IOException {
         long totBeforeMergeBytes = 0;
         long totAfterMergeBytes = 0;
         long totAfterMergeBytesFloored = 0;
         for (SegmentCommitInfo info : candidate) {
-            final long segBytes = size(info);
+            final long segBytes = size(info, currentWriter);
             totAfterMergeBytes += segBytes;
             totAfterMergeBytesFloored += floorSize(segBytes);
             totBeforeMergeBytes += info.sizeInBytes();
@@ -635,7 +645,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
             // over time:
             skew = 1.0 / maxMergeAtOnce;
         } else {
-            skew = ((double) floorSize(size(candidate.get(0)))) / totAfterMergeBytesFloored;
+            skew = ((double) floorSize(size(candidate.get(0), currentWriter))) / totAfterMergeBytesFloored;
         }
 
         // Strongly favor merges with less skew (smaller
@@ -669,14 +679,16 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
     }
 
     @Override
-    public MergeSpecification findForcedMerges(SegmentInfos infos, int maxSegmentCount, Map<SegmentCommitInfo, Boolean> segmentsToMerge) throws IOException {
+    public MergeSpecification findForcedMerges(SegmentInfos infos, int maxSegmentCount, Map<SegmentCommitInfo, Boolean> segmentsToMerge, IndexWriter writer) throws IOException {
+        // Store writer for use by helper methods and comparators
+        this.currentWriter = writer;
         if (verbose()) {
-            message("findForcedMerges maxSegmentCount=" + maxSegmentCount + " infos=" + writer.get().segString(infos) + " segmentsToMerge=" + segmentsToMerge);
+            message("findForcedMerges maxSegmentCount=" + maxSegmentCount + " infos=" + segmentInfosString(infos) + " segmentsToMerge=" + segmentsToMerge);
         }
 
         List<SegmentCommitInfo> eligible = new ArrayList<SegmentCommitInfo>();
         boolean forceMergeRunning = false;
-        final Collection<SegmentCommitInfo> merging = writer.get().getMergingSegments();
+        final Collection<SegmentCommitInfo> merging = writer.getMergingSegments();
         boolean segmentIsOriginal = false;
         for (SegmentCommitInfo info : infos) {
             final Boolean isOriginal = segmentsToMerge.get(info);
@@ -690,12 +702,12 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
             }
         }
 
-        if (eligible.size() == 0) {
+        if (eligible.isEmpty()) {
             return null;
         }
 
         if ((maxSegmentCount > 1 && eligible.size() <= maxSegmentCount) ||
-                (maxSegmentCount == 1 && eligible.size() == 1 && (!segmentIsOriginal || isMerged(infos, eligible.get(0))))) {
+                (maxSegmentCount == 1 && eligible.size() == 1 && (!segmentIsOriginal || isMerged(infos, eligible.get(0), writer)))) {
             if (verbose()) {
                 message("already merged");
             }
@@ -720,7 +732,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
             }
             final OneMerge merge = new OneMerge(eligible.subList(end - maxMergeAtOnceExplicit, end));
             if (verbose()) {
-                message("add merge=" + writer.get().segString(merge.segments));
+                message("add merge=" + segmentListString(merge.segments));
             }
             spec.add(merge);
             end -= maxMergeAtOnceExplicit;
@@ -731,7 +743,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
             final int numToMerge = end - maxSegmentCount + 1;
             final OneMerge merge = new OneMerge(eligible.subList(end - numToMerge, end));
             if (verbose()) {
-                message("add final merge=" + merge.segString(writer.get().getDirectory()));
+                message("add final merge=" + segmentListString(merge.segments));
             }
             spec = new MergeSpecification();
             spec.add(merge);
@@ -741,14 +753,17 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
     }
 
     @Override
-    public MergeSpecification findForcedDeletesMerges(SegmentInfos infos) throws IOException {
+    public MergeSpecification findForcedDeletesMerges(SegmentInfos infos, IndexWriter writer) throws IOException {
+        // Store writer for use by helper methods and comparators
+        this.currentWriter = writer;
         if (verbose()) {
-            message("findForcedDeletesMerges infos=" + writer.get().segString(infos) + " forceMergeDeletesPctAllowed=" + forceMergeDeletesPctAllowed);
+            message("findForcedDeletesMerges infos=" + segmentInfosString(infos) + " forceMergeDeletesPctAllowed=" + forceMergeDeletesPctAllowed);
         }
         final List<SegmentCommitInfo> eligible = new ArrayList<SegmentCommitInfo>();
-        final Collection<SegmentCommitInfo> merging = writer.get().getMergingSegments();
+        final Collection<SegmentCommitInfo> merging = writer.getMergingSegments();
         for (SegmentCommitInfo info : infos) {
-            double pctDeletes = 100. * ((double) writer.get().numDeletedDocs(info)) / info.info.getDocCount();
+            // In Lucene 5.x, getDocCount() was renamed to maxDoc()
+            double pctDeletes = 100. * ((double) writer.numDeletedDocs(info)) / info.info.maxDoc();
             if (pctDeletes > forceMergeDeletesPctAllowed && !merging.contains(info)) {
                 eligible.add(info);
             }
@@ -778,7 +793,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
 
             final OneMerge merge = new OneMerge(eligible.subList(start, end));
             if (verbose()) {
-                message("add merge=" + writer.get().segString(merge.segments));
+                message("add merge=" + segmentListString(merge.segments));
             }
             spec.add(merge);
             start = end;
@@ -787,21 +802,39 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
         return spec;
     }
 
-    @Override
-    public void close() {
-    }
-
     private long floorSize(long bytes) {
         return Math.max(floorSegmentBytes, bytes);
     }
 
     private boolean verbose() {
-        final IndexWriter w = writer.get();
-        return w != null && w.getConfig().getInfoStream().isEnabled("TMP");
+        return currentWriter != null && currentWriter.getConfig().getInfoStream().isEnabled("TMP");
     }
 
     private void message(String message) {
-        writer.get().getConfig().getInfoStream().message("TMP", message);
+        currentWriter.getConfig().getInfoStream().message("TMP", message);
+    }
+
+    // Helper methods to replace IndexWriter.segString() which is now package-private in Lucene 5.x
+    private String segmentInfoString(SegmentCommitInfo info) {
+        return info.info.name + ":" + info.info.maxDoc();
+    }
+
+    private String segmentListString(Iterable<SegmentCommitInfo> infos) {
+        StringBuilder sb = new StringBuilder("[");
+        boolean first = true;
+        for (SegmentCommitInfo info : infos) {
+            if (!first) {
+                sb.append(", ");
+            }
+            first = false;
+            sb.append(segmentInfoString(info));
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
+    private String segmentInfosString(SegmentInfos infos) {
+        return segmentListString(infos.asList());
     }
 
     @Override

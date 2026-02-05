@@ -100,7 +100,8 @@ public class DefaultIndexReaderFactory implements LuceneIndexReaderFactory {
                 defnNodeState.getString(FulltextIndexConstants.PERSISTENCE_NAME))) {
             String path = defnNodeState.getString(FulltextIndexConstants.PERSISTENCE_PATH);
             if (path != null && new File(path).exists()) {
-                directory = FSDirectory.open(new File(path));
+                // In Lucene 5.x, FSDirectory.open() takes Path instead of File
+                directory = FSDirectory.open(new File(path).toPath());
             }
         }
 
