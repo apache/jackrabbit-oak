@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static java.util.Collections.singletonList;
-import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
+import static org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration.newGCGeneration;
 
 import java.io.Closeable;
 import java.io.File;
@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndex
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexLoader;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.InvalidBinaryReferencesIndexException;
 import org.apache.jackrabbit.oak.segment.file.tar.index.IndexEntry;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;

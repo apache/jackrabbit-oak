@@ -29,7 +29,7 @@ import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.createBlob;
 import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.getCheckpointRoot;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStore.ROOT;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
-import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
+import static org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration.newGCGeneration;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 
@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.apache.jackrabbit.oak.segment.test.TemporaryBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;

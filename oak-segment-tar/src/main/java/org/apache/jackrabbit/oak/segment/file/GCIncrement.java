@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.segment.file;
 
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.SegmentWriterFactory;
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.jetbrains.annotations.NotNull;
 
 /**

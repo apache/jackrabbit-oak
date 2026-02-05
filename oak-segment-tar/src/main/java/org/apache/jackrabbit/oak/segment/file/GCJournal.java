@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.segment.file;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
+import static org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration.newGCGeneration;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -27,7 +27,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.segment.RecordId;
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.segment;
 
 import java.util.function.Supplier;
 
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 
 /**
  * SegmentNodeStoreMonitor is notified for commit related operations performed by SegmentNodeStore.

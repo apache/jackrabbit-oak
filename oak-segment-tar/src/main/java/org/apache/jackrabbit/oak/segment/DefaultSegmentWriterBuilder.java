@@ -27,7 +27,7 @@ import java.util.function.Supplier;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager.Empty;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

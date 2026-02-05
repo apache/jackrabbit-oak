@@ -23,7 +23,7 @@ import java.io.IOException;
 
 import org.jetbrains.annotations.NotNull;
 
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 
 /**
  * A {@code WriteOperationHandler} executes {@link WriteOperation

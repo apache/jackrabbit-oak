@@ -21,7 +21,7 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCTy
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType.TAIL;
 import static org.apache.jackrabbit.oak.segment.file.Reclaimers.newExactReclaimer;
 import static org.apache.jackrabbit.oak.segment.file.Reclaimers.newOldReclaimer;
-import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
+import static org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration.newGCGeneration;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -34,7 +34,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.junit.Test;
 
 public class ReclaimersTest {
