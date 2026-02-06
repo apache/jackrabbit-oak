@@ -435,7 +435,7 @@ public class DiffIndexMerger {
         merged.getProperties().remove("reindex");
         if (!deleteCopiesOutOfTheBoxIndex && indexDiff.toString().equals("{}")) {
             merged.getProperties().put("type", "\"disabled\"");
-            merged.getProperties().put("mergeComment", "\"This index is superseeded and can be removed\"");
+            merged.getProperties().put("mergeComment", "\"This index is superseded and can be removed\"");
         }
         newImageLuceneDefinitions.getChildren().put(key, merged);
         return true;
