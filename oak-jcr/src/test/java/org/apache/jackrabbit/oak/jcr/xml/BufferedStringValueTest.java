@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.xml;
 
-import org.apache.jackrabbit.util.Base64;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -196,8 +195,11 @@ public class BufferedStringValueTest {
         bufferedStringValue = new BufferedStringValue(null, null, true);
         String s = "Zm9vYg";
         bufferedStringValue.append(s.toCharArray(), 0, s.length());
-        // BUG in Base64 class!
-        assertEquals(Base64.decode(s), bufferedStringValue.getString());
+        // https://datatracker.ietf.org/doc/html/rfc4648#section-10
+        // BUG in Base64 class - this should be "foob".
+        // Behavior will change when Jackrabbit version with fix
+        // https://issues.apache.org/jira/browse/JCR-5226 is used.
+        assertEquals("foo", bufferedStringValue.getString());
     }
 
     @Test
