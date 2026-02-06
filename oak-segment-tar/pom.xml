@@ -69,7 +69,6 @@
                             reactor.blockhound;resolution:=optional,
                             reactor.blockhound.integration;resolution:=optional,
                             org.apache.commons.logging;resolution:=optional;version="[1.2,2)",
-                            org.apache.log4j;resolution:=optional;version="[1.2,2)",
                             org.apache.logging.log4j;resolution:=optional;version="[2.6,3)",
                             org.apache.logging.log4j.message;resolution:=optional,
                             org.apache.logging.log4j.spi;resolution:=optional,
