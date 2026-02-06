@@ -201,7 +201,7 @@ public class DiffIndex {
             }
         }
         for (String r : toRemove) {
-            LOG.info("Removing old index " + r);
+            LOG.info("Removing old index  {}", r);
             definitions.child(r).remove();
             updateNodetypeIndexForPath(definitions, r, false);
         }
