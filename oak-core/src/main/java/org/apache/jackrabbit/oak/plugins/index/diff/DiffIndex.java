@@ -137,8 +137,7 @@ public class DiffIndex {
         if (jcrData == null) {
             return null;
         }
-        InputStream in = jcrData.getValue(Type.BINARY).getNewStream();
-        try {
+    try (InputStream in = jcrData.getValue(Type.BINARY).getNewStream()) {
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             LOG.warn("Can not read jcr:data", e);
