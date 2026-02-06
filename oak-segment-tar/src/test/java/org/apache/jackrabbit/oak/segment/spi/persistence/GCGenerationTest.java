@@ -20,8 +20,18 @@ package org.apache.jackrabbit.oak.segment.spi.persistence;
 
 import static org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration.newGCGeneration;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertSame;
 
+import org.awaitility.Awaitility;
 import org.junit.Test;
+
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.function.IntFunction;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class GCGenerationTest {
 
@@ -37,5 +47,41 @@ public class GCGenerationTest {
         GCGeneration m = newGCGeneration(0, 0, false);
         GCGeneration n = newGCGeneration(2, 3, false);
         assertEquals(3, n.compareFullGenerationWith(m));
+    }
+
+    @Test
+    public void testObjectReuse() {
+        IntFunction<GCGeneration> gcGenerationProducer =
+                i -> newGCGeneration(i / 10, i / 2, i % 2 == 0);
+
+        Map<Integer, GCGeneration> generations = IntStream.range(0, 50)
+                .boxed()
+                .collect(Collectors.toMap(Function.identity(), gcGenerationProducer::apply));
+
+        Map<Integer, Integer> removed = IntStream.of(5, 22, 37)
+                .boxed()
+                .collect(Collectors.toMap(Function.identity(), i -> System.identityHashCode(generations.remove(i))));
+
+        for (int i = 0; i < 50; i++) {
+            if (removed.containsKey(i)) {
+                final int index = i;
+                Awaitility.await()
+                        .atMost(1, TimeUnit.SECONDS)
+                        .untilAsserted(() -> {
+                            System.gc();
+                            assertNotEquals(
+                                    removed.get(index).intValue(),
+                                    System.identityHashCode(gcGenerationProducer.apply(index)));
+                        });
+
+            } else {
+                assertSame(
+                        generations.get(i),
+                        gcGenerationProducer.apply(i));
+                assertEquals(
+                        System.identityHashCode(generations.get(i)),
+                        System.identityHashCode(gcGenerationProducer.apply(i)));
+            }
+        }
     }
 }

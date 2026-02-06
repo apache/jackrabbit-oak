@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.segment.spi.persistence.split;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.file.tar.SegmentGraph;
@@ -50,6 +52,11 @@ class UnclosedSegmentArchiveReader implements SegmentArchiveReader {
     @Override
     public List<SegmentArchiveEntry> listSegments() {
         return delegate.listSegments();
+    }
+
+    @Override
+    public Set<UUID> getSegmentUUIDs() {
+        return delegate.getSegmentUUIDs();
     }
 
     @Override
