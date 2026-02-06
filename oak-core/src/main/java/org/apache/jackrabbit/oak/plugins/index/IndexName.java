@@ -234,7 +234,7 @@ public class IndexName implements Comparable<IndexName> {
         return result;
     }
 
-    public static Collection<String> filterNewestIndexes(Collection<String> indexPaths, NodeState rootState) {
+    public static Collection<String> filterNewestIndexes(Collection<String> indexPaths) {
         HashMap<String, IndexName> latestVersions = new HashMap<>();
         for (String p : indexPaths) {
             IndexName indexName = IndexName.parse(p);

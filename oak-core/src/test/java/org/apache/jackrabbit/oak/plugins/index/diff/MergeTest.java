@@ -110,7 +110,7 @@ public class MergeTest {
         // A property might be indexed twice, by adding two children to the "properties" node
         // that both have the same "name" value.
         // Alternatively, they could have the same "function" value.
-        String merged = DiffIndexMerger.instance().processMerge(JsonObject.fromJson("{\n"
+        String merged = new DiffIndexMerger().processMerge(JsonObject.fromJson("{\n"
                 + "    \"jcr:primaryType\": \"nam:oak:QueryIndexDefinition\",\n"
                 + "    \"type\": \"lucene\",\n"
                 + "    \"indexRules\": {\n"
@@ -164,7 +164,7 @@ public class MergeTest {
     public void renamedFunction() {
         // A function might be indexed twice, by adding two children to the "properties" node
         // that both have the same "function" value.
-        String merged = DiffIndexMerger.instance().processMerge(JsonObject.fromJson("{\n"
+        String merged = new DiffIndexMerger().processMerge(JsonObject.fromJson("{\n"
                 + "    \"jcr:primaryType\": \"nam:oak:QueryIndexDefinition\",\n"
                 + "    \"type\": \"lucene\",\n"
                 + "    \"indexRules\": {\n"
@@ -245,7 +245,7 @@ public class MergeTest {
         // - "analyzed" must not be overwritten
         // - "ordered" is added
         // - "boost" is overwritten
-        String merged = DiffIndexMerger.instance().processMerge(JsonObject.fromJson("{\n"
+        String merged = new DiffIndexMerger().processMerge(JsonObject.fromJson("{\n"
                 + "    \"jcr:primaryType\": \"nam:oak:QueryIndexDefinition\",\n"
                 + "    \"type\": \"lucene\",\n"
                 + "    \"indexRules\": {\n"
@@ -387,7 +387,10 @@ public class MergeTest {
 
     @Test
     public void includesUnsupportedPathsTest() {
-        DiffIndexMerger merger = new DiffIndexMerger(new String[]{"/apps", "/libs"}, false, false, false);
+        DiffIndexMerger merger = new DiffIndexMerger().
+                setUnsupportedIncludedPaths(new String[]{"/apps", "/libs"}).
+                setDeleteCopiesOutOfTheBoxIndex(false).
+                setDeleteCreatesDummyIndex(false);
 
         assertEquals(true, merger.includesUnsupportedPaths(null));
         assertEquals(true, merger.includesUnsupportedPaths(new String[]{"/"}));
@@ -424,7 +427,7 @@ public class MergeTest {
         testProp.setProperty("propertyIndex", true);
         store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        Map<String, JsonObject> result = DiffIndexMerger.instance().readDiffIndex(store, "diff.index.optimizer");
+        Map<String, JsonObject> result = new DiffIndexMerger().readDiffIndex(store, "diff.index.optimizer");
 
         assertEquals(1, result.size());
         assertTrue(result.containsKey("/oak:index/diff.index.optimizer"));

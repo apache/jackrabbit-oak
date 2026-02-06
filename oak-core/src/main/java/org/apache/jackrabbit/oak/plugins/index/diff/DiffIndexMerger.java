@@ -50,6 +50,9 @@ public class DiffIndexMerger {
     public final static String DIFF_INDEX = "diff.index";
     public final static String DIFF_INDEX_OPTIMIZER = "diff.index.optimizer";
 
+    public final static String LAST_PROCESSED = ":lastProcessed";
+    public final static String MERGE_CHECKSUM = "mergeChecksum";
+
     private final static String MERGE_INFO = "This index was auto-merged. See also https://oak-indexing.github.io/oakTools/simplified.html";
 
     // the list of unsupported included paths, e.g. "/apps,/libs"
@@ -65,16 +68,13 @@ public class DiffIndexMerger {
     // whether to log at info level
     private final static boolean LOG_AT_INFO_LEVEL = Boolean.getBoolean("oak.diffIndex.logAtInfoLevel");
 
-    private final String[] unsupportedIncludedPaths;
-    private final boolean deleteCreatesDummyIndex;
-    private final boolean deleteCopiesOutOfTheBoxIndex;
-    private final boolean logAtInfoLevel;
+    private String[] unsupportedIncludedPaths;
+    private boolean deleteCreatesDummyIndex;
+    private boolean deleteCopiesOutOfTheBoxIndex;
+    private boolean logAtInfoLevel;
 
-    static final DiffIndexMerger INSTANCE = new DiffIndexMerger(UNSUPPORTED_INCLUDED_PATHS,
-            DELETE_CREATES_DUMMY, DELETE_COPIES_OOTB, LOG_AT_INFO_LEVEL);
-
-    public static DiffIndexMerger instance() {
-        return INSTANCE;
+    public DiffIndexMerger() {
+        this(UNSUPPORTED_INCLUDED_PATHS, DELETE_CREATES_DUMMY, DELETE_COPIES_OOTB, LOG_AT_INFO_LEVEL);
     }
 
     DiffIndexMerger(String[] unsupportedIncludedPaths,
@@ -495,7 +495,7 @@ public class DiffIndexMerger {
             return StringUtils.convertBytesToHex(md.digest(bytes));
         } catch (NoSuchAlgorithmException e) {
             // SHA-256 is guaranteed to be available in standard Java platforms
-            throw new RuntimeException("SHA-256 algorithm not available", e);
+            throw new IllegalStateException("SHA-256 algorithm not available", e);
         }
     }
 
@@ -828,6 +828,26 @@ public class DiffIndexMerger {
         } else {
             LOG.debug(format, arguments);
         }
+    }
+
+    public DiffIndexMerger setUnsupportedIncludedPaths(String[] unsupportedIncludedPaths) {
+        this.unsupportedIncludedPaths = unsupportedIncludedPaths;
+        return this;
+    }
+
+    public DiffIndexMerger setDeleteCreatesDummyIndex(boolean deleteCreatesDummyIndex) {
+        this.deleteCreatesDummyIndex = deleteCreatesDummyIndex;
+        return this;
+    }
+
+    public DiffIndexMerger setDeleteCopiesOutOfTheBoxIndex(boolean deleteCopiesOutOfTheBoxIndex) {
+        this.deleteCopiesOutOfTheBoxIndex = deleteCopiesOutOfTheBoxIndex;
+        return this;
+    }
+
+    public DiffIndexMerger setLogAtInfoLevel(boolean logAtInfoLevel) {
+        this.logAtInfoLevel = logAtInfoLevel;
+        return this;
     }
 
 }

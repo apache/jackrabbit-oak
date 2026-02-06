@@ -260,7 +260,7 @@ public class DiffIndexTest {
     private void assertSameJson(String a, String b) {
         JsonObject ja = JsonObject.fromJson(a, true);
         JsonObject jb = JsonObject.fromJson(b, true);
-        if (!DiffIndexMerger.instance().isSameIgnorePropertyOrder(ja, jb)) {
+        if (!new DiffIndexMerger().isSameIgnorePropertyOrder(ja, jb)) {
             assertEquals(a, b);
         }
     }
