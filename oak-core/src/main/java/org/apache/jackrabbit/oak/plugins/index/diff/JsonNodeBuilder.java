@@ -74,7 +74,7 @@ public class JsonNodeBuilder {
      */
     public static void addOrReplace(NodeBuilder builder, NodeStore nodeStore, String targetPath, String nodeType, String jsonString) throws CommitFailedException, IOException {
         LOG.info("Storing {}: {}", targetPath, jsonString);
-        if (nodeType.indexOf("/") >= 0) {
+        if (nodeType.contains("/")) {
             throw new IllegalStateException("Illegal node type: " + nodeType);
         }
         JsonObject json = JsonObject.fromJson(jsonString, true);
