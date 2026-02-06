@@ -16,13 +16,17 @@
  */
 package org.apache.jackrabbit.oak.jcr.xml;
 
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.util.Base64;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.jcr.*;
+import javax.jcr.Binary;
+import javax.jcr.Node;
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.ValueFactory;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -45,7 +49,7 @@ public class BufferedStringValueTest {
         }
 
         @Override
-        public Value createValue(String s, int i) throws ValueFormatException {
+        public Value createValue(String s, int i) {
             return null;
         }
 
@@ -80,42 +84,42 @@ public class BufferedStringValueTest {
                 byte[] data = inputStream.readAllBytes();
                 return new Value() {
                     @Override
-                    public String getString() throws ValueFormatException, IllegalStateException, RepositoryException {
+                    public String getString() throws IllegalStateException {
                         return new String(data, StandardCharsets.UTF_8);
                     }
 
                     @Override
-                    public InputStream getStream() throws RepositoryException {
+                    public InputStream getStream() {
                         return new ByteArrayInputStream(data);
                     }
 
                     @Override
-                    public Binary getBinary() throws RepositoryException {
+                    public Binary getBinary() {
                         return null;
                     }
 
                     @Override
-                    public long getLong() throws ValueFormatException, RepositoryException {
+                    public long getLong() {
                         return 0;
                     }
 
                     @Override
-                    public double getDouble() throws ValueFormatException, RepositoryException {
+                    public double getDouble() {
                         return 0;
                     }
 
                     @Override
-                    public BigDecimal getDecimal() throws ValueFormatException, RepositoryException {
+                    public BigDecimal getDecimal() {
                         return null;
                     }
 
                     @Override
-                    public Calendar getDate() throws ValueFormatException, RepositoryException {
+                    public Calendar getDate() {
                         return null;
                     }
 
                     @Override
-                    public boolean getBoolean() throws ValueFormatException, RepositoryException {
+                    public boolean getBoolean() {
                         return false;
                     }
 
@@ -135,17 +139,17 @@ public class BufferedStringValueTest {
         }
 
         @Override
-        public Value createValue(Node node) throws RepositoryException {
+        public Value createValue(Node node) {
             return null;
         }
 
         @Override
-        public Value createValue(Node node, boolean b) throws RepositoryException {
+        public Value createValue(Node node, boolean b) {
             return null;
         }
 
         @Override
-        public Binary createBinary(InputStream inputStream) throws RepositoryException {
+        public Binary createBinary(InputStream inputStream) {
             return null;
         }
     };
