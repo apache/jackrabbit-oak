@@ -119,11 +119,10 @@ public class IndexNameTest {
 
     @Test
     public void filterNewestIndexes() {
-        NodeState root = EMPTY_NODE;
 
         // Single index - should return as-is
         Collection<String> single = Arrays.asList("/lucene");
-        Collection<String> result = IndexName.filterNewestIndexes(single, root);
+        Collection<String> result = IndexName.filterNewestIndexes(single);
         assertEquals(1, result.size());
         assertTrue(result.contains("/lucene"));
 
@@ -135,7 +134,7 @@ public class IndexNameTest {
                 "/lucene-1-custom-1",
                 "/lucene-2-custom-3"
         );
-        result = IndexName.filterNewestIndexes(multipleVersions, root);
+        result = IndexName.filterNewestIndexes(multipleVersions);
         assertEquals(1, result.size());
         assertTrue(result.contains("/lucene-2-custom-3"));
 
@@ -147,7 +146,7 @@ public class IndexNameTest {
                 "/luceneB-2-custom-1",
                 "/luceneC-1-custom-5"
         );
-        result = IndexName.filterNewestIndexes(differentBases, root);
+        result = IndexName.filterNewestIndexes(differentBases);
         assertEquals(new HashSet<>(Arrays.asList("/luceneA-1", "/luceneB-2-custom-1", "/luceneC-1-custom-5")),
                 new HashSet<>(result));
 
@@ -157,13 +156,13 @@ public class IndexNameTest {
                 "/lucene-custom-2",
                 "/lucene-custom-3"
         );
-        result = IndexName.filterNewestIndexes(customOnly, root);
+        result = IndexName.filterNewestIndexes(customOnly);
         assertEquals(1, result.size());
         assertTrue(result.contains("/lucene-custom-3"));
 
         // Empty collection
         Collection<String> empty = Arrays.asList();
-        result = IndexName.filterNewestIndexes(empty, root);
+        result = IndexName.filterNewestIndexes(empty);
         assertTrue(result.isEmpty());
     }
 }
