@@ -103,7 +103,7 @@ public class DiffIndex {
         }
         LOG.info("Processing a new diff.index with node store {}", store);
         JsonObject repositoryDefinitions = RootIndexesListService.getRootIndexDefinitions(indexDefinitions);
-        LOG.debug("Index list {}", repositoryDefinitions.toString());
+        LOG.debug("Index list {}", repositoryDefinitions);
         try {
             DiffIndexMerger.instance().merge(newImageLuceneDefinitions, repositoryDefinitions, store);
             for (String indexPath : newImageLuceneDefinitions.getChildren().keySet()) {
