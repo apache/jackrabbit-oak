@@ -206,10 +206,11 @@ public class BufferedStringValueTest {
     public void reader() throws IOException {
         String s = "Hello, World!";
         bufferedStringValue.append(s.toCharArray(), 0, s.length());
-        Reader reader = bufferedStringValue.reader();
-        char[] chars = new char[s.length()];
-        reader.read(chars);
-        assertEquals(s, String.valueOf(chars));
+        try (Reader reader = bufferedStringValue.reader()) {
+            char[] chars = new char[s.length()];
+            reader.read(chars);
+            assertEquals(s, String.valueOf(chars));
+        }
     }
 
     @Test
@@ -237,10 +238,11 @@ public class BufferedStringValueTest {
         bufferedStringValue.append(test.toCharArray(), 0, test.length());
         assertEquals(test, bufferedStringValue.getString());
 
-        Reader reader = bufferedStringValue.reader();
-        char[] chars = new char[test.length()];
-        reader.read(chars);
-        assertEquals(test, String.valueOf(chars));
+        try (Reader reader = bufferedStringValue.reader()) {
+            char[] chars = new char[test.length()];
+            reader.read(chars);
+            assertEquals(test, String.valueOf(chars));
+        }
     }
 
     @Test
