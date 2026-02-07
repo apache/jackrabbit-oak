@@ -155,12 +155,12 @@ public class BufferedStringValueTest {
 
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         bufferedStringValue = new BufferedStringValue(vf, null, false);
     }
 
     @After
-    public void shutdown() throws Exception {
+    public void shutdown() {
         bufferedStringValue.dispose();
     }
 
