@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexName;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
-import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
@@ -47,8 +46,6 @@ public class DiffIndex {
 
     private static final Logger LOG = LoggerFactory.getLogger(DiffIndex.class);
 
-    private final static DiffIndexMerger MERGER = new DiffIndexMerger();
-
     /**
      * Apply changes to the index definitions. That means merge the index diff with
      * the existing indexes, creating new index versions. It might also mean to
@@ -58,25 +55,8 @@ public class DiffIndex {
      * @param indexDefinitions the /oak:index node
      */
     public static void applyDiffIndexChanges(NodeStore store, NodeBuilder indexDefinitions) {
-        JsonObject diffs = collectDiffs(indexDefinitions);
-        if (diffs == null) {
-            // nothing todo
-            return;
-        }
-        processDiffs(store, indexDefinitions, diffs);
-    }
-
-    /**
-     * Collect the diffs from the diff.index and diff.index.optimizer.
-     *
-     * @param indexDefinitions the node builder for /oak:index
-     * @return the diffs, or null if none
-     */
-    public static JsonObject collectDiffs(NodeBuilder indexDefinitions) {
-        JsonObject diffs = null;
-        for (String diffIndex : new String[] {
-                DiffIndexMerger.DIFF_INDEX,
-                DiffIndexMerger.DIFF_INDEX_OPTIMIZER }) {
+        JsonObject newImageLuceneDefinitions = null;
+        for (String diffIndex : new String[] { DiffIndexMerger.DIFF_INDEX, DiffIndexMerger.DIFF_INDEX_OPTIMIZER }) {
             if (!indexDefinitions.hasChildNode(diffIndex)) {
                 continue;
             }
@@ -85,12 +65,12 @@ public class DiffIndex {
             if (!diffContent.exists()) {
                 continue;
             }
-            PropertyState lastMod = diffContent.getProperty(NodeTypeConstants.JCR_LASTMODIFIED);
+            PropertyState lastMod = diffContent.getProperty("jcr:lastModified");
             if (lastMod == null) {
                 continue;
             }
             String modified = lastMod.getValue(Type.DATE);
-            PropertyState lastProcessed = diffContent.getProperty(DiffIndexMerger.LAST_PROCESSED);
+            PropertyState lastProcessed = diffContent.getProperty(":lastProcessed");
             if (lastProcessed != null) {
                 if (modified.equals(lastProcessed.getValue(Type.STRING))) {
                     // already processed
@@ -98,7 +78,7 @@ public class DiffIndex {
                 }
             }
             // store now, so a change is only processed once
-            diffContent.setProperty(DiffIndexMerger.LAST_PROCESSED, modified);
+            diffContent.setProperty(":lastProcessed", modified);
             PropertyState jcrData = diffContent.getProperty("jcr:data");
             String diff = tryReadString(jcrData);
             if (diff == null) {
@@ -107,47 +87,39 @@ public class DiffIndex {
             try {
                 JsonObject diffObj = JsonObject.fromJson("{\"diff\": " + diff + "}", true);
                 diffIndexDefinition.removeProperty("error");
-                if (diffs == null) {
-                    diffs = new JsonObject();
+                if (newImageLuceneDefinitions == null) {
+                    newImageLuceneDefinitions = new JsonObject();
                 }
-                diffs.getChildren().put("/oak:index/" + diffIndex, diffObj);
+                newImageLuceneDefinitions.getChildren().put("/oak:index/" + diffIndex, diffObj);
             } catch (Exception e) {
-                String message = "Error parsing " + diffIndex;
-                LOG.warn("{}: {}", message, e.getMessage(), e);
+                String message = "Error parsing diff.index";
+                LOG.warn(message + ": {}", e.getMessage(), e);
                 diffIndexDefinition.setProperty("error", message + ": " + e.getMessage());
             }
         }
-        return diffs;
-    }
-
-    /**
-     * Process the diffs.
-     *
-     * @param store the node store
-     * @param indexDefinitions the node builder for /oak:index
-     * @param diffs the json object with the combined diffs
-     */
-    private static void processDiffs(NodeStore store, NodeBuilder indexDefinitions, JsonObject diffs) {
-        LOG.info("Processing a diffs");
+        if (newImageLuceneDefinitions == null) {
+            // not a valid diff index, or already processed
+            return;
+        }
+        LOG.info("Processing a new diff.index with node store {}", store);
         JsonObject repositoryDefinitions = RootIndexesListService.getRootIndexDefinitions(indexDefinitions);
-        LOG.debug("Index list {}", repositoryDefinitions);
+        LOG.debug("Index list {}", repositoryDefinitions.toString());
         try {
-            MERGER.merge(diffs, repositoryDefinitions, store);
-            for (String indexPath : diffs.getChildren().keySet()) {
+            DiffIndexMerger.instance().merge(newImageLuceneDefinitions, repositoryDefinitions, store);
+            for (String indexPath : newImageLuceneDefinitions.getChildren().keySet()) {
                 if (indexPath.startsWith("/oak:index/" + DiffIndexMerger.DIFF_INDEX)) {
                     continue;
                 }
-                JsonObject newDef = diffs.getChildren().get(indexPath);
+                JsonObject newDef = newImageLuceneDefinitions.getChildren().get(indexPath);
                 String indexName = PathUtils.getName(indexPath);
-                JsonNodeUpdater.addOrReplace(indexDefinitions, store, indexName,
-                        IndexConstants.INDEX_DEFINITIONS_NODE_TYPE, newDef.toString());
+                JsonNodeBuilder.addOrReplace(indexDefinitions, store, indexName, IndexConstants.INDEX_DEFINITIONS_NODE_TYPE, newDef.toString());
                 updateNodetypeIndexForPath(indexDefinitions, indexName, true);
                 disableOrRemoveOldVersions(indexDefinitions, indexPath, indexName);
             }
             removeDisabledMergedIndexes(indexDefinitions);
             sortIndexes(indexDefinitions);
         } catch (Exception e) {
-            LOG.warn("Error merging diffs: {}", e.getMessage(), e);
+            LOG.warn("Error merging diff.index: {}", e.getMessage(), e);
             NodeBuilder diffIndexDefinition = indexDefinitions.child(DiffIndexMerger.DIFF_INDEX);
             diffIndexDefinition.setProperty("error", e.getMessage());
         }
@@ -165,7 +137,8 @@ public class DiffIndex {
         if (jcrData == null) {
             return null;
         }
-    try (InputStream in = jcrData.getValue(Type.BINARY).getNewStream()) {
+        InputStream in = jcrData.getValue(Type.BINARY).getNewStream();
+        try {
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             LOG.warn("Can not read jcr:data", e);
@@ -185,12 +158,10 @@ public class DiffIndex {
     private static void removeDisabledMergedIndexes(NodeBuilder definitions) {
         ArrayList<String> toRemove = new ArrayList<>();
         for (String child : definitions.getChildNodeNames()) {
-            if (!definitions.getChildNode(child).hasProperty(DiffIndexMerger.MERGE_CHECKSUM)) {
+            if (!definitions.getChildNode(child).hasProperty("mergeChecksum")) {
                 continue;
             }
-            if (IndexConstants.TYPE_DISABLED.equals(definitions.
-                    getChildNode(child).
-                    getString(IndexConstants.TYPE_PROPERTY_NAME))) {
+            if ("disabled".equals(definitions.getChildNode(child).getString("type"))) {
                 toRemove.add(child);
             }
         }
@@ -223,9 +194,7 @@ public class DiffIndex {
             String childBaseName = IndexName.parse(child).getBaseName();
             if (baseName.equals(childBaseName)) {
                 if (indexName.equals(child)) {
-                    if (!IndexConstants.TYPE_DISABLED.equals(definitions.
-                            getChildNode(indexName).
-                            getString(IndexConstants.TYPE_PROPERTY_NAME))) {
+                    if (!"disabled".equals(definitions.getChildNode(indexName).getString("type"))) {
                         continue;
                     }
                 }
@@ -233,7 +202,7 @@ public class DiffIndex {
             }
         }
         for (String r : toRemove) {
-            LOG.info("Removing old index  {}", r);
+            LOG.info("Removing old index " + r);
             definitions.child(r).remove();
             updateNodetypeIndexForPath(definitions, r, false);
         }

@@ -50,9 +50,6 @@ public class DiffIndexMerger {
     public final static String DIFF_INDEX = "diff.index";
     public final static String DIFF_INDEX_OPTIMIZER = "diff.index.optimizer";
 
-    public final static String LAST_PROCESSED = ":lastProcessed";
-    public final static String MERGE_CHECKSUM = "mergeChecksum";
-
     private final static String MERGE_INFO = "This index was auto-merged. See also https://oak-indexing.github.io/oakTools/simplified.html";
 
     // the list of unsupported included paths, e.g. "/apps,/libs"
@@ -68,13 +65,16 @@ public class DiffIndexMerger {
     // whether to log at info level
     private final static boolean LOG_AT_INFO_LEVEL = Boolean.getBoolean("oak.diffIndex.logAtInfoLevel");
 
-    private String[] unsupportedIncludedPaths;
-    private boolean deleteCreatesDummyIndex;
-    private boolean deleteCopiesOutOfTheBoxIndex;
-    private boolean logAtInfoLevel;
+    private final String[] unsupportedIncludedPaths;
+    private final boolean deleteCreatesDummyIndex;
+    private final boolean deleteCopiesOutOfTheBoxIndex;
+    private final boolean logAtInfoLevel;
 
-    public DiffIndexMerger() {
-        this(UNSUPPORTED_INCLUDED_PATHS, DELETE_CREATES_DUMMY, DELETE_COPIES_OOTB, LOG_AT_INFO_LEVEL);
+    static final DiffIndexMerger INSTANCE = new DiffIndexMerger(UNSUPPORTED_INCLUDED_PATHS,
+            DELETE_CREATES_DUMMY, DELETE_COPIES_OOTB, LOG_AT_INFO_LEVEL);
+
+    public static DiffIndexMerger instance() {
+        return INSTANCE;
     }
 
     DiffIndexMerger(String[] unsupportedIncludedPaths,
@@ -201,7 +201,7 @@ public class DiffIndexMerger {
                 LOG.warn(message);
                 return message;
             }
-            String jcrData = JsonNodeUpdater.oakStringValue(jcrContent, "jcr:data");
+            String jcrData = JsonNodeBuilder.oakStringValue(jcrContent, "jcr:data");
             try {
                 diff = JsonObject.fromJson(jcrData, true);
             } catch (Exception e) {
@@ -342,7 +342,7 @@ public class DiffIndexMerger {
                 // there is no customization (any more), which means a dummy index may be needed
                 log("No customization for {}", indexName);
             } else {
-                includedPaths = JsonNodeUpdater.oakStringArrayValue(indexDiff, "includedPaths");
+                includedPaths = JsonNodeBuilder.oakStringArrayValue(indexDiff, "includedPaths");
                 if (includesUnsupportedPaths(includedPaths)) {
                     LOG.warn("New custom index {} is not supported because it contains an unsupported path ({})",
                             indexName, Arrays.toString(unsupportedIncludedPaths));
@@ -350,7 +350,7 @@ public class DiffIndexMerger {
                 }
             }
         } else {
-            includedPaths = JsonNodeUpdater.oakStringArrayValue(latestProductIndex, "includedPaths");
+            includedPaths = JsonNodeBuilder.oakStringArrayValue(latestProductIndex, "includedPaths");
             if (includesUnsupportedPaths(includedPaths)) {
                 LOG.warn("Customizing index {} is not supported because it contains an unsupported path ({})",
                         latestProductKey, Arrays.toString(unsupportedIncludedPaths));
@@ -387,7 +387,7 @@ public class DiffIndexMerger {
             // new index
             key = prefix + indexName + "-1-custom-1";
         } else {
-            String latestMergeChecksum = JsonNodeUpdater.oakStringValue(latestIndexVersion, "mergeChecksum");
+            String latestMergeChecksum = JsonNodeBuilder.oakStringValue(latestIndexVersion, "mergeChecksum");
             JsonObject latestDef = cleanedAndNormalized(switchToLucene(latestIndexVersion));
             if (isSameIgnorePropertyOrder(mergedDef, latestDef)) {
                 // normal case: no change
@@ -435,7 +435,7 @@ public class DiffIndexMerger {
         merged.getProperties().remove("reindex");
         if (!deleteCopiesOutOfTheBoxIndex && indexDiff.toString().equals("{}")) {
             merged.getProperties().put("type", "\"disabled\"");
-            merged.getProperties().put("mergeComment", "\"This index is superseded and can be removed\"");
+            merged.getProperties().put("mergeComment", "\"This index is superseeded and can be removed\"");
         }
         newImageLuceneDefinitions.getChildren().put(key, merged);
         return true;
@@ -495,7 +495,7 @@ public class DiffIndexMerger {
             return StringUtils.convertBytesToHex(md.digest(bytes));
         } catch (NoSuchAlgorithmException e) {
             // SHA-256 is guaranteed to be available in standard Java platforms
-            throw new IllegalStateException("SHA-256 algorithm not available", e);
+            throw new RuntimeException("SHA-256 algorithm not available", e);
         }
     }
 
@@ -512,7 +512,7 @@ public class DiffIndexMerger {
      */
     public static JsonObject switchToLucene(JsonObject indexDef) {
         JsonObject obj = JsonObject.fromJson(indexDef.toString(), true);
-        String type = JsonNodeUpdater.oakStringValue(obj, "type");
+        String type = JsonNodeBuilder.oakStringValue(obj, "type");
         if (type == null || !"elasticsearch".equals(type) ) {
             return obj;
         }
@@ -700,7 +700,7 @@ public class DiffIndexMerger {
                     // search for a property with the same "name" value
                     String propertyName = diff.getChildren().get(c).getProperties().get("name");
                     if (propertyName != null) {
-                        propertyName = JsonNodeUpdater.oakStringValue(propertyName);
+                        propertyName = JsonNodeBuilder.oakStringValue(propertyName);
                         String c2 = getChildWithKeyValuePair(target, "name", propertyName);
                         if (c2 != null) {
                             targetChildName = c2;
@@ -709,7 +709,7 @@ public class DiffIndexMerger {
                     // search for a property with the same "function" value
                     String function = diff.getChildren().get(c).getProperties().get("function");
                     if (function != null) {
-                        function = JsonNodeUpdater.oakStringValue(function);
+                        function = JsonNodeBuilder.oakStringValue(function);
                         String c2 = getChildWithKeyValuePair(target, "function", function);
                         if (c2 != null) {
                             targetChildName = c2;
@@ -753,7 +753,7 @@ public class DiffIndexMerger {
             if (v2 == null) {
                 continue;
             }
-            v2 = JsonNodeUpdater.oakStringValue(v2);
+            v2 = JsonNodeBuilder.oakStringValue(v2);
             if (value.equals(v2)) {
                 return c.getKey();
             }
@@ -828,26 +828,6 @@ public class DiffIndexMerger {
         } else {
             LOG.debug(format, arguments);
         }
-    }
-
-    public DiffIndexMerger setUnsupportedIncludedPaths(String[] unsupportedIncludedPaths) {
-        this.unsupportedIncludedPaths = unsupportedIncludedPaths;
-        return this;
-    }
-
-    public DiffIndexMerger setDeleteCreatesDummyIndex(boolean deleteCreatesDummyIndex) {
-        this.deleteCreatesDummyIndex = deleteCreatesDummyIndex;
-        return this;
-    }
-
-    public DiffIndexMerger setDeleteCopiesOutOfTheBoxIndex(boolean deleteCopiesOutOfTheBoxIndex) {
-        this.deleteCopiesOutOfTheBoxIndex = deleteCopiesOutOfTheBoxIndex;
-        return this;
-    }
-
-    public DiffIndexMerger setLogAtInfoLevel(boolean logAtInfoLevel) {
-        this.logAtInfoLevel = logAtInfoLevel;
-        return this;
     }
 
 }

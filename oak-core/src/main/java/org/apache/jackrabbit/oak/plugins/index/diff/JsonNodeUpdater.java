@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.UUID;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -58,9 +59,9 @@ import org.slf4j.LoggerFactory;
  *
  * "null" entries are not supported.
  */
-public class JsonNodeBuilder {
+public class JsonNodeUpdater {
 
-    private static final Logger LOG = LoggerFactory.getLogger(JsonNodeBuilder.class);
+    private static final Logger LOG = LoggerFactory.getLogger(JsonNodeUpdater.class);
 
     /**
      * Add a replace a node, including all child nodes, in the node store.
@@ -80,8 +81,8 @@ public class JsonNodeBuilder {
         JsonObject json = JsonObject.fromJson(jsonString, true);
         for (String name : PathUtils.elements(targetPath)) {
             NodeBuilder child = builder.child(name);
-            if (!child.hasProperty("jcr:primaryType")) {
-                child.setProperty("jcr:primaryType", nodeType, Type.NAME);
+            if (!child.hasProperty(JCR_PRIMARYTYPE)) {
+                child.setProperty(JCR_PRIMARYTYPE, nodeType, Type.NAME);
             }
             builder = child;
         }
@@ -106,11 +107,11 @@ public class JsonNodeBuilder {
             String v = e.getValue();
             storeConfigProperty(nodeStore, builder, k, v);
         }
-        if (!json.getProperties().containsKey("jcr:primaryType")) {
-            builder.setProperty("jcr:primaryType", nodeType, Type.NAME);
+        if (!json.getProperties().containsKey(JCR_PRIMARYTYPE)) {
+            builder.setProperty(JCR_PRIMARYTYPE, nodeType, Type.NAME);
         }
         for (PropertyState prop : builder.getProperties()) {
-            if ("jcr:primaryType".equals(prop.getName())) {
+            if (JCR_PRIMARYTYPE.equals(prop.getName())) {
                 continue;
             }
             if (!json.getProperties().containsKey(prop.getName())) {
@@ -118,7 +119,7 @@ public class JsonNodeBuilder {
             }
         }
         builder.setProperty(TreeConstants.OAK_CHILD_ORDER, childOrder, Type.NAMES);
-        if ("nt:resource".equals(JsonNodeBuilder.oakStringValue(json, "jcr:primaryType"))) {
+        if ("nt:resource".equals(JsonNodeUpdater.oakStringValue(json, JCR_PRIMARYTYPE))) {
             if (!json.getProperties().containsKey("jcr:uuid")) {
                 String uuid = UUID.randomUUID().toString();
                 builder.setProperty("jcr:uuid", uuid);
@@ -145,7 +146,7 @@ public class JsonNodeBuilder {
                 if (value.startsWith("str:") || value.startsWith("nam:") || value.startsWith("dat:")) {
                     value = value.substring("str:".length());
                 }
-                if ("jcr:primaryType".equals(propertyName)) {
+                if (JCR_PRIMARYTYPE.equals(propertyName)) {
                     builder.setProperty(propertyName, value, Type.NAME);
                 } else {
                     builder.setProperty(propertyName, value);

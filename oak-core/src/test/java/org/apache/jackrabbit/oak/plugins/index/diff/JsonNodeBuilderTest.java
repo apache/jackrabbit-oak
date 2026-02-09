@@ -57,7 +57,7 @@ public class JsonNodeBuilderTest {
                 + "                  }\n"
                 + "                }", true);
         NodeBuilder builder = ns.getRoot().builder();
-        JsonNodeBuilder.addOrReplace(builder, ns, "/test", "nt:test", json.toString());
+        JsonNodeUpdater.addOrReplace(builder, ns, "/test", "nt:test", json.toString());
         ns.merge(builder, new EmptyHook(), CommitInfo.EMPTY);
         String json2 = JsonUtils.nodeStateToJson(ns.getRoot(), 5);
         json2 = json2.replaceAll("jcr:uuid\" : \".*\"", "jcr:uuid\" : \"...\"");
@@ -87,7 +87,7 @@ public class JsonNodeBuilderTest {
                 "\"double2\":1.0," +
                 "\"child2\":{\"y\":2}}", true);
         builder = ns.getRoot().builder();
-        JsonNodeBuilder.addOrReplace(builder, ns, "/test", "nt:test", json.toString());
+        JsonNodeUpdater.addOrReplace(builder, ns, "/test", "nt:test", json.toString());
         ns.merge(builder, new EmptyHook(), CommitInfo.EMPTY);
         assertEquals("{\n"
                 + "  \"test\" : {\n"
@@ -115,7 +115,7 @@ public class JsonNodeBuilderTest {
                 "\"child\":{\"x\":1}," +
                 "\"blob\":\":blobId:dGVzdA==\"}", true);
         NodeBuilder builder = ns.getRoot().builder();
-        JsonNodeBuilder.addOrReplace(builder, ns, "/test", "nt:test", json.toString());
+        JsonNodeUpdater.addOrReplace(builder, ns, "/test", "nt:test", json.toString());
         ns.merge(builder, new EmptyHook(), CommitInfo.EMPTY);
         assertEquals("{\n"
                 + "  \"test\" : {\n"
@@ -139,7 +139,7 @@ public class JsonNodeBuilderTest {
                 "\"double2\":1.0," +
                 "\"child2\":{\"y\":2}}", true);
         builder = ns.getRoot().builder();
-        JsonNodeBuilder.addOrReplace(builder, ns, "/test", "nt:test", json.toString());
+        JsonNodeUpdater.addOrReplace(builder, ns, "/test", "nt:test", json.toString());
         ns.merge(builder, new EmptyHook(), CommitInfo.EMPTY);
         assertEquals("{\n"
                 + "  \"test\" : {\n"
@@ -158,42 +158,42 @@ public class JsonNodeBuilderTest {
 
     @Test
     public void oakStringValue() {
-        assertEquals("123", JsonNodeBuilder.oakStringValue("123"));
-        assertEquals("45.67", JsonNodeBuilder.oakStringValue("45.67"));
-        assertEquals("-10", JsonNodeBuilder.oakStringValue("-10"));
+        assertEquals("123", JsonNodeUpdater.oakStringValue("123"));
+        assertEquals("45.67", JsonNodeUpdater.oakStringValue("45.67"));
+        assertEquals("-10", JsonNodeUpdater.oakStringValue("-10"));
 
         String helloBase64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
-        assertEquals("hello", JsonNodeBuilder.oakStringValue("\":blobId:" + helloBase64 + "\""));
+        assertEquals("hello", JsonNodeUpdater.oakStringValue("\":blobId:" + helloBase64 + "\""));
 
-        assertEquals("hello", JsonNodeBuilder.oakStringValue("\"str:hello\""));
-        assertEquals("acme:Test", JsonNodeBuilder.oakStringValue("\"nam:acme:Test\""));
-        assertEquals("2024-01-19", JsonNodeBuilder.oakStringValue("\"dat:2024-01-19\""));
+        assertEquals("hello", JsonNodeUpdater.oakStringValue("\"str:hello\""));
+        assertEquals("acme:Test", JsonNodeUpdater.oakStringValue("\"nam:acme:Test\""));
+        assertEquals("2024-01-19", JsonNodeUpdater.oakStringValue("\"dat:2024-01-19\""));
     }
 
     @Test
     public void getStringSet() {
-        assertNull(JsonNodeBuilder.getStringSet(null));
-        assertEquals(new TreeSet<>(Arrays.asList("hello")), JsonNodeBuilder.getStringSet("\"hello\""));
-        assertEquals(null, JsonNodeBuilder.getStringSet("123"));
-        assertEquals(new TreeSet<>(Arrays.asList("content/abc")), JsonNodeBuilder.getStringSet("\"content\\/abc\""));
-        assertTrue(JsonNodeBuilder.getStringSet("[]").isEmpty());
-        assertEquals(new TreeSet<>(Arrays.asList("a")), JsonNodeBuilder.getStringSet("[\"a\"]"));
-        assertEquals(new TreeSet<>(Arrays.asList("content/abc")), JsonNodeBuilder.getStringSet("[\"content\\/abc\"]"));
-        assertEquals(new TreeSet<>(Arrays.asList("a")), JsonNodeBuilder.getStringSet("[\"a\",\"a\"]"));
-        assertEquals(new TreeSet<>(Arrays.asList("a", "z")), JsonNodeBuilder.getStringSet("[\"z\",\"a\"]"));
+        assertNull(JsonNodeUpdater.getStringSet(null));
+        assertEquals(new TreeSet<>(Arrays.asList("hello")), JsonNodeUpdater.getStringSet("\"hello\""));
+        assertEquals(null, JsonNodeUpdater.getStringSet("123"));
+        assertEquals(new TreeSet<>(Arrays.asList("content/abc")), JsonNodeUpdater.getStringSet("\"content\\/abc\""));
+        assertTrue(JsonNodeUpdater.getStringSet("[]").isEmpty());
+        assertEquals(new TreeSet<>(Arrays.asList("a")), JsonNodeUpdater.getStringSet("[\"a\"]"));
+        assertEquals(new TreeSet<>(Arrays.asList("content/abc")), JsonNodeUpdater.getStringSet("[\"content\\/abc\"]"));
+        assertEquals(new TreeSet<>(Arrays.asList("a")), JsonNodeUpdater.getStringSet("[\"a\",\"a\"]"));
+        assertEquals(new TreeSet<>(Arrays.asList("a", "z")), JsonNodeUpdater.getStringSet("[\"z\",\"a\"]"));
     }
 
     @Test
     public void oakStringArrayValue() throws IOException {
-        assertNull(JsonNodeBuilder.oakStringArrayValue(JsonObject.fromJson("{}", true), "p"));
-        assertArrayEquals(new String[]{"hello"}, JsonNodeBuilder.oakStringArrayValue(JsonObject.fromJson("{\"p\":\"hello\"}", true), "p"));
-        assertNull(JsonNodeBuilder.oakStringArrayValue(JsonObject.fromJson("{\"p\":123}", true), "p"));
-        assertArrayEquals(new String[]{"content/abc"}, JsonNodeBuilder.oakStringArrayValue(JsonObject.fromJson("{\"p\":\"content\\/abc\"}", true), "p"));
-        assertArrayEquals(new String[]{}, JsonNodeBuilder.oakStringArrayValue(JsonObject.fromJson("{\"p\":[]}", true), "p"));
-        assertArrayEquals(new String[]{"a"}, JsonNodeBuilder.oakStringArrayValue(JsonObject.fromJson("{\"p\":[\"a\"]}", true), "p"));
-        assertArrayEquals(new String[]{"content/abc"}, JsonNodeBuilder.oakStringArrayValue(JsonObject.fromJson("{\"p\":[\"content\\/abc\"]}", true), "p"));
-        assertArrayEquals(new String[]{"a"}, JsonNodeBuilder.oakStringArrayValue(JsonObject.fromJson("{\"p\":[\"a\",\"a\"]}", true), "p"));
-        assertArrayEquals(new String[]{"a", "z"}, JsonNodeBuilder.oakStringArrayValue(JsonObject.fromJson("{\"p\":[\"z\",\"a\"]}", true), "p"));
+        assertNull(JsonNodeUpdater.oakStringArrayValue(JsonObject.fromJson("{}", true), "p"));
+        assertArrayEquals(new String[]{"hello"}, JsonNodeUpdater.oakStringArrayValue(JsonObject.fromJson("{\"p\":\"hello\"}", true), "p"));
+        assertNull(JsonNodeUpdater.oakStringArrayValue(JsonObject.fromJson("{\"p\":123}", true), "p"));
+        assertArrayEquals(new String[]{"content/abc"}, JsonNodeUpdater.oakStringArrayValue(JsonObject.fromJson("{\"p\":\"content\\/abc\"}", true), "p"));
+        assertArrayEquals(new String[]{}, JsonNodeUpdater.oakStringArrayValue(JsonObject.fromJson("{\"p\":[]}", true), "p"));
+        assertArrayEquals(new String[]{"a"}, JsonNodeUpdater.oakStringArrayValue(JsonObject.fromJson("{\"p\":[\"a\"]}", true), "p"));
+        assertArrayEquals(new String[]{"content/abc"}, JsonNodeUpdater.oakStringArrayValue(JsonObject.fromJson("{\"p\":[\"content\\/abc\"]}", true), "p"));
+        assertArrayEquals(new String[]{"a"}, JsonNodeUpdater.oakStringArrayValue(JsonObject.fromJson("{\"p\":[\"a\",\"a\"]}", true), "p"));
+        assertArrayEquals(new String[]{"a", "z"}, JsonNodeUpdater.oakStringArrayValue(JsonObject.fromJson("{\"p\":[\"z\",\"a\"]}", true), "p"));
     }
 
     @Test
@@ -207,7 +207,7 @@ public class JsonNodeBuilderTest {
                 "\"boolFalse\":false," +
                 "\"escapedArray\":[\"\\/content\\/path\"]}", true);
         NodeBuilder builder = ns.getRoot().builder();
-        JsonNodeBuilder.addOrReplace(builder, ns, "/test", "nt:test", json.toString());
+        JsonNodeUpdater.addOrReplace(builder, ns, "/test", "nt:test", json.toString());
         ns.merge(builder, new EmptyHook(), CommitInfo.EMPTY);
         assertEquals("{\n"
                 + "  \"test\" : {\n"
