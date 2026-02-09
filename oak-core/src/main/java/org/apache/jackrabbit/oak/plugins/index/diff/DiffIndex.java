@@ -116,6 +116,9 @@ public class DiffIndex {
                 LOG.warn("{}: {}", message, e.getMessage(), e);
                 diffIndexDefinition.setProperty("error", message + ": " + e.getMessage());
             }
+            if (!diffIndexDefinition.hasProperty("info")) {
+                diffIndexDefinition.setProperty("info", "This diff is are automatically merged with other indexes. See https://oak-indexing.github.io/oakTools/simplified.html");
+            }
         }
         return diffs;
     }

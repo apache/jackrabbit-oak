@@ -36,7 +36,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
 
-public class JsonNodeBuilderTest {
+public class JsonNodeUpdaterTest {
 
     @Test
     public void addNodeTypeAndUUID() throws CommitFailedException, IOException {
