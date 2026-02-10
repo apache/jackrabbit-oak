@@ -220,7 +220,7 @@ public class JsonNodeUpdaterTest {
                 + "    \"strValue\" : \"hello\",\n"
                 + "    \":childOrder\" : [ ]\n"
                 + "  }\n"
-                + "}", JsonUtils.nodeStateToJson(ns.getRoot(), 5));
+                + "}", JsonUtils.nodeStateToJson(ns.getRoot(), 5).replace("\r", ""));
     }
 
 }
