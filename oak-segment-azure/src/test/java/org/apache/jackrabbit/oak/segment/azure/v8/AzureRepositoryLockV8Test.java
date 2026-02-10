@@ -18,15 +18,11 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.v8;
 
-import com.github.tomakehurst.wiremock.WireMockServer;
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.github.tomakehurst.wiremock.stubbing.Scenario;
-import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageErrorCodeStrings;
 import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
+
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
@@ -44,10 +40,7 @@ import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.*;
 
 public class AzureRepositoryLockV8Test {
@@ -56,7 +49,6 @@ public class AzureRepositoryLockV8Test {
     public static final String LEASE_DURATION = "15";
     public static final String RENEWAL_INTERVAL = "3";
     public static final String TIME_TO_WAIT_BEFORE_BLOCK = "9";
-    public static final String LEASE_RENEWAL_TIMEOUT = "1000";
 
     @ClassRule
     public static AzuriteDockerRule azurite = new AzuriteDockerRule();
@@ -71,8 +63,7 @@ public class AzureRepositoryLockV8Test {
     @Rule
     public final ProvideSystemProperty systemPropertyRule = new ProvideSystemProperty(AzureRepositoryLockV8.LEASE_DURATION_PROP, LEASE_DURATION)
             .and(AzureRepositoryLockV8.RENEWAL_INTERVAL_PROP, RENEWAL_INTERVAL)
-            .and(AzureRepositoryLockV8.TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP, TIME_TO_WAIT_BEFORE_BLOCK)
-            .and(AzureRepositoryLockV8.LEASE_RENEWAL_TIMEOUT_PROP, LEASE_RENEWAL_TIMEOUT);
+            .and(AzureRepositoryLockV8.TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP, TIME_TO_WAIT_BEFORE_BLOCK);
 
     @Test
     public void testFailingLock() throws URISyntaxException, IOException, StorageException {
@@ -176,83 +167,5 @@ public class AzureRepositoryLockV8Test {
         assertTrue("after more than 9 seconds thread should be in a waiting state", thread.getState().equals(Thread.State.WAITING));
 
         Mockito.doCallRealMethod().when(blobMocked).renewLease(Mockito.any(), Mockito.any(), Mockito.any());
-    }
-
-    @Test
-    public void testClientSideTimeoutExceptionIsRecoverable() throws Exception {
-
-        // Start WireMock as a proxy
-        WireMockServer wireMockServer = new WireMockServer(WireMockConfiguration.options()
-                .dynamicPort());
-        wireMockServer.start();
-
-        try {
-            int wireMockPort = wireMockServer.port();
-            int azuritePort = azurite.getMappedPort();
-            String azuriteUrl = "http://127.0.0.1:" + azuritePort;
-
-            // Configure WireMock to proxy all requests to Azurite by default
-            wireMockServer.stubFor(any(anyUrl())
-                    .willReturn(aResponse().proxiedFrom(azuriteUrl)));
-
-            // Use WireMock scenarios to delay only the first 2 lease renewal requests
-            // Scenario: Started -> FirstTimeout -> SecondTimeout -> Success
-            String scenarioName = "LeaseRenewalTimeout";
-
-            // First renewal request: delay and transition to SecondTimeout state
-            wireMockServer.stubFor(put(urlPathMatching(".*/oak/repo\\.lock"))
-                    .withQueryParam("comp", equalTo("lease"))
-                    .inScenario(scenarioName)
-                    .whenScenarioStateIs(Scenario.STARTED)
-                    .willReturn(aResponse().proxiedFrom(azuriteUrl).withFixedDelay(2000))
-                    .willSetStateTo("SecondTimeout"));
-
-            // Second renewal request: delay and transition to Success state
-            wireMockServer.stubFor(put(urlPathMatching(".*/oak/repo\\.lock"))
-                    .withQueryParam("comp", equalTo("lease"))
-                    .inScenario(scenarioName)
-                    .whenScenarioStateIs("SecondTimeout")
-                    .willReturn(aResponse().proxiedFrom(azuriteUrl).withFixedDelay(2000))
-                    .willSetStateTo("Success"));
-
-            // Third and subsequent renewal requests: no delay, just proxy
-            wireMockServer.stubFor(put(urlPathMatching(".*/oak/repo\\.lock"))
-                    .withQueryParam("comp", equalTo("lease"))
-                    .inScenario(scenarioName)
-                    .whenScenarioStateIs("Success")
-                    .willReturn(aResponse().proxiedFrom(azuriteUrl)));
-
-            // Create a CloudBlockBlob pointing to WireMock instead of Azurite
-            String wireMockEndpoint = "http://127.0.0.1:" + wireMockPort + "/devstoreaccount1";
-            String connectionString = "DefaultEndpointsProtocol=http;AccountName=" + AzuriteDockerRule.ACCOUNT_NAME
-                    + ";AccountKey=" + AzuriteDockerRule.ACCOUNT_KEY
-                    + ";BlobEndpoint=" + wireMockEndpoint;
-
-            CloudStorageAccount storageAccount = CloudStorageAccount.parse(connectionString);
-            CloudBlobClient blobClient = storageAccount.createCloudBlobClient();
-            CloudBlobContainer proxyContainer = blobClient.getContainerReference(container.getName());
-
-            CloudBlockBlob blob = proxyContainer.getBlockBlobReference("oak/repo.lock");
-
-            AtomicBoolean shutdownCalled = new AtomicBoolean(false);
-            Runnable shutdownHook = () -> shutdownCalled.set(true);
-
-            WriteAccessController writeAccessController = new WriteAccessController();
-            AzureRepositoryLockV8 lock = new AzureRepositoryLockV8(blob, shutdownHook, writeAccessController);
-            lock.lock();
-
-            // Wait for at least 3 lease renewal requests (2 timeouts + 1 success)
-            await().atMost(10, java.util.concurrent.TimeUnit.SECONDS)
-                    .untilAsserted(() -> wireMockServer.verify(
-                            moreThanOrExactly(3),
-                            putRequestedFor(urlPathMatching(".*/oak/repo\\.lock"))
-                                    .withQueryParam("comp", equalTo("lease"))));
-
-            assertFalse("Shutdown hook should not be called for client-side timeout exceptions", shutdownCalled.get());
-
-            lock.unlock();
-        } finally {
-            wireMockServer.stop();
-        }
     }
 }
