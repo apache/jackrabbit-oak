@@ -454,6 +454,7 @@ public final class Utils {
                 .maxConnections(maxConnections) // Connection pool
                 .connectionMaxIdleTime(Duration.ofSeconds(idleTimeSeconds))
                 .connectionTimeToLive(Duration.ofSeconds(ttlSeconds))
+                .connectionAcquisitionTimeout(Duration.ofMillis(config.connectionTimeout)) // timeout while waiting for connection from pool
                 .useIdleConnectionReaper(true)
                 .tcpKeepAlive(true) // TCP keepalive
                 .expectContinueEnabled(true); // Expect-continue handshake (reduces overhead for large uploads)
@@ -499,6 +500,7 @@ public final class Utils {
                 .maxConcurrency(concurrency)  // Connection pool - increased for better concurrency
                 .connectionMaxIdleTime(Duration.ofSeconds(idleTimeSeconds))
                 .connectionTimeToLive(Duration.ofSeconds(ttlSeconds))
+                .connectionAcquisitionTimeout(Duration.ofMillis(config.connectionTimeout)) // timeout while waiting for connection from pool
                 .useIdleConnectionReaper(true)
                 .tcpKeepAlive(true) // TCP optimizations
                 .eventLoopGroup(
