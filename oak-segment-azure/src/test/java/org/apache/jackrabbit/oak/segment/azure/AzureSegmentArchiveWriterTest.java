@@ -97,13 +97,21 @@ public class AzureSegmentArchiveWriterTest {
         mockServerClient
                 .when(writeBinaryReferencesRequest, Times.once())
                 .respond(response().withStatusCode(201));
+        // then allow closing the writer
+        mockServerClient
+                .when(getCloseArchiveRequest(), Times.once())
+                .respond(response().withStatusCode(201));
 
         SegmentArchiveWriter writer = createSegmentArchiveWriter();
-        writeAndFlushSegment(writer);
+        try {
+            writeAndFlushSegment(writer);
 
-        writer.writeBinaryReferences(new byte[10]);
+            writer.writeBinaryReferences(new byte[10]);
 
-        mockServerClient.verify(writeBinaryReferencesRequest, exactly(MAX_ATTEMPTS));
+            mockServerClient.verify(writeBinaryReferencesRequest, exactly(MAX_ATTEMPTS));
+        } finally {
+            writer.close();
+        }
     }
 
     @Test
@@ -119,13 +127,21 @@ public class AzureSegmentArchiveWriterTest {
         mockServerClient
                 .when(writeGraphRequest, Times.once())
                 .respond(response().withStatusCode(201));
+        // then allow closing the writer
+        mockServerClient
+                .when(getCloseArchiveRequest(), Times.once())
+                .respond(response().withStatusCode(201));
 
         SegmentArchiveWriter writer = createSegmentArchiveWriter();
-        writeAndFlushSegment(writer);
+        try {
+            writeAndFlushSegment(writer);
 
-        writer.writeGraph(new byte[10]);
+            writer.writeGraph(new byte[10]);
 
-        mockServerClient.verify(writeGraphRequest, exactly(MAX_ATTEMPTS));
+            mockServerClient.verify(writeGraphRequest, exactly(MAX_ATTEMPTS));
+        } finally {
+            writer.close();
+        }
     }
 
     @Test
@@ -143,9 +159,11 @@ public class AzureSegmentArchiveWriterTest {
                 .respond(response().withStatusCode(201));
 
         SegmentArchiveWriter writer = createSegmentArchiveWriter();
-        writeAndFlushSegment(writer);
-
-        writer.close();
+        try {
+            writeAndFlushSegment(writer);
+        } finally {
+            writer.close();
+        }
 
         mockServerClient.verify(closeArchiveRequest, exactly(MAX_ATTEMPTS));
     }
@@ -161,9 +179,11 @@ public class AzureSegmentArchiveWriterTest {
                 .respond(response().withStatusCode(500));
 
         SegmentArchiveWriter writer = createSegmentArchiveWriter();
-        writeAndFlushSegment(writer);
-
-        assertThrows(IOException.class, writer::close);
+        try {
+            writeAndFlushSegment(writer);
+        } finally {
+            assertThrows(IOException.class, writer::close);
+        }
 
         mockServerClient.verify(closeArchiveRequest, exactly(MAX_ATTEMPTS));
     }

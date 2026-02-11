@@ -43,6 +43,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -77,12 +78,14 @@ public class AzureRepositoryLockV8Test {
     @Test
     public void testFailingLock() throws URISyntaxException, IOException, StorageException {
         CloudBlockBlob blob = container.getBlockBlobReference("oak/repo.lock");
-        new AzureRepositoryLockV8(blob, () -> {}, new WriteAccessController()).lock();
+        AzureRepositoryLockV8 lock = new AzureRepositoryLockV8(blob, () -> {}, new WriteAccessController()).lock();
         try {
             new AzureRepositoryLockV8(blob, () -> {}, new WriteAccessController()).lock();
             fail("The second lock should fail.");
         } catch (IOException e) {
             // it's fine
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -102,7 +105,8 @@ public class AzureRepositoryLockV8Test {
         }).start();
 
         s.acquire();
-        new AzureRepositoryLockV8(blob, () -> {}, new WriteAccessController(), 10).lock();
+        AzureRepositoryLockV8 lock = new AzureRepositoryLockV8(blob, () -> {}, new WriteAccessController(), 10).lock();
+        lock.unlock();
     }
 
     @Test
@@ -119,10 +123,10 @@ public class AzureRepositoryLockV8Test {
                 .doCallRealMethod()
                 .when(blobMocked).renewLease(Mockito.any(), Mockito.any(), Mockito.any());
 
-        new AzureRepositoryLockV8(blobMocked, () -> {}, new WriteAccessController()).lock();
+        AzureRepositoryLockV8 lock = new AzureRepositoryLockV8(blobMocked, () -> {}, new WriteAccessController(), 1).lock();
 
         // wait till lease expires
-        Thread.sleep(16000);
+        Thread.sleep(1500);
 
         // reset the mock to default behaviour
         Mockito.doCallRealMethod().when(blobMocked).renewLease(Mockito.any(), Mockito.any(), Mockito.any());
@@ -133,6 +137,7 @@ public class AzureRepositoryLockV8Test {
         } catch (IOException e) {
             // it's fine
         }
+        lock.unlock();
     }
 
     @Test
@@ -153,29 +158,35 @@ public class AzureRepositoryLockV8Test {
 
         WriteAccessController writeAccessController = new WriteAccessController();
 
-        new AzureRepositoryLockV8(blobMocked, () -> {}, writeAccessController).lock();
+        AzureRepositoryLockV8 lock = new AzureRepositoryLockV8(blobMocked, () -> {}, writeAccessController);
+        Thread thread = null;
+        try {
+            lock.lock();
 
+            thread = new Thread(() -> {
+                while (true) {
+                    writeAccessController.checkWritingAllowed();
+                }
+            });
+            thread.start();
 
-        Thread thread = new Thread(() -> {
+            Thread.sleep(3000);
+            assertFalse("after 3 seconds thread should not be in a waiting state", thread.getState().equals(Thread.State.WAITING));
 
-            while (true) {
-                writeAccessController.checkWritingAllowed();
+            Thread.sleep(3000);
+            assertFalse("after 6 seconds thread should not be in a waiting state", thread.getState().equals(Thread.State.WAITING));
 
+            Thread.sleep(5000);
+            assertTrue("after more than 9 seconds thread should be in a waiting state", thread.getState().equals(Thread.State.WAITING));
+
+            Mockito.doCallRealMethod().when(blobMocked).renewLease(Mockito.any(), Mockito.any(), Mockito.any());
+        } finally {
+            lock.unlock();
+            if (thread != null) {
+                thread.interrupt();
+                thread.join();
             }
-        });
-
-        thread.start();
-
-        Thread.sleep(3000);
-        assertFalse("after 3 seconds thread should not be in a waiting state", thread.getState().equals(Thread.State.WAITING));
-
-        Thread.sleep(3000);
-        assertFalse("after 6 seconds thread should not be in a waiting state", thread.getState().equals(Thread.State.WAITING));
-
-        Thread.sleep(5000);
-        assertTrue("after more than 9 seconds thread should be in a waiting state", thread.getState().equals(Thread.State.WAITING));
-
-        Mockito.doCallRealMethod().when(blobMocked).renewLease(Mockito.any(), Mockito.any(), Mockito.any());
+        }
     }
 
     @Test
@@ -242,7 +253,7 @@ public class AzureRepositoryLockV8Test {
             lock.lock();
 
             // Wait for at least 3 lease renewal requests (2 timeouts + 1 success)
-            await().atMost(10, java.util.concurrent.TimeUnit.SECONDS)
+            await().atMost(10, TimeUnit.SECONDS)
                     .untilAsserted(() -> wireMockServer.verify(
                             moreThanOrExactly(3),
                             putRequestedFor(urlPathMatching(".*/oak/repo\\.lock"))
