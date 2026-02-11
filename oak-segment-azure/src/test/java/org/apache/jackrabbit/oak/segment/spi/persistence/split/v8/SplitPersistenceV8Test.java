@@ -21,9 +21,9 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.azure.FileStoreTestUtil;
 import org.apache.jackrabbit.oak.segment.azure.v8.AzurePersistenceV8;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexLoader;
@@ -74,10 +74,7 @@ public class SplitPersistenceV8Test {
     public void setup() throws IOException, InvalidFileStoreVersionException, CommitFailedException, URISyntaxException, InvalidKeyException, StorageException {
         SegmentNodeStorePersistence sharedPersistence = new AzurePersistenceV8(azurite.getContainer("oak-test").getDirectoryReference("oak"));
 
-        baseFileStore = FileStoreBuilder
-                .fileStoreBuilder(folder.newFolder())
-                .withCustomPersistence(sharedPersistence)
-                .build();
+        baseFileStore = FileStoreTestUtil.createFileStore(folder.newFolder(), sharedPersistence);
         base = SegmentNodeStoreBuilders.builder(baseFileStore).build();
 
         NodeBuilder builder = base.getRoot().builder();
@@ -88,10 +85,7 @@ public class SplitPersistenceV8Test {
         SegmentNodeStorePersistence localPersistence = new TarPersistence(folder.newFolder());
         splitPersistence = new SplitPersistence(sharedPersistence, localPersistence);
 
-        splitFileStore = FileStoreBuilder
-                .fileStoreBuilder(folder.newFolder())
-                .withCustomPersistence(splitPersistence)
-                .build();
+        splitFileStore = FileStoreTestUtil.createFileStore(folder.newFolder(), splitPersistence);
         split = SegmentNodeStoreBuilders.builder(splitFileStore).build();
     }
 

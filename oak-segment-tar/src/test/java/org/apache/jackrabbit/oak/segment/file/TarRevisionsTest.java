@@ -76,10 +76,14 @@ public class TarRevisionsTest {
     }
 
     @After
-    public void tearDown() {
+    public void tearDown() throws IOException {
         if (store != null) {
             store.close();
             store = null;
+        }
+        if (revisions != null) {
+            revisions.close();
+            revisions = null;
         }
     }
 

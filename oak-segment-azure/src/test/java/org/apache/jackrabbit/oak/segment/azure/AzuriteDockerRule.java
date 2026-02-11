@@ -73,15 +73,14 @@ public class AzuriteDockerRule extends ExternalResource {
         return new Statement() {
             @Override
             public void evaluate() throws Throwable {
-                try {
-                    before();
-                } catch (IllegalStateException e) {
-                    Assume.assumeNoException(STARTUP_EXCEPTION.get());
-                    throw e;
-                }
-
                 List<Throwable> errors = new ArrayList<Throwable>();
                 try {
+                    try {
+                        before();
+                    } catch (IllegalStateException e) {
+                        Assume.assumeNoException(STARTUP_EXCEPTION.get());
+                        throw e;
+                    }
                     base.evaluate();
                 } catch (Throwable t) {
                     errors.add(t);
