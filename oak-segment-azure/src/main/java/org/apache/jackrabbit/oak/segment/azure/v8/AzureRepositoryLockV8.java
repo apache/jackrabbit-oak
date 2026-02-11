@@ -37,7 +37,9 @@ public class AzureRepositoryLockV8 implements RepositoryLock {
     private static final Logger log = LoggerFactory.getLogger(AzureRepositoryLockV8.class);
 
     private static final int TIMEOUT_SEC = Integer.getInteger("oak.segment.azure.lock.timeout", 0);
-    private static final Integer LEASE_RENEWAL_TIMEOUT_MS = 5000;
+
+    public static final String LEASE_RENEWAL_TIMEOUT_PROP = "oak.segment.azure.lock.leaseRenewalTimeoutInMs";
+    private static final int LEASE_RENEWAL_TIMEOUT_MS = Integer.getInteger(LEASE_RENEWAL_TIMEOUT_PROP, 5000);
 
     public static final String LEASE_DURATION_PROP = "oak.segment.azure.lock.leaseDurationInSec";
     private final int leaseDuration = Integer.getInteger(LEASE_DURATION_PROP, 60);
