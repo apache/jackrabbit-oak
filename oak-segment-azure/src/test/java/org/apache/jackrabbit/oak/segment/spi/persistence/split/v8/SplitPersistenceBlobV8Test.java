@@ -34,9 +34,9 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.azure.FileStoreTestUtil;
 import org.apache.jackrabbit.oak.segment.azure.v8.AzurePersistenceV8;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
@@ -82,24 +82,20 @@ public class SplitPersistenceBlobV8Test {
         File dataStoreDir = new File(folder.getRoot(), "blobstore");
         BlobStore blobStore = newBlobStore(dataStoreDir);
 
-        baseFileStore = FileStoreBuilder
-                .fileStoreBuilder(folder.newFolder())
-                .withCustomPersistence(sharedPersistence)
+        try (FileStore tempFileStore = FileStoreTestUtil.createFileStoreBuilder(folder.newFolder(), sharedPersistence)
                 .withBlobStore(blobStore)
-                .build();
-        base = SegmentNodeStoreBuilders.builder(baseFileStore).build();
+                .build()) {
+            base = SegmentNodeStoreBuilders.builder(tempFileStore).build();
 
-        NodeBuilder builder = base.getRoot().builder();
-        builder.child("foo").child("bar").setProperty("version", "v1");
-        base.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            NodeBuilder builder = base.getRoot().builder();
+            builder.child("foo").child("bar").setProperty("version", "v1");
+            base.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        baseBlobId = createLoad(base, baseFileStore).getContentIdentity();
-        baseFileStore.flush();
-        baseFileStore.close();
+            baseBlobId = createLoad(base, tempFileStore).getContentIdentity();
+            tempFileStore.flush();
+        }
 
-        baseFileStore = FileStoreBuilder
-            .fileStoreBuilder(folder.newFolder())
-            .withCustomPersistence(sharedPersistence)
+        baseFileStore = FileStoreTestUtil.createFileStoreBuilder(folder.newFolder(), sharedPersistence)
             .withBlobStore(blobStore)
             .build();
         base = SegmentNodeStoreBuilders.builder(baseFileStore).build();
@@ -110,9 +106,7 @@ public class SplitPersistenceBlobV8Test {
         SegmentNodeStorePersistence localPersistence = new TarPersistence(folder.newFolder());
         splitPersistence = new SplitPersistence(sharedPersistence, localPersistence);
 
-        splitFileStore = FileStoreBuilder
-            .fileStoreBuilder(folder.newFolder())
-            .withCustomPersistence(splitPersistence)
+        splitFileStore = FileStoreTestUtil.createFileStoreBuilder(folder.newFolder(), splitPersistence)
             .withBlobStore(blobStore)
             .build();
         split = SegmentNodeStoreBuilders.builder(splitFileStore).build();
@@ -120,7 +114,12 @@ public class SplitPersistenceBlobV8Test {
 
     @After
     public void tearDown() {
-        baseFileStore.close();
+        if (splitFileStore != null) {
+            splitFileStore.close();
+        }
+        if (baseFileStore != null) {
+            baseFileStore.close();
+        }
     }
 
     @Test

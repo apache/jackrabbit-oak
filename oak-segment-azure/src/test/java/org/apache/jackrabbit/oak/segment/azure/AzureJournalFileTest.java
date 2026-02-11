@@ -29,7 +29,9 @@ import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.jetbrains.annotations.NotNull;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -54,6 +56,8 @@ public class AzureJournalFileTest {
 
     private JournalFile journal;
 
+    private RepositoryLock repositoryLock;
+
     private final String rootPrefix = "oak";
 
     @Before
@@ -65,8 +69,16 @@ public class AzureJournalFileTest {
         WriteAccessController writeAccessController = new WriteAccessController();
         writeAccessController.enableWriting();
         AzurePersistence azurePersistence = new AzurePersistence(readBlobContainerClient, writeBlobContainerClient, noRetryBlobContainerClient, rootPrefix, null, 50);
-        azurePersistence.lockRepository();
+        repositoryLock = azurePersistence.lockRepository();
         journal = azurePersistence.getJournalFile();
+    }
+
+    @After
+    public void teardown() throws IOException {
+        if (repositoryLock != null) {
+            repositoryLock.unlock();
+            repositoryLock = null;
+        }
     }
 
     @Test

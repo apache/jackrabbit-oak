@@ -32,8 +32,8 @@ import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
+import org.apache.jackrabbit.oak.segment.azure.FileStoreTestUtil;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
@@ -165,109 +165,109 @@ public class AzureArchiveManagerV8Test {
     @Test
     public void testUncleanStop() throws URISyntaxException, IOException, InvalidFileStoreVersionException, CommitFailedException, StorageException {
         AzurePersistenceV8 p = new AzurePersistenceV8(container.getDirectoryReference("oak"));
-        FileStore fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();
-        SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
-        NodeBuilder builder = segmentNodeStore.getRoot().builder();
-        builder.setProperty("foo", "bar");
-        segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        fs.close();
+        try (FileStore fs = FileStoreTestUtil.createFileStore(new File("target"), p)) {
+            SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
+            NodeBuilder builder = segmentNodeStore.getRoot().builder();
+            builder.setProperty("foo", "bar");
+            segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        }
 
         container.getBlockBlobReference("oak/data00000a.tar/closed").delete();
         container.getBlockBlobReference("oak/data00000a.tar/data00000a.tar.brf").delete();
         container.getBlockBlobReference("oak/data00000a.tar/data00000a.tar.gph").delete();
 
-        fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();
-        segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
-        assertEquals("bar", segmentNodeStore.getRoot().getString("foo"));
-        fs.close();
+        try (FileStore fs = FileStoreTestUtil.createFileStore(new File("target"), p)) {
+            SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
+            assertEquals("bar", segmentNodeStore.getRoot().getString("foo"));
+        }
     }
 
     @Test
     // see OAK-8566
     public void testUncleanStopWithEmptyArchive() throws URISyntaxException, IOException, InvalidFileStoreVersionException, CommitFailedException, StorageException {
         AzurePersistenceV8 p = new AzurePersistenceV8(container.getDirectoryReference("oak"));
-        FileStore fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();
-        SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
-        NodeBuilder builder = segmentNodeStore.getRoot().builder();
-        builder.setProperty("foo", "bar");
-        segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        fs.close();
+        try (FileStore fs = FileStoreTestUtil.createFileStore(new File("target"), p)) {
+            SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
+            NodeBuilder builder = segmentNodeStore.getRoot().builder();
+            builder.setProperty("foo", "bar");
+            segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        }
 
         // make sure there are 2 archives
-        fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();
-        segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
-        builder = segmentNodeStore.getRoot().builder();
-        builder.setProperty("foo2", "bar2");
-        segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        fs.close();
+        try (FileStore fs = FileStoreTestUtil.createFileStore(new File("target"), p)) {
+            SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
+            NodeBuilder builder = segmentNodeStore.getRoot().builder();
+            builder.setProperty("foo2", "bar2");
+            segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        }
 
         // remove the segment 0000 from the second archive
         ListBlobItem segment0000 = container.listBlobs("oak/data00001a.tar/0000.").iterator().next();
         ((CloudBlob) segment0000).delete();
         container.getBlockBlobReference("oak/data00001a.tar/closed").delete();
 
-        fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();
-        segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
-        assertEquals("bar", segmentNodeStore.getRoot().getString("foo"));
-        fs.close();
+        try (FileStore fs = FileStoreTestUtil.createFileStore(new File("target"), p)) {
+            SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
+            assertEquals("bar", segmentNodeStore.getRoot().getString("foo"));
+        }
     }
 
     @Test
     public void testUncleanStopSegmentMissing() throws URISyntaxException, IOException, InvalidFileStoreVersionException, CommitFailedException, StorageException {
         AzurePersistenceV8 p = new AzurePersistenceV8(container.getDirectoryReference("oak"));
-        FileStore fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();
-        SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
-        NodeBuilder builder = segmentNodeStore.getRoot().builder();
-        builder.setProperty("foo", "bar");
-        segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        fs.close();
+        try (FileStore fs = FileStoreTestUtil.createFileStore(new File("target"), p)) {
+            SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
+            NodeBuilder builder = segmentNodeStore.getRoot().builder();
+            builder.setProperty("foo", "bar");
+            segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        }
 
         // make sure there are 2 archives
-        fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();
-        segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
-        builder = segmentNodeStore.getRoot().builder();
-        builder.setProperty("foo0", "bar0");
-        segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        fs.flush();
-        //create segment 0001
-        builder.setProperty("foo1", "bar1");
-        segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        fs.flush();
-        //create segment 0002
-        builder.setProperty("foo2", "bar2");
-        segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        fs.flush();
-        //create segment 0003
-        builder.setProperty("foo3", "bar3");
-        segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        fs.flush();
-        fs.close();
+        try (FileStore fs = FileStoreTestUtil.createFileStore(new File("target"), p)) {
+            SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
+            NodeBuilder builder = segmentNodeStore.getRoot().builder();
+            builder.setProperty("foo0", "bar0");
+            segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            fs.flush();
+            //create segment 0001
+            builder.setProperty("foo1", "bar1");
+            segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            fs.flush();
+            //create segment 0002
+            builder.setProperty("foo2", "bar2");
+            segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            fs.flush();
+            //create segment 0003
+            builder.setProperty("foo3", "bar3");
+            segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            fs.flush();
+        }
 
         // remove the segment 0002 from the second archive
         ListBlobItem segment0002 = container.listBlobs("oak/data00001a.tar/0002.").iterator().next();
         ((CloudBlob) segment0002).delete();
         container.getBlockBlobReference("oak/data00001a.tar/closed").delete();
 
-        fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();
-        segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
-        assertEquals("bar", segmentNodeStore.getRoot().getString("foo"));
+        try (FileStore fs = FileStoreTestUtil.createFileStore(new File("target"), p)) {
+            SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
+            assertEquals("bar", segmentNodeStore.getRoot().getString("foo"));
 
-        //recovered archive data00001a.tar should not contain segments 0002 and 0003
-        assertFalse(container.listBlobs("oak/data00001a.tar/0002.").iterator().hasNext());
-        assertFalse(container.listBlobs("oak/data00001a.tar/0003.").iterator().hasNext());
+            //recovered archive data00001a.tar should not contain segments 0002 and 0003
+            assertFalse(container.listBlobs("oak/data00001a.tar/0002.").iterator().hasNext());
+            assertFalse(container.listBlobs("oak/data00001a.tar/0003.").iterator().hasNext());
 
-        assertTrue("Backup directory should have been created", container.listBlobs("oak/data00001a.tar.bak").iterator().hasNext());
-        //backup has all segments but 0002 since it was deleted before recovery
-        assertTrue(container.listBlobs("oak/data00001a.tar.bak/0001.").iterator().hasNext());
-        assertFalse(container.listBlobs("oak/data00001a.tar.bak/0002.").iterator().hasNext());
-        assertTrue(container.listBlobs("oak/data00001a.tar.bak/0003.").iterator().hasNext());
+            assertTrue("Backup directory should have been created", container.listBlobs("oak/data00001a.tar.bak").iterator().hasNext());
+            //backup has all segments but 0002 since it was deleted before recovery
+            assertTrue(container.listBlobs("oak/data00001a.tar.bak/0001.").iterator().hasNext());
+            assertFalse(container.listBlobs("oak/data00001a.tar.bak/0002.").iterator().hasNext());
+            assertTrue(container.listBlobs("oak/data00001a.tar.bak/0003.").iterator().hasNext());
 
-        //verify content from recovered segments preserved
-        assertEquals("bar1", segmentNodeStore.getRoot().getString("foo1"));
-        //content from deleted segments not preserved
-        assertNull(segmentNodeStore.getRoot().getString("foo2"));
-        assertNull(segmentNodeStore.getRoot().getString("foo3"));
-        fs.close();
+            //verify content from recovered segments preserved
+            assertEquals("bar1", segmentNodeStore.getRoot().getString("foo1"));
+            //content from deleted segments not preserved
+            assertNull(segmentNodeStore.getRoot().getString("foo2"));
+            assertNull(segmentNodeStore.getRoot().getString("foo3"));
+        }
     }
 
     @Test
@@ -298,6 +298,7 @@ public class AzureArchiveManagerV8Test {
         UUID u = UUID.randomUUID();
         writer.writeSegment(u.getMostSignificantBits(), u.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0, false);
         writer.flush();
+        writer.close();
         Assert.assertTrue(manager.exists("data00000a.tar"));
     }
 
@@ -332,7 +333,7 @@ public class AzureArchiveManagerV8Test {
     public void testMissngSegmentDetectedInFileStore() throws IOException, StorageException, URISyntaxException, InvalidFileStoreVersionException {
 
         AzurePersistenceV8 azurePersistenceV8 = new AzurePersistenceV8(container.getDirectoryReference("oak"));
-        FileStore fileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(azurePersistenceV8).build();
+        FileStore fileStore = FileStoreTestUtil.createFileStore(new File("target"), azurePersistenceV8);
 
         SegmentArchiveManager manager = azurePersistenceV8.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
@@ -357,28 +358,27 @@ public class AzureArchiveManagerV8Test {
     @Test
     public void testReadOnlyRecovery() throws URISyntaxException, InvalidFileStoreVersionException, IOException, CommitFailedException, StorageException {
         AzurePersistenceV8 rwPersistence = new AzurePersistenceV8(container.getDirectoryReference("oak"));
-        FileStore rwFileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(rwPersistence).build();
-        SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(rwFileStore).build();
-        NodeBuilder builder = segmentNodeStore.getRoot().builder();
-        builder.setProperty("foo", "bar");
-        segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        rwFileStore.flush();
+        try (FileStore rwFileStore = FileStoreTestUtil.createFileStore(new File("target"), rwPersistence)) {
+            SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(rwFileStore).build();
+            NodeBuilder builder = segmentNodeStore.getRoot().builder();
+            builder.setProperty("foo", "bar");
+            segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            rwFileStore.flush();
 
-        assertTrue(container.getDirectoryReference("oak/data00000a.tar").listBlobs().iterator().hasNext());
-        assertFalse(container.getDirectoryReference("oak/data00000a.tar.ro.bak").listBlobs().iterator().hasNext());
+            assertTrue(container.getDirectoryReference("oak/data00000a.tar").listBlobs().iterator().hasNext());
+            assertFalse(container.getDirectoryReference("oak/data00000a.tar.ro.bak").listBlobs().iterator().hasNext());
 
-        // create read-only FS
-        AzurePersistenceV8 roPersistence = new AzurePersistenceV8(container.getDirectoryReference("oak"));
-        ReadOnlyFileStore roFileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(roPersistence).buildReadOnly();
+            // create read-only FS
+            AzurePersistenceV8 roPersistence = new AzurePersistenceV8(container.getDirectoryReference("oak"));
+            try (ReadOnlyFileStore roFileStore = FileStoreTestUtil.createReadOnlyFileStore(new File("target"), roPersistence)) {
 
-        PropertyState fooProperty = SegmentNodeStoreBuilders.builder(roFileStore).build()
-                .getRoot()
-                .getProperty("foo");
-        assertThat(fooProperty, not(nullValue()));
-        assertThat(fooProperty.getValue(Type.STRING), equalTo("bar"));
-
-        roFileStore.close();
-        rwFileStore.close();
+                PropertyState fooProperty = SegmentNodeStoreBuilders.builder(roFileStore).build()
+                        .getRoot()
+                        .getProperty("foo");
+                assertThat(fooProperty, not(nullValue()));
+                assertThat(fooProperty.getValue(Type.STRING), equalTo("bar"));
+            }
+        }
 
         assertTrue(container.getDirectoryReference("oak/data00000a.tar").listBlobs().iterator().hasNext());
         // after creating a read-only FS, the recovery procedure should not be started since there is another running Oak process
@@ -388,12 +388,13 @@ public class AzureArchiveManagerV8Test {
     @Test
     public void testCachingPersistenceTarRecovery() throws URISyntaxException, InvalidFileStoreVersionException, IOException, CommitFailedException, StorageException {
         AzurePersistenceV8 rwPersistence = new AzurePersistenceV8(container.getDirectoryReference("oak"));
-        FileStore rwFileStore = FileStoreBuilder.fileStoreBuilder(folder.newFolder()).withCustomPersistence(rwPersistence).build();
-        SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(rwFileStore).build();
-        NodeBuilder builder = segmentNodeStore.getRoot().builder();
-        builder.setProperty("foo", "bar");
-        segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        rwFileStore.flush();
+        try (FileStore rwFileStore = FileStoreTestUtil.createFileStore(folder.newFolder(), rwPersistence)) {
+            SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(rwFileStore).build();
+            NodeBuilder builder = segmentNodeStore.getRoot().builder();
+            builder.setProperty("foo", "bar");
+            segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            rwFileStore.flush();
+        }
 
         assertTrue(container.getDirectoryReference("oak/data00000a.tar").listBlobs().iterator().hasNext());
         assertFalse(container.getDirectoryReference("oak/data00000a.tar.ro.bak").listBlobs().iterator().hasNext());
@@ -407,7 +408,9 @@ public class AzureArchiveManagerV8Test {
         SegmentNodeStorePersistence splitPersistence = new SplitPersistence(cachingPersistence, localPersistence);
 
         // exception should not be thrown here
-        FileStore splitPersistenceFileStore = FileStoreBuilder.fileStoreBuilder(localFolder).withCustomPersistence(splitPersistence).build();
+        try (FileStore splitPersistenceFileStore = FileStoreTestUtil.createFileStore(localFolder, splitPersistence)) {
+            // nothing to do, just checking if the store can be opened
+        }
 
         assertTrue(container.getDirectoryReference("oak/data00000a.tar").listBlobs().iterator().hasNext());
         // after creating a read-only FS, the recovery procedure should not be started since there is another running Oak process
@@ -417,7 +420,7 @@ public class AzureArchiveManagerV8Test {
     @Test
     public void testCollectBlobReferencesForReadOnlyFileStore() throws URISyntaxException, InvalidFileStoreVersionException, IOException, CommitFailedException, StorageException {
         AzurePersistenceV8 rwPersistence = new AzurePersistenceV8(container.getDirectoryReference("oak"));
-        try (FileStore rwFileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(rwPersistence).build()) {
+        try (FileStore rwFileStore = FileStoreTestUtil.createFileStore(new File("target"), rwPersistence)) {
             SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(rwFileStore).build();
             NodeBuilder builder = segmentNodeStore.getRoot().builder();
             builder.setProperty("foo", "bar");
@@ -429,7 +432,7 @@ public class AzureArchiveManagerV8Test {
 
             // create read-only FS, while the rw FS is still open
             AzurePersistenceV8 roPersistence = new AzurePersistenceV8(container.getDirectoryReference("oak"));
-            try (ReadOnlyFileStore roFileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(roPersistence).buildReadOnly()) {
+            try (ReadOnlyFileStore roFileStore = FileStoreTestUtil.createReadOnlyFileStore(new File("target"), roPersistence)) {
 
                 PropertyState fooProperty = SegmentNodeStoreBuilders.builder(roFileStore).build()
                         .getRoot()
@@ -447,7 +450,7 @@ public class AzureArchiveManagerV8Test {
     @Test
     public void testCollectBlobReferencesDoesNotFailWhenFileIsMissing() throws URISyntaxException, InvalidFileStoreVersionException, IOException, CommitFailedException, StorageException {
         AzurePersistenceV8 rwPersistence = new AzurePersistenceV8(container.getDirectoryReference("oak"));
-        try (FileStore rwFileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(rwPersistence).build()) {
+        try (FileStore rwFileStore = FileStoreTestUtil.createFileStore(new File("target"), rwPersistence)) {
             SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(rwFileStore).build();
             NodeBuilder builder = segmentNodeStore.getRoot().builder();
             builder.setProperty("foo", "bar");
@@ -459,8 +462,7 @@ public class AzureArchiveManagerV8Test {
 
             // create read-only FS, while the rw FS is still open
             AzurePersistenceV8 roPersistence = new AzurePersistenceV8(container.getDirectoryReference("oak"));
-            try (ReadOnlyFileStore roFileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(roPersistence).buildReadOnly()) {
-
+            try (ReadOnlyFileStore roFileStore = FileStoreTestUtil.createReadOnlyFileStore(new File("target"), roPersistence)) {
                 PropertyState fooProperty = SegmentNodeStoreBuilders.builder(roFileStore).build()
                         .getRoot()
                         .getProperty("foo");
@@ -506,7 +508,7 @@ public class AzureArchiveManagerV8Test {
                 .doReturn(new AzureJournalFileV8(oakDirectory, "journal.log", writeAccessController))
                 .when(mockedRwPersistence).getJournalFile();
 
-        FileStore rwFileStore = FileStoreBuilder.fileStoreBuilder(folder.newFolder()).withCustomPersistence(mockedRwPersistence).build();
+        FileStore rwFileStore = FileStoreTestUtil.createFileStore(folder.newFolder(), mockedRwPersistence);
         SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(rwFileStore).build();
         NodeBuilder builder = segmentNodeStore.getRoot().builder();
 
@@ -537,17 +539,22 @@ public class AzureArchiveManagerV8Test {
 
         Thread.sleep(2000);
 
+        thread.interrupt();
+        thread.join();
+
+        // TODO - close FileStore - however that seems to expose a deadlock that needs to be investigated further
+        // rwFileStore.close();
+
         // It should be possible to start another RW file store.
-        FileStore rwFileStore2 = FileStoreBuilder.fileStoreBuilder(folder.newFolder()).withCustomPersistence(new AzurePersistenceV8(oakDirectory)).build();
-        SegmentNodeStore segmentNodeStore2 = SegmentNodeStoreBuilders.builder(rwFileStore2).build();
-        NodeBuilder builder2 = segmentNodeStore2.getRoot().builder();
+        try (FileStore rwFileStore2 = FileStoreTestUtil.createFileStore(folder.newFolder(), new AzurePersistenceV8(oakDirectory))) {
+            SegmentNodeStore segmentNodeStore2 = SegmentNodeStoreBuilders.builder(rwFileStore2).build();
+            NodeBuilder builder2 = segmentNodeStore2.getRoot().builder();
 
-        //repository hasn't been updated
-        assertNull(builder2.getProperty("foo"));
-
-        rwFileStore2.close();
+            //repository hasn't been updated
+            assertNull(builder2.getProperty("foo"));
+        }
     }
-    
+
     @Test
     public void testListArchivesDoesNotReturnDeletedArchive() throws IOException, URISyntaxException, StorageException {
         // The archive manager should not return the archive which has "deleted" marker

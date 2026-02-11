@@ -263,6 +263,9 @@ public class NodeStoreTestHarness implements Closeable {
                     }
                 })
                 .withCustomPersistence(persistence)
+                .withSegmentCacheSize(8)
+                .withStringCacheSize(0)
+                .withTemplateCacheSize(0)
                 .withMaxFileSize(1)
                 .withGCOptions(new SegmentGCOptions().setEstimationDisabled(true))
                 .build();
