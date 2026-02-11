@@ -99,10 +99,16 @@ public class AzureSegmentArchiveWriterV8Test {
         mockServerClient
                 .when(writeBinaryReferencesRequest, Times.once())
                 .respond(response().withStatusCode(201));
+        // then allow closing the writer
+        mockServerClient
+                .when(getCloseArchiveRequest(), Times.once())
+                .respond(response().withStatusCode(201));
 
         writer.writeBinaryReferences(new byte[10]);
 
         mockServerClient.verify(writeBinaryReferencesRequest, exactly(MAX_ATTEMPTS));
+
+        writer.close();
     }
 
     @Test
@@ -119,10 +125,16 @@ public class AzureSegmentArchiveWriterV8Test {
         mockServerClient
                 .when(writeGraphRequest, Times.once())
                 .respond(response().withStatusCode(201));
+        // then allow closing the writer
+        mockServerClient
+                .when(getCloseArchiveRequest(), Times.once())
+                .respond(response().withStatusCode(201));
 
         writer.writeGraph(new byte[10]);
 
         mockServerClient.verify(writeGraphRequest, exactly(MAX_ATTEMPTS));
+
+        writer.close();
     }
 
     @Test

@@ -26,8 +26,8 @@ import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
+import org.apache.jackrabbit.oak.segment.azure.FileStoreTestUtil;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
@@ -60,29 +60,21 @@ public class AzureReadSegmentV8Test {
     @Test(expected = SegmentNotFoundException.class)
     public void testReadNonExistentSegmentRepositoryReachable() throws URISyntaxException, IOException, InvalidFileStoreVersionException, StorageException {
         AzurePersistenceV8 p = new AzurePersistenceV8(container.getDirectoryReference("oak"));
-        FileStore fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();
-        SegmentId id = new SegmentId(fs, 0, 0);
-
-        try {
+        try (FileStore fs = FileStoreTestUtil.createFileStore(new File("target"), p)) {
+            SegmentId id = new SegmentId(fs, 0, 0);
             fs.readSegment(id);
-        } finally {
-            fs.close();
         }
     }
 
     @Test(expected = RepositoryNotReachableException.class)
     public void testReadExistentSegmentRepositoryNotReachable() throws URISyntaxException, IOException, InvalidFileStoreVersionException, StorageException {
         AzurePersistenceV8 p = new ReadFailingAzurePersistenceV8(container.getDirectoryReference("oak"));
-        FileStore fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();
+        try (FileStore fs = FileStoreTestUtil.createFileStore(new File("target"), p)) {
+            SegmentId id = new SegmentId(fs, 0, 0);
+            byte[] buffer = new byte[2];
 
-        SegmentId id = new SegmentId(fs, 0, 0);
-        byte[] buffer = new byte[2];
-
-        try {
             fs.writeSegment(id, buffer, 0, 2);
             fs.readSegment(id);
-        } finally {
-            fs.close();
         }
     }
 
