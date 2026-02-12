@@ -260,9 +260,19 @@
           </configuration>
         </plugin>
         <plugin>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <executions>
+            <execution>
+              <goals>
+                <goal>properties</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
-            <argLine>${test.opts}</argLine>
+            <argLine>${test.opts} -javaagent:${org.mockito:mockito-core:jar}</argLine>
             <trimStackTrace>false</trimStackTrace>
             <useModulePath>false</useModulePath>
             <systemPropertyVariables>
@@ -286,7 +296,7 @@
         <plugin>
           <artifactId>maven-failsafe-plugin</artifactId>
           <configuration>
-            <argLine>${test.opts}</argLine>
+            <argLine>${test.opts} -javaagent:${org.mockito:mockito-core:jar}</argLine>
             <trimStackTrace>false</trimStackTrace>
             <useModulePath>false</useModulePath>
             <systemPropertyVariables>
@@ -354,6 +364,9 @@
       </plugins>
     </pluginManagement>
     <plugins>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+      </plugin>
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
