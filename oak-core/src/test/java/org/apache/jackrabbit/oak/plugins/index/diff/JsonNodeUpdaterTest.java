@@ -29,7 +29,6 @@ import java.util.TreeSet;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
-import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.json.JsonUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -226,6 +225,6 @@ public class JsonNodeUpdaterTest {
 
     String reformatJson(String json) {
         // replace \r\n with \n
-        return JsopBuilder.prettyPrint(json);
+        return json.replace("\r", "");
     }
 }
