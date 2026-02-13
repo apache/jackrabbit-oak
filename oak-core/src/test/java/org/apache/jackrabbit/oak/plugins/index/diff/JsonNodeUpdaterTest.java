@@ -29,6 +29,7 @@ import java.util.TreeSet;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.json.JsonUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -80,7 +81,7 @@ public class JsonNodeUpdaterTest {
                 + "      }\n"
                 + "    }\n"
                 + "  }\n"
-                + "}", json2);
+                + "}", reformatJson(json2));
 
         json = JsonObject.fromJson(
                 "{\"number\":1," +
@@ -101,7 +102,7 @@ public class JsonNodeUpdaterTest {
                 + "      \":childOrder\" : [ ]\n"
                 + "    }\n"
                 + "  }\n"
-                + "}", JsonUtils.nodeStateToJson(ns.getRoot(), 5));
+                + "}", reformatJson(JsonUtils.nodeStateToJson(ns.getRoot(), 5)));
     }
 
     @Test
@@ -132,7 +133,7 @@ public class JsonNodeUpdaterTest {
                 + "      \":childOrder\" : [ ]\n"
                 + "    }\n"
                 + "  }\n"
-                + "}", JsonUtils.nodeStateToJson(ns.getRoot(), 5));
+                + "}", reformatJson(JsonUtils.nodeStateToJson(ns.getRoot(), 5)));
 
         json = JsonObject.fromJson(
                 "{\"number\":1," +
@@ -153,7 +154,7 @@ public class JsonNodeUpdaterTest {
                 + "      \":childOrder\" : [ ]\n"
                 + "    }\n"
                 + "  }\n"
-                + "}", JsonUtils.nodeStateToJson(ns.getRoot(), 5));
+                + "}", reformatJson(JsonUtils.nodeStateToJson(ns.getRoot(), 5)));
     }
 
     @Test
@@ -220,7 +221,11 @@ public class JsonNodeUpdaterTest {
                 + "    \"strValue\" : \"hello\",\n"
                 + "    \":childOrder\" : [ ]\n"
                 + "  }\n"
-                + "}", JsonUtils.nodeStateToJson(ns.getRoot(), 5));
+                + "}", reformatJson(JsonUtils.nodeStateToJson(ns.getRoot(), 5)));
     }
 
+    String reformatJson(String json) {
+        // replace \r\n with \n
+        return JsopBuilder.prettyPrint(json);
+    }
 }
