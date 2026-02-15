@@ -17,8 +17,7 @@
 package org.apache.jackrabbit.oak.jcr.xml;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.util.Base64;
 
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -27,7 +26,6 @@ import javax.jcr.ValueFactory;
 
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.xml.TextValue;
-import org.apache.jackrabbit.util.Base64;
 
 /**
  * {@code StringValue} represents an immutable serialized value.
@@ -63,12 +61,11 @@ class StringValue implements TextValue {
     @Override @SuppressWarnings("deprecation")
     public Value getValue(int type) throws RepositoryException {
         if (type == PropertyType.BINARY) {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
             try {
-                Base64.decode(value, baos);
+                byte[] bytes = Base64.getDecoder().decode(value);
                 return valueFactory.createValue(
-                        new ByteArrayInputStream(baos.toByteArray()));
-            } catch (IOException e) {
+                        new ByteArrayInputStream(bytes));
+            } catch (IllegalArgumentException e) {
                 throw new RepositoryException(
                         "Failed to decode binary value: " + value, e);
             }
