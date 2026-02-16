@@ -117,7 +117,7 @@ public class DiffIndex {
                 diffIndexDefinition.setProperty("error", message + ": " + e.getMessage());
             }
             if (!diffIndexDefinition.hasProperty("info")) {
-                diffIndexDefinition.setProperty("info", "This diff is are automatically merged with other indexes. See https://oak-indexing.github.io/oakTools/simplified.html");
+                diffIndexDefinition.setProperty("info", "This diff is automatically merged with other indexes. See https://oak-indexing.github.io/oakTools/simplified.html");
             }
         }
         return diffs;
@@ -131,7 +131,7 @@ public class DiffIndex {
      * @param diffs the json object with the combined diffs
      */
     private static void processDiffs(NodeStore store, NodeBuilder indexDefinitions, JsonObject diffs) {
-        LOG.info("Processing a diffs");
+        LOG.info("Processing diffs");
         JsonObject repositoryDefinitions = RootIndexesListService.getRootIndexDefinitions(indexDefinitions);
         LOG.debug("Index list {}", repositoryDefinitions);
         try {
@@ -236,7 +236,7 @@ public class DiffIndex {
             }
         }
         for (String r : toRemove) {
-            LOG.info("Removing old index  {}", r);
+            LOG.info("Removing old index {}", r);
             definitions.child(r).remove();
             updateNodetypeIndexForPath(definitions, r, false);
         }

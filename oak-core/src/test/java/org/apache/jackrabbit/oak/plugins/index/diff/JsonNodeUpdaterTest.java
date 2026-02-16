@@ -29,6 +29,7 @@ import java.util.TreeSet;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.json.JsonUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -59,24 +60,24 @@ public class JsonNodeUpdaterTest {
         NodeBuilder builder = ns.getRoot().builder();
         JsonNodeUpdater.addOrReplace(builder, ns, "/test", "nt:test", json.toString());
         ns.merge(builder, new EmptyHook(), CommitInfo.EMPTY);
-        String json2 = JsonUtils.nodeStateToJson(ns.getRoot(), 5);
-        json2 = json2.replaceAll("jcr:uuid\" : \".*\"", "jcr:uuid\" : \"...\"");
+        String json2 = reformatJson(JsonUtils.nodeStateToJson(ns.getRoot(), 5));
+        json2 = json2.replaceAll("jcr:uuid\": \".*\"", "jcr:uuid\": \"...\"");
         assertEquals("{\n"
-                + "  \"test\" : {\n"
-                + "    \"queryPaths\" : \"/same\",\n"
-                + "    \"includedPaths\" : \"/same\",\n"
-                + "    \"jcr:primaryType\" : \"nt:unstructured\",\n"
-                + "    \"type\" : \"lucene\",\n"
-                + "    \":childOrder\" : [ \"diff.json\" ],\n"
-                + "    \"diff.json\" : {\n"
-                + "      \"jcr:primaryType\" : \"nt:file\",\n"
-                + "      \":childOrder\" : [ \"jcr:content\" ],\n"
-                + "      \"jcr:content\" : {\n"
-                + "        \"jcr:mimeType\" : \"application/json\",\n"
-                + "        \"jcr:data\" : \"test\",\n"
-                + "        \"jcr:primaryType\" : \"nt:resource\",\n"
-                + "        \"jcr:uuid\" : \"...\",\n"
-                + "        \":childOrder\" : [ ]\n"
+                + "  \"test\": {\n"
+                + "    \"queryPaths\": \"/same\",\n"
+                + "    \"includedPaths\": \"/same\",\n"
+                + "    \"jcr:primaryType\": \"nt:unstructured\",\n"
+                + "    \"type\": \"lucene\",\n"
+                + "    \":childOrder\": [\"diff.json\"],\n"
+                + "    \"diff.json\": {\n"
+                + "      \"jcr:primaryType\": \"nt:file\",\n"
+                + "      \":childOrder\": [\"jcr:content\"],\n"
+                + "      \"jcr:content\": {\n"
+                + "        \"jcr:mimeType\": \"application/json\",\n"
+                + "        \"jcr:data\": \"test\",\n"
+                + "        \"jcr:primaryType\": \"nt:resource\",\n"
+                + "        \"jcr:uuid\": \"...\",\n"
+                + "        \":childOrder\": []\n"
                 + "      }\n"
                 + "    }\n"
                 + "  }\n"
@@ -90,18 +91,18 @@ public class JsonNodeUpdaterTest {
         JsonNodeUpdater.addOrReplace(builder, ns, "/test", "nt:test", json.toString());
         ns.merge(builder, new EmptyHook(), CommitInfo.EMPTY);
         assertEquals("{\n"
-                + "  \"test\" : {\n"
-                + "    \"number\" : 1,\n"
-                + "    \"double2\" : 1.0,\n"
-                + "    \"jcr:primaryType\" : \"nt:test\",\n"
-                + "    \":childOrder\" : [ \"child2\" ],\n"
-                + "    \"child2\" : {\n"
-                + "      \"y\" : 2,\n"
-                + "      \"jcr:primaryType\" : \"nt:test\",\n"
-                + "      \":childOrder\" : [ ]\n"
+                + "  \"test\": {\n"
+                + "    \"number\": 1,\n"
+                + "    \"double2\": 1.0,\n"
+                + "    \"jcr:primaryType\": \"nt:test\",\n"
+                + "    \":childOrder\": [\"child2\"],\n"
+                + "    \"child2\": {\n"
+                + "      \"y\": 2,\n"
+                + "      \"jcr:primaryType\": \"nt:test\",\n"
+                + "      \":childOrder\": []\n"
                 + "    }\n"
                 + "  }\n"
-                + "}", JsonUtils.nodeStateToJson(ns.getRoot(), 5));
+                + "}", reformatJson(JsonUtils.nodeStateToJson(ns.getRoot(), 5)));
     }
 
     @Test
@@ -118,21 +119,21 @@ public class JsonNodeUpdaterTest {
         JsonNodeUpdater.addOrReplace(builder, ns, "/test", "nt:test", json.toString());
         ns.merge(builder, new EmptyHook(), CommitInfo.EMPTY);
         assertEquals("{\n"
-                + "  \"test\" : {\n"
-                + "    \"number\" : 1,\n"
-                + "    \"blob\" : \"test\",\n"
-                + "    \"string\" : \"hello\",\n"
-                + "    \"array\" : [ \"a\", \"b\" ],\n"
-                + "    \"double\" : 1.0,\n"
-                + "    \"jcr:primaryType\" : \"nt:test\",\n"
-                + "    \":childOrder\" : [ \"child\" ],\n"
-                + "    \"child\" : {\n"
-                + "      \"x\" : 1,\n"
-                + "      \"jcr:primaryType\" : \"nt:test\",\n"
-                + "      \":childOrder\" : [ ]\n"
+                + "  \"test\": {\n"
+                + "    \"number\": 1,\n"
+                + "    \"blob\": \"test\",\n"
+                + "    \"string\": \"hello\",\n"
+                + "    \"array\": [\"a\", \"b\"],\n"
+                + "    \"double\": 1.0,\n"
+                + "    \"jcr:primaryType\": \"nt:test\",\n"
+                + "    \":childOrder\": [\"child\"],\n"
+                + "    \"child\": {\n"
+                + "      \"x\": 1,\n"
+                + "      \"jcr:primaryType\": \"nt:test\",\n"
+                + "      \":childOrder\": []\n"
                 + "    }\n"
                 + "  }\n"
-                + "}", JsonUtils.nodeStateToJson(ns.getRoot(), 5));
+                + "}", reformatJson(JsonUtils.nodeStateToJson(ns.getRoot(), 5)));
 
         json = JsonObject.fromJson(
                 "{\"number\":1," +
@@ -142,18 +143,23 @@ public class JsonNodeUpdaterTest {
         JsonNodeUpdater.addOrReplace(builder, ns, "/test", "nt:test", json.toString());
         ns.merge(builder, new EmptyHook(), CommitInfo.EMPTY);
         assertEquals("{\n"
-                + "  \"test\" : {\n"
-                + "    \"number\" : 1,\n"
-                + "    \"double2\" : 1.0,\n"
-                + "    \"jcr:primaryType\" : \"nt:test\",\n"
-                + "    \":childOrder\" : [ \"child2\" ],\n"
-                + "    \"child2\" : {\n"
-                + "      \"y\" : 2,\n"
-                + "      \"jcr:primaryType\" : \"nt:test\",\n"
-                + "      \":childOrder\" : [ ]\n"
+                + "  \"test\": {\n"
+                + "    \"number\": 1,\n"
+                + "    \"double2\": 1.0,\n"
+                + "    \"jcr:primaryType\": \"nt:test\",\n"
+                + "    \":childOrder\": [\"child2\"],\n"
+                + "    \"child2\": {\n"
+                + "      \"y\": 2,\n"
+                + "      \"jcr:primaryType\": \"nt:test\",\n"
+                + "      \":childOrder\": []\n"
                 + "    }\n"
                 + "  }\n"
-                + "}", JsonUtils.nodeStateToJson(ns.getRoot(), 5));
+                + "}", reformatJson(JsonUtils.nodeStateToJson(ns.getRoot(), 5)));
+    }
+
+    String reformatJson(String json) {
+        // replace \r\n with \n
+        return JsopBuilder.prettyPrint(json);
     }
 
     @Test
@@ -210,17 +216,17 @@ public class JsonNodeUpdaterTest {
         JsonNodeUpdater.addOrReplace(builder, ns, "/test", "nt:test", json.toString());
         ns.merge(builder, new EmptyHook(), CommitInfo.EMPTY);
         assertEquals("{\n"
-                + "  \"test\" : {\n"
-                + "    \"namValue\" : \"acme:Test\",\n"
-                + "    \"boolTrue\" : true,\n"
-                + "    \"boolFalse\" : false,\n"
-                + "    \"datValue\" : \"2024-01-19\",\n"
-                + "    \"escapedArray\" : [ \"/content/path\" ],\n"
-                + "    \"jcr:primaryType\" : \"nt:test\",\n"
-                + "    \"strValue\" : \"hello\",\n"
-                + "    \":childOrder\" : [ ]\n"
+                + "  \"test\": {\n"
+                + "    \"namValue\": \"acme:Test\",\n"
+                + "    \"boolTrue\": true,\n"
+                + "    \"boolFalse\": false,\n"
+                + "    \"datValue\": \"2024-01-19\",\n"
+                + "    \"escapedArray\": [\"/content/path\"],\n"
+                + "    \"jcr:primaryType\": \"nt:test\",\n"
+                + "    \"strValue\": \"hello\",\n"
+                + "    \":childOrder\": []\n"
                 + "  }\n"
-                + "}", JsonUtils.nodeStateToJson(ns.getRoot(), 5));
+                + "}", reformatJson(JsonUtils.nodeStateToJson(ns.getRoot(), 5)));
     }
 
 }

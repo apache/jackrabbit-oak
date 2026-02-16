@@ -25,7 +25,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
@@ -68,6 +70,17 @@ public class DiffIndexMerger {
     // whether to log at info level
     private final static boolean LOG_AT_INFO_LEVEL = Boolean.getBoolean("oak.diffIndex.logAtInfoLevel");
 
+    // the set of top-level properties that is not allowed to be added to an existing index
+    private final static Set<String> REJECTED_TOP_LEVEL_PROPS_FOR_EXISTING_INDEX = Set.of("selectionPolicy", "valueRegex", "queryFilterRegex", "excludedPaths", "queryPaths");
+
+    // the set of child properties that is not allowed to be added if the property is already indexed
+    // eg. the "name" property may not need to be set if the existing property doesn't have it yet (eg. a function-based index),
+    // or the "function" property may not need to be set unless if it already exists (eg. a name-based index)
+    private final static Set<String> REJECTED_PROPS_FOR_EXISTING_PROPERTY = Set.of("isRegexp", "index", "function", "name");
+
+    // set of properties that are allowed to be changed if the property already exists
+    private final static Set<String> ALLOW_CHANGING_EXISTING_PROPERTY = Set.of("boost", "weight");
+
     private String[] unsupportedIncludedPaths;
     private boolean deleteCreatesDummyIndex;
     private boolean deleteCopiesOutOfTheBoxIndex;
@@ -106,7 +119,7 @@ public class DiffIndexMerger {
 
         // read the diff.index.optimizer explicitly,
         // because it's a not a regular index definition,
-        // and so in the repositoryDefinitions
+        // and so it is not in the repositoryDefinitions
         if (repositoryNodeStore != null) {
             Map<String, JsonObject> diffInRepo = readDiffIndex(repositoryNodeStore, DIFF_INDEX_OPTIMIZER);
             combined.getChildren().putAll(diffInRepo);
@@ -160,7 +173,12 @@ public class DiffIndexMerger {
             String key = e.getKey();
             JsonObject value = e.getValue();
             if (key.startsWith("/oak:index/")) {
-                LOG.warn("The key should contains just the index name, without the '/oak:index' prefix for key {}", key);
+
+//                document this:
+//                enumerate error messages
+//                do not log but write to index def
+
+                LOG.warn("The key should contain just the index name, without the '/oak:index' prefix for key {}", key);
                 key = key.substring("/oak:index/".length());
             }
             log("Processing {}", key);
@@ -237,6 +255,8 @@ public class DiffIndexMerger {
         for (Entry<String, JsonObject> e : indexDefs.getChildren().entrySet()) {
             String key = e.getKey();
             JsonObject value = e.getValue();
+            // merged indexes always contain "-custom-". Other indexes may in theory contain that term,
+            // but then they do not contain "mergeInfo".
             if (key.indexOf("-custom-") < 0 || !value.getProperties().containsKey("mergeInfo")) {
                 continue;
             }
@@ -327,6 +347,7 @@ public class DiffIndexMerger {
         log("Latest product: {}", latestProductKey);
         log("Latest customized: {}", latestCustomizedKey);
         if (latestProduct == null) {
+            // if it's not a product index, then verify it's a correctly named custom index
             if (indexName.indexOf('.') >= 0) {
                 // a fully custom index needs to contains a dot
                 log("Fully custom index {}", indexName);
@@ -378,7 +399,7 @@ public class DiffIndexMerger {
         } else {
             latestIndexVersion = combined.getChildren().get(latestCustomizedKey);
         }
-        JsonObject mergedDef = cleanedAndNormalized(switchToLucene(merged));
+        JsonObject mergedDef = cleanedAndNormalized(switchToLuceneIfNeeded(merged));
         // compute merge checksum for later, but do not yet add
         String mergeChecksum = computeMergeChecksum(mergedDef);
         // get the merge checksum before cleaning (cleaning removes it) - if available
@@ -388,7 +409,7 @@ public class DiffIndexMerger {
             key = prefix + indexName + "-1-custom-1";
         } else {
             String latestMergeChecksum = JsonNodeUpdater.oakStringValue(latestIndexVersion, "mergeChecksum");
-            JsonObject latestDef = cleanedAndNormalized(switchToLucene(latestIndexVersion));
+            JsonObject latestDef = cleanedAndNormalized(switchToLuceneIfNeeded(latestIndexVersion));
             if (isSameIgnorePropertyOrder(mergedDef, latestDef)) {
                 // normal case: no change
                 // (even if checksums do not match: checksums might be missing or manipulated)
@@ -510,13 +531,12 @@ public class DiffIndexMerger {
      * @param indexDef the index definition (is not changed by this method)
      * @return the lucene version (a new JSON object)
      */
-    public static JsonObject switchToLucene(JsonObject indexDef) {
+    public static JsonObject switchToLuceneIfNeeded(JsonObject indexDef) {
         JsonObject obj = JsonObject.fromJson(indexDef.toString(), true);
         String type = JsonNodeUpdater.oakStringValue(obj, "type");
-        if (type == null || !"elasticsearch".equals(type) ) {
-            return obj;
+        if ("elasticsearch".equals(type) ) {
+            switchToLuceneChildren(obj);
         }
-        switchToLuceneChildren(obj);
         return obj;
     }
 
@@ -627,13 +647,16 @@ public class DiffIndexMerger {
      */
     public JsonObject processMerge(JsonObject productIndex, JsonObject diff) {
         JsonObject result;
+        boolean isNew;
         if (productIndex == null) {
             // fully custom index
             result = new JsonObject(true);
+            isNew = true;
         } else {
             result = JsonObject.fromJson(productIndex.toString(), true);
+            isNew = false;
         }
-        mergeInto("", diff, result);
+        mergeInto("", diff, result, isNew);
         addPrimaryType("", result);
         return result;
     }
@@ -672,20 +695,51 @@ public class DiffIndexMerger {
      * @param path the path
      * @param diff the diff (what to merge)
      * @param target where to merge into
+     * @param isNew whether the target node is newly created (didn't exist before)
      */
-    private void mergeInto(String path, JsonObject diff, JsonObject target) {
+    private void mergeInto(String path, JsonObject diff, JsonObject target, boolean isNew) {
         for (String p : diff.getProperties().keySet()) {
             if (path.isEmpty()) {
                 if ("jcr:primaryType".equals(p)) {
                     continue;
                 }
             }
+            if (!isNew) {
+                // for existing nodes, we do a few more checks before the merge
+                if (path.isEmpty() && REJECTED_TOP_LEVEL_PROPS_FOR_EXISTING_INDEX.contains(p)) {
+                    // at the top level, some properties (eg. selectionPolicy) are not allowed to be added to an existing index
+                    LOG.warn("Ignoring new top-level property {} at {} for existing index", p, path);
+                    continue;
+                }
+                if (REJECTED_PROPS_FOR_EXISTING_PROPERTY.contains(p)) {
+                    // the some properties are not allowed to be added if the node already exists
+                    LOG.warn("Ignoring new property {} at {} for existing child", p, path);
+                    continue;
+                }
+            }
             if (target.getProperties().containsKey(p)) {
-                // we do not currently allow to overwrite most existing properties
-                if (p.equals("boost")) {
+                // we do not currently allow to overwrite most existing properties,
+                // except for:
+                if (ALLOW_CHANGING_EXISTING_PROPERTY.contains(p)) {
                     // allow overwriting the boost value
                     LOG.info("Overwrite property {} value at {}", p, path);
                     target.getProperties().put(p, diff.getProperties().get(p));
+                } else if (path.isEmpty() && (p.equals("includedPaths") || p.equals("queryPaths") || p.equals("tags"))) {
+                    // merge includedPaths, queryPaths, and tags
+                    if (target.getProperties().containsKey(p)) {
+                        // but only if the old value is set, such that it contains more entries
+                        // (if the property is not set, we would make it more restrictive,
+                        // which is not allowed)
+                        TreeSet<String> oldSet = JsonNodeUpdater.getStringSet(target.getProperties().get(p));
+                        TreeSet<String> newSet = JsonNodeUpdater.getStringSet(diff.getProperties().get(p));
+                        TreeSet<String> mergedSet = new TreeSet<String>(oldSet);
+                        mergedSet.addAll(newSet);
+                        JsopBuilder buff = new JsopBuilder().array();
+                        for(String v : mergedSet) {
+                            buff.value(v);
+                        }
+                        target.getProperties().put(p, buff.endArray().toString());
+                    }
                 } else {
                     LOG.warn("Ignoring existing property {} at {}", p, path);
                 }
@@ -694,8 +748,10 @@ public class DiffIndexMerger {
             }
         }
         for (String c : diff.getChildren().keySet()) {
+            boolean childIsNew;
             String targetChildName = c;
             if (!target.getChildren().containsKey(c)) {
+                childIsNew = true;
                 if (path.endsWith("/properties")) {
                     // search for a property with the same "name" value
                     String propertyName = diff.getChildren().get(c).getProperties().get("name");
@@ -720,8 +776,10 @@ public class DiffIndexMerger {
                     // only create the child (properties are added below)
                     target.getChildren().put(c, new JsonObject());
                 }
+            } else {
+                childIsNew = false;
             }
-            mergeInto(path + "/" + targetChildName, diff.getChildren().get(c), target.getChildren().get(targetChildName));
+            mergeInto(path + "/" + targetChildName, diff.getChildren().get(c), target.getChildren().get(targetChildName), childIsNew);
         }
         if (target.getProperties().isEmpty() && target.getChildren().isEmpty()) {
             if (deleteCreatesDummyIndex) {

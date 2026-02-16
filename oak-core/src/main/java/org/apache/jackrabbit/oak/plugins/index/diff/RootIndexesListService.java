@@ -100,6 +100,7 @@ public class RootIndexesListService implements IndexPathService {
             return list;
         }
         for (ChildNodeEntry cn : oakIndex.getChildNodeEntries()) {
+            // ignore entries that are not of type oak:QueryIndexDefinition
             if (!IndexConstants.INDEX_DEFINITIONS_NODE_TYPE
                     .equals(cn.getNodeState().getName("jcr:primaryType"))) {
                 continue;
