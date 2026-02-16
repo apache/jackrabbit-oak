@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
 import java.io.File;
@@ -24,106 +23,84 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.net.SocketAddress;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
 import java.util.Properties;
 
-import com.microsoft.azure.storage.CloudStorageAccount;
-import com.microsoft.azure.storage.OperationContext;
-import com.microsoft.azure.storage.RetryExponentialRetry;
-import com.microsoft.azure.storage.RetryNoRetry;
-import com.microsoft.azure.storage.RetryPolicy;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.BlobRequestOptions;
-import com.microsoft.azure.storage.blob.CloudBlobClient;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.azure.core.http.HttpClient;
+import com.azure.core.http.ProxyOptions;
+import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.BlobContainerClientBuilder;
+import com.azure.storage.blob.BlobServiceClient;
+import com.azure.storage.blob.BlobServiceClientBuilder;
+import com.azure.storage.common.policy.RequestRetryOptions;
+import com.azure.storage.common.policy.RetryPolicyType;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public final class Utils {
-
+    public static final String DASH = "-";
     public static final String DEFAULT_CONFIG_FILE = "azure.properties";
 
-    public static final String DASH = "-";
+    private Utils() {}
 
-    /**
-     * private constructor so that class cannot initialized from outside.
-     */
-    private Utils() {
-    }
-
-    /**
-     * Create CloudBlobClient from properties.
-     *
-     * @param connectionString connectionString to configure @link {@link CloudBlobClient}
-     * @return {@link CloudBlobClient}
-     */
-    public static CloudBlobClient getBlobClient(@NotNull final String connectionString) throws URISyntaxException, InvalidKeyException {
-        return getBlobClient(connectionString, null);
-    }
-
-    public static CloudBlobClient getBlobClient(@NotNull final String connectionString,
-                                                @Nullable final BlobRequestOptions requestOptions) throws URISyntaxException, InvalidKeyException {
-        CloudStorageAccount account = CloudStorageAccount.parse(connectionString);
-        CloudBlobClient client = account.createCloudBlobClient();
-        if (null != requestOptions) {
-            client.setDefaultRequestOptions(requestOptions);
-        }
-        return client;
-    }
-
-    public static CloudBlobContainer getBlobContainer(@NotNull final String connectionString,
-                                                      @NotNull final String containerName) throws DataStoreException {
-        return getBlobContainer(connectionString, containerName, null);
-    }
-
-    public static CloudBlobContainer getBlobContainer(@NotNull final String connectionString,
-                                                      @NotNull final String containerName,
-                                                      @Nullable final BlobRequestOptions requestOptions) throws DataStoreException {
+    public static BlobContainerClient getBlobContainer(@NotNull final String connectionString,
+                                                       @NotNull final String containerName,
+                                                       @Nullable final RequestRetryOptions retryOptions,
+                                                       final Properties properties) throws DataStoreException {
         try {
-            CloudBlobClient client = (
-                    (null == requestOptions)
-                            ? Utils.getBlobClient(connectionString)
-                            : Utils.getBlobClient(connectionString, requestOptions)
-            );
-            return client.getContainerReference(containerName);
-        } catch (InvalidKeyException | URISyntaxException | StorageException e) {
+            AzureHttpRequestLoggingPolicy loggingPolicy = new AzureHttpRequestLoggingPolicy();
+
+            BlobServiceClientBuilder builder = new BlobServiceClientBuilder()
+                    .connectionString(connectionString)
+                    .retryOptions(retryOptions)
+                    .addPolicy(loggingPolicy);
+
+                HttpClient httpClient = new NettyAsyncHttpClientBuilder()
+                        .proxy(computeProxyOptions(properties))
+                        .build();
+
+                builder.httpClient(httpClient);
+
+            BlobServiceClient blobServiceClient = builder.buildClient();
+            return blobServiceClient.getBlobContainerClient(containerName);
+
+        } catch (Exception e) {
             throw new DataStoreException(e);
         }
     }
 
-    public static void setProxyIfNeeded(final Properties properties) {
+    public static ProxyOptions computeProxyOptions(final Properties properties) {
         String proxyHost = properties.getProperty(AzureConstants.PROXY_HOST);
         String proxyPort = properties.getProperty(AzureConstants.PROXY_PORT);
 
-        if (!StringUtils.isEmpty(proxyHost) &&
-            StringUtils.isEmpty(proxyPort)) {
-            int port = Integer.parseInt(proxyPort);
-            SocketAddress proxyAddr = new InetSocketAddress(proxyHost, port);
-            Proxy proxy = new Proxy(Proxy.Type.HTTP, proxyAddr);
-            OperationContext.setDefaultProxy(proxy);
+        if(!(Strings.isNullOrEmpty(proxyHost) || Strings.isNullOrEmpty(proxyPort))) {
+            return new ProxyOptions(ProxyOptions.Type.HTTP,
+                    new InetSocketAddress(proxyHost, Integer.parseInt(proxyPort)));
         }
+        return null;
     }
 
-    public static RetryPolicy getRetryPolicy(final String maxRequestRetry) {
-        int retries = PropertiesUtil.toInteger(maxRequestRetry, -1);
-        if (retries < 0) {
+    public static RequestRetryOptions getRetryOptions(final String maxRequestRetryCount, Integer requestTimeout, String secondaryLocation) {
+        int retries = PropertiesUtil.toInteger(maxRequestRetryCount, -1);
+        if(retries < 0) {
             return null;
         }
+
         if (retries == 0) {
-            return new RetryNoRetry();
+            return new RequestRetryOptions(RetryPolicyType.FIXED, 1,
+                    requestTimeout, null, null,
+                    secondaryLocation);
         }
-        return new RetryExponentialRetry(RetryPolicy.DEFAULT_CLIENT_BACKOFF, retries);
+        return new RequestRetryOptions(RetryPolicyType.EXPONENTIAL, retries,
+                requestTimeout, null, null,
+                secondaryLocation);
     }
 
-
     public static String getConnectionStringFromProperties(Properties properties) {
-
         String sasUri = properties.getProperty(AzureConstants.AZURE_SAS, "");
         String blobEndpoint = properties.getProperty(AzureConstants.AZURE_BLOB_ENDPOINT, "");
         String connectionString = properties.getProperty(AzureConstants.AZURE_CONNECTION_STRING, "");
@@ -140,7 +117,7 @@ public final class Utils {
 
         return getConnectionString(
                 accountName,
-                accountKey, 
+                accountKey,
                 blobEndpoint);
     }
 
@@ -152,24 +129,28 @@ public final class Utils {
         }
     }
 
-    public static String getConnectionString(final String accountName, final String accountKey) {
-        return getConnectionString(accountName, accountKey, null);
-    }
-    
     public static String getConnectionString(final String accountName, final String accountKey, String blobEndpoint) {
         StringBuilder connString = new StringBuilder("DefaultEndpointsProtocol=https");
         connString.append(";AccountName=").append(accountName);
         connString.append(";AccountKey=").append(accountKey);
-        
-        if (!StringUtils.isEmpty(blobEndpoint)) {
+        if (!Strings.isNullOrEmpty(blobEndpoint)) {
             connString.append(";BlobEndpoint=").append(blobEndpoint);
         }
         return connString.toString();
     }
 
+    public static BlobContainerClient getBlobContainerFromConnectionString(final String azureConnectionString, final String containerName) {
+        AzureHttpRequestLoggingPolicy loggingPolicy = new AzureHttpRequestLoggingPolicy();
+
+        return new BlobContainerClientBuilder()
+                .connectionString(azureConnectionString)
+                .containerName(containerName)
+                .addPolicy(loggingPolicy)
+                .buildClient();
+    }
+
     /**
-     * Read a configuration properties file. If the file name ends with ";burn",
-     * the file is deleted after reading.
+     * Read a configuration properties file.
      *
      * @param fileName the properties file name
      * @return the properties
