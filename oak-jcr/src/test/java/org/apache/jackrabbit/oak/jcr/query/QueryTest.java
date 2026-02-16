@@ -171,7 +171,7 @@ public class QueryTest extends AbstractRepositoryTest {
             assertTrue(message.contains("Traversal query (query without index)"));
             assertTrue(message.contains("Execution plan"));
             assertTrue(message.contains("[nt:base] as [nt:base] /* traverse"));
-            assertTrue(message.contains("Note that the following indexes were unavailable because of re-indexing"));
+            assertTrue(message.contains("Note that the following indexes were re-indexing at query time"));
             assertTrue(message.contains("foo"));
         }
     }

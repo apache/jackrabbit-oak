@@ -18,6 +18,8 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_DISABLED;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.query.ast.AstElementFactory.copyElementAndCheckReference;
 
 import java.math.BigInteger;
@@ -1263,9 +1265,14 @@ public class QueryImpl implements Query {
     @Override
     public void verifyNotPotentiallySlow() {
         if (potentiallySlowTraversalQuery) {
-            Traversal traversal = queryOptions.traversal == Traversal.DEFAULT ?
-                    settings.getFailTraversal() ? Traversal.FAIL : Traversal.WARN :
-                    queryOptions.traversal;
+            Traversal traversal = queryOptions.traversal;
+            if (traversal == Traversal.DEFAULT) {
+                // use the (configured) default
+                traversal = settings.getFailTraversal() ? Traversal.FAIL : Traversal.WARN;
+            } else {
+                // explicitly set in the query
+                traversal = queryOptions.traversal;
+            }
             String message = createTraversalWarningMessage(traversal);
             switch (traversal) {
             case DEFAULT:
@@ -1294,7 +1301,7 @@ public class QueryImpl implements Query {
             message += "\n\nExecution plan:\n" + getPlan();
             if (!reindex.isEmpty()) {
                 String reindexNames = reindex.stream().map(name -> name + ",").collect(Collectors.joining());
-                message += "\n\nNote that the following indexes were unavailable because of re-indexing:\n"
+                message += "\n\nNote that the following indexes were re-indexing at query time:\n"
                         + reindexNames.substring(0, reindexNames.length() - 1);
             }
         }
@@ -1309,7 +1316,8 @@ public class QueryImpl implements Query {
             PropertyState primaryType = index.getProperty(JCR_PRIMARYTYPE);
             if (primaryType != null && INDEX_DEFINITIONS_NODE_TYPE.equals(primaryType.getValue(Type.STRING))) {
                 PropertyState reindexProp = index.getProperty(REINDEX_PROPERTY_NAME);
-                if (reindexProp != null && reindexProp.getValue(Type.BOOLEAN)) {
+                PropertyState typeProp = index.getProperty(TYPE_PROPERTY_NAME);
+                if (reindexProp != null && reindexProp.getValue(Type.BOOLEAN) && !(typeProp != null && TYPE_DISABLED.equals(typeProp.getValue(Type.STRING)))) {
                     reindex.add(name);
                 }
             }
