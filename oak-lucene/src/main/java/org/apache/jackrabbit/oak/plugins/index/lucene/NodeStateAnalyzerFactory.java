@@ -58,8 +58,6 @@ import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static java.util.Objects.requireNonNull;
-
 /**
  * Constructs a Lucene Analyzer from nodes (based on NodeState content).
  *
@@ -141,9 +139,13 @@ final class NodeStateAnalyzerFactory {
     }
 
     private TokenizerFactory loadTokenizer(NodeState state) {
-        String clazz = requireNonNull(state.getString(FulltextIndexConstants.ANL_NAME));
+        String name = state.getString(FulltextIndexConstants.ANL_NAME);
+        if (name == null) {
+            log.warn("No tokenizer name specified in analyzer configuration. Using default 'standard' tokenizer.");
+            name = "standard";
+        }
         Map<String, String> args = convertNodeState(state);
-        TokenizerFactory tf = TokenizerFactory.forName(clazz, args);
+        TokenizerFactory tf = TokenizerFactory.forName(name, args);
         init(tf, state);
         return tf;
     }
