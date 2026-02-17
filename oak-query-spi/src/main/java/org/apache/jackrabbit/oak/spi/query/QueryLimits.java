@@ -30,22 +30,24 @@ public interface QueryLimits {
     boolean getFullTextComparisonWithoutIndex();
 
     /**
-     * See OAK-10532. This method is used for backward compatibility
-     * (bug compatibility) only.
+     * See OAK-10532. This method is kept only to avoid breaking compatibility.
      *
-     * @return true, except when backward compatibility for OAK-10532 is enabled
+     * @return true
+     * @deprecated Setting is no longer used
      */
+    @Deprecated
     default boolean getImprovedIsNullCost() {
         return true;
     }
 
     /**
-     * See OAK-11214. This method is used for backward compatibility
-     * (bug compatibility) only.
+     * See OAK-11214. This method is kept only to avoid breaking compatibility.
      *
-     * @return true, except when backward compatibility for OAK-11214 is enabled
+     * @return true
+     * @deprecated Setting is no longer used
      */
-    default public boolean getOptimizeInRestrictionsForFunctions() {
+    @Deprecated
+    default boolean getOptimizeInRestrictionsForFunctions() {
         return true;
     }
 
@@ -66,6 +68,6 @@ public interface QueryLimits {
 
     default boolean isInferenceEnabled(){
         return false;
-    };
+    }
 
 }

@@ -30,6 +30,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 import org.slf4j.event.Level;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
 
 /**
  * Test the IndexName class
@@ -112,5 +115,54 @@ public class IndexNameTest {
         } finally {
             lc.finished();
         }
+    }
+
+    @Test
+    public void filterNewestIndexes() {
+
+        // Single index - should return as-is
+        Collection<String> single = Arrays.asList("/lucene");
+        Collection<String> result = IndexName.filterNewestIndexes(single);
+        assertEquals(1, result.size());
+        assertTrue(result.contains("/lucene"));
+
+        // Multiple versions of the same base index - should return only the newest
+        Collection<String> multipleVersions = Arrays.asList(
+                "/lucene",
+                "/lucene-1",
+                "/lucene-2",
+                "/lucene-1-custom-1",
+                "/lucene-2-custom-3"
+        );
+        result = IndexName.filterNewestIndexes(multipleVersions);
+        assertEquals(1, result.size());
+        assertTrue(result.contains("/lucene-2-custom-3"));
+
+        // Different base indexes - should return newest of each
+        Collection<String> differentBases = Arrays.asList(
+                "/luceneA",
+                "/luceneA-1",
+                "/luceneB",
+                "/luceneB-2-custom-1",
+                "/luceneC-1-custom-5"
+        );
+        result = IndexName.filterNewestIndexes(differentBases);
+        assertEquals(new HashSet<>(Arrays.asList("/luceneA-1", "/luceneB-2-custom-1", "/luceneC-1-custom-5")),
+                new HashSet<>(result));
+
+        // Custom versions without product version
+        Collection<String> customOnly = Arrays.asList(
+                "/lucene-custom-1",
+                "/lucene-custom-2",
+                "/lucene-custom-3"
+        );
+        result = IndexName.filterNewestIndexes(customOnly);
+        assertEquals(1, result.size());
+        assertTrue(result.contains("/lucene-custom-3"));
+
+        // Empty collection
+        Collection<String> empty = Arrays.asList();
+        result = IndexName.filterNewestIndexes(empty);
+        assertTrue(result.isEmpty());
     }
 }

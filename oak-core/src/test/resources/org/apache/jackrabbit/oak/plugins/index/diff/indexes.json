@@ -1,0 +1,187 @@
+{
+    "/oak:index/ntFolder": {
+        "jcr:primaryType": "nam:oak:QueryIndexDefinition",
+        "includedPaths": [
+            "/content/test"
+        ],
+        "tags": [
+            "testTag1",
+            "testTag2"
+        ],
+        "type": "lucene",
+        "async": [
+            "async",
+            "nrt"
+        ],
+        "indexRules": {
+            "jcr:primaryType": "nam:nt:unstructured",
+            "nt:folder": {
+                "jcr:primaryType": "nam:nt:unstructured",
+                "properties": {
+                    "jcr:primaryType": "nam:nt:unstructured",
+                    "jcrTitle": {
+                        "jcr:primaryType": "nam:nt:unstructured",
+                        "nodeScopeIndex": true,
+                        "useInSuggest": true,
+                        "useInSpellcheck": true,
+                        "name": "str:jcr:content/jcr:title"
+                    }
+                }
+            }
+        }
+    },
+    "/oak:index/share": {
+        "jcr:primaryType": "nam:oak:QueryIndexDefinition",
+        "selectionPolicy": "tag",
+        "includedPaths": [
+            "/var/share"
+        ],
+        "tags": [
+            "share"
+        ],
+        "type": "lucene",
+        "async": [
+            "async",
+            "nrt"
+        ],
+        "indexRules": {
+            "jcr:primaryType": "nam:nt:unstructured",
+            "nt:unstructured": {
+                "jcr:primaryType": "nam:nt:unstructured"
+            }
+        }
+    },
+    "/oak:index/versionStoreIndex": {
+        "jcr:primaryType": "nam:oak:QueryIndexDefinition",
+        "includedPaths": [
+            "/jcr:system/jcr:versionStorage"
+        ],
+        "type": "lucene",
+        "async": [
+            "async",
+            "sync"
+        ],
+        "indexRules": {
+            "jcr:primaryType": "nam:nt:unstructured",
+            "nt:version": {
+                "jcr:primaryType": "nam:nt:unstructured"
+            },
+            "nt:frozenNode": {
+                "jcr:primaryType": "nam:nt:unstructured"
+            },
+            "nt:base": {
+                "jcr:primaryType": "nam:nt:unstructured"
+            }
+        }
+    },
+    "/oak:index/authorizables": {
+        "jcr:primaryType": "nam:oak:QueryIndexDefinition",
+        ":version": 2,
+        "type": "lucene",
+        "async": [
+            "async",
+            "nrt"
+        ],
+        "excludedPaths": [
+            "/var",
+            "/jcr:system"
+        ],
+        "indexRules": {
+            "jcr:primaryType": "nam:nt:unstructured",
+            "rep:Authorizable": {
+                "jcr:primaryType": "nam:nt:unstructured",
+                "properties": {
+                    "jcr:primaryType": "nam:nt:unstructured"
+                }
+            }
+        }
+    },
+    "/oak:index/internalVerificationLucene": {
+        "jcr:primaryType": "nam:oak:QueryIndexDefinition",
+        ":version": 2,
+        "includedPaths": [
+            "/tmp"
+        ],
+        "type": "lucene",
+        "async": [
+            "async"
+        ],
+        "indexRules": {
+            "jcr:primaryType": "nam:nt:unstructured",
+            "nt:base": {
+                "jcr:primaryType": "nam:nt:unstructured",
+                "properties": {
+                    "jcr:primaryType": "nam:nt:unstructured",
+                    "verification": {
+                        "jcr:primaryType": "nam:nt:unstructured",
+                        "propertyIndex": true,
+                        "name": "verification",
+                        "type": "String"
+                    }
+                }
+            }
+        }
+    },
+    "/oak:index/ntBaseLucene-2": {
+        "jcr:primaryType": "nam:oak:QueryIndexDefinition",
+        "type": "lucene",
+        "async": [
+            "async",
+            "nrt"
+        ],
+        "evaluatePathRestrictions": true,
+        "excludedPaths": [
+            "/oak:index"
+        ],
+        "indexRules": {
+            "jcr:primaryType": "nam:nt:unstructured",
+            "nt:base": {
+                "jcr:primaryType": "nam:nt:unstructured"
+            }
+        }
+    },
+    "/oak:index/fragments": {
+        "jcr:primaryType": "nam:oak:QueryIndexDefinition",
+        "selectionPolicy": "tag",
+        "includedPaths": [
+            "/content/dam",
+            "/content/launches"
+        ],
+        "tags": [
+            "fragments"
+        ],
+        "type": "lucene",
+        "async": [
+            "async",
+            "nrt"
+        ],
+        "indexRules": {
+            "jcr:primaryType": "nam:nt:unstructured",
+            "dam:Asset": {
+                "jcr:primaryType": "nam:nt:unstructured",
+                "properties": {
+                    "jcr:primaryType": "nam:nt:unstructured"
+                }
+            }
+        }
+    },
+    "/oak:index/assetLucene": {
+        "jcr:primaryType": "nam:oak:QueryIndexDefinition",
+        "includedPaths": [
+            "/content/dam",
+            "/content/assets"
+        ],
+        "tags": [],
+        "type": "lucene",
+        "async": [
+            "async",
+            "nrt"
+        ],
+        "indexRules": {
+            "jcr:primaryType": "nam:nt:unstructured",
+            "dam:Asset": {
+                "jcr:primaryType": "nam:nt:unstructured"
+            }
+        }
+    }
+}

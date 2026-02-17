@@ -23,8 +23,8 @@ import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.AzuriteDockerRule;
+import org.apache.jackrabbit.oak.segment.azure.FileStoreTestUtil;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexLoader;
@@ -78,10 +78,7 @@ public class SplitPersistenceTest {
 
         SegmentNodeStorePersistence sharedPersistence = new AzurePersistence(readBlobContainerClient, writeBlobContainerClient, noRetryBlobContainerClient,"oak");
 
-        baseFileStore = FileStoreBuilder
-                .fileStoreBuilder(folder.newFolder())
-                .withCustomPersistence(sharedPersistence)
-                .build();
+        baseFileStore = FileStoreTestUtil.createFileStore(folder.newFolder(), sharedPersistence);
         base = SegmentNodeStoreBuilders.builder(baseFileStore).build();
 
         NodeBuilder builder = base.getRoot().builder();
@@ -92,10 +89,7 @@ public class SplitPersistenceTest {
         SegmentNodeStorePersistence localPersistence = new TarPersistence(folder.newFolder());
         splitPersistence = new SplitPersistence(sharedPersistence, localPersistence);
 
-        splitFileStore = FileStoreBuilder
-                .fileStoreBuilder(folder.newFolder())
-                .withCustomPersistence(splitPersistence)
-                .build();
+        splitFileStore = FileStoreTestUtil.createFileStore(folder.newFolder(), splitPersistence);
         split = SegmentNodeStoreBuilders.builder(splitFileStore).build();
     }
 

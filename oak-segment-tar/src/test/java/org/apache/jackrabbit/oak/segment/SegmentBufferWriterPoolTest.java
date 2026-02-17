@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.Assert.assertEquals;
@@ -38,8 +37,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.UninterruptibleUtils;
 import org.apache.jackrabbit.oak.segment.WriteOperationHandler.WriteOperation;
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -107,7 +107,7 @@ public class SegmentBufferWriterPoolTest {
         Future<RecordId> res3 = execute(gen, createOp("c", map1), 2);
 
         // Give the tasks some time to complete
-        sleepUninterruptibly(10, MILLISECONDS);
+        UninterruptibleUtils.sleepUninterruptibly(10, MILLISECONDS);
 
         assertEquals(rootId, res1.get());
         assertEquals(rootId, res2.get());
@@ -120,7 +120,7 @@ public class SegmentBufferWriterPoolTest {
         Future<RecordId> res6 = execute(gen, createOp("c", map2), 2);
 
         // Give the tasks some time to complete
-        sleepUninterruptibly(10, MILLISECONDS);
+        UninterruptibleUtils.sleepUninterruptibly(10, MILLISECONDS);
 
         assertEquals(rootId, res4.get());
         assertEquals(rootId, res5.get());
@@ -138,7 +138,7 @@ public class SegmentBufferWriterPoolTest {
         Future<RecordId> res3 = execute(gen, createOp("c", map1), 2);
 
         // Give the tasks some time to complete
-        sleepUninterruptibly(10, MILLISECONDS);
+        UninterruptibleUtils.sleepUninterruptibly(10, MILLISECONDS);
 
         assertEquals(rootId, res1.get());
         assertEquals(rootId, res2.get());
@@ -153,7 +153,7 @@ public class SegmentBufferWriterPoolTest {
         Future<RecordId> res6 = execute(gen, createOp("c", map2), 2);
 
         // Give the tasks some time to complete
-        sleepUninterruptibly(10, MILLISECONDS);
+        UninterruptibleUtils.sleepUninterruptibly(10, MILLISECONDS);
 
         assertEquals(rootId, res4.get());
         assertEquals(rootId, res5.get());
@@ -171,7 +171,7 @@ public class SegmentBufferWriterPoolTest {
         Future<RecordId> res3 = execute(gen, createOp("c", map1), 2);
 
         // Give the tasks some time to complete
-        sleepUninterruptibly(10, MILLISECONDS);
+        UninterruptibleUtils.sleepUninterruptibly(10, MILLISECONDS);
 
         assertEquals(rootId, res1.get());
         assertEquals(rootId, res2.get());
@@ -188,7 +188,7 @@ public class SegmentBufferWriterPoolTest {
         Future<RecordId> res6 = execute(gen, createOp("c", map2), 2);
 
         // Give the tasks some time to complete
-        sleepUninterruptibly(10, MILLISECONDS);
+        UninterruptibleUtils.sleepUninterruptibly(10, MILLISECONDS);
 
         assertEquals(rootId, res4.get());
         assertEquals(rootId, res5.get());
@@ -203,7 +203,7 @@ public class SegmentBufferWriterPoolTest {
         Future<RecordId> res9 = execute(gen.nextFull(), createOp("c", map3), 2);
 
         // Give the tasks some time to complete
-        sleepUninterruptibly(10, MILLISECONDS);
+        UninterruptibleUtils.sleepUninterruptibly(10, MILLISECONDS);
 
         assertEquals(rootId, res7.get());
         assertEquals(rootId, res8.get());

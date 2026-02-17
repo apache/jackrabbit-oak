@@ -22,54 +22,37 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Map;
-import java.util.UUID;
 
 import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.AzureBlobMetadata;
 import org.apache.jackrabbit.oak.segment.remote.AbstractRemoteSegmentArchiveReader;
-import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 
 public class AzureSegmentArchiveReaderV8 extends AbstractRemoteSegmentArchiveReader {
 
     private final CloudBlobDirectory archiveDirectory;
 
-    private final long length;
-
     protected AzureSegmentArchiveReaderV8(CloudBlobDirectory archiveDirectory, IOMonitor ioMonitor) throws IOException {
-        super(ioMonitor);
+        super(ioMonitor, AzureUtilitiesV8.getName(archiveDirectory), createEntryIterable(archiveDirectory));
         this.archiveDirectory = archiveDirectory;
-        this.length = computeArchiveIndexAndLength();
     }
 
-    @Override
-    public long length() {
-        return length;
-    }
-
-    @Override
-    public String getName() {
-        return AzureUtilitiesV8.getName(archiveDirectory);
-    }
-
-    @Override
-    protected long computeArchiveIndexAndLength() throws IOException {
-        long length = 0;
-        for (CloudBlob blob : AzureUtilitiesV8.getBlobs(archiveDirectory)) {
-            Map<String, String> metadata = blob.getMetadata();
-            if (AzureBlobMetadata.isSegment(metadata)) {
-                RemoteSegmentArchiveEntry indexEntry = AzureBlobMetadata.toIndexEntry(metadata, (int) blob.getProperties().getLength());
-                index.put(new UUID(indexEntry.getMsb(), indexEntry.getLsb()), indexEntry);
-            }
-            length += blob.getProperties().getLength();
-        }
-
-        return length;
+    private static Iterable<ArchiveEntry> createEntryIterable(CloudBlobDirectory archiveDirectory) throws IOException {
+        return AzureUtilitiesV8.getBlobs(archiveDirectory).stream()
+                .map(blob -> {
+                    Map<String, String> metadata = blob.getMetadata();
+                    int length = (int) blob.getProperties().getLength();
+                    if (AzureBlobMetadata.isSegment(metadata)) {
+                        return new ArchiveEntry(AzureBlobMetadata.toIndexEntry(metadata, length));
+                    } else {
+                        return new ArchiveEntry(length);
+                    }
+                })
+                ::iterator;
     }
 
     @Override

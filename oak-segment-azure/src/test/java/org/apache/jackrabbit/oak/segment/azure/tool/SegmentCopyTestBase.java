@@ -50,7 +50,6 @@ import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.azure.v8.AzurePersistenceV8;
-import org.apache.jackrabbit.oak.segment.azure.tool.SegmentCopy;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -171,47 +170,49 @@ public abstract class SegmentCopyTestBase {
         for (String archive : srcArchives) {
             assertEquals(srcArchiveManager.exists(archive), destArchiveManager.exists(archive));
 
-            SegmentArchiveReader srcArchiveReader = srcArchiveManager.open(archive);
-            SegmentArchiveReader destArchiveReader = destArchiveManager.open(archive);
+            try (SegmentArchiveReader srcArchiveReader = srcArchiveManager.open(archive);
+                 SegmentArchiveReader destArchiveReader = destArchiveManager.open(archive)) {
 
-            List<SegmentArchiveEntry> srcSegments = srcArchiveReader.listSegments();
-            List<SegmentArchiveEntry> destSegments = destArchiveReader.listSegments();
+                List<SegmentArchiveEntry> srcSegments = srcArchiveReader.listSegments();
+                List<SegmentArchiveEntry> destSegments = destArchiveReader.listSegments();
 
-            for (int i = 0; i < srcSegments.size(); i++) {
-                SegmentArchiveEntry srcSegment = srcSegments.get(i);
-                SegmentArchiveEntry destSegment = destSegments.get(i);
+                for (int i = 0; i < srcSegments.size(); i++) {
+                    SegmentArchiveEntry srcSegment = srcSegments.get(i);
+                    SegmentArchiveEntry destSegment = destSegments.get(i);
 
-                assertEquals(srcSegment.getMsb(), destSegment.getMsb());
-                assertEquals(srcSegment.getLsb(), destSegment.getLsb());
-                assertEquals(srcSegment.getLength(), destSegment.getLength());
-                assertEquals(srcSegment.getFullGeneration(), destSegment.getFullGeneration());
-                assertEquals(srcSegment.getGeneration(), destSegment.getFullGeneration());
+                    assertEquals(srcSegment.getMsb(), destSegment.getMsb());
+                    assertEquals(srcSegment.getLsb(), destSegment.getLsb());
+                    assertEquals(srcSegment.getLength(), destSegment.getLength());
+                    assertEquals(srcSegment.getFullGeneration(), destSegment.getFullGeneration());
+                    assertEquals(srcSegment.getGeneration(), destSegment.getFullGeneration());
 
-                Buffer srcDataBuffer = srcArchiveReader.readSegment(srcSegment.getMsb(), srcSegment.getLsb());
-                Buffer destDataBuffer = destArchiveReader.readSegment(destSegment.getMsb(), destSegment.getLsb());
+                    Buffer srcDataBuffer = srcArchiveReader.readSegment(srcSegment.getMsb(), srcSegment.getLsb());
+                    Buffer destDataBuffer = destArchiveReader.readSegment(destSegment.getMsb(), destSegment.getLsb());
 
-                assertEquals(srcDataBuffer, destDataBuffer);
+                    assertEquals(srcDataBuffer, destDataBuffer);
+                }
+
+                Buffer srcBinRefBuffer = srcArchiveReader.getBinaryReferences();
+                Buffer destBinRefBuffer = destArchiveReader.getBinaryReferences();
+                assertEquals(srcBinRefBuffer, destBinRefBuffer);
+
+                SegmentGraph srcGraph = srcArchiveReader.getGraph();
+                SegmentGraph destGraph = destArchiveReader.getGraph();
+                assertEquals(srcGraph, destGraph);
             }
-
-            Buffer srcBinRefBuffer = srcArchiveReader.getBinaryReferences();
-            Buffer destBinRefBuffer = destArchiveReader.getBinaryReferences();
-            assertEquals(srcBinRefBuffer, destBinRefBuffer);
-            
-            SegmentGraph srcGraph = srcArchiveReader.getGraph();
-            SegmentGraph destGraph = destArchiveReader.getGraph();
-            assertEquals(srcGraph, destGraph);
         }
     }
 
     private void checkJournal(SegmentNodeStorePersistence srcPersistence, SegmentNodeStorePersistence destPersistence)
             throws IOException {
-        JournalFileReader srcJournalFileReader = srcPersistence.getJournalFile().openJournalReader();
-        JournalFileReader destJournalFileReader = destPersistence.getJournalFile().openJournalReader();
+        try (JournalFileReader srcJournalFileReader = srcPersistence.getJournalFile().openJournalReader();
+             JournalFileReader destJournalFileReader = destPersistence.getJournalFile().openJournalReader()) {
 
-        String srcJournalLine = null;
-        while ((srcJournalLine = srcJournalFileReader.readLine()) != null) {
-            String destJournalLine = destJournalFileReader.readLine();
-            assertEquals(srcJournalLine, destJournalLine);
+            String srcJournalLine = null;
+            while ((srcJournalLine = srcJournalFileReader.readLine()) != null) {
+                String destJournalLine = destJournalFileReader.readLine();
+                assertEquals(srcJournalLine, destJournalLine);
+            }
         }
     }
 

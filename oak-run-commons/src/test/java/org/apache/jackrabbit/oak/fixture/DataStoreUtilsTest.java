@@ -23,8 +23,7 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.read.ListAppender;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.azure.storage.blob.BlobContainerClient;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureBlobContainerProvider;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
@@ -39,6 +38,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -67,20 +67,20 @@ public class DataStoreUtilsTest {
     private static final String AUTHENTICATE_VIA_ACCESS_KEY_LOG = "connecting to azure blob storage via access key";
     private static final String AUTHENTICATE_VIA_SERVICE_PRINCIPALS_LOG = "connecting to azure blob storage via service principal credentials";
     private static final String AUTHENTICATE_VIA_SAS_TOKEN_LOG = "connecting to azure blob storage via sas token";
-    private static final String REFRESH_TOKEN_EXECUTOR_SHUTDOWN_LOG = "Refresh token executor service shutdown completed";
     private static final String CONTAINER_DOES_NOT_EXIST_MESSAGE = "container [%s] doesn't exists";
     private static final String CONTAINER_DELETED_MESSAGE = "container [%s] deleted";
+    private static final String DELETING_CONTAINER_MESSAGE = "deleting container [%s]";
 
-    private CloudBlobContainer container;
+    private BlobContainerClient container;
 
     @Before
-    public void init() throws URISyntaxException, InvalidKeyException, StorageException {
-        container = azuriteDockerRule.getContainer(CONTAINER_NAME);
+    public void init() throws URISyntaxException, InvalidKeyException {
+        container = azuriteDockerRule.getContainer(CONTAINER_NAME, String.format(AZURE_CONNECTION_STRING, AzuriteDockerRule.ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_KEY, azuriteDockerRule.getBlobEndpoint()));
         assertTrue(container.exists());
     }
 
     @After
-    public void cleanup() throws StorageException {
+    public void cleanup()  {
         if (container != null) {
             container.deleteIfExists();
         }
@@ -94,7 +94,8 @@ public class DataStoreUtilsTest {
         DataStoreUtils.deleteAzureContainer(getConfigMap(azureConnectionString, null, null, null, null, null, null, null),
                 newContainerName);
         validate(Arrays.asList(AUTHENTICATE_VIA_AZURE_CONNECTION_STRING_LOG,
-                        REFRESH_TOKEN_EXECUTOR_SHUTDOWN_LOG, String.format(CONTAINER_DOES_NOT_EXIST_MESSAGE, newContainerName)),
+                        String.format(DELETING_CONTAINER_MESSAGE, newContainerName),
+                        String.format(CONTAINER_DOES_NOT_EXIST_MESSAGE, newContainerName)),
                 Arrays.asList(AUTHENTICATE_VIA_SERVICE_PRINCIPALS_LOG, AUTHENTICATE_VIA_SAS_TOKEN_LOG, AUTHENTICATE_VIA_ACCESS_KEY_LOG),
                 getLogMessages(logAppender));
         unsubscribe(logAppender);
@@ -107,7 +108,9 @@ public class DataStoreUtilsTest {
 
         DataStoreUtils.deleteAzureContainer(getConfigMap(azureConnectionString, null, null, null, null, null, null, null),
                 CONTAINER_NAME);
-        validate(Arrays.asList(AUTHENTICATE_VIA_AZURE_CONNECTION_STRING_LOG, REFRESH_TOKEN_EXECUTOR_SHUTDOWN_LOG,
+
+
+        validate(Arrays.asList(AUTHENTICATE_VIA_AZURE_CONNECTION_STRING_LOG,
                         String.format(CONTAINER_DELETED_MESSAGE, CONTAINER_NAME)),
                 Arrays.asList(AUTHENTICATE_VIA_SERVICE_PRINCIPALS_LOG, AUTHENTICATE_VIA_SAS_TOKEN_LOG, AUTHENTICATE_VIA_ACCESS_KEY_LOG),
                 getLogMessages(logAppender));
@@ -131,12 +134,13 @@ public class DataStoreUtilsTest {
         final String newContainerName = getNewContainerName();
 
         DataStoreUtils.deleteAzureContainer(getConfigMap(null, accountName, null, null, null, clientId, clientSecret, tenantId), newContainerName);
-        validate(Arrays.asList(AUTHENTICATE_VIA_SERVICE_PRINCIPALS_LOG, REFRESH_TOKEN_EXECUTOR_SHUTDOWN_LOG, String.format(CONTAINER_DOES_NOT_EXIST_MESSAGE, newContainerName)),
+        validate(Arrays.asList(AUTHENTICATE_VIA_SERVICE_PRINCIPALS_LOG,
+                        String.format(DELETING_CONTAINER_MESSAGE, newContainerName),
+                        String.format(CONTAINER_DOES_NOT_EXIST_MESSAGE, newContainerName)),
                 Arrays.asList(AUTHENTICATE_VIA_AZURE_CONNECTION_STRING_LOG, AUTHENTICATE_VIA_SAS_TOKEN_LOG, AUTHENTICATE_VIA_ACCESS_KEY_LOG),
                 getLogMessages(logAppender));
         unsubscribe(logAppender);
     }
-
 
     @Test
     public void delete_container_service_principal() throws Exception {
@@ -150,22 +154,23 @@ public class DataStoreUtilsTest {
         Assume.assumeNotNull(clientSecret);
         Assume.assumeNotNull(tenantId);
 
-        CloudBlobContainer container;
-        try (AzureBlobContainerProvider azureBlobContainerProvider = AzureBlobContainerProvider.Builder.builder(CONTAINER_NAME)
+        BlobContainerClient container;
+        AzureBlobContainerProvider azureBlobContainerProvider = AzureBlobContainerProvider.Builder.builder(CONTAINER_NAME)
                 .withAccountName(accountName)
                 .withClientId(clientId)
                 .withClientSecret(clientSecret)
-                .withTenantId(tenantId).build()) {
-            container = azureBlobContainerProvider.getBlobContainer();
-            container.createIfNotExists();
-        }
+                .withTenantId(tenantId).build();
+        container = azureBlobContainerProvider.getBlobContainer();
+        container.createIfNotExists();
+
         assertNotNull(container);
         assertTrue(container.exists());
 
         ListAppender<ILoggingEvent> logAppender = subscribeAppender();
 
         DataStoreUtils.deleteAzureContainer(getConfigMap(null, accountName, null, null, null, clientId, clientSecret, tenantId), CONTAINER_NAME);
-        validate(Arrays.asList(AUTHENTICATE_VIA_SERVICE_PRINCIPALS_LOG, REFRESH_TOKEN_EXECUTOR_SHUTDOWN_LOG,
+        validate(Arrays.asList(AUTHENTICATE_VIA_SERVICE_PRINCIPALS_LOG,
+                        String.format(DELETING_CONTAINER_MESSAGE, CONTAINER_NAME),
                         String.format(CONTAINER_DELETED_MESSAGE, CONTAINER_NAME)),
                 Arrays.asList(AUTHENTICATE_VIA_AZURE_CONNECTION_STRING_LOG, AUTHENTICATE_VIA_SAS_TOKEN_LOG, AUTHENTICATE_VIA_ACCESS_KEY_LOG),
                 getLogMessages(logAppender));
@@ -180,7 +185,8 @@ public class DataStoreUtilsTest {
         DataStoreUtils.deleteAzureContainer(getConfigMap(null, AzuriteDockerRule.ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_KEY, null, azuriteDockerRule.getBlobEndpoint(), null, null, null),
                 newContainerName);
 
-        validate(Arrays.asList(AUTHENTICATE_VIA_ACCESS_KEY_LOG, REFRESH_TOKEN_EXECUTOR_SHUTDOWN_LOG,
+        validate(Arrays.asList(AUTHENTICATE_VIA_ACCESS_KEY_LOG,
+                        String.format(DELETING_CONTAINER_MESSAGE, newContainerName),
                         String.format(CONTAINER_DOES_NOT_EXIST_MESSAGE, newContainerName)),
                 Arrays.asList(AUTHENTICATE_VIA_SERVICE_PRINCIPALS_LOG, AUTHENTICATE_VIA_SAS_TOKEN_LOG, AUTHENTICATE_VIA_SERVICE_PRINCIPALS_LOG),
                 getLogMessages(logAppender));
@@ -192,7 +198,8 @@ public class DataStoreUtilsTest {
         ListAppender<ILoggingEvent> logAppender = subscribeAppender();
 
         DataStoreUtils.deleteAzureContainer(getConfigMap(null, AzuriteDockerRule.ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_KEY, null, azuriteDockerRule.getBlobEndpoint(), null, null, null), CONTAINER_NAME);
-        validate(Arrays.asList(AUTHENTICATE_VIA_ACCESS_KEY_LOG, REFRESH_TOKEN_EXECUTOR_SHUTDOWN_LOG,
+        validate(Arrays.asList(AUTHENTICATE_VIA_ACCESS_KEY_LOG,
+                        String.format(DELETING_CONTAINER_MESSAGE, CONTAINER_NAME),
                         String.format(CONTAINER_DELETED_MESSAGE, CONTAINER_NAME)),
                 Arrays.asList(AUTHENTICATE_VIA_SERVICE_PRINCIPALS_LOG, AUTHENTICATE_VIA_SAS_TOKEN_LOG, AUTHENTICATE_VIA_SERVICE_PRINCIPALS_LOG),
                 getLogMessages(logAppender));
@@ -201,14 +208,23 @@ public class DataStoreUtilsTest {
     }
 
     private void validate(List<String> includedLogs, List<String> excludedLogs, Set<String> allLogs) {
-        includedLogs.forEach(log -> assertTrue(allLogs.contains(log)));
-        excludedLogs.forEach(log -> assertFalse(allLogs.contains(log)));
+
+        for (String log : includedLogs) {
+            if (!allLogs.contains(log)) {
+                System.out.println("Missing expected log: " + log);
+            }
+        }
+
+        includedLogs.forEach(log -> assertTrue("Missing expected log: " + log, allLogs.contains(log)));
+        excludedLogs.forEach(log -> assertFalse("Found unexpected log: " + log, allLogs.contains(log)));
     }
 
     private Set<String> getLogMessages(ListAppender<ILoggingEvent> logAppender) {
-        return Optional.ofNullable(logAppender.list)
-                .orElse(Collections.emptyList())
-                .stream()
+        List<ILoggingEvent> events = Optional.ofNullable(logAppender.list)
+                .orElse(Collections.emptyList());
+        // Create a copy of the list to avoid concurrent modification
+        List<ILoggingEvent> eventsCopy = new ArrayList<>(events);
+        return eventsCopy.stream()
                 .map(ILoggingEvent::getFormattedMessage)
                 .filter(StringUtils::isNotBlank)
                 .collect(Collectors.toSet());

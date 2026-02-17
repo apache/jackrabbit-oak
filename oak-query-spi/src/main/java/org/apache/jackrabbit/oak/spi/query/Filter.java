@@ -461,12 +461,6 @@ public interface Filter {
             public boolean getFailTraversal() {
                 return false;
             }
-
-            @Override
-            public boolean getImprovedIsNullCost() {
-                return true;
-            }
-
         };
 
         @Override

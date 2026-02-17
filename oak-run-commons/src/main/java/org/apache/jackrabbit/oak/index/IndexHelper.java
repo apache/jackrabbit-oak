@@ -25,13 +25,10 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorHelper;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoServiceImpl;
@@ -174,26 +171,9 @@ public class IndexHelper implements Closeable {
     }
 
     private ThreadPoolExecutor createExecutor() {
-        ThreadPoolExecutor executor = new ThreadPoolExecutor(0, 5, 60L, TimeUnit.SECONDS,
-                new LinkedBlockingQueue<Runnable>(), new ThreadFactory() {
-            private final AtomicInteger counter = new AtomicInteger();
-            private final Thread.UncaughtExceptionHandler handler =
-                    (t, e) -> log.warn("Error occurred in asynchronous processing ", e);
-
-            @Override
-            public Thread newThread(@NotNull Runnable r) {
-                Thread thread = new Thread(r, createName());
-                thread.setDaemon(true);
-                thread.setPriority(Thread.MIN_PRIORITY);
-                thread.setUncaughtExceptionHandler(handler);
-                return thread;
-            }
-
-            private String createName() {
-                return "oak-lucene-" + counter.getAndIncrement();
-            }
-        });
-        executor.setKeepAliveTime(1, TimeUnit.MINUTES);
+        ThreadPoolExecutor executor = ExecutorHelper.onDemandSingleThreadLinkedQueueExecutor(
+                "oak-lucene-%d", 
+                (t, e) -> log.warn("Error occurred in asynchronous processing ", e));
         executor.allowCoreThreadTimeOut(true);
         return executor;
     }

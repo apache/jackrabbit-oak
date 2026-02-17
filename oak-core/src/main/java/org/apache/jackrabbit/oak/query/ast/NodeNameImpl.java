@@ -111,9 +111,6 @@ public class NodeNameImpl extends DynamicOperandImpl {
 
     @Override
     public void restrictList(FilterImpl f, List<PropertyValue> list) {
-        if (!f.getQueryLimits().getOptimizeInRestrictionsForFunctions()) {
-            return;
-        }
         String fn = getFunction(f.getSelector());
         if (fn != null) {
             f.restrictPropertyAsList(QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn, list);

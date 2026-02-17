@@ -577,22 +577,11 @@ public class Oak {
         }
 
         if (queryEngineSettings != null) {
-            Feature prefetchFeature = newFeature(QueryEngineSettings.FT_NAME_PREFETCH_FOR_QUERIES, whiteboard);
-            LOG.info("Registered Prefetch feature: " + QueryEngineSettings.FT_NAME_PREFETCH_FOR_QUERIES);
-            closer.register(prefetchFeature);
-            queryEngineSettings.setPrefetchFeature(prefetchFeature);
-            Feature improvedIsNullCostFeature = newFeature(QueryEngineSettings.FT_NAME_IMPROVED_IS_NULL_COST, whiteboard);
-            LOG.info("Registered improved cost feature: " + QueryEngineSettings.FT_NAME_IMPROVED_IS_NULL_COST);
-            closer.register(improvedIsNullCostFeature);
-            queryEngineSettings.setImprovedIsNullCostFeature(improvedIsNullCostFeature);
-            Feature optimizeInRestrictionsForFunctions = newFeature(QueryEngineSettings.FT_OPTIMIZE_IN_RESTRICTIONS_FOR_FUNCTIONS, whiteboard);
-            LOG.info("Registered optimize in restrictions for functions feature: " + QueryEngineSettings.FT_OPTIMIZE_IN_RESTRICTIONS_FOR_FUNCTIONS);
-            closer.register(optimizeInRestrictionsForFunctions);
-            queryEngineSettings.setOptimizeInRestrictionsForFunctions(optimizeInRestrictionsForFunctions);
             Feature sortUnionQueryByScoreFeature = newFeature(QueryEngineSettings.FT_SORT_UNION_QUERY_BY_SCORE, whiteboard);
             LOG.info("Registered sort union query by score feature: " + QueryEngineSettings.FT_SORT_UNION_QUERY_BY_SCORE);
             closer.register(sortUnionQueryByScoreFeature);
             queryEngineSettings.setSortUnionQueryByScoreFeature(sortUnionQueryByScoreFeature);
+
             Feature optimizeXPathUnion = newFeature(QueryEngineSettings.FT_OPTIMIZE_XPATH_UNION, whiteboard);
             LOG.info("Registered optimize XPath union feature: " + QueryEngineSettings.FT_OPTIMIZE_XPATH_UNION);
             closer.register(optimizeXPathUnion);
@@ -1003,14 +992,6 @@ public class Oak {
 
         public void setPrefetchFeature(@Nullable Feature prefetch) {
             settings.setPrefetchFeature(prefetch);
-        }
-
-        public void setImprovedIsNullCostFeature(@Nullable Feature feature) {
-            settings.setImprovedIsNullCostFeature(feature);
-        }
-
-        public void setOptimizeInRestrictionsForFunctions(@Nullable Feature feature) {
-            settings.setOptimizeInRestrictionsForFunctions(feature);
         }
 
         public void setSortUnionQueryByScoreFeature(@Nullable Feature feature) {

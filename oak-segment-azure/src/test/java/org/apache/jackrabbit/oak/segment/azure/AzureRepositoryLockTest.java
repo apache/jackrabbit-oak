@@ -87,12 +87,14 @@ public class AzureRepositoryLockTest {
         BlockBlobClient blockBlobClient = readBlobContainerClient.getBlobClient("oak/repo.lock").getBlockBlobClient();
         BlockBlobClient noRetrtBlockBlobClient = noRetryBlobContainerClient.getBlobClient("oak/repo.lock").getBlockBlobClient();
         BlobLeaseClient blobLeaseClient = new BlobLeaseClientBuilder().blobClient(noRetrtBlockBlobClient).buildClient();
-        new AzureRepositoryLock(blockBlobClient, blobLeaseClient, () -> {}, new WriteAccessController()).lock();
+        AzureRepositoryLock lock = new AzureRepositoryLock(blockBlobClient, blobLeaseClient, () -> {}, new WriteAccessController()).lock();
         try {
             new AzureRepositoryLock(blockBlobClient, blobLeaseClient, () -> {}, new WriteAccessController()).lock();
             fail("The second lock should fail.");
         } catch (IOException e) {
             // it's fine
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -107,7 +109,12 @@ public class AzureRepositoryLockTest {
         BlobLeaseClient blobLeaseClient = new BlobLeaseClientBuilder().blobClient(noRetrtBlockBlobClient).buildClient();
 
         // no exception should be present when calling lock
-        new AzureRepositoryLock(blockBlobClient, blobLeaseClient, () -> {}, new WriteAccessController()).lock();
+        AzureRepositoryLock lock = new AzureRepositoryLock(blockBlobClient, blobLeaseClient, () -> {}, new WriteAccessController());
+        try {
+            lock.lock();
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Test
@@ -128,7 +135,12 @@ public class AzureRepositoryLockTest {
         }).start();
 
         s.acquire();
-        new AzureRepositoryLock(blockBlobClient, blobLeaseClient, () -> {}, new WriteAccessController(), 10).lock();
+        AzureRepositoryLock lock = new AzureRepositoryLock(blockBlobClient, blobLeaseClient, () -> {}, new WriteAccessController(), 10);
+        try {
+            lock.lock();
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Test
@@ -148,19 +160,25 @@ public class AzureRepositoryLockTest {
                 .doCallRealMethod()
                 .when(blobLeaseMocked).renewLeaseWithResponse((RequestConditions) any(), any(), any());
 
-        new AzureRepositoryLock(blobMocked, blobLeaseMocked, () -> {}, new WriteAccessController()).lock();
-
-        // wait till lease expires
-        Thread.sleep(16000);
-
-        // reset the mock to default behaviour
-        Mockito.doCallRealMethod().when(blobLeaseMocked).renewLeaseWithResponse((RequestConditions) any(), any(), any());
-
+        AzureRepositoryLock lock = new AzureRepositoryLock(blobMocked, blobLeaseMocked, () -> {}, new WriteAccessController(), 1);
         try {
-            new AzureRepositoryLock(blobMocked, blobLeaseMocked, () -> {}, new WriteAccessController()).lock();
-            fail("The second lock should fail.");
-        } catch (IOException e) {
-            // it's fine
+            lock.lock();
+
+            // wait till lease expires
+            Thread.sleep(3000);
+
+            // reset the mock to default behaviour
+            Mockito.doCallRealMethod().when(blobLeaseMocked).renewLeaseWithResponse((RequestConditions) any(), any(), any());
+
+            try {
+                new AzureRepositoryLock(blobMocked, blobLeaseMocked, () -> {
+                }, new WriteAccessController()).lock();
+                fail("The second lock should fail.");
+            } catch (IOException e) {
+                // it's fine
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -191,29 +209,34 @@ public class AzureRepositoryLockTest {
 
         WriteAccessController writeAccessController = new WriteAccessController();
 
-        new AzureRepositoryLock(blobMocked, blobLeaseMocked, () -> {}, writeAccessController).lock();
+        AzureRepositoryLock lock = new AzureRepositoryLock(blobMocked, blobLeaseMocked, () -> {}, writeAccessController);
+        Thread thread = null;
+        try {
+            lock.lock();
 
+            thread = new Thread(() -> {
+                while (true) {
+                    writeAccessController.checkWritingAllowed();
+                }
+            });
+            thread.start();
 
-        Thread thread = new Thread(() -> {
+            Thread.sleep(3000);
+            assertFalse("after 3 seconds thread should not be in a waiting state", thread.getState().equals(Thread.State.WAITING));
 
-            while (true) {
-                writeAccessController.checkWritingAllowed();
+            Thread.sleep(3000);
+            assertFalse("after 6 seconds thread should not be in a waiting state", thread.getState().equals(Thread.State.WAITING));
 
+            Thread.sleep(5000);
+            assertTrue("after more than 9 seconds thread should be in a waiting state", thread.getState().equals(Thread.State.WAITING));
+
+            Mockito.doCallRealMethod().when(blobLeaseMocked).renewLeaseWithResponse((RequestConditions) any(), any(), any());
+        } finally {
+            lock.unlock();
+            if (thread != null) {
+                thread.interrupt();
             }
-        });
-
-        thread.start();
-
-        Thread.sleep(3000);
-        assertFalse("after 3 seconds thread should not be in a waiting state", thread.getState().equals(Thread.State.WAITING));
-
-        Thread.sleep(3000);
-        assertFalse("after 6 seconds thread should not be in a waiting state", thread.getState().equals(Thread.State.WAITING));
-
-        Thread.sleep(5000);
-        assertTrue("after more than 9 seconds thread should be in a waiting state", thread.getState().equals(Thread.State.WAITING));
-
-        Mockito.doCallRealMethod().when(blobLeaseMocked).renewLeaseWithResponse((RequestConditions) any(), any(), any());
+        }
     }
 
     @Test
@@ -246,21 +269,23 @@ public class AzureRepositoryLockTest {
         WriteAccessController writeAccessController = new WriteAccessController();
 
         AzureRepositoryLock lock = new AzureRepositoryLock(blockBlobClient, blobLeaseClient, shutdownHook, writeAccessController);
-        lock.lock();
+        try {
+            lock.lock();
 
-        // Enable delay injection after initial lease acquisition
-        delayPolicy.setEnabled(true);
+            // Enable delay injection after initial lease acquisition
+            delayPolicy.setEnabled(true);
 
-        // Wait for at least 3 renewal calls (2 timeouts + 1 success) with a timeout
-        Mockito.verify(blobLeaseClient, Mockito.timeout(15000).atLeast(3))
-                .renewLeaseWithResponse((RequestConditions) any(), any(), any());
+            // Wait for at least 3 renewal calls (2 timeouts + 1 success) with a timeout
+            Mockito.verify(blobLeaseClient, Mockito.timeout(15000).atLeast(3))
+                    .renewLeaseWithResponse((RequestConditions) any(), any(), any());
 
-        assertTrue("Should have delayed at least 2 requests, but delayed: " + delayPolicy.getDelayedRequestCount(),
-                delayPolicy.getDelayedRequestCount() >= 2);
+            assertTrue("Should have delayed at least 2 requests, but delayed: " + delayPolicy.getDelayedRequestCount(),
+                    delayPolicy.getDelayedRequestCount() >= 2);
 
-        assertFalse("Shutdown hook should not be called for client-side timeout exceptions", shutdownCalled.get());
-
-        lock.unlock();
+            assertFalse("Shutdown hook should not be called for client-side timeout exceptions", shutdownCalled.get());
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Test
@@ -290,17 +315,19 @@ public class AzureRepositoryLockTest {
         WriteAccessController writeAccessController = new WriteAccessController();
 
         AzureRepositoryLock lock = new AzureRepositoryLock(blobMocked, blobLeaseMocked, shutdownHook, writeAccessController);
-        lock.lock();
+        try {
+            lock.lock();
 
-        // Wait for at least 3 calls (2 failures + 1 success) with a timeout
-        Mockito.verify(blobLeaseMocked, Mockito.timeout(10000).atLeast(3))
-                .renewLeaseWithResponse((RequestConditions) any(), any(), any());
+            // Wait for at least 3 calls (2 failures + 1 success) with a timeout
+            Mockito.verify(blobLeaseMocked, Mockito.timeout(10000).atLeast(3))
+                    .renewLeaseWithResponse((RequestConditions) any(), any(), any());
 
-        // Verify that shutdown hook was NOT called - the IO exception should be treated as recoverable
-        assertFalse("Shutdown hook should not be called for IO exceptions", shutdownCalled.get());
-
-        // Clean up: stop the renewal thread and release the lease
-        lock.unlock();
+            // Verify that shutdown hook was NOT called - the IO exception should be treated as recoverable
+            assertFalse("Shutdown hook should not be called for IO exceptions", shutdownCalled.get());
+        } finally {
+            // Clean up: stop the renewal thread and release the lease
+            lock.unlock();
+        }
     }
 
     /**

@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static java.util.Collections.singletonList;
-import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
+import static org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration.newGCGeneration;
 
 import java.io.Closeable;
 import java.io.File;
@@ -39,7 +39,6 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.Segment;
@@ -48,6 +47,7 @@ import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndex
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexLoader;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.InvalidBinaryReferencesIndexException;
 import org.apache.jackrabbit.oak.segment.file.tar.index.IndexEntry;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
@@ -283,10 +283,7 @@ public class TarReader implements Closeable {
     private TarReader(SegmentArchiveManager archiveManager, SegmentArchiveReader archive) {
         this.archiveManager = archiveManager;
         this.archive = archive;
-        this.segmentUUIDs = archive.listSegments()
-                .stream()
-                .map(e -> new UUID(e.getMsb(), e.getLsb()))
-                .collect(Collectors.toUnmodifiableSet());
+        this.segmentUUIDs = archive.getSegmentUUIDs();
     }
 
     long size() {
