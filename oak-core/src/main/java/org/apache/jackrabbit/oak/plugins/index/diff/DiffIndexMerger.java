@@ -23,6 +23,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -81,10 +83,20 @@ public class DiffIndexMerger {
     // set of properties that are allowed to be changed if the property already exists
     private final static Set<String> ALLOW_CHANGING_EXISTING_PROPERTY = Set.of("boost", "weight");
 
+    // maximum number of warnings to keep
+    private final static int MAX_WARNINGS = 100;
+
+    // maximum total size of warnings (1 MB)
+    private final static int MAX_WARNINGS_SIZE = 1024 * 1024;
+
     private String[] unsupportedIncludedPaths;
     private boolean deleteCreatesDummyIndex;
     private boolean deleteCopiesOutOfTheBoxIndex;
     private boolean logAtInfoLevel;
+
+    // thread-safe queue to store warnings (oldest first)
+    private final LinkedList<String> warnings = new LinkedList<>();
+    private int warningsSize = 0;
 
     public DiffIndexMerger() {
         this(UNSUPPORTED_INCLUDED_PATHS, DELETE_CREATES_DUMMY, DELETE_COPIES_OOTB, LOG_AT_INFO_LEVEL);
@@ -173,12 +185,7 @@ public class DiffIndexMerger {
             String key = e.getKey();
             JsonObject value = e.getValue();
             if (key.startsWith("/oak:index/")) {
-
-//                document this:
-//                enumerate error messages
-//                do not log but write to index def
-
-                LOG.warn("The key should contain just the index name, without the '/oak:index' prefix for key {}", key);
+                logWarn("The key should contain just the index name, without the '/oak:index' prefix, for key: {}", key);
                 key = key.substring("/oak:index/".length());
             }
             log("Processing {}", key);
@@ -203,7 +210,7 @@ public class DiffIndexMerger {
      * @param target    the target map of diff.index definitions
      * @return the error message trying to parse the JSON file, or null
      */
-    public static String tryExtractDiffIndex(JsonObject indexDefs, String name, HashMap<String, JsonObject> target) {
+    public String tryExtractDiffIndex(JsonObject indexDefs, String name, HashMap<String, JsonObject> target) {
         JsonObject diffIndex = indexDefs.getChildren().get(name);
         if (diffIndex == null) {
             return null;
@@ -216,15 +223,15 @@ public class DiffIndexMerger {
             JsonObject jcrContent = file.getChildren().get("jcr:content");
             if (jcrContent == null) {
                 String message = "jcr:content child node is missing in diff.json";
-                LOG.warn(message);
+                logWarn(message);
                 return message;
             }
             String jcrData = JsonNodeUpdater.oakStringValue(jcrContent, "jcr:data");
             try {
                 diff = JsonObject.fromJson(jcrData, true);
             } catch (Exception e) {
-                LOG.warn("Illegal Json, ignoring: {}", jcrData, e);
                 String message = "Illegal Json, ignoring: " + e.getMessage();
+                logWarn("Illegal Json, ignoring: {}", jcrData, e);
                 return message;
             }
         } else {
@@ -359,13 +366,13 @@ public class DiffIndexMerger {
         JsonObject latestProductIndex = combined.getChildren().get(latestProductKey);
         String[] includedPaths;
         if (latestProductIndex == null) {
-            if (indexDiff.getProperties().isEmpty() && indexDiff.getChildren().isEmpty()) {
+            if (indexDiff == null || indexDiff.getProperties().isEmpty() && indexDiff.getChildren().isEmpty()) {
                 // there is no customization (any more), which means a dummy index may be needed
                 log("No customization for {}", indexName);
             } else {
                 includedPaths = JsonNodeUpdater.oakStringArrayValue(indexDiff, "includedPaths");
                 if (includesUnsupportedPaths(includedPaths)) {
-                    LOG.warn("New custom index {} is not supported because it contains an unsupported path ({})",
+                    logWarn("New custom index {} is not supported because it contains an unsupported path ({})",
                             indexName, Arrays.toString(unsupportedIncludedPaths));
                     return false;
                 }
@@ -373,7 +380,7 @@ public class DiffIndexMerger {
         } else {
             includedPaths = JsonNodeUpdater.oakStringArrayValue(latestProductIndex, "includedPaths");
             if (includesUnsupportedPaths(includedPaths)) {
-                LOG.warn("Customizing index {} is not supported because it contains an unsupported path ({})",
+                logWarn("Customizing index {} is not supported because it contains an unsupported path ({})",
                         latestProductKey, Arrays.toString(unsupportedIncludedPaths));
                 return false;
             }
@@ -389,7 +396,7 @@ public class DiffIndexMerger {
             }
             merged = latestProductIndex;
         } else {
-            merged = processMerge(latestProductIndex, indexDiff);
+            merged = processMerge(indexName, latestProductIndex, indexDiff);
         }
 
         // compare to the latest version of the this index
@@ -415,8 +422,8 @@ public class DiffIndexMerger {
                 // (even if checksums do not match: checksums might be missing or manipulated)
                 log("Latest index matches");
                 if (latestMergeChecksum != null && !latestMergeChecksum.equals(mergeChecksum)) {
-                    LOG.warn("Indexes do match, but checksums do not. Possibly checksum was changed: {} vs {}", latestMergeChecksum, mergeChecksum);
-                    LOG.warn("latest: {}\nmerged: {}", latestDef, mergedDef);
+                    logWarn("Indexes do match, but checksums do not. Possibly checksum was changed: {} vs {}", latestMergeChecksum, mergeChecksum);
+                    logWarn("Index: {}, latest: {}\nmerged: {}", indexName, latestDef, mergedDef);
                 }
                 return false;
             }
@@ -424,8 +431,8 @@ public class DiffIndexMerger {
                 // checksum matches, but data does not match
                 // could be eg. due to numbers formatting issues (-0.0 vs 0.0, 0.001 vs 1e-3)
                 // but unexpected because we do not normally have such cases
-                LOG.warn("Indexes do not match, but checksums match. Possible normalization issue.");
-                LOG.warn("Index: {}, latest: {}\nmerged: {}", indexName, latestDef, mergedDef);
+                logWarn("Indexes do not match, but checksums match. Possible normalization issue.");
+                logWarn("Index: {}, latest: {}\nmerged: {}", indexName, latestDef, mergedDef);
                 // if checksums match, we consider it a match
                 return false;
             }
@@ -641,11 +648,13 @@ public class DiffIndexMerger {
      * Merge a product index with a diff. If the product index is null, then the
      * diff needs to contain a complete custom index definition.
      *
+     * @param indexName the index name (for logging)
      * @param productIndex the product index definition, or null if none
      * @param diff the diff (from the diff.index definition)
+     *
      * @return the index definition of the merged index
      */
-    public JsonObject processMerge(JsonObject productIndex, JsonObject diff) {
+    public JsonObject processMerge(String indexName, JsonObject productIndex, JsonObject diff) {
         JsonObject result;
         boolean isNew;
         if (productIndex == null) {
@@ -656,7 +665,7 @@ public class DiffIndexMerger {
             result = JsonObject.fromJson(productIndex.toString(), true);
             isNew = false;
         }
-        mergeInto("", diff, result, isNew);
+        mergeInto(indexName, "", diff, result, isNew);
         addPrimaryType("", result);
         return result;
     }
@@ -692,12 +701,14 @@ public class DiffIndexMerger {
     /**
      * Merge a JSON diff into a target index definition.
      *
-     * @param path the path
+     * @param indexName the index name (for logging)
+     * @param path the path (relative to the index)
      * @param diff the diff (what to merge)
      * @param target where to merge into
      * @param isNew whether the target node is newly created (didn't exist before)
      */
-    private void mergeInto(String path, JsonObject diff, JsonObject target, boolean isNew) {
+    private void mergeInto(String indexName, String path, JsonObject diff, JsonObject target, boolean isNew) {
+        String pathForLogging = path.isEmpty() ? "the root" : "replative path " + path;
         for (String p : diff.getProperties().keySet()) {
             if (path.isEmpty()) {
                 if ("jcr:primaryType".equals(p)) {
@@ -708,12 +719,12 @@ public class DiffIndexMerger {
                 // for existing nodes, we do a few more checks before the merge
                 if (path.isEmpty() && REJECTED_TOP_LEVEL_PROPS_FOR_EXISTING_INDEX.contains(p)) {
                     // at the top level, some properties (eg. selectionPolicy) are not allowed to be added to an existing index
-                    LOG.warn("Ignoring new top-level property {} at {} for existing index", p, path);
+                    logWarn("{}: Ignoring new top-level property {} at {} for existing index", indexName, p, pathForLogging);
                     continue;
                 }
                 if (REJECTED_PROPS_FOR_EXISTING_PROPERTY.contains(p)) {
                     // the some properties are not allowed to be added if the node already exists
-                    LOG.warn("Ignoring new property {} at {} for existing child", p, path);
+                    logWarn("{}: Ignoring new property \"{}\" at {} for existing child", indexName, p, pathForLogging);
                     continue;
                 }
             }
@@ -721,8 +732,7 @@ public class DiffIndexMerger {
                 // we do not currently allow to overwrite most existing properties,
                 // except for:
                 if (ALLOW_CHANGING_EXISTING_PROPERTY.contains(p)) {
-                    // allow overwriting the boost value
-                    LOG.info("Overwrite property {} value at {}", p, path);
+                    // allow overwriting the (eg.) boost value
                     target.getProperties().put(p, diff.getProperties().get(p));
                 } else if (path.isEmpty() && (p.equals("includedPaths") || p.equals("queryPaths") || p.equals("tags"))) {
                     // merge includedPaths, queryPaths, and tags
@@ -741,7 +751,7 @@ public class DiffIndexMerger {
                         target.getProperties().put(p, buff.endArray().toString());
                     }
                 } else {
-                    LOG.warn("Ignoring existing property {} at {}", p, path);
+                    logWarn("{}: Ignoring existing property \"{}\" at {}", indexName, p, pathForLogging);
                 }
             } else {
                 target.getProperties().put(p, diff.getProperties().get(p));
@@ -779,7 +789,7 @@ public class DiffIndexMerger {
             } else {
                 childIsNew = false;
             }
-            mergeInto(path + "/" + targetChildName, diff.getChildren().get(c), target.getChildren().get(targetChildName), childIsNew);
+            mergeInto(indexName, path + "/" + targetChildName, diff.getChildren().get(c), target.getChildren().get(targetChildName), childIsNew);
         }
         if (target.getProperties().isEmpty() && target.getChildren().isEmpty()) {
             if (deleteCreatesDummyIndex) {
@@ -885,6 +895,39 @@ public class DiffIndexMerger {
             LOG.info(format, arguments);
         } else {
             LOG.debug(format, arguments);
+        }
+    }
+
+    /**
+     * Log a warning message and store it in a size-limited queue.
+     * The queue keeps the oldest entries and is limited to 100 entries or 1 MB total size.
+     *
+     * @param format the log message format
+     * @param arguments the log message arguments
+     */
+    public void logWarn(String format, Object... arguments) {
+        String message = org.slf4j.helpers.MessageFormatter.arrayFormat(format, arguments).getMessage();
+        LOG.warn(message);
+        synchronized (warnings) {
+            int messageSize = message.getBytes(StandardCharsets.UTF_8).length;
+            if (warnings.size() < MAX_WARNINGS && warningsSize + messageSize <= MAX_WARNINGS_SIZE) {
+                warnings.add(message);
+                warningsSize += messageSize;
+            }
+        }
+    }
+
+    /**
+     * Get and clear all collected warnings.
+     *
+     * @return a list of warning messages (oldest first)
+     */
+    public List<String> getAndClearWarnings() {
+        synchronized (warnings) {
+            List<String> result = new ArrayList<>(warnings);
+            warnings.clear();
+            warningsSize = 0;
+            return result;
         }
     }
 
