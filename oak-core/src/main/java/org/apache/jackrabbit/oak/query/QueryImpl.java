@@ -1317,7 +1317,7 @@ public class QueryImpl implements Query {
             if (primaryType != null && INDEX_DEFINITIONS_NODE_TYPE.equals(primaryType.getValue(Type.STRING))) {
                 PropertyState reindexProp = index.getProperty(REINDEX_PROPERTY_NAME);
                 PropertyState typeProp = index.getProperty(TYPE_PROPERTY_NAME);
-                if (reindexProp != null && reindexProp.getValue(Type.BOOLEAN) && !(typeProp != null && TYPE_DISABLED.equals(typeProp.getValue(Type.STRING)))) {
+                if (reindexProp != null && reindexProp.getValue(Type.BOOLEAN) && typeProp != null && !TYPE_DISABLED.equals(typeProp.getValue(Type.STRING))) {
                     reindex.add(name);
                 }
             }
