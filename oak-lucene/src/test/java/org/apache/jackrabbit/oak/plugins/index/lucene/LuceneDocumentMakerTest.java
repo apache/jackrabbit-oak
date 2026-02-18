@@ -68,7 +68,7 @@ public class LuceneDocumentMakerTest {
     }
 
     @Test
-    public void similarityTagsMaxLengthFiltering() throws Exception{
+    public void similarityTagMaxLengthFiltering() throws Exception{
         LuceneIndexDefinitionBuilder builder = new LuceneIndexDefinitionBuilder();
         builder.indexRule("nt:base")
                 .property("jcr:primaryType")
@@ -77,7 +77,7 @@ public class LuceneDocumentMakerTest {
                 .property("tag")
                 .similarityTags(true);
 
-        builder.getBuilderTree().setProperty(FulltextIndexConstants.SIMILARITY_TAGS_MAX_LENGTH, 10);
+        builder.getBuilderTree().setProperty(FulltextIndexConstants.SIMILARITY_TAG_MAX_LENGTH, 10);
 
         LuceneIndexDefinition defn = LuceneIndexDefinition.newLuceneBuilder(root, builder.build(), "/foo").build();
         LuceneDocumentMaker docMaker = new LuceneDocumentMaker(defn,
