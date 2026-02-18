@@ -343,7 +343,10 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                 dirty |= indexFacets(doc, property, pname, pd);
             }
             if (pd.similarityTags) {
-                dirty |= indexSimilarityTag(doc, property);
+                String value = property.getValue(Type.STRING);
+                if (value.length() <= definition.getSimilarityTagsMaxLength()) {
+                    dirty |= indexSimilarityTag(doc, value);
+                }
             }
 
         }
@@ -377,7 +380,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         return true;
     }
 
-    protected abstract boolean indexSimilarityTag(D doc, PropertyState property);
+    protected abstract boolean indexSimilarityTag(D doc, String value);
 
     protected abstract void indexSimilarityBinaries(D doc, PropertyDefinition pd, Blob blob) throws IOException;
 

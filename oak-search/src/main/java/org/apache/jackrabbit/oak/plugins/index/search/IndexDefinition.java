@@ -149,6 +149,11 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     public static final int DEFAULT_MAX_EXTRACT_LENGTH = -10;
 
     /**
+     * Default maximum length to skip indexing excessively long tags.
+     */
+    public static final int DEFAULT_SIMILARITY_TAGS_MAX_LENGTH = 100;
+
+    /**
      * System managed hidden property to record the current index version
      */
     public static final String INDEX_VERSION = ":version";
@@ -275,6 +280,8 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     private final int maxFieldLength;
 
     private final int maxExtractLength;
+
+    private final int similarityTagsMaxLength;
 
     private final int suggesterUpdateFrequencyMinutes;
 
@@ -470,6 +477,8 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             }
 
             this.maxFieldLength = getOptionalValue(defn, FulltextIndexConstants.MAX_FIELD_LENGTH, DEFAULT_MAX_FIELD_LENGTH);
+            this.similarityTagsMaxLength = getOptionalValue(defn,
+                    FulltextIndexConstants.SIMILARITY_TAGS_MAX_LENGTH, DEFAULT_SIMILARITY_TAGS_MAX_LENGTH);
             this.costPerEntry = getOptionalValue(defn, FulltextIndexConstants.COST_PER_ENTRY, getDefaultCostPerEntry(version));
             this.costPerExecution = getOptionalValue(defn, FulltextIndexConstants.COST_PER_EXECUTION, 1.0);
             this.hasCustomTikaConfig = getTikaConfigNode().exists();
@@ -692,6 +701,10 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     public int getMaxExtractLength() {
         return maxExtractLength;
+    }
+
+    public int getSimilarityTagsMaxLength() {
+        return similarityTagsMaxLength;
     }
 
     public PathFilter getPathFilter() {
