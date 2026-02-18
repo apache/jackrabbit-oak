@@ -85,7 +85,6 @@ public class LuceneDocumentMakerTest {
 
         NodeBuilder test = EMPTY_NODE.builder();
         test.setProperty("tag", "short");
-
         Document doc = docMaker.makeDocument(test.getNodeState());
         assertNotNull(doc);
         assertEquals("short", doc.get(FieldNames.SIMILARITY_TAGS));
