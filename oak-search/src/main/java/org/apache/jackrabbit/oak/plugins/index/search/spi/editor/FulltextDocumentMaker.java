@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.log.LogSilencer;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -39,6 +40,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.jcr.PropertyType;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -58,6 +60,10 @@ import static java.util.Objects.requireNonNull;
 public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
+
+    private static final LogSilencer LOG_SILENCER = new LogSilencer(Duration.ofMinutes(1).toMillis(), 4);
+    private static final String LOG_KEY_SIMILARITY_TAG_SKIPPED = "Similarity tag skipped";
+
     public static final String WARN_LOG_STRING_SIZE_THRESHOLD_KEY = "oak.repository.property.index.logWarnStringSizeThreshold";
     private static final int DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE = 102400;
 
@@ -346,6 +352,9 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                 String value = property.getValue(Type.STRING);
                 if (value.length() <= definition.getSimilarityTagsMaxLength()) {
                     dirty |= indexSimilarityTag(doc, value);
+                } else if (!LOG_SILENCER.silence(LOG_KEY_SIMILARITY_TAG_SKIPPED)) {
+                    log.warn("[{}] Skipping similarity tag for property {}. Value length {} exceeds maximum allowed length {}",
+                            getIndexName(), pname, value.length(), definition.getSimilarityTagsMaxLength());
                 }
             }
 
