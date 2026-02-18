@@ -350,11 +350,8 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             }
             if (pd.similarityTags) {
                 String value = property.getValue(Type.STRING);
-                if (value.length() <= definition.getSimilarityTagsMaxLength()) {
+                if (isTagWithinLengthLimit(value, pname)) {
                     dirty |= indexSimilarityTag(doc, value);
-                } else if (!LOG_SILENCER.silence(LOG_KEY_SIMILARITY_TAG_SKIPPED)) {
-                    log.warn("[{}] Skipping similarity tag for property {}. Value length {} exceeds maximum allowed length {}",
-                            getIndexName(), pname, value.length(), definition.getSimilarityTagsMaxLength());
                 }
             }
 
@@ -716,6 +713,9 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                 continue;
             }
             String dynaTagValue = p.getValue(Type.STRING);
+            if (!isTagWithinLengthLimit(dynaTagValue, p.getName())) {
+                continue;
+            }
             p = dynaTag.getProperty(DYNAMIC_BOOST_TAG_CONFIDENCE);
             if (p == null) {
                 // here we don't log a warning, because possibly it will be added later
@@ -746,6 +746,17 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     protected String getIndexName() {
         return definition.getIndexName();
+    }
+
+    private boolean isTagWithinLengthLimit(String value, String pname) {
+        if (value.length() <= definition.getSimilarityTagsMaxLength()) {
+            return true;
+        }
+        if (!LOG_SILENCER.silence(LOG_KEY_SIMILARITY_TAG_SKIPPED)) {
+            log.warn("[{}] Skipping similarity tag for property {}. Value length {} exceeds maximum allowed length {}",
+                    getIndexName(), pname, value.length(), definition.getSimilarityTagsMaxLength());
+        }
+        return false;
     }
 
     /*
