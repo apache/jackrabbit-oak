@@ -749,12 +749,13 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     }
 
     private boolean isTagWithinLengthLimit(String value, String pname) {
-        if (value.length() <= definition.getSimilarityTagMaxLength()) {
+        int maxLength = definition.getSimilarityTagMaxLength();
+        if (maxLength < 0 || value.length() <= maxLength) {
             return true;
         }
         if (!LOG_SILENCER.silence(LOG_KEY_SIMILARITY_TAG_SKIPPED)) {
             log.warn("[{}] Skipping similarity tag for property {}. Value length {} exceeds maximum allowed length {}",
-                    getIndexName(), pname, value.length(), definition.getSimilarityTagMaxLength());
+                    getIndexName(), pname, value.length(), maxLength);
         }
         return false;
     }
