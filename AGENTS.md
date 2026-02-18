@@ -69,20 +69,24 @@ Some modules also use EasyMock. Do not introduce JUnit 5 unless explicitly reque
 
 ## Repository Structure
 
+**Note:** Individual submodules may have their own `AGENTS.md` file with module-specific
+instructions. When working within a particular module, check for and read its `AGENTS.md`
+before making changes.
+
 All modules grouped by area. The **Description** column provides additional context
 for understanding each module's role.
 
 ### API & Core
 
-| Module | Purpose | Description |
-|--------|---------|-------------|
+| Module | Purpose | Description                                                                                                                                                                                            |
+|--------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `oak-api` | Public Oak API | Defines `ContentRepository`, `ContentSession`, `Root`, `Tree` and other core interfaces for accessing repository content. See: `oak-api/README.md`, `oak-doc/src/site/markdown/oak_api/error_codes.md` |
-| `oak-core` | Core repository implementation | MVCC-based transactional content model, node state management, commit handling, and internal kernel. See: `oak-doc/src/site/markdown/architecture/overview.md`, `oak-doc/src/site/markdown/architecture/nodestate.md`, `oak-doc/src/site/markdown/architecture/transactional-model.md` |
-| `oak-core-spi` | Core SPI interfaces | Service Provider Interfaces for plugins and storage backends (NodeStore, Commit, etc.) |
-| `oak-commons` | Shared utilities | Common utility classes used across all Oak modules |
-| `oak-jackrabbit-api` | Jackrabbit API extensions | Additional API beyond the JCR spec (e.g., extended session, security). See: `oak-jackrabbit-api/README.md` |
-| `oak-jcr` | JCR API binding | Implementation of the javax.jcr (JCR 2.0) specification on top of Oak's content model |
-| `oak-parent` | Parent POM | Dependency management and shared plugin settings |
+| `oak-core` | Core repository implementation | MVCC-based transactional content model, node state management, commit handling, and internal kernel. See: `oak-doc/src/site/markdown/archigreat l-model.md`                                            |
+| `oak-core-spi` | Core SPI interfaces | Service Provider Interfaces for plugins and storage backends (NodeStore, Commit, etc.)                                                                                                                 |
+| `oak-commons` | Shared utilities | Common utility classes used across all Oak modules                                                                                                                                                     |
+| `oak-jackrabbit-api` | Jackrabbit API extensions | Additional API beyond the JCR spec (e.g., extended session, security). See: `oak-jackrabbit-api/README.md`                                                                                             |
+| `oak-jcr` | JCR API binding | Implementation of the javax.jcr (JCR 2.0) specification on top of Oak's content model                                                                                                                  |
+| `oak-parent` | Parent POM | Dependency management and shared plugin settings                                                                                                                                                       |
 
 ### Node Store (Persistence)
 
