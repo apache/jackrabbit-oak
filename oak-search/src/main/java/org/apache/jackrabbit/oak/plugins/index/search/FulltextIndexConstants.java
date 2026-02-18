@@ -287,7 +287,8 @@ public interface FulltextIndexConstants {
     String PROP_SIMILARITY_TAGS = "similarityTags";
 
     /**
-     * Maximum length of similarity tag values to be indexed. Tags longer than this value will be skipped
+     * Maximum length of similarity tag values to be indexed. Tags longer than this value will be skipped.
+     * Set to -1 to disable the length check entirely
      */
     String SIMILARITY_TAG_MAX_LENGTH = "similarityTagMaxLength";
 
