@@ -55,6 +55,7 @@ public class MongoUtils {
 
     public static final String URL = createMongoURL();
 
+    // return
     private static String createMongoURL() {
         // first try configured URL
         String mongoUrl = System.getProperty("mongo.url");
@@ -62,11 +63,15 @@ public class MongoUtils {
             mongoUrl = "mongodb://" + HOST + ":" + PORT + "/" + DB + "?" + OPTIONS;
         }
         // check if we can connect
+        LOG.info("Checking MongoDB URL: {}", mongoUrl);
         MongoConnection c = getConnectionByURL(mongoUrl);
         if (c != null) {
             c.close();
+            LOG.info("Successfully checked MongoDB URL: {}", mongoUrl);
             return mongoUrl;
         }
+        LOG.warn("Check failed for MongoDB URL: {}", mongoUrl);
+
         // fallback to docker based MongoDB if available
         MongoDockerRule dockerRule = new MongoDockerRule();
         if (MongoDockerRule.isDockerAvailable()) {
@@ -78,11 +83,16 @@ public class MongoUtils {
                         port.set(dockerRule.getPort());
                     }
                 }, Description.EMPTY).evaluate();
+                LOG.info("Docker is available on port: {}", port.get());
                 mongoUrl = "mongodb://localhost:" + port.get() + "/" + DB + "?" + OPTIONS;
+                LOG.info("Falling back to Docker based MongoDB URL {}", mongoUrl);
             } catch (Throwable t) {
                 LOG.warn("Unable to get MongoDB port from Docker", t);
             }
+        } else {
+            LOG.info("Docker image is not available");
         }
+
         return mongoUrl;
     }
 
