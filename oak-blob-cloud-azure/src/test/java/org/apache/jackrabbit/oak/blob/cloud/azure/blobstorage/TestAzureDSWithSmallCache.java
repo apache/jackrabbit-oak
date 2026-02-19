@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 import org.apache.jackrabbit.core.data.CachingDataStore;
 import org.apache.jackrabbit.core.data.LocalCache;
 import org.junit.Before;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Test {@link CachingDataStore} with AzureBlobStoreBackend and with very small size (@link
@@ -33,9 +31,7 @@ import org.slf4j.LoggerFactory;
  */
 public class TestAzureDSWithSmallCache extends TestAzureDS {
 
-    protected static final Logger LOG = LoggerFactory.getLogger(TestAzureDSWithSmallCache.class);
-
-    @Override
+  @Override
     @Before
     public void setUp() throws Exception {
         props.setProperty("cacheSize", String.valueOf(dataLength * 10));

@@ -305,6 +305,10 @@ public class SQL2Parser {
         if (!nodeTypeInfo.exists()) {
             throw getSyntaxError("unknown node type");
         }
+        //diagnostic log message to help identifying the root cause of OAK-12066
+        if (nodeTypeInfo.getNodeTypeName() == null) {
+            LOG.warn("Existing node type {} without jcr:nodeTypeName found.", nodeTypeName);
+        }
 
         String selectorName = nodeTypeName;
         if (readIf("AS")) {
