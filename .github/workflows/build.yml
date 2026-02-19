@@ -44,7 +44,7 @@ jobs:
         run: |
           if [ "${{github.ref}}" = "refs/heads/1.22" ] && [ "${{github.event_name}}" = "push" ] && [ "${{github.repository_owner}}" = "apache" ]; then
             echo 'Running on main branch of the canonical repo'
-            echo "MVN_ADDITIONAL_OPTS=-DdeployAtEnd=true -Dskip.coverage=true" >> $GITHUB_ENV
+            echo "MVN_ADDITIONAL_OPTS=-DdeployAtEnd=true" >> $GITHUB_ENV
             echo "MVN_GOAL=deploy" >> $GITHUB_ENV
             echo "MAVEN_APACHE_NEXUS_USERNAME=${{ secrets.NEXUS_USER }}" >> $GITHUB_ENV
             echo "MAVEN_APACHE_NEXUS_PASSWORD=${{ secrets.NEXUS_PW }}" >> $GITHUB_ENV
@@ -55,7 +55,7 @@ jobs:
           fi
       - name: Build
         # executing ITs requires installing artifacts to the local repository
-        run: mvn -B ${{ env.MVN_GOAL }} ${{ env.MVN_ADDITIONAL_OPTS }} -Pcoverage,integrationTesting,javadoc -Dnsfixtures=SEGMENT_TAR,DOCUMENT_NS
+        run: mvn -B ${{ env.MVN_GOAL }} ${{ env.MVN_ADDITIONAL_OPTS }} -PintegrationTesting,javadoc -Dnsfixtures=SEGMENT_TAR,DOCUMENT_NS
       - name: Upload build result
         uses: actions/upload-artifact@v4
         with:
