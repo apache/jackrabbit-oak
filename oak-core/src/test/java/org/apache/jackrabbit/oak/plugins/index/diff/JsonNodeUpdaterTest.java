@@ -229,8 +229,4 @@ public class JsonNodeUpdaterTest {
                 + "}", reformatJson(JsonUtils.nodeStateToJson(ns.getRoot(), 5)));
     }
 
-    String reformatJson(String json) {
-        // replace \r\n with \n
-        return json.replace("\r", "");
-    }
 }
