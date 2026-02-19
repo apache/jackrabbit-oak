@@ -19,7 +19,6 @@ name: Build
 on:
   push:
     branches:
-      - trunk
       - 1.22
   pull_request:
     types: [opened, synchronize, reopened]
@@ -43,9 +42,9 @@ jobs:
       - name: Set environment variables
         shell: bash
         run: |
-          if [ "${{github.ref}}" = "refs/heads/trunk" ] && [ "${{github.event_name}}" = "push" ] && [ "${{github.repository_owner}}" = "apache" ]; then
+          if [ "${{github.ref}}" = "refs/heads/1.22" ] && [ "${{github.event_name}}" = "push" ] && [ "${{github.repository_owner}}" = "apache" ]; then
             echo 'Running on main branch of the canonical repo'
-            echo "MVN_ADDITIONAL_OPTS=-DdeployAtEnd=true" >> $GITHUB_ENV
+            echo "MVN_ADDITIONAL_OPTS=-DdeployAtEnd=true -Dskip.coverage=true" >> $GITHUB_ENV
             echo "MVN_GOAL=deploy" >> $GITHUB_ENV
             echo "MAVEN_APACHE_NEXUS_USERNAME=${{ secrets.NEXUS_USER }}" >> $GITHUB_ENV
             echo "MAVEN_APACHE_NEXUS_PASSWORD=${{ secrets.NEXUS_PW }}" >> $GITHUB_ENV
