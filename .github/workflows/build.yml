@@ -50,7 +50,7 @@ jobs:
             echo "MAVEN_APACHE_NEXUS_PASSWORD=${{ secrets.NEXUS_PW }}" >> $GITHUB_ENV
           else
             echo 'Running outside main branch/canonical repo'
-            echo "MVN_ADDITIONAL_OPTS=" >> $GITHUB_ENV
+            echo "MVN_ADDITIONAL_OPTS=-Dskip.coverage=true" >> $GITHUB_ENV
             echo "MVN_GOAL=install" >> $GITHUB_ENV
           fi
       - name: Build
