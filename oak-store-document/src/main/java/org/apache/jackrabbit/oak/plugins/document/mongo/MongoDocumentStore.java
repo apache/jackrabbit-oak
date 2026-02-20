@@ -45,6 +45,9 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.mongodb.Block;
 import com.mongodb.DBObject;
 import com.mongodb.MongoBulkWriteException;
+import com.mongodb.MongoWriteException;
+import com.mongodb.MongoCommandException;
+import com.mongodb.WriteError;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.ReadPreference;
@@ -74,6 +77,7 @@ import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.bson.BsonMaximumSizeExceededException;
 import org.bson.conversions.Bson;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -1009,6 +1013,15 @@ public class MongoDocumentStore implements DocumentStore {
                 }
             }
             return oldDoc;
+        } catch (MongoWriteException e) {
+            WriteError werr = e.getError();
+            LOG.error("Failed to update the document with Id={} with MongoWriteException message = '{}'.",
+                    updateOp.getId(), werr.getMessage());
+            throw handleException(e, collection, updateOp.getId());
+        } catch (MongoCommandException e) {
+            LOG.error("Failed to update the document with Id={} with MongoCommandException message ='{}'. ",
+                    updateOp.getId(), e.getMessage());
+            throw handleException(e, collection, updateOp.getId());
         } catch (Exception e) {
             throw handleException(e, collection, updateOp.getId());
         } finally {
@@ -1364,6 +1377,14 @@ public class MongoDocumentStore implements DocumentStore {
                 }
                 insertSuccess = true;
                 return true;
+            } catch (BsonMaximumSizeExceededException e) {
+                for (T doc : docs) {
+                    LOG.error("Failed to create one of the documents " +
+                                    "with BsonMaximumSizeExceededException message = '{}'. " +
+                                    "The document id={} has estimated size={} in VM.",
+                                    e.getMessage(), doc.getId(), doc.getMemory());
+                }
+                return false;
             } catch (MongoException e) {
                 LOG.warn("Encountered MongoException while inserting documents: {} - exception: {}",
                         ids, e.getMessage());
