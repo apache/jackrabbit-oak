@@ -61,30 +61,38 @@ public class DiffIndexMerger {
 
     // the list of unsupported included paths, e.g. "/apps,/libs"
     // by default all paths are supported
-    private final static String[] UNSUPPORTED_INCLUDED_PATHS = System.getProperty("oak.diffIndex.unsupportedPaths", "").split(",");
+    private final static String[] UNSUPPORTED_INCLUDED_PATHS = System.getProperty(
+            "oak.diffIndex.unsupportedPaths", "").split(",");
 
     // in case a custom index is removed, whether a dummy index is created
-    private final static boolean DELETE_CREATES_DUMMY = Boolean.getBoolean("oak.diffIndex.deleteCreatesDummy");
+    private final static boolean DELETE_CREATES_DUMMY = Boolean.getBoolean(
+            "oak.diffIndex.deleteCreatesDummy");
 
     // in case a customization was removed, create a copy of the OOTB index
-    private final static boolean DELETE_COPIES_OOTB = Boolean.getBoolean("oak.diffIndex.deleteCopiesOOTB");
+    private final static boolean DELETE_COPIES_OOTB = Boolean.getBoolean(
+            "oak.diffIndex.deleteCopiesOOTB");
 
     // whether to log at info level
-    private final static boolean LOG_AT_INFO_LEVEL = Boolean.getBoolean("oak.diffIndex.logAtInfoLevel");
+    private final static boolean LOG_AT_INFO_LEVEL = Boolean.getBoolean(
+            "oak.diffIndex.logAtInfoLevel");
 
     // the set of top-level properties that is not allowed to be added to an existing index
-    private final static Set<String> REJECTED_TOP_LEVEL_PROPS_FOR_EXISTING_INDEX = Set.of("selectionPolicy", "valueRegex", "queryFilterRegex", "excludedPaths", "queryPaths");
+    private final static Set<String> REJECTED_TOP_LEVEL_PROPS_FOR_EXISTING_INDEX = Set.of(
+            "selectionPolicy", "valueRegex", "queryFilterRegex", "includedPaths", "excludedPaths", "queryPaths");
 
     // the set of child properties that is not allowed to be added if the property is already indexed
     // eg. the "name" property may not need to be set if the existing property doesn't have it yet (eg. a function-based index),
     // or the "function" property may not need to be set unless if it already exists (eg. a name-based index)
-    private final static Set<String> REJECTED_ADDING_TO_EXISTING_PROPERTY = Set.of("isRegexp", "index", "function", "name");
+    private final static Set<String> REJECTED_ADDING_TO_EXISTING_PROPERTY = Set.of(
+            "isRegexp", "index", "function", "name");
 
     // set of properties that are allowed to be changed if the property already exists
-    private final static Set<String> ALLOW_CHANGING_IN_EXISTING_PROPERTY = Set.of("boost", "weight");
+    private final static Set<String> ALLOW_CHANGING_IN_EXISTING_PROPERTY = Set.of(
+            "boost", "weight");
 
     // set of properties that allow multi-valued string that might be merged
-    private final static Set<String> MERGE_MULTI_VALUES_STRINS = Set.of("includedPaths", "queryPaths", "tags");
+    private final static Set<String> MERGE_MULTI_VALUES_STRINGS = Set.of(
+            "includedPaths", "queryPaths", "tags");
 
     // maximum number of warnings to keep
     private final static int MAX_WARNINGS = 100;
@@ -710,23 +718,26 @@ public class DiffIndexMerger {
      * @param target where to merge into
      * @param isNew whether the target node is newly created (didn't exist before)
      */
-    private void mergeInto(String indexName, String path, JsonObject diff, JsonObject target, boolean isNew) {
-        String pathForLogging = path.isEmpty() ? "the root" : "replative path " + path;
+    private void mergeInto(String indexName, String path, JsonObject diff, JsonObject target,
+        boolean isNewNode) {
+        String pathForLogging = path.isEmpty() ? "the root" : "relative path " + path;
         for (String p : diff.getProperties().keySet()) {
             if (path.isEmpty()) {
                 if ("jcr:primaryType".equals(p)) {
                     continue;
                 }
             }
-            if (!isNew) {
+            if (!isNewNode) {
                 // for existing nodes, we do a few more checks before the merge
-                if (path.isEmpty() && REJECTED_TOP_LEVEL_PROPS_FOR_EXISTING_INDEX.contains(p)) {
-                    // at the top level, some properties (eg. selectionPolicy) are not allowed to be added to an existing index
+                if (path.isEmpty() && REJECTED_TOP_LEVEL_PROPS_FOR_EXISTING_INDEX.contains(p)
+                        && !target.getProperties().containsKey(p)) {
+                    // at the top level, some properties (eg. selectionPolicy) are not allowed to be added
+                    // to an existing index
                     logWarn("{}: Ignoring new top-level property {} at {} for existing index", indexName, p, pathForLogging);
                     continue;
                 }
-                if (REJECTED_ADDING_TO_EXISTING_PROPERTY.contains(p)) {
-                    // the some properties are not allowed to be added if the node already exists
+                if (REJECTED_ADDING_TO_EXISTING_PROPERTY.contains(p) && !target.getProperties().containsKey(p)) {
+                    // some properties are not allowed to be added if the node already exists
                     logWarn("{}: Ignoring new property \"{}\" at {} for existing child", indexName, p, pathForLogging);
                     continue;
                 }
@@ -734,25 +745,23 @@ public class DiffIndexMerger {
             if (target.getProperties().containsKey(p)) {
                 // we do not currently allow to overwrite most existing properties,
                 // except for:
-                if (ALLOW_CHANGING_IN_EXISTING_PROPERTY.contains(p)) {
+                if (!path.isEmpty() && ALLOW_CHANGING_IN_EXISTING_PROPERTY.contains(p)) {
                     // allow overwriting the (eg.) boost value
                     target.getProperties().put(p, diff.getProperties().get(p));
-                } else if (path.isEmpty() && MERGE_MULTI_VALUES_STRINS.contains(p)) {
-                    // merge includedPaths, queryPaths, and tags
-                    if (target.getProperties().containsKey(p)) {
-                        // but only if the old value is set, such that it contains more entries
-                        // (if the property is not set, we would make it more restrictive,
-                        // which is not allowed)
-                        TreeSet<String> oldSet = JsonNodeUpdater.getStringSet(target.getProperties().get(p));
-                        TreeSet<String> newSet = JsonNodeUpdater.getStringSet(diff.getProperties().get(p));
-                        TreeSet<String> mergedSet = new TreeSet<String>(oldSet);
-                        mergedSet.addAll(newSet);
-                        JsopBuilder buff = new JsopBuilder().array();
-                        for(String v : mergedSet) {
-                            buff.value(v);
-                        }
-                        target.getProperties().put(p, buff.endArray().toString());
+                } else if (path.isEmpty() && MERGE_MULTI_VALUES_STRINGS.contains(p)) {
+                    // merge includedPaths, queryPaths, and tags,
+                    // such that it contains more entries
+                    // (if the property is not set, we would make it more restrictive,
+                    // which is not allowed)
+                    TreeSet<String> oldSet = JsonNodeUpdater.getStringSet(target.getProperties().get(p));
+                    TreeSet<String> newSet = JsonNodeUpdater.getStringSet(diff.getProperties().get(p));
+                    TreeSet<String> mergedSet = new TreeSet<String>(oldSet);
+                    mergedSet.addAll(newSet);
+                    JsopBuilder buff = new JsopBuilder().array();
+                    for(String v : mergedSet) {
+                        buff.value(v);
                     }
+                    target.getProperties().put(p, buff.endArray().toString());
                 } else {
                     logWarn("{}: Ignoring existing property \"{}\" at {}", indexName, p, pathForLogging);
                 }

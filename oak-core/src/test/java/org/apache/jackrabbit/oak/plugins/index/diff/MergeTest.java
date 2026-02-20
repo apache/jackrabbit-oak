@@ -187,6 +187,10 @@ public class MergeTest {
                         + "", true), JsonObject.fromJson("{ \n"
                 + "        \"tags\": [\"newTag\"],\n"
                 + "        \"selectionPolicy\": \"tag\",\n"
+                + "        \"includedPaths\": \"/content\",\n"
+                + "        \"excludedPaths\": \"/libs\",\n"
+                + "        \"queryPaths\": \"/content/abc\",\n"
+                + "        \"tags\": \"myTag\",\n"
                 + "        \"indexRules\": {\n"
                 + "            \"dam:Asset\": {\n"
                 + "                \"properties\": {\n"
@@ -206,7 +210,7 @@ public class MergeTest {
                 + "  \"jcr:primaryType\": \"nam:oak:IndexDefinition\",\n"
                 + "  \"type\": \"lucene\",\n"
                 + "  \"async\": [\"async\", \"nrt\"],\n"
-                + "  \"tags\": [\"newTag\"],\n"
+                + "  \"tags\": \"myTag\",\n"
                 + "  \"indexRules\": {\n"
                 + "    \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
                 + "    \"dam:Asset\": {\n"
@@ -231,6 +235,10 @@ public class MergeTest {
 
     @Test
     public void customizeIncludedPathsQueryPathsAndTags() {
+        // We can merge includedPaths because that will extend the list.
+        // Adding tags is fine as well.
+        // But we can not add queryPaths if that doesn't exist yet.
+        // Also, selectionPolicy may not be set.
         String merged = new DiffIndexMerger().processMerge(null, JsonObject.fromJson("{\n"
                         + "        \"jcr:primaryType\": \"nam:oak:IndexDefinition\",\n"
                         + "        \"type\": \"lucene\",\n"
@@ -250,6 +258,8 @@ public class MergeTest {
                         + "    }\n"
                         + "", true), JsonObject.fromJson("{ \n"
                 + "    \"includedPaths\": [\"/content/dam\", \"/content/additional\" ],\n"
+                + "    \"queryPaths\": [\"/content/dam\" ],\n"
+                + "    \"selectionPolicy\": \"tag\",\n"
                 + "    \"tags\": [\"def\", \"ghi\" ]\n"
                 + "  }", true)).toString();
         assertEquals("{\n"
