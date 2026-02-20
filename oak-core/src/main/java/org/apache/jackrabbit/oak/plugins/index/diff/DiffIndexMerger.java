@@ -78,10 +78,13 @@ public class DiffIndexMerger {
     // the set of child properties that is not allowed to be added if the property is already indexed
     // eg. the "name" property may not need to be set if the existing property doesn't have it yet (eg. a function-based index),
     // or the "function" property may not need to be set unless if it already exists (eg. a name-based index)
-    private final static Set<String> REJECTED_PROPS_FOR_EXISTING_PROPERTY = Set.of("isRegexp", "index", "function", "name");
+    private final static Set<String> REJECTED_ADDING_TO_EXISTING_PROPERTY = Set.of("isRegexp", "index", "function", "name");
 
     // set of properties that are allowed to be changed if the property already exists
-    private final static Set<String> ALLOW_CHANGING_EXISTING_PROPERTY = Set.of("boost", "weight");
+    private final static Set<String> ALLOW_CHANGING_IN_EXISTING_PROPERTY = Set.of("boost", "weight");
+
+    // set of properties that allow multi-valued string that might be merged
+    private final static Set<String> MERGE_MULTI_VALUES_STRINS = Set.of("includedPaths", "queryPaths", "tags");
 
     // maximum number of warnings to keep
     private final static int MAX_WARNINGS = 100;
@@ -722,7 +725,7 @@ public class DiffIndexMerger {
                     logWarn("{}: Ignoring new top-level property {} at {} for existing index", indexName, p, pathForLogging);
                     continue;
                 }
-                if (REJECTED_PROPS_FOR_EXISTING_PROPERTY.contains(p)) {
+                if (REJECTED_ADDING_TO_EXISTING_PROPERTY.contains(p)) {
                     // the some properties are not allowed to be added if the node already exists
                     logWarn("{}: Ignoring new property \"{}\" at {} for existing child", indexName, p, pathForLogging);
                     continue;
@@ -731,10 +734,10 @@ public class DiffIndexMerger {
             if (target.getProperties().containsKey(p)) {
                 // we do not currently allow to overwrite most existing properties,
                 // except for:
-                if (ALLOW_CHANGING_EXISTING_PROPERTY.contains(p)) {
+                if (ALLOW_CHANGING_IN_EXISTING_PROPERTY.contains(p)) {
                     // allow overwriting the (eg.) boost value
                     target.getProperties().put(p, diff.getProperties().get(p));
-                } else if (path.isEmpty() && (p.equals("includedPaths") || p.equals("queryPaths") || p.equals("tags"))) {
+                } else if (path.isEmpty() && MERGE_MULTI_VALUES_STRINS.contains(p)) {
                     // merge includedPaths, queryPaths, and tags
                     if (target.getProperties().containsKey(p)) {
                         // but only if the old value is set, such that it contains more entries
@@ -815,8 +818,19 @@ public class DiffIndexMerger {
         }
     }
 
+    /**
+     * Find a child node that contains a property with the given key and value.
+     * This is used during merging to find an existing index rule property
+     * definition that matches a given "name" or "function" value, so that the
+     * diff can be applied to the correct child even if the child node name differs.
+     *
+     * @param obj the parent JSON object whose children are searched
+     * @param key the property key to match (e.g. "name" or "function")
+     * @param value the expected property value (already converted via oakStringValue)
+     * @return the name of the first matching child, or null if no match is found
+     */
     public static String getChildWithKeyValuePair(JsonObject obj, String key, String value) {
-        for(Entry<String, JsonObject> c : obj.getChildren().entrySet()) {
+        for (Entry<String, JsonObject> c : obj.getChildren().entrySet()) {
             String v2 = c.getValue().getProperties().get(key);
             if (v2 == null) {
                 continue;
@@ -868,6 +882,7 @@ public class DiffIndexMerger {
      * data: it is only available in the writeable repository.
      *
      * @param repositoryNodeStore the node store
+     * @param name the name (diff.index, diff.index.optimize,...)
      * @return a map, possibly with a single entry with this key
      */
     public Map<String, JsonObject> readDiffIndex(NodeStore repositoryNodeStore, String name) {

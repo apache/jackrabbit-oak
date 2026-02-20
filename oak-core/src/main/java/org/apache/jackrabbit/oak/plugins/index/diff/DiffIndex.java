@@ -238,7 +238,7 @@ public class DiffIndex {
      * @param indexPath the path
      * @param keep which index name (which version) to retain
      */
-    private static void disableOrRemoveOldVersions(NodeBuilder definitions, String indexPath, String keep) {
+    public static void disableOrRemoveOldVersions(NodeBuilder definitions, String indexPath, String keep) {
         String indexName = indexPath;
         if (indexPath.startsWith("/oak:index/")) {
             indexName = indexPath.substring("/oak:index/".length());
@@ -253,6 +253,7 @@ public class DiffIndex {
             String childBaseName = IndexName.parse(child).getBaseName();
             if (baseName.equals(childBaseName)) {
                 if (indexName.equals(child)) {
+                    // we can not remove it unless it is disabled
                     if (!IndexConstants.TYPE_DISABLED.equals(definitions.
                             getChildNode(indexName).
                             getString(IndexConstants.TYPE_PROPERTY_NAME))) {

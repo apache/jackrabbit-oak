@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.diff;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.charset.StandardCharsets;
@@ -516,6 +517,31 @@ public class MergeTest {
         assertEquals(true, merger.includesUnsupportedPaths(new String[]{"/content", "/apps"}));
         assertEquals(true, merger.includesUnsupportedPaths(new String[]{"/content", "/libs/test"}));
 
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"x"}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{""}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/content"}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/content/dam"}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/var"}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/etc"}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/content", "/var", "/etc"}));
+    }
+
+    @Test
+    public void includesUnsupportedPathsDisabledTest() {
+        DiffIndexMerger merger = new DiffIndexMerger().
+                setUnsupportedIncludedPaths(new String[]{""}).
+                setDeleteCopiesOutOfTheBoxIndex(false).
+                setDeleteCreatesDummyIndex(false);
+
+        assertEquals(false, merger.includesUnsupportedPaths(null));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{""}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/"}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/apps"}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/libs"}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/libs/foundation"}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/content", "/apps"}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/content", "/libs/test"}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"x"}));
         assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/content"}));
         assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/content/dam"}));
         assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/var"}));
@@ -550,5 +576,31 @@ public class MergeTest {
         assertEquals("\"async\"", indexDef.getProperties().get("async"));
         assertEquals("\"/content\"", indexDef.getProperties().get("includedPaths"));
         assertTrue(indexDef.getChildren().containsKey("indexRules"));
+
+        Map<String, JsonObject> result2 = new DiffIndexMerger().readDiffIndex(store, "diff.index.notThere");
+        assertTrue(result2.isEmpty());
+
+    }
+
+    @Test
+    public void getChildWithKeyValuePairTest() {
+        JsonObject parent = JsonObject.fromJson("{\n"
+                + "  \"child1\": { \"name\": \"str:jcr:title\", \"propertyIndex\": true },\n"
+                + "  \"child2\": { \"function\": \"upper(x)\", \"ordered\": true },\n"
+                + "  \"child3\": { \"propertyIndex\": true },\n"
+                + "  \"empty\": { }\n"
+                + "}", true);
+        assertEquals("child1", DiffIndexMerger.getChildWithKeyValuePair(parent, "name", "jcr:title"));
+        assertEquals("child2", DiffIndexMerger.getChildWithKeyValuePair(parent, "function", "upper(x)"));
+        assertNull(DiffIndexMerger.getChildWithKeyValuePair(parent, "name", "nonexistent"));
+        assertNull(DiffIndexMerger.getChildWithKeyValuePair(parent, "name", "upper(x)"));
+        assertNull(DiffIndexMerger.getChildWithKeyValuePair(parent, "function", "jcr:title"));
+        // v2 == null: child3 and empty have no "name" property, so they are skipped
+        assertNull(DiffIndexMerger.getChildWithKeyValuePair(parent, "name", "true"));
+        // key not present in any child
+        assertNull(DiffIndexMerger.getChildWithKeyValuePair(parent, "missing", "anything"));
+        // no children at all
+        JsonObject emptyParent = JsonObject.fromJson("{}", true);
+        assertNull(DiffIndexMerger.getChildWithKeyValuePair(emptyParent, "name", "x"));
     }
 }
