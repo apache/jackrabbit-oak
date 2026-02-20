@@ -925,6 +925,7 @@ public class MongoDocumentStore implements DocumentStore {
         }
         final Stopwatch watch = startWatch();
         boolean newEntry = false;
+
         try {
             // get modCount of cached document
             Long modCount = null;
@@ -992,6 +993,7 @@ public class MongoDocumentStore implements DocumentStore {
             if (checkConditions && oldNode == null) {
                 return null;
             }
+
             T oldDoc = convertFromDBObject(collection, oldNode);
             if (oldDoc != null) {
                 if (collection == Collection.NODES) {
@@ -1015,8 +1017,8 @@ public class MongoDocumentStore implements DocumentStore {
             return oldDoc;
         } catch (MongoWriteException e) {
             WriteError werr = e.getError();
-            LOG.error("Failed to update the document with Id={} with MongoWriteException message = '{}'.",
-                    updateOp.getId(), werr.getMessage());
+            LOG.error("Failed to update the document with Id={} with MongoWriteException message = '{}'. Document statistics: {}.",
+                    updateOp.getId(), werr.getMessage(), produceDiagnostics(collection, updateOp.getId()), e);
             throw handleException(e, collection, updateOp.getId());
         } catch (MongoCommandException e) {
             LOG.error("Failed to update the document with Id={} with MongoCommandException message ='{}'. ",
@@ -1042,6 +1044,23 @@ public class MongoDocumentStore implements DocumentStore {
         T doc = findAndModify(collection, update, update.isNew(), false);
         log("createOrUpdate returns ", doc);
         return doc;
+    }
+
+    private <T extends Document> String produceDiagnostics(Collection<T> col, String id) {
+        StringBuilder t = new StringBuilder();
+
+        try {
+            T doc = find(col, id);
+            if (doc != null) {
+                t.append("_id: " + doc.getId() + ", _modCount: " + doc.getModCount() + ", memory: " + doc.getMemory());
+                t.append("; Contents: ");
+                t.append(Utils.mapEntryDiagnostics(doc.entrySet()));
+            }
+        } catch (Throwable thisIsBestEffort) {
+            t.append(thisIsBestEffort.getMessage());
+        }
+
+        return t.toString();
     }
 
     /**
