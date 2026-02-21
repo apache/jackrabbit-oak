@@ -155,13 +155,10 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
 
         Set<String> groupIds = getExpectedSyncedGroupIds(membershipNestingDepth, idp, mod);
         assertEquals(groupIds.size(), t.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES).count());
-        
+
+        // Verify that groups are migrated to dynamic membership (stored membership cleared)
         assertMigratedGroups(previouslySyncedUser, t);
-        if (membershipNestingDepth == 0) {
-            for (String grId : groupIds) {
-                assertNull(userManager.getAuthorizable(grId));
-            }
-        } else {
+        if (membershipNestingDepth > 0) {
             assertMigratedGroups(mod, t);
         }
     }
@@ -316,13 +313,15 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
         // verify membership
         List<String> groupIds = getIds(a.memberOf());
         if (membershipNestingDepth == 0) {
+            // OAK-12079: When depth=0, no external groups are resolved, so user is not in any external groups
+            // Since stored membership is cleared and no dynamic membership is established, user should not be in localGroup
             assertFalse(groupIds.contains("localGroup"));
             assertFalse(local.isMember(a));
         } else {
             assertEquals("Found "+groupIds, (membershipNestingDepth > 1) ? 5 : 4, groupIds.size());
             assertTrue(groupIds.contains("localGroup"));
             assertTrue(local.isMember(a));
-            
+
             for (String id : new String[] {groupId, groupId2}) {
                 Authorizable extGroup = um.getAuthorizable(id);
                 assertTrue(getIds(extGroup.declaredMemberOf()).contains("localGroup"));

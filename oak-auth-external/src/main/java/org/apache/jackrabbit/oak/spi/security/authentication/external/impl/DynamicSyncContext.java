@@ -149,9 +149,27 @@ public class DynamicSyncContext extends DefaultSyncContext {
             return;
         }
 
+        // OAK-12079: When depth <= 0, set REP_EXTERNAL_PRINCIPAL_NAMES to empty array and clear existing memberships
+        // This effectively disables group membership lookup from IDP
+        if (depth <= 0) {
+            // Determine if cleanup is needed BEFORE setting properties (which would change the check results)
+            boolean groupsSyncedBefore = groupsSyncedBefore(auth);
+            boolean cleanupGroups = groupsSyncedBefore || requiresCleanup(auth);
+
+            // Set empty array for dynamic membership tracking (no groups)
+            setExternalPrincipalNames(auth, Collections.emptyList());
+
+            // Clear existing group memberships when migrating to dynamic
+            if (cleanupGroups) {
+                clearGroupMembership(auth);
+            }
+
+            return;
+        }
+
         boolean groupsSyncedBefore = groupsSyncedBefore(auth);
         if (groupsSyncedBefore && !enforceDynamicSync()) {
-            // user has been synchronized before dynamic membership has been turned on. continue regular sync unless 
+            // user has been synchronized before dynamic membership has been turned on. continue regular sync unless
             // either dynamic membership is enforced or dynamic-group option is enabled.
             super.syncMembership(external, auth, depth);
         } else {
@@ -159,20 +177,20 @@ public class DynamicSyncContext extends DefaultSyncContext {
                 // determine if clean up of groups (i.e. getting rid of previously synchronized membership information)
                 // is required or not. due to OAK-10517 just checking 'groupsSyncedBefore' is not sufficient.
                 boolean cleanupGroups = groupsSyncedBefore || requiresCleanup(auth);
-                
+
                 Iterable<ExternalIdentityRef> declaredGroupRefs = external.getDeclaredGroups();
                 // resolve group-refs respecting depth to avoid iterating twice
                 Map<ExternalIdentityRef, SyncEntry> map = collectSyncEntries(declaredGroupRefs, depth);
-                
+
                 // store dynamic membership with the user
                 setExternalPrincipalNames(auth, map.values());
-                
+
                 // if dynamic-group option is enabled -> sync groups without member-information
                 // in case group-membership has been synched before -> clear it
-                if (hasDynamicGroups() && depth > 0) {
+                if (hasDynamicGroups()) {
                     createDynamicGroups(map.values());
                 }
-                
+
                 // clean up any other membership
                 if (cleanupGroups) {
                     clearGroupMembership(auth);
