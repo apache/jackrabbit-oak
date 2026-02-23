@@ -39,7 +39,12 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.Collections;
+import java.util.Date;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Properties;
+import java.util.Set;
 import java.util.stream.StreamSupport;
 
 import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.ADD;
