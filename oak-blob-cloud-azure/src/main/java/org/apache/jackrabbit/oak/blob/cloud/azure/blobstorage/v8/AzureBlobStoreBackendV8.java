@@ -64,7 +64,7 @@ import java.util.function.Function;
 
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.oak.commons.collections.AbstractIterator;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 
 import com.microsoft.azure.storage.AccessCondition;
