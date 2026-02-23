@@ -40,7 +40,6 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
@@ -908,7 +907,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
 
             BlobSasPermission perms = new BlobSasPermission()
                     .setWritePermission(true);
-            Map<String, String> presignedURIRequestParams = Maps.newHashMap();
+            Map<String, String> presignedURIRequestParams = new HashMap<>();
             // see https://docs.microsoft.com/en-us/rest/api/storageservices/put-block#uri-parameters
             presignedURIRequestParams.put("comp", "block");
             for (long blockId = 1; blockId <= numParts; ++blockId) {
@@ -1047,7 +1046,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
                                    BlobSasPermission blobSasPermissions,
                                    int expirySeconds,
                                    String domain) {
-        return createPresignedURI(key, blobSasPermissions, expirySeconds, Maps.newHashMap(), domain, null);
+        return createPresignedURI(key, blobSasPermissions, expirySeconds, new HashMap<>(), domain, null);
     }
 
     private URI createPresignedURI(String key,
