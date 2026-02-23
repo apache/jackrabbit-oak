@@ -176,7 +176,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
             try {
                 UtilsV8.setProxyIfNeeded(properties);
                 createBlobContainer = PropertiesUtil.toBoolean(
-                    Objects.toString(properties.getProperty(AzureConstants.AZURE_CREATE_CONTAINER), "").isEmpty(), true);
+                    Strings.emptyToNull(properties.getProperty(AzureConstants.AZURE_CREATE_CONTAINER)), true);
                 initAzureDSConfig();
 
                 concurrentRequestCount = PropertiesUtil.toInteger(
@@ -200,7 +200,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
                     requestTimeout = PropertiesUtil.toInteger(properties.getProperty(AzureConstants.AZURE_BLOB_REQUEST_TIMEOUT), RetryPolicy.DEFAULT_CLIENT_RETRY_COUNT);
                 }
                 presignedDownloadURIVerifyExists = PropertiesUtil.toBoolean(
-                        Objects.toString(properties.getProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS), "").isEmpty(), true);
+                        Strings.emptyToNull(properties.getProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS)), true);
 
                 enableSecondaryLocation = PropertiesUtil.toBoolean(
                         properties.getProperty(AzureConstants.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_NAME),
@@ -238,7 +238,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
 
                 // Initialize reference key secret
                 boolean createRefSecretOnInit = PropertiesUtil.toBoolean(
-                        Objects.toString(properties.getProperty(AzureConstants.AZURE_REF_ON_INIT), "").isEmpty(), true);
+                        Strings.emptyToNull(properties.getProperty(AzureConstants.AZURE_REF_ON_INIT)), true);
 
                 if (createRefSecretOnInit) {
                     getOrCreateReferenceKey();
