@@ -34,16 +34,12 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.MockitoAnnotations;
-import org.testcontainers.shaded.com.google.common.collect.ImmutableSet;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Date;
-import java.util.EnumSet;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.StreamSupport;
 
 import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.ADD;
@@ -692,7 +688,9 @@ public class AzureBlobContainerProviderV8Test {
     }
 
     private static Set<String> concat(Set<String> set, String element) {
-        return ImmutableSet.<String>builder().addAll(set).add(element).build();
+        Set<String> result = new HashSet<>(set);
+        result.add(element);
+        return Collections.unmodifiableSet(result);
     }
 
     // ========== Additional SAS Generation Tests ==========
