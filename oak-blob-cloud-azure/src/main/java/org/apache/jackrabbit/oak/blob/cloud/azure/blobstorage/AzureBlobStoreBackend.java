@@ -38,7 +38,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -1066,7 +1065,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
                                    Map<String, String> additionalQueryParams,
                                    String domain,
                                    BlobSasHeaders optionalHeaders) {
-        if (Strings.isNullOrEmpty(domain)) {
+        if (Objects.toString(domain, "").isEmpty()) {
             LOG.warn("Can't generate presigned URI - no Azure domain provided (is Azure account name configured?)");
             return null;
         }

@@ -59,7 +59,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
@@ -781,13 +780,13 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
                 headers.setCacheControl(String.format("private, max-age=%d, immutable", httpDownloadURIExpirySeconds));
 
                 String contentType = downloadOptions.getContentTypeHeader();
-                if (!Strings.isNullOrEmpty(contentType)) {
+                if (!Objects.toString(contentType, "").isEmpty()) {
                     headers.setContentType(contentType);
                 }
 
                 String contentDisposition =
                         downloadOptions.getContentDispositionHeader();
-                if (!Strings.isNullOrEmpty(contentDisposition)) {
+                if (!Objects.toString(contentDisposition, "").isEmpty()) {
                     headers.setContentDisposition(contentDisposition);
                 }
 
@@ -985,7 +984,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
 
     private String getDefaultBlobStorageDomain() {
         String accountName = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "");
-        if (Strings.isNullOrEmpty(accountName)) {
+        if (Objects.toString(accountName, "").isEmpty()) {
             LOG.warn("Can't generate presigned URI - Azure account name not found in properties");
             return null;
         }
@@ -996,7 +995,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
         String domain = ignoreDomainOverride
                 ? getDefaultBlobStorageDomain()
                 : downloadDomainOverride;
-        if (Strings.isNullOrEmpty(domain)) {
+        if (Objects.toString(domain, "").isEmpty()) {
             domain = getDefaultBlobStorageDomain();
         }
         return domain;
@@ -1006,7 +1005,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
         String domain = ignoreDomainOverride
                 ? getDefaultBlobStorageDomain()
                 : uploadDomainOverride;
-        if (Strings.isNullOrEmpty(domain)) {
+        if (Objects.toString(domain, "").isEmpty()) {
             domain = getDefaultBlobStorageDomain();
         }
         return domain;
@@ -1034,7 +1033,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
                                    Map<String, String> additionalQueryParams,
                                    SharedAccessBlobHeaders optionalHeaders,
                                    String domain) {
-        if (Strings.isNullOrEmpty(domain)) {
+        if (Objects.toString(domain, "").isEmpty()) {
             LOG.warn("Can't generate presigned URI - no Azure domain provided (is Azure account name configured?)");
             return null;
         }
