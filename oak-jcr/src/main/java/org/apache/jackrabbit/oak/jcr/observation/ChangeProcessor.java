@@ -626,7 +626,7 @@ class ChangeProcessor implements FilteringAwareObserver {
                 + ", eventCount=" + eventCount 
                 + ", eventDuration=" + eventDuration 
                 + ", commitRateLimiter=" + commitRateLimiter
-                + ", running=" + stopped.get() + "]";
+                + ", running=" + !stopped.get() + "]";
     }
     
     /** for logging only **/
