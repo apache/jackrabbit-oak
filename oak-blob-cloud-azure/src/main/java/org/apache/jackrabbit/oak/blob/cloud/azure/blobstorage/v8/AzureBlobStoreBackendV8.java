@@ -1017,7 +1017,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
                                    int expirySeconds,
                                    SharedAccessBlobHeaders optionalHeaders,
                                    String domain) {
-        return createPresignedURI(key, permissions, expirySeconds, Maps.newHashMap(), optionalHeaders, domain);
+        return createPresignedURI(key, permissions, expirySeconds, new HashMap<>(), optionalHeaders, domain);
     }
 
     private URI createPresignedURI(String key,
