@@ -1646,6 +1646,36 @@ public class MongoDocumentStore implements DocumentStore {
                     return dbCollection.bulkWrite(writes, options);
                 }
             }, collection, "bulkUpdate(size=" + writes.size() + ")");
+        } catch (BsonMaximumSizeExceededException e) {
+            // payload size exceeded MongoDB's limit, retry with smaller batches
+            List<UpdateOp> updateOpsList = new ArrayList<>(updateOps);
+            int size = updateOpsList.size();
+            if (size <= 1) {
+                // cannot split further, log the problematic document and rethrow
+                if (size == 1) {
+                    UpdateOp op = updateOpsList.get(0);
+                    // estimate size from the write model's update document
+                    UpdateOneModel<BasicDBObject> updateModel = (UpdateOneModel<BasicDBObject>) writes.get(0);
+                    BasicDBObject updateDoc = (BasicDBObject) updateModel.getUpdate();
+                    int estimatedSize = updateDoc.toString().getBytes().length;
+                    LOG.error("Bulk request failed: single document '{}' exceeds maximum BSON size. " +
+                            "Estimated update size: {} bytes, update: {}", op.getId(), estimatedSize, updateDoc);
+                }
+                throw e;
+            }
+            LOG.warn("Bulk request payload size exceeded limit for {} operations, retrying with smaller batches", size);
+            int mid = size / 2;
+            List<UpdateOp> firstHalf = updateOpsList.subList(0, mid);
+            List<UpdateOp> secondHalf = updateOpsList.subList(mid, size);
+            BulkRequestResult firstResult = sendBulkRequest(collection, firstHalf, oldDocs, isUpsert);
+            BulkRequestResult secondResult = sendBulkRequest(collection, secondHalf, oldDocs, isUpsert);
+            // merge results from both halves
+            Set<String> mergedFailedUpdates = new HashSet<>(firstResult.failedUpdates);
+            mergedFailedUpdates.addAll(secondResult.failedUpdates);
+            Set<String> mergedUpserts = new HashSet<>(firstResult.upserts);
+            mergedUpserts.addAll(secondResult.upserts);
+            int mergedModifiedCount = firstResult.modifiedCount + secondResult.modifiedCount;
+            return new BulkRequestResult(mergedFailedUpdates, mergedUpserts, mergedModifiedCount);
         } catch (MongoBulkWriteException e) {
             bulkResult = e.getWriteResult();
             for (BulkWriteError err : e.getWriteErrors()) {
@@ -1739,14 +1769,29 @@ public class MongoDocumentStore implements DocumentStore {
                 insertSuccess = true;
                 return true;
             } catch (BsonMaximumSizeExceededException e) {
-                for (T doc : docs) {
-                    LOG.error("Failed to create one of the documents " +
-                                    "with BsonMaximumSizeExceededException message = '{}'. " +
-                                    "The document id={} has estimated size={} in VM, Content statistics: {}.",
-                                    e.getMessage(), doc.getId(), doc.getMemory(),
-                                    Utils.mapEntryDiagnostics(doc.entrySet()));
+                int size = updateOps.size();
+                if (size <= 1) {
+                    // cannot split further, log the problematic document and return false
+                    if (size == 1) {
+                        T doc = docs.get(0);
+                        BasicDBObject insertDoc = inserts.get(0);
+                        int estimatedSize = insertDoc.toString().getBytes().length;
+                        LOG.error("Failed to create document '{}' - exceeds maximum BSON size. " +
+                                "Estimated size: {} bytes, VM memory: {}, Content statistics: {}.",
+                                doc.getId(), estimatedSize, doc.getMemory(),
+                                Utils.mapEntryDiagnostics(doc.entrySet()));
+                    }
+                    return false;
                 }
-                return false;
+                // payload size exceeded, retry with smaller batches
+                LOG.warn("Insert payload size exceeded limit for {} documents, retrying with smaller batches", size);
+                int mid = size / 2;
+                List<UpdateOp> firstHalf = updateOps.subList(0, mid);
+                List<UpdateOp> secondHalf = updateOps.subList(mid, size);
+                boolean firstSuccess = create(collection, firstHalf);
+                boolean secondSuccess = create(collection, secondHalf);
+                insertSuccess = firstSuccess && secondSuccess;
+                return insertSuccess;
             } catch (MongoException e) {
                 LOG.warn("Encountered MongoException while inserting documents: {} - exception: {}",
                         ids, e.getMessage());
