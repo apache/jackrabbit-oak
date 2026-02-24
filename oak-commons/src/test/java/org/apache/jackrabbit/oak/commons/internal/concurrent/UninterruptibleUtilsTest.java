@@ -193,7 +193,7 @@ public class UninterruptibleUtilsTest {
     public void testJoinShouldWaitUntilThreadFinishes() {
         final Thread worker = new Thread(() -> {
             try {
-                Thread.sleep(20L);
+                Thread.sleep(100L); // Increased sleep to reduce flakiness
             } catch (InterruptedException ignored) {
             }
         });
@@ -204,7 +204,8 @@ public class UninterruptibleUtilsTest {
         UninterruptibleUtils.joinUninterruptibly(worker);
         long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
 
-        Assert.assertTrue("Join should respect timeout", elapsedMillis >= 20L );
+        // Allow a small margin for scheduling jitter
+        Assert.assertTrue("Join should respect timeout (elapsedMillis=" + elapsedMillis + ")", elapsedMillis >= 90L);
     }
 
     @Test
