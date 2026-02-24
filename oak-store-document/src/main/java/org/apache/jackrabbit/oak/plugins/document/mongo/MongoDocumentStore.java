@@ -1651,7 +1651,32 @@ public class MongoDocumentStore implements DocumentStore {
             for (BulkWriteError err : e.getWriteErrors()) {
                 failedUpdates.add(bulkIds[err.getIndex()]);
             }
+        } catch (BSONException bsonException) {
+            LOG.error("bulkUpdate of size {} failed with: {}", updateOps.size(),
+                    bsonException.getMessage(), bsonException);
+
+            // add diagnostics
+            String idOfbiggestUpdate = "";
+            int estimatedSizeOfBiggestUpdate = 0;
+
+            for (UpdateOp updateOp : updateOps) {
+                String id = updateOp.getId();
+                // this could be made more precise my measuring the BSON serialization of
+                // conditions and updates
+                int estimatedSize = updateOp.toString().length();
+                LOG.debug("after bulk write: string serialization of changes for id={} had an approximate size of {}",
+                        id, estimatedSize);
+                if (estimatedSize > estimatedSizeOfBiggestUpdate) {
+                    idOfbiggestUpdate = id;
+                    estimatedSizeOfBiggestUpdate = estimatedSize;
+                }
+            }
+            LOG.error("bulkUpdate failure: biggest update was for i={} with approximate size of {}",
+                    idOfbiggestUpdate, estimatedSizeOfBiggestUpdate);
+            // rethrow
+            throw bsonException;
         }
+
         for (BulkWriteUpsert upsert : bulkResult.getUpserts()) {
             upserts.add(bulkIds[upsert.getIndex()]);
         }
