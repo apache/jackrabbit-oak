@@ -483,12 +483,12 @@ is added to the `diff.index` node.
 * For fully custom indexes, the diff must contain
   the complete index definition (there is no product base to merge with).
 
-Example: if there is an existing index under `/oak:index/damAssetsLucene-10`, then the following `diff.json` will
-customize it, and create a new merged index `/oak:index/damAssetsLucene-10-custom-1` if merging is successful.
+Example: if there is an existing index under `/oak:index/damAssetLucene-10`, then the following `diff.json` will
+customize it, and create a new merged index `/oak:index/damAssetLucene-10-custom-1` if merging is successful.
 It will also add a new fully custom index named `/oak:index/acme.myIndex-1-custom-1`.
 
     {
-        "damAssetsLucene": {
+        "damAssetLucene": {
             "indexRules": {
                 "dam:Asset": {
                     "properties": {
