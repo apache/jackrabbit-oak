@@ -330,6 +330,47 @@ public class AzureRepositoryLockTest {
         }
     }
 
+    @Test
+    public void testUnresolvedAddressExceptionIsRecoverable() throws Exception {
+        BlockBlobClient blockBlobClient = readBlobContainerClient.getBlobClient("oak/repo.lock").getBlockBlobClient();
+        BlockBlobClient noRetryBlockBlobClient = noRetryBlobContainerClient.getBlobClient("oak/repo.lock").getBlockBlobClient();
+        BlobLeaseClient blobLeaseClient = new BlobLeaseClientBuilder().blobClient(noRetryBlockBlobClient).buildClient();
+
+        BlockBlobClient blobMocked = Mockito.spy(blockBlobClient);
+        BlobLeaseClient blobLeaseMocked = Mockito.spy(blobLeaseClient);
+
+        // Simulate DNS resolution failure wrapped in a RuntimeException (as Netty/Reactor does)
+        RuntimeException dnsError = new RuntimeException(
+                "Connection failed",
+                new java.nio.channels.UnresolvedAddressException());
+
+        // Track if shutdown hook was called
+        AtomicBoolean shutdownCalled = new AtomicBoolean(false);
+        Runnable shutdownHook = () -> shutdownCalled.set(true);
+
+        // Instrument the mock to throw the UnresolvedAddressException twice, then succeed
+        Mockito.doThrow(dnsError)
+                .doThrow(dnsError)
+                .doCallRealMethod()
+                .when(blobLeaseMocked).renewLeaseWithResponse((RequestConditions) any(), any(), any());
+
+        WriteAccessController writeAccessController = new WriteAccessController();
+
+        AzureRepositoryLock lock = new AzureRepositoryLock(blobMocked, blobLeaseMocked, shutdownHook, writeAccessController);
+        try {
+            lock.lock();
+
+            // Wait for at least 3 calls (2 failures + 1 success) with a timeout
+            Mockito.verify(blobLeaseMocked, Mockito.timeout(10000).atLeast(3))
+                    .renewLeaseWithResponse((RequestConditions) any(), any(), any());
+
+            // Verify that shutdown hook was NOT called - the UnresolvedAddressException should be treated as recoverable
+            assertFalse("Shutdown hook should not be called for UnresolvedAddressException", shutdownCalled.get());
+        } finally {
+            lock.unlock();
+        }
+    }
+
     /**
      * HTTP pipeline policy that injects delays into specific requests.
      * Used to cause real client-side timeouts in tests.
