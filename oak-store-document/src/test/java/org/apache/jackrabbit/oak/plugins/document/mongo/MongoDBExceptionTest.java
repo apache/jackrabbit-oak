@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
@@ -26,22 +27,25 @@ import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.bson.BSONException;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.event.Level;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import static java.util.Collections.singletonList;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.junit.Assert.assertFalse;
 
 public class MongoDBExceptionTest {
 
@@ -158,6 +162,61 @@ public class MongoDBExceptionTest {
     }
 
     @Test
+    public void createOrUpdate16MBBatchWithMultiDocs() {
+        LogCustomizer log = LogCustomizer.forLogger(MongoDocumentStore.class.getName()).
+                enable(Level.ERROR).
+                matchesRegex("bulkUpdate.*biggest update.*approximate.*").
+                create();
+
+        try {
+            log.starting();
+            List<String> ids = new ArrayList<>();
+            List<UpdateOp> updateOps = new ArrayList<>();
+
+            String idOfReallyBig = "foo-really-big";
+
+            {
+                String id = "/foo-1MB";
+                ids.add(id);
+                UpdateOp updateOp = new UpdateOp(id, true);
+                updateOp = create1MBProp(updateOp);
+                updateOps.add(updateOp);
+            }
+            {
+                String id = idOfReallyBig;
+                ids.add(id);
+                UpdateOp updateOp = new UpdateOp(id, true);
+                updateOp.set("big", RandomStringUtils.randomAlphanumeric(20 * 1024 * 1024));
+                updateOps.add(updateOp);
+            }
+            {
+                String id = "/foo-small";
+                ids.add(id);
+                UpdateOp updateOp = new UpdateOp(id, true);
+                updateOps.add(updateOp);
+            }
+
+            store.remove(Collection.NODES, ids);
+
+            try {
+                store.createOrUpdate(Collection.NODES, updateOps);
+                fail("createOrUpdate(many with one >16MB) should have failed");
+            } catch (BSONException expected) {
+                // expected but incorrect -> new ticket
+                List<String> messages = log.getLogs();
+                assertEquals("only 1 message expected, but got: " + messages.size(),
+                        1, messages.size());
+                String message = messages.get(0);
+                assertTrue("log message should contain id " + idOfReallyBig + "/foo-really.big, got: " +  message,
+                        message.contains(idOfReallyBig));
+            }
+
+        } finally {
+            log.finished();
+        }
+    }
+
+    @Test
     public void update16MBDoc() {
 
         String docName = "/foo";
@@ -263,7 +322,7 @@ public class MongoDBExceptionTest {
     private UpdateOp create16MBProp(UpdateOp op) {
         // create a 1 MB property
         String content = create1MBContent();
-        
+
 
         //create 16MB property
         for (int i = 0; i < 16; i++) {

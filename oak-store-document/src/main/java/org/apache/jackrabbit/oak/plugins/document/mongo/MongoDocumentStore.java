@@ -1672,7 +1672,8 @@ public class MongoDocumentStore implements DocumentStore {
                 }
             }
             LOG.error("bulkUpdate of size {} failed with: {}; biggest update was for i={} with approximate size of {}",
-                    updateOps.size(), bsonException.getMessage(), idOfbiggestUpdate, estimatedSizeOfBiggestUpdate, bsonException);
+                    updateOps.size(), bsonException.getMessage(), idOfbiggestUpdate, estimatedSizeOfBiggestUpdate,
+                    bsonException);
             // rethrow
             throw bsonException;
         }
