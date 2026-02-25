@@ -186,7 +186,7 @@ public class MongoDBExceptionTest {
                 String id = idOfReallyBig;
                 ids.add(id);
                 UpdateOp updateOp = new UpdateOp(id, true);
-                updateOp.set("big", RandomStringUtils.randomAlphanumeric(20 * 1024 * 1024));
+                updateOp.set("big", RandomStringUtils.secure().next(20 * 1024 * 1024));
                 updateOps.add(updateOp);
             }
             {
