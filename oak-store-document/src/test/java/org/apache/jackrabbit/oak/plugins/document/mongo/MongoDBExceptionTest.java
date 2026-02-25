@@ -202,7 +202,7 @@ public class MongoDBExceptionTest {
                 store.createOrUpdate(Collection.NODES, updateOps);
                 fail("createOrUpdate(many with one >16MB) should have failed");
             } catch (BSONException expected) {
-                // expected but incorrect -> new ticket
+                // currently expected but incorrect -> OAK-12113
                 List<String> messages = log.getLogs();
                 assertEquals("only 1 message expected, but got: " + messages.size(),
                         1, messages.size());
@@ -331,6 +331,7 @@ public class MongoDBExceptionTest {
         return op;
     }
 
+    // RED ALERT: OAK-12114
     private String create1MBContent() {
         char[] chars = new char[1024 * 1024];
         Arrays.fill(chars, '0');
