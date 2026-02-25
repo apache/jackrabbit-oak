@@ -45,6 +45,7 @@ import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.nio.channels.UnresolvedAddressException;
 import java.security.InvalidKeyException;
 import java.time.Duration;
 import java.util.concurrent.Semaphore;
@@ -342,7 +343,7 @@ public class AzureRepositoryLockTest {
         // Simulate DNS resolution failure wrapped in a RuntimeException (as Netty/Reactor does)
         RuntimeException dnsError = new RuntimeException(
                 "Connection failed",
-                new java.nio.channels.UnresolvedAddressException());
+                new UnresolvedAddressException());
 
         // Track if shutdown hook was called
         AtomicBoolean shutdownCalled = new AtomicBoolean(false);
