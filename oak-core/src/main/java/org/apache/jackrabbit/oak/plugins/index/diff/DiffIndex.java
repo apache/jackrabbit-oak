@@ -114,7 +114,7 @@ public class DiffIndex {
                 diffs.getChildren().put("/oak:index/" + diffIndex, diffObj);
             } catch (Exception e) {
                 String message = "Error parsing " + diffIndex;
-                merger.logWarn("{}: {}", message, e.getMessage());
+                merger.logAndCollectWarn("{}: {}", message, e.getMessage());
             }
             if (!diffIndexDefinition.hasProperty("info")) {
                 diffIndexDefinition.setProperty("info", "This diff is automatically merged with other indexes. See https://oak-indexing.github.io/oakTools/simplified.html");

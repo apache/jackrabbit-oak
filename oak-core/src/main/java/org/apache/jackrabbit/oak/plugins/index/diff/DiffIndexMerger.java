@@ -49,56 +49,56 @@ import org.slf4j.LoggerFactory;
  */
 public class DiffIndexMerger {
 
-    private final static Logger LOG = LoggerFactory.getLogger(DiffIndexMerger.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DiffIndexMerger.class);
 
-    public final static String DIFF_INDEX = "diff.index";
-    public final static String DIFF_INDEX_OPTIMIZER = "diff.index.optimizer";
+    public static final String DIFF_INDEX = "diff.index";
+    public static final String DIFF_INDEX_OPTIMIZER = "diff.index.optimizer";
 
-    public final static String LAST_PROCESSED = ":lastProcessed";
-    public final static String MERGE_CHECKSUM = "mergeChecksum";
+    public static final String LAST_PROCESSED = ":lastProcessed";
+    public static final String MERGE_CHECKSUM = "mergeChecksum";
 
-    private final static String MERGE_INFO = "This index was auto-merged. See also https://oak-indexing.github.io/oakTools/simplified.html";
+    private static final String MERGE_INFO = "This index was auto-merged. See also https://oak-indexing.github.io/oakTools/simplified.html";
 
     // the list of unsupported included paths, e.g. "/apps,/libs"
     // by default all paths are supported
-    private final static String[] UNSUPPORTED_INCLUDED_PATHS = System.getProperty(
+    private static final String[] UNSUPPORTED_INCLUDED_PATHS = System.getProperty(
             "oak.diffIndex.unsupportedPaths", "").split(",");
 
     // in case a custom index is removed, whether a dummy index is created
-    private final static boolean DELETE_CREATES_DUMMY = Boolean.getBoolean(
+    private static final boolean DELETE_CREATES_DUMMY = Boolean.getBoolean(
             "oak.diffIndex.deleteCreatesDummy");
 
     // in case a customization was removed, create a copy of the OOTB index
-    private final static boolean DELETE_COPIES_OOTB = Boolean.getBoolean(
+    private static final boolean DELETE_COPIES_OOTB = Boolean.getBoolean(
             "oak.diffIndex.deleteCopiesOOTB");
 
     // whether to log at info level
-    private final static boolean LOG_AT_INFO_LEVEL = Boolean.getBoolean(
+    private static final boolean LOG_AT_INFO_LEVEL = Boolean.getBoolean(
             "oak.diffIndex.logAtInfoLevel");
 
     // the set of top-level properties that is not allowed to be added to an existing index
-    private final static Set<String> REJECTED_TOP_LEVEL_PROPS_FOR_EXISTING_INDEX = Set.of(
+    private static final Set<String> REJECTED_TOP_LEVEL_PROPS_FOR_EXISTING_INDEX = Set.of(
             "selectionPolicy", "valueRegex", "queryFilterRegex", "includedPaths", "excludedPaths", "queryPaths");
 
     // the set of child properties that is not allowed to be added if the property is already indexed
     // eg. the "name" property may not need to be set if the existing property doesn't have it yet (eg. a function-based index),
     // or the "function" property may not need to be set unless if it already exists (eg. a name-based index)
-    private final static Set<String> REJECTED_ADDING_TO_EXISTING_PROPERTY = Set.of(
+    private static final Set<String> REJECTED_ADDING_TO_EXISTING_PROPERTY = Set.of(
             "isRegexp", "index", "function", "name");
 
     // set of properties that are allowed to be changed if the property already exists
-    private final static Set<String> ALLOW_CHANGING_IN_EXISTING_PROPERTY = Set.of(
+    private static final Set<String> ALLOW_CHANGING_IN_EXISTING_PROPERTY = Set.of(
             "boost", "weight");
 
     // set of properties that allow multi-valued string that might be merged
-    private final static Set<String> MERGE_MULTI_VALUES_STRINGS = Set.of(
+    private static final Set<String> MERGE_MULTI_VALUES_STRINGS = Set.of(
             "includedPaths", "queryPaths", "tags");
 
     // maximum number of warnings to keep
-    private final static int MAX_WARNINGS = 100;
+    private static final int MAX_WARNINGS = 100;
 
     // maximum total size of warnings (1 MB)
-    private final static int MAX_WARNINGS_SIZE = 1024 * 1024;
+    private static final int MAX_WARNINGS_SIZE = 1024 * 1024;
 
     private String[] unsupportedIncludedPaths;
     private boolean deleteCreatesDummyIndex;
@@ -196,7 +196,7 @@ public class DiffIndexMerger {
             String key = e.getKey();
             JsonObject value = e.getValue();
             if (key.startsWith("/oak:index/")) {
-                logWarn("The key should contain just the index name, without the '/oak:index' prefix, for key: {}", key);
+                logAndCollectWarn("The key should contain just the index name, without the '/oak:index' prefix, for key: {}", key);
                 key = key.substring("/oak:index/".length());
             }
             log("Processing {}", key);
@@ -234,7 +234,7 @@ public class DiffIndexMerger {
             JsonObject jcrContent = file.getChildren().get("jcr:content");
             if (jcrContent == null) {
                 String message = "jcr:content child node is missing in diff.json";
-                logWarn(message);
+                logAndCollectWarn(message);
                 return message;
             }
             String jcrData = JsonNodeUpdater.oakStringValue(jcrContent, "jcr:data");
@@ -242,7 +242,7 @@ public class DiffIndexMerger {
                 diff = JsonObject.fromJson(jcrData, true);
             } catch (Exception e) {
                 String message = "Illegal Json, ignoring: " + e.getMessage();
-                logWarn("Illegal Json, ignoring: {}", jcrData, e);
+                logAndCollectWarn("Illegal Json, ignoring: {}", jcrData, e);
                 return message;
             }
         } else {
@@ -383,7 +383,7 @@ public class DiffIndexMerger {
             } else {
                 includedPaths = JsonNodeUpdater.oakStringArrayValue(indexDiff, "includedPaths");
                 if (includesUnsupportedPaths(includedPaths)) {
-                    logWarn("New custom index {} is not supported because it contains an unsupported path ({})",
+                    logAndCollectWarn("New custom index {} is not supported because it contains an unsupported path ({})",
                             indexName, Arrays.toString(unsupportedIncludedPaths));
                     return false;
                 }
@@ -391,7 +391,7 @@ public class DiffIndexMerger {
         } else {
             includedPaths = JsonNodeUpdater.oakStringArrayValue(latestProductIndex, "includedPaths");
             if (includesUnsupportedPaths(includedPaths)) {
-                logWarn("Customizing index {} is not supported because it contains an unsupported path ({})",
+                logAndCollectWarn("Customizing index {} is not supported because it contains an unsupported path ({})",
                         latestProductKey, Arrays.toString(unsupportedIncludedPaths));
                 return false;
             }
@@ -433,8 +433,8 @@ public class DiffIndexMerger {
                 // (even if checksums do not match: checksums might be missing or manipulated)
                 log("Latest index matches");
                 if (latestMergeChecksum != null && !latestMergeChecksum.equals(mergeChecksum)) {
-                    logWarn("Indexes do match, but checksums do not. Possibly checksum was changed: {} vs {}", latestMergeChecksum, mergeChecksum);
-                    logWarn("Index: {}, latest: {}\nmerged: {}", indexName, latestDef, mergedDef);
+                    logAndCollectWarn("Indexes do match, but checksums do not. Possibly checksum was changed: {} vs {}", latestMergeChecksum, mergeChecksum);
+                    logAndCollectWarn("Index: {}, latest: {}\nmerged: {}", indexName, latestDef, mergedDef);
                 }
                 return false;
             }
@@ -442,8 +442,8 @@ public class DiffIndexMerger {
                 // checksum matches, but data does not match
                 // could be eg. due to numbers formatting issues (-0.0 vs 0.0, 0.001 vs 1e-3)
                 // but unexpected because we do not normally have such cases
-                logWarn("Indexes do not match, but checksums match. Possible normalization issue.");
-                logWarn("Index: {}, latest: {}\nmerged: {}", indexName, latestDef, mergedDef);
+                logAndCollectWarn("Indexes do not match, but checksums match. Possible normalization issue.");
+                logAndCollectWarn("Index: {}, latest: {}\nmerged: {}", indexName, latestDef, mergedDef);
                 // if checksums match, we consider it a match
                 return false;
             }
@@ -733,12 +733,12 @@ public class DiffIndexMerger {
                         && !target.getProperties().containsKey(p)) {
                     // at the top level, some properties (eg. selectionPolicy) are not allowed to be added
                     // to an existing index
-                    logWarn("{}: Ignoring new top-level property {} at {} for existing index", indexName, p, pathForLogging);
+                    logAndCollectWarn("{}: Ignoring new top-level property {} at {} for existing index", indexName, p, pathForLogging);
                     continue;
                 }
                 if (REJECTED_ADDING_TO_EXISTING_PROPERTY.contains(p) && !target.getProperties().containsKey(p)) {
                     // some properties are not allowed to be added if the node already exists
-                    logWarn("{}: Ignoring new property \"{}\" at {} for existing child", indexName, p, pathForLogging);
+                    logAndCollectWarn("{}: Ignoring new property \"{}\" at {} for existing child", indexName, p, pathForLogging);
                     continue;
                 }
             }
@@ -755,7 +755,7 @@ public class DiffIndexMerger {
                     // which is not allowed)
                     TreeSet<String> oldSet = JsonNodeUpdater.getStringSet(target.getProperties().get(p));
                     TreeSet<String> newSet = JsonNodeUpdater.getStringSet(diff.getProperties().get(p));
-                    TreeSet<String> mergedSet = new TreeSet<String>(oldSet);
+                    TreeSet<String> mergedSet = new TreeSet<>(oldSet);
                     mergedSet.addAll(newSet);
                     JsopBuilder buff = new JsopBuilder().array();
                     for(String v : mergedSet) {
@@ -763,7 +763,7 @@ public class DiffIndexMerger {
                     }
                     target.getProperties().put(p, buff.endArray().toString());
                 } else {
-                    logWarn("{}: Ignoring existing property \"{}\" at {}", indexName, p, pathForLogging);
+                    logAndCollectWarn("{}: Ignoring existing property \"{}\" at {}", indexName, p, pathForLogging);
                 }
             } else {
                 target.getProperties().put(p, diff.getProperties().get(p));
@@ -929,7 +929,7 @@ public class DiffIndexMerger {
      * @param format the log message format
      * @param arguments the log message arguments
      */
-    public void logWarn(String format, Object... arguments) {
+    public void logAndCollectWarn(String format, Object... arguments) {
         String message = org.slf4j.helpers.MessageFormatter.arrayFormat(format, arguments).getMessage();
         LOG.warn(message);
         synchronized (warnings) {

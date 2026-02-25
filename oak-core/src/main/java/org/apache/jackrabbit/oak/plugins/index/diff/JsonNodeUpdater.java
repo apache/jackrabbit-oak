@@ -16,18 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.diff;
 
-import java.util.Map.Entry;
-import java.util.TreeSet;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Map.Entry;
+import java.util.TreeSet;
 import java.util.UUID;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -71,11 +71,10 @@ public class JsonNodeUpdater {
      * @param targetPath the target path (relative to the builder) where the node(s) is/are replaced
      * @param nodeType the node type of the new node (eg. "nt:unstructured")
      * @param jsonString the json string with the node data
-     * @throws CommitFailedException if storing the nodes failed
      * @throws IOException if storing a blob failed
      */
-    public static void addOrReplace(NodeBuilder builder, NodeStore nodeStore, String targetPath, 
-            String nodeType, String jsonString) throws CommitFailedException, IOException {
+    public static void addOrReplace(NodeBuilder builder, NodeStore nodeStore, String targetPath,
+            String nodeType, String jsonString) throws IOException {
         LOG.info("Storing {}: {}", targetPath, jsonString);
         if (nodeType.contains("/")) {
             throw new IllegalStateException("Illegal node type: " + nodeType);
@@ -250,7 +249,7 @@ public class JsonNodeUpdater {
     /**
      * Parse a raw JSON value and convert it to a set of strings. Also supported is a single string value.
      * Everything else (numbers, booleans, etc.) is not supported and returns null.
-     * 
+     *
      * @param value the raw JSON value
      * @return a set of strings or null
      */
