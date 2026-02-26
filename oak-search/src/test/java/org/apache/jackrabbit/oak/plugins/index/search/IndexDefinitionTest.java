@@ -514,6 +514,19 @@ public class IndexDefinitionTest {
     }
 
     @Test
+    public void similarityTagMaxLength() {
+        NodeBuilder defnb = newFTIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                "lucene", Set.of(TYPENAME_STRING));
+        IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
+        assertEquals(IndexDefinition.DEFAULT_MAX_TAG_LENGTH, defn.getMaxTagLength());
+
+        defnb.setProperty(FulltextIndexConstants.MAX_TAG_LENGTH, 50);
+
+        defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
+        assertEquals(50, defn.getMaxTagLength());
+    }
+
+    @Test
     public void maxExtractLength() {
         NodeBuilder defnb = newFTIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
                 "lucene", Set.of(TYPENAME_STRING));
@@ -526,19 +539,6 @@ public class IndexDefinitionTest {
 
         defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
         assertEquals(1000, defn.getMaxExtractLength());
-    }
-
-    @Test
-    public void similarityTagMaxLength() {
-        NodeBuilder defnb = newFTIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                "lucene", Set.of(TYPENAME_STRING));
-        IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
-        assertEquals(IndexDefinition.DEFAULT_MAX_TAG_LENGTH, defn.getMaxTagLength());
-
-        defnb.setProperty(FulltextIndexConstants.MAX_TAG_LENGTH, 50);
-
-        defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
-        assertEquals(50, defn.getMaxTagLength());
     }
 
     @Test(expected = IllegalStateException.class)
