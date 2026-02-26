@@ -533,12 +533,12 @@ public class IndexDefinitionTest {
         NodeBuilder defnb = newFTIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
                 "lucene", Set.of(TYPENAME_STRING));
         IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
-        assertEquals(IndexDefinition.DEFAULT_SIMILARITY_TAG_MAX_LENGTH, defn.getSimilarityTagMaxLength());
+        assertEquals(IndexDefinition.DEFAULT_MAX_TAG_LENGTH, defn.getMaxTagLength());
 
-        defnb.setProperty(FulltextIndexConstants.SIMILARITY_TAG_MAX_LENGTH, 50);
+        defnb.setProperty(FulltextIndexConstants.MAX_TAG_LENGTH, 50);
 
         defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
-        assertEquals(50, defn.getSimilarityTagMaxLength());
+        assertEquals(50, defn.getMaxTagLength());
     }
 
     @Test(expected = IllegalStateException.class)
