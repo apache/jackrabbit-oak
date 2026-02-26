@@ -34,7 +34,6 @@ Changes in Oak 1.92.0
     * [OAK-12081] - Add isInOrder() api in IterableUtils
     * [OAK-12083] - Remove usage of Guava's Uninterruptibles.joinUninterruptibly
 
-
 ** Bug
     * [OAK-10344] - oak-run ITs fail with failsafe >= 3.0.0
     * [OAK-11960] - oak-examples: The static content of the webapp still refers to RMI features that are no longer supported
