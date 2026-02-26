@@ -34,6 +34,7 @@ Changes in Oak 1.92.0
     * [OAK-12081] - Add isInOrder() api in IterableUtils
     * [OAK-12083] - Remove usage of Guava's Uninterruptibles.joinUninterruptibly
 
+
 ** Bug
     * [OAK-10344] - oak-run ITs fail with failsafe >= 3.0.0
     * [OAK-11960] - oak-examples: The static content of the webapp still refers to RMI features that are no longer supported
@@ -46,6 +47,7 @@ Changes in Oak 1.92.0
     * [OAK-12071] - oak-search-elastic: remove property does not work for externally modifiable indexes
     * [OAK-12085] - OutOfMemory in oak-segment-azure tests
     * [OAK-12086] - oak-segment-tar: remove optional log4j dependency
+    * [OAK-12112] - Add UnresolvedAddressException to the list of transient exceptions that can prevent lease renewal
 
 ** Story
     * [OAK-11267] - Upgrade Azure SDK V8 to V12 for oak-blob-azure
@@ -78,6 +80,7 @@ Changes in Oak 1.92.0
     * [OAK-12092] - Update commons-text dependency to 1.15.0
     * [OAK-12103] - MongoDocumentStore: improve diagnostics for too large docs in request payloads
     * [OAK-12105] - run/lucene: update gson dependencies to 2.13.2
+    * [OAK-12109] - MongoDocumentStore: improve diagnostics for too large docs in bulk request payloads
 
 In addition to the above-mentioned changes, this release contains all
 changes up to the previous release.
