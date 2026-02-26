@@ -77,7 +77,7 @@ public class LuceneDocumentMakerTest {
                 .property("tag")
                 .similarityTags(true);
 
-        builder.getBuilderTree().setProperty(FulltextIndexConstants.SIMILARITY_TAG_MAX_LENGTH, 10);
+        builder.getBuilderTree().setProperty(FulltextIndexConstants.MAX_TAG_LENGTH, 10);
 
         LuceneIndexDefinition defn = LuceneIndexDefinition.newLuceneBuilder(root, builder.build(), "/foo").build();
         LuceneDocumentMaker docMaker = new LuceneDocumentMaker(defn,

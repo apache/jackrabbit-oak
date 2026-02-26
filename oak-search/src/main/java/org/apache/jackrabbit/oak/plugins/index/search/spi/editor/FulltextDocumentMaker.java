@@ -62,7 +62,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private static final LogSilencer LOG_SILENCER = new LogSilencer(Duration.ofMinutes(1).toMillis(), 4);
-    private static final String LOG_KEY_SIMILARITY_TAG_SKIPPED = "Similarity tag skipped";
+    private static final String LOG_KEY_TAG_LENGTH_EXCEEDED = "Tag length exceeded";
 
     public static final String WARN_LOG_STRING_SIZE_THRESHOLD_KEY = "oak.repository.property.index.logWarnStringSizeThreshold";
     private static final int DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE = 102400;
@@ -350,7 +350,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             }
             if (pd.similarityTags) {
                 String value = property.getValue(Type.STRING);
-                if (isTagWithinLengthLimit(value, pname)) {
+                if (isTagWithinLengthLimit(value, pname, true)) {
                     dirty |= indexSimilarityTag(doc, value);
                 }
             }
@@ -713,7 +713,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                 continue;
             }
             String dynaTagValue = p.getValue(Type.STRING);
-            if (!isTagWithinLengthLimit(dynaTagValue, p.getName())) {
+            if (!isTagWithinLengthLimit(dynaTagValue, p.getName(), false)) {
                 continue;
             }
             p = dynaTag.getProperty(DYNAMIC_BOOST_TAG_CONFIDENCE);
@@ -748,14 +748,15 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         return definition.getIndexName();
     }
 
-    private boolean isTagWithinLengthLimit(String value, String pname) {
-        int maxLength = definition.getSimilarityTagMaxLength();
+    private boolean isTagWithinLengthLimit(String value, String pname, boolean isSimilarityTag) {
+        int maxLength = definition.getMaxTagLength();
         if (maxLength < 0 || value.length() <= maxLength) {
             return true;
         }
-        if (!LOG_SILENCER.silence(LOG_KEY_SIMILARITY_TAG_SKIPPED)) {
-            log.warn("[{}] Skipping similarity tag for property {}. Value length {} exceeds maximum allowed length {}",
-                    getIndexName(), pname, value.length(), maxLength);
+        if (!LOG_SILENCER.silence(LOG_KEY_TAG_LENGTH_EXCEEDED)) {
+            String tagType = isSimilarityTag ? "similarity tag" : "dynamic boost tag";
+            log.warn("[{}] Skipping {} for property {}. Value length {} exceeds maximum allowed length {}",
+                    getIndexName(), tagType, pname, value.length(), maxLength);
         }
         return false;
     }
