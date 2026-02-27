@@ -201,8 +201,11 @@ public class MongoDBExceptionTest {
             try {
                 store.createOrUpdate(Collection.NODES, updateOps);
                 fail("createOrUpdate(many with one >16MB) should have failed");
-            } catch (BSONException expected) {
-                // currently expected but incorrect -> OAK-12113
+            } catch (DocumentStoreException expected) {
+                assertTrue("DocumentStoreException should wrap BSONException, but got: "+
+                        expected.getCause(),
+                        expected.getCause() instanceof BSONException);
+
                 List<String> messages = log.getLogs();
                 assertEquals("only 1 message expected, but got: " + messages.size(),
                         1, messages.size());

@@ -1675,7 +1675,7 @@ public class MongoDocumentStore implements DocumentStore {
                     updateOps.size(), bsonException.getMessage(), idOfbiggestUpdate, estimatedSizeOfBiggestUpdate,
                     bsonException);
             // rethrow
-            throw bsonException;
+            throw new DocumentStoreException(bsonException);
         }
 
         for (BulkWriteUpsert upsert : bulkResult.getUpserts()) {
