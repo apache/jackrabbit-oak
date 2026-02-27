@@ -53,8 +53,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Assert;
 import org.junit.Test;
-
-import ch.qos.logback.classic.Level;
+import org.slf4j.event.Level;
 
 public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTest {
     private final static String FOO1_INDEX_PATH = "/oak:index/fooIndex1";

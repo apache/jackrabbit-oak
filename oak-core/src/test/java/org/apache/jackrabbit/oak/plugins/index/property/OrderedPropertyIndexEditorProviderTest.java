@@ -41,8 +41,7 @@ import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
-
-import ch.qos.logback.classic.Level;
+import org.slf4j.event.Level;
 
 public class OrderedPropertyIndexEditorProviderTest {
     private final CommitHook hook = new EditorHook(new IndexUpdateProvider(

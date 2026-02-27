@@ -52,8 +52,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.codecs.Codec;
 import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Test;
-
-import ch.qos.logback.classic.Level;
+import org.slf4j.event.Level;
 
 public class InvalidIndexDefinitionTest extends AbstractQueryTest {
 

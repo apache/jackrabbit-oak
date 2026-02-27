@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak;
 
-import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
@@ -35,6 +34,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.event.Level;
 
 import javax.jcr.Node;
 import javax.jcr.Repository;

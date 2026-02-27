@@ -50,7 +50,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicReference;
 
-import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -86,6 +85,7 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.internal.util.collections.Iterables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 /**
  * Generic class for BlobGC tests which uses custom MemoryNodeStore as well as a memory NodeStore.

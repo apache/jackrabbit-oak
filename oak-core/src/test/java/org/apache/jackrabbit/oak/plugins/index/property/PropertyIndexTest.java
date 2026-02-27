@@ -79,13 +79,12 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
-import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.read.ListAppender;
 import ch.qos.logback.core.spi.FilterReply;
-
+import org.slf4j.event.Level;
 
 /**
  * Test the Property2 index mechanism.
@@ -1143,7 +1142,7 @@ public class PropertyIndexTest {
 
         @Override
         public FilterReply decide(ILoggingEvent event) {
-            if (event.getLevel().isGreaterOrEqual(Level.WARN)
+            if (event.getLevel().toInt() >= Level.WARN.toInt()
                     && event.getMessage().contains("Traversed")) {
                 return FilterReply.ACCEPT;
             } else {

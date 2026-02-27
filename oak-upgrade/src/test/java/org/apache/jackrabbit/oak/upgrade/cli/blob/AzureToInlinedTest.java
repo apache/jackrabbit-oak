@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.upgrade.cli.blob;
 
 import java.io.IOException;
 
-import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.blob.UploadStagingCache;
 import org.apache.jackrabbit.oak.upgrade.cli.AbstractOak2OakTest;
@@ -30,6 +29,7 @@ import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContai
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.event.Level;
 
 import static org.junit.Assert.assertEquals;
 

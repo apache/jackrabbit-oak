@@ -40,7 +40,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import ch.qos.logback.classic.Level;
 import org.apache.commons.lang3.StringUtils;
 import joptsimple.OptionException;
 import org.apache.commons.io.FileUtils;
@@ -95,6 +94,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;

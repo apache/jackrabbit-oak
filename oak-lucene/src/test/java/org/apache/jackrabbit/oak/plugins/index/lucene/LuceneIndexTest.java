@@ -60,7 +60,6 @@ import java.util.Set;
 
 import javax.jcr.PropertyType;
 
-import ch.qos.logback.classic.Level;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -115,6 +114,7 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.event.Level;
 
 @SuppressWarnings("ConstantConditions")
 public class LuceneIndexTest {

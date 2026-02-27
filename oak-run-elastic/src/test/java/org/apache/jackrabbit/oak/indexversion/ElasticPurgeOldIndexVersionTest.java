@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.indexversion;
 
-import ch.qos.logback.classic.Level;
 import co.elastic.clients.elasticsearch._types.ExpandWildcard;
 import co.elastic.clients.elasticsearch.cat.IndicesResponse;
 import co.elastic.clients.elasticsearch.cat.indices.IndicesRecord;
@@ -39,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.event.Level;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;

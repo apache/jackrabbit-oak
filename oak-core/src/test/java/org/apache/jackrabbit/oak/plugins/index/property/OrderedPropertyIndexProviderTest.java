@@ -32,8 +32,7 @@ import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
-
-import ch.qos.logback.classic.Level;
+import org.slf4j.event.Level;
 
 public class OrderedPropertyIndexProviderTest extends AbstractQueryTest {
     private final LogCustomizer custom = LogCustomizer
