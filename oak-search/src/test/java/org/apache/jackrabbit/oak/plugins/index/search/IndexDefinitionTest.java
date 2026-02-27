@@ -514,7 +514,7 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void similarityTagMaxLength() {
+    public void maxTagLength() {
         NodeBuilder defnb = newFTIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
                 "lucene", Set.of(TYPENAME_STRING));
         IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
