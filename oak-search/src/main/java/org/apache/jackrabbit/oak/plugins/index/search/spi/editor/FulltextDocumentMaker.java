@@ -42,6 +42,7 @@ import javax.jcr.PropertyType;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -798,7 +799,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     }
 
     /**
-     * Process collected dynamic boost tags: sort by confidence (descending) and index only the top N.
+     * Process collected dynamic boost tags: sort by confidence (descending) and index only the top N
      */
     private boolean indexTopDynamicBoost(D doc, int maxCount) {
         dynamicBoostTags.sort(Comparator.comparingDouble((DynamicBoost tag) -> tag.confidence).reversed());

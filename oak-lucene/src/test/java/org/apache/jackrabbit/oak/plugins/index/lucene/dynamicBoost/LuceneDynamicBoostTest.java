@@ -220,7 +220,6 @@ public class LuceneDynamicBoostTest extends DynamicBoostCommonTest {
         Tree predicted1 = createAssetNodeWithPredicted(testParent, "asset1", "test");
         createPredictedTag(predicted1, "lowconf1", 0.1);
         createPredictedTag(predicted1, "lowconf2", 0.2);
-        createPredictedTag(predicted1, "medconf", 0.5);
         createPredictedTag(predicted1, "highconf1", 0.9);
         createPredictedTag(predicted1, "highconf2", 0.8);
 
@@ -237,7 +236,7 @@ public class LuceneDynamicBoostTest extends DynamicBoostCommonTest {
                     List.of("/test/asset1", "/test/asset2"));
 
             assertQuery("//element(*, dam:Asset)[jcr:contains(., 'lowconf1')]", XPATH, List.of());
-            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'medconf')]", XPATH, List.of());
+            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'lowconf2')]", XPATH, List.of());
         });
     }
 

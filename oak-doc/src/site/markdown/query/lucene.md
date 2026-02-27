@@ -241,6 +241,20 @@ selectionPolicy
   Set to -1 to disable the length check entirely.
   See [Dynamic Boost](#dynamic-boost) and [Search by similar feature vectors](#similar-fv) for details.
 
+[maxSimilarityTagsCount][OAK-12117]
+: Optional integer property. Defaults to 50.
+: Maximum number of similarity tags to index per document.
+  When the limit is exceeded, only the first N tags (in order of appearance) are indexed and subsequent tags are skipped.
+  Set to -1 to disable the limit entirely.
+  See [Search by similar feature vectors](#similar-fv) for details.
+
+[maxDynamicBoostCount][OAK-12117]
+: Optional integer property. Defaults to 50.
+: Maximum number of dynamic boost tags to index per document.
+  When the limit is exceeded, tags are sorted by confidence (descending) and only the top N are indexed.
+  Set to -1 to disable the limit entirely.
+  See [Dynamic Boost](#dynamic-boost) for details.
+
 refresh
 : Optional boolean property.
 : Used to refresh the stored index definition. See [Effective Index Definition](#stored-index-definition)
@@ -1244,6 +1258,11 @@ This prevents unexpectedly long values from being indexed as dynamic boost tags.
 The limit can be changed by setting the `maxTagLength` property on the index definition,
 or disabled entirely by setting it to -1. See [OAK-12101][OAK-12101].
 
+Additionally, the maximum number of dynamic boost tags indexed per document can be controlled
+with the `maxDynamicBoostCount` property (default 50). When the number of collected tags exceeds this limit,
+tags are sorted by confidence in descending order and only the top N are indexed.
+Set to -1 to disable the limit entirely. See [OAK-12117][OAK-12117].
+
 
 ### <a name="native-query"></a>Native Query and Index Selection
 `@deprecated Oak 1.46`
@@ -1719,6 +1738,11 @@ Similarity tag values that exceed the configured `maxTagLength` (default 100) ar
 This prevents unexpectedly long values from being indexed as similarity tags.
 The limit can be changed by setting the `maxTagLength` property on the index definition,
 or disabled entirely by setting it to -1. See [OAK-12101][OAK-12101].
+
+Additionally, the maximum number of similarity tags indexed per document can be controlled
+with the `maxSimilarityTagsCount` property (default 50). When the number of tags exceeds this limit,
+only the first N tags (in order of appearance) are kept and subsequent tags are skipped.
+Set to -1 to disable the limit entirely. See [OAK-12117][OAK-12117].
 
 See also [OAK-7575](https://issues.apache.org/jira/browse/OAK-7575).
 
@@ -2250,6 +2274,7 @@ SELECT rep:facet(title) FROM [app:Asset] WHERE [title] IS NOT NULL
 [OAK-8971]: https://issues.apache.org/jira/browse/OAK-8971
 [OAK-9625]: https://issues.apache.org/jira/browse/OAK-9625
 [OAK-12101]: https://issues.apache.org/jira/browse/OAK-12101
+[OAK-12117]: https://issues.apache.org/jira/browse/OAK-12117
 [luke]: https://code.google.com/p/luke/
 [tika]: http://tika.apache.org/
 [oak-console]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#console

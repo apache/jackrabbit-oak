@@ -292,6 +292,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     private final int maxTagLength;
 
     private final int maxSimilarityTagsCount;
+
     private final int maxDynamicBoostCount;
 
     private final int maxExtractLength;
