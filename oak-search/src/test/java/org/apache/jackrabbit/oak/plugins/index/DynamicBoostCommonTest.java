@@ -234,6 +234,10 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
     }
 
     protected void createAssetsIndexAndProperties(boolean lite, boolean similarityTags, boolean useInFullTextQuery) throws Exception {
+        createAssetsIndexAndProperties(lite, similarityTags, useInFullTextQuery, null);
+    }
+
+    protected void createAssetsIndexAndProperties(boolean lite, boolean similarityTags, boolean useInFullTextQuery, Integer maxTagLength) throws Exception {
         NodeTypeRegistry.register(root, new ByteArrayInputStream(ASSET_NODE_TYPE.getBytes()), "test nodeType");
         Tree indexRuleProps = createIndex("dam:Asset", lite);
 
@@ -248,6 +252,11 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
             predictedTags.setProperty("name", "jcr:content/metadata/predictedTags/*/name");
             predictedTags.setProperty("isRegexp", true);
             predictedTags.setProperty("similarityTags", true);
+        }
+
+        if (maxTagLength != null) {
+            Tree indexDef = root.getTree("/oak:index/" + TEST_INDEX_NAME);
+            indexDef.setProperty(FulltextIndexConstants.MAX_TAG_LENGTH, maxTagLength);
         }
 
         root.commit();

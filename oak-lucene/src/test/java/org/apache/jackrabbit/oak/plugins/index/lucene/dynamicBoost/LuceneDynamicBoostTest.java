@@ -184,10 +184,37 @@ public class LuceneDynamicBoostTest extends DynamicBoostCommonTest {
                 List.of("/test/asset3", "/test/asset2"));
     }
 
+    @Test
+    public void dynamicBoostMaxLengthFiltering() throws Exception {
+        createAssetsIndexAndProperties(false, false, true, 10);
+
+        Tree testParent = createNodeWithType(root.getTree("/"), "test", JcrConstants.NT_UNSTRUCTURED, "");
+
+        Tree predicted1 = createAssetNodeWithPredicted(testParent, "asset1", "test");
+        createPredictedTag(predicted1, "short", 0.9);
+        createPredictedTag(predicted1, "exactly10!", 0.8);
+        createPredictedTag(predicted1, "this is too long", 0.7);
+
+        Tree predicted2 = createAssetNodeWithPredicted(testParent, "asset2", "test");
+        createPredictedTag(predicted2, "short", 0.9);
+        createPredictedTag(predicted2, "exactly10!", 0.8);
+
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'short')", SQL2,
+                    List.of("/test/asset1", "/test/asset2"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'exactly10!')", SQL2,
+                    List.of("/test/asset1", "/test/asset2"));
+
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'this is too long')", SQL2, List.of());
+        });
+    }
+
     @Override
-    protected void createAssetsIndexAndProperties(boolean lite, boolean similarityTags) throws Exception {
+    protected void createAssetsIndexAndProperties(boolean lite, boolean similarityTags, boolean useInFullTextQuery, Integer maxTagLength) throws Exception {
         factory.queryTermsProvider = new FulltextQueryTermsProviderImpl();
-        super.createAssetsIndexAndProperties(lite, similarityTags);
+        super.createAssetsIndexAndProperties(lite, similarityTags, useInFullTextQuery, maxTagLength);
     }
 
     private String runIndexingTest(Class<?> loggerClass, boolean nameProperty) throws CommitFailedException {
