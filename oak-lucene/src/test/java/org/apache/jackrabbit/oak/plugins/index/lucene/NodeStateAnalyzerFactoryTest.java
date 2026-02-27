@@ -38,6 +38,7 @@ import org.apache.lucene.analysis.core.LowerCaseTokenizer;
 import org.apache.lucene.analysis.core.StopFilterFactory;
 import org.apache.lucene.analysis.core.WhitespaceTokenizerFactory;
 import org.apache.lucene.analysis.path.PathHierarchyTokenizerFactory;
+import org.apache.lucene.analysis.standard.StandardTokenizerFactory;
 import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.analysis.util.ClasspathResourceLoader;
 import org.apache.lucene.analysis.util.StopwordAnalyzerBase;
@@ -189,6 +190,18 @@ public class NodeStateAnalyzerFactoryTest {
         assertEquals("1", result.get("b"));
         assertNull(result.get(JcrConstants.JCR_PRIMARYTYPE));
         assertNull(result.get(":hiddenProp"));
+    }
+
+    @Test
+    public void missingTokenizerName() throws Exception{
+        NodeBuilder nb = EMPTY_NODE.builder();
+        nb.child(ANL_TOKENIZER);
+
+        TokenizerChain analyzer = (TokenizerChain) factory.createInstance(nb.getNodeState());
+        assertNotNull(analyzer);
+        assertNotNull(analyzer.getTokenizer());
+
+        assertEquals(StandardTokenizerFactory.class.getName(), analyzer.getTokenizer().getClassArg());
     }
 
     private static NodeBuilder createFileNode(NodeBuilder nb, String nodeName, byte[] content){
