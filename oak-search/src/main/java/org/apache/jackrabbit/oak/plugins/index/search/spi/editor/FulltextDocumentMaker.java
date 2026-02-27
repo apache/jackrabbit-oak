@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.jcr.PropertyType;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -86,6 +87,9 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             DEFAULT_THROTTLE_WARN_LOGS_THRESHOLD_VALUE);
     protected static final boolean throttleWarnLogs = Boolean.getBoolean(THROTTLE_WARN_LOGS_KEY);
 
+    private int similarityTagCount;
+    private List<DynamicBoost> dynamicBoostTags;
+
     public FulltextDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
                                  @NotNull IndexDefinition definition,
                                  IndexDefinition.IndexingRule indexingRule,
@@ -128,7 +132,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
      * @param nodeName   the current node name
      * @param value      the value to be indexed
      * @param confidence the confidence (or weight) used for re-scoring
-     * @return {@code true} id the value has been added, otherwise {@code false}
+     * @return {@code true} if the value has been added, otherwise {@code false}
      */
     protected abstract boolean indexDynamicBoost(D doc, String parent, String nodeName, String value, double confidence);
 
@@ -167,6 +171,9 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     @Nullable
     public D makeDocument(NodeState state, boolean isUpdate, @NotNull List<PropertyState> propertiesModified) throws IOException {
         boolean facet = false;
+
+        similarityTagCount = 0;
+        dynamicBoostTags = new ArrayList<>();
 
         D document = initDoc();
         boolean dirty = false;
@@ -213,6 +220,13 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         dirty |= indexNullCheckEnabledProps(path, document, state);
         dirty |= indexFunctionRestrictions(path, document, state);
         dirty |= indexNotNullCheckEnabledProps(path, document, state);
+        int dynamicBoostTagCount = dynamicBoostTags.size();
+        int maxDynamicBoostCount = definition.getMaxDynamicBoostCount();
+        if (maxDynamicBoostCount >= 0 && dynamicBoostTagCount > maxDynamicBoostCount) {
+            log.warn("[{}] Number of collected dynamic boost tags ({}) exceeds the maximum allowed ({}). Some tags will be skipped",
+                    getIndexName(), dynamicBoostTagCount, maxDynamicBoostCount);
+        }
+        dirty |= indexTopDynamicBoost(document, maxDynamicBoostCount);
         dirty |= augmentCustomFields(path, document, state);
 
         if (!propertiesToRemove.isEmpty()) {
@@ -295,9 +309,9 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             }
             if (!definition.isDynamicBoostLiteEnabled() && pd.dynamicBoost) {
                 try {
-                    dirty |= indexDynamicBoost(doc, pname, pd.nodeName, state);
+                    dirty |= collectDynamicBoost(doc, pname, pd.nodeName, state);
                 } catch (Exception e) {
-                    log.error("Could not index dynamic boost for property {} and definition {}", property, pd, e);
+                    log.error("Could not collect dynamic boost for property {} and definition {}", property, pd, e);
                 }
             }
 
@@ -348,8 +362,11 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             }
             if (pd.similarityTags) {
                 String value = property.getValue(Type.STRING);
-                if (isTagWithinLengthLimit(value)) {
-                    dirty |= indexSimilarityTag(doc, value);
+                if (isTagWithinLimits(value, true)) {
+                    if (indexSimilarityTag(doc, value)) {
+                        similarityTagCount++;
+                        dirty = true;
+                    }
                 } else if (!LOG_SILENCER.silence(pname)) {
                     log.warn("[{}] Skipping similarity tag for property {}. Value length {} exceeds maximum allowed length",
                             getIndexName(), pname, value.length());
@@ -695,13 +712,24 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         return dirty;
     }
 
-    protected boolean indexDynamicBoost(D doc, String propertyName, String nodeName, NodeState nodeState) {
+    /**
+     * Collects dynamic boost tags from a NodeState property for later indexing.
+     * Tags are collected and added to the document-level collection, then sorted by confidence
+     * and indexed (top N only) at the end of document processing.
+     *
+     * @param propertyName the property name
+     * @param nodeName the node name
+     * @param nodeState the node state containing the dynamic boost tags
+     * @return true if any valid tags were collected, false otherwise
+     */
+    protected boolean collectDynamicBoost(D doc, String propertyName, String nodeName, NodeState nodeState) {
         NodeState propertyNode = nodeState;
         String parentName = PathUtils.getParentPath(propertyName);
         for (String c : PathUtils.elements(parentName)) {
             propertyNode = propertyNode.getChildNode(c);
         }
-        boolean added = false;
+
+        List<DynamicBoost> tagsForThisProperty = new ArrayList<>();
         for (String childNodeName : propertyNode.getChildNodeNames()) {
             NodeState dynaTag = propertyNode.getChildNode(childNodeName);
             PropertyState p = dynaTag.getProperty(DYNAMIC_BOOST_TAG_NAME);
@@ -714,7 +742,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                 continue;
             }
             String dynaTagValue = p.getValue(Type.STRING);
-            if (!isTagWithinLengthLimit(dynaTagValue)) {
+            if (!isTagWithinLimits(dynaTagValue, false)) {
                 if (!LOG_SILENCER.silence(p.getName())) {
                     log.warn("[{}] Skipping dynamic boost tag for property {}. Value length {} exceeds maximum allowed length",
                             getIndexName(), p.getName(), dynaTagValue.length());
@@ -742,20 +770,52 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                 continue;
             }
 
-            if (indexDynamicBoost(doc, parentName, nodeName, dynaTagValue, dynaTagConfidence)) {
-                added = true;
-            }
+            tagsForThisProperty.add(new DynamicBoost(parentName, nodeName, dynaTagValue, dynaTagConfidence));
         }
-        return added;
+
+        dynamicBoostTags.addAll(tagsForThisProperty);
+        return !tagsForThisProperty.isEmpty();
     }
 
     protected String getIndexName() {
         return definition.getIndexName();
     }
 
-    private boolean isTagWithinLengthLimit(String value) {
+    private boolean isTagWithinLimits(String value, boolean isSimilarityTag) {
         int maxLength = definition.getMaxTagLength();
-        return maxLength < 0 || value.length() <= maxLength;
+        if (maxLength >= 0 && value.length() > maxLength) {
+            return false;
+        }
+
+        if (isSimilarityTag) {
+            int maxCount = definition.getMaxSimilarityTagsCount();
+            if (maxCount >= 0 && similarityTagCount >= maxCount) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Process collected dynamic boost tags: sort by confidence (descending) and index only the top N.
+     */
+    private boolean indexTopDynamicBoost(D doc, int maxCount) {
+        dynamicBoostTags.sort(Comparator.comparingDouble((DynamicBoost tag) -> tag.confidence).reversed());
+
+        boolean added = false;
+        int count = 0;
+        for (DynamicBoost tag : dynamicBoostTags) {
+            if (maxCount >= 0 && count >= maxCount) {
+                break;
+            }
+            if (indexDynamicBoost(doc, tag.parent, tag.nodeName, tag.value, tag.confidence)) {
+                added = true;
+                count++;
+            }
+        }
+
+        return added;
     }
 
     /*
@@ -771,4 +831,19 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         //cameCase file name to allow faster like search
         indexNodeName(doc, value);
     }
+
+    private static class DynamicBoost {
+        final String parent;
+        final String nodeName;
+        final String value;
+        final double confidence;
+
+        DynamicBoost(String parent, String nodeName, String value, double confidence) {
+            this.parent = parent;
+            this.nodeName = nodeName;
+            this.value = value;
+            this.confidence = confidence;
+        }
+    }
+
 }

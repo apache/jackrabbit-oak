@@ -151,6 +151,16 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
      */
     public static final int DEFAULT_MAX_TAG_LENGTH = 100;
 
+    /**
+     * Default maximum number of similarity tags indexed per document.
+     */
+    public static final int DEFAULT_MAX_SIMILARITY_TAGS_COUNT = 50;
+
+    /**
+     * Default maximum number of dynamic boost tags indexed per document.
+     */
+    public static final int DEFAULT_MAX_DYNAMIC_BOOST_COUNT = 50;
+
     public static final int DEFAULT_MAX_EXTRACT_LENGTH = -10;
 
     /**
@@ -280,6 +290,9 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     private final int maxFieldLength;
 
     private final int maxTagLength;
+
+    private final int maxSimilarityTagsCount;
+    private final int maxDynamicBoostCount;
 
     private final int maxExtractLength;
 
@@ -478,6 +491,10 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
             this.maxFieldLength = getOptionalValue(defn, FulltextIndexConstants.MAX_FIELD_LENGTH, DEFAULT_MAX_FIELD_LENGTH);
             this.maxTagLength = getOptionalValue(defn, FulltextIndexConstants.MAX_TAG_LENGTH, DEFAULT_MAX_TAG_LENGTH);
+            this.maxSimilarityTagsCount = getOptionalValue(defn,
+                    FulltextIndexConstants.MAX_SIMILARITY_TAGS_COUNT, DEFAULT_MAX_SIMILARITY_TAGS_COUNT);
+            this.maxDynamicBoostCount = getOptionalValue(defn,
+                    FulltextIndexConstants.MAX_DYNAMIC_BOOST_COUNT, DEFAULT_MAX_DYNAMIC_BOOST_COUNT);
             this.costPerEntry = getOptionalValue(defn, FulltextIndexConstants.COST_PER_ENTRY, getDefaultCostPerEntry(version));
             this.costPerExecution = getOptionalValue(defn, FulltextIndexConstants.COST_PER_EXECUTION, 1.0);
             this.hasCustomTikaConfig = getTikaConfigNode().exists();
@@ -700,6 +717,14 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     public int getMaxTagLength() {
         return maxTagLength;
+    }
+
+    public int getMaxSimilarityTagsCount() {
+        return maxSimilarityTagsCount;
+    }
+
+    public int getMaxDynamicBoostCount() {
+        return maxDynamicBoostCount;
     }
 
     public int getMaxExtractLength() {
