@@ -93,7 +93,7 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
     @Test
     public void bulkProcessorSizeFlushLimit() throws Exception {
         LogCustomizer customLogger = LogCustomizer
-                .forLogger("org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticBulkProcessorHandler")
+                .forLogger(org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticBulkProcessorHandler.class)
                 .enable(Level.DEBUG).create();
         try {
             customLogger.starting();
