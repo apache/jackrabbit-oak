@@ -293,7 +293,7 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
 
         // Setup log customizer to capture InferenceServiceMetrics logs
         LogCustomizer logCustomizer = LogCustomizer
-            .forLogger(InferenceServiceMetrics.class.getName())
+            .forLogger(InferenceServiceMetrics.class)
             .enable(Level.INFO)
             .enable(Level.DEBUG)
             .contains("Inference service metrics")

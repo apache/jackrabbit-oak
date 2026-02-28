@@ -54,7 +54,7 @@ public class InferenceServiceMetricsTest {
     @Before
     public void setUp() {
         logCustomizer = LogCustomizer
-            .forLogger(InferenceServiceMetrics.class.getName())
+            .forLogger(InferenceServiceMetrics.class)
             .enable(Level.INFO)
             .enable(Level.DEBUG)
             .create();

@@ -325,7 +325,7 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
     public void queryIteratorConsumedTest() throws SQLException {
         insertTestResource(this.getClass().getName() + "." + name.getMethodName());
 
-        LogCustomizer customLogs = LogCustomizer.forLogger(RDBDocumentStoreJDBC.class.getName()).enable(Level.DEBUG)
+        LogCustomizer customLogs = LogCustomizer.forLogger(RDBDocumentStoreJDBC.class).enable(Level.DEBUG)
                 .contains("Query on ").create();
         customLogs.starting();
 
@@ -351,7 +351,7 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
 
     @Test
     public void queryIteratorNotConsumedTest() throws SQLException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-        LogCustomizer customLogs = LogCustomizer.forLogger(RDBDocumentStoreJDBC.class.getName()).enable(Level.DEBUG).contains("finalizing unclosed").create();
+        LogCustomizer customLogs = LogCustomizer.forLogger(RDBDocumentStoreJDBC.class).enable(Level.DEBUG).contains("finalizing unclosed").create();
         customLogs.starting();
 
         insertTestResource(this.getClass().getName() + "." + name.getMethodName());
@@ -433,7 +433,7 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
         assertTrue(super.ds.create(Collection.NODES, Collections.singletonList(op)));
         removeMe.add(baseName5ModifiedNoDeletedOnce);
 
-        LogCustomizer customLogs = LogCustomizer.forLogger(RDBDocumentStoreJDBC.class.getName()).enable(Level.DEBUG)
+        LogCustomizer customLogs = LogCustomizer.forLogger(RDBDocumentStoreJDBC.class).enable(Level.DEBUG)
                 .contains("Aggregate query").contains("min(MODIFIED)").create();
         customLogs.starting();
         Connection con = super.rdbDataSource.getConnection();

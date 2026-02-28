@@ -49,7 +49,7 @@ public class PurgeOldIndexVersionIT {
 
     @Before
     public void setup() {
-        purgeOldIndexVersionLogger = LogCustomizer.forLogger(PurgeOldIndexVersion.class.getName())
+        purgeOldIndexVersionLogger = LogCustomizer.forLogger(PurgeOldIndexVersion.class)
                 .enable(Level.INFO).contains("Found some index need to be purged over base").create();
     }
 

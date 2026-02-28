@@ -848,7 +848,7 @@ public class PropertyIndexTest {
 
     @Test
     public void testPathExcludeInclude() throws Exception{
-        LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class.getName()).enable(Level.ERROR).create();
+        LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class).enable(Level.ERROR).create();
         NodeState root = INITIAL_CONTENT;
 
         // Add index definition

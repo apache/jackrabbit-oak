@@ -690,7 +690,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         File pendingUploadsFile = new File(home, DataStoreCacheUpgradeUtils.UPLOAD_MAP);
         createGibberishLoad(pendingUploadsFile);
 
-        LogCustomizer lc = LogCustomizer.forLogger(DataStoreCacheUpgradeUtils.class.getName())
+        LogCustomizer lc = LogCustomizer.forLogger(DataStoreCacheUpgradeUtils.class)
             .filter(Level.WARN)
             .enable(Level.WARN)
             .create();

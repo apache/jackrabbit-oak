@@ -52,7 +52,7 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
 
     @Override
     protected LogCustomizer setupLogCustomizer() {
-        return LogCustomizer.forLogger(ElasticResultRowAsyncIterator.class.getName()).enable(Level.ERROR).create();
+        return LogCustomizer.forLogger(ElasticResultRowAsyncIterator.class).enable(Level.ERROR).create();
     }
 
     @Override

@@ -213,7 +213,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     public void checkMark() throws Exception {
         String rootFolder = folder.newFolder().getAbsolutePath();
         LogCustomizer customLogs = LogCustomizer
-            .forLogger(MarkSweepGarbageCollector.class.getName())
+            .forLogger(MarkSweepGarbageCollector.class)
             .enable(Level.TRACE)
             .filter(Level.TRACE)
             .create();
@@ -362,7 +362,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     public void checkGcPathLogging() throws Exception {
         String rootFolder = folder.newFolder().getAbsolutePath();
         LogCustomizer customLogs = LogCustomizer
-            .forLogger(MarkSweepGarbageCollector.class.getName())
+            .forLogger(MarkSweepGarbageCollector.class)
             .enable(Level.TRACE)
             .filter(Level.TRACE)
             .create();
@@ -381,7 +381,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     public void checkConsistencyPathLogging() throws Exception {
         String rootFolder = folder.newFolder().getAbsolutePath();
         LogCustomizer customLogs = LogCustomizer
-            .forLogger(MarkSweepGarbageCollector.class.getName())
+            .forLogger(MarkSweepGarbageCollector.class)
             .enable(Level.TRACE)
             .filter(Level.TRACE)
             .create();

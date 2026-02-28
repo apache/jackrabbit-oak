@@ -366,7 +366,7 @@ public class ActiveDeletedBlobCollectorTest {
     @Test
     public void dontWarnWhileErrorsWhileDeletingBlobs() throws Exception {
         LogCustomizer warnLogCustomizer =
-                LogCustomizer.forLogger(ActiveDeletedBlobCollectorFactory.class.getName()).enable(Level.WARN)
+                LogCustomizer.forLogger(ActiveDeletedBlobCollectorFactory.class).enable(Level.WARN)
                         .contains("Exception occurred while ")
                         .create();
 
@@ -424,7 +424,7 @@ public class ActiveDeletedBlobCollectorTest {
     @Test
     public void doDebugLogWhileErrorsWhileDeletingBlobs() throws Exception {
         LogCustomizer warnLogCustomizer =
-                LogCustomizer.forLogger(ActiveDeletedBlobCollectorFactory.class.getName()).enable(Level.DEBUG)
+                LogCustomizer.forLogger(ActiveDeletedBlobCollectorFactory.class).enable(Level.DEBUG)
                         .contains("Exception occurred while ")
                         .create();
 

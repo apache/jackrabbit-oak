@@ -164,7 +164,7 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
         // ERROR o.a.j.o.p.i.search.IndexDefinition - Config error for index definition at /oak:index/... . 
         // Please correct the index definition and reindex after correction. Additional Info : No valid include provided. Includes [/tmp], Excludes [/tmp]
         // java.lang.IllegalStateException: No valid include provided. Includes [/tmp], Excludes [/tmp]
-        LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class.getName()).enable(Level.ERROR).create();
+        LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class).enable(Level.ERROR).create();
         Tree def = createIndexNodeAndData();
         def.setProperty(PathFilter.PROP_INCLUDED_PATHS, List.of("/tmp/testNode"), Type.STRINGS);
         def.setProperty(PathFilter.PROP_EXCLUDED_PATHS, List.of("/tmp"), Type.STRINGS);

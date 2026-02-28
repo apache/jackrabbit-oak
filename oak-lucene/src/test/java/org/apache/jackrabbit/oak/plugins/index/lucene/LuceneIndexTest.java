@@ -834,7 +834,7 @@ public class LuceneIndexTest {
      */
     @Test
     public void testConfigErrorInIndexDefintion() throws Exception {
-        LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class.getName()).enable(Level.ERROR).create();
+        LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class).enable(Level.ERROR).create();
 
         // Create 2 index def - one with config related error and one without
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);

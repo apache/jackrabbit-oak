@@ -484,7 +484,7 @@ public class DataStoreTrackerGCTest {
 
         // Capture logs for the second round of gc
         LogCustomizer customLogs = LogCustomizer
-            .forLogger(MarkSweepGarbageCollector.class.getName())
+            .forLogger(MarkSweepGarbageCollector.class)
             .enable(Level.WARN)
             .filter(Level.WARN)
             .contains("Error occurred while deleting blob with id")

@@ -1403,7 +1403,7 @@ public class AsyncIndexUpdateTest {
         async.run();
         //Now checkpoints = [checkpoints1]. Note that size is 1 so new checkpoint name remains same
 
-        LogCustomizer customLogs = LogCustomizer.forLogger(AsyncIndexUpdate.class.getName())
+        LogCustomizer customLogs = LogCustomizer.forLogger(AsyncIndexUpdate.class)
                 .filter(Level.WARN)
                 .create();
 
@@ -1670,7 +1670,7 @@ public class AsyncIndexUpdateTest {
     }
 
     private static LogCustomizer createLogCustomizer(Level level){
-        LogCustomizer lc = LogCustomizer.forLogger(AsyncIndexUpdate.class.getName())
+        LogCustomizer lc = LogCustomizer.forLogger(AsyncIndexUpdate.class)
                 .filter(level)
                 .enable(level)
                 .create();

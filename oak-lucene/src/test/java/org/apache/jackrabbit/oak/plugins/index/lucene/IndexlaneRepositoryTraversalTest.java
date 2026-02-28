@@ -81,7 +81,7 @@ public class IndexlaneRepositoryTraversalTest {
         ContentSession session = createRepository().login(null, null);
         root = session.getLatestRoot();
         customLogger = LogCustomizer
-                .forLogger(AsyncIndexUpdate.class.getName())
+                .forLogger(AsyncIndexUpdate.class)
                 .enable(Level.INFO).create();
         customLogger.starting();
     }

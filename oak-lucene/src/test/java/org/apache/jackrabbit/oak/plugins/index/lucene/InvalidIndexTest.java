@@ -77,7 +77,7 @@ public class InvalidIndexTest {
         ContentSession session = createRepository().login(null, null);
         root = session.getLatestRoot();
         customLogger = LogCustomizer
-                .forLogger(IndexUpdate.class.getName())
+                .forLogger(IndexUpdate.class)
                 .enable(Level.WARN).create();
         customLogger.starting();
     }

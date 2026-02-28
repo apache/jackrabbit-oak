@@ -246,7 +246,7 @@ public class OakStreamingIndexFileTest {
         byte[] fileBytes = writeFile();
 
         LogCustomizer logRecorder = LogCustomizer
-                .forLogger(OakStreamingIndexFile.class.getName()).enable(Level.WARN)
+                .forLogger(OakStreamingIndexFile.class).enable(Level.WARN)
                 .contains("Seeking back on streaming index file").create();
 
         NodeBuilder fooBuilder = builder.child("foo");

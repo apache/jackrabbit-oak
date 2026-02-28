@@ -207,7 +207,7 @@ public class BulkCreateOrUpdateClusterTest extends AbstractMultiDocumentStoreTes
 
     @Test
     public void testSimpleConflictHandling() {
-        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName()).enable(Level.DEBUG)
+        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class).enable(Level.DEBUG)
                 .contains("invalidating cache and retrying").create();
         logCustomizer.starting();
 

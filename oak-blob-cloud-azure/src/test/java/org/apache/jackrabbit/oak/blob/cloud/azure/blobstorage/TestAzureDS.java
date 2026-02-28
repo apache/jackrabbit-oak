@@ -63,7 +63,7 @@ public class TestAzureDS extends AbstractDataStoreTest {
   @After
   public void tearDown() {
     try {
-      LogCustomizer customizer = LogCustomizer.forLogger(AzureBlobContainerProvider.class.getName())
+      LogCustomizer customizer = LogCustomizer.forLogger(AzureBlobContainerProvider.class)
               .filter(Level.INFO)
               .create();
       customizer.starting();

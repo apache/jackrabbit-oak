@@ -75,7 +75,7 @@ public class S3ToInlinedTest extends AbstractOak2OakTest {
     public void prepare() throws Exception {
         // Capture logs
         customLogs = LogCustomizer
-            .forLogger(UploadStagingCache.class.getName())
+            .forLogger(UploadStagingCache.class)
             .enable(Level.INFO)
             .filter(Level.INFO)
             .contains("Uploads in progress on close [0]")

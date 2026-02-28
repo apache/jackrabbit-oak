@@ -297,7 +297,7 @@ public class DataStoreCommandTest {
 
         log.info("Running testNoSensitiveParams: {}", argsList);
         LogCustomizer customLogs = LogCustomizer
-            .forLogger(DataStoreCommand.class.getName())
+            .forLogger(DataStoreCommand.class)
             .enable(Level.INFO)
             .filter(Level.INFO)
             .matchesRegex(".*mongodb:.*|.*az:.*")

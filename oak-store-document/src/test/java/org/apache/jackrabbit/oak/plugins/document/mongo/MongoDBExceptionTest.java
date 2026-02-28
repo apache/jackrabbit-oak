@@ -144,7 +144,7 @@ public class MongoDBExceptionTest {
 
     @Test
     public void createOrUpdate16MBDoc() {
-        LogCustomizer customizer = LogCustomizer.forLogger(MongoDocumentStore.class.getName()).create();
+        LogCustomizer customizer = LogCustomizer.forLogger(MongoDocumentStore.class).create();
         customizer.starting();
         String id = "/foo";
         UpdateOp updateOp = new UpdateOp(id, true);
@@ -163,7 +163,7 @@ public class MongoDBExceptionTest {
 
     @Test
     public void createOrUpdate16MBBatchWithMultiDocs() {
-        LogCustomizer log = LogCustomizer.forLogger(MongoDocumentStore.class.getName()).
+        LogCustomizer log = LogCustomizer.forLogger(MongoDocumentStore.class).
                 enable(Level.ERROR).
                 matchesRegex("bulkUpdate.*biggest update.*approximate.*").
                 create();
@@ -238,7 +238,7 @@ public class MongoDBExceptionTest {
     public void multiCreateOrUpdate16MBDoc() {
 
         List<UpdateOp> updateOps = new ArrayList<>();
-        LogCustomizer customizer = LogCustomizer.forLogger(MongoDocumentStore.class.getName()).create();
+        LogCustomizer customizer = LogCustomizer.forLogger(MongoDocumentStore.class).create();
         customizer.starting();
         String id1 = "/test";
         String id2 = "/foo";
@@ -272,7 +272,7 @@ public class MongoDBExceptionTest {
     public void create16MBDoc() {
 
         List<UpdateOp> updateOps = new ArrayList<>();
-        LogCustomizer customizer = LogCustomizer.forLogger(MongoDocumentStore.class.getName()).create();
+        LogCustomizer customizer = LogCustomizer.forLogger(MongoDocumentStore.class).create();
         customizer.starting();
         String id1 = "/test";
         String id2 = "/foo";

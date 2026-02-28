@@ -331,7 +331,7 @@ public class BufferedOakDirectoryTest {
         String oldVal = System.getProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM);
 
         final LogCustomizer custom = LogCustomizer
-                .forLogger(BufferedOakDirectory.class.getName())
+                .forLogger(BufferedOakDirectory.class)
                 .contains("Ignoring configuration ")
                 .enable(Level.WARN).create();
 
@@ -361,7 +361,7 @@ public class BufferedOakDirectoryTest {
         String oldVal = System.getProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM);
 
         final LogCustomizer custom = LogCustomizer
-                .forLogger(BufferedOakDirectory.class.getName())
+                .forLogger(BufferedOakDirectory.class)
                 .contains("Ignoring configuration ")
                 .enable(Level.WARN).create();
 

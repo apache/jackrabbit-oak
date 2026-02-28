@@ -997,7 +997,7 @@ public class IndexUpdateTest {
         builder.getChildNode("oak:index").getChildNode("fooIndex").setProperty(REINDEX_PROPERTY_NAME, true);
         after = builder.getNodeState();
 
-        LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class.getName()).filter(Level.INFO).create();
+        LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class).filter(Level.INFO).create();
         customLogs.starting();
 
         before = after;
@@ -1017,7 +1017,7 @@ public class IndexUpdateTest {
       */
      @Test
      public void testConfigErrorInIndexDefintion() throws Exception{
-         LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class.getName()).enable(Level.ERROR).create();
+         LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class).enable(Level.ERROR).create();
          builder.child("testRoot").setProperty("foo", "abc");
          //Create 2 index def - one with config related error and one without
  

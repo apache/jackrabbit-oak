@@ -47,7 +47,7 @@ public class OrderedPropertyIndexEditorProviderTest {
     private final CommitHook hook = new EditorHook(new IndexUpdateProvider(
         new OrderedPropertyIndexEditorProvider()));
     private final LogCustomizer custom = LogCustomizer
-        .forLogger(OrderedPropertyIndexEditorProvider.class.getName()).enable(Level.WARN).create();
+        .forLogger(OrderedPropertyIndexEditorProvider.class).enable(Level.WARN).create();
     
     private final String indexName = "mickey";
     private final String indexedProperty = "mouse";

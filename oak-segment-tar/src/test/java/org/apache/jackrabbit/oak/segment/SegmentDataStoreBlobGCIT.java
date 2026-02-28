@@ -276,7 +276,7 @@ public class SegmentDataStoreBlobGCIT {
     @Test
     public void checkMark() throws Exception {
         LogCustomizer customLogs = LogCustomizer
-            .forLogger(MarkSweepGarbageCollector.class.getName())
+            .forLogger(MarkSweepGarbageCollector.class)
             .enable(Level.TRACE)
             .filter(Level.TRACE)
             .create();

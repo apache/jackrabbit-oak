@@ -36,7 +36,7 @@ import org.slf4j.event.Level;
 
 public class OrderedPropertyIndexProviderTest extends AbstractQueryTest {
     private final LogCustomizer custom = LogCustomizer
-        .forLogger(OrderedPropertyIndexProvider.class.getName()).enable(Level.WARN).create();
+        .forLogger(OrderedPropertyIndexProvider.class).enable(Level.WARN).create();
     
     @Override
     protected void createTestIndexNode() throws Exception {

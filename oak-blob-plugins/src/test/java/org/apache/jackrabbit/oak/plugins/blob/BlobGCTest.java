@@ -534,7 +534,7 @@ public class BlobGCTest {
 
         // Capture logs for the second round of gc
         LogCustomizer customLogs = LogCustomizer
-            .forLogger(MarkSweepGarbageCollector.class.getName())
+            .forLogger(MarkSweepGarbageCollector.class)
             .enable(Level.INFO)
             .filter(Level.INFO)
             .contains("Estimated size recovered for")

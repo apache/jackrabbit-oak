@@ -434,7 +434,7 @@ public class HybridIndexTest extends AbstractQueryTest {
         }
 
         createTestData("/content2", 5);
-        LogCustomizer lc = LogCustomizer.forLogger(LucenePropertyIndex.class.getName())
+        LogCustomizer lc = LogCustomizer.forLogger(LucenePropertyIndex.class)
                 .filter(Level.WARN)
                 .create();
         lc.starting();

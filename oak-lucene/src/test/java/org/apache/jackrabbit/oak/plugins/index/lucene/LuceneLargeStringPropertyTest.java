@@ -97,7 +97,7 @@ public class LuceneLargeStringPropertyTest extends AbstractQueryTest {
 
     @Before
     public void setup() {
-        customizer = LogCustomizer.forLogger(LuceneDocumentMaker.class.getName()).filter(Level.INFO).create();
+        customizer = LogCustomizer.forLogger(LuceneDocumentMaker.class).filter(Level.INFO).create();
         customizer.starting();
     }
 
