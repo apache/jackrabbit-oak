@@ -92,6 +92,7 @@
           <excludes>
             <exclude>release.properties</exclude>
             <exclude>CONTRIBUTING.md</exclude>
+            <exclude>AGENTS.md</exclude>
             <exclude>.git/**</exclude>
             <exclude>.idea/**</exclude>
             <exclude>.gitignore</exclude>
