@@ -1654,7 +1654,7 @@ public class MongoDocumentStore implements DocumentStore {
         } catch (BSONException bsonException) {
             diagnoseAndLogBSONException(updateOps, bsonException);
             // rethrow
-            throw new DocumentStoreException(bsonException);
+            throw bsonException;
         }
 
         for (BulkWriteUpsert upsert : bulkResult.getUpserts()) {
