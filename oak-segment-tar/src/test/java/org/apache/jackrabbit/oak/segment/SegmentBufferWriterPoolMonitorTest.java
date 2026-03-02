@@ -90,13 +90,9 @@ public class SegmentBufferWriterPoolMonitorTest {
                 try {
                     startLatch.await();
                     for (int j = 0; j < iterationsPerThread; j++) {
-                        RecordId result = pool.execute(gcGeneration, new WriteOperation() {
-                            @NotNull
-                            @Override
-                            public RecordId execute(@NotNull SegmentBufferWriter writer) {
-                                // Simulate some work
-                                return store.getRevisions().getHead();
-                            }
+                        RecordId result = pool.execute(gcGeneration, writer -> {
+                            // Simulate some work
+                            return store.getRevisions().getHead();
                         });
                         Assert.assertNotNull(result);
                         successCount.incrementAndGet();
@@ -128,25 +124,19 @@ public class SegmentBufferWriterPoolMonitorTest {
         AtomicBoolean flushCompleted = new AtomicBoolean(false);
 
         // Start a write operation that will hold a writer
-        Future<RecordId> writeFuture = executor.submit(() -> {
-            return pool.execute(gcGeneration, new WriteOperation() {
-                @NotNull
-                @Override
-                public RecordId execute(@NotNull SegmentBufferWriter writer) throws IOException {
-                    writeOperationStarted.set(true);
-                    try {
-                        // Wait for flush to be called
-                        barrier.await(5, TimeUnit.SECONDS);
-                        // Hold the writer for a bit to ensure flush is waiting
-                        Thread.sleep(100);
-                        writeOperationCompleted.set(true);
-                    } catch (Exception e) {
-                        throw new IOException(e);
-                    }
-                    return store.getRevisions().getHead();
-                }
-            });
-        });
+        Future<RecordId> writeFuture = executor.submit(() -> pool.execute(gcGeneration, writer -> {
+            writeOperationStarted.set(true);
+            try {
+                // Wait for flush to be called
+                barrier.await(5, TimeUnit.SECONDS);
+                // Hold the writer for a bit to ensure flush is waiting
+                Thread.sleep(100);
+                writeOperationCompleted.set(true);
+            } catch (Exception e) {
+                throw new IOException(e);
+            }
+            return store.getRevisions().getHead();
+        }));
 
         // Wait for write operation to start
         while (!writeOperationStarted.get()) {
@@ -192,23 +182,17 @@ public class SegmentBufferWriterPoolMonitorTest {
 
         // Start multiple write operations
         for (int i = 0; i < numWriters; i++) {
-            Future<RecordId> future = executor.submit(() -> {
-                return pool.execute(gcGeneration, new WriteOperation() {
-                    @NotNull
-                    @Override
-                    public RecordId execute(@NotNull SegmentBufferWriter writer) throws IOException {
-                        writersStarted.countDown();
-                        try {
-                            // Wait until all writers are borrowed
-                            releaseWriters.await(5, TimeUnit.SECONDS);
-                            completedWrites.incrementAndGet();
-                        } catch (InterruptedException e) {
-                            throw new IOException(e);
-                        }
-                        return store.getRevisions().getHead();
-                    }
-                });
-            });
+            Future<RecordId> future = executor.submit(() -> pool.execute(gcGeneration, writer -> {
+                writersStarted.countDown();
+                try {
+                    // Wait until all writers are borrowed
+                    releaseWriters.await(5, TimeUnit.SECONDS);
+                    completedWrites.incrementAndGet();
+                } catch (InterruptedException e) {
+                    throw new IOException(e);
+                }
+                return store.getRevisions().getHead();
+            }));
             writeFutures.add(future);
         }
 
@@ -255,22 +239,16 @@ public class SegmentBufferWriterPoolMonitorTest {
         CountDownLatch flushStarted = new CountDownLatch(1);
 
         // Borrow a writer and hold it
-        Future<RecordId> writeFuture = executor.submit(() -> {
-            return pool.execute(gcGeneration, new WriteOperation() {
-                @NotNull
-                @Override
-                public RecordId execute(@NotNull SegmentBufferWriter writer) throws IOException {
-                    writerBorrowed.countDown();
-                    try {
-                        // Hold writer for 5 seconds
-                        Thread.sleep(5000);
-                    } catch (InterruptedException e) {
-                        // Expected if test is torn down
-                    }
-                    return store.getRevisions().getHead();
-                }
-            });
-        });
+        executor.submit(() -> pool.execute(gcGeneration, writer -> {
+            writerBorrowed.countDown();
+            try {
+                // Hold writer for 5 seconds
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                // Expected if test is torn down
+            }
+            return store.getRevisions().getHead();
+        }));
 
         // Wait for writer to be borrowed
         Assert.assertTrue("Writer should be borrowed",
@@ -301,9 +279,6 @@ public class SegmentBufferWriterPoolMonitorTest {
         flushThread.join(1000);
         Assert.assertFalse("Flush thread should terminate after interrupt",
                 flushThread.isAlive());
-
-        // The interrupted flag should be set
-        // Note: We can't easily verify this without access to thread internals
     }
 
     /**
@@ -317,26 +292,20 @@ public class SegmentBufferWriterPoolMonitorTest {
         CountDownLatch writerReturned = new CountDownLatch(1);
 
         // Borrow a writer
-        Future<RecordId> writeFuture = executor.submit(() -> {
-            return pool.execute(gcGeneration, new WriteOperation() {
-                @NotNull
-                @Override
-                public RecordId execute(@NotNull SegmentBufferWriter writer) throws IOException {
-                    writerBorrowed.countDown();
-                    try {
-                        // Wait for flush to start
-                        flushCanStart.await(5, TimeUnit.SECONDS);
-                        // Small delay to ensure flush has collected borrowed writers
-                        Thread.sleep(100);
-                    } catch (InterruptedException e) {
-                        throw new IOException(e);
-                    } finally {
-                        writerReturned.countDown();
-                    }
-                    return store.getRevisions().getHead();
-                }
-            });
-        });
+        Future<RecordId> writeFuture = executor.submit(() -> pool.execute(gcGeneration, writer -> {
+            writerBorrowed.countDown();
+            try {
+                // Wait for flush to start
+                flushCanStart.await(5, TimeUnit.SECONDS);
+                // Small delay to ensure flush has collected borrowed writers
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                throw new IOException(e);
+            } finally {
+                writerReturned.countDown();
+            }
+            return store.getRevisions().getHead();
+        }));
 
         // Wait for writer to be borrowed
         Assert.assertTrue("Writer should be borrowed",
@@ -374,13 +343,7 @@ public class SegmentBufferWriterPoolMonitorTest {
 
         // Do some writes first
         for (int i = 0; i < 10; i++) {
-            pool.execute(gcGeneration, new WriteOperation() {
-                @NotNull
-                @Override
-                public RecordId execute(@NotNull SegmentBufferWriter writer) {
-                    return store.getRevisions().getHead();
-                }
-            });
+            pool.execute(gcGeneration, (WriteOperation) writer -> store.getRevisions().getHead());
         }
 
         // Start multiple concurrent flushes
@@ -414,14 +377,10 @@ public class SegmentBufferWriterPoolMonitorTest {
         int iterations = 100;
 
         for (int i = 0; i < iterations; i++) {
-            RecordId result = pool.execute(gcGeneration, new WriteOperation() {
-                @NotNull
-                @Override
-                public RecordId execute(@NotNull SegmentBufferWriter writer) throws IOException {
-                    // Writer should be borrowed here
-                    Assert.assertNotNull("Writer should not be null", writer);
-                    return store.getRevisions().getHead();
-                }
+            RecordId result = pool.execute(gcGeneration, writer -> {
+                // Writer should be borrowed here
+                Assert.assertNotNull("Writer should not be null", writer);
+                return store.getRevisions().getHead();
             });
             Assert.assertNotNull("Result should not be null", result);
         }
@@ -430,13 +389,9 @@ public class SegmentBufferWriterPoolMonitorTest {
         pool.flush(store);
 
         // Should be able to borrow again after flush
-        RecordId result = pool.execute(gcGeneration, new WriteOperation() {
-            @NotNull
-            @Override
-            public RecordId execute(@NotNull SegmentBufferWriter writer) {
-                Assert.assertNotNull("Writer should not be null after flush", writer);
-                return store.getRevisions().getHead();
-            }
+        RecordId result = pool.execute(gcGeneration, writer -> {
+            Assert.assertNotNull("Writer should not be null after flush", writer);
+            return store.getRevisions().getHead();
         });
         Assert.assertNotNull("Result after flush should not be null", result);
     }
