@@ -10,7 +10,11 @@ project with ~47 modules written in Java 11.
 
 - When working on a specific area, first read the area-specific documentation before
   making changes (see doc links in the module tables below)
-- New code must have high test coverage — all critical paths must be covered by tests
+- New code must have >80% test coverage. Security modules (`oak-security-spi`,
+  `oak-auth-*`, `oak-authorization-*`) require 100% test coverage
+- Do not weaken or remove existing test assertions to make the build pass. If a test
+  fails after a change, investigate the root cause. Only modify existing tests when the
+  behavioral change is intentional and explicitly requested
 - Write self-descriptive, easy-to-read code. Avoid trivial comments. Only add comments
   where the logic is complex and not obvious from the code itself
 - Use feature toggles for non-trivial changes. If the change is a bug fix, the toggle
@@ -26,10 +30,10 @@ mvn clean install -DskipTests
 # Fast build (no tests, no coverage)
 mvn clean install -Pfast
 
-# Build a single module
+# Build a single module (use -DskipTests only for modules you did not change)
 mvn clean install -pl oak-core -DskipTests
 
-# Build a module and its dependencies
+# Build a module and its dependencies (use -DskipTests only for unchanged dependencies)
 mvn clean install -pl oak-core -am -DskipTests
 
 # Rebuild a module and all modules that depend on it (use after SPI/API changes)
@@ -60,6 +64,9 @@ mvn verify -pl oak-store-document -PintegrationTesting
 # Run with code coverage
 mvn verify -pl oak-core -Pcoverage -Dskip.coverage=false
 ```
+
+Always run tests for the modules you modified. Use `-DskipTests` only when building
+dependencies that you did not change.
 
 **Test framework:** JUnit 4 (4.13.1) with Mockito 5.x (loaded as Java agent).
 Some modules also use EasyMock. Do not introduce JUnit 5 unless explicitly requested.
@@ -217,6 +224,8 @@ via the Apache RAT plugin. Use this exact header:
 - **Commit message format:** Start with Jira issue key: `OAK-XXXXX: Description of change`
 - **PR target:** PRs should target `trunk`
 - All changes must be committed to the issue branch, never directly to trunk
+- **Code review:** After pushing changes, remind the user to request a review from
+  committers who have previously contributed to the affected modules
 
 ## CI
 
