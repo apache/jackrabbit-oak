@@ -179,6 +179,7 @@ Toggles are disabled by default and can be enabled without redeployment.
 - No wildcard imports (import each class individually)
 - Follow existing code style in the module you are modifying
 - OSGi bundle compliance is required - modules produce OSGi bundles
+- Never use regular expression parsing and find / replace for JSON or XML data
 
 ### License Header
 Every Java file must start with the Apache 2.0 license header. The build enforces this
