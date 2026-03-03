@@ -28,8 +28,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.channels.UnresolvedAddressException;
 import java.time.Duration;
 import java.util.Set;
+import java.util.concurrent.TimeoutException;
 
 public class AzureRepositoryLock implements RepositoryLock {
 
@@ -222,15 +224,19 @@ public class AzureRepositoryLock implements RepositoryLock {
      * Per Azure SDK documentation, the timeout parameter causes a RuntimeException to be raised.
      * Reactor-core throws IllegalStateException with message "Timeout on blocking read" when
      * the timeout expires (see BlockingSingleSubscriber.blockingGet in reactor-core).
+     * <p>
+     * {@link java.nio.channels.UnresolvedAddressException} (extends IllegalArgumentException)
+     * can occur when DNS resolution temporarily fails.
      * @param e the exception to check
      * @return true if this is a transient exception that should be retried
      */
     private boolean isTransientClientSideException(Exception e) {
         Throwable current = e;
         while (current != null) {
-            if (current instanceof java.util.concurrent.TimeoutException ||
-                current instanceof java.io.IOException ||
-                current instanceof IllegalStateException) {
+            if (current instanceof TimeoutException ||
+                current instanceof IOException ||
+                current instanceof IllegalStateException ||
+                current instanceof UnresolvedAddressException) {
                 return true;
             }
             current = current.getCause();

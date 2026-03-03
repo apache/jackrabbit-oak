@@ -66,14 +66,16 @@ public class JsonNodeUpdater {
     /**
      * Add a replace a node, including all child nodes, in the node store.
      *
+     * @param builder the builder to add the node to
      * @param nodeStore the target node store
-     * @param targetPath the target path where the node(s) is/are replaced
+     * @param targetPath the target path (relative to the builder) where the node(s) is/are replaced
      * @param nodeType the node type of the new node (eg. "nt:unstructured")
      * @param jsonString the json string with the node data
      * @throws CommitFailedException if storing the nodes failed
      * @throws IOException if storing a blob failed
      */
-    public static void addOrReplace(NodeBuilder builder, NodeStore nodeStore, String targetPath, String nodeType, String jsonString) throws CommitFailedException, IOException {
+    public static void addOrReplace(NodeBuilder builder, NodeStore nodeStore, String targetPath, 
+            String nodeType, String jsonString) throws CommitFailedException, IOException {
         LOG.info("Storing {}: {}", targetPath, jsonString);
         if (nodeType.contains("/")) {
             throw new IllegalStateException("Illegal node type: " + nodeType);
@@ -245,6 +247,13 @@ public class JsonNodeUpdater {
         }
     }
 
+    /**
+     * Parse a raw JSON value and convert it to a set of strings. Also supported is a single string value.
+     * Everything else (numbers, booleans, etc.) is not supported and returns null.
+     * 
+     * @param value the raw JSON value
+     * @return a set of strings or null
+     */
     public static TreeSet<String> getStringSet(String value) {
         if (value == null) {
             return null;
