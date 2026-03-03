@@ -15,8 +15,10 @@ project with ~47 modules written in Java 11.
 - Do not weaken or remove existing test assertions to make the build pass. If a test
   fails after a change, investigate the root cause. Only modify existing tests when the
   behavioral change is intentional and explicitly requested
-- Write self-descriptive, easy-to-read code. Avoid trivial comments. Only add comments
-  where the logic is complex and not obvious from the code itself
+- Write self-descriptive, easy-to-read code. Prefer minimal changes — AI tends to add
+  more lines than necessary; aim to be concise
+- Avoid trivial comments. Only add comments where the logic is complex and not
+  obvious from the code itself
 - Use feature toggles for non-trivial changes. If the change is a bug fix, the toggle
   should be enabled by default. If the change introduces a new feature, the toggle should
   be disabled by default
