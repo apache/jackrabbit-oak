@@ -95,6 +95,30 @@ public class GarbageCollectorOfflineCompactionTest {
     }
 
     // -----------------------------------------------------------------------
+    // Scenario: compactTail(ok) → cleanup
+    //   The compactTail path stores lastCompactionResult identically to
+    //   compactFull; the succeeded result must reach the 2-arg cleanup.
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void testCompactTailOkCleanupJournalWritten() throws IOException {
+        CompactionResult result = succeeded(1);
+        Mockito.when(strategy.compactTail(Mockito.any(GarbageCollectionStrategy.Context.class)))
+               .thenReturn(result);
+
+        collector.compactTail(strategy);
+        collector.cleanup(strategy);
+
+        ArgumentCaptor<CompactionResult> captor = ArgumentCaptor.forClass(CompactionResult.class);
+        Mockito.verify(strategy).cleanup(
+            Mockito.any(GarbageCollectionStrategy.Context.class), captor.capture());
+        Assert.assertSame(result, captor.getValue());
+        Assert.assertTrue(captor.getValue().requiresGCJournalEntry());
+        Mockito.verify(strategy, Mockito.never())
+               .cleanup(Mockito.any(GarbageCollectionStrategy.Context.class));
+    }
+
+    // -----------------------------------------------------------------------
     // Scenario: compact(ok) → cleanup
     //   The succeeded result must be passed to the 2-arg cleanup.
     // -----------------------------------------------------------------------
