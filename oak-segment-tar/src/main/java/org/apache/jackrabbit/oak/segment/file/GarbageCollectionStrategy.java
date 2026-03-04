@@ -100,4 +100,6 @@ interface GarbageCollectionStrategy {
 
     List<String> cleanup(Context context) throws IOException;
 
+    List<String> cleanup(Context context, CompactionResult compactionResult) throws IOException;
+
 }

@@ -127,4 +127,43 @@ public class DefaultGarbageCollectionStrategyTest {
         runCleanup(CompactionResult.aborted(GCGeneration.NULL, 0));
         verifyGCJournalPersistence(never());
     }
+
+    @Test
+    public void offlineCompactionAfterSuccessfulFullCompactionPersistsToJournal() throws Exception {
+        CompactionResult result = CompactionResult.succeeded(
+                SegmentGCOptions.GCType.FULL,
+                GCGeneration.NULL,
+                SegmentGCOptions.defaultGCOptions(),
+                RecordId.NULL,
+                0);
+        runCleanup(result);
+        verifyGCJournalPersistence(times(1));
+    }
+
+    @Test
+    public void offlineCompactionAfterSuccessfulTailCompactionPersistsToJournal() throws Exception {
+        CompactionResult result = CompactionResult.succeeded(
+                SegmentGCOptions.GCType.TAIL,
+                GCGeneration.NULL,
+                SegmentGCOptions.defaultGCOptions(),
+                RecordId.NULL,
+                0);
+        runCleanup(result);
+        verifyGCJournalPersistence(times(1));
+    }
+
+    @Test
+    public void abortedRetryDoesNotOverwritePriorSucceededResultForJournalPersistence() throws Exception {
+        // Simulates: compactFull -> aborted, compactFull -> succeeded, cleanup.
+        // GarbageCollector stores only the succeeded result (isSuccess() gate),
+        // so cleanup is ultimately called with the succeeded result.
+        runCleanup(CompactionResult.aborted(GCGeneration.NULL, 0));
+        runCleanup(CompactionResult.succeeded(
+                SegmentGCOptions.GCType.FULL,
+                GCGeneration.NULL,
+                SegmentGCOptions.defaultGCOptions(),
+                RecordId.NULL,
+                0));
+        verifyGCJournalPersistence(times(1));
+    }
 }
