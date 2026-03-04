@@ -321,17 +321,12 @@ class GarbageCollector {
     synchronized List<String> cleanup(GarbageCollectionStrategy strategy) throws IOException {
         cancelRequested = false;
         CompactionResult compactionResult = lastCompactionResult;
-        lastCompactionResult = null;
-        if (compactionResult != null && compactionResult.requiresGCJournalEntry()) {
-            return strategy.cleanup(newGarbageCollectionContext(GC_COUNT.get()), compactionResult);
+        if (compactionResult != null) {
+            List<String> result = strategy.cleanup(newGarbageCollectionContext(GC_COUNT.get()), compactionResult);
+            lastCompactionResult = null;
+            return result;
         }
-        return strategy.cleanup(newGarbageCollectionContext(GC_COUNT.get()), CompactionResult.skipped(
-            lastCompactionType,
-            getGcGeneration(),
-            gcOptions,
-            revisionsSupplier.get().getHead(),
-            GC_COUNT.get()
-        ));
+        return strategy.cleanup(newGarbageCollectionContext(GC_COUNT.get()));
     }
 
     /**

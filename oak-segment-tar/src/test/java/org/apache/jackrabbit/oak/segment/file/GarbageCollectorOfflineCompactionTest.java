@@ -58,7 +58,7 @@ public class GarbageCollectorOfflineCompactionTest {
     private GarbageCollector collector;
 
     @Before
-    public void setUp() {
+    public void setUp() throws IOException {
         strategy = Mockito.mock(GarbageCollectionStrategy.class);
         collector = new GarbageCollector(
             SegmentGCOptions.defaultGCOptions(),
@@ -100,7 +100,7 @@ public class GarbageCollectorOfflineCompactionTest {
     // -----------------------------------------------------------------------
 
     @Test
-    public void testCompactOk_cleanup_journalWritten() throws IOException {
+    public void testCompactOkCleanupJournalWritten() throws IOException {
         CompactionResult result = succeeded(1);
         Mockito.when(strategy.compactFull(Mockito.any(GarbageCollectionStrategy.Context.class)))
                .thenReturn(result);
@@ -123,7 +123,7 @@ public class GarbageCollectorOfflineCompactionTest {
     // -----------------------------------------------------------------------
 
     @Test
-    public void testCompactOk_compactOk_cleanup_gen2Supersedes() throws IOException {
+    public void testCompactOkCompactOkCleanupGen2Supersedes() throws IOException {
         CompactionResult gen1 = succeeded(1);
         CompactionResult gen2 = succeeded(2);
         Mockito.when(strategy.compactFull(Mockito.any(GarbageCollectionStrategy.Context.class)))
@@ -146,7 +146,7 @@ public class GarbageCollectorOfflineCompactionTest {
     // -----------------------------------------------------------------------
 
     @Test
-    public void testCompactOk_compactAbort_cleanup_abortDoesNotClobber() throws IOException {
+    public void testCompactOkCompactAbortCleanupAbortDoesNotClobber() throws IOException {
         CompactionResult gen1 = succeeded(1);
         Mockito.when(strategy.compactFull(Mockito.any(GarbageCollectionStrategy.Context.class)))
                .thenReturn(gen1)
@@ -169,7 +169,7 @@ public class GarbageCollectorOfflineCompactionTest {
     // -----------------------------------------------------------------------
 
     @Test
-    public void testCompactAbort_compactOk_cleanup_journalWritten() throws IOException {
+    public void testCompactAbortCompactOkCleanupJournalWritten() throws IOException {
         CompactionResult gen2 = succeeded(2);
         Mockito.when(strategy.compactFull(Mockito.any(GarbageCollectionStrategy.Context.class)))
                .thenReturn(aborted(0))
@@ -193,7 +193,7 @@ public class GarbageCollectorOfflineCompactionTest {
     // -----------------------------------------------------------------------
 
     @Test
-    public void testCompactAbort_cleanup_noJournalEntry() throws IOException {
+    public void testCompactAbortCleanupNoJournalEntry() throws IOException {
         Mockito.when(strategy.compactFull(Mockito.any(GarbageCollectionStrategy.Context.class)))
                .thenReturn(aborted(0));
 
@@ -214,7 +214,7 @@ public class GarbageCollectorOfflineCompactionTest {
     // -----------------------------------------------------------------------
 
     @Test
-    public void testCleanup_compactOk_cleanup_journalWrittenOnlyForSecond() throws IOException {
+    public void testCleanupCompactOkCleanupJournalWrittenOnlyForSecond() throws IOException {
         CompactionResult result = succeeded(1);
         Mockito.when(strategy.compactFull(Mockito.any(GarbageCollectionStrategy.Context.class)))
                .thenReturn(result);
@@ -238,7 +238,7 @@ public class GarbageCollectorOfflineCompactionTest {
     // -----------------------------------------------------------------------
 
     @Test
-    public void testCompactOk_cleanup_cleanup_secondCleanupIsNoop() throws IOException {
+    public void testCompactOkCleanupCleanupSecondCleanupIsNoop() throws IOException {
         CompactionResult result = succeeded(1);
         Mockito.when(strategy.compactFull(Mockito.any(GarbageCollectionStrategy.Context.class)))
                .thenReturn(result);
