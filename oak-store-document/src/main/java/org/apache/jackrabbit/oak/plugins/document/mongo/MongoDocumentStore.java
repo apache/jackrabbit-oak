@@ -1652,28 +1652,7 @@ public class MongoDocumentStore implements DocumentStore {
                 failedUpdates.add(bulkIds[err.getIndex()]);
             }
         } catch (BSONException bsonException) {
-            LOG.error("bulkUpdate of size {} failed with: {}", updateOps.size(),
-                    bsonException.getMessage(), bsonException);
-
-            // add diagnostics
-            String idOfbiggestUpdate = "";
-            int estimatedSizeOfBiggestUpdate = 0;
-
-            for (UpdateOp updateOp : updateOps) {
-                String id = updateOp.getId();
-                // this could be made more precise my measuring the BSON serialization of
-                // conditions and updates
-                int estimatedSize = updateOp.toString().length();
-                LOG.debug("after bulk write: string serialization of changes for id={} had an approximate size of {}",
-                        id, estimatedSize);
-                if (estimatedSize > estimatedSizeOfBiggestUpdate) {
-                    idOfbiggestUpdate = id;
-                    estimatedSizeOfBiggestUpdate = estimatedSize;
-                }
-            }
-            LOG.error("bulkUpdate of size {} failed with: {}; biggest update was for i={} with approximate size of {}",
-                    updateOps.size(), bsonException.getMessage(), idOfbiggestUpdate, estimatedSizeOfBiggestUpdate,
-                    bsonException);
+            diagnoseAndLogBSONException(updateOps, bsonException);
             // rethrow
             throw bsonException;
         }
@@ -2065,6 +2044,33 @@ public class MongoDocumentStore implements DocumentStore {
 
     private static Bson getByKeyQuery(String key) {
         return Filters.eq(Document.ID, key);
+    }
+
+    // given a BSONException, log estimated sizes for each update, also determining the biggest one
+    // this can help to find out whether retries in smaller batches could have helped (see OAK-12104)
+    private static void diagnoseAndLogBSONException(java.util.Collection<UpdateOp> updateOps, BSONException bsonException) {
+        LOG.error("bulkUpdate of size {} failed with: {}", updateOps.size(),
+                bsonException.getMessage(), bsonException);
+
+        // add diagnostics
+        String idOfbiggestUpdate = "";
+        int estimatedSizeOfBiggestUpdate = 0;
+
+        for (UpdateOp updateOp : updateOps) {
+            String id = updateOp.getId();
+            // this could be made more precise my measuring the BSON serialization of
+            // conditions and updates
+            int estimatedSize = updateOp.toString().length();
+            LOG.debug("after bulk write: string serialization of changes for id={} had an approximate size of {}",
+                    id, estimatedSize);
+            if (estimatedSize > estimatedSizeOfBiggestUpdate) {
+                idOfbiggestUpdate = id;
+                estimatedSizeOfBiggestUpdate = estimatedSize;
+            }
+        }
+        LOG.error("bulkUpdate of size {} failed with: {}; biggest update was for i={} with approximate size of {}",
+                updateOps.size(), bsonException.getMessage(), idOfbiggestUpdate, estimatedSizeOfBiggestUpdate,
+                bsonException);
     }
 
     @Override
