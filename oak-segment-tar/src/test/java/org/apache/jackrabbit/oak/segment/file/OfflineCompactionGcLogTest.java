@@ -24,7 +24,6 @@ import org.apache.jackrabbit.oak.segment.file.GCJournal.GCJournalEntry;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -43,7 +42,6 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
  * and pass once the fix that retains the {@code CompactionResult} across the two calls
  * is applied.
  */
-@Ignore
 public class OfflineCompactionGcLogTest {
 
     @Rule
