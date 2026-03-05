@@ -120,7 +120,7 @@ class GarbageCollector {
      * GC journal entry.
      */
     @Nullable
-    private volatile CompactionResult lastCompactionResult;
+    private CompactionResult lastCompactionResult;
 
     private volatile boolean cancelRequested;
 

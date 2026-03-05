@@ -58,7 +58,7 @@ public class GarbageCollectorOfflineCompactionTest {
     private GarbageCollector collector;
 
     @Before
-    public void setUp() throws IOException {
+    public void setUp() {
         strategy = Mockito.mock(GarbageCollectionStrategy.class);
         collector = new GarbageCollector(
             SegmentGCOptions.defaultGCOptions(),
@@ -233,7 +233,7 @@ public class GarbageCollectorOfflineCompactionTest {
 
     // -----------------------------------------------------------------------
     // Scenario: cleanup → compact(ok) → cleanup
-    //   The first (pre-compaction) cleanup must not write a journal entry;
+    //   The first (pre-compaction) cleanup must not write a journal entry
     //   only the second cleanup (after a succeeded compaction) must.
     // -----------------------------------------------------------------------
 
