@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import com.mongodb.BasicDBObject;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
@@ -28,6 +29,9 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.bson.BSONException;
+import org.bson.BsonDocument;
+import org.bson.Document;
+import org.bson.RawBsonDocument;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
@@ -35,8 +39,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.event.Level;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import static java.util.Collections.singletonList;
@@ -148,7 +152,7 @@ public class MongoDBExceptionTest {
         customizer.starting();
         String id = "/foo";
         UpdateOp updateOp = new UpdateOp(id, true);
-        updateOp = create16MBProp(updateOp);
+        updateOp = create16MBPropAllASCII(updateOp);
         exceptionMsg = "Document to upsert is larger than 16777216";
         try {
             store.createOrUpdate(Collection.NODES, updateOp);
@@ -161,6 +165,7 @@ public class MongoDBExceptionTest {
         customizer.finished();
     }
 
+    // the difference to createOrUpdate16MBDoc is that multiple updates happen in one batch
     @Test
     public void createOrUpdate16MBBatchWithMultiDocs() {
         LogCustomizer log = LogCustomizer.forLogger(MongoDocumentStore.class.getName()).
@@ -186,7 +191,7 @@ public class MongoDBExceptionTest {
                 String id = idOfReallyBig;
                 ids.add(id);
                 UpdateOp updateOp = new UpdateOp(id, true);
-                updateOp.set("big", RandomStringUtils.secure().next(20 * 1024 * 1024));
+                updateOp.set("big", RandomStringUtils.insecure().next(1024 * 1024 * 17));
                 updateOps.add(updateOp);
             }
             {
@@ -223,7 +228,7 @@ public class MongoDBExceptionTest {
         UpdateOp updateOp = new UpdateOp(docName, true);
         updateOp = create1MBProp(updateOp);
         store.createOrUpdate(Collection.NODES, updateOp);
-        updateOp = create16MBProp(updateOp);
+        updateOp = create16MBPropAllASCII(updateOp);
         exceptionMsg = "Resulting document after update is larger than 16777216";
         try {
             store.createOrUpdate(Collection.NODES, updateOp);
@@ -249,10 +254,10 @@ public class MongoDBExceptionTest {
         store.createOrUpdate(Collection.NODES, op);
 
         UpdateOp op1 = new UpdateOp(id2, true);
-        op1 = create16MBProp(op1);
+        op1 = create16MBPropAllASCII(op1);
 
         // Updating both doc with 16MB
-        op = create16MBProp(op);
+        op = create16MBPropAllASCII(op);
         updateOps.add(op);
         updateOps.add(op1);
         exceptionMsg = "Resulting document after update is larger than 16777216";
@@ -281,7 +286,7 @@ public class MongoDBExceptionTest {
 
         UpdateOp op2 = new UpdateOp(id2, false);
         op2 = create1MBProp(op2);
-        op2 = create16MBProp(op2);
+        op2 = create16MBPropAllASCII(op2);
 
         updateOps.add(op1);
         updateOps.add(op2);
@@ -291,12 +296,12 @@ public class MongoDBExceptionTest {
     }
 
     @Test
-    public void findAndUpdate16MBDoc() throws Exception {
+    public void findAndUpdate16MBDoc() {
         String id = "/foo";
         UpdateOp op = new UpdateOp(id, true);
         op = create1MBProp(op);
         store.createOrUpdate(Collection.NODES, op);
-        op = create16MBProp(op);
+        op = create16MBPropAllASCII(op);
         exceptionMsg = "Resulting document after update is larger than 16777216";
         try {
             store.findAndUpdate(Collection.NODES, op);
@@ -304,7 +309,39 @@ public class MongoDBExceptionTest {
         } catch (DocumentStoreException e) {
             assertThat(e.getMessage(), containsString(exceptionMsg));
             assertThat(e.getMessage(), containsString(id));
-       }
+        }
+    }
+
+    @Test
+    public void assertBSONCompressionAllASCII() {
+        BasicDBObject x = new BasicDBObject();
+        x.put("test", create1MBContentAllASCII());
+        Document doc = Document.parse(x.toJson());
+        BsonDocument bsonDoc = doc.toBsonDocument();
+        RawBsonDocument raw = RawBsonDocument.parse(bsonDoc.toJson());
+        int size = raw.getByteBuffer().remaining();
+        // expect serialization be roughly as source, as UTF-8 of ASCII preserves length
+        int expectedMin = 1012 * 1024;
+        assertTrue("size less than expected: " + size + ", but is: " + expectedMin,  size > expectedMin);
+        int expectedMax = 1036 * 1024;
+        assertTrue("size greater than expected: " + size + ", but is: " + expectedMax,  size < expectedMax);
+    }
+
+    @Test
+    public void assertBSONCompressionLotsNonASCII() {
+        BasicDBObject x = new BasicDBObject();
+        String content = create1MBContentLotsNonASCII();
+        x.put("test", content);
+        int sizeutf8length = content.getBytes(StandardCharsets.UTF_8).length;
+        Document doc = Document.parse(x.toJson());
+        BsonDocument bsonDoc = doc.toBsonDocument();
+        RawBsonDocument raw = RawBsonDocument.parse(bsonDoc.toJson());
+        int size = raw.getByteBuffer().remaining();
+        // expect serialization be close to the UTF-8 representation length
+        int expectedMin = sizeutf8length / 10 * 9;
+        assertTrue("size less than expected: " + size + ", but is: " + expectedMin,  size > expectedMin);
+        int expectedMax = sizeutf8length / 10 * 11;
+        assertTrue("size greater than expected: " + size + ", but is: " + expectedMax,  size < expectedMax);
     }
 
     private void setExceptionMsg() {
@@ -314,28 +351,28 @@ public class MongoDBExceptionTest {
 
     private UpdateOp create1MBProp(UpdateOp op) {
         // create a 1 MB property
-        String content = create1MBContent();
+        String content = create1MBContentAllASCII();
         op.set("property0", content);
         return op;
     }
 
-    private UpdateOp create16MBProp(UpdateOp op) {
+    private UpdateOp create16MBPropAllASCII(UpdateOp op) {
         // create a 1 MB property
-        String content = create1MBContent();
-
+        String content = create1MBContentAllASCII();
 
         //create 16MB property
         for (int i = 0; i < 16; i++) {
-            op.set("property"+ i, content);
+            op.set("property" + i, content);
         }
+
         return op;
     }
 
-    // RED ALERT: OAK-12114
-    private String create1MBContent() {
-        char[] chars = new char[1024 * 1024];
-        Arrays.fill(chars, '0');
-        String content = new String(chars);
-        return content;
+    private String create1MBContentAllASCII() {
+        return RandomStringUtils.insecure().nextAlphanumeric(1024 * 1024);
+    }
+
+    private String create1MBContentLotsNonASCII() {
+        return RandomStringUtils.insecure().next(1024 * 1024);
     }
 }
