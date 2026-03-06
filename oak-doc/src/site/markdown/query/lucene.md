@@ -155,6 +155,8 @@ Below is the canonical index definition structure
       - excludedPaths (string) multiple
       - maxFieldLength (long) = 10000
       - maxTagLength (long) = 100
+      - maxSimilarityTagsCount (long) = 50
+      - maxDynamicBoostCount (long) = 50
       - refresh (boolean)
       - useIfExists (string)
       - blobSize (long) = 32768
