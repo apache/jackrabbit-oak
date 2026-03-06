@@ -242,10 +242,9 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     }
 
     @Override
-    protected boolean indexSimilarityTag(ElasticDocument doc, PropertyState property) {
-        String val = property.getValue(Type.STRING);
-        if (!val.isEmpty()) {
-            doc.addSimilarityTag(val);
+    protected boolean indexSimilarityTag(ElasticDocument doc, String value) {
+        if (!value.isEmpty()) {
+            doc.addSimilarityTag(value);
             return true;
         }
         return false;

@@ -415,8 +415,8 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     }
 
     @Override
-    protected boolean indexSimilarityTag(Document doc, PropertyState property) {
-        doc.add(new TextField(FieldNames.SIMILARITY_TAGS, property.getValue(Type.STRING), Field.Store.YES));
+    protected boolean indexSimilarityTag(Document doc, String value) {
+        doc.add(new TextField(FieldNames.SIMILARITY_TAGS, value, Field.Store.YES));
         return true;
     }
 
