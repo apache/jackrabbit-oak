@@ -369,8 +369,9 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                         dirty = true;
                     }
                 } else if (!LOG_SILENCER.silence(pname)) {
-                    log.warn("[{}] Skipping similarity tag for property {}. Value length {} exceeds maximum allowed length",
-                            getIndexName(), pname, value.length());
+                    log.warn("[{}] Skipping similarity tag for property {}. Either value length {} exceeds maximum" +
+                                    "allowed length or number of indexed tags {} exceeds maximum allowed count",
+                            getIndexName(), pname, value.length(), similarityTagCount);
                 }
             }
 
