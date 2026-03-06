@@ -177,7 +177,7 @@ public class DataStoreCommandTest {
         Data data = new Data();
 
         List<Integer> toBeDeleted = new ArrayList<>();
-        Random rand = new Random();
+        Random rand = new Random(42);
         for (int i = 0; i < numMaxDeletions; i++) {
             int n = rand.nextInt(numBlobs);
             if (!toBeDeleted.contains(n)) {
@@ -201,7 +201,7 @@ public class DataStoreCommandTest {
         }
         for (int i = 0; i < numBlobs; i++) {
             List<String> valuesList = new ArrayList<String>(map.keySet());
-            int randomIndex = new Random().nextInt(valuesList.size());
+            int randomIndex = rand.nextInt(valuesList.size());
 
 
             String pathRoot = valuesList.get(randomIndex);
@@ -901,10 +901,42 @@ public class DataStoreCommandTest {
     private static void assertFileEquals(File dump, String prefix, Set<String> blobsAdded, String dirPrefix)
         throws IOException {
         File file = (dirPrefix == null) ? filterFiles(dump, prefix) : filterFiles(dump, dirPrefix, prefix);
-        Assert.assertNotNull(file);
+        if (file == null || !file.exists()) {
+            logFilesInDump(dump, prefix);
+        }
+        Assert.assertNotNull("Expected file with prefix " + prefix + " in " + dump.getAbsolutePath(), file);
         Assert.assertTrue(file.exists());
         assertEquals(blobsAdded,
             FileIOUtils.readStringsAsSet(new FileInputStream(file), true));
+    }
+
+    private static void logFilesInDump(File dump, String prefix) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Expected file with prefix \"").append(prefix).append("\" not found in ")
+                .append(dump.getAbsolutePath()).append(". Contents:");
+        if (!dump.exists()) {
+            sb.append(" directory does not exist");
+        } else {
+            appendFilesWithSizes(sb, dump, "");
+        }
+        log.warn("{}", sb);
+    }
+
+    private static void appendFilesWithSizes(StringBuilder sb, File dir, String indent) {
+        File[] files = dir.listFiles();
+        if (files == null) {
+            sb.append(indent).append(" (unreadable)");
+            return;
+        }
+        for (File f : files) {
+            if (f.isDirectory()) {
+                sb.append("\n").append(indent).append(f.getName()).append("/");
+                appendFilesWithSizes(sb, f, indent + "  ");
+            } else {
+                sb.append("\n").append(indent).append(f.getName())
+                        .append(" (").append(f.length()).append(" bytes)");
+            }
+        }
     }
 
     private static void assertFileNull(File dump, String prefix) {
