@@ -919,7 +919,7 @@ public class DataStoreCommandTest {
         } else {
             appendFilesWithSizes(sb, dump, "");
         }
-        log.warn(sb.toString());
+        log.warn("{}", sb);
     }
 
     private static void appendFilesWithSizes(StringBuilder sb, File dir, String indent) {
