@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.util.Iterator;
@@ -325,13 +326,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
                     final File tmpFile = Files.createTempFile(temp.toPath(), "blob-cache-", null).toFile();
                     try (InputStream in = backend.getRecord(getIdentifier()).getStream()) {
                         copyInputStreamToFile(in, tmpFile);
-                        return new FileInputStream(tmpFile);
-                    } finally {
-                        // temp file can be created right now, as we already obtained the FileInputStream
-                        boolean deleted = tmpFile.delete();
-                        if (!deleted) {
-                            LOG.debug("Could not delete temporary file '{}''", tmpFile);
-                        }
+                        return Files.newInputStream(tmpFile.toPath(), StandardOpenOption.DELETE_ON_CLOSE);
                     }
                 } else {
                     return new FileInputStream(cached);
