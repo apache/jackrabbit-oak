@@ -192,11 +192,14 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
 
         assertNotNull(is);
 
-        File tmp = new File(new File(path), "tmp");
+
+        //  OAK-12098: Incorrect assumptions about files still to be present
+        // File tmp = new File(new File(path), "tmp");
+        //
         // (tmp file names are implementation details)
-        Collection<File> temp0cacheFiles =
-            FileUtils.listFiles(tmp, FileFilterUtils.prefixFileFilter("blob-cache-"), null);
-        assertEquals(1, temp0cacheFiles.size());
+        // Collection<File> temp0cacheFiles =
+        //            FileUtils.listFiles(tmp, FileFilterUtils.prefixFileFilter("blob-cache-"), null);
+        //        assertEquals(1, temp0cacheFiles.size());
 
         assertFile(is, f, folder, false);
 
