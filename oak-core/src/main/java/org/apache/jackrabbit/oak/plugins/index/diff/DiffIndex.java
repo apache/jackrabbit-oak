@@ -22,6 +22,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -58,21 +59,21 @@ public class DiffIndex {
      * @param indexDefinitions the /oak:index node
      */
     public static void applyDiffIndexChanges(NodeStore store, NodeBuilder indexDefinitions) {
-        JsonObject diffs = collectDiffs(indexDefinitions);
-        if (diffs == null) {
-            // nothing todo
-            return;
+        JsonObject diffs = collectDiffs(indexDefinitions, MERGER);
+        if (diffs != null) {
+            processDiffs(store, indexDefinitions, diffs, MERGER);
         }
-        processDiffs(store, indexDefinitions, diffs);
+        storeOrRemoveWarnings(indexDefinitions, MERGER);
     }
 
     /**
      * Collect the diffs from the diff.index and diff.index.optimizer.
      *
      * @param indexDefinitions the node builder for /oak:index
+     * @param merger the merger instance to use for collecting warnings
      * @return the diffs, or null if none
      */
-    public static JsonObject collectDiffs(NodeBuilder indexDefinitions) {
+    public static JsonObject collectDiffs(NodeBuilder indexDefinitions, DiffIndexMerger merger) {
         JsonObject diffs = null;
         for (String diffIndex : new String[] {
                 DiffIndexMerger.DIFF_INDEX,
@@ -113,11 +114,10 @@ public class DiffIndex {
                 diffs.getChildren().put("/oak:index/" + diffIndex, diffObj);
             } catch (Exception e) {
                 String message = "Error parsing " + diffIndex;
-                LOG.warn("{}: {}", message, e.getMessage(), e);
-                diffIndexDefinition.setProperty("error", message + ": " + e.getMessage());
+                merger.logAndCollectWarn("{}: {}", message, e.getMessage());
             }
             if (!diffIndexDefinition.hasProperty("info")) {
-                diffIndexDefinition.setProperty("info", "This diff is are automatically merged with other indexes. See https://oak-indexing.github.io/oakTools/simplified.html");
+                diffIndexDefinition.setProperty("info", "This diff is automatically merged with other indexes. See https://oak-indexing.github.io/oakTools/simplified.html");
             }
         }
         return diffs;
@@ -129,13 +129,14 @@ public class DiffIndex {
      * @param store the node store
      * @param indexDefinitions the node builder for /oak:index
      * @param diffs the json object with the combined diffs
+     * @param merger the merger instance to use for collecting warnings
      */
-    private static void processDiffs(NodeStore store, NodeBuilder indexDefinitions, JsonObject diffs) {
-        LOG.info("Processing a diffs");
+    private static void processDiffs(NodeStore store, NodeBuilder indexDefinitions, JsonObject diffs, DiffIndexMerger merger) {
+        LOG.info("Processing diffs");
         JsonObject repositoryDefinitions = RootIndexesListService.getRootIndexDefinitions(indexDefinitions);
         LOG.debug("Index list {}", repositoryDefinitions);
         try {
-            MERGER.merge(diffs, repositoryDefinitions, store);
+            merger.merge(diffs, repositoryDefinitions, store);
             for (String indexPath : diffs.getChildren().keySet()) {
                 if (indexPath.startsWith("/oak:index/" + DiffIndexMerger.DIFF_INDEX)) {
                     continue;
@@ -176,6 +177,32 @@ public class DiffIndex {
         }
     }
 
+    /**
+     * Store warnings collected during diff index processing in the diff.index node.
+     * Warnings are stored in separate properties named "warn.01", "warn.02", etc.
+     * Any existing "warn." properties are removed first.
+     *
+     * @param indexDefinitions the node builder for /oak:index
+     * @param merger the merger instance to retrieve warnings from
+     */
+    public static void storeOrRemoveWarnings(NodeBuilder indexDefinitions, DiffIndexMerger merger) {
+        if (!indexDefinitions.hasChildNode(DiffIndexMerger.DIFF_INDEX)) {
+            return;
+        }
+        NodeBuilder diffIndexDefinition = indexDefinitions.child(DiffIndexMerger.DIFF_INDEX);
+        // remove existing warn.* properties
+        for (PropertyState ps : diffIndexDefinition.getNodeState().getProperties()) {
+            if (ps.getName().startsWith("warn.")) {
+                diffIndexDefinition.removeProperty(ps.getName());
+            }
+        }
+        List<String> warnings = merger.getAndClearWarnings();
+        for (int i = 0; i < warnings.size(); i++) {
+            String name = String.format("warn.%02d", i + 1);
+            diffIndexDefinition.setProperty(name, warnings.get(i));
+        }
+    }
+
     private static void sortIndexes(NodeBuilder builder) {
         ArrayList<String> list = new ArrayList<>();
         for (String child : builder.getChildNodeNames()) {
@@ -211,7 +238,7 @@ public class DiffIndex {
      * @param indexPath the path
      * @param keep which index name (which version) to retain
      */
-    private static void disableOrRemoveOldVersions(NodeBuilder definitions, String indexPath, String keep) {
+    public static void disableOrRemoveOldVersions(NodeBuilder definitions, String indexPath, String keep) {
         String indexName = indexPath;
         if (indexPath.startsWith("/oak:index/")) {
             indexName = indexPath.substring("/oak:index/".length());
@@ -226,6 +253,7 @@ public class DiffIndex {
             String childBaseName = IndexName.parse(child).getBaseName();
             if (baseName.equals(childBaseName)) {
                 if (indexName.equals(child)) {
+                    // we can not remove it unless it is disabled
                     if (!IndexConstants.TYPE_DISABLED.equals(definitions.
                             getChildNode(indexName).
                             getString(IndexConstants.TYPE_PROPERTY_NAME))) {
@@ -236,7 +264,7 @@ public class DiffIndex {
             }
         }
         for (String r : toRemove) {
-            LOG.info("Removing old index  {}", r);
+            LOG.info("Removing old index {}", r);
             definitions.child(r).remove();
             updateNodetypeIndexForPath(definitions, r, false);
         }

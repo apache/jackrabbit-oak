@@ -18,10 +18,12 @@ package org.apache.jackrabbit.oak.plugins.index.diff;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_DISABLED;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -302,6 +304,74 @@ public class DiffIndexTest {
                 async.run();
             }
         }
+    }
+
+    // verify @lucene and @elasticsearch are cleared
+    @Test
+    public void cleanedAndNormalizedRemoveAtLucene() {
+        assertEquals("{\n"
+                + "  \"test\": 4,\n"
+                + "  \"test@abc\": 3\n"
+                + "}",
+                DiffIndexMerger.cleanedAndNormalized(JsonObject.fromJson(
+                        "{\"test@lucene\":1, \"test@elasticsearch\": 2, \"test@abc\": 3, \"test\": 4}", true)).toString());
+    }
+
+    // verify @lucene and @elasticsearch are cleared
+    @Test
+    public void cleanedAndNormalizedRemovePrefixes() {
+        assertEquals("{\n"
+                + "  \"test\": \"hello\",\n"
+                + "  \"test1\": \"world\",\n"
+                + "  \"test2\": \"123\"\n"
+                + "}",
+                DiffIndexMerger.cleanedAndNormalized(JsonObject.fromJson(
+                        "{\"test\":\"str:hello\", \"test1\": \"nam:world\", \"test2\": \"dat:123\"}", true)).toString());
+    }
+
+    @Test
+    public void disableOrRemoveOldVersions() {
+        NodeStore store = new MemoryNodeStore(INITIAL_CONTENT);
+        NodeBuilder definitions = store.getRoot().builder().child(INDEX_DEFINITIONS_NAME);
+
+        definitions.child("myLuceneIndex").setProperty(TYPE_PROPERTY_NAME, "lucene");
+        definitions.child("myNodetypeIndex").setProperty(TYPE_PROPERTY_NAME, "property");
+        DiffIndex.disableOrRemoveOldVersions(definitions, "lucene", "lucene");
+        assertTrue(definitions.hasChildNode("myLuceneIndex"));
+        assertTrue(definitions.hasChildNode("myNodetypeIndex"));
+
+        definitions.child("product-1-custom-1").setProperty(TYPE_PROPERTY_NAME, "lucene");
+        definitions.child("product-1-custom-2").setProperty(TYPE_PROPERTY_NAME, "lucene");
+        definitions.child("product-1-custom-3").setProperty(TYPE_PROPERTY_NAME, "lucene");
+        DiffIndex.disableOrRemoveOldVersions(definitions, "/oak:index/product-1-custom-3", "product-1-custom-3");
+        assertFalse(definitions.hasChildNode("product-1-custom-1"));
+        assertFalse(definitions.hasChildNode("product-1-custom-2"));
+        assertTrue(definitions.hasChildNode("product-1-custom-3"));
+
+        definitions.child("other-1-custom-1").setProperty(TYPE_PROPERTY_NAME, "lucene");
+        definitions.child("product-1-custom-4").setProperty(TYPE_PROPERTY_NAME, "lucene");
+        DiffIndex.disableOrRemoveOldVersions(definitions, "product-1-custom-4", "product-1-custom-4");
+        assertTrue(definitions.hasChildNode("other-1-custom-1"));
+        assertTrue(definitions.hasChildNode("product-1-custom-4"));
+
+        definitions.child("foo-1-custom-1").setProperty(TYPE_PROPERTY_NAME, "lucene");
+        definitions.child("foo-1-custom-2").setProperty(TYPE_PROPERTY_NAME, TYPE_DISABLED);
+        DiffIndex.disableOrRemoveOldVersions(definitions, "/oak:index/foo-1-custom-2", "foo-1-custom-2");
+        assertFalse(definitions.hasChildNode("foo-1-custom-1"));
+        assertTrue(definitions.hasChildNode("foo-1-custom-2"));
+
+        definitions.child("abc-1-custom-1").setProperty(TYPE_PROPERTY_NAME, "lucene");
+        definitions.child("abc-1-custom-2").setProperty(TYPE_PROPERTY_NAME, "lucene");
+        DiffIndex.disableOrRemoveOldVersions(definitions, "/oak:index/abc-1-custom-1", "abc-1-custom-2");
+        assertTrue(definitions.hasChildNode("abc-1-custom-1"));
+        assertTrue(definitions.hasChildNode("abc-1-custom-2"));
+
+        definitions.child("abc-1-custom-1").setProperty(TYPE_PROPERTY_NAME, TYPE_DISABLED);
+        definitions.child("abc-1-custom-2").setProperty(TYPE_PROPERTY_NAME, "lucene");
+        DiffIndex.disableOrRemoveOldVersions(definitions, "/oak:index/abc-1-custom-1", "abc-1-custom-2");
+        assertFalse(definitions.hasChildNode("abc-1-custom-1"));
+        assertTrue(definitions.hasChildNode("abc-1-custom-2"));
+
     }
 }
 

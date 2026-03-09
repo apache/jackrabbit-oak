@@ -21,86 +21,20 @@ package org.apache.jackrabbit.oak.commons.internal.concurrent;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
 /**
- * Utility to convert {@link org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture} to {@link java.util.concurrent.CompletableFuture}
+ * Utility to convert between {@link org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture}
+ * and {@link java.util.concurrent.CompletableFuture}.
  */
 // TODO: remove this class once we remove all Guava Concurent Packages
 public class FutureConverter {
     private FutureConverter() {
         // no instances for you
-    }
-
-    private static final Executor DIRECT_EXECUTOR = Runnable::run;
-
-
-    public static <T> List<CompletableFuture<T>> toCompletableFuture(final List<? extends ListenableFuture<T>> listenableFutures) {
-        return listenableFutures.stream()
-                .map(FutureConverter::toCompletableFuture)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Converts a {@link org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture}
-     * to a {@link java.util.concurrent.CompletableFuture}.
-     * <p>
-     * The returned CompletableFuture will be completed when the ListenableFuture completes,
-     * either with its result or with an exception if the ListenableFuture fails.
-     *
-     * @param listenableFuture the ListenableFuture to convert
-     * @param <T> the result type
-     * @return a CompletableFuture representing the same computation
-     */
-    public static <T> CompletableFuture<T> toCompletableFuture(final ListenableFuture<T> listenableFuture) {
-        CompletableFuture<T> completable = new CompletableFuture<>() {
-            @Override
-            public boolean cancel(boolean mayInterruptIfRunning) {
-                // Cancel the Guava ListenableFuture
-                boolean canceled = listenableFuture.cancel(mayInterruptIfRunning);
-                // Also cancel this CompletableFuture
-                super.cancel(mayInterruptIfRunning);
-                return canceled;
-            }
-
-            @Override
-            public T get() throws InterruptedException, ExecutionException {
-                try {
-                    return super.get();
-                } catch (InterruptedException e) {
-                    // Ensure interrupt status is preserved
-                    Thread.currentThread().interrupt();
-                    throw e;
-                }
-            }
-
-            @Override
-            public T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-                try {
-                    return super.get(timeout, unit);
-                } catch (InterruptedException e) {
-                    // Ensure interrupt status is preserved
-                    Thread.currentThread().interrupt();
-                    throw e;
-                }
-            }
-        };
-
-        // Check if the ListenableFuture is already done to avoid unnecessary async overhead
-        if (listenableFuture.isDone()) {
-            handleConversion(listenableFuture, completable);
-        } else {
-            // Future is not done yet, add listener for completion
-            listenableFuture.addListener(() -> handleConversion(listenableFuture, completable), DIRECT_EXECUTOR);
-        }
-
-        return completable;
     }
 
     /**
@@ -160,20 +94,4 @@ public class FutureConverter {
         };
     }
 
-    // helper methods
-
-    private static <T> void handleConversion(final ListenableFuture<T> listenableFuture, final CompletableFuture<T> completable) {
-        try {
-            if (listenableFuture.isCancelled()) {
-                completable.cancel(false);
-            } else {
-                completable.complete(listenableFuture.get());
-            }
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            completable.completeExceptionally(ex);
-        } catch (Exception ex) {
-            completable.completeExceptionally(ex.getCause() != null ? ex.getCause() : ex);
-        }
-    }
 }

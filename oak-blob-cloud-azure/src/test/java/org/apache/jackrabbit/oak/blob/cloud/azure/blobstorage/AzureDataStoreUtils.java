@@ -33,9 +33,9 @@ import java.util.Properties;
 
 import javax.net.ssl.HttpsURLConnection;
 
-import org.apache.commons.lang3.StringUtils;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.azure.storage.blob.BlobContainerClient;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.commons.collections.MapUtils;
@@ -104,7 +104,7 @@ public class AzureDataStoreUtils extends DataStoreUtils {
                 is = new FileInputStream(config);
                 props.load(is);
             } catch (Exception e) {
-                e.printStackTrace();
+                log.warn("Error loading azure config", e);
             } finally {
                 IOUtils.closeQuietly(is);
             }
@@ -114,6 +114,8 @@ public class AzureDataStoreUtils extends DataStoreUtils {
             props = new Properties();
             props.putAll(filtered);
         }
+
+        props.setProperty("blob.azure.v12.enabled", "true");
         return props;
     }
 
@@ -142,12 +144,12 @@ public class AzureDataStoreUtils extends DataStoreUtils {
             @Nullable final Properties overrideProperties)
             throws Exception {
         assumeTrue(isAzureConfigured());
-        DataStore ds = (T) getAzureDataStore(getDirectAccessDataStoreProperties(overrideProperties), homeDir.newFolder().getAbsolutePath());
+        T ds = (T) getAzureDataStore(getDirectAccessDataStoreProperties(overrideProperties), homeDir.newFolder().getAbsolutePath());
         if (ds instanceof ConfigurableDataRecordAccessProvider) {
             ((ConfigurableDataRecordAccessProvider) ds).setDirectDownloadURIExpirySeconds(directDownloadExpirySeconds);
             ((ConfigurableDataRecordAccessProvider) ds).setDirectUploadURIExpirySeconds(directUploadExpirySeconds);
         }
-        return (T) ds;
+        return ds;
     }
 
     public static Properties getDirectAccessDataStoreProperties() {
@@ -157,12 +159,11 @@ public class AzureDataStoreUtils extends DataStoreUtils {
     public static Properties getDirectAccessDataStoreProperties(@Nullable final Properties overrideProperties) {
         Properties mergedProperties = new Properties();
         mergedProperties.putAll(getAzureConfig());
-        if (null != overrideProperties) {
+        if (overrideProperties != null) {
             mergedProperties.putAll(overrideProperties);
         }
-
         // set properties needed for direct access testing
-        if (null == mergedProperties.getProperty("cacheSize", null)) {
+        if (mergedProperties.getProperty("cacheSize", null) == null) {
             mergedProperties.put("cacheSize", "0");
         }
         return mergedProperties;
@@ -177,12 +178,10 @@ public class AzureDataStoreUtils extends DataStoreUtils {
         Properties props = getAzureConfig();
         props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, containerName);
 
-        try (AzureBlobContainerProvider azureBlobContainerProvider = AzureBlobContainerProvider.Builder.builder(containerName).initializeWithProperties(props)
-                .build()) {
-            CloudBlobContainer container = azureBlobContainerProvider.getBlobContainer();
-            boolean result = container.deleteIfExists();
-            log.info("Container deleted. containerName={} existed={}", containerName, result);
-        }
+        AzureBlobContainerProvider azureBlobContainerProvider = AzureBlobContainerProvider.Builder.builder(containerName).initializeWithProperties(props).build();
+        BlobContainerClient container = azureBlobContainerProvider.getBlobContainer();
+        boolean result = container.deleteIfExists();
+        log.info("Container deleted. containerName={} existed={}", containerName, result);
     }
 
     protected static HttpsURLConnection getHttpsConnection(long length, URI uri) throws IOException {

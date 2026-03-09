@@ -21,23 +21,27 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.lucene.document.Document;
 import org.junit.Test;
 
 import java.util.List;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 public class LuceneDocumentMakerTest {
     private final NodeState root = INITIAL_CONTENT;
-    private final LuceneIndexDefinitionBuilder builder = new LuceneIndexDefinitionBuilder();
 
     @Test
     public void excludeSingleProperty() throws Exception{
+        LuceneIndexDefinitionBuilder builder = new LuceneIndexDefinitionBuilder();
         builder.indexRule("nt:base")
                 .property("foo")
                 .propertyIndex()
@@ -61,6 +65,41 @@ public class LuceneDocumentMakerTest {
 
         test.setProperty("foo", List.of("/jobs/a"), Type.STRINGS);
         assertNull(docMaker.makeDocument(test.getNodeState()));
+    }
+
+    @Test
+    public void similarityTagMaxLengthFiltering() throws Exception{
+        LuceneIndexDefinitionBuilder builder = new LuceneIndexDefinitionBuilder();
+        builder.indexRule("nt:base")
+                .property("jcr:primaryType")
+                .propertyIndex();
+        builder.indexRule("nt:base")
+                .property("tag")
+                .similarityTags(true);
+
+        builder.getBuilderTree().setProperty(FulltextIndexConstants.MAX_TAG_LENGTH, 10);
+
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newLuceneBuilder(root, builder.build(), "/foo").build();
+        LuceneDocumentMaker docMaker = new LuceneDocumentMaker(defn,
+                defn.getApplicableIndexingRule("nt:base"), "/x");
+
+        NodeBuilder test = EMPTY_NODE.builder();
+        test.setProperty("tag", "short");
+        Document doc = docMaker.makeDocument(test.getNodeState());
+        assertNotNull(doc);
+        assertEquals("short", doc.get(FieldNames.SIMILARITY_TAGS));
+
+        test = EMPTY_NODE.builder();
+        test.setProperty("tag", "exactly10!");
+        doc = docMaker.makeDocument(test.getNodeState());
+        assertNotNull(doc);
+        assertEquals("exactly10!", doc.get(FieldNames.SIMILARITY_TAGS));
+
+        test = EMPTY_NODE.builder();
+        test.setProperty("tag", "this is too long");
+        doc = docMaker.makeDocument(test.getNodeState());
+        assertNotNull(doc);
+        assertNull(doc.get(FieldNames.SIMILARITY_TAGS));
     }
 
 }

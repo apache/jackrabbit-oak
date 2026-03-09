@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.log.LogSilencer;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -58,6 +59,9 @@ import static java.util.Objects.requireNonNull;
 public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
+
+    private static final LogSilencer LOG_SILENCER = new LogSilencer();
+
     public static final String WARN_LOG_STRING_SIZE_THRESHOLD_KEY = "oak.repository.property.index.logWarnStringSizeThreshold";
     private static final int DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE = 102400;
 
@@ -343,7 +347,13 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                 dirty |= indexFacets(doc, property, pname, pd);
             }
             if (pd.similarityTags) {
-                dirty |= indexSimilarityTag(doc, property);
+                String value = property.getValue(Type.STRING);
+                if (isTagWithinLengthLimit(value)) {
+                    dirty |= indexSimilarityTag(doc, value);
+                } else if (!LOG_SILENCER.silence(pname)) {
+                    log.warn("[{}] Skipping similarity tag for property {}. Value length {} exceeds maximum allowed length",
+                            getIndexName(), pname, value.length());
+                }
             }
 
         }
@@ -377,7 +387,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         return true;
     }
 
-    protected abstract boolean indexSimilarityTag(D doc, PropertyState property);
+    protected abstract boolean indexSimilarityTag(D doc, String value);
 
     protected abstract void indexSimilarityBinaries(D doc, PropertyDefinition pd, Blob blob) throws IOException;
 
@@ -704,6 +714,13 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                 continue;
             }
             String dynaTagValue = p.getValue(Type.STRING);
+            if (!isTagWithinLengthLimit(dynaTagValue)) {
+                if (!LOG_SILENCER.silence(p.getName())) {
+                    log.warn("[{}] Skipping dynamic boost tag for property {}. Value length {} exceeds maximum allowed length",
+                            getIndexName(), p.getName(), dynaTagValue.length());
+                }
+                continue;
+            }
             p = dynaTag.getProperty(DYNAMIC_BOOST_TAG_CONFIDENCE);
             if (p == null) {
                 // here we don't log a warning, because possibly it will be added later
@@ -734,6 +751,11 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     protected String getIndexName() {
         return definition.getIndexName();
+    }
+
+    private boolean isTagWithinLengthLimit(String value) {
+        int maxLength = definition.getMaxTagLength();
+        return maxLength < 0 || value.length() <= maxLength;
     }
 
     /*
