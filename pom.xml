@@ -78,6 +78,7 @@
     <module>oak-segment-azure</module>
     <module>oak-benchmarks</module>
     <module>oak-search-elastic</module>
+    <module>oak-search-luceneNg</module>
     <module>oak-benchmarks-lucene</module>
     <module>oak-benchmarks-elastic</module>
     <module>oak-run-elastic</module>
