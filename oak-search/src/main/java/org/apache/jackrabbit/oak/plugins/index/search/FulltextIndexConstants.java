@@ -252,6 +252,12 @@ public interface FulltextIndexConstants {
     String MAX_FIELD_LENGTH = "maxFieldLength";
 
     /**
+     * Maximum length of similarity and dynamic boost tag values to be indexed. Tags longer than this value will be skipped.
+     * Set to -1 to disable the length check entirely
+     */
+    String MAX_TAG_LENGTH = "maxTagLength";
+
+    /**
      * whether use this property values for suggestions
      */
     String PROP_USE_IN_SUGGEST = "useInSuggest";

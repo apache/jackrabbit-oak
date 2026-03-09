@@ -1161,11 +1161,11 @@ public class MongoDocumentStore implements DocumentStore {
             return oldDoc;
         } catch (MongoWriteException e) {
             WriteError werr = e.getError();
-            LOG.error("Failed to update the document with Id={} with MongoWriteException message = '{}'. Document statistics: {}.",
+            LOG.error("Failed to update the document with id={} with MongoWriteException message = '{}'. Content statistics: {}.",
                     updateOp.getId(), werr.getMessage(), produceDiagnostics(collection, updateOp.getId()), e);
             throw handleException(e, collection, updateOp.getId());
         } catch (MongoCommandException e) {
-            LOG.error("Failed to update the document with Id={} with MongoCommandException message ='{}'. ",
+            LOG.error("Failed to update the document with id={} with MongoCommandException message = '{}'.",
                     updateOp.getId(), e.getMessage());
             throw handleException(e, collection, updateOp.getId());
         } catch (Exception e) {
@@ -1651,7 +1651,12 @@ public class MongoDocumentStore implements DocumentStore {
             for (BulkWriteError err : e.getWriteErrors()) {
                 failedUpdates.add(bulkIds[err.getIndex()]);
             }
+        } catch (BSONException bsonException) {
+            diagnoseAndLogBSONException(updateOps, bsonException);
+            // rethrow
+            throw bsonException;
         }
+
         for (BulkWriteUpsert upsert : bulkResult.getUpserts()) {
             upserts.add(bulkIds[upsert.getIndex()]);
         }
@@ -1742,8 +1747,9 @@ public class MongoDocumentStore implements DocumentStore {
                 for (T doc : docs) {
                     LOG.error("Failed to create one of the documents " +
                                     "with BsonMaximumSizeExceededException message = '{}'. " +
-                                    "The document id={} has estimated size={} in VM.",
-                                    e.getMessage(), doc.getId(), doc.getMemory());
+                                    "The document id={} has estimated size={} in VM, Content statistics: {}.",
+                                    e.getMessage(), doc.getId(), doc.getMemory(),
+                                    Utils.mapEntryDiagnostics(doc.entrySet()));
                 }
                 return false;
             } catch (MongoException e) {
@@ -2038,6 +2044,33 @@ public class MongoDocumentStore implements DocumentStore {
 
     private static Bson getByKeyQuery(String key) {
         return Filters.eq(Document.ID, key);
+    }
+
+    // given a BSONException, log estimated sizes for each update, also determining the biggest one
+    // this can help to find out whether retries in smaller batches could have helped (see OAK-12104)
+    private static void diagnoseAndLogBSONException(java.util.Collection<UpdateOp> updateOps, BSONException bsonException) {
+        LOG.error("bulkUpdate of size {} failed with: {}", updateOps.size(),
+                bsonException.getMessage(), bsonException);
+
+        // add diagnostics
+        String idOfbiggestUpdate = "";
+        int estimatedSizeOfBiggestUpdate = 0;
+
+        for (UpdateOp updateOp : updateOps) {
+            String id = updateOp.getId();
+            // this could be made more precise my measuring the BSON serialization of
+            // conditions and updates
+            int estimatedSize = updateOp.toString().length();
+            LOG.debug("after bulk write: string serialization of changes for id={} had an approximate size of {}",
+                    id, estimatedSize);
+            if (estimatedSize > estimatedSizeOfBiggestUpdate) {
+                idOfbiggestUpdate = id;
+                estimatedSizeOfBiggestUpdate = estimatedSize;
+            }
+        }
+        LOG.error("bulkUpdate of size {} failed with: {}; biggest update was for i={} with approximate size of {}",
+                updateOps.size(), bsonException.getMessage(), idOfbiggestUpdate, estimatedSizeOfBiggestUpdate,
+                bsonException);
     }
 
     @Override

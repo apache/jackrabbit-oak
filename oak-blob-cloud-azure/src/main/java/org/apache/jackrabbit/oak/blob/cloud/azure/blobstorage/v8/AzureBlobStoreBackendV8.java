@@ -45,9 +45,12 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -59,12 +62,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.oak.commons.collections.AbstractIterator;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 
 import com.microsoft.azure.storage.AccessCondition;
@@ -176,7 +176,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
             try {
                 UtilsV8.setProxyIfNeeded(properties);
                 createBlobContainer = PropertiesUtil.toBoolean(
-                    Strings.emptyToNull(properties.getProperty(AzureConstants.AZURE_CREATE_CONTAINER)), true);
+                    org.apache.jackrabbit.oak.commons.StringUtils.emptyToNull(properties.getProperty(AzureConstants.AZURE_CREATE_CONTAINER)), true);
                 initAzureDSConfig();
 
                 concurrentRequestCount = PropertiesUtil.toInteger(
@@ -200,7 +200,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
                     requestTimeout = PropertiesUtil.toInteger(properties.getProperty(AzureConstants.AZURE_BLOB_REQUEST_TIMEOUT), RetryPolicy.DEFAULT_CLIENT_RETRY_COUNT);
                 }
                 presignedDownloadURIVerifyExists = PropertiesUtil.toBoolean(
-                        Strings.emptyToNull(properties.getProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS)), true);
+                        org.apache.jackrabbit.oak.commons.StringUtils.emptyToNull(properties.getProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS)), true);
 
                 enableSecondaryLocation = PropertiesUtil.toBoolean(
                         properties.getProperty(AzureConstants.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_NAME),
@@ -238,7 +238,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
 
                 // Initialize reference key secret
                 boolean createRefSecretOnInit = PropertiesUtil.toBoolean(
-                        Strings.emptyToNull(properties.getProperty(AzureConstants.AZURE_REF_ON_INIT)), true);
+                        org.apache.jackrabbit.oak.commons.StringUtils.emptyToNull(properties.getProperty(AzureConstants.AZURE_REF_ON_INIT)), true);
 
                 if (createRefSecretOnInit) {
                     getOrCreateReferenceKey();
@@ -569,7 +569,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
         Objects.requireNonNull(prefix, "prefix must not be null");
 
         Stopwatch watch = Stopwatch.createStarted();
-        final List<DataRecord> records = Lists.newArrayList();
+        final List<DataRecord> records = new ArrayList<>();
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
@@ -781,13 +781,13 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
                 headers.setCacheControl(String.format("private, max-age=%d, immutable", httpDownloadURIExpirySeconds));
 
                 String contentType = downloadOptions.getContentTypeHeader();
-                if (!Strings.isNullOrEmpty(contentType)) {
+                if (!Objects.toString(contentType, "").isEmpty()) {
                     headers.setContentType(contentType);
                 }
 
                 String contentDisposition =
                         downloadOptions.getContentDispositionHeader();
-                if (!Strings.isNullOrEmpty(contentDisposition)) {
+                if (!Objects.toString(contentDisposition, "").isEmpty()) {
                     headers.setContentDisposition(contentDisposition);
                 }
 
@@ -816,7 +816,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
     }
 
     protected DataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs, @NotNull final DataRecordUploadOptions options) {
-        List<URI> uploadPartURIs = Lists.newArrayList();
+        List<URI> uploadPartURIs = new ArrayList<>();
         long minPartSize = AZURE_BLOB_MIN_MULTIPART_UPLOAD_PART_SIZE;
         long maxPartSize = AZURE_BLOB_MAX_MULTIPART_UPLOAD_PART_SIZE;
 
@@ -875,7 +875,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
             Objects.requireNonNull(domain, "Could not determine domain for direct upload");
 
             EnumSet<SharedAccessBlobPermissions> perms = EnumSet.of(SharedAccessBlobPermissions.WRITE);
-            Map<String, String> presignedURIRequestParams = Maps.newHashMap();
+            Map<String, String> presignedURIRequestParams = new HashMap<>();
             // see https://docs.microsoft.com/en-us/rest/api/storageservices/put-block#uri-parameters
             presignedURIRequestParams.put("comp", "block");
             for (long blockId = 1; blockId <= numParts; ++blockId) {
@@ -985,7 +985,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
 
     private String getDefaultBlobStorageDomain() {
         String accountName = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "");
-        if (Strings.isNullOrEmpty(accountName)) {
+        if (Objects.toString(accountName, "").isEmpty()) {
             LOG.warn("Can't generate presigned URI - Azure account name not found in properties");
             return null;
         }
@@ -996,7 +996,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
         String domain = ignoreDomainOverride
                 ? getDefaultBlobStorageDomain()
                 : downloadDomainOverride;
-        if (Strings.isNullOrEmpty(domain)) {
+        if (Objects.toString(domain, "").isEmpty()) {
             domain = getDefaultBlobStorageDomain();
         }
         return domain;
@@ -1006,7 +1006,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
         String domain = ignoreDomainOverride
                 ? getDefaultBlobStorageDomain()
                 : uploadDomainOverride;
-        if (Strings.isNullOrEmpty(domain)) {
+        if (Objects.toString(domain, "").isEmpty()) {
             domain = getDefaultBlobStorageDomain();
         }
         return domain;
@@ -1017,7 +1017,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
                                    int expirySeconds,
                                    SharedAccessBlobHeaders optionalHeaders,
                                    String domain) {
-        return createPresignedURI(key, permissions, expirySeconds, Maps.newHashMap(), optionalHeaders, domain);
+        return createPresignedURI(key, permissions, expirySeconds, new HashMap<>(), optionalHeaders, domain);
     }
 
     private URI createPresignedURI(String key,
@@ -1034,7 +1034,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
                                    Map<String, String> additionalQueryParams,
                                    SharedAccessBlobHeaders optionalHeaders,
                                    String domain) {
-        if (Strings.isNullOrEmpty(domain)) {
+        if (Objects.toString(domain, "").isEmpty()) {
             LOG.warn("Can't generate presigned URI - no Azure domain provided (is Azure account name configured?)");
             return null;
         }
@@ -1120,7 +1120,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
         ResultContinuation resultContinuation;
         boolean firstCall = true;
         final Function<AzureBlobInfo, T> transformer;
-        final Queue<AzureBlobInfo> items = Lists.newLinkedList();
+        final Queue<AzureBlobInfo> items = new LinkedList<>();
 
         public RecordsIterator (Function<AzureBlobInfo, T> transformer) {
             this.transformer = transformer;

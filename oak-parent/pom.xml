@@ -30,13 +30,13 @@
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>1.91-SNAPSHOT</version>
+  <version>1.93-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
     <!-- build time stamp: should be updated prior to a release -->
     <!-- see https://maven.apache.org/guides/mini/guide-reproducible-builds.html -->
-    <project.build.outputTimestamp>1766922812</project.build.outputTimestamp>
+    <project.build.outputTimestamp>1772115893</project.build.outputTimestamp>
     <minimalMavenBuildVersion>3.6.1</minimalMavenBuildVersion><!-- due to https://issues.apache.org/jira/browse/MNG-6059 -->
     <test.opts.memory>-Xmx512m</test.opts.memory>
     <test.opts>${test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
@@ -63,7 +63,7 @@
     <logback.version>1.2.13</logback.version>
     <h2.version>2.1.214</h2.version>
     <tika.version>1.28.5</tika.version>
-    <derby.version>10.15.2.0</derby.version>
+    <derby.version>10.16.1.1</derby.version>
     <jackson.version>2.17.3</jackson.version>
     <testcontainers.version>1.21.4</testcontainers.version>
     <pax-exam.version>4.14.0</pax-exam.version>
@@ -72,7 +72,7 @@
     <netty.version>4.1.131.Final</netty.version>
     <aws.sdk.version>2.34.1</aws.sdk.version>
     <!-- determines the bytecode version (i.e. the minimum JRE required to run the build artifact) -->
-    <javaTargetVersion>11</javaTargetVersion>
+    <javaTargetVersion>17</javaTargetVersion>
     <maven.compiler.release>${javaTargetVersion}</maven.compiler.release>
     <maven.compiler.target>${javaTargetVersion}</maven.compiler.target>
     <minimalJavaBuildVersion>${javaTargetVersion}</minimalJavaBuildVersion>
@@ -600,6 +600,11 @@
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-collections4</artifactId>
         <version>4.5.0</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.code.gson</groupId>
+        <artifactId>gson</artifactId>
+        <version>2.13.2</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>

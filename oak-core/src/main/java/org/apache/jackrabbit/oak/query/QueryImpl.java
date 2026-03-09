@@ -14,6 +14,12 @@
 package org.apache.jackrabbit.oak.query;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_DISABLED;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.query.ast.AstElementFactory.copyElementAndCheckReference;
 
 import java.math.BigInteger;
@@ -32,9 +38,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
@@ -1257,7 +1265,7 @@ public class QueryImpl implements Query {
     @Override
     public void verifyNotPotentiallySlow() {
         if (potentiallySlowTraversalQuery) {
-            QueryOptions.Traversal traversal = queryOptions.traversal;
+            Traversal traversal = queryOptions.traversal;
             if (traversal == Traversal.DEFAULT) {
                 // use the (configured) default
                 traversal = settings.getFailTraversal() ? Traversal.FAIL : Traversal.WARN;
@@ -1265,8 +1273,7 @@ public class QueryImpl implements Query {
                 // explicitly set in the query
                 traversal = queryOptions.traversal;
             }
-            String caller = IndexUtils.getCaller(settings.getIgnoredClassNamesInCallTrace());
-            String message = "Traversal query (query without index): " + statement + "; called by " + caller + "; consider creating an index";
+            String message = createTraversalWarningMessage(traversal);
             switch (traversal) {
             case DEFAULT:
                 // not possible (changed to either FAIL or WARN above)
@@ -1284,6 +1291,38 @@ public class QueryImpl implements Query {
                 throw new IllegalArgumentException(message);
             }
         }
+    }
+
+    private String createTraversalWarningMessage(Traversal traversal) {
+        String caller = IndexUtils.getCaller(settings.getIgnoredClassNamesInCallTrace());
+        String message = "Traversal query (query without index): " + statement + "; called by " + caller + "; consider creating an index";
+        if (traversal == Traversal.FAIL || traversal == Traversal.WARN && !potentiallySlowTraversalQueryLogged) {
+            Set<String> reindex = getNamesOfReindexingIndexes();
+            message += "\n\nExecution plan:\n" + getPlan();
+            if (!reindex.isEmpty()) {
+                String reindexNames = reindex.stream().map(name -> name + ",").collect(Collectors.joining());
+                message += "\n\nNote that the following indexes were re-indexing at query time:\n"
+                        + reindexNames.substring(0, reindexNames.length() - 1);
+            }
+        }
+        return message;
+    }
+
+    private Set<String> getNamesOfReindexingIndexes() {
+        Set<String> reindex = new HashSet<>();
+        Iterable<Tree> indexes = context.getRoot().getTree("/" + INDEX_DEFINITIONS_NAME).getChildren();
+        for (Tree index : indexes) {
+            String name = index.getName();
+            PropertyState primaryType = index.getProperty(JCR_PRIMARYTYPE);
+            if (primaryType != null && INDEX_DEFINITIONS_NODE_TYPE.equals(primaryType.getValue(Type.STRING))) {
+                PropertyState reindexProp = index.getProperty(REINDEX_PROPERTY_NAME);
+                PropertyState typeProp = index.getProperty(TYPE_PROPERTY_NAME);
+                if (reindexProp != null && reindexProp.getValue(Type.BOOLEAN) && typeProp != null && !TYPE_DISABLED.equals(typeProp.getValue(Type.STRING))) {
+                    reindex.add(name);
+                }
+            }
+        }
+        return reindex;
     }
     
     private List<OrderEntry> getSortOrder(FilterImpl filter) {

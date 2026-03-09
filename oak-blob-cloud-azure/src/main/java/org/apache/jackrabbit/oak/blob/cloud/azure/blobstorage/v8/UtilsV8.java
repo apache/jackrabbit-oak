@@ -30,7 +30,6 @@ import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.jetbrains.annotations.NotNull;
@@ -41,6 +40,7 @@ import java.net.Proxy;
 import java.net.SocketAddress;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
+import java.util.Objects;
 import java.util.Properties;
 
 public final class UtilsV8 {
@@ -100,8 +100,8 @@ public final class UtilsV8 {
         String proxyHost = properties.getProperty(AzureConstants.PROXY_HOST);
         String proxyPort = properties.getProperty(AzureConstants.PROXY_PORT);
 
-        if (!(Strings.isNullOrEmpty(proxyHost) ||
-            Strings.isNullOrEmpty(proxyPort))) {
+        if (!(Objects.toString(proxyHost, "").isEmpty() ||
+                Objects.toString(proxyPort, "").isEmpty())) {
             int port = Integer.parseInt(proxyPort);
             SocketAddress proxyAddr = new InetSocketAddress(proxyHost, port);
             Proxy proxy = new Proxy(Proxy.Type.HTTP, proxyAddr);
@@ -148,7 +148,7 @@ public final class UtilsV8 {
         connString.append(";AccountName=").append(accountName);
         connString.append(";AccountKey=").append(accountKey);
 
-        if (!Strings.isNullOrEmpty(blobEndpoint)) {
+        if (!Objects.toString(blobEndpoint, "").isEmpty()) {
             connString.append(";BlobEndpoint=").append(blobEndpoint);
         }
         return connString.toString();
