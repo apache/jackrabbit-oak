@@ -39,17 +39,11 @@ public class OakDirectoryTest {
     }
 
     @Test
-    public void testVarNodeCreated() throws Exception {
+    public void testDataNodeCreated() throws Exception {
         OakDirectory directory = new OakDirectory(root, "testIndex", false);
 
-        // Verify /var/indexing/lucene/testIndex was created
-        assertTrue(root.hasChildNode("var"));
-        NodeBuilder var = root.child("var");
-        assertTrue(var.hasChildNode("indexing"));
-        NodeBuilder indexing = var.child("indexing");
-        assertTrue(indexing.hasChildNode("lucene"));
-        NodeBuilder lucene = indexing.child("lucene");
-        assertTrue(lucene.hasChildNode("testIndex"));
+        // Verify :data child node was created under definition
+        assertTrue(root.hasChildNode(":data"));
     }
 
     @Test

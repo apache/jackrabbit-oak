@@ -22,6 +22,9 @@ import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
+import java.util.Map;
+
 /**
  * IndexRow implementation for Lucene 9 results.
  */
@@ -29,10 +32,16 @@ public class LuceneNgIndexRow implements IndexRow {
 
     private final String path;
     private final double score;
+    private final Map<String, String> facetColumns;
 
     public LuceneNgIndexRow(String path, double score) {
+        this(path, score, Collections.emptyMap());
+    }
+
+    public LuceneNgIndexRow(String path, double score, Map<String, String> facetColumns) {
         this.path = path;
         this.score = score;
+        this.facetColumns = facetColumns != null ? facetColumns : Collections.emptyMap();
     }
 
     @Override
@@ -49,9 +58,13 @@ public class LuceneNgIndexRow implements IndexRow {
     @Override
     @Nullable
     public PropertyValue getValue(String columnName) {
+        if (facetColumns.containsKey(columnName)) {
+            return PropertyValues.newString(facetColumns.get(columnName));
+        }
         if ("jcr:score".equals(columnName)) {
             return PropertyValues.newDouble(score);
         }
+        // Return null for all other properties - this tells Oak to load the actual node
         return null;
     }
 }

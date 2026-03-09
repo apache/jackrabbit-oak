@@ -129,9 +129,46 @@ class OakBufferedIndexFile implements OakIndexFile {
         this.dataModified = that.dataModified;
     }
 
+    private void loadBlob(int i) throws IOException {
+        if (i < 0 || i >= data.size()) {
+            throw new IndexOutOfBoundsException("Invalid chunk index: " + i);
+        }
+
+        if (index != i) {
+            flushBlob();
+
+            int bytesToRead = (int) Math.min(blobSize, length - (long) i * blobSize);
+            try (InputStream stream = data.get(i).getNewStream()) {
+                IOUtils.readFully(stream, blob, 0, bytesToRead);
+            }
+
+            index = i;
+        }
+    }
+
+    private void flushBlob() throws IOException {
+        if (blobModified) {
+            int bytesToWrite = (int) Math.min(blobSize, length - (long) index * blobSize);
+            InputStream in = new ByteArrayInputStream(blob, 0, bytesToWrite);
+
+            Blob b = blobFactory.createBlob(in);
+            if (index < data.size()) {
+                data.set(index, b);
+            } else {
+                if (index != data.size()) {
+                    throw new IllegalStateException("Gap in chunks: index=" + index + ", data.size=" + data.size());
+                }
+                data.add(b);
+            }
+
+            dataModified = true;
+            blobModified = false;
+        }
+    }
+
     @Override
-    public String getName() {
-        return name;
+    public OakIndexFile clone() {
+        return new OakBufferedIndexFile(this);
     }
 
     @Override
@@ -140,8 +177,8 @@ class OakBufferedIndexFile implements OakIndexFile {
     }
 
     @Override
-    public boolean isClosed() {
-        return blob == null && data == null;
+    public long position() {
+        return position;
     }
 
     @Override
@@ -151,8 +188,8 @@ class OakBufferedIndexFile implements OakIndexFile {
     }
 
     @Override
-    public long position() {
-        return position;
+    public boolean isClosed() {
+        return blob == null && data == null;
     }
 
     @Override
@@ -164,11 +201,6 @@ class OakBufferedIndexFile implements OakIndexFile {
                     dirDetails, name, pos, length));
         }
         position = pos;
-    }
-
-    @Override
-    public OakIndexFile clone() {
-        return new OakBufferedIndexFile(this);
     }
 
     @Override
@@ -234,6 +266,13 @@ class OakBufferedIndexFile implements OakIndexFile {
         }
     }
 
+    private static int determineBlobSize(NodeBuilder file) {
+        if (file.hasProperty(OakDirectory.PROP_BLOB_SIZE)) {
+            return Math.toIntExact(file.getProperty(OakDirectory.PROP_BLOB_SIZE).getValue(Type.LONG));
+        }
+        return DEFAULT_BLOB_SIZE;
+    }
+
     @Override
     public void flush() throws IOException {
         flushBlob();
@@ -244,52 +283,13 @@ class OakBufferedIndexFile implements OakIndexFile {
         }
     }
 
-    private void loadBlob(int i) throws IOException {
-        if (i < 0 || i >= data.size()) {
-            throw new IndexOutOfBoundsException("Invalid chunk index: " + i);
-        }
-
-        if (index != i) {
-            flushBlob();
-
-            int bytesToRead = (int) Math.min(blobSize, length - (long) i * blobSize);
-            try (InputStream stream = data.get(i).getNewStream()) {
-                IOUtils.readFully(stream, blob, 0, bytesToRead);
-            }
-
-            index = i;
-        }
-    }
-
-    private void flushBlob() throws IOException {
-        if (blobModified) {
-            int bytesToWrite = (int) Math.min(blobSize, length - (long) index * blobSize);
-            InputStream in = new ByteArrayInputStream(blob, 0, bytesToWrite);
-
-            Blob b = blobFactory.createBlob(in);
-            if (index < data.size()) {
-                data.set(index, b);
-            } else {
-                if (index != data.size()) {
-                    throw new IllegalStateException("Gap in chunks: index=" + index + ", data.size=" + data.size());
-                }
-                data.add(b);
-            }
-
-            dataModified = true;
-            blobModified = false;
-        }
-    }
-
-    private static int determineBlobSize(NodeBuilder file) {
-        if (file.hasProperty(OakDirectory.PROP_BLOB_SIZE)) {
-            return Math.toIntExact(file.getProperty(OakDirectory.PROP_BLOB_SIZE).getValue(Type.LONG));
-        }
-        return DEFAULT_BLOB_SIZE;
+    @Override
+    public String toString() {
+        return name;
     }
 
     @Override
-    public String toString() {
+    public String getName() {
         return name;
     }
 }

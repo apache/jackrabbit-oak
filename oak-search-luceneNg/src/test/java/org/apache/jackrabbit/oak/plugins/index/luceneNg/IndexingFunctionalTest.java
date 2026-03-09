@@ -47,9 +47,6 @@ public class IndexingFunctionalTest {
         // Should not throw exception when entering and leaving node with only hidden properties
         editor.enter(EMPTY_NODE, emptyNode.getNodeState());
         editor.leave(EMPTY_NODE, emptyNode.getNodeState());
-
-        // Close IndexWriter by calling leave on root
-        editor.leave(EMPTY_NODE, root.getNodeState());
     }
 
     @Test
@@ -89,9 +86,6 @@ public class IndexingFunctionalTest {
 
         // Leave root editor should not throw
         editor.leave(EMPTY_NODE, root.child("level0").getNodeState());
-
-        // Close IndexWriter by calling leave on root
-        editor.leave(EMPTY_NODE, root.getNodeState());
     }
 
     @Test
@@ -117,9 +111,6 @@ public class IndexingFunctionalTest {
         // Should not throw OOM or any exception
         editor.enter(EMPTY_NODE, nodeWithLargeProperty.getNodeState());
         editor.leave(EMPTY_NODE, nodeWithLargeProperty.getNodeState());
-
-        // Close IndexWriter by calling leave on root
-        editor.leave(EMPTY_NODE, root.getNodeState());
     }
 
     @Test
@@ -143,9 +134,6 @@ public class IndexingFunctionalTest {
         // Should handle all special characters without errors
         editor.enter(EMPTY_NODE, nodeWithSpecialChars.getNodeState());
         editor.leave(EMPTY_NODE, nodeWithSpecialChars.getNodeState());
-
-        // Close IndexWriter by calling leave on root
-        editor.leave(EMPTY_NODE, root.getNodeState());
     }
 
     @Test
@@ -169,9 +157,6 @@ public class IndexingFunctionalTest {
         // Currently only strings are indexed in Phase 1, others should be ignored gracefully
         editor.enter(EMPTY_NODE, nodeWithMixedProps.getNodeState());
         editor.leave(EMPTY_NODE, nodeWithMixedProps.getNodeState());
-
-        // Close IndexWriter by calling leave on root
-        editor.leave(EMPTY_NODE, root.getNodeState());
     }
 
     @Test
@@ -194,9 +179,6 @@ public class IndexingFunctionalTest {
         // Editor should handle both types, indexing normal and skipping hidden
         editor.enter(EMPTY_NODE, nodeWithHiddenProps.getNodeState());
         editor.leave(EMPTY_NODE, nodeWithHiddenProps.getNodeState());
-
-        // Close IndexWriter by calling leave on root
-        editor.leave(EMPTY_NODE, root.getNodeState());
     }
 
     @Test
@@ -219,8 +201,5 @@ public class IndexingFunctionalTest {
         // Should handle large number of properties without issues
         editor.enter(EMPTY_NODE, nodeWithManyProps.getNodeState());
         editor.leave(EMPTY_NODE, nodeWithManyProps.getNodeState());
-
-        // Close IndexWriter by calling leave on root
-        editor.leave(EMPTY_NODE, root.getNodeState());
     }
 }

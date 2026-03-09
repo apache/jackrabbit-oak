@@ -48,14 +48,28 @@ class OakIndexInput extends IndexInput {
     }
 
     @Override
-    public void close() throws IOException {
-        file.close();
+    public void readBytes(byte[] b, int offset, int len) throws IOException {
+        if (file.isClosed()) {
+            throw new IOException("IndexInput is closed");
+        }
+        long pos = getFilePointer();
+        if (pos + len > sliceLength) {
+            throw new IOException("read past EOF: " + (pos + len) + " > " + sliceLength);
+        }
+        file.readBytes(b, offset, len);
     }
 
     @Override
-    public long getFilePointer() {
-        // Return position relative to slice start
-        return file.position() - sliceOffset;
+    public byte readByte() throws IOException {
+        if (file.isClosed()) {
+            throw new IOException("IndexInput is closed");
+        }
+        if (getFilePointer() >= sliceLength) {
+            throw new IOException("read past EOF: " + getFilePointer());
+        }
+        byte[] b = new byte[1];
+        file.readBytes(b, 0, 1);
+        return b[0];
     }
 
     @Override
@@ -80,6 +94,12 @@ class OakIndexInput extends IndexInput {
     }
 
     @Override
+    public long getFilePointer() {
+        // Return position relative to slice start
+        return file.position() - sliceOffset;
+    }
+
+    @Override
     public IndexInput slice(String sliceDescription, long offset, long length) throws IOException {
         if (file.isClosed()) {
             throw new IOException("IndexInput is closed");
@@ -94,27 +114,7 @@ class OakIndexInput extends IndexInput {
     }
 
     @Override
-    public byte readByte() throws IOException {
-        if (file.isClosed()) {
-            throw new IOException("IndexInput is closed");
-        }
-        if (getFilePointer() >= sliceLength) {
-            throw new IOException("read past EOF: " + getFilePointer());
-        }
-        byte[] b = new byte[1];
-        file.readBytes(b, 0, 1);
-        return b[0];
-    }
-
-    @Override
-    public void readBytes(byte[] b, int offset, int len) throws IOException {
-        if (file.isClosed()) {
-            throw new IOException("IndexInput is closed");
-        }
-        long pos = getFilePointer();
-        if (pos + len > sliceLength) {
-            throw new IOException("read past EOF: " + (pos + len) + " > " + sliceLength);
-        }
-        file.readBytes(b, offset, len);
+    public void close() throws IOException {
+        file.close();
     }
 }

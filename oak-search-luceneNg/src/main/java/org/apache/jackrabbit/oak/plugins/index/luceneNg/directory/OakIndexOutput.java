@@ -38,10 +38,8 @@ class OakIndexOutput extends IndexOutput {
     }
 
     @Override
-    public void writeByte(byte b) throws IOException {
-        crc.update(b);
-        byte[] buf = new byte[]{b};
-        file.writeBytes(buf, 0, 1);
+    public long getFilePointer() {
+        return file.position();
     }
 
     @Override
@@ -51,8 +49,10 @@ class OakIndexOutput extends IndexOutput {
     }
 
     @Override
-    public long getFilePointer() {
-        return file.position();
+    public void writeByte(byte b) throws IOException {
+        crc.update(b);
+        byte[] buf = new byte[]{b};
+        file.writeBytes(buf, 0, 1);
     }
 
     @Override
