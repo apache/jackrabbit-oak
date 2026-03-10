@@ -244,8 +244,7 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
      */
     @Override
     public int getNodeNameLimit() {
-        return leaseChecking(() ->
-                delegate.getNodeNameLimit());
+        return delegate.getNodeNameLimit();
     }
 
     /**
