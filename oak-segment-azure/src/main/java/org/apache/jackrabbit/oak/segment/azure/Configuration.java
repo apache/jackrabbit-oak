@@ -95,4 +95,11 @@ public @interface Configuration {
             description = "When set to true specifies that requests will be attempted in primary, then in secondary region." +
                 "Default value is '" + AzureSegmentStoreService.DEFAULT_ENABLE_SECONDARY_LOCATION + "'.")
     boolean enableSecondaryLocation() default AzureSegmentStoreService.DEFAULT_ENABLE_SECONDARY_LOCATION;
+
+    @AttributeDefinition(
+            name = "Secondary blob endpoint (optional)",
+            description = "Custom blob endpoint for DR/offsite backup. When set, read requests that return 404 " +
+                "from the primary will be retried against this endpoint. " +
+                "Example: https://backup-account.blob.core.windows.net")
+    String secondaryBlobEndpoint() default "";
 }
