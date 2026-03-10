@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.Throttler;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
@@ -119,10 +118,9 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
 
     @Override
     public <T extends Document> int remove(Collection<T> collection,
-                                           String indexedProperty, long startValue, long endValue)
-            throws DocumentStoreException {
+                                           String indexedProperty, long startValue, long endValue) {
         return leaseChecking(() ->
-            delegate.remove(collection, indexedProperty, startValue, endValue));
+                delegate.remove(collection, indexedProperty, startValue, endValue));
     }
 
     @Override
@@ -258,20 +256,18 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
         return delegate.throttler();
     }
 
+    // invoke operation with lease check before/after
     private <T> T leaseChecking(Supplier<T> operation) {
         performLeaseCheck();
-        try {
-            return operation.get();
-        } finally {
-            performLeaseCheck();
-        }
+        T result = operation.get();
+        performLeaseCheck();
+        return result;
     }
+
+    // invoke operation with lease check before/after
     private void leaseChecking(Runnable operation) {
         performLeaseCheck();
-        try {
-            operation.run();
-        } finally {
-            performLeaseCheck();
-        }
+        operation.run();
+        performLeaseCheck();
     }
 }
