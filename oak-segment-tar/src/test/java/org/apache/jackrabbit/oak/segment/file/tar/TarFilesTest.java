@@ -504,4 +504,80 @@ public class TarFilesTest {
 
         assertEquals(TOTAL_ENTRIES / WRITER_ENTRY_LIMIT, tarFiles.readerCount());
     }
+
+    @Test
+    public void testInitFromTransfersReaders() throws Exception {
+        // Write segments to create TAR files, then close
+        UUID id1 = randomUUID();
+        UUID id2 = randomUUID();
+        byte[] data1 = randomData();
+        byte[] data2 = randomData();
+
+        writeSegment(id1, data1);
+        writeSegment(id2, data2);
+        tarFiles.close();
+        tarFiles = null;
+
+        // Open read-only TarFiles
+        TarFiles readOnlyTarFiles = TarFiles.builder()
+                .withDirectory(folder.getRoot())
+                .withTarRecovery((id, data, recovery) -> {})
+                .withIOMonitor(new IOMonitorAdapter())
+                .withRemoteStoreMonitor(new RemoteStoreMonitorAdapter())
+                .withReadOnly()
+                .build();
+
+        int readerCount = readOnlyTarFiles.readerCount();
+        int segmentCount = readOnlyTarFiles.segmentCount();
+        assertTrue("Expected at least one reader", readerCount > 0);
+        assertTrue("Expected at least two segments", segmentCount >= 2);
+
+        // Create new writable TarFiles, transferring readers from read-only
+        TarFiles writableTarFiles = TarFiles.builder()
+                .withDirectory(folder.getRoot())
+                .withTarRecovery((id, data, recovery) -> {})
+                .withIOMonitor(new IOMonitorAdapter())
+                .withFileStoreMonitor(new FileStoreMonitorAdapter())
+                .withMaxFileSize(MAX_FILE_SIZE)
+                .withRemoteStoreMonitor(new RemoteStoreMonitorAdapter())
+                .withInitialisedReadersAndWriters(false)
+                .build();
+        writableTarFiles.initFrom(readOnlyTarFiles);
+
+        // Verify readers were transferred
+        assertEquals(readerCount, writableTarFiles.readerCount());
+        assertEquals(segmentCount, writableTarFiles.segmentCount());
+
+        // Verify read-only instance has no readers left
+        assertEquals(0, readOnlyTarFiles.readerCount());
+
+        // Verify existing segments are readable from the new instance
+        assertTrue(writableTarFiles.containsSegment(id1.getMostSignificantBits(), id1.getLeastSignificantBits()));
+        assertTrue(writableTarFiles.containsSegment(id2.getMostSignificantBits(), id2.getLeastSignificantBits()));
+
+        Buffer buf1 = writableTarFiles.readSegment(id1.getMostSignificantBits(), id1.getLeastSignificantBits());
+        byte[] read1 = new byte[buf1.remaining()];
+        buf1.get(read1);
+        assertArrayEquals(data1, read1);
+
+        Buffer buf2 = writableTarFiles.readSegment(id2.getMostSignificantBits(), id2.getLeastSignificantBits());
+        byte[] read2 = new byte[buf2.remaining()];
+        buf2.get(read2);
+        assertArrayEquals(data2, read2);
+
+        // Verify writing new segments works
+        UUID id3 = randomUUID();
+        byte[] data3 = randomData();
+        writableTarFiles.writeSegment(id3, data3, 0, data3.length, newGCGeneration(1, 1, false), emptySet(), emptySet());
+        assertTrue(writableTarFiles.containsSegment(id3.getMostSignificantBits(), id3.getLeastSignificantBits()));
+
+        // Close old read-only instance — should not affect transferred readers
+        readOnlyTarFiles.close();
+
+        // Verify segments are still readable after closing the old instance
+        assertTrue(writableTarFiles.containsSegment(id1.getMostSignificantBits(), id1.getLeastSignificantBits()));
+        assertTrue(writableTarFiles.containsSegment(id3.getMostSignificantBits(), id3.getLeastSignificantBits()));
+
+        writableTarFiles.close();
+    }
 }

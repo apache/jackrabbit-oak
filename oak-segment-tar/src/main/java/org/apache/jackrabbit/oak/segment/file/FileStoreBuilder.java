@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
+import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.apache.jackrabbit.oak.segment.spi.monitor.*;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
@@ -148,6 +149,9 @@ public class FileStoreBuilder {
     private boolean strictVersionCheck;
 
     private boolean eagerSegmentCaching;
+
+    @Nullable
+    private TarFiles existingTarFiles;
 
     private boolean built;
 
@@ -435,6 +439,24 @@ public class FileStoreBuilder {
     }
 
     /**
+     * Provide an existing {@link TarFiles} instance whose TAR readers will be
+     * transferred to the new store instead of re-opening them from disk.
+     * This avoids the expensive I/O of re-reading all TAR file indices.
+     * <p>
+     * After the new store is built, the existing {@code TarFiles} instance
+     * will have its readers detached and can be safely closed without
+     * affecting the new store.
+     *
+     * @param existingTarFiles the existing TarFiles to transfer readers from
+     * @return this instance
+     */
+    @NotNull
+    public FileStoreBuilder withExistingTarFiles(@NotNull TarFiles existingTarFiles) {
+        this.existingTarFiles = requireNonNull(existingTarFiles);
+        return this;
+    }
+
+    /**
      * Sets the threshold under which binaries are inlined in data segments.
      * @param binariesInlineThreshold the threshold
      * @return this instance
@@ -620,6 +642,11 @@ public class FileStoreBuilder {
 
     boolean getEagerSegmentCaching() {
         return eagerSegmentCaching;
+    }
+
+    @Nullable
+    TarFiles getExistingTarFiles() {
+        return existingTarFiles;
     }
 
     int getBinariesInlineThreshold() {

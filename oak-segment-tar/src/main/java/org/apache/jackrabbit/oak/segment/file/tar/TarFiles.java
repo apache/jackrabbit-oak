@@ -406,6 +406,56 @@ public class TarFiles implements Closeable {
         }
     }
 
+    /**
+     * Initializes this instance by transferring the existing TAR readers from
+     * the given {@code TarFiles} instance, instead of opening new ones from
+     * disk. This avoids the expensive I/O of re-reading all TAR file indices.
+     * <p>
+     * The existing instance's readers are atomically detached — after this call,
+     * the existing instance will have no readers and can be safely closed
+     * without affecting the transferred readers.
+     * <p>
+     * If this instance is not read-only, a new {@link TarWriter} is created.
+     *
+     * @param existing the {@code TarFiles} instance to transfer readers from
+     * @throws IOException if an error occurs while creating the TAR writer
+     */
+    public void initFrom(TarFiles existing) throws IOException {
+        Validate.checkState(!initialised, "TarFiles already initialised");
+
+        Node existingReaders;
+
+        // Atomically detach readers from the existing TarFiles
+        existing.lock.writeLock().lock();
+        try {
+            existingReaders = existing.readers;
+            existing.readers = null;
+        } finally {
+            existing.lock.writeLock().unlock();
+        }
+
+        // Adopt the transferred readers
+        this.readers = existingReaders;
+        for (TarReader reader : iterable(readers)) {
+            segmentCount.inc(getSegmentCount(reader));
+            readerCount.inc();
+        }
+
+        // Create writer if not read-only
+        if (!readOnly) {
+            Map<Integer, Map<Character, String>> map = collectFiles(archiveManager);
+            Integer[] indices = map.keySet().toArray(new Integer[map.size()]);
+            Arrays.sort(indices);
+            int writeNumber = 0;
+            if (indices.length > 0) {
+                writeNumber = indices[indices.length - 1] + 1;
+            }
+            writer = new TarWriter(archiveManager, writeNumber, segmentCount);
+        }
+
+        initialised = true;
+    }
+
     public void init() throws IOException {
         Map<Integer, Map<Character, String>> map = collectFiles(archiveManager);
         Integer[] indices = map.keySet().toArray(new Integer[map.size()]);

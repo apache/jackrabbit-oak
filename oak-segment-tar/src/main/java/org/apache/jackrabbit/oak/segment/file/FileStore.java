@@ -172,7 +172,12 @@ public class FileStore extends AbstractFileStore {
                 .withInitialisedReadersAndWriters(false);
 
         this.tarFiles = tarFilesBuilder.build();
-        this.tarFiles.init();
+        TarFiles existingTarFiles = builder.getExistingTarFiles();
+        if (existingTarFiles != null) {
+            this.tarFiles.initFrom(existingTarFiles);
+        } else {
+            this.tarFiles.init();
+        }
 
         long size = this.tarFiles.size();
         this.stats.init(size);
