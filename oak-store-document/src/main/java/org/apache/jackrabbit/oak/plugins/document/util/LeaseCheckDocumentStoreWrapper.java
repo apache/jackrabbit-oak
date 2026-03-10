@@ -256,8 +256,7 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
      */
     @Override
     public Throttler throttler() {
-        return leaseChecking(() ->
-                delegate.throttler());
+        return delegate.throttler();
     }
 
     private <T> T leaseChecking(Supplier<T> operation) {
