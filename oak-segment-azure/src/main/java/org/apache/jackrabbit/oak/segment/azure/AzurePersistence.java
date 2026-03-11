@@ -53,6 +53,8 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
 
     protected WriteAccessController writeAccessController = new WriteAccessController();
 
+    private final BlobContainerClient secondaryBlobContainerClient;
+
     private final Integer journalLineLimit;
 
     public AzurePersistence(BlobContainerClient blobContainerClient, String rootPrefix) {
@@ -64,9 +66,14 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
     }
 
     public AzurePersistence(BlobContainerClient readBlobContainerClient, BlobContainerClient writeBlobContainerClient, BlobContainerClient noRetryBlobContainerClient, String rootPrefix, AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy, Integer journalLineLimit) {
+        this(readBlobContainerClient, writeBlobContainerClient, noRetryBlobContainerClient, null, rootPrefix, azureHttpRequestLoggingPolicy, journalLineLimit);
+    }
+
+    public AzurePersistence(BlobContainerClient readBlobContainerClient, BlobContainerClient writeBlobContainerClient, BlobContainerClient noRetryBlobContainerClient, BlobContainerClient secondaryBlobContainerClient, String rootPrefix, AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy, Integer journalLineLimit) {
         this.readBlobContainerClient = readBlobContainerClient;
         this.writeBlobContainerClient = writeBlobContainerClient;
         this.noRetryBlobContainerClient = noRetryBlobContainerClient;
+        this.secondaryBlobContainerClient = secondaryBlobContainerClient;
         this.azureHttpRequestLoggingPolicy = azureHttpRequestLoggingPolicy;
         this.rootPrefix = rootPrefix;
         this.journalLineLimit = journalLineLimit;
@@ -75,7 +82,7 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
     @Override
     public SegmentArchiveManager createArchiveManager(boolean mmap, boolean offHeapAccess, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) {
         attachRemoteStoreMonitor(remoteStoreMonitor);
-        return new AzureArchiveManager(readBlobContainerClient, writeBlobContainerClient, rootPrefix, ioMonitor, fileStoreMonitor, writeAccessController);
+        return new AzureArchiveManager(readBlobContainerClient, writeBlobContainerClient, secondaryBlobContainerClient, rootPrefix, ioMonitor, fileStoreMonitor, writeAccessController);
     }
 
     @Override

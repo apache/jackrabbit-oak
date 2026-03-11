@@ -61,6 +61,9 @@ public class ReadFallbackPolicy implements HttpPipelinePolicy {
 
         URL originalUrl = request.getUrl();
 
+        // clone before consuming so we can replay the pipeline for the fallback
+        HttpPipelineNextPolicy nextForFallback = next.clone();
+
         return next.process().flatMap(response -> {
             if (response.getStatusCode() != 404) {
                 return Mono.just(response);
@@ -76,13 +79,11 @@ public class ReadFallbackPolicy implements HttpPipelinePolicy {
 
             log.debug("Primary returned 404 for {}, falling back to {}", originalUrl, fallbackUrl);
 
-            HttpRequest fallbackRequest = new HttpRequest(request.getHttpMethod(), fallbackUrl);
-            request.getHeaders().forEach(header -> fallbackRequest.setHeader(header.getName(), header.getValue()));
-            context.setHttpRequest(fallbackRequest);
+            request.setUrl(fallbackUrl);
 
-            return next.clone().process().doOnNext(fallbackResponse -> {
-                // restore original request regardless of outcome
-                context.setHttpRequest(request);
+            return nextForFallback.process().doOnNext(fallbackResponse -> {
+                // restore original URL regardless of outcome
+                request.setUrl(originalUrl);
                 if (fallbackResponse.getStatusCode() == 404) {
                     log.debug("Secondary also returned 404 for {}", fallbackUrl);
                 }

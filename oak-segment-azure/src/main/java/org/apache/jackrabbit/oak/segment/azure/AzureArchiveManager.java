@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.UUID;
 import java.util.Set;
@@ -72,6 +73,8 @@ public class AzureArchiveManager implements SegmentArchiveManager {
 
     protected final BlobContainerClient writeBlobContainerClient;
 
+    private final BlobContainerClient secondaryBlobContainerClient;
+
     protected final String rootPrefix;
 
     protected final IOMonitor ioMonitor;
@@ -81,8 +84,13 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     private final WriteAccessController writeAccessController;
 
     public AzureArchiveManager(BlobContainerClient readBlobContainerClient, BlobContainerClient writeBlobContainerClient, String rootPrefix, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, WriteAccessController writeAccessController) {
+        this(readBlobContainerClient, writeBlobContainerClient, null, rootPrefix, ioMonitor, fileStoreMonitor, writeAccessController);
+    }
+
+    public AzureArchiveManager(BlobContainerClient readBlobContainerClient, BlobContainerClient writeBlobContainerClient, BlobContainerClient secondaryBlobContainerClient, String rootPrefix, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, WriteAccessController writeAccessController) {
         this.readBlobContainerClient = readBlobContainerClient;
         this.writeBlobContainerClient = writeBlobContainerClient;
+        this.secondaryBlobContainerClient = secondaryBlobContainerClient;
         this.rootPrefix = AzureUtilities.asAzurePrefix(rootPrefix);
         this.ioMonitor = ioMonitor;
         this.monitor = fileStoreMonitor;
@@ -92,11 +100,21 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     @Override
     public List<String> listArchives() throws IOException {
         try {
-            List<String> archiveNames = readBlobContainerClient.listBlobsByHierarchy(rootPrefix).stream()
+            Set<String> archiveNameSet = new LinkedHashSet<>();
+            // merge from secondary first (if configured), then primary overrides
+            if (secondaryBlobContainerClient != null) {
+                secondaryBlobContainerClient.listBlobsByHierarchy(rootPrefix).stream()
+                        .filter(BlobItem::isPrefix)
+                        .map(AzureUtilities::getName)
+                        .filter(blobName -> blobName.endsWith(".tar"))
+                        .forEach(archiveNameSet::add);
+            }
+            readBlobContainerClient.listBlobsByHierarchy(rootPrefix).stream()
                     .filter(BlobItem::isPrefix)
                     .map(AzureUtilities::getName)
                     .filter(blobName -> blobName.endsWith(".tar"))
-                    .collect(Collectors.toList());
+                    .forEach(archiveNameSet::add);
+            List<String> archiveNames = new ArrayList<>(archiveNameSet);
 
             Set<String> archivesToDelete = ForkJoinUtils.invokeInCustomPool(
                     "AzureArchiveManager-deleted-archive-handler",
@@ -137,7 +155,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
             if (!readBlobContainerClient.getBlobClient(closedBlob).exists()) {
                 return null;
             }
-            return new AzureSegmentArchiveReader(readBlobContainerClient, rootPrefix, archiveName, ioMonitor);
+            return new AzureSegmentArchiveReader(readBlobContainerClient, secondaryBlobContainerClient, rootPrefix, archiveName, ioMonitor);
         } catch (BlobStorageException e) {
             throw new IOException(e);
         }
@@ -145,7 +163,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
 
     @Override
     public SegmentArchiveReader forceOpen(String archiveName) throws IOException {
-        return new AzureSegmentArchiveReader(readBlobContainerClient, rootPrefix, archiveName, ioMonitor);
+        return new AzureSegmentArchiveReader(readBlobContainerClient, secondaryBlobContainerClient, rootPrefix, archiveName, ioMonitor);
     }
 
     @Override

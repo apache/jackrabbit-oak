@@ -167,7 +167,9 @@ public class AzurePersistenceManager {
         BlobContainerClient noRetryBlobContainerClient = new BlobContainerClientBuilder(accountName, containerName, azureHttpRequestLoggingPolicy).
                 withClientSecretCredential(clientSecretCredential).buildClient();
 
-        return createAzurePersistence(blobContainerClient, writeContainerClient, noRetryBlobContainerClient, azureHttpRequestLoggingPolicy, rootPrefix, createContainer);
+        BlobContainerClient secondaryBlobContainerClient = createSecondaryBlobContainerClient(secondaryBlobEndpoint, containerName, clientSecretCredential);
+
+        return createAzurePersistence(blobContainerClient, writeContainerClient, noRetryBlobContainerClient, secondaryBlobContainerClient, azureHttpRequestLoggingPolicy, rootPrefix, createContainer);
     }
 
 
@@ -206,13 +208,28 @@ public class AzurePersistenceManager {
     }
 
     private static AzurePersistence createAzurePersistence(BlobContainerClient blobContainerClient, BlobContainerClient writeContainerClient, BlobContainerClient noRetryBlobContainerClient, AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy, String rootPrefix, boolean createContainer) {
+        return createAzurePersistence(blobContainerClient, writeContainerClient, noRetryBlobContainerClient, null, azureHttpRequestLoggingPolicy, rootPrefix, createContainer);
+    }
+
+    private static AzurePersistence createAzurePersistence(BlobContainerClient blobContainerClient, BlobContainerClient writeContainerClient, BlobContainerClient noRetryBlobContainerClient, BlobContainerClient secondaryBlobContainerClient, AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy, String rootPrefix, boolean createContainer) {
         if (createContainer && !blobContainerClient.exists()) {
             blobContainerClient.create();
         }
 
         final String rootPrefixNormalized = normalizePath(rootPrefix);
 
-        return new AzurePersistence(blobContainerClient, writeContainerClient, noRetryBlobContainerClient, rootPrefixNormalized, azureHttpRequestLoggingPolicy, null);
+        return new AzurePersistence(blobContainerClient, writeContainerClient, noRetryBlobContainerClient, secondaryBlobContainerClient, rootPrefixNormalized, azureHttpRequestLoggingPolicy, null);
+    }
+
+    private static BlobContainerClient createSecondaryBlobContainerClient(String secondaryBlobEndpoint, String containerName, ClientSecretCredential credential) {
+        if (StringUtils.isBlank(secondaryBlobEndpoint) || credential == null) {
+            return null;
+        }
+        BlobServiceClient secondaryServiceClient = new BlobServiceClientBuilder()
+                .endpoint(secondaryBlobEndpoint)
+                .credential(credential)
+                .buildClient();
+        return secondaryServiceClient.getBlobContainerClient(containerName);
     }
 
     private static ReadFallbackPolicy createReadFallbackPolicy(String secondaryBlobEndpoint) {

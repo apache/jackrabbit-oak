@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.segment.azure;
 
 import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.models.ListBlobsOptions;
 import com.azure.storage.blob.specialized.BlockBlobClient;
@@ -24,9 +25,12 @@ import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.remote.AbstractRemoteSegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.readBufferFully;
@@ -38,16 +42,35 @@ public class AzureSegmentArchiveReader extends AbstractRemoteSegmentArchiveReade
     private final String archivePathPrefix;
 
     AzureSegmentArchiveReader(BlobContainerClient blobContainerClient, String rootPrefix, String archiveName, IOMonitor ioMonitor) {
+        this(blobContainerClient, null, rootPrefix, archiveName, ioMonitor);
+    }
+
+    AzureSegmentArchiveReader(BlobContainerClient blobContainerClient, @Nullable BlobContainerClient secondaryBlobContainerClient,
+                              String rootPrefix, String archiveName, IOMonitor ioMonitor) {
         super(ioMonitor, AzureUtilities.ensureNoTrailingSlash(archiveName),
-                createEntryIterable(blobContainerClient, AzureUtilities.asAzurePrefix(rootPrefix, archiveName)));
+                createEntryIterable(blobContainerClient, secondaryBlobContainerClient, AzureUtilities.asAzurePrefix(rootPrefix, archiveName)));
         this.blobContainerClient = blobContainerClient;
         this.archivePathPrefix = AzureUtilities.asAzurePrefix(rootPrefix, archiveName);
     }
 
-    private static Iterable<ArchiveEntry> createEntryIterable(BlobContainerClient blobContainerClient, @NotNull String archivePathPrefix) {
+    private static Iterable<ArchiveEntry> createEntryIterable(BlobContainerClient blobContainerClient,
+                                                               @Nullable BlobContainerClient secondaryBlobContainerClient,
+                                                               @NotNull String archivePathPrefix) {
         ListBlobsOptions listBlobsOptions = new ListBlobsOptions();
         listBlobsOptions.setPrefix(archivePathPrefix);
-        return AzureUtilities.getBlobs(blobContainerClient, listBlobsOptions).stream()
+
+        // merge blobs from primary and secondary, primary wins on duplicates
+        Map<String, BlobItem> mergedBlobs = new LinkedHashMap<>();
+        if (secondaryBlobContainerClient != null) {
+            for (BlobItem item : AzureUtilities.getBlobs(secondaryBlobContainerClient, listBlobsOptions)) {
+                mergedBlobs.put(item.getName(), item);
+            }
+        }
+        for (BlobItem item : AzureUtilities.getBlobs(blobContainerClient, listBlobsOptions)) {
+            mergedBlobs.put(item.getName(), item);
+        }
+
+        return mergedBlobs.values().stream()
                 .map(blobItem -> {
                     Map<String, String> metadata = blobItem.getMetadata();
                     int length = blobItem.getProperties().getContentLength().intValue();
