@@ -190,11 +190,16 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
                 f = property.getValue(Type.DOUBLE, i);
             } else if (tag == Type.BOOLEAN.tag()) {
                 f = property.getValue(Type.BOOLEAN, i).toString();
+            } else if (tag == Type.BINARY.tag()) {
+                // ignore - never call getValue(Type.STRING) on a binary (see OAK-12133)
+                f = null;
             } else {
                 f = property.getValue(Type.STRING, i);
             }
 
-            doc.addProperty(fieldName, f);
+            if (f != null) {
+                doc.addProperty(fieldName, f);
+            }
         } catch (Exception e) {
             if (!LOG_SILENCER.silence(LOG_KEY_COULD_NOT_CONVERT_PROPERTY)) {
                 LOG.warn(
