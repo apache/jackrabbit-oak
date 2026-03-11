@@ -63,14 +63,14 @@ public class BinaryStorageWithBlobStoreTest {
 
     @Before
     public void setup() throws Exception {
-        // Create external BlobStore
         FileDataStore fds = new FileDataStore();
-        fds.setMinRecordLength(0); // Store ALL binaries externally, even tiny ones
+        // store all binaries externally, even tiny ones
+        fds.setMinRecordLength(0);
         fds.init(folder.newFolder("blobstore").getAbsolutePath());
         blobStore = new DataStoreBlobStore(fds);
 
         fileStore = createFileStore();
-        repository = createRepository(fileStore, blobStore);
+        repository = createRepository(fileStore);
         session = repository.login(new SimpleCredentials(UserConstants.DEFAULT_ADMIN_ID,
                 UserConstants.DEFAULT_ADMIN_ID.toCharArray()));
     }
@@ -89,13 +89,14 @@ public class BinaryStorageWithBlobStoreTest {
     }
 
     private FileStore createFileStore() throws IOException, InvalidFileStoreVersionException {
+        // force binaries > 10 bytes to be external
         return FileStoreBuilder.fileStoreBuilder(folder.getRoot())
                 .withBlobStore(blobStore)
-                .withBinariesInlineThreshold(10) // Force binaries > 10 bytes to be external!
+                .withBinariesInlineThreshold(10)
                 .build();
     }
 
-    private Repository createRepository(FileStore fileStore, BlobStore blobStore) {
+    private Repository createRepository(FileStore fileStore) {
         return new Jcr(new Oak(SegmentNodeStoreBuilders.builder(fileStore).build()))
                 .createRepository();
     }
