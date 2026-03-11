@@ -41,7 +41,7 @@ Each non-default mount defines a number of entry path's which are used from the 
 
 In order to pre-populate the empty default mount one can use the seed mount. That is automatically copied over to the default `NodeStore` if the latter is not yet initialized as Composite default store (i.e. is lacking the `:composite` child node below its root). This happens at most once!
 
-## Non-default Mounts
+### Non-default Mounts
 
 In order to bootstrap/initialize the NodeStore which later is used as non-default mount, one needs to start Oak without the Composite NodeStore first. Only then it is possible to populate the NodeStore later acting as non-default mount (as only then one can write to it).
 
@@ -56,7 +56,7 @@ be removed in future Oak version.
 There are two major reasons for this limitation
 
 1. Having a commit run across two or more node stores is complicated to implement.
-Atomic commits will be very hard to ensure in a performant under these circumstances.
+Atomic commits will be very hard to ensure in a performant manner under these circumstances.
 Additionally, it will impose implementation burdens to each NodeStore
 in order to support this special-case scenario.
 1. There are multiple Oak subsystems that are not CompositeNodeStore aware and that would need to 
