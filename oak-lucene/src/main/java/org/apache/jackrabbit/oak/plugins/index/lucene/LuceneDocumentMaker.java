@@ -131,11 +131,16 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
             f = new DoubleField(pname, property.getValue(Type.DOUBLE, i), Field.Store.NO);
         } else if (tag == Type.BOOLEAN.tag()) {
             f = new StringField(pname, property.getValue(Type.BOOLEAN, i).toString(), Field.Store.NO);
+        } else if (tag == Type.BINARY.tag()) {
+            // ignore - never call getValue(Type.STRING) on a binary (see OAK-12133)
+            f = null;
         } else {
             f = new StringField(pname, property.getValue(Type.STRING, i), Field.Store.NO);
         }
 
-        doc.add(f);
+        if (f != null) {
+            doc.add(f);
+        }
     }
 
     @Override
@@ -294,7 +299,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
                         new BytesRef(property.getValue(Type.BOOLEAN).toString()));
             } else if (tag == Type.STRING.tag()) {
                 String stringValue = property.getValue(Type.STRING);
-                // Truncate the value as lucene limits the length of a SortedDocValueField string to 
+                // Truncate the value as lucene limits the length of a SortedDocValueField string to
                 // STRING_PROPERTY_MAX_LENGTH(32766 bytes) and throws exception if over the limit
                 f = new SortedDocValuesField(name, getTruncatedBytesRef(name, stringValue, this.path,
                         STRING_PROPERTY_MAX_LENGTH));
