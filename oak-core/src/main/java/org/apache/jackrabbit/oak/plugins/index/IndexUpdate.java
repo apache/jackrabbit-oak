@@ -637,6 +637,7 @@ public class IndexUpdate implements Editor, PathSource {
         final IndexEditorProvider provider;
         final String async;
         final NodeState root;
+        final NodeBuilder rootBuilder;
         final CommitInfo commitInfo;
         final IndexDisabler indexDisabler;
         private boolean ignoreReindexFlags = IGNORE_REINDEX_FLAGS;
@@ -654,6 +655,7 @@ public class IndexUpdate implements Editor, PathSource {
             this.provider = requireNonNull(provider);
             this.async = async;
             this.root = requireNonNull(root);
+            this.rootBuilder = requireNonNull(builder);
             this.commitInfo = commitInfo;
             this.corruptIndexHandler = corruptIndexHandler;
             this.indexDisabler = new IndexDisabler(builder);
@@ -724,6 +726,11 @@ public class IndexUpdate implements Editor, PathSource {
             @Override
             public IndexingContext getIndexingContext() {
                 return this;
+            }
+
+            @Override
+            public NodeBuilder getRootBuilder() {
+                return IndexUpdateRootState.this.rootBuilder;
             }
 
             //~--------------------------------< IndexingContext >

@@ -16,9 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopDocs;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
@@ -179,6 +185,67 @@ public class IndexingFunctionalTest {
         // Editor should handle both types, indexing normal and skipping hidden
         editor.enter(EMPTY_NODE, nodeWithHiddenProps.getNodeState());
         editor.leave(EMPTY_NODE, nodeWithHiddenProps.getNodeState());
+    }
+
+    @Test
+    public void testNodeUpdateReplacesDocument() throws Exception {
+        NodeBuilder builder = INITIAL_CONTENT.builder();
+        NodeBuilder oakIndex = builder.child("oak:index").child("testIdx");
+        oakIndex.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+
+        NodeBuilder content = builder.child("content").child("page1");
+        content.setProperty("title", "Original Title");
+
+        // First indexing
+        LuceneNgIndexEditor editor = new LuceneNgIndexEditor("/content/page1", oakIndex, builder.getNodeState());
+        editor.enter(EMPTY_NODE, content.getNodeState());
+        editor.leave(EMPTY_NODE, content.getNodeState());
+
+        // Second indexing of same path with different content
+        content.setProperty("title", "Updated Title");
+        LuceneNgIndexEditor editor2 = new LuceneNgIndexEditor("/content/page1", oakIndex, builder.getNodeState());
+        editor2.enter(EMPTY_NODE, content.getNodeState());
+        editor2.leave(EMPTY_NODE, content.getNodeState());
+
+        // Convenience constructor uses "/oak:index/default" as indexPath, so dir name is "default"
+        try (DirectoryReader reader = DirectoryReader.open(new OakDirectory(oakIndex, "default", true))) {
+            IndexSearcher searcher = new IndexSearcher(reader);
+            TopDocs hits = searcher.search(new TermQuery(new Term("path", "/content/page1")), 10);
+            assertEquals("Should have exactly one document, not a duplicate", 1, hits.totalHits.value);
+        }
+    }
+
+    @Test
+    public void testNodeDeletionRemovesDocument() throws Exception {
+        NodeBuilder builder = INITIAL_CONTENT.builder();
+        NodeBuilder oakIndex = builder.child("oak:index").child("testIdx");
+        oakIndex.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+
+        NodeBuilder content = builder.child("content");
+        content.child("keep").setProperty("title", "Keep me");
+        content.child("remove").setProperty("title", "Delete me");
+
+        // Index both nodes
+        for (String name : new String[]{"keep", "remove"}) {
+            NodeBuilder child = content.child(name);
+            LuceneNgIndexEditor ed = new LuceneNgIndexEditor("/content/" + name, oakIndex, builder.getNodeState());
+            ed.enter(EMPTY_NODE, child.getNodeState());
+            ed.leave(EMPTY_NODE, child.getNodeState());
+        }
+
+        // Delete /content/remove via parent editor
+        LuceneNgIndexEditor parentEditor = new LuceneNgIndexEditor("/content", oakIndex, builder.getNodeState());
+        parentEditor.enter(EMPTY_NODE, content.getNodeState());
+        parentEditor.childNodeDeleted("remove", content.child("remove").getNodeState());
+        parentEditor.leave(EMPTY_NODE, content.getNodeState());
+
+        try (DirectoryReader reader = DirectoryReader.open(new OakDirectory(oakIndex, "default", true))) {
+            IndexSearcher searcher = new IndexSearcher(reader);
+            TopDocs keepHits   = searcher.search(new TermQuery(new Term("path", "/content/keep")),   10);
+            TopDocs removeHits = searcher.search(new TermQuery(new Term("path", "/content/remove")), 10);
+            assertEquals("keep should still be indexed", 1, keepHits.totalHits.value);
+            assertEquals("remove should be deleted",     0, removeHits.totalHits.value);
+        }
     }
 
     @Test

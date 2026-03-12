@@ -37,7 +37,9 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
 
 /**
  * Lucene 9 Directory implementation that stores index files in Oak repository.
- * Files are stored under /var/indexing/lucene/{indexName}/ node structure.
+ * Files are stored directly in the {@code storageBuilder} node passed at construction.
+ * The caller is responsible for pointing this at the correct storage location
+ * (e.g. {@code /var/indexing/lucene/<indexName>}).
  * Uses chunked blob storage for memory efficiency.
  */
 public class OakDirectory extends Directory {
@@ -45,9 +47,7 @@ public class OakDirectory extends Directory {
     static final String PROP_DIR_LISTING = "dirListing";
     static final String PROP_BLOB_SIZE = "blobSize";
 
-    private static final String INDEX_DATA_CHILD_NAME = ":data";
-
-    private final NodeBuilder definitionBuilder;
+    private final NodeBuilder storageBuilder;
     private final String indexName;
     private final Set<String> fileNames;
     private final boolean readOnly;
@@ -55,26 +55,18 @@ public class OakDirectory extends Directory {
 
     /**
      * Creates a new OakDirectory instance.
-     * Stores index data under the definition node at :data child node,
-     * following the same pattern as legacy Lucene.
+     * Stores index data directly in {@code storageBuilder} — no child node is created.
+     * The caller must pass the correct storage NodeBuilder.
      *
-     * @param definitionBuilder the index definition node builder
-     * @param indexName the name of the index
-     * @param readOnly whether this directory is read-only
+     * @param storageBuilder the NodeBuilder for the directory root
+     * @param indexName      the name of the index (used for error messages and temp files)
+     * @param readOnly       whether this directory is read-only
      */
-    public OakDirectory(NodeBuilder definitionBuilder, String indexName, boolean readOnly) {
-        this.definitionBuilder = definitionBuilder;
+    public OakDirectory(NodeBuilder storageBuilder, String indexName, boolean readOnly) {
+        this.storageBuilder = storageBuilder;
         this.indexName = indexName;
         this.readOnly = readOnly;
-        this.blobFactory = BlobFactory.getNodeBuilderBlobFactory(definitionBuilder);
-
-        // Store index data under :data child node of the index definition
-        // This follows the same pattern as legacy Lucene
-        // We get the directory builder dynamically to avoid staleness issues
-        if (!readOnly) {
-            // Ensure :data node exists for write mode
-            definitionBuilder.child(INDEX_DATA_CHILD_NAME);
-        }
+        this.blobFactory = BlobFactory.getNodeBuilderBlobFactory(storageBuilder);
 
         this.fileNames = SetUtils.newConcurrentHashSet();
         this.fileNames.addAll(getListing());
@@ -89,7 +81,7 @@ public class OakDirectory extends Directory {
     public void deleteFile(String name) throws IOException {
         checkWritable();
         fileNames.remove(name);
-        NodeBuilder file = getDirectoryBuilder().getChildNode(name);
+        NodeBuilder file = storageBuilder.getChildNode(name);
         if (file.exists()) {
             file.remove();
         }
@@ -97,7 +89,7 @@ public class OakDirectory extends Directory {
 
     @Override
     public long fileLength(String name) throws IOException {
-        NodeBuilder file = getDirectoryBuilder().getChildNode(name);
+        NodeBuilder file = storageBuilder.getChildNode(name);
         if (!file.exists()) {
             throw new FileNotFoundException(String.format("[%s] %s", indexName, name));
         }
@@ -110,17 +102,14 @@ public class OakDirectory extends Directory {
     public IndexOutput createOutput(String name, IOContext context) throws IOException {
         checkWritable();
 
-        NodeBuilder dirBuilder = getDirectoryBuilder();
-
         // Remove existing file if present
-        synchronized (definitionBuilder) {
-            if (dirBuilder.hasChildNode(name)) {
-                dirBuilder.getChildNode(name).remove();
+        synchronized (storageBuilder) {
+            if (storageBuilder.hasChildNode(name)) {
+                storageBuilder.getChildNode(name).remove();
             }
         }
 
-        NodeBuilder file = dirBuilder.child(name);
-        // Set blob size (chunk size)
+        NodeBuilder file = storageBuilder.child(name);
         file.setProperty(PROP_BLOB_SIZE, (long) OakBufferedIndexFile.DEFAULT_BLOB_SIZE);
 
         fileNames.add(name);
@@ -129,7 +118,7 @@ public class OakDirectory extends Directory {
 
     @Override
     public IndexInput openInput(String name, IOContext context) throws IOException {
-        NodeBuilder file = getDirectoryBuilder().getChildNode(name);
+        NodeBuilder file = storageBuilder.getChildNode(name);
         if (!file.exists()) {
             throw new FileNotFoundException(String.format("[%s] %s", indexName, name));
         }
@@ -160,8 +149,7 @@ public class OakDirectory extends Directory {
     @Override
     public void close() throws IOException {
         if (!readOnly) {
-            // Save directory listing
-            getDirectoryBuilder().setProperty(createProperty(PROP_DIR_LISTING, fileNames, Type.STRINGS));
+            storageBuilder.setProperty(createProperty(PROP_DIR_LISTING, fileNames, Type.STRINGS));
         }
     }
 
@@ -179,22 +167,19 @@ public class OakDirectory extends Directory {
     @Override
     public void rename(String source, String dest) throws IOException {
         checkWritable();
-        NodeBuilder sourceFile = getDirectoryBuilder().getChildNode(source);
+        NodeBuilder sourceFile = storageBuilder.getChildNode(source);
         if (!sourceFile.exists()) {
             throw new FileNotFoundException(String.format("[%s] %s", indexName, source));
         }
 
-        // Copy properties to destination
-        NodeBuilder destFile = getDirectoryBuilder().child(dest);
+        NodeBuilder destFile = storageBuilder.child(dest);
         for (PropertyState prop : sourceFile.getProperties()) {
             destFile.setProperty(prop);
         }
 
-        // Update file listing
         fileNames.remove(source);
         fileNames.add(dest);
 
-        // Remove source
         sourceFile.remove();
     }
 
@@ -203,23 +188,12 @@ public class OakDirectory extends Directory {
         return Set.of();
     }
 
-    /**
-     * Gets the directory builder dynamically to avoid staleness issues.
-     */
-    private NodeBuilder getDirectoryBuilder() {
-        if (readOnly) {
-            return definitionBuilder.getChildNode(INDEX_DATA_CHILD_NAME);
-        } else {
-            return definitionBuilder.child(INDEX_DATA_CHILD_NAME);
-        }
-    }
-
     private Set<String> getListing() {
-        PropertyState listing = getDirectoryBuilder().getProperty(PROP_DIR_LISTING);
+        PropertyState listing = storageBuilder.getProperty(PROP_DIR_LISTING);
         if (listing != null) {
             return SetUtils.toLinkedSet(listing.getValue(Type.STRINGS));
         }
-        return SetUtils.toLinkedSet(getDirectoryBuilder().getChildNodeNames());
+        return SetUtils.toLinkedSet(storageBuilder.getChildNodeNames());
     }
 
     private void checkWritable() throws IOException {

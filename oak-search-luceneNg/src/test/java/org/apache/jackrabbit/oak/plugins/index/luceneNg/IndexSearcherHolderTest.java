@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.IndexSearcher;
@@ -31,18 +32,21 @@ public class IndexSearcherHolderTest {
     @Test
     public void testGetSearcher() throws Exception {
         NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
-        NodeBuilder indexDef = builder.child("oak:index").child("test");
-        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        // Simulate the /var/indexing/lucene/test storage path
+        NodeBuilder storageBuilder = builder.child("var").child("indexing").child("lucene").child("test");
 
-        // Create empty index with IndexWriter
-        OakDirectory directory = new OakDirectory(indexDef, "test", false);
+        // Write an empty index at the storage path
+        OakDirectory directory = new OakDirectory(storageBuilder, "test", false);
         IndexWriterConfig config = new IndexWriterConfig();
         IndexWriter writer = new IndexWriter(directory, config);
-        writer.commit(); // Create segments file
+        writer.commit();
         writer.close();
         directory.close();
 
-        IndexSearcherHolder holder = new IndexSearcherHolder(indexDef, "test");
+        // Read back via IndexSearcherHolder using the committed NodeState
+        IndexSearcherHolder holder = new IndexSearcherHolder(
+                builder.getNodeState().getChildNode("var").getChildNode("indexing").getChildNode("lucene").getChildNode("test"),
+                "test");
         IndexSearcher searcher = holder.getSearcher();
 
         assertNotNull("Searcher should not be null", searcher);

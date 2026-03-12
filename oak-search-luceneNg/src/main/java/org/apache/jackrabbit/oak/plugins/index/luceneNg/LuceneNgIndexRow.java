@@ -33,15 +33,21 @@ public class LuceneNgIndexRow implements IndexRow {
     private final String path;
     private final double score;
     private final Map<String, String> facetColumns;
+    private final String excerpt;
 
     public LuceneNgIndexRow(String path, double score) {
-        this(path, score, Collections.emptyMap());
+        this(path, score, Collections.emptyMap(), null);
     }
 
     public LuceneNgIndexRow(String path, double score, Map<String, String> facetColumns) {
+        this(path, score, facetColumns, null);
+    }
+
+    public LuceneNgIndexRow(String path, double score, Map<String, String> facetColumns, String excerpt) {
         this.path = path;
         this.score = score;
         this.facetColumns = facetColumns != null ? facetColumns : Collections.emptyMap();
+        this.excerpt = excerpt;
     }
 
     @Override
@@ -63,6 +69,9 @@ public class LuceneNgIndexRow implements IndexRow {
         }
         if ("jcr:score".equals(columnName)) {
             return PropertyValues.newDouble(score);
+        }
+        if ("rep:excerpt".equals(columnName) && excerpt != null) {
+            return PropertyValues.newString(excerpt);
         }
         // Return null for all other properties - this tells Oak to load the actual node
         return null;

@@ -39,16 +39,16 @@ public class OakDirectoryTest {
     }
 
     @Test
-    public void testDataNodeCreated() throws Exception {
-        OakDirectory directory = new OakDirectory(root, "testIndex", false);
-
-        // Verify :data child node was created under definition
-        assertTrue(root.hasChildNode(":data"));
+    public void testDirectoryWritable() throws Exception {
+        NodeBuilder storageBuilder = root.child("storageRoot");
+        OakDirectory directory = new OakDirectory(storageBuilder, "testIndex", false);
+        // In write mode the directory should accept files directly
+        assertNotNull(directory.listAll());
     }
 
     @Test
     public void testListAllEmpty() throws Exception {
-        OakDirectory directory = new OakDirectory(root, "testIndex", false);
+        OakDirectory directory = new OakDirectory(root.child("storageRoot"), "testIndex", false);
         String[] files = directory.listAll();
         assertNotNull(files);
         assertEquals(0, files.length);
@@ -56,7 +56,8 @@ public class OakDirectoryTest {
 
     @Test
     public void testWriteAndReadFile() throws Exception {
-        OakDirectory directory = new OakDirectory(root, "testIndex", false);
+        NodeBuilder storageBuilder = root.child("storageRoot");
+        OakDirectory directory = new OakDirectory(storageBuilder, "testIndex", false);
 
         // Write file
         String fileName = "testfile.txt";

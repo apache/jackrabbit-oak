@@ -40,6 +40,7 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.search.uhighlight.UnifiedHighlighter;
 import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.index.Term;
@@ -56,8 +57,10 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.util.BytesRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,6 +69,7 @@ import javax.jcr.PropertyType;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -157,27 +161,22 @@ public class LuceneNgIndex implements QueryIndex.AdvanceFulltextQueryIndex {
                 return Cursors.newPathCursor(Collections.emptyList(), filter.getQueryLimits());
             }
 
-            // Get definition builder from rootState for reading index data
-            // Navigate to the index definition node (e.g., /oak:index/luceneNgTestIndex)
-            NodeBuilder definitionBuilder = getDefinitionBuilder(rootState, indexPath);
-
-            // Get searcher - pass definition builder so OakDirectory can access :data child node
-            IndexSearcherHolder holder = new IndexSearcherHolder(
-                definitionBuilder,
-                indexNode.getDefinition().getIndexName()
-            );
-            IndexSearcher searcher = holder.getSearcher();
+            IndexSearcher searcher = indexNode.getSearcher();
+            if (searcher == null) {
+                LOG.warn("No index data for {}", indexPath);
+                return Cursors.newPathCursor(Collections.emptyList(), filter.getQueryLimits());
+            }
 
             // Build Lucene query from filter
             Query query = buildQuery(filter);
             LOG.debug("Executing query: {}", query);
 
-            // Execute query
-            TopDocs docs = searcher.search(query, 100); // Limit to 100 for now
+            // Execute query — use maxDoc as upper bound so all results are returned
+            int limit = Math.max(1, searcher.getIndexReader().maxDoc());
+            TopDocs docs = searcher.search(query, limit);
             LOG.debug("Found {} hits", docs.totalHits);
 
-            // Return cursor
-            return new LuceneNgCursor(docs, searcher, holder);
+            return new LuceneNgCursor(docs, searcher);
 
         } catch (IOException e) {
             LOG.error("Error executing query on index: " + indexPath, e);
@@ -194,18 +193,16 @@ public class LuceneNgIndex implements QueryIndex.AdvanceFulltextQueryIndex {
             .filter(pr -> !QueryConstants.REP_FACET.equals(pr.propertyName))
             .collect(Collectors.toList());
 
-        // If there are no real constraints, match all documents
-        if (ft == null && propRestrictions.isEmpty()) {
-            return new MatchAllDocsQuery();
-        }
+        Query pathQuery = buildPathQuery(filter);
 
-        // Handle full-text queries
-        if (ft != null) {
+        // Build content query (fulltext and/or property constraints)
+        Query contentQuery;
+        if (ft == null && propRestrictions.isEmpty()) {
+            contentQuery = new MatchAllDocsQuery();
+        } else if (ft != null) {
             Analyzer analyzer = new StandardAnalyzer();
             Query ftQuery = getFullTextQuery(ft, analyzer);
             LOG.debug("Building full-text query: {}", ftQuery);
-
-            // Combine with property restrictions if present
             if (!propRestrictions.isEmpty()) {
                 BooleanQuery.Builder bq = new BooleanQuery.Builder();
                 bq.add(ftQuery, Occur.MUST);
@@ -215,26 +212,66 @@ public class LuceneNgIndex implements QueryIndex.AdvanceFulltextQueryIndex {
                         bq.add(propQuery, Occur.MUST);
                     }
                 }
-                return bq.build();
+                contentQuery = bq.build();
+            } else {
+                contentQuery = ftQuery;
             }
-            return ftQuery;
-        }
-
-        // Handle property restriction queries only
-        if (propRestrictions.size() == 1) {
+        } else if (propRestrictions.size() == 1) {
             Query q = createPropertyQuery(propRestrictions.get(0));
-            return q != null ? q : new MatchAllDocsQuery();
+            contentQuery = q != null ? q : new MatchAllDocsQuery();
+        } else {
+            BooleanQuery.Builder bq = new BooleanQuery.Builder();
+            for (Filter.PropertyRestriction pr : propRestrictions) {
+                Query propQuery = createPropertyQuery(pr);
+                if (propQuery != null) {
+                    bq.add(propQuery, Occur.MUST);
+                }
+            }
+            contentQuery = bq.build();
         }
 
-        // Multiple property restrictions - combine with AND
-        BooleanQuery.Builder bq = new BooleanQuery.Builder();
-        for (Filter.PropertyRestriction pr : propRestrictions) {
-            Query propQuery = createPropertyQuery(pr);
-            if (propQuery != null) {
-                bq.add(propQuery, Occur.MUST);
-            }
+        if (pathQuery == null) {
+            return contentQuery;
         }
-        return bq.build();
+        BooleanQuery.Builder combined = new BooleanQuery.Builder();
+        combined.add(contentQuery, Occur.MUST);
+        combined.add(pathQuery, Occur.FILTER);
+        return combined.build();
+    }
+
+    /**
+     * Translates the Oak PathRestriction to a Lucene query clause,
+     * or returns null for NO_RESTRICTION (no clause added).
+     */
+    @org.jetbrains.annotations.Nullable
+    private Query buildPathQuery(Filter filter) {
+        Filter.PathRestriction restriction = filter.getPathRestriction();
+        if (restriction == null) {
+            return null;
+        }
+        String path = filter.getPath();
+        switch (restriction) {
+            case ALL_CHILDREN:
+                if ("/".equals(path)) {
+                    return null; // matches everything
+                }
+                return new PrefixQuery(new Term("path", path + "/"));
+            case DIRECT_CHILDREN:
+                return new TermQuery(new Term("parentPath", path));
+            case EXACT:
+                return new TermQuery(new Term("path", path));
+            case PARENT:
+                if ("/".equals(path)) {
+                    // root has no parent — match nothing
+                    return new TermQuery(new Term("path", "\u0000"));
+                }
+                int lastSlash = path.lastIndexOf('/');
+                String parentPath = lastSlash == 0 ? "/" : path.substring(0, lastSlash);
+                return new TermQuery(new Term("path", parentPath));
+            case NO_RESTRICTION:
+            default:
+                return null;
+        }
     }
 
     /**
@@ -500,32 +537,38 @@ public class LuceneNgIndex implements QueryIndex.AdvanceFulltextQueryIndex {
     }
 
     /**
-     * Tokenizes text and builds appropriate Lucene query (TermQuery or PhraseQuery).
-     * Based on legacy LuceneIndex implementation.
+     * Tokenizes text and builds appropriate Lucene query (TermQuery, PhraseQuery,
+     * PrefixQuery, or WildcardQuery). Wildcard terms bypass tokenization.
      */
     private static Query tokenToQuery(String text, String fieldName, Analyzer analyzer) {
-        List<String> tokens = tokenize(text, analyzer);
-
-        if (tokens.isEmpty()) {
-            return new BooleanQuery.Builder().build();
-        }
-
-        // Use FieldNames.FULLTEXT if no specific field
         String field = (fieldName == null || "*".equals(fieldName))
             ? FieldNames.FULLTEXT
             : fieldName;
 
-        if (tokens.size() == 1) {
-            // Single token - use TermQuery
-            return new TermQuery(new Term(field, tokens.get(0)));
-        } else {
-            // Multiple tokens - use PhraseQuery
-            PhraseQuery.Builder pq = new PhraseQuery.Builder();
-            for (String token : tokens) {
-                pq.add(new Term(field, token));
+        // Wildcard/prefix: bypass tokenization to preserve wildcard characters
+        if (text.contains("*") || text.contains("?")) {
+            String lower = text.toLowerCase(Locale.ENGLISH);
+            // Pure trailing-star prefix (no other wildcards): use PrefixQuery
+            if (lower.endsWith("*")
+                    && lower.indexOf('*') == lower.length() - 1
+                    && !lower.contains("?")) {
+                return new PrefixQuery(new Term(field, lower.substring(0, lower.length() - 1)));
             }
-            return pq.build();
+            return new WildcardQuery(new Term(field, lower));
         }
+
+        List<String> tokens = tokenize(text, analyzer);
+        if (tokens.isEmpty()) {
+            return new BooleanQuery.Builder().build();
+        }
+        if (tokens.size() == 1) {
+            return new TermQuery(new Term(field, tokens.get(0)));
+        }
+        PhraseQuery.Builder pq = new PhraseQuery.Builder();
+        for (String token : tokens) {
+            pq.add(new Term(field, token));
+        }
+        return pq.build();
     }
 
     /**
@@ -558,6 +601,12 @@ public class LuceneNgIndex implements QueryIndex.AdvanceFulltextQueryIndex {
 
     @Override
     public List<QueryIndex.IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder, NodeState rootState) {
+        // Don't offer a plan when the index has not yet been populated (no data)
+        LuceneNgIndexNode indexNode = tracker.acquireIndexNode(indexPath);
+        if (indexNode == null || indexNode.getSearcher() == null) {
+            return Collections.emptyList();
+        }
+
         // Check if we can handle this query
         FullTextExpression ft = filter.getFullTextConstraint();
         List<Filter.PropertyRestriction> propRestrictions = new ArrayList<>(filter.getPropertyRestrictions());
@@ -643,17 +692,18 @@ public class LuceneNgIndex implements QueryIndex.AdvanceFulltextQueryIndex {
                 return Cursors.newPathCursor(Collections.emptyList(), filter.getQueryLimits());
             }
 
-            // Get searcher
-            NodeBuilder definitionBuilder = getDefinitionBuilder(rootState, indexPath);
-            IndexSearcherHolder holder = new IndexSearcherHolder(
-                definitionBuilder,
-                indexNode.getDefinition().getIndexName()
-            );
-            IndexSearcher searcher = holder.getSearcher();
+            IndexSearcher searcher = indexNode.getSearcher();
+            if (searcher == null) {
+                LOG.warn("No index data for {}", indexPath);
+                return Cursors.newPathCursor(Collections.emptyList(), filter.getQueryLimits());
+            }
 
             // Build Lucene query
             Query query = buildQuery(filter);
             LOG.debug("Executing query: {}", query);
+
+            // Use maxDoc as limit so all results are returned
+            int limit = Math.max(1, searcher.getIndexReader().maxDoc());
 
             // Execute query with facet collection if requested, otherwise plain search
             TopDocs docs;
@@ -662,11 +712,11 @@ public class LuceneNgIndex implements QueryIndex.AdvanceFulltextQueryIndex {
             if (facetFields != null && !facetFields.isEmpty()) {
                 FacetsCollector fc = new FacetsCollector();
                 if (sortOrder == null || sortOrder.isEmpty()) {
-                    docs = FacetsCollector.search(searcher, query, 100, fc);
+                    docs = FacetsCollector.search(searcher, query, limit, fc);
                 } else {
                     Sort sort = createSort(sortOrder, indexNode.getDefinition());
                     LOG.debug("Sorting by: {}", sort);
-                    docs = FacetsCollector.search(searcher, query, 100, sort, fc);
+                    docs = FacetsCollector.search(searcher, query, limit, sort, fc);
                 }
 
                 for (String facetField : facetFields) {
@@ -681,18 +731,23 @@ public class LuceneNgIndex implements QueryIndex.AdvanceFulltextQueryIndex {
                 }
             } else {
                 if (sortOrder == null || sortOrder.isEmpty()) {
-                    docs = searcher.search(query, 100);
+                    docs = searcher.search(query, limit);
                 } else {
                     Sort sort = createSort(sortOrder, indexNode.getDefinition());
                     LOG.debug("Sorting by: {}", sort);
-                    docs = searcher.search(query, 100, sort);
+                    docs = searcher.search(query, limit, sort);
                 }
             }
 
             LOG.debug("Found {} hits", docs.totalHits);
 
-            // Return cursor
-            return new LuceneNgCursor(docs, searcher, holder, facetsMap);
+            // Generate excerpts if the query has a fulltext constraint
+            Map<Integer, String> excerptMap = Collections.emptyMap();
+            if (filter.getFullTextConstraint() != null) {
+                excerptMap = generateExcerpts(searcher, query, docs);
+            }
+
+            return new LuceneNgCursor(docs, searcher, facetsMap, excerptMap);
 
         } catch (IOException e) {
             LOG.error("Error executing query on index: " + indexPath, e);
@@ -787,6 +842,35 @@ public class LuceneNgIndex implements QueryIndex.AdvanceFulltextQueryIndex {
         }
 
         return builder;
+    }
+
+    /**
+     * Generates excerpts for the given search results using UnifiedHighlighter.
+     * Returns a map from Lucene docId to highlighted excerpt string.
+     * Only documents whose stored fulltext field can be highlighted are included.
+     */
+    private Map<Integer, String> generateExcerpts(IndexSearcher searcher, Query query, TopDocs docs) {
+        if (docs.scoreDocs.length == 0) {
+            return Collections.emptyMap();
+        }
+        try {
+            Analyzer analyzer = new StandardAnalyzer();
+            UnifiedHighlighter highlighter = new UnifiedHighlighter(searcher, analyzer);
+            String[] snippets = highlighter.highlight(FieldNames.FULLTEXT, query, docs, 1);
+            if (snippets == null) {
+                return Collections.emptyMap();
+            }
+            Map<Integer, String> excerptMap = new HashMap<>();
+            for (int i = 0; i < snippets.length; i++) {
+                if (snippets[i] != null) {
+                    excerptMap.put(docs.scoreDocs[i].doc, snippets[i]);
+                }
+            }
+            return excerptMap;
+        } catch (IOException e) {
+            LOG.debug("Failed to generate excerpts: {}", e.getMessage());
+            return Collections.emptyMap();
+        }
     }
 
     /**

@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
@@ -33,9 +34,10 @@ import org.slf4j.LoggerFactory;
  * IndexEditorProvider for Lucene 9 indexes.
  * Handles write operations for {@code type=lucene9} index definitions.
  *
- * <p>Uses {@link ContextAwareCallback} (when available) to obtain the correct
- * index path and to detect reindex cycles so the existing index data can be
- * cleared before a full rebuild.</p>
+ * <p>Index data is written to {@code /var/indexing/lucene/<indexName>/} in the
+ * repository, keeping it separate from the index definition subtree. This allows
+ * both lucene47 and lucene9 editors to write to the same index definition without
+ * overwriting each other's data.</p>
  */
 public class LuceneNgIndexEditorProvider implements IndexEditorProvider {
     private static final Logger LOG = LoggerFactory.getLogger(LuceneNgIndexEditorProvider.class);
@@ -58,21 +60,35 @@ public class LuceneNgIndexEditorProvider implements IndexEditorProvider {
             return null;
         }
 
-        // Extract context if available (IndexUpdate always provides ContextAwareCallback)
-        String indexPath = "/";
+        String indexPath = "/oak:index/unknown";
         boolean reindex = false;
+        NodeBuilder rootBuilder = null;
+
         if (callback instanceof ContextAwareCallback) {
-            IndexingContext ctx = ((ContextAwareCallback) callback).getIndexingContext();
-            indexPath = ctx.getIndexPath(); // index definition path, used for logging
-            reindex = ctx.isReindexing();
+            ContextAwareCallback ctx = (ContextAwareCallback) callback;
+            IndexingContext indexingContext = ctx.getIndexingContext();
+            indexPath = indexingContext.getIndexPath();
+            reindex = indexingContext.isReindexing();
+            rootBuilder = ctx.getRootBuilder();
         }
 
-        LOG.debug("Creating Lucene 9 index editor for index at {}{}", indexPath,
-                reindex ? " (reindex)" : "");
+        if (rootBuilder == null) {
+            LOG.warn("No root builder available for lucene9 index at {} — cannot write to /var/indexing/lucene", indexPath);
+            return null;
+        }
+
+        String indexName = PathUtils.getName(indexPath);
+        NodeBuilder storageBuilder = rootBuilder
+                .child("var")
+                .child("indexing")
+                .child("lucene")
+                .child(indexName);
+
+        LOG.debug("Creating Lucene 9 index editor for {} (storage: /var/indexing/lucene/{}{})",
+                indexPath, indexName, reindex ? ", reindex" : "");
 
         try {
-            // Content traversal always starts from repository root "/"
-            return new LuceneNgIndexEditor("/", definition, root, reindex);
+            return new LuceneNgIndexEditor("/", indexPath, storageBuilder, definition, root, reindex);
         } catch (Exception e) {
             throw new CommitFailedException("Lucene9", 1,
                     "Failed to create LuceneNgIndexEditor for " + indexPath, e);

@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
@@ -39,6 +40,8 @@ import org.apache.lucene.facet.FacetsConfig;
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.util.BytesRef;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -56,6 +59,7 @@ public class LuceneNgIndexEditor implements Editor {
     private static final Logger LOG = LoggerFactory.getLogger(LuceneNgIndexEditor.class);
 
     private final String path;
+    private final String indexPath;
     private final NodeBuilder definition;
     private final NodeState root;
     private final IndexWriter indexWriter;
@@ -65,53 +69,59 @@ public class LuceneNgIndexEditor implements Editor {
     /**
      * Creates a new LuceneNgIndexEditor (root editor with new IndexWriter).
      *
-     * @param path the path being indexed
-     * @param definition the index definition
-     * @param root the root node state
+     * @param path           the content path being indexed (starts at "/")
+     * @param indexPath      the index definition path (e.g. "/oak:index/myIndex")
+     * @param storageBuilder the NodeBuilder at the index storage path
+     *                       ({@code /var/indexing/lucene/<indexName>})
+     * @param definition     the index definition NodeBuilder
+     * @param root           the root node state
+     * @param reindex        whether to wipe existing data (full reindex)
      */
     public LuceneNgIndexEditor(@NotNull String path,
-                             @NotNull NodeBuilder definition,
-                             @NotNull NodeState root,
-                             boolean reindex) throws IOException {
+                               @NotNull String indexPath,
+                               @NotNull NodeBuilder storageBuilder,
+                               @NotNull NodeBuilder definition,
+                               @NotNull NodeState root,
+                               boolean reindex) throws IOException {
         this.path = path;
+        this.indexPath = indexPath;
         this.definition = definition;
         this.root = root;
         this.isRoot = true;
 
-        String indexName = getIndexName(definition);
-        OakDirectory directory = new OakDirectory(definition, indexName, false);
+        String indexName = PathUtils.getName(indexPath);
+        OakDirectory directory = new OakDirectory(storageBuilder, indexName, false);
 
-        // On reindex, wipe the existing index data so we start clean
         IndexWriterConfig config = new IndexWriterConfig();
         if (reindex) {
             config.setOpenMode(org.apache.lucene.index.IndexWriterConfig.OpenMode.CREATE);
-            LOG.debug("Reindexing: wiping existing index data for {}", path);
+            LOG.debug("Reindexing: wiping existing index data for {}", indexPath);
         }
         this.indexWriter = new IndexWriter(directory, config);
 
-        LOG.debug("Created LuceneNgIndexEditor for path: {}", path);
+        LOG.debug("Created LuceneNgIndexEditor for index: {}", indexPath);
     }
 
-    /** Convenience constructor for non-reindex writes (backward compat with tests). */
+    /**
+     * Convenience constructor for tests: uses {@code definition} as the storage location
+     * (writes data directly into the definition node).
+     */
     public LuceneNgIndexEditor(@NotNull String path,
-                             @NotNull NodeBuilder definition,
-                             @NotNull NodeState root) throws IOException {
-        this(path, definition, root, false);
+                               @NotNull NodeBuilder definition,
+                               @NotNull NodeState root) throws IOException {
+        this(path, "/oak:index/default", definition, definition, root, false);
     }
 
     /**
      * Creates a child LuceneNgIndexEditor that shares the parent's IndexWriter.
-     *
-     * @param path the path being indexed
-     * @param definition the index definition
-     * @param root the root node state
-     * @param sharedWriter the shared IndexWriter from the parent
      */
     private LuceneNgIndexEditor(@NotNull String path,
+                                @NotNull String indexPath,
                                 @NotNull NodeBuilder definition,
                                 @NotNull NodeState root,
                                 @NotNull IndexWriter sharedWriter) {
         this.path = path;
+        this.indexPath = indexPath;
         this.definition = definition;
         this.root = root;
         this.indexWriter = sharedWriter;
@@ -174,9 +184,8 @@ public class LuceneNgIndexEditor implements Editor {
     @Nullable
     public Editor childNodeAdded(@NotNull String name, @NotNull NodeState after)
             throws CommitFailedException {
-        // Child node added - create child editor sharing our IndexWriter
         String childPath = buildChildPath(name);
-        return new LuceneNgIndexEditor(childPath, definition, root, indexWriter);
+        return new LuceneNgIndexEditor(childPath, indexPath, definition, root, indexWriter);
     }
 
     @Override
@@ -185,9 +194,8 @@ public class LuceneNgIndexEditor implements Editor {
                                   @NotNull NodeState before,
                                   @NotNull NodeState after)
             throws CommitFailedException {
-        // Child node changed - create child editor sharing our IndexWriter
         String childPath = buildChildPath(name);
-        return new LuceneNgIndexEditor(childPath, definition, root, indexWriter);
+        return new LuceneNgIndexEditor(childPath, indexPath, definition, root, indexWriter);
     }
 
     private String buildChildPath(String name) {
@@ -202,8 +210,15 @@ public class LuceneNgIndexEditor implements Editor {
     @Nullable
     public Editor childNodeDeleted(@NotNull String name, @NotNull NodeState before)
             throws CommitFailedException {
-        // Child node deleted
-        // TODO: Implement document deletion in future phase
+        String childPath = buildChildPath(name);
+        try {
+            indexWriter.deleteDocuments(new Term("path", childPath));
+            indexWriter.deleteDocuments(new PrefixQuery(new Term("path", childPath + "/")));
+            LOG.debug("Deleted index documents for removed node: {}", childPath);
+        } catch (IOException e) {
+            throw new CommitFailedException("Lucene9", 3,
+                    "Failed to delete index documents for " + childPath, e);
+        }
         return null;
     }
 
@@ -215,6 +230,11 @@ public class LuceneNgIndexEditor implements Editor {
 
         // Add path as stored field
         doc.add(new StringField("path", path, Field.Store.YES));
+
+        // Store parent path to support DIRECT_CHILDREN path restriction queries
+        int lastSlash = path.lastIndexOf('/');
+        String parentPath = lastSlash == 0 ? "/" : path.substring(0, lastSlash);
+        doc.add(new StringField("parentPath", parentPath, Field.Store.NO));
 
         // Index all properties
         for (PropertyState prop : node.getProperties()) {
@@ -269,13 +289,15 @@ public class LuceneNgIndexEditor implements Editor {
                     break;
 
                 case PropertyType.STRING:
+                    boolean useInExcerpt = isUseInExcerpt(propName);
+                    Field.Store fulltextStore = useInExcerpt ? Field.Store.YES : Field.Store.NO;
                     if (!prop.isArray()) {
                         String value = prop.getValue(org.apache.jackrabbit.oak.api.Type.STRING);
                         if (value.length() < 32000) {
                             doc.add(new StringField(propName, value, Field.Store.NO));           // For queries
                             doc.add(new SortedDocValuesField(propName, new BytesRef(value)));   // For sorting
                         }
-                        doc.add(new TextField(FieldNames.FULLTEXT, value, Field.Store.NO));
+                        doc.add(new TextField(FieldNames.FULLTEXT, value, fulltextStore));
                         LOG.trace("Indexed property: {} = {}", propName, value);
                     } else {
                         // Multi-value string properties
@@ -284,7 +306,7 @@ public class LuceneNgIndexEditor implements Editor {
                                 doc.add(new StringField(propName, strValue, Field.Store.NO));
                                 // Note: SortedDocValuesField only supports single value, skipping for multi-value
                             }
-                            doc.add(new TextField(FieldNames.FULLTEXT, strValue, Field.Store.NO));
+                            doc.add(new TextField(FieldNames.FULLTEXT, strValue, fulltextStore));
                         }
                     }
                     break;
@@ -326,16 +348,9 @@ public class LuceneNgIndexEditor implements Editor {
                     facetsConfig.setIndexFieldName(dim, dim);
                 }
             }
-            indexWriter.addDocument(facetsConfig.build(doc));
+            indexWriter.updateDocument(new Term("path", path), facetsConfig.build(doc));
             LOG.debug("Indexed node at path: {}", path);
         }
-    }
-
-    private String getIndexName(NodeBuilder definition) {
-        // Get index name from definition or use default
-        return definition.hasProperty("name")
-                ? definition.getString("name")
-                : "lucene9-index";
     }
 
     /**
@@ -363,6 +378,15 @@ public class LuceneNgIndexEditor implements Editor {
     }
 
     /**
+     * Returns true if the given property has {@code useInExcerpt=true} in the index definition.
+     * Used to decide whether to store the fulltext field value for excerpt generation.
+     */
+    private boolean isUseInExcerpt(String propertyName) {
+        PropertyDefinition propDef = getPropertyDefinition(propertyName);
+        return propDef != null && propDef.stored;
+    }
+
+    /**
      * Gets property definition from index configuration.
      * Returns null if property is not indexed or definition not found.
      * The index definition is cached after the first successful construction
@@ -371,8 +395,7 @@ public class LuceneNgIndexEditor implements Editor {
     private PropertyDefinition getPropertyDefinition(String propertyName) {
         if (indexDefinition == null) {
             try {
-                indexDefinition = new LuceneNgIndexDefinition(root, definition.getNodeState(),
-                    "/oak:index/" + getIndexName(definition));
+                indexDefinition = new LuceneNgIndexDefinition(root, definition.getNodeState(), indexPath);
             } catch (Exception e) {
                 LOG.debug("Could not create index definition", e);
                 return null;

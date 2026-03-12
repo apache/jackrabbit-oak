@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.slf4j.Logger;
@@ -28,26 +28,29 @@ import java.io.IOException;
 
 /**
  * Manages IndexSearcher lifecycle for a Lucene 9 index.
- * Provides thread-safe access to IndexSearcher and handles reopening.
+ * Opens the index from {@code /var/indexing/lucene/<indexName>} in the repository.
  */
 public class IndexSearcherHolder implements Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(IndexSearcherHolder.class);
 
-    private final NodeBuilder definition;
     private final String indexName;
     private DirectoryReader reader;
     private IndexSearcher searcher;
 
-    public IndexSearcherHolder(NodeBuilder definition, String indexName) throws IOException {
-        this.definition = definition;
+    /**
+     * @param storageState the NodeState at the index storage path
+     *                     (e.g. {@code root.getChildNode("var")...getChildNode(indexName)})
+     * @param indexName    the index name, used only for logging/error messages
+     */
+    public IndexSearcherHolder(NodeState storageState, String indexName) throws IOException {
         this.indexName = indexName;
-        this.reader = openReader();
+        this.reader = openReader(storageState);
         this.searcher = new IndexSearcher(reader);
     }
 
-    private DirectoryReader openReader() throws IOException {
-        OakDirectory directory = new OakDirectory(definition, indexName, true); // read-only
+    private DirectoryReader openReader(NodeState storageState) throws IOException {
+        OakDirectory directory = new OakDirectory(storageState.builder(), indexName, true);
         return DirectoryReader.open(directory);
     }
 

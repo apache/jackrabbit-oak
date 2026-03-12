@@ -19,11 +19,25 @@
 
 package org.apache.jackrabbit.oak.plugins.index;
 
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+
 /**
  * Extension to IndexUpdateCallback which also provides access to
- * {@link IndexingContext}
+ * {@link IndexingContext} and the root {@link NodeBuilder} for the current commit.
  */
 public interface ContextAwareCallback extends IndexUpdateCallback {
 
     IndexingContext getIndexingContext();
+
+    /**
+     * Returns the root {@link NodeBuilder} for the current commit, allowing
+     * index editors to write data outside the index definition subtree
+     * (e.g. to {@code /var/indexing/lucene/<indexName>}).
+     *
+     * @return the root NodeBuilder, or {@code null} when not available
+     *         (e.g. in test contexts where a plain mock is used)
+     */
+    default NodeBuilder getRootBuilder() {
+        return null;
+    }
 }

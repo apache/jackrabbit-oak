@@ -37,8 +37,14 @@ import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.PrefixQuery;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopDocs;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -58,7 +64,7 @@ public class LuceneNgIndexTest {
         indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
 
         // Index some documents
-        OakDirectory directory = new OakDirectory(indexDef, "test", false);
+        OakDirectory directory = new OakDirectory(builder.child("var").child("indexing").child("lucene").child("test"), "test", false);
         IndexWriterConfig config = new IndexWriterConfig(new org.apache.lucene.analysis.standard.StandardAnalyzer());
         IndexWriter writer = new IndexWriter(directory, config);
 
@@ -130,7 +136,7 @@ public class LuceneNgIndexTest {
         indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
 
         // Index documents with age property
-        OakDirectory directory = new OakDirectory(indexDef, "test", false);
+        OakDirectory directory = new OakDirectory(builder.child("var").child("indexing").child("lucene").child("test"), "test", false);
         IndexWriterConfig config = new IndexWriterConfig(new org.apache.lucene.analysis.standard.StandardAnalyzer());
         IndexWriter writer = new IndexWriter(directory, config);
 
@@ -202,7 +208,7 @@ public class LuceneNgIndexTest {
         NodeBuilder indexDef = oakIndex.child("test");
         indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
 
-        OakDirectory directory = new OakDirectory(indexDef, "test", false);
+        OakDirectory directory = new OakDirectory(builder.child("var").child("indexing").child("lucene").child("test"), "test", false);
         IndexWriterConfig config = new IndexWriterConfig(new org.apache.lucene.analysis.standard.StandardAnalyzer());
         IndexWriter writer = new IndexWriter(directory, config);
 
@@ -262,7 +268,7 @@ public class LuceneNgIndexTest {
         NodeBuilder indexDef = oakIndex.child("test");
         indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
 
-        OakDirectory directory = new OakDirectory(indexDef, "test", false);
+        OakDirectory directory = new OakDirectory(builder.child("var").child("indexing").child("lucene").child("test"), "test", false);
         IndexWriterConfig config = new IndexWriterConfig(new org.apache.lucene.analysis.standard.StandardAnalyzer());
         IndexWriter writer = new IndexWriter(directory, config);
 
@@ -332,7 +338,7 @@ public class LuceneNgIndexTest {
         NodeBuilder indexDef = oakIndex.child("test");
         indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
 
-        OakDirectory directory = new OakDirectory(indexDef, "test", false);
+        OakDirectory directory = new OakDirectory(builder.child("var").child("indexing").child("lucene").child("test"), "test", false);
         IndexWriterConfig config = new IndexWriterConfig(new org.apache.lucene.analysis.standard.StandardAnalyzer());
         IndexWriter writer = new IndexWriter(directory, config);
 
@@ -393,7 +399,7 @@ public class LuceneNgIndexTest {
         NodeBuilder indexDef = oakIndex.child("test");
         indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
 
-        OakDirectory directory = new OakDirectory(indexDef, "test", false);
+        OakDirectory directory = new OakDirectory(builder.child("var").child("indexing").child("lucene").child("test"), "test", false);
         IndexWriterConfig config = new IndexWriterConfig(new org.apache.lucene.analysis.standard.StandardAnalyzer());
         IndexWriter writer = new IndexWriter(directory, config);
 
@@ -445,6 +451,184 @@ public class LuceneNgIndexTest {
         assertTrue("Should contain /article3 (science)", resultPaths.contains("/article3"));
     }
 
+    @Test
+    public void testDirectChildrenPathRestriction() throws Exception {
+        NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
+        NodeBuilder oakIndex = builder.child("oak:index").child("testIdx");
+        oakIndex.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+
+        // Write /a, /a/b, /a/b/c, /x using the convenience constructor (definition-backed storage)
+        for (String path : new String[]{"/a", "/a/b", "/a/b/c", "/x"}) {
+            NodeBuilder nb = builder;
+            for (String seg : path.substring(1).split("/")) {
+                nb = nb.child(seg);
+            }
+            nb.setProperty("title", "node-at-" + path);
+            LuceneNgIndexEditor ed = new LuceneNgIndexEditor(path, oakIndex, builder.getNodeState());
+            ed.enter(org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE, nb.getNodeState());
+            ed.leave(org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE, nb.getNodeState());
+        }
+
+        // Read back from definition-backed directory (convenience constructor uses dir name "default")
+        try (DirectoryReader reader = DirectoryReader.open(new OakDirectory(oakIndex, "default", true))) {
+            IndexSearcher searcher = new IndexSearcher(reader);
+            // Direct children of /a should be only /a/b
+            TopDocs hits = searcher.search(new TermQuery(new Term("parentPath", "/a")), 10);
+            assertEquals("Direct children of /a", 1, hits.totalHits.value);
+            assertEquals("/a/b", searcher.storedFields().document(hits.scoreDocs[0].doc).get("path"));
+        }
+    }
+
+    @Test
+    public void testAllChildrenPathRestriction() throws Exception {
+        NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
+        buildIndexWithPaths(builder, "/a", "/a/b", "/a/b/c", "/x");
+
+        LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
+        tracker.update(builder.getNodeState());
+        LuceneNgIndex index = new LuceneNgIndex(tracker, "/oak:index/testIdx");
+
+        Filter filter = mock(Filter.class);
+        when(filter.getFullTextConstraint()).thenReturn(null);
+        when(filter.getPropertyRestrictions()).thenReturn(Collections.emptyList());
+        when(filter.getPathRestriction()).thenReturn(Filter.PathRestriction.ALL_CHILDREN);
+        when(filter.getPath()).thenReturn("/a");
+        when(filter.getQueryLimits()).thenReturn(null);
+
+        Cursor cursor = index.query(filter, builder.getNodeState());
+        List<String> paths = new ArrayList<>();
+        while (cursor.hasNext()) {
+            paths.add(cursor.next().getPath());
+        }
+        assertTrue("Should contain /a/b",   paths.contains("/a/b"));
+        assertTrue("Should contain /a/b/c", paths.contains("/a/b/c"));
+        assertFalse("Should not contain /a", paths.contains("/a"));
+        assertFalse("Should not contain /x", paths.contains("/x"));
+    }
+
+    @Test
+    public void testExactPathRestriction() throws Exception {
+        NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
+        buildIndexWithPaths(builder, "/a", "/a/b", "/x");
+
+        LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
+        tracker.update(builder.getNodeState());
+        LuceneNgIndex index = new LuceneNgIndex(tracker, "/oak:index/testIdx");
+
+        Filter filter = mock(Filter.class);
+        when(filter.getFullTextConstraint()).thenReturn(null);
+        when(filter.getPropertyRestrictions()).thenReturn(Collections.emptyList());
+        when(filter.getPathRestriction()).thenReturn(Filter.PathRestriction.EXACT);
+        when(filter.getPath()).thenReturn("/a");
+        when(filter.getQueryLimits()).thenReturn(null);
+
+        Cursor cursor = index.query(filter, builder.getNodeState());
+        List<String> paths = new ArrayList<>();
+        while (cursor.hasNext()) {
+            paths.add(cursor.next().getPath());
+        }
+        assertEquals("Exact restriction should return exactly one result", 1, paths.size());
+        assertEquals("/a", paths.get(0));
+    }
+
+    @Test
+    public void testPrefixFulltextQuery() throws Exception {
+        NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
+        NodeBuilder oakIndex = builder.child("oak:index").child("testIdx");
+        oakIndex.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+
+        OakDirectory dir = new OakDirectory(
+                builder.child("var").child("indexing").child("lucene").child("testIdx"),
+                "testIdx", false);
+        IndexWriter writer = new IndexWriter(dir, new IndexWriterConfig(
+                new org.apache.lucene.analysis.standard.StandardAnalyzer()));
+        Document doc = new Document();
+        doc.add(new StringField("path", "/content/page1", Field.Store.YES));
+        doc.add(new TextField(FieldNames.FULLTEXT, "Apache Jackrabbit Oak is scalable", Field.Store.YES));
+        writer.addDocument(doc);
+        writer.commit();
+        writer.close();
+        dir.close();
+
+        LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
+        tracker.update(builder.getNodeState());
+        LuceneNgIndex index = new LuceneNgIndex(tracker, "/oak:index/testIdx");
+
+        Filter filter = mock(Filter.class);
+        when(filter.getFullTextConstraint()).thenReturn(
+                FullTextParser.parse("*", "jackrab*"));
+        when(filter.getPathRestriction()).thenReturn(Filter.PathRestriction.NO_RESTRICTION);
+        when(filter.getPropertyRestrictions()).thenReturn(Collections.emptyList());
+        when(filter.getQueryLimits()).thenReturn(null);
+
+        Cursor cursor = index.query(filter, builder.getNodeState());
+        assertTrue("Prefix query 'jackrab*' should match node", cursor.hasNext());
+        assertEquals("/content/page1", cursor.next().getPath());
+    }
+
+    @Test
+    public void testWildcardFulltextQuery() throws Exception {
+        NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
+        NodeBuilder oakIndex = builder.child("oak:index").child("testIdx");
+        oakIndex.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+
+        OakDirectory dir = new OakDirectory(
+                builder.child("var").child("indexing").child("lucene").child("testIdx"),
+                "testIdx", false);
+        IndexWriter writer = new IndexWriter(dir, new IndexWriterConfig(
+                new org.apache.lucene.analysis.standard.StandardAnalyzer()));
+        Document doc = new Document();
+        doc.add(new StringField("path", "/content/page1", Field.Store.YES));
+        doc.add(new TextField(FieldNames.FULLTEXT, "jackrabbit scalable", Field.Store.YES));
+        writer.addDocument(doc);
+        writer.commit();
+        writer.close();
+        dir.close();
+
+        LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
+        tracker.update(builder.getNodeState());
+        LuceneNgIndex index = new LuceneNgIndex(tracker, "/oak:index/testIdx");
+
+        Filter filter = mock(Filter.class);
+        when(filter.getFullTextConstraint()).thenReturn(
+                FullTextParser.parse("*", "jack*bit"));
+        when(filter.getPathRestriction()).thenReturn(Filter.PathRestriction.NO_RESTRICTION);
+        when(filter.getPropertyRestrictions()).thenReturn(Collections.emptyList());
+        when(filter.getQueryLimits()).thenReturn(null);
+
+        Cursor cursor = index.query(filter, builder.getNodeState());
+        assertTrue("Wildcard query 'jack*bit' should match node", cursor.hasNext());
+        assertEquals("/content/page1", cursor.next().getPath());
+    }
+
+    /**
+     * Builds an index at /var/indexing/lucene/testIdx with nodes at the given paths.
+     * The index definition is at /oak:index/testIdx with type=lucene9.
+     * After writing, {@code builder.getNodeState()} will contain both.
+     */
+    private void buildIndexWithPaths(NodeBuilder builder, String... paths) throws Exception {
+        NodeBuilder oakIndex = builder.child("oak:index").child("testIdx");
+        oakIndex.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+
+        NodeBuilder storageNode = builder.child("var").child("indexing").child("lucene").child("testIdx");
+        OakDirectory dir = new OakDirectory(storageNode, "testIdx", false);
+        IndexWriter writer = new IndexWriter(dir, new IndexWriterConfig(
+                new org.apache.lucene.analysis.standard.StandardAnalyzer()));
+
+        for (String path : paths) {
+            int lastSlash = path.lastIndexOf('/');
+            String parentPath = lastSlash == 0 ? "/" : path.substring(0, lastSlash);
+            Document doc = new Document();
+            doc.add(new StringField("path", path, Field.Store.YES));
+            doc.add(new StringField("parentPath", parentPath, org.apache.lucene.document.Field.Store.NO));
+            doc.add(new TextField(FieldNames.FULLTEXT, "node-at-" + path, Field.Store.NO));
+            writer.addDocument(doc);
+        }
+        writer.commit();
+        writer.close();
+        dir.close();
+    }
+
     // NOTE: Complex boolean queries (full-text + property restrictions) work correctly in the implementation,
     // but have a test setup issue when manually creating Lucene documents. Real-world usage through
     // LuceneNgIndexEditor works fine. Skipping this test for now.
@@ -456,7 +640,7 @@ public class LuceneNgIndexTest {
         NodeBuilder indexDef = oakIndex.child("test");
         indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
 
-        OakDirectory directory = new OakDirectory(indexDef, "test", false);
+        OakDirectory directory = new OakDirectory(builder.child("var").child("indexing").child("lucene").child("test"), "test", false);
         IndexWriterConfig config = new IndexWriterConfig(new org.apache.lucene.analysis.standard.StandardAnalyzer());
         IndexWriter writer = new IndexWriter(directory, config);
 

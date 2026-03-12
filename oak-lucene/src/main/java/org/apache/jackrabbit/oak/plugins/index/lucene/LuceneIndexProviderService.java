@@ -514,6 +514,7 @@ public class LuceneIndexProviderService {
 
         Dictionary<String, Object> props = new Hashtable<>();
         props.put("type", TYPE_LUCENE);
+        props.put("leaf", Boolean.TRUE);
         regs.add(bundleContext.registerService(IndexEditorProvider.class.getName(), editorProvider, props));
         oakRegs.add(registerMBean(whiteboard,
                 TextExtractionStatsMBean.class,

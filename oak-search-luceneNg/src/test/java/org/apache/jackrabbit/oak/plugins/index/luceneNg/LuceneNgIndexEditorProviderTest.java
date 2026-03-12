@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
+import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -29,20 +31,31 @@ import static org.mockito.Mockito.*;
 
 public class LuceneNgIndexEditorProviderTest {
 
-    private IndexUpdateCallback callback;
     private NodeState root;
     private NodeBuilder definitionBuilder;
+    private NodeBuilder rootBuilder;
     private LuceneNgIndexEditorProvider provider;
 
     @Before
     public void setup() {
-        callback = mock(IndexUpdateCallback.class);
         root = INITIAL_CONTENT;
-        definitionBuilder = root.builder();
+        rootBuilder = root.builder();
+        definitionBuilder = rootBuilder.child("oak:index").child("test");
         definitionBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
 
         LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
         provider = new LuceneNgIndexEditorProvider(tracker);
+    }
+
+    private ContextAwareCallback contextCallback(String indexPath, boolean reindex) {
+        IndexingContext ctx = mock(IndexingContext.class);
+        when(ctx.getIndexPath()).thenReturn(indexPath);
+        when(ctx.isReindexing()).thenReturn(reindex);
+
+        ContextAwareCallback callback = mock(ContextAwareCallback.class);
+        when(callback.getIndexingContext()).thenReturn(ctx);
+        when(callback.getRootBuilder()).thenReturn(rootBuilder);
+        return callback;
     }
 
     @Test
@@ -56,7 +69,7 @@ public class LuceneNgIndexEditorProviderTest {
             "lucene",  // different type
             definitionBuilder,
             root,
-            callback);
+            mock(IndexUpdateCallback.class));
 
         assertNull("Editor should be null for non-lucene9 type", editor);
     }
@@ -67,8 +80,22 @@ public class LuceneNgIndexEditorProviderTest {
             LuceneNgIndexConstants.TYPE_LUCENE9,
             definitionBuilder,
             root,
-            callback);
+            contextCallback("/oak:index/test", false));
 
         assertNotNull("Editor should be returned for lucene9 type", editor);
+    }
+
+    @Test
+    public void testGetEditorWithoutRootBuilderReturnsNull() throws Exception {
+        // When callback has no root builder (plain mock), provider returns null
+        // to avoid writing to the wrong location
+        IndexUpdateCallback plainCallback = mock(IndexUpdateCallback.class);
+        Editor editor = provider.getIndexEditor(
+            LuceneNgIndexConstants.TYPE_LUCENE9,
+            definitionBuilder,
+            root,
+            plainCallback);
+
+        assertNull("Editor should be null when root builder is unavailable", editor);
     }
 }

@@ -45,20 +45,24 @@ public class LuceneNgCursor extends AbstractCursor {
 
     private final TopDocs docs;
     private final IndexSearcher searcher;
-    private final IndexSearcherHolder holder;
     private final Map<String, String> facetColumns; // rep:facet(dim) -> JSON
+    private final Map<Integer, String> excerptMap;  // docId -> highlighted excerpt
     private int currentIndex = 0;
 
-    public LuceneNgCursor(TopDocs docs, IndexSearcher searcher, IndexSearcherHolder holder) {
-        this(docs, searcher, holder, null);
+    public LuceneNgCursor(TopDocs docs, IndexSearcher searcher) {
+        this(docs, searcher, null, Collections.emptyMap());
+    }
+
+    public LuceneNgCursor(TopDocs docs, IndexSearcher searcher, Map<String, Facets> facetsMap) {
+        this(docs, searcher, facetsMap, Collections.emptyMap());
     }
 
     public LuceneNgCursor(TopDocs docs, IndexSearcher searcher,
-                          IndexSearcherHolder holder, Map<String, Facets> facetsMap) {
+                          Map<String, Facets> facetsMap, Map<Integer, String> excerptMap) {
         this.docs = docs;
         this.searcher = searcher;
-        this.holder = holder;
         this.facetColumns = buildFacetColumns(facetsMap != null ? facetsMap : Collections.emptyMap());
+        this.excerptMap = excerptMap != null ? excerptMap : Collections.emptyMap();
     }
 
     private Map<String, String> buildFacetColumns(Map<String, Facets> facetsMap) {
@@ -103,8 +107,9 @@ public class LuceneNgCursor extends AbstractCursor {
             // Use Lucene 9 API for reading stored fields
             Document doc = searcher.storedFields().document(scoreDoc.doc);
             String path = doc.get("path");
+            String excerpt = excerptMap.get(scoreDoc.doc);
 
-            return new LuceneNgIndexRow(path, scoreDoc.score, facetColumns);
+            return new LuceneNgIndexRow(path, scoreDoc.score, facetColumns, excerpt);
 
         } catch (IOException e) {
             LOG.error("Error reading document", e);

@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
+import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -40,6 +42,17 @@ import static org.mockito.Mockito.*;
  * Tests verify complete indexing scenarios with tracker, provider, and editor components.
  */
 public class IntegrationTest {
+
+    private static ContextAwareCallback contextCallback(NodeBuilder rootBuilder, String indexPath) {
+        IndexingContext ctx = mock(IndexingContext.class);
+        when(ctx.getIndexPath()).thenReturn(indexPath);
+        when(ctx.isReindexing()).thenReturn(false);
+
+        ContextAwareCallback callback = mock(ContextAwareCallback.class);
+        when(callback.getIndexingContext()).thenReturn(ctx);
+        when(callback.getRootBuilder()).thenReturn(rootBuilder);
+        return callback;
+    }
 
     @Test
     public void testCompleteIndexingWorkflow() throws Exception {
@@ -71,13 +84,12 @@ public class IntegrationTest {
         tracker.update(root);
 
         LuceneNgIndexEditorProvider provider = new LuceneNgIndexEditorProvider(tracker);
-        IndexUpdateCallback callback = mock(IndexUpdateCallback.class);
 
         Editor editor = provider.getIndexEditor(
             LuceneNgIndexConstants.TYPE_LUCENE9,
             indexDef,
             root,
-            callback
+            contextCallback(builder, "/oak:index/testIndex")
         );
 
         assertNotNull("Editor should be created", editor);
@@ -116,6 +128,9 @@ public class IntegrationTest {
             editor.leave(EMPTY_NODE, root);
         }
 
+        // Refresh tracker with updated root (data was written into builder)
+        tracker.update(builder.getNodeState());
+
         // Verify index was created by checking tracker has the index
         LuceneNgIndexNode indexNode = tracker.acquireIndexNode("/oak:index/testIndex");
         assertNotNull("Index should be tracked", indexNode);
@@ -152,13 +167,12 @@ public class IntegrationTest {
         tracker.update(root);
 
         LuceneNgIndexEditorProvider provider = new LuceneNgIndexEditorProvider(tracker);
-        IndexUpdateCallback callback = mock(IndexUpdateCallback.class);
 
         Editor editor = provider.getIndexEditor(
             LuceneNgIndexConstants.TYPE_LUCENE9,
             indexDef,
             root,
-            callback
+            contextCallback(builder, "/oak:index/largeIndex")
         );
 
         assertNotNull("Editor should be created", editor);
@@ -187,6 +201,9 @@ public class IntegrationTest {
             // Ensure cleanup even if test fails
             editor.leave(EMPTY_NODE, root);
         }
+
+        // Refresh tracker with updated root (data was written into builder)
+        tracker.update(builder.getNodeState());
 
         // Verify index was created by checking tracker has the index
         LuceneNgIndexNode indexNode = tracker.acquireIndexNode("/oak:index/largeIndex");
@@ -285,10 +302,10 @@ public class IntegrationTest {
         // Get state with content
         NodeState root = builder.getNodeState();
 
-        // Index the content using OakDirectory directly (simpler than Editor)
-        // Use index name "testIndex" to match the index definition
+        // Index the content using OakDirectory at the correct storage path
         org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory directory =
-            new org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory(indexDef, "testIndex", false);
+            new org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory(
+                builder.child("var").child("indexing").child("lucene").child("testIndex"), "testIndex", false);
         org.apache.lucene.index.IndexWriterConfig config = new org.apache.lucene.index.IndexWriterConfig(
             new org.apache.lucene.analysis.standard.StandardAnalyzer());
         org.apache.lucene.index.IndexWriter writer = new org.apache.lucene.index.IndexWriter(directory, config);
