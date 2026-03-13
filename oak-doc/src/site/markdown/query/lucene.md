@@ -1078,7 +1078,7 @@ Refer to [OAK-4400][OAK-4400] for more details.
 #### <a name="generate-index-definition"></a> Generating Index Definition
 
 To simplify generating index definition suitable for evaluating certain set of queries you can make use of the
-[Oak Tools](https://thomasmueller.github.io/oakTools/indexDefGenerator.html).
+[Oak Tools](https://oak-indexing.github.io/oakTools/indexDefGenerator.html).
 Here you can provide a set of queries and then it would generate the
 suitable index definitions for those queries.
 
