@@ -54,6 +54,7 @@ import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter
 import org.apache.jackrabbit.oak.plugins.index.progress.NodeCountEstimator;
 import org.apache.jackrabbit.oak.plugins.index.progress.TraversalRateEstimator;
 import org.apache.jackrabbit.oak.plugins.index.upgrade.IndexDisabler;
+import org.apache.jackrabbit.oak.plugins.index.IndexDefinitionHelper;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -239,14 +240,25 @@ public class IndexUpdate implements Editor, PathSource {
         PropertyState type = definition.getProperty(TYPE_PROPERTY_NAME);
 
         // Do not attempt reindex of indexes with no type or disabled
-        if (type == null || TYPE_DISABLED.equals(type.getValue(Type.STRING))) {
+        String typeValue;
+        if (type == null) {
+            // Support activeTarget-only definitions (no legacy type= property)
+            try {
+                typeValue = IndexDefinitionHelper.getActiveTarget(definition.getNodeState());
+                // valid def with activeTarget — fall through to reindex check
+            } catch (IllegalArgumentException e) {
+                return false;
+            }
+        } else if (TYPE_DISABLED.equals(type.getValue(Type.STRING))) {
             return false;
+        } else {
+            typeValue = type.getValue(Type.STRING);
         }
 
         // Async indexes are not considered for reindexing for sync indexing
         // Skip this check for elastic index
         // TODO : See if the check to skip elastic can be handled in a better way - maybe move isMatchingIndexNode to IndexDefinition ?
-        if (!TYPE_ELASTICSEARCH.equals(type.getValue(Type.STRING)) && !isMatchingIndexMode(definition)) {
+        if (!TYPE_ELASTICSEARCH.equals(typeValue) && !isMatchingIndexMode(definition)) {
             return false;
         }
 
@@ -271,7 +283,7 @@ public class IndexUpdate implements Editor, PathSource {
         // someone added the new index node and forgot to add
         // the reindex flag, in case OutOfBand Indexing has been performed, warning can be ignored.
         // Also, in case the new elastic node has been added with reindex = true , this method would have already returned true
-        if (result && TYPE_ELASTICSEARCH.equals((type.getValue(Type.STRING)))) {
+        if (result && TYPE_ELASTICSEARCH.equals(typeValue)) {
             log.warn("Found a new elastic index node [{}]. Please set the reindex flag = true to initiate reindexing." +
                     "Please ignore if OutOfBand Reindexing has already been performed.", name);
             return false;
@@ -306,8 +318,12 @@ public class IndexUpdate implements Editor, PathSource {
                 String type = definition.getString(TYPE_PROPERTY_NAME);
                 String primaryType = definition.getName(JcrConstants.JCR_PRIMARYTYPE);
                 if (type == null) {
-                    // probably not an index def
-                    continue;
+                    try {
+                        type = IndexDefinitionHelper.getActiveTarget(definition.getNodeState());
+                    } catch (IllegalArgumentException e) {
+                        // not a valid index def
+                        continue;
+                    }
                 }
                 /*
                  Log a warning after every indexJcrTypeInvalidLogLimiter cycles of indexer where nodeState changed.
