@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
+import org.apache.jackrabbit.oak.plugins.index.IndexDefinitionHelper;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
@@ -56,7 +57,7 @@ public class LuceneNgIndexEditorProvider implements IndexEditorProvider {
                                  @NotNull IndexUpdateCallback callback)
             throws CommitFailedException {
 
-        if (!LuceneNgIndexConstants.TYPE_LUCENE9.equals(type)) {
+        if (!IndexDefinitionHelper.shouldWrite(definition.getNodeState(), LuceneNgIndexConstants.TYPE_LUCENE9)) {
             return null;
         }
 

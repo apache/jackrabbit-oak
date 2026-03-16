@@ -113,8 +113,7 @@ public class LuceneNgIndexTracker {
             NodeState indexState = oakIndex.getChildNode(indexName);
 
             try {
-                String activeTarget = IndexDefinitionHelper.getActiveTarget(indexState);
-                if (LuceneNgIndexConstants.TYPE_LUCENE9.equals(activeTarget)) {
+                if (IndexDefinitionHelper.shouldServeQueries(indexState, LuceneNgIndexConstants.TYPE_LUCENE9)) {
                     LuceneNgIndexNode oldNode = oldIndices.get(indexPath);
                     NodeState newStorageState = root
                             .getChildNode("var")

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.*;
+import org.apache.jackrabbit.oak.plugins.index.IndexDefinitionHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier.COWDirectoryTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.ActiveDeletedBlobCollector;
@@ -161,7 +162,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             @NotNull String type, @NotNull NodeBuilder definition, @NotNull NodeState root,
             @NotNull IndexUpdateCallback callback)
             throws CommitFailedException {
-        if (TYPE_LUCENE.equals(type)) {
+        if (IndexDefinitionHelper.shouldWrite(definition.getNodeState(), TYPE_LUCENE)) {
             checkArgument(callback instanceof ContextAwareCallback,
                     "callback instance not of type ContextAwareCallback [%s]", callback);
             IndexingContext indexingContext = ((ContextAwareCallback) callback).getIndexingContext();

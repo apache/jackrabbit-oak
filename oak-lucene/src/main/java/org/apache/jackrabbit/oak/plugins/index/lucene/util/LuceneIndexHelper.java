@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.plugins.index.IndexDefinitionHelper;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexHelper;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -136,6 +137,6 @@ public class LuceneIndexHelper extends IndexHelper {
     }
 
     public static boolean isLuceneIndexNode(NodeState node){
-        return IndexHelper.isIndexNodeOfType(node, TYPE_LUCENE);
+        return IndexDefinitionHelper.shouldServeQueries(node, TYPE_LUCENE);
     }
 }
