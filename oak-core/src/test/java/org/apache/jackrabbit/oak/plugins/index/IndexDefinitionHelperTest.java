@@ -16,8 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -169,5 +171,76 @@ public class IndexDefinitionHelperTest {
         assertTrue(str.contains("activeTarget"));
         assertTrue(str.contains("lucene47"));
         assertTrue(str.contains("lucene9"));
+    }
+
+    // --- shouldWrite ---
+
+    @Test
+    public void shouldWrite_typeLuceneOnly_matchesLucene() {
+        NodeState def = nodeStateWithType("lucene");
+        assertTrue(IndexDefinitionHelper.shouldWrite(def, "lucene"));
+    }
+
+    @Test
+    public void shouldWrite_typeLuceneOnly_doesNotMatchLucene9() {
+        NodeState def = nodeStateWithType("lucene");
+        assertFalse(IndexDefinitionHelper.shouldWrite(def, "lucene9"));
+    }
+
+    @Test
+    public void shouldWrite_storeTargetsBoth_matchesBoth() {
+        NodeState def = nodeStateWithStoreTargets("lucene", "lucene", "lucene9");
+        assertTrue(IndexDefinitionHelper.shouldWrite(def, "lucene"));
+        assertTrue(IndexDefinitionHelper.shouldWrite(def, "lucene9"));
+    }
+
+    @Test
+    public void shouldWrite_storeTargetsNgOnly_doesNotMatchLucene() {
+        NodeState def = nodeStateWithStoreTargets("lucene9", "lucene9");
+        assertFalse(IndexDefinitionHelper.shouldWrite(def, "lucene"));
+        assertTrue(IndexDefinitionHelper.shouldWrite(def, "lucene9"));
+    }
+
+    @Test
+    public void shouldWrite_invalidDef_returnsFalse() {
+        NodeState def = EmptyNodeState.EMPTY_NODE; // no type, no activeTarget
+        assertFalse(IndexDefinitionHelper.shouldWrite(def, "lucene"));
+    }
+
+    // --- shouldServeQueries ---
+
+    @Test
+    public void shouldServeQueries_typeLucene_matchesLucene() {
+        NodeState def = nodeStateWithType("lucene");
+        assertTrue(IndexDefinitionHelper.shouldServeQueries(def, "lucene"));
+        assertFalse(IndexDefinitionHelper.shouldServeQueries(def, "lucene9"));
+    }
+
+    @Test
+    public void shouldServeQueries_activeTargetLucene9_matchesLucene9() {
+        NodeState def = nodeStateWithStoreTargets("lucene9", "lucene", "lucene9");
+        assertTrue(IndexDefinitionHelper.shouldServeQueries(def, "lucene9"));
+        assertFalse(IndexDefinitionHelper.shouldServeQueries(def, "lucene"));
+    }
+
+    @Test
+    public void shouldServeQueries_invalidDef_returnsFalse() {
+        assertFalse(IndexDefinitionHelper.shouldServeQueries(EmptyNodeState.EMPTY_NODE, "lucene"));
+    }
+
+    // --- helpers ---
+
+    private static NodeState nodeStateWithType(String type) {
+        return EmptyNodeState.EMPTY_NODE.builder()
+                .setProperty("type", type)
+                .getNodeState();
+    }
+
+    /** activeTarget = first arg; storeTargets = remaining args */
+    private static NodeState nodeStateWithStoreTargets(String activeTarget, String... targets) {
+        NodeBuilder b = EmptyNodeState.EMPTY_NODE.builder();
+        b.setProperty("activeTarget", activeTarget);
+        b.setProperty("storeTargets", Arrays.asList(targets), Type.STRINGS);
+        return b.getNodeState();
     }
 }

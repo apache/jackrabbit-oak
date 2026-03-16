@@ -141,4 +141,34 @@ public class IndexDefinitionHelper {
     public static List<String> getStoreTargets(@NotNull NodeState definition) {
         return normalize(definition).getStoreTargets();
     }
+
+    /**
+     * Returns true if {@code providerType} should write to this index.
+     *
+     * <p>If {@code storeTargets} is present, the provider type must appear in the list.
+     * If absent (legacy {@code type=} only), the provider type must equal {@code type}.</p>
+     *
+     * <p>Returns false for invalid definitions (swallows {@link IllegalArgumentException}).</p>
+     */
+    public static boolean shouldWrite(@NotNull NodeState definition, @NotNull String providerType) {
+        try {
+            return normalize(definition).getStoreTargets().contains(providerType);
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Returns true if {@code providerType} should serve queries for this index
+     * (i.e. {@code activeTarget == providerType}).
+     *
+     * <p>Returns false for invalid definitions (swallows {@link IllegalArgumentException}).</p>
+     */
+    public static boolean shouldServeQueries(@NotNull NodeState definition, @NotNull String providerType) {
+        try {
+            return providerType.equals(getActiveTarget(definition));
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
 }

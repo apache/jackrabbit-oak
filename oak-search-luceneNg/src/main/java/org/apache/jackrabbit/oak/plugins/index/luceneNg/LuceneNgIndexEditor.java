@@ -176,8 +176,6 @@ public class LuceneNgIndexEditor implements Editor {
     @Override
     public void propertyDeleted(@NotNull PropertyState before)
             throws CommitFailedException {
-        // Property deleted - document needs update
-        // TODO: Implement document deletion/update in future phase
     }
 
     @Override
