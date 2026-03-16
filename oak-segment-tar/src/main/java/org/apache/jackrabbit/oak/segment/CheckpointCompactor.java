@@ -35,6 +35,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.Buffer;
@@ -125,13 +127,18 @@ public class CheckpointCompactor extends Compactor {
         Buffer stableIdBytes = requireNonNull(CompactorUtils.getStableIdBytes(after));
 
         NodeBuilder rootBuilder = onto.builder();
+
+        Set<String> deletedCheckpoints = collectDeletedCheckpointPaths(before, after);
+        for (String deletedCheckpoint : deletedCheckpoints) {
+            rootBuilder.getChildNode(CHECKPOINTS).getChildNode(deletedCheckpoint).remove();
+        }
+
         CompactedNodeState compacted = null;
         for (String path : superRoots) {
-            NodeBuilder builder = getDescendant(rootBuilder, path, NodeBuilder::child);
             NodeState afterSuperRoot = getDescendant(after, path, NodeState::getChildNode);
 
-            NodeState baseRoot = requireNonNullElseGet(compacted, () -> getRoot(getDescendant(before, path, NodeState::getChildNode)));
-            NodeState ontoRoot = requireNonNullElseGet(compacted, () -> getRoot(getDescendant(onto, path, NodeState::getChildNode)));
+            NodeState baseRoot = requireNonNullElseGet(compacted, () -> getRoot(before));
+            NodeState ontoRoot = requireNonNullElseGet(compacted, () -> getRoot(onto));
 
             compacted = compactRootState(baseRoot, getRoot(afterSuperRoot), ontoRoot, hardCanceller, softCanceller);
             if (compacted == null) {
@@ -142,6 +149,7 @@ public class CheckpointCompactor extends Compactor {
             Validate.checkState(compacted.isComplete() || isCancelled(softCanceller),
                     "compaction must be complete unless cancelled");
 
+            NodeBuilder builder = getDescendant(rootBuilder, path, NodeBuilder::child);
             builder.setChildNode(ROOT, compacted);
             if (path.startsWith(CHECKPOINTS + '/')) {
                 compactCheckpointMetadata(builder, afterSuperRoot);
@@ -168,8 +176,8 @@ public class CheckpointCompactor extends Compactor {
     private void compactCheckpointMetadata(NodeBuilder builder, NodeState afterSuperRoot) {
         // copy checkpoint "properties" child node
         NodeBuilder props = builder.setChildNode("properties");
-        for (PropertyState properties : afterSuperRoot.getChildNode("properties").getProperties()) {
-            props.setProperty(compactor.compact(properties));
+        for (PropertyState property : afterSuperRoot.getChildNode("properties").getProperties()) {
+            props.setProperty(compactor.compact(property));
         }
         // copy checkpoint properties (on the parent of the root node)
         for (PropertyState property : afterSuperRoot.getProperties()) {
@@ -198,6 +206,22 @@ public class CheckpointCompactor extends Compactor {
             gcListener.info("found checkpoint in cache.");
         }
         return compacted;
+    }
+
+    private @NotNull Set<String> collectDeletedCheckpointPaths(
+            @NotNull NodeState superRootBefore,
+            @NotNull NodeState superRootAfter) {
+        Stream.Builder<String> deletedCheckpoints = Stream.builder();
+        superRootAfter.getChildNode("checkpoints").compareAgainstBaseState(
+                superRootBefore.getChildNode("checkpoints"), new DefaultNodeStateDiff() {
+                    @Override
+                    public boolean childNodeDeleted(String name, NodeState before) {
+                        deletedCheckpoints.add(name);
+                        return true;
+                    }
+                }
+        );
+        return deletedCheckpoints.build().collect(Collectors.toUnmodifiableSet());
     }
 
     /**
