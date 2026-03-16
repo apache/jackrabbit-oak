@@ -368,7 +368,7 @@
           <groupId>io.github.olamy.maven.plugins</groupId>
           <artifactId>jacoco-aggregator-maven-plugin</artifactId>
           <version>1.0.3</version>
-         <executions>
+          <executions>
             <execution>
               <id>aggregate</id>
               <phase>verify</phase>
