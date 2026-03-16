@@ -69,8 +69,22 @@ public interface FulltextIndexConstants {
      */
     String FULL_TEXT_ENABLED = "fulltextEnabled";
 
+
     /**
-     * Only include properties with name in this set. If this property is defined
+     * Array of storage types to write to during indexing (e.g., ["lucene47", "lucene9"]).
+     * Enables multi-target writes for safe migrations.
+     * If not specified, defaults to single target based on type property.
+     */
+    String STORE_TARGETS = "storeTargets";
+
+    /**
+     * The storage type to use for queries. Must be one of the storeTargets.
+     * If not specified along with storeTargets, an error is raised.
+     * For backward compatibility, falls back to type property if neither is specified.
+     */
+    String ACTIVE_TARGET = "activeTarget";
+
+    /** Only include properties with name in this set. If this property is defined
      * then {@code excludePropertyNames} would be ignored
      */
     String INCLUDE_PROPERTY_NAMES = "includePropertyNames";
