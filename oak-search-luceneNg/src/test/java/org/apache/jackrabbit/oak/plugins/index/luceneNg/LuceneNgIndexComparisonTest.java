@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.search.test.AbstractIndexComparisonTest;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
 
@@ -43,6 +44,7 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
             .with(new InitialContent())
             .with(new OpenSecurityProvider())
             .with((org.apache.jackrabbit.oak.spi.query.QueryIndexProvider) provider)
+            .with((Observer) provider)
             .with(editor)
             .createContentRepository();
     }

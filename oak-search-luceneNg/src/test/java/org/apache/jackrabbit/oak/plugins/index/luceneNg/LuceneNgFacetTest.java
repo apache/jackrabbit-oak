@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.query.facet.FacetResult;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
 
@@ -57,6 +58,7 @@ public class LuceneNgFacetTest extends AbstractQueryTest {
             .with(new InitialContent())
             .with(new OpenSecurityProvider())
             .with((org.apache.jackrabbit.oak.spi.query.QueryIndexProvider) provider)
+            .with((Observer) provider)
             .with(editor)
             .createContentRepository();
     }

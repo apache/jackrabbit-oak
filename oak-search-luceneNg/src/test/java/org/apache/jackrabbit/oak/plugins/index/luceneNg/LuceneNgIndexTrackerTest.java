@@ -16,12 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Arrays;
+
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.junit.Assert.*;
 
 public class LuceneNgIndexTrackerTest {
@@ -34,7 +38,6 @@ public class LuceneNgIndexTrackerTest {
         root = INITIAL_CONTENT;
         builder = root.builder();
 
-        // Create index definition
         NodeBuilder oakIndex = builder.child("oak:index");
         NodeBuilder testIndex = oakIndex.child("testIndex");
         testIndex.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
@@ -50,29 +53,94 @@ public class LuceneNgIndexTrackerTest {
     @Test
     public void testUpdate() {
         LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
-        NodeState after = builder.getNodeState();
-
-        tracker.update(after);
-        // Should not throw exception
+        tracker.update(builder.getNodeState());
+        // Should not throw
     }
 
     @Test
     public void testGetIndexNode() {
         LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
-        NodeState after = builder.getNodeState();
-        tracker.update(after);
+        tracker.update(builder.getNodeState());
 
-        LuceneNgIndexNode indexNode = tracker.acquireIndexNode("/oak:index/testIndex");
-        assertNotNull(indexNode);
+        assertNotNull(tracker.acquireIndexNode("/oak:index/testIndex"));
     }
 
     @Test
     public void testGetNonExistentIndex() {
         LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
-        NodeState after = builder.getNodeState();
-        tracker.update(after);
+        tracker.update(builder.getNodeState());
 
-        LuceneNgIndexNode indexNode = tracker.acquireIndexNode("/oak:index/nonexistent");
-        assertNull(indexNode);
+        assertNull(tracker.acquireIndexNode("/oak:index/nonexistent"));
+    }
+
+    @Test
+    public void testIndexRemovedOnNextUpdate() {
+        LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
+        tracker.update(builder.getNodeState());
+        assertNotNull("Index should be tracked initially",
+                tracker.acquireIndexNode("/oak:index/testIndex"));
+
+        // Remove the index definition
+        builder.child("oak:index").getChildNode("testIndex").remove();
+        tracker.update(builder.getNodeState());
+
+        assertNull("Index should no longer be tracked after removal",
+                tracker.acquireIndexNode("/oak:index/testIndex"));
+    }
+
+    @Test
+    public void testActiveTargetFlip_StopsTracking() {
+        LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
+        tracker.update(builder.getNodeState());
+        assertNotNull(tracker.acquireIndexNode("/oak:index/testIndex"));
+
+        // Flip activeTarget away from lucene9
+        NodeBuilder idx = builder.child("oak:index").child("testIndex");
+        idx.removeProperty("type");
+        idx.setProperty("type", "lucene47");
+        idx.setProperty(PropertyStates.createProperty(
+                "storeTargets", Arrays.asList("lucene47", "lucene9"), STRINGS));
+        idx.setProperty("activeTarget", "lucene47");
+
+        tracker.update(builder.getNodeState());
+
+        assertNull("Index with activeTarget=lucene47 should not be tracked",
+                tracker.acquireIndexNode("/oak:index/testIndex"));
+    }
+
+    @Test
+    public void testActiveTargetFlip_StartsTracking() {
+        // Start with lucene47 active
+        NodeBuilder idx = builder.child("oak:index").child("testIndex");
+        idx.removeProperty("type");
+        idx.setProperty("type", "lucene47");
+        idx.setProperty(PropertyStates.createProperty(
+                "storeTargets", Arrays.asList("lucene47", "lucene9"), STRINGS));
+        idx.setProperty("activeTarget", "lucene47");
+
+        LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
+        tracker.update(builder.getNodeState());
+        assertNull("Index with activeTarget=lucene47 should not be tracked initially",
+                tracker.acquireIndexNode("/oak:index/testIndex"));
+
+        // Flip to lucene9
+        idx.setProperty("activeTarget", "lucene9");
+        tracker.update(builder.getNodeState());
+
+        assertNotNull("Index with activeTarget=lucene9 should now be tracked",
+                tracker.acquireIndexNode("/oak:index/testIndex"));
+    }
+
+    @Test
+    public void testOnlyLucene9IndexesTracked() {
+        builder.child("oak:index").child("legacyIndex")
+                .setProperty("type", "lucene");
+
+        LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
+        tracker.update(builder.getNodeState());
+
+        assertNotNull(tracker.acquireIndexNode("/oak:index/testIndex"));
+        assertNull("Legacy lucene index should not be tracked",
+                tracker.acquireIndexNode("/oak:index/legacyIndex"));
     }
 }

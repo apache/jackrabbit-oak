@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
 import org.apache.jackrabbit.oak.InitialContentHelper;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -33,20 +34,21 @@ public class LuceneNgQueryIndexProviderTest {
         NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
         NodeBuilder oakIndex = builder.child("oak:index");
 
-        // Create Lucene 9 index
         NodeBuilder lucene9Index = oakIndex.child("test");
         lucene9Index.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
 
-        // Create Lucene 4.7 index (should be ignored)
+        // Non-lucene9 index should be ignored
         NodeBuilder lucene47Index = oakIndex.child("old");
         lucene47Index.setProperty("type", "lucene");
 
         NodeState root = builder.getNodeState();
 
         LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
-        tracker.update(root);
-
         LuceneNgQueryIndexProvider provider = new LuceneNgQueryIndexProvider(tracker);
+
+        // Observer path: contentChanged refreshes the tracker
+        provider.contentChanged(root, CommitInfo.EMPTY);
+
         List<? extends QueryIndex> indexes = provider.getQueryIndexes(root);
 
         assertNotNull("Indexes should not be null", indexes);
@@ -60,9 +62,9 @@ public class LuceneNgQueryIndexProviderTest {
         NodeState root = InitialContentHelper.INITIAL_CONTENT;
 
         LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
-        tracker.update(root);
-
         LuceneNgQueryIndexProvider provider = new LuceneNgQueryIndexProvider(tracker);
+
+        provider.contentChanged(root, CommitInfo.EMPTY);
         List<? extends QueryIndex> indexes = provider.getQueryIndexes(root);
 
         assertNotNull("Indexes should not be null", indexes);

@@ -71,22 +71,32 @@ public class LuceneNgIndexEditor implements Editor {
      */
     public LuceneNgIndexEditor(@NotNull String path,
                              @NotNull NodeBuilder definition,
-                             @NotNull NodeState root) throws IOException {
+                             @NotNull NodeState root,
+                             boolean reindex) throws IOException {
         this.path = path;
         this.definition = definition;
         this.root = root;
         this.isRoot = true;
 
-        // Create OakDirectory for this index
-        // Store index data under the definition node at :data, like legacy Lucene
         String indexName = getIndexName(definition);
         OakDirectory directory = new OakDirectory(definition, indexName, false);
 
-        // Create IndexWriter with basic config
+        // On reindex, wipe the existing index data so we start clean
         IndexWriterConfig config = new IndexWriterConfig();
+        if (reindex) {
+            config.setOpenMode(org.apache.lucene.index.IndexWriterConfig.OpenMode.CREATE);
+            LOG.debug("Reindexing: wiping existing index data for {}", path);
+        }
         this.indexWriter = new IndexWriter(directory, config);
 
         LOG.debug("Created LuceneNgIndexEditor for path: {}", path);
+    }
+
+    /** Convenience constructor for non-reindex writes (backward compat with tests). */
+    public LuceneNgIndexEditor(@NotNull String path,
+                             @NotNull NodeBuilder definition,
+                             @NotNull NodeState root) throws IOException {
+        this(path, definition, root, false);
     }
 
     /**

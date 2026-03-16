@@ -16,34 +16,45 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
+import org.apache.jackrabbit.oak.plugins.index.IndexDefinitionHelper;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashSet;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 /**
  * Tracks Lucene 9 indexes and provides access to index nodes.
- * Scans the repository for lucene9 type indexes and maintains a cache.
+ *
+ * <p>Updated on every repository commit via the {@code Observer} mechanism.
+ * The internal index map is replaced atomically on each update, so readers
+ * always see a consistent snapshot without locking.</p>
  */
 public class LuceneNgIndexTracker {
     private static final Logger LOG = LoggerFactory.getLogger(LuceneNgIndexTracker.class);
 
-    private final ConcurrentMap<String, LuceneNgIndexNode> indices = new ConcurrentHashMap<>();
+    /**
+     * Atomic snapshot: immutable map replaced on every {@link #update}.
+     * Reads require no synchronization; writes are serialized via {@code synchronized}.
+     */
+    private volatile Map<String, LuceneNgIndexNode> indices = Collections.emptyMap();
+
     private NodeState root;
 
     /**
      * Updates the tracker with new repository state.
-     * Scans /oak:index for lucene9 indexes and updates the cache.
+     * Scans /oak:index for indexes whose activeTarget is lucene9.
+     * Entries whose activeTarget has changed or whose definition was removed are
+     * evicted automatically.
      *
      * @param root the new root state
      */
-    public void update(@NotNull NodeState root) {
+    public synchronized void update(@NotNull NodeState root) {
         this.root = root;
         refreshIndexes();
     }
@@ -60,44 +71,56 @@ public class LuceneNgIndexTracker {
     }
 
     /**
-     * Get paths of all tracked indexes.
-     *
-     * @return set of index paths
+     * Returns paths of all currently tracked indexes.
      */
     public Set<String> getIndexPaths() {
-        return new HashSet<>(indices.keySet());
+        return indices.keySet();
     }
 
     /**
-     * Refreshes the index cache by scanning for Lucene 9 indexes.
+     * Full scan of /oak:index. Builds a fresh map of all indexes whose
+     * activeTarget (or legacy type) is lucene9, then atomically replaces
+     * the current map. Entries removed from the definition or whose activeTarget
+     * has changed away from lucene9 are automatically evicted.
      */
     private void refreshIndexes() {
         if (root == null) {
             return;
         }
 
-        // Scan /oak:index for lucene9 indexes
         NodeState oakIndex = root.getChildNode("oak:index");
         if (!oakIndex.exists()) {
+            indices = Collections.emptyMap();
             return;
         }
+
+        Map<String, LuceneNgIndexNode> oldIndices = indices;
+        Map<String, LuceneNgIndexNode> newIndices = new HashMap<>();
 
         for (String indexName : oakIndex.getChildNodeNames()) {
             String indexPath = "/oak:index/" + indexName;
             NodeState indexState = oakIndex.getChildNode(indexName);
 
-            // Check if it's a lucene9 index
-            org.apache.jackrabbit.oak.api.PropertyState typeProp = indexState.getProperty("type");
-            if (typeProp != null) {
-                String type = typeProp.getValue(org.apache.jackrabbit.oak.api.Type.STRING);
-                if (LuceneNgIndexConstants.TYPE_LUCENE9.equals(type)) {
-                    // Create or update index node
-                    indices.computeIfAbsent(indexPath, path -> {
-                        LOG.debug("Tracking new Lucene 9 index: {}", path);
-                        return new LuceneNgIndexNode(path, root, indexState);
-                    });
+            try {
+                String activeTarget = IndexDefinitionHelper.getActiveTarget(indexState);
+                if (LuceneNgIndexConstants.TYPE_LUCENE9.equals(activeTarget)) {
+                    newIndices.put(indexPath, new LuceneNgIndexNode(indexPath, root, indexState));
+                    if (!oldIndices.containsKey(indexPath)) {
+                        LOG.debug("Now tracking Lucene 9 index: {}", indexPath);
+                    }
                 }
+            } catch (IllegalArgumentException e) {
+                // Not a valid index definition (no type/activeTarget), skip
             }
         }
+
+        // Log removals
+        for (String removed : oldIndices.keySet()) {
+            if (!newIndices.containsKey(removed)) {
+                LOG.debug("Stopped tracking Lucene 9 index (removed or activeTarget changed): {}", removed);
+            }
+        }
+
+        this.indices = Collections.unmodifiableMap(newIndices);
     }
 }

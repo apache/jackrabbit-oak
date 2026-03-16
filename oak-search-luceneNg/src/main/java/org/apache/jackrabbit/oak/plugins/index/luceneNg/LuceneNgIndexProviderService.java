@@ -17,14 +17,14 @@
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
-import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
@@ -35,11 +35,21 @@ import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
- * OSGi service that provides Lucene 9 index providers.
- * This service registers both the QueryIndexProvider and IndexEditorProvider
- * for handling indexes with type "lucene9".
+ * OSGi service that activates the Lucene 9 index provider stack.
+ *
+ * <p>On activation this registers:</p>
+ * <ul>
+ *   <li>{@link QueryIndexProvider} — serves lucene9 queries</li>
+ *   <li>{@link Observer} (wrapped in {@link BackgroundObserver}) — refreshes the
+ *       tracker on every commit so that queries always see up-to-date index data</li>
+ *   <li>{@link IndexEditorProvider} — handles writes for {@code type=lucene9} index
+ *       definitions</li>
+ * </ul>
  */
 @Component
 @Designate(ocd = LuceneNgIndexProviderService.Config.class)
@@ -47,8 +57,11 @@ public class LuceneNgIndexProviderService {
 
     private static final Logger LOG = LoggerFactory.getLogger(LuceneNgIndexProviderService.class);
 
+    /** Queue depth for the background observer (same default as oak-lucene). */
+    private static final int OBSERVER_QUEUE_SIZE = 1000;
+
     @ObjectClassDefinition(
-            name = "Apache Jackrabbit Oak LuceneNgIndexProvider",
+            name = "Apache Jackrabbit Oak LuceneNg Index Provider",
             description = "Lucene 9 index provider for Oak"
     )
     public @interface Config {
@@ -59,12 +72,11 @@ public class LuceneNgIndexProviderService {
         boolean disabled() default false;
     }
 
-    @Reference
-    private NodeStore nodeStore;
-
     private final List<ServiceRegistration<?>> regs = new ArrayList<>();
     private LuceneNgIndexTracker indexTracker;
     private LuceneNgIndexEditorProvider editorProvider;
+    private BackgroundObserver backgroundObserver;
+    private ExecutorService executor;
 
     @Activate
     private void activate(BundleContext bundleContext, Config config) {
@@ -75,22 +87,37 @@ public class LuceneNgIndexProviderService {
 
         LOG.info("Activating LuceneNg Index Provider");
 
-        // Initialize tracker
+        executor = Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "oak-lucene9-observer");
+            t.setDaemon(true);
+            return t;
+        });
+
         indexTracker = new LuceneNgIndexTracker();
 
-        // Register QueryIndexProvider
+        // QueryIndexProvider + Observer in one object
         LuceneNgQueryIndexProvider queryProvider = new LuceneNgQueryIndexProvider(indexTracker);
-        Dictionary<String, Object> props = new Hashtable<>();
-        props.put("type", LuceneNgIndexConstants.TYPE_LUCENE9);
-        regs.add(bundleContext.registerService(QueryIndexProvider.class.getName(), queryProvider, props));
-        LOG.info("Registered QueryIndexProvider for type: {}", LuceneNgIndexConstants.TYPE_LUCENE9);
 
-        // Register IndexEditorProvider
+        regs.add(bundleContext.registerService(
+                QueryIndexProvider.class.getName(), queryProvider, null));
+        LOG.debug("Registered QueryIndexProvider for type: {}", LuceneNgIndexConstants.TYPE_LUCENE9);
+
+        // Wrap in BackgroundObserver so commits are not blocked by tracker refresh
+        backgroundObserver = new BackgroundObserver(queryProvider, executor, OBSERVER_QUEUE_SIZE);
+        regs.add(bundleContext.registerService(
+                Observer.class.getName(), backgroundObserver, null));
+        LOG.debug("Registered BackgroundObserver for tracker refresh");
+
+        // IndexEditorProvider
         editorProvider = new LuceneNgIndexEditorProvider(indexTracker);
-        props = new Hashtable<>();
-        props.put("type", LuceneNgIndexConstants.TYPE_LUCENE9);
-        regs.add(bundleContext.registerService(IndexEditorProvider.class.getName(), editorProvider, props));
-        LOG.info("Registered IndexEditorProvider for type: {}", LuceneNgIndexConstants.TYPE_LUCENE9);
+        Dictionary<String, Object> editorProps = new Hashtable<>();
+        editorProps.put("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        editorProps.put("leaf", Boolean.TRUE);
+        regs.add(bundleContext.registerService(
+                IndexEditorProvider.class.getName(), editorProvider, editorProps));
+        LOG.debug("Registered IndexEditorProvider (leaf) for type: {}", LuceneNgIndexConstants.TYPE_LUCENE9);
+
+        LOG.info("LuceneNg Index Provider activated");
     }
 
     @Deactivate
@@ -102,11 +129,27 @@ public class LuceneNgIndexProviderService {
         }
         regs.clear();
 
+        if (backgroundObserver != null) {
+            backgroundObserver.close();
+            backgroundObserver = null;
+        }
+
         if (editorProvider != null) {
             editorProvider.close();
             editorProvider = null;
         }
 
+        if (executor != null) {
+            executor.shutdown();
+            try {
+                executor.awaitTermination(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            executor = null;
+        }
+
         indexTracker = null;
+        LOG.info("LuceneNg Index Provider deactivated");
     }
 }

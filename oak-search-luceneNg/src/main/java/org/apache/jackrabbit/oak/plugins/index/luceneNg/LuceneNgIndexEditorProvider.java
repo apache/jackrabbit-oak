@@ -17,8 +17,10 @@
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -29,18 +31,17 @@ import org.slf4j.LoggerFactory;
 
 /**
  * IndexEditorProvider for Lucene 9 indexes.
- * Routes index write operations to Lucene 9 editor for lucene9 type indexes.
+ * Handles write operations for {@code type=lucene9} index definitions.
+ *
+ * <p>Uses {@link ContextAwareCallback} (when available) to obtain the correct
+ * index path and to detect reindex cycles so the existing index data can be
+ * cleared before a full rebuild.</p>
  */
 public class LuceneNgIndexEditorProvider implements IndexEditorProvider {
     private static final Logger LOG = LoggerFactory.getLogger(LuceneNgIndexEditorProvider.class);
 
     private final LuceneNgIndexTracker indexTracker;
 
-    /**
-     * Creates a new LuceneNgIndexEditorProvider.
-     *
-     * @param indexTracker the index tracker for managing index lifecycle
-     */
     public LuceneNgIndexEditorProvider(@NotNull LuceneNgIndexTracker indexTracker) {
         this.indexTracker = indexTracker;
     }
@@ -53,18 +54,28 @@ public class LuceneNgIndexEditorProvider implements IndexEditorProvider {
                                  @NotNull IndexUpdateCallback callback)
             throws CommitFailedException {
 
-        // Only handle lucene9 type indexes
         if (!LuceneNgIndexConstants.TYPE_LUCENE9.equals(type)) {
             return null;
         }
 
-        LOG.debug("Creating Lucene 9 index editor for type: {}", type);
+        // Extract context if available (IndexUpdate always provides ContextAwareCallback)
+        String indexPath = "/";
+        boolean reindex = false;
+        if (callback instanceof ContextAwareCallback) {
+            IndexingContext ctx = ((ContextAwareCallback) callback).getIndexingContext();
+            indexPath = ctx.getIndexPath(); // index definition path, used for logging
+            reindex = ctx.isReindexing();
+        }
+
+        LOG.debug("Creating Lucene 9 index editor for index at {}{}", indexPath,
+                reindex ? " (reindex)" : "");
 
         try {
-            return new LuceneNgIndexEditor("/", definition, root);
+            // Content traversal always starts from repository root "/"
+            return new LuceneNgIndexEditor("/", definition, root, reindex);
         } catch (Exception e) {
             throw new CommitFailedException("Lucene9", 1,
-                    "Failed to create LuceneNgIndexEditor", e);
+                    "Failed to create LuceneNgIndexEditor for " + indexPath, e);
         }
     }
 
