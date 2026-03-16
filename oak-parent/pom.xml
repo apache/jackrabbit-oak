@@ -368,6 +368,13 @@
           <groupId>io.github.olamy.maven.plugins</groupId>
           <artifactId>jacoco-aggregator-maven-plugin</artifactId>
           <version>1.0.3</version>
+          <configuration>
+            <includes>
+              <!-- exclude shaded 3rd party classes -->
+              <include>org/apache/jackrabbit/**</include>
+            </includes>
+            <dataFileIncludes>**/target/**/*.exec</dataFileIncludes>
+          </configuration>
           <executions>
             <execution>
               <id>aggregate</id>
