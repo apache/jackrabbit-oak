@@ -99,7 +99,7 @@ public class FileStoreParameterResolver implements ParameterResolver {
                     .map(c -> (Class<? extends AbstractFileStore>) c)
                     .findFirst()
                     .orElse(null);
-            return store.getOrComputeIfAbsent(type.getName(), __ -> {
+            return store.getOrComputeIfAbsent(type.getName(), k -> {
                 if (fileStoreClass == ReadOnlyFileStore.class) {
                     ReadOnlyFileStore fileStore = getOrCreateFileStore(extensionContext, ReadOnlyFileStore.class);
                     return SegmentNodeStoreBuilders.builder(fileStore).build();
@@ -116,10 +116,10 @@ public class FileStoreParameterResolver implements ParameterResolver {
     @SuppressWarnings("unchecked")
     private <T extends AbstractFileStore> T getOrCreateFileStore(ExtensionContext ctx, Class<T> type) {
         ExtensionContext.Store store = ctx.getStore(NAMESPACE);
-        return store.getOrComputeIfAbsent(type.getName(), __ -> {
+        return store.getOrComputeIfAbsent(type.getName(), k -> {
             try {
                 CloseablePath segmentstoreDir = store.getOrComputeIfAbsent("tempdir-for-" + FileStore.class.getSimpleName(),
-                        ___ -> new CloseablePath(computePathForTest(ctx)),
+                        key -> new CloseablePath(computePathForTest(ctx)),
                         CloseablePath.class
                 );
                 Files.createDirectories(segmentstoreDir.path);

@@ -75,7 +75,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
  *
  * @see <a href="https://issues.apache.org/jira/browse/OAK-12134">OAK-12134</a>
  */
-public class CheckpointCompactorEfficiencyTest {
+class CheckpointCompactorEfficiencyTest {
 
     @RegisterExtension
     FileStoreParameterResolver fileStoreParameterResolver = new FileStoreParameterResolver(b -> b.withSegmentCacheSize(4));
@@ -96,7 +96,7 @@ public class CheckpointCompactorEfficiencyTest {
     }
 
     @BeforeEach
-    void setUp(NodeStore nodeStore) throws IOException, CommitFailedException {
+    void setUp(NodeStore nodeStore) throws CommitFailedException {
         NodeBuilder builder = nodeStore.getRoot().builder();
         builder.child("unchanged").setProperty("foo", "bar");
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);

@@ -64,6 +64,9 @@ import org.jetbrains.annotations.Nullable;
  * </ul>
  */
 public class CheckpointCompactor extends Compactor {
+
+    private static final String CREATED = "created";
+
     protected final @NotNull GCMonitor gcListener;
 
     private final @NotNull Map<NodeState, CompactedNodeState> cpCache = new HashMap<>();
@@ -212,8 +215,8 @@ public class CheckpointCompactor extends Compactor {
             @NotNull NodeState superRootBefore,
             @NotNull NodeState superRootAfter) {
         Stream.Builder<String> deletedCheckpoints = Stream.builder();
-        superRootAfter.getChildNode("checkpoints").compareAgainstBaseState(
-                superRootBefore.getChildNode("checkpoints"), new DefaultNodeStateDiff() {
+        superRootAfter.getChildNode(CHECKPOINTS).compareAgainstBaseState(
+                superRootBefore.getChildNode(CHECKPOINTS), new DefaultNodeStateDiff() {
                     @Override
                     public boolean childNodeDeleted(String name, NodeState before) {
                         deletedCheckpoints.add(name);
@@ -233,8 +236,8 @@ public class CheckpointCompactor extends Compactor {
             @NotNull NodeState superRootBefore,
             @NotNull NodeState superRootAfter) {
         List<ChildNodeEntry> checkpoints = new ArrayList<>();
-        superRootAfter.getChildNode("checkpoints").compareAgainstBaseState(
-                superRootBefore.getChildNode("checkpoints"), new DefaultNodeStateDiff() {
+        superRootAfter.getChildNode(CHECKPOINTS).compareAgainstBaseState(
+                superRootBefore.getChildNode(CHECKPOINTS), new DefaultNodeStateDiff() {
                     @Override
                     public boolean childNodeAdded(String name, NodeState after) {
                         checkpoints.add(new MemoryChildNodeEntry(name, after));
@@ -244,8 +247,8 @@ public class CheckpointCompactor extends Compactor {
         );
 
         checkpoints.sort((cne1, cne2) -> {
-            long c1 = cne1.getNodeState().getLong("created");
-            long c2 = cne2.getNodeState().getLong("created");
+            long c1 = cne1.getNodeState().getLong(CREATED);
+            long c2 = cne2.getNodeState().getLong(CREATED);
             return Long.compare(c1, c2);
         });
 
@@ -254,8 +257,8 @@ public class CheckpointCompactor extends Compactor {
             String name = checkpoint.getName();
             NodeState node = checkpoint.getNodeState();
             gcListener.info("found checkpoint {} created on {}.",
-                    name, new Date(node.getLong("created")));
-            roots.add("checkpoints/" + name);
+                    name, new Date(node.getLong(CREATED)));
+            roots.add(CHECKPOINTS + "/" + name);
         }
         roots.add("");
 
