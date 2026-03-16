@@ -35,6 +35,8 @@
     <skip.deployment>true</skip.deployment>
     <sonar.organization>apache</sonar.organization>
     <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+    <!-- this project uses cross-module reports with one aggregate, https://docs.sonarsource.com/sonarcloud/enriching/test-coverage/java-test-coverage/#add-coverage-in-a-multi-module-maven-project -->
+    <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/site/jacoco-aggregate/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
   </properties>
 
   <modules>
@@ -111,6 +113,18 @@
   </build>
 
   <profiles>
+    <profile>
+      <id>coverage</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>io.github.olamy.maven.plugins</groupId>
+            <artifactId>jacoco-aggregator-maven-plugin</artifactId>
+            <inherited>false</inherited><!-- only execute on root level (as aggregator)-->
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
     <profile>
       <id>doc</id>
       <modules>
