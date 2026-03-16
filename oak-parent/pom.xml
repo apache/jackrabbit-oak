@@ -257,6 +257,9 @@
           <artifactId>apache-rat-plugin</artifactId>
           <configuration>
             <consoleOutput>true</consoleOutput>
+            <excludes>
+              <exclude>**/AGENTS.md</exclude>
+            </excludes>
           </configuration>
         </plugin>
         <plugin>
