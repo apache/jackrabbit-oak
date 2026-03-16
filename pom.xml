@@ -92,8 +92,7 @@
           <excludes>
             <exclude>release.properties</exclude>
             <exclude>CONTRIBUTING.md</exclude>
-            <exclude>AGENTS.md</exclude>
-            <exclude>oak-store-document/AGENTS.md</exclude>
+            <exclude>**/AGENTS.md</exclude>
             <exclude>CLAUDE.md</exclude>
             <exclude>.cursorrules</exclude>
             <exclude>.git/**</exclude>
