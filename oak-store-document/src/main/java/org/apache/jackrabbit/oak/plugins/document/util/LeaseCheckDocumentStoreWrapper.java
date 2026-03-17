@@ -27,10 +27,13 @@ import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.Throttler;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Wrapper of another DocumentStore that does a lease check on any method
@@ -42,6 +45,7 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
 
     private final DocumentStore delegate;
     private final ClusterNodeInfo clusterNodeInfo;
+    private final Logger LOG = LoggerFactory.getLogger(LeaseCheckDocumentStoreWrapper.class);
 
     public LeaseCheckDocumentStoreWrapper(final DocumentStore delegate, final ClusterNodeInfo clusterNodeInfo) {
         if (delegate == null) {
@@ -52,9 +56,16 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
         this.clusterNodeInfo = clusterNodeInfo;
     }
 
-    private void performLeaseCheck() {
+    private void performLeaseCheck(boolean after) {
         if (clusterNodeInfo != null) {
-            clusterNodeInfo.performLeaseCheck();
+            try {
+                clusterNodeInfo.performLeaseCheck();
+            } catch (DocumentStoreException ex) {
+                if (after) {
+                    LOG.error("Potential late write operation detected", new Exception("call stack"));
+                }
+                throw ex;
+            }
         }
     }
 
@@ -258,16 +269,16 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
 
     // invoke operation with lease check before/after
     private <T> T leaseChecking(Supplier<T> operation) {
-        performLeaseCheck();
+        performLeaseCheck(false);
         T result = operation.get();
-        performLeaseCheck();
+        performLeaseCheck(true);
         return result;
     }
 
     // invoke operation with lease check before/after
     private void leaseChecking(Runnable operation) {
-        performLeaseCheck();
+        performLeaseCheck(false);
         operation.run();
-        performLeaseCheck();
+        performLeaseCheck(true);
     }
 }
