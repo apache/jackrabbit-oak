@@ -62,7 +62,7 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
                 clusterNodeInfo.performLeaseCheck();
             } catch (DocumentStoreException ex) {
                 if (after) {
-                    LOG.error("Potential late write operation detected", new Exception("call stack"));
+                    LOG.error("Potential late write operation detected", ex);
                 }
                 throw ex;
             }
