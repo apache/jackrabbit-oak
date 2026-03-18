@@ -95,8 +95,6 @@
             <exclude>**/AGENTS.md</exclude>
             <exclude>CLAUDE.md</exclude>
             <exclude>.cursorrules</exclude>
-            <exclude>.claude/**</exclude>
-            <exclude>**/.claude/**</exclude>
             <exclude>.git/**</exclude>
             <exclude>.idea/**</exclude>
             <exclude>.gitignore</exclude>
