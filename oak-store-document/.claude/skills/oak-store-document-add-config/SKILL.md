@@ -1,7 +1,8 @@
 ---
 name: oak-store-document-add-config
 description: Add a new OSGi configuration property to the oak-store-document module. Modifies Configuration.java, DocumentNodeStoreService.java, DocumentNodeStoreBuilder.java, RDBDocumentNodeStoreBuilder.java, Utils.java, and all relevant test files with 90%+ coverage.
-tools: Read, Edit, Grep, Glob, Bash
+allowed-tools: Read, Edit, Grep, Glob, Bash
+disable-model-invocation: true
 ---
 
 # oak-add-config Skill
