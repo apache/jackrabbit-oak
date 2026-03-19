@@ -125,7 +125,10 @@ DocumentNodeStore                 ← Runtime instance
 OSGi PID: `org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService`
 
 When adding a new OSGi config property, all four files above must be updated plus tests.
-Use the `/oak-store-document-add-config` skill to automate this workflow.
+Follow the workflow in
+`oak-store-document/.claude/skills/oak-store-document-add-config/SKILL.md`
+and the supporting files in the same directory. In Claude, this workflow is exposed as
+the `/oak-store-document-add-config` skill.
 
 ## Background Operations
 
@@ -432,4 +435,7 @@ mvn verify -pl oak-store-document -PintegrationTesting
   never assume the local clock matches the backend clock
 - **Adding OSGi config** — changes to `Configuration.java` require matching updates in
   `DocumentNodeStoreService`, `DocumentNodeStoreBuilder`, `RDBDocumentNodeStoreBuilder`,
-  and all relevant test files; use the `/oak-store-document-add-config` skill
+  and all relevant test files; follow
+  `oak-store-document/.claude/skills/oak-store-document-add-config/SKILL.md`
+  and its supporting files. In Claude, this workflow is exposed as the
+  `/oak-store-document-add-config` skill
