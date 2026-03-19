@@ -596,6 +596,7 @@ public class CacheTest {
     public void testBadLoader() {
         CacheLIRS<Integer, String> cache = createCache(10, 1);
         try {
+            // CacheLIRS rejects null values, so a mapping function returning null triggers NullPointerException
             cache.get(1, k -> null);
             fail();
         } catch (Exception e) {

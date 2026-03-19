@@ -343,10 +343,11 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
      * <p>
      * If there is an exception while loading, it is logged and ignored. This
      * method calls CacheLoader.reload, but synchronously replaces the old
-     * value. Returns a completed future with the refreshed value.
+     * value. Returns a completed future with the refreshed value, or a
+     * completed future with {@code null} if refresh failed.
      *
      * @param key the key
-     * @return a completed future with the value after refresh
+     * @return a completed future with the value after refresh, or {@code null} on failure
      */
     @Override
     public CompletableFuture<V> refresh(K key) {
@@ -742,6 +743,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                     }
                     @Override public long getMaximum() { return self.getMaxMemory(); }
                     @Override public void setMaximum(long maximum) { self.setMaxMemory(maximum); }
+                    // TODO: return actual LIRS hot/cold segment data instead of empty maps
                     @Override public Map<K, V> coldest(int limit) { return Collections.emptyMap(); }
                     @Override public Map<K, V> coldestWeighted(long weightLimit) { return Collections.emptyMap(); }
                     @Override public Map<K, V> hottest(int limit) { return Collections.emptyMap(); }

@@ -21,7 +21,8 @@ package org.apache.jackrabbit.oak.cache;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.CacheLoader;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Weigher;
 import org.junit.Before;
@@ -33,18 +34,35 @@ public class CacheStatsTest {
 
     private final Weigher<Integer, Integer> weigher = (key, value) -> 1;
 
-    private final Cache<Integer, Integer> cache = Caffeine.newBuilder()
-                .recordStats()
-                .maximumWeight(Long.MAX_VALUE)
-                .weigher(weigher)
-                .build();
-
-    private final CacheStats cacheStats =
-            new CacheStats(cache, NAME, weigher, Long.MAX_VALUE);
-
     private int misses;
     private int fails;
     private long loadTime;
+
+    // Use LoadingCache so that load successes and failures are tracked in stats.
+    // Cache.get(K, Function) does not record load stats in Caffeine.
+    private final LoadingCache<Integer, Integer> cache = Caffeine.newBuilder()
+                .recordStats()
+                .maximumWeight(Long.MAX_VALUE)
+                .weigher(weigher)
+                .build(new CacheLoader<Integer, Integer>() {
+                    @Override
+                    public Integer load(Integer key) {
+                        long t0 = System.nanoTime();
+                        try {
+                            if (key % 10 == 0) {
+                                fails++;
+                                throw new RuntimeException("simulated load failure");
+                            }
+                            misses++;
+                            return key;
+                        } finally {
+                            loadTime += System.nanoTime() - t0;
+                        }
+                    }
+                });
+
+    private final CacheStats cacheStats =
+            new CacheStats(cache, NAME, weigher, Long.MAX_VALUE);
 
     @Before
     public void setup() {
@@ -55,20 +73,7 @@ public class CacheStatsTest {
         for (int k = 0; k < 100; k++) {
             final int key = 4 * k;
             try {
-                cache.get(key, ignored -> {
-                    long t0 = System.nanoTime();
-                    try {
-                        if (key % 10 == 0) {
-                            fails++;
-                            throw new RuntimeException("simulated load failure");
-                        } else {
-                            misses++;
-                            return key;
-                        }
-                    } finally {
-                        loadTime += System.nanoTime() - t0;
-                    }
-                });
+                cache.get(key);
             } catch (Exception ignore) { }
         }
     }
