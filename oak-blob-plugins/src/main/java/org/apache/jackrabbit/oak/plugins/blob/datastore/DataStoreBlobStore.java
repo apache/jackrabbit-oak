@@ -34,8 +34,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 
 import javax.jcr.RepositoryException;
@@ -47,8 +46,8 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
-import org.apache.jackrabbit.guava.common.cache.LoadingCache;
-import org.apache.jackrabbit.guava.common.cache.Weigher;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Weigher;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
@@ -420,19 +419,16 @@ public class DataStoreBlobStore
                 && blobId.hasLengthInfo()
                 && blobId.length <= maxCachedBinarySize) {
             try {
-                byte[] content = cache.get(blobId.blobId, new Callable<byte[]>() {
-                    @Override
-                    public byte[] call() throws Exception {
-                        boolean threw = true;
-                        try (InputStream stream = getStream(blobId.blobId)) {
-                            byte[] result = IOUtils.toByteArray(stream);
-                            return result;
-                        }
+                byte[] content = cache.get(blobId.blobId, key -> {
+                    try (InputStream stream = getStream(key)) {
+                        return IOUtils.toByteArray(stream);
+                    } catch (IOException e) {
+                        throw new CompletionException(e);
                     }
                 });
 
                 return new ByteArrayInputStream(content);
-            } catch (ExecutionException e) {
+            } catch (CompletionException e) {
                 log.warn("Error occurred while loading bytes from steam while fetching for id {}", encodedBlobId, e);
             }
         }

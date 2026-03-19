@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.guava.common.cache.RemovalCause;
+import com.github.benmanes.caffeine.cache.RemovalCause;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;

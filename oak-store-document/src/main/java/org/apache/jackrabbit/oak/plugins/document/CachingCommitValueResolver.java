@@ -19,7 +19,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.List;
 import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -27,7 +28,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.cache.CacheBuilder.newBuilder;
 
 /**
  * Resolves the commit value for a given change revision on a document.
@@ -44,7 +44,7 @@ final class CachingCommitValueResolver implements CommitValueResolver {
     private final Supplier<RevisionVector> sweepRevisions;
 
     CachingCommitValueResolver(int cacheSize, Supplier<RevisionVector> sweepRevisions) {
-        this.commitValueCache = newBuilder().maximumSize(cacheSize).build();
+        this.commitValueCache = Caffeine.newBuilder().maximumSize(cacheSize).build();
         this.cacheSize = cacheSize;
         this.sweepRevisions = sweepRevisions;
     }
@@ -56,7 +56,7 @@ final class CachingCommitValueResolver implements CommitValueResolver {
             return new CommitValueResolver() {
 
                 private final Cache<Revision, String> emptyCommitValueCache
-                        = newBuilder().maximumSize(cacheSize).build();
+                        = Caffeine.newBuilder().maximumSize(cacheSize).build();
 
                 @Override
                 public String resolve(@NotNull Revision changeRevision,

@@ -63,8 +63,8 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
@@ -812,7 +812,7 @@ public class S3Backend extends AbstractSharedBackend {
         // max size 0 or smaller is used to turn off the cache
         if (maxSize > 0) {
             LOG.info("presigned GET URI cache enabled, maxSize = {} items, expiry = {} seconds", maxSize, httpDownloadURIExpirySeconds / 2);
-            httpDownloadURICache = CacheBuilder.newBuilder()
+            httpDownloadURICache = Caffeine.newBuilder()
                     .maximumSize(maxSize)
                     // cache for half the expiry time of the URIs before giving out new ones
                     .expireAfterWrite(httpDownloadURIExpirySeconds / 2, TimeUnit.SECONDS)

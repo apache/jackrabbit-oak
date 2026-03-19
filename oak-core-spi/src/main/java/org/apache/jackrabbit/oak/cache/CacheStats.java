@@ -21,8 +21,8 @@ package org.apache.jackrabbit.oak.cache;
 import java.util.Map;
 import java.util.Objects;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.guava.common.cache.Weigher;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Weigher;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -56,13 +56,13 @@ public class CacheStats extends AbstractCacheStats {
     }
 
     @Override
-    protected org.apache.jackrabbit.guava.common.cache.CacheStats getCurrentStats() {
+    protected com.github.benmanes.caffeine.cache.stats.CacheStats getCurrentStats() {
         return cache.stats();
     }
 
     @Override
     public long getElementCount() {
-        return cache.size();
+        return cache.estimatedSize();
     }
 
     @Override

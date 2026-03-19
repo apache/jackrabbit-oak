@@ -21,13 +21,9 @@ package org.apache.jackrabbit.oak.cache;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-
-import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
-import org.apache.jackrabbit.guava.common.cache.Weigher;
-import org.jetbrains.annotations.NotNull;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Weigher;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -35,14 +31,9 @@ public class CacheStatsTest {
     private static final String NAME = "cache stats";
     private static final int KEYS = 100;
 
-    private final Weigher<Integer, Integer> weigher = new Weigher<Integer, Integer>() {
-        @Override
-        public int weigh(@NotNull Integer key, @NotNull Integer value) {
-            return 1;
-        }
-    };
+    private final Weigher<Integer, Integer> weigher = (key, value) -> 1;
 
-    private final Cache<Integer, Integer> cache = CacheBuilder.newBuilder()
+    private final Cache<Integer, Integer> cache = Caffeine.newBuilder()
                 .recordStats()
                 .maximumWeight(Long.MAX_VALUE)
                 .weigher(weigher)
@@ -64,25 +55,21 @@ public class CacheStatsTest {
         for (int k = 0; k < 100; k++) {
             final int key = 4 * k;
             try {
-                cache.get(key, new Callable<Integer>() {
-                    @Override
-                    public Integer call() throws Exception {
-                        long t0 = System.nanoTime();
-                        try {
-                            if (key % 10 == 0) {
-                                fails++;
-                                throw new Exception("simulated load failure");
-                            } else {
-                                misses++;
-                                return key;
-                            }
-                        } finally {
-                            loadTime += System.nanoTime() - t0;
+                cache.get(key, ignored -> {
+                    long t0 = System.nanoTime();
+                    try {
+                        if (key % 10 == 0) {
+                            fails++;
+                            throw new RuntimeException("simulated load failure");
+                        } else {
+                            misses++;
+                            return key;
                         }
-
+                    } finally {
+                        loadTime += System.nanoTime() - t0;
                     }
                 });
-            } catch (ExecutionException ignore) { }
+            } catch (Exception ignore) { }
         }
     }
 

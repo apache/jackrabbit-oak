@@ -36,9 +36,9 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
-import org.apache.jackrabbit.guava.common.cache.Weigher;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Weigher;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.IOUtils;
@@ -103,7 +103,7 @@ public class ExtractedTextCache {
     public ExtractedTextCache(long maxWeight, long expiryTimeInSecs, boolean alwaysUsePreExtractedCache,
                               File indexDir, StatisticsProvider statisticsProvider) {
         if (maxWeight > 0) {
-            cache = CacheBuilder.newBuilder()
+            cache = Caffeine.newBuilder()
                     .weigher(EmpiricalWeigher.INSTANCE)
                     .maximumWeight(maxWeight)
                     .expireAfterAccess(expiryTimeInSecs, TimeUnit.SECONDS)

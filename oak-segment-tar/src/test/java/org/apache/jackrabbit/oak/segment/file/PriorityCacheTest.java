@@ -27,7 +27,7 @@ import static org.junit.Assume.assumeTrue;
 
 import java.util.Random;
 
-import org.apache.jackrabbit.guava.common.cache.Weigher;
+import com.github.benmanes.caffeine.cache.Weigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights;
 import org.junit.Test;
 
@@ -191,7 +191,7 @@ public class PriorityCacheTest {
 
         assertEquals(0, cache.getStats().evictionCount());
         assertEquals(success, cache.size());
-        assertEquals(failure, cache.getStats().loadExceptionCount());
+        assertEquals(failure, cache.getStats().loadFailureCount());
     }
 
 }

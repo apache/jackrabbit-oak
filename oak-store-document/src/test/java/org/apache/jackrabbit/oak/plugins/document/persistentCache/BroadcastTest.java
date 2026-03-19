@@ -24,7 +24,7 @@ import java.io.File;
 import java.util.concurrent.Callable;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.guava.common.cache.Cache;
+import com.github.benmanes.caffeine.cache.Cache;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.plugins.document.MemoryDiffCache.Key;
 import org.apache.jackrabbit.oak.plugins.document.Path;

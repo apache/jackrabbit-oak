@@ -27,19 +27,16 @@ import java.util.concurrent.TimeUnit;
 
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 
-import org.apache.jackrabbit.guava.common.base.Ticker;
+import com.github.benmanes.caffeine.cache.CacheLoader;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Ticker;
 import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorHelper;
-import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureConverter;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.TestOnly;
-
-import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
-import org.apache.jackrabbit.guava.common.cache.CacheLoader;
-import org.apache.jackrabbit.guava.common.cache.LoadingCache;
-import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
 
 import co.elastic.clients.elasticsearch._types.Bytes;
 import co.elastic.clients.elasticsearch.cat.indices.IndicesRecord;
@@ -100,7 +97,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
      */
     @Override
     public int numDocs() {
-        return countCache.getUnchecked(new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias()));
+        return countCache.get(new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias()));
     }
 
     /**
@@ -110,7 +107,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
     @Override
     public int getDocCountFor(String field) {
         String elasticField = ElasticIndexUtils.fieldName(field);
-        return countCache.getUnchecked(
+        return countCache.get(
                 new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias(), elasticField, null)
         );
     }
@@ -120,7 +117,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
      * {@code ElasticIndexDefinition}.
      */
     public int getDocCountFor(Query query) {
-        return countCache.getUnchecked(
+        return countCache.get(
                 new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias(), null, query)
         );
     }
@@ -130,7 +127,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
      * {@code ElasticIndexDefinition}.
      */
     public long primaryStoreSize() {
-        return statsCache.getUnchecked(
+        return statsCache.get(
                 new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias())
         ).primaryStoreSize;
     }
@@ -140,7 +137,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
      * primary shards and replica shards.
      */
     public long storeSize() {
-        return statsCache.getUnchecked(
+        return statsCache.get(
                 new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias())
         ).storeSize;
     }
@@ -149,7 +146,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
      * Returns the creation date for the remote index bound to the {@code ElasticIndexDefinition}.
      */
     public long creationDate() {
-        return statsCache.getUnchecked(
+        return statsCache.get(
                 new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias())
         ).creationDate;
     }
@@ -159,7 +156,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
      * {@code ElasticIndexDefinition}. This document count includes hidden nested documents.
      */
     public int luceneNumDocs() {
-        return statsCache.getUnchecked(
+        return statsCache.get(
                 new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias())
         ).luceneDocsCount;
     }
@@ -169,7 +166,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
      * {@code ElasticIndexDefinition}. This document count includes hidden nested documents.
      */
     public int luceneNumDeletedDocs() {
-        return statsCache.getUnchecked(
+        return statsCache.get(
                 new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias())
         ).luceneDocsDeleted;
     }
@@ -178,22 +175,18 @@ public class ElasticIndexStatistics implements IndexStatistics {
         return setupCache(maxSize, expireSeconds, refreshSeconds, new CountCacheLoader(), clock);
     }
 
+    @SuppressWarnings("unchecked")
     static <K, V> LoadingCache<K, V> setupCache(long maxSize, long expireSeconds, long refreshSeconds,
                                                 @NotNull CacheLoader<K, V> cacheLoader, @Nullable Clock clock) {
-        CacheBuilder<Object, Object> cacheBuilder = CacheBuilder.newBuilder()
+        Caffeine<Object, Object> cacheBuilder = Caffeine.newBuilder()
                 .maximumSize(maxSize)
                 .expireAfterWrite(expireSeconds, TimeUnit.SECONDS)
                 // https://github.com/google/guava/wiki/CachesExplained#refresh
                 .refreshAfterWrite(refreshSeconds, TimeUnit.SECONDS);
         if (clock != null) {
-            cacheBuilder.ticker(new Ticker() {
-                @Override
-                public long read() {
-                    return TimeUnit.MILLISECONDS.toNanos(clock.millis());
-                }
-            });
+            cacheBuilder.ticker(() -> TimeUnit.MILLISECONDS.toNanos(clock.millis()));
         }
-        return cacheBuilder.build(cacheLoader);
+        return ((Caffeine<K, V>) cacheBuilder).build(cacheLoader);
     }
 
     private Long getCacheMaxSize() {
@@ -208,7 +201,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
         return Long.getLong(REFRESH_SECONDS, REFRESH_SECONDS_DEFAULT);
     }
 
-    static class CountCacheLoader extends CacheLoader<StatsRequestDescriptor, Integer> {
+    static class CountCacheLoader implements CacheLoader<StatsRequestDescriptor, Integer> {
 
         @Override
         public @NotNull Integer load(@NotNull StatsRequestDescriptor countRequestDescriptor) throws IOException {
@@ -216,15 +209,15 @@ public class ElasticIndexStatistics implements IndexStatistics {
         }
 
         @Override
-        public @NotNull ListenableFuture<Integer> reload(@NotNull StatsRequestDescriptor crd, @NotNull Integer oldValue) {
-            CompletableFuture<Integer> task = CompletableFuture.supplyAsync(() -> {
+        public @NotNull CompletableFuture<Integer> asyncReload(@NotNull StatsRequestDescriptor crd, @NotNull Integer oldValue,
+                                                               @NotNull java.util.concurrent.Executor executor) {
+            return CompletableFuture.supplyAsync(() -> {
                 try {
                     return count(crd);
                 } catch (IOException e) {
                     throw new CompletionException(e);
                 }
             }, REFRESH_EXECUTOR);
-            return FutureConverter.toListenableFuture(task);
         }
 
         private int count(StatsRequestDescriptor crd) throws IOException {
@@ -241,7 +234,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
         }
     }
 
-    static class StatsCacheLoader extends CacheLoader<StatsRequestDescriptor, StatsResponse> {
+    static class StatsCacheLoader implements CacheLoader<StatsRequestDescriptor, StatsResponse> {
 
         @Override
         public @NotNull StatsResponse load(@NotNull StatsRequestDescriptor countRequestDescriptor) throws IOException {
@@ -249,15 +242,15 @@ public class ElasticIndexStatistics implements IndexStatistics {
         }
 
         @Override
-        public @NotNull ListenableFuture<StatsResponse> reload(@NotNull StatsRequestDescriptor crd, @NotNull StatsResponse oldValue) {
-            CompletableFuture<StatsResponse> task = CompletableFuture.supplyAsync(() -> {
+        public @NotNull CompletableFuture<StatsResponse> asyncReload(@NotNull StatsRequestDescriptor crd, @NotNull StatsResponse oldValue,
+                                                                     @NotNull java.util.concurrent.Executor executor) {
+            return CompletableFuture.supplyAsync(() -> {
                 try {
                     return stats(crd);
                 } catch (IOException e) {
                     throw new CompletionException(e);
                 }
             }, REFRESH_EXECUTOR);
-            return FutureConverter.toListenableFuture(task);
         }
 
         private StatsResponse stats(StatsRequestDescriptor crd) throws IOException {

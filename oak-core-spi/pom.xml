@@ -124,6 +124,12 @@
       <version>${project.version}</version>
     </dependency>
 
+    <!-- Caffeine cache -->
+    <dependency>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>caffeine</artifactId>
+    </dependency>
+
     <!-- Logging -->
     <dependency>
       <groupId>org.slf4j</groupId>

@@ -33,19 +33,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
 
+import com.github.benmanes.caffeine.cache.CacheLoader;
+import com.github.benmanes.caffeine.cache.RemovalCause;
+import com.github.benmanes.caffeine.cache.Weigher;
 import org.apache.jackrabbit.oak.cache.CacheLIRS.EvictionCallback;
-import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureConverter;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.cache.CacheLoader;
-import org.apache.jackrabbit.guava.common.cache.RemovalCause;
-import org.apache.jackrabbit.guava.common.cache.Weigher;
-import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
 
 /**
  * Tests the LIRS cache.
@@ -356,7 +350,7 @@ public class CacheTest {
     }
     
     @Test
-    public void testNonResidentBecomeHot() throws ExecutionException {
+    public void testNonResidentBecomeHot() {
         CacheLIRS<Integer, Integer> test = createCache(4);
         for (int i = 0; i < 20; i++) {
             test.put(i, 1);
@@ -602,14 +596,7 @@ public class CacheTest {
     public void testBadLoader() {
         CacheLIRS<Integer, String> cache = createCache(10, 1);
         try {
-            cache.get(1, new Callable<String>() {
-
-                @Override
-                public String call() throws Exception {
-                    return null;
-                }
-                
-            });
+            cache.get(1, k -> null);
             fail();
         } catch (Exception e) {
             // expected
@@ -660,7 +647,7 @@ public class CacheTest {
     }
     
     @Test
-    public void testRefresh() throws ExecutionException {
+    public void testRefresh() {
         CacheLIRS<Integer, String> cache = new CacheLIRS.Builder<Integer, String>().
                 maximumWeight(100).
                 weigher(new Weigher<Integer, String>() {
@@ -669,7 +656,7 @@ public class CacheTest {
                     public int weigh(Integer key, String value) {
                         return key + value.length();
                     }
-                    
+
                 }).
                 build(new CacheLoader<Integer, String>() {
 
@@ -679,13 +666,6 @@ public class CacheTest {
                             throw new Exception("Out of range");
                         }
                         return "n" + key;
-                    }
-
-                    @Override
-                    public ListenableFuture<String> reload(Integer key, String oldValue) {
-                        assertTrue(oldValue != null);
-                        CompletableFuture<String> f = CompletableFuture.completedFuture(oldValue);
-                        return FutureConverter.toListenableFuture(f);
                     }
 
                 });
@@ -703,7 +683,7 @@ public class CacheTest {
     }
 
     @Test
-    public void evictionCallback() throws ExecutionException {
+    public void evictionCallback() {
         final Set<String> evictedKeys = new HashSet<>();
         final Set<Integer> evictedValues = new HashSet<>();
         CacheLIRS<String, Integer> cache = CacheLIRS.<String, Integer>newBuilder()
@@ -799,7 +779,7 @@ public class CacheTest {
     }
 
     @Test
-    public void evictionCallbackRandomized() throws ExecutionException {
+    public void evictionCallbackRandomized() {
         final HashMap<Integer, Integer> evictedMap = new HashMap<Integer, Integer>();
         final HashSet<Integer> evictedNonResidentSet = new HashSet<Integer>();
         CacheLIRS<Integer, Integer> cache = CacheLIRS.<Integer, Integer>newBuilder()

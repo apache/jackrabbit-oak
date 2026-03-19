@@ -25,7 +25,7 @@ import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.cache.CacheStats;
+import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.jetbrains.annotations.NotNull;
@@ -38,8 +38,7 @@ public abstract class AbstractCacheStats extends AnnotatedStandardMBean implemen
     @NotNull
     private final String name;
 
-    private CacheStats lastSnapshot =
-            new CacheStats(0, 0, 0, 0, 0, 0);
+    private CacheStats lastSnapshot = CacheStats.empty();
 
     /**
      * Create a new {@code CacheStatsMBean} for a cache with the given {@code name}.
@@ -62,7 +61,7 @@ public abstract class AbstractCacheStats extends AnnotatedStandardMBean implemen
 
     @Override
     public synchronized void resetStats() {
-        // Cache stats cannot be rest at Guava level. Instead we
+        // Cache stats cannot be reset directly. Instead we
         // take a snapshot and then subtract it from future stats calls
         lastSnapshot = getCurrentStats();
     }
@@ -110,12 +109,12 @@ public abstract class AbstractCacheStats extends AnnotatedStandardMBean implemen
 
     @Override
     public long getLoadExceptionCount() {
-        return stats().loadExceptionCount();
+        return stats().loadFailureCount();
     }
 
     @Override
     public double getLoadExceptionRate() {
-        return stats().loadExceptionRate();
+        return stats().loadFailureRate();
     }
 
     @Override

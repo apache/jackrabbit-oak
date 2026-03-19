@@ -17,10 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Collections;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
+import com.github.benmanes.caffeine.cache.Cache;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
@@ -75,21 +73,13 @@ public class MemoryDiffCache extends DiffCache {
                 diff = StringValue.EMPTY;
             }
         } else {
-            try {
-                diff = diffCache.get(key, new Callable<StringValue>() {
-                    @Override
-                    public StringValue call() throws Exception {
-                        if (isUnchanged(from, to, path)) {
-                            return StringValue.EMPTY;
-                        } else {
-                            return new StringValue(loader.call());
-                        }
-                    }
-                });
-            } catch (ExecutionException e) {
-                // try again with loader directly
-                diff = new StringValue(loader.call());
-            }
+            diff = diffCache.get(key, k -> {
+                if (isUnchanged(from, to, path)) {
+                    return StringValue.EMPTY;
+                } else {
+                    return new StringValue(loader.call());
+                }
+            });
         }
         return diff != null ? diff.toString() : null;
     }

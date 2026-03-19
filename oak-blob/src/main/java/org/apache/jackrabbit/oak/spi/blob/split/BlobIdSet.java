@@ -29,8 +29,8 @@ import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.jackrabbit.oak.commons.collections.BloomFilter;
 
 class BlobIdSet {
@@ -46,7 +46,7 @@ class BlobIdSet {
     BlobIdSet(String repositoryDir, String filename) {
         store = new File(new File(repositoryDir), filename);
         bloomFilter = BloomFilter.construct(9000000, 0.03); // 9M entries, 3% false positive rate
-        cache = CacheBuilder.newBuilder().maximumSize(1000).build();
+        cache = Caffeine.newBuilder().maximumSize(1000).build();
         fillBloomFilter();
     }
 

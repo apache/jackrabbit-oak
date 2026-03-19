@@ -28,12 +28,13 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
+import com.github.benmanes.caffeine.cache.Cache;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
@@ -161,7 +162,6 @@ public class NodeDocumentCache implements Closeable {
      * is not synchronized and will be faster if you need to get the cached value
      * outside the critical section.
      *
-     * @see Cache#get(Object, Callable)
      * @param key document key
      * @param valueLoader object used to retrieve the document
      * @return document matching given key
@@ -169,21 +169,26 @@ public class NodeDocumentCache implements Closeable {
     @NotNull
     public NodeDocument get(@NotNull final String key, @NotNull final Callable<NodeDocument> valueLoader)
             throws ExecutionException {
-        Callable<NodeDocument> wrappedLoader = new Callable<NodeDocument>() {
-            @Override
-            public NodeDocument call() throws Exception {
-                for (CacheChangesTracker tracker : changeTrackers) {
-                    tracker.invalidateDocument(key);
-                }
-                return valueLoader.call();
-            }
-        };
         Lock lock = locks.acquire(key);
         try {
-            if (isLeafPreviousDocId(key)) {
-                return prevDocumentsCache.get(new StringValue(key), wrappedLoader);
-            } else {
-                return nodeDocumentsCache.get(new StringValue(key), wrappedLoader);
+            @SuppressWarnings("unchecked")
+            Cache<CacheValue, NodeDocument> targetCache =
+                    isLeafPreviousDocId(key)
+                            ? (Cache<CacheValue, NodeDocument>)(Cache<?,?>) prevDocumentsCache
+                            : nodeDocumentsCache;
+            try {
+                return targetCache.get(new StringValue(key), k -> {
+                    try {
+                        for (CacheChangesTracker tracker : changeTrackers) {
+                            tracker.invalidateDocument(key);
+                        }
+                        return valueLoader.call();
+                    } catch (Exception e) {
+                        throw new CompletionException(e);
+                    }
+                });
+            } catch (CompletionException e) {
+                throw new ExecutionException(e.getCause());
             }
         } finally {
             lock.unlock();

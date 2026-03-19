@@ -31,13 +31,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
 
-import org.apache.jackrabbit.guava.common.cache.CacheLoader;
-import org.apache.jackrabbit.guava.common.cache.CacheStats;
-import org.apache.jackrabbit.guava.common.cache.LoadingCache;
-import org.apache.jackrabbit.guava.common.cache.RemovalCause;
-import org.apache.jackrabbit.guava.common.cache.Weigher;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
+import com.github.benmanes.caffeine.cache.CacheLoader;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Policy;
+import com.github.benmanes.caffeine.cache.RemovalCause;
+import com.github.benmanes.caffeine.cache.Weigher;
+import java.util.Collections;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.function.Function;
 import org.apache.jackrabbit.oak.commons.annotations.Internal;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -284,6 +289,19 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     }
 
     @Override
+    public V get(K key, Function<? super K, ? extends V> mappingFunction) {
+        int hash = getHash(key);
+        try {
+            return getSegment(hash).get(key, hash, () -> mappingFunction.apply(key));
+        } catch (ExecutionException e) {
+            throw new CompletionException(e.getCause());
+        }
+    }
+
+    /**
+     * @deprecated use {@link #get(Object, Function)} instead
+     */
+    @Deprecated
     public V get(K key, Callable<? extends V> valueLoader)
             throws ExecutionException {
         int hash = getHash(key);
@@ -293,33 +311,31 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     /**
      * Get the value, loading it if needed.
      * <p>
-     * If there is an exception loading, an RuntimeException is
-     * thrown.
+     * If there is an exception loading, a RuntimeException is thrown.
      *
      * @param key the key
      * @return the value
-     * @throws RuntimeException
      */
-    @Override
     public V getUnchecked(K key) {
-        try {
-            return get(key);
-        } catch (ExecutionException e) {
-            throw new RuntimeException(e);
-        }
+        return get(key);
     }
 
     /**
      * Get the value, loading it if needed.
+     * <p>
+     * Throws {@link CompletionException} (unchecked) if loading fails.
      *
      * @param key the key
      * @return the value
-     * @throws ExecutionException
      */
     @Override
-    public V get(K key) throws ExecutionException {
+    public V get(K key) {
         int hash = getHash(key);
-        return getSegment(hash).get(key, hash, loader);
+        try {
+            return getSegment(hash).get(key, hash, loader);
+        } catch (ExecutionException e) {
+            throw new CompletionException(e.getCause());
+        }
     }
 
     /**
@@ -327,18 +343,39 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
      * <p>
      * If there is an exception while loading, it is logged and ignored. This
      * method calls CacheLoader.reload, but synchronously replaces the old
-     * value.
+     * value. Returns a completed future with the refreshed value.
      *
      * @param key the key
+     * @return a completed future with the value after refresh
      */
     @Override
-    public void refresh(K key) {
+    public CompletableFuture<V> refresh(K key) {
         int hash = getHash(key);
         try {
             getSegment(hash).refresh(key, hash, loader);
         } catch (ExecutionException e) {
             LOG.warn("Could not refresh value for key " + key, e);
         }
+        return CompletableFuture.completedFuture(getIfPresent(key));
+    }
+
+    /**
+     * Re-load the values for the given keys.
+     *
+     * @param keys the keys to refresh
+     * @return a completed future with a map of key-value pairs after refresh
+     */
+    @Override
+    public CompletableFuture<Map<K, V>> refreshAll(Iterable<? extends K> keys) {
+        Map<K, V> result = new HashMap<>();
+        for (K key : keys) {
+            refresh(key);
+            V v = getIfPresent(key);
+            if (v != null) {
+                result.put(key, v);
+            }
+        }
+        return CompletableFuture.completedFuture(result);
     }
 
     V replace(K key, V value) {
@@ -415,10 +452,9 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         return getSegment(hash).remove(key, hash);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public void invalidateAll(Iterable<?> keys) {
-        for (K k : (Iterable<K>) keys) {
+    public void invalidateAll(Iterable<? extends K> keys) {
+        for (K k : keys) {
             invalidate(k);
         }
     }
@@ -621,7 +657,6 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
      *
      * @return the number of entries
      */
-    @Override
     public long size() {
         int x = 0;
         for (Segment<K, V> s : segments) {
@@ -658,7 +693,12 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     }
 
     @Override
-    public CacheStats stats() {
+    public long estimatedSize() {
+        return size();
+    }
+
+    @Override
+    public com.github.benmanes.caffeine.cache.stats.CacheStats stats() {
         long hitCount = 0;
         long missCount = 0;
         long loadSuccessCount = 0;
@@ -673,9 +713,52 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             totalLoadTime += s.totalLoadTime.longValue();
             evictionCount += s.evictionCount.longValue();
         }
-        CacheStats stats = new CacheStats(hitCount, missCount, loadSuccessCount,
-                loadExceptionCount, totalLoadTime, evictionCount);
-        return stats;
+        return com.github.benmanes.caffeine.cache.stats.CacheStats.of(hitCount, missCount,
+                loadSuccessCount, loadExceptionCount, totalLoadTime, evictionCount, 0);
+    }
+
+    @Override
+    public Policy<K, V> policy() {
+        CacheLIRS<K, V> self = this;
+        return new Policy<K, V>() {
+            @Override
+            public boolean isRecordingStats() {
+                return true;
+            }
+            @Override
+            public V getIfPresentQuietly(K key) {
+                return self.peek(key);
+            }
+            @Override
+            public Optional<Policy.Eviction<K, V>> eviction() {
+                return Optional.of(new Policy.Eviction<K, V>() {
+                    @Override public boolean isWeighted() { return true; }
+                    @Override public OptionalLong weightedSize() {
+                        return OptionalLong.of(self.getUsedMemory());
+                    }
+                    @Override public OptionalInt weightOf(K key) {
+                        int mem = self.getMemory(key);
+                        return mem > 0 ? OptionalInt.of(mem) : OptionalInt.empty();
+                    }
+                    @Override public long getMaximum() { return self.getMaxMemory(); }
+                    @Override public void setMaximum(long maximum) { self.setMaxMemory(maximum); }
+                    @Override public Map<K, V> coldest(int limit) { return Collections.emptyMap(); }
+                    @Override public Map<K, V> coldestWeighted(long weightLimit) { return Collections.emptyMap(); }
+                    @Override public Map<K, V> hottest(int limit) { return Collections.emptyMap(); }
+                    @Override public Map<K, V> hottestWeighted(long weightLimit) { return Collections.emptyMap(); }
+                });
+            }
+            @Override
+            public Optional<Policy.FixedExpiration<K, V>> expireAfterAccess() { return Optional.empty(); }
+            @Override
+            public Optional<Policy.FixedExpiration<K, V>> expireAfterWrite() { return Optional.empty(); }
+            @Override
+            public Optional<Policy.FixedRefresh<K, V>> refreshAfterWrite() { return Optional.empty(); }
+            @Override
+            public Map<K, CompletableFuture<V>> refreshes() { return Collections.emptyMap(); }
+            @Override
+            public Optional<Policy.VarExpiration<K, V>> expireVariably() { return Optional.empty(); }
+        };
     }
 
     /**
@@ -1111,8 +1194,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                 if (old == null) {
                     value = loader.load(key);
                 } else {
-                    ListenableFuture<V> future = loader.reload(key, old);
-                    value = future.get();
+                    value = loader.reload(key, old);
                 }
                 loadSuccessCount.increment();
             } catch (Exception e) {
@@ -1649,7 +1731,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     }
 
     @Override
-    public ImmutableMap<K, V> getAllPresent(Iterable<?> keys) {
+    public Map<K, V> getAllPresent(Iterable<? extends K> keys) {
         throw new UnsupportedOperationException();
     }
 
@@ -1760,14 +1842,18 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     }
 
     @Override
-    public ImmutableMap<K, V> getAll(Iterable<? extends K> keys)
-            throws ExecutionException {
+    public Map<K, V> getAll(Iterable<? extends K> keys) {
         throw new UnsupportedOperationException();
     }
 
     @Override
+    public Map<K, V> getAll(Iterable<? extends K> keys,
+            Function<? super Set<? extends K>, ? extends Map<? extends K, ? extends V>> mappingFunction) {
+        throw new UnsupportedOperationException();
+    }
+
     public V apply(K key) {
-        throw new UnsupportedOperationException();        
+        throw new UnsupportedOperationException();
     }
 
     public boolean isEmpty() {

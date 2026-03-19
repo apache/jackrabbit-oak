@@ -56,10 +56,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -74,7 +72,7 @@ import java.util.function.Supplier;
 import javax.jcr.PropertyType;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.guava.common.cache.Cache;
+import com.github.benmanes.caffeine.cache.Cache;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -1394,25 +1392,22 @@ public final class DocumentNodeStore
         final long start = PERFLOG.start();
         try {
             PathRev key = new PathRev(path, rev);
-            DocumentNodeState node = nodeCache.get(key, new Callable<DocumentNodeState>() {
-                @Override
-                public DocumentNodeState call() throws Exception {
-                    boolean nodeDoesNotExist = checkNodeNotExistsFromChildrenCache(path, rev);
-                    if (nodeDoesNotExist){
-                        return missing;
-                    }
-                    DocumentNodeState n = readNode(path, rev);
-                    if (n == null) {
-                        n = missing;
-                    }
-                    return n;
+            DocumentNodeState node = nodeCache.get(key, k -> {
+                boolean nodeDoesNotExist = checkNodeNotExistsFromChildrenCache(path, rev);
+                if (nodeDoesNotExist){
+                    return missing;
                 }
+                DocumentNodeState n = readNode(path, rev);
+                if (n == null) {
+                    n = missing;
+                }
+                return n;
             });
             final DocumentNodeState result = node == missing
                     || node.equals(missing) ? null : node;
             PERFLOG.end(start, 1, "getNode: path={}, rev={}", path, rev);
             return result;
-        } catch (RuntimeException | ExecutionException e) {
+        } catch (RuntimeException e) {
             throw DocumentStoreException.convert(e.getCause());
         }
     }
@@ -1456,12 +1451,7 @@ public final class DocumentNodeStore
         final RevisionVector readRevision = parent.getLastRevision();
         try {
             NamePathRev key = childNodeCacheKey(path, readRevision, name);
-            DocumentNodeState.Children children = nodeChildrenCache.get(key, new Callable<DocumentNodeState.Children>() {
-                @Override
-                public DocumentNodeState.Children call() throws Exception {
-                    return readChildren(parent, name, limit);
-                }
-            });
+            DocumentNodeState.Children children = nodeChildrenCache.get(key, k -> readChildren(parent, name, limit));
             if (children.children.size() < limit && children.hasMore) {
                 // not enough children loaded - load more,
                 // and put that in the cache
@@ -1471,7 +1461,7 @@ public final class DocumentNodeStore
                 nodeChildrenCache.put(key, children);
             }
             return children;
-        } catch (RuntimeException | ExecutionException e) {
+        } catch (RuntimeException e) {
             throw DocumentStoreException.convert(e.getCause(),
                     "Error occurred while fetching children for path "
                             + path);

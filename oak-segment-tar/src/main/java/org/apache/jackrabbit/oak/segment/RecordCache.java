@@ -23,10 +23,10 @@ import static java.util.Objects.requireNonNull;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
-import org.apache.jackrabbit.guava.common.cache.CacheStats;
-import org.apache.jackrabbit.guava.common.cache.RemovalListener;
-import org.apache.jackrabbit.guava.common.cache.Weigher;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.RemovalCause;
+import com.github.benmanes.caffeine.cache.Weigher;
+import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -112,7 +112,7 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
 
         @Override
         public @NotNull CacheStats getStats() {
-            return new CacheStats(0, missCount.sum(), 0, 0, 0, 0);
+            return CacheStats.of(0, missCount.sum(), 0, 0, 0, 0, 0);
         }
 
         @Override
@@ -137,7 +137,7 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
 
     private static class Default<K> extends RecordCache<K> {
         @NotNull
-        private final org.apache.jackrabbit.guava.common.cache.Cache<K, RecordId> cache;
+        private final com.github.benmanes.caffeine.cache.Cache<K, RecordId> cache;
 
         @NotNull
         private final Weigher<K, RecordId> weigher;
@@ -150,8 +150,8 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
         public @NotNull CacheStats getStats() {
             CacheStats internalStats = cache.stats();
             // any addition to the cache counts as load by our definition
-            return new CacheStats(internalStats.hitCount(), internalStats.missCount(),
-                    loadCount.sum(), 0, 0,  internalStats.evictionCount());
+            return CacheStats.of(internalStats.hitCount(), internalStats.missCount(),
+                    loadCount.sum(), 0, 0, internalStats.evictionCount(), 0);
         }
 
         static <K> Supplier<RecordCache<K>> defaultFactory(final int size, @NotNull final Weigher<K, RecordId> weigher) {
@@ -159,14 +159,14 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
         }
 
         Default(final int size, @NotNull final Weigher<K, RecordId> weigher) {
-            this.cache = CacheBuilder.newBuilder()
+            this.cache = Caffeine.newBuilder()
                     .maximumSize(size * 4L / 3)
                     .initialCapacity(size)
-                    .concurrencyLevel(4)
                     .recordStats()
-                    .removalListener((RemovalListener<K, RecordId>) removal -> {
-                        int removedWeight = weigher.weigh(removal.getKey(), removal.getValue());
-                        weight.add(-removedWeight);
+                    .removalListener((K key, RecordId value, RemovalCause cause) -> {
+                        if (key != null && value != null) {
+                            weight.add(-weigher.weigh(key, value));
+                        }
                     })
                     .build();
             this.weigher = weigher;
@@ -186,7 +186,7 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
 
         @Override
         public long size() {
-            return cache.size();
+            return cache.estimatedSize();
         }
 
         @Override

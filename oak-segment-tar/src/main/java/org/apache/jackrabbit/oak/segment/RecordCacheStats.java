@@ -22,7 +22,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.cache.CacheStats;
+import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.jetbrains.annotations.NotNull;
 

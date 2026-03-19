@@ -35,12 +35,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
-import org.apache.jackrabbit.guava.common.cache.RemovalCause;
-import org.apache.jackrabbit.guava.common.cache.RemovalListener;
-import org.apache.jackrabbit.guava.common.cache.RemovalNotification;
-import org.apache.jackrabbit.guava.common.cache.Weigher;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.RemovalCause;
+import com.github.benmanes.caffeine.cache.RemovalListener;
+import com.github.benmanes.caffeine.cache.Weigher;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
@@ -1151,19 +1150,17 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
                     }).
                     build();
         }
-        return CacheBuilder.newBuilder().
-                concurrencyLevel(cacheSegmentCount).
-                weigher(weigher).
+        Weigher<K, V> typedWeigher = (key, value) -> weigher.weigh(key, value);
+        RemovalListener<K, V> typedListener = (key, value, cause) -> {
+            for (EvictionListener<K, V> l : listeners) {
+                l.evicted(key, value, cause);
+            }
+        };
+        return Caffeine.newBuilder().
+                weigher(typedWeigher).
                 maximumWeight(maxWeight).
                 recordStats().
-                removalListener(new RemovalListener<K, V>() {
-                    @Override
-                    public void onRemoval(RemovalNotification<K, V> notification) {
-                        for (EvictionListener<K, V> l : listeners) {
-                            l.evicted(notification.getKey(), notification.getValue(), notification.getCause());
-                        }
-                    }
-                }).
+                removalListener(typedListener).
                 build();
     }
 

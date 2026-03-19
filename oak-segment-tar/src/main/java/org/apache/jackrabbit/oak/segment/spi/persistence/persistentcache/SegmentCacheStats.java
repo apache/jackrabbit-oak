@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.cache.CacheStats;
+import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.jetbrains.annotations.NotNull;
 
@@ -68,13 +68,14 @@ public class SegmentCacheStats extends AbstractCacheStats {
 
     @Override
     protected CacheStats getCurrentStats() {
-        return new CacheStats(
+        return CacheStats.of(
                 hitCount.get(),
                 missCount.get(),
                 loadSuccessCount.get(),
                 loadExceptionCount.get(),
                 loadTime.get(),
-                evictionCount.get()
+                evictionCount.get(),
+                0
         );
     }
 

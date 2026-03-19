@@ -21,7 +21,7 @@ import static org.junit.Assert.assertNull;
 import java.io.File;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.guava.common.cache.Cache;
+import com.github.benmanes.caffeine.cache.Cache;
 import org.junit.Rule;
 import org.junit.Test;
 

@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
@@ -38,7 +38,7 @@ class TieredDiffCache extends DiffCache {
      * the same revision vector range.
      */
     private Cache<RevisionsKey, RevisionsKey> localDiffMisses
-            = CacheBuilder.newBuilder().maximumSize(128).build();
+            = Caffeine.newBuilder().maximumSize(128).build();
 
     private final int clusterId;
     private final DiffCache localCache;

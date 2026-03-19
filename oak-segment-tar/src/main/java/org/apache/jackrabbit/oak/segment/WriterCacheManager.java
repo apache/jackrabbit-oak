@@ -29,7 +29,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.cache.CacheStats;
+import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.segment.file.PriorityCache;
@@ -356,7 +356,7 @@ public abstract class WriterCacheManager {
             return new Supplier<CacheStats>() {
                 @Override
                 public CacheStats get() {
-                    CacheStats stats = new CacheStats(0, 0, 0, 0, 0, 0);
+                    CacheStats stats = CacheStats.empty();
                     for (RecordCache<?> cache : caches) {
                         stats = stats.plus(cache.getStats());
                     }

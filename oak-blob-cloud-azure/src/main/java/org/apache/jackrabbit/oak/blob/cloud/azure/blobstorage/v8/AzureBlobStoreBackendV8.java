@@ -62,8 +62,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.jackrabbit.oak.commons.collections.AbstractIterator;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 
@@ -731,7 +731,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
         // max size 0 or smaller is used to turn off the cache
         if (maxSize > 0) {
             LOG.info("presigned GET URI cache enabled, maxSize = {} items, expiry = {} seconds", maxSize, httpDownloadURIExpirySeconds / 2);
-            httpDownloadURICache = CacheBuilder.newBuilder()
+            httpDownloadURICache = Caffeine.newBuilder()
                     .maximumSize(maxSize)
                     .expireAfterWrite(httpDownloadURIExpirySeconds / 2, TimeUnit.SECONDS)
                     .build();

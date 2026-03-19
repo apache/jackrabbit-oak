@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.document.cache;
 
-import org.apache.jackrabbit.guava.common.cache.RemovalListener;
-import org.apache.jackrabbit.guava.common.cache.RemovalNotification;
+import com.github.benmanes.caffeine.cache.RemovalCause;
+import com.github.benmanes.caffeine.cache.RemovalListener;
 
 /**
  * Listener which forwards the notifications to a delegate. It is used to bridge
@@ -39,9 +39,9 @@ public class ForwardingListener<K, V>
     }
 
     @Override
-    public void onRemoval(RemovalNotification<K, V> notification) {
+    public void onRemoval(K key, V value, RemovalCause cause) {
         if (delegate != null) {
-            delegate.onRemoval(notification);
+            delegate.onRemoval(key, value, cause);
         }
     }
 

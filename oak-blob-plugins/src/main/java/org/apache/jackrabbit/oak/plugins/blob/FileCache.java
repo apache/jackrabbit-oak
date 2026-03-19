@@ -35,10 +35,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.guava.common.cache.CacheLoader;
-import org.apache.jackrabbit.guava.common.cache.RemovalCause;
-import org.apache.jackrabbit.guava.common.cache.Weigher;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.CacheLoader;
+import com.github.benmanes.caffeine.cache.RemovalCause;
+import com.github.benmanes.caffeine.cache.Weigher;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -49,11 +49,9 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.cache.AbstractCache;
-
 /**
  */
-public class FileCache extends AbstractCache<String, File> implements Closeable {
+public class FileCache implements Closeable {
     /**
      * Logger instance.
      */
@@ -201,7 +199,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
      * Get the current entry count (number of files).
      */
     public long getEntryCount() {
-        return cache.size();
+        return cache.estimatedSize();
     }
 
     private FileCache() {
@@ -257,7 +255,6 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
      * @param key of the file
      * @param file to put into cache
      */
-    @Override
     public void put(String key, File file) {
         adjustSize();
         put(key, file, true);
@@ -302,7 +299,6 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
     }
 
     @Nullable
-    @Override
     public File getIfPresent(Object key) {
         return getIfPresent((String) key);
     }
@@ -320,7 +316,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
     }
 
     private void adjustSize() {
-        long currentSize = cache.size();
+        long currentSize = cache.estimatedSize();
         if (currentSize > highWaterMark) {
             highWaterMark = currentSize;
             // low for each additional 50'000 entries
@@ -362,11 +358,10 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
         // never grow larger than the configured size
         currentBlockLimit = Math.min(currentBlockLimit, maxBlocks);
         LOG.info("Shrinking the file cache size to {} because there are {} files (limit: {})",
-                currentBlockLimit, cache.size(), maxEntryCount);
+                currentBlockLimit, cache.estimatedSize(), maxEntryCount);
         cache.setMaxMemory(currentBlockLimit);
     }
 
-    @Override
     public void invalidate(Object key) {
         cache.invalidate(key);
     }

@@ -37,8 +37,8 @@ import org.apache.jackrabbit.oak.segment.CacheWeights;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.cache.CacheStats;
-import org.apache.jackrabbit.guava.common.cache.Weigher;
+import com.github.benmanes.caffeine.cache.stats.CacheStats;
+import com.github.benmanes.caffeine.cache.Weigher;
 
 /**
  * {@code PriorityCache} implements a partial mapping from keys of type {@code K} to values
@@ -401,8 +401,8 @@ public class PriorityCache<K, V> {
      */
     @NotNull
     public CacheStats getStats() {
-        return new CacheStats(hitCount.sum(), missCount.sum(), loadCount.sum(),
-                loadExceptionCount.sum(), 0, evictionCount.sum());
+        return CacheStats.of(hitCount.sum(), missCount.sum(), loadCount.sum(),
+                loadExceptionCount.sum(), 0, evictionCount.sum(), 0);
     }
 
     public long estimateCurrentWeight() {

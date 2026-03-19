@@ -21,16 +21,13 @@ package org.apache.jackrabbit.oak.cache;
 import static org.junit.Assert.assertFalse;
 
 import java.util.Random;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 
 /**
  * Compares the LIRS cache by concurrently reading.
@@ -43,8 +40,7 @@ public class ConcurrentPerformanceTest {
             return new CacheLIRS.Builder<Integer, Integer>()
                     .segmentCount(concurrencyLevel).maximumSize(1000).build();
         }
-        return CacheBuilder.newBuilder().concurrencyLevel(concurrencyLevel)
-                .maximumSize(1000).build();
+        return Caffeine.newBuilder().maximumSize(1000).build();
     }
 
     @Test
@@ -81,19 +77,7 @@ public class ConcurrentPerformanceTest {
                     Random r = new Random();
                     while (!stop.get()) {
                         final int key = r.nextInt(20000);
-                        try {
-                            cache.get(key, new Callable<Integer>() {
-
-                                @Override
-                                public Integer call() throws Exception {
-                                    return key;
-                                }
-
-                            });
-                        } catch (ExecutionException e) {
-                            count.set(Integer.MIN_VALUE);
-                            stop.set(true);
-                        }
+                        cache.get(key, k -> k);
                         count.incrementAndGet();
                     }
                 }
