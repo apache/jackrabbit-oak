@@ -1524,11 +1524,11 @@ public class RDBDocumentStore implements DocumentStore {
                     doc = nodesCache.get(id, new Callable<NodeDocument>() {
                         @Override
                         public NodeDocument call() throws Exception {
-                            NodeDocument doc = (NodeDocument) readDocumentUncached(collection, id, cachedDoc);
-                            if (doc != null) {
-                                doc.seal();
+                            NodeDocument uncached = (NodeDocument) readDocumentUncached(collection, id, cachedDoc);
+                            if (uncached != null) {
+                                uncached.seal();
                             }
-                            return wrap(doc);
+                            return wrap(uncached);
                         }
                     });
                     // inspect the doc whether it can be used

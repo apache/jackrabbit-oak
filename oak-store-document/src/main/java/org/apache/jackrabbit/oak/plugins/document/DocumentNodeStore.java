@@ -1408,7 +1408,7 @@ public final class DocumentNodeStore
             PERFLOG.end(start, 1, "getNode: path={}, rev={}", path, rev);
             return result;
         } catch (RuntimeException e) {
-            throw DocumentStoreException.convert(e.getCause());
+            throw DocumentStoreException.convert(cacheFailure(e));
         }
     }
 
@@ -1462,10 +1462,14 @@ public final class DocumentNodeStore
             }
             return children;
         } catch (RuntimeException e) {
-            throw DocumentStoreException.convert(e.getCause(),
+            throw DocumentStoreException.convert(cacheFailure(e),
                     "Error occurred while fetching children for path "
                             + path);
         }
+    }
+
+    private static Throwable cacheFailure(RuntimeException e) {
+        return e.getCause() != null ? e.getCause() : e;
     }
 
     /**

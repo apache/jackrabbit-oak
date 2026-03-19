@@ -16,32 +16,31 @@
  */
 package org.apache.jackrabbit.oak.cache;
 
+import com.github.benmanes.caffeine.cache.CacheLoader;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Policy;
+import com.github.benmanes.caffeine.cache.RemovalCause;
+import com.github.benmanes.caffeine.cache.Weigher;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
-
-import com.github.benmanes.caffeine.cache.CacheLoader;
-import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.github.benmanes.caffeine.cache.Policy;
-import com.github.benmanes.caffeine.cache.RemovalCause;
-import com.github.benmanes.caffeine.cache.Weigher;
-import java.util.Collections;
-import java.util.Optional;
-import java.util.OptionalInt;
-import java.util.OptionalLong;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 import org.apache.jackrabbit.oak.commons.annotations.Internal;
 import org.jetbrains.annotations.NotNull;
@@ -743,7 +742,6 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                     }
                     @Override public long getMaximum() { return self.getMaxMemory(); }
                     @Override public void setMaximum(long maximum) { self.setMaxMemory(maximum); }
-                    // TODO: return actual LIRS hot/cold segment data instead of empty maps
                     @Override public Map<K, V> coldest(int limit) { return Collections.emptyMap(); }
                     @Override public Map<K, V> coldestWeighted(long weightLimit) { return Collections.emptyMap(); }
                     @Override public Map<K, V> hottest(int limit) { return Collections.emptyMap(); }

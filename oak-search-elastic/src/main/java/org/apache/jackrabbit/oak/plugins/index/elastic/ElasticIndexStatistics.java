@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
@@ -31,7 +30,6 @@ import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Ticker;
-import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorHelper;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.jetbrains.annotations.NotNull;
@@ -64,10 +62,6 @@ public class ElasticIndexStatistics implements IndexStatistics {
     private static final String REFRESH_SECONDS = "oak.elastic.statsRefreshSeconds";
     private static final Long REFRESH_SECONDS_DEFAULT = 60L;
 
-    private static final int REFRESH_POOL_SIZE = 4;
-
-    private static final ExecutorService REFRESH_EXECUTOR = ExecutorHelper.linkedQueueExecutor(
-            REFRESH_POOL_SIZE, "elastic-statistics-cache-refresh-%d");
     private final ElasticConnection elasticConnection;
     private final ElasticIndexDefinition indexDefinition;
     private final LoadingCache<StatsRequestDescriptor, Integer> countCache;
@@ -217,7 +211,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
                 } catch (IOException e) {
                     throw new CompletionException(e);
                 }
-            }, REFRESH_EXECUTOR);
+            }, executor);
         }
 
         private int count(StatsRequestDescriptor crd) throws IOException {
@@ -250,7 +244,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
                 } catch (IOException e) {
                     throw new CompletionException(e);
                 }
-            }, REFRESH_EXECUTOR);
+            }, executor);
         }
 
         private StatsResponse stats(StatsRequestDescriptor crd) throws IOException {

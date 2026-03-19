@@ -1157,6 +1157,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
             }
         };
         return Caffeine.newBuilder().
+                executor(Runnable::run).
                 weigher(typedWeigher).
                 maximumWeight(maxWeight).
                 recordStats().

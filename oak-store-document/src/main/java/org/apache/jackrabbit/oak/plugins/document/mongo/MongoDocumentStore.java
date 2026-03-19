@@ -630,7 +630,7 @@ public class MongoDocumentStore implements DocumentStore {
                 invalidateCache(collection, key);
                 doc = nodesCache.get(key, new Callable<NodeDocument>() {
                     @Override
-                    public NodeDocument call() throws Exception {
+                    public NodeDocument call() {
                         return d == null ? NodeDocument.NULL : d;
                     }
                 });
@@ -1829,7 +1829,12 @@ public class MongoDocumentStore implements DocumentStore {
                         // load NULL document into cache unless it may have
                         // been affected by another concurrent operation
                         if (!tracker.mightBeenAffected(id)) {
-                            nodesCache.get(id, () -> NULL);
+                            nodesCache.get(id, new Callable<NodeDocument>() {
+                                @Override
+                                public NodeDocument call() {
+                                    return NULL;
+                                }
+                            });
                         }
                     } finally {
                         lock.unlock();
