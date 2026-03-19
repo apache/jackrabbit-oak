@@ -19,12 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.index.importer;
 
-import java.util.Arrays;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
 
@@ -107,6 +103,27 @@ public class AsyncLaneSwitcherTest {
 
         AsyncLaneSwitcher.switchLane(builder, "foo");
         AsyncLaneSwitcher.revertSwitch(builder, "foo");
+    }
+
+    /**
+     * OAK-12143: when an index definition arrives with async-previous already set
+     * (e.g. copied from a running system or hand-crafted), switchLane must NOT treat it
+     * as "already switched" — it still needs to assign the index to the target lane
+     */
+    @Test
+    public void switchLane_assignsTargetLaneWhenAsyncPreviousPrePopulated(){
+        builder.setProperty(ASYNC_PROPERTY_NAME, "async");
+        builder.setProperty(AsyncLaneSwitcher.ASYNC_PREVIOUS, "async-prev");
+
+        AsyncLaneSwitcher.switchLane(builder, "offline-reindex-async");
+
+        PropertyState asyncState = builder.getProperty(ASYNC_PROPERTY_NAME);
+        assertNotNull(asyncState);
+        assertEquals("offline-reindex-async", asyncState.getValue(Type.STRING));
+
+        PropertyState previous = builder.getProperty(AsyncLaneSwitcher.ASYNC_PREVIOUS);
+        assertNotNull(previous);
+        assertEquals("async", previous.getValue(Type.STRING));
     }
 
 }
