@@ -105,9 +105,28 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
             "oak.documentMK.manyChildren", 50);
 
     /**
-     * Whether to use the CacheLIRS (default) or the Guava cache implementation.
+     * @deprecated Use {@code oak.documentMK.lirsCache=false} to disable the LIRS cache.
+     *             The Guava cache implementation has been removed; this property now has no
+     *             effect other than emitting a deprecation warning. Will be removed in a future release.
      */
-    private static final boolean LIRS_CACHE = !Boolean.getBoolean("oak.documentMK.guavaCache");
+    @Deprecated(since = "2.0.0")
+    private static final String GUAVA_CACHE_PROPERTY = "oak.documentMK.guavaCache";
+
+    /**
+     * Whether to use the CacheLIRS (default) or direct Caffeine cache implementation.
+     * Set {@code -Doak.documentMK.lirsCache=false} to disable the LIRS cache.
+     */
+    private static final boolean LIRS_CACHE = resolveLirsCache();
+
+    private static boolean resolveLirsCache() {
+        if (Boolean.getBoolean(GUAVA_CACHE_PROPERTY)) {
+            LOG.warn("System property '{}' is deprecated and will be removed in a future release. "
+                    + "The Guava cache implementation has been removed; Caffeine is now always used. "
+                    + "To disable the LIRS cache, use '-Doak.documentMK.lirsCache=false' instead.",
+                    GUAVA_CACHE_PROPERTY);
+        }
+        return Boolean.parseBoolean(System.getProperty("oak.documentMK.lirsCache", "true"));
+    }
 
     /**
      * Number of content updates that need to happen before the updates
