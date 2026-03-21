@@ -116,12 +116,12 @@ public class FileStoreParameterResolver implements ParameterResolver {
     @SuppressWarnings("unchecked")
     private <T extends AbstractFileStore> T getOrCreateFileStore(ExtensionContext ctx, Class<T> type) {
         ExtensionContext.Store store = ctx.getStore(NAMESPACE);
+        CloseablePath segmentstoreDir = store.getOrComputeIfAbsent("tempdir-for-" + FileStore.class.getSimpleName(),
+                key -> new CloseablePath(computePathForTest(ctx)),
+                CloseablePath.class
+        );
         return store.getOrComputeIfAbsent(type.getName(), k -> {
             try {
-                CloseablePath segmentstoreDir = store.getOrComputeIfAbsent("tempdir-for-" + FileStore.class.getSimpleName(),
-                        key -> new CloseablePath(computePathForTest(ctx)),
-                        CloseablePath.class
-                );
                 Files.createDirectories(segmentstoreDir.path);
                 FileStoreBuilder fileStoreBuilder = FileStoreBuilder.fileStoreBuilder(segmentstoreDir.path.toFile())
                         .withStringCacheSize(0)
