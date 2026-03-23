@@ -134,8 +134,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
                     }
                 }
             } catch (Exception e) {
-                LOG.error("Error getting plan for {}", path);
-                LOG.error("Exception:", e);
+                LOG.error("Error getting plan for {}", path, e);
             } finally {
                 if (indexNode != null) {
                     indexNode.release();
