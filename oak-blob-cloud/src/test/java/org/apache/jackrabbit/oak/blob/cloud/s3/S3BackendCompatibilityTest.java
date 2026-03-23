@@ -35,7 +35,7 @@ import static org.junit.Assert.assertNull;
  * {@link S3Backend}. The assertions are intentionally behavior-based and do
  * not reference third-party cache types.
  */
-public class S3BackendTest {
+public class S3BackendCompatibilityTest {
 
     @Test
     public void setHttpDownloadURIExpirySecondsUpdatesField() throws Exception {
