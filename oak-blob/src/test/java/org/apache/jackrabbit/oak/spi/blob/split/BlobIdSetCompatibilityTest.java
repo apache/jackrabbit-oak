@@ -58,6 +58,8 @@ public class BlobIdSetCompatibilityTest {
 
     @Test
     public void containsReturnsTrueForEntryAddedAfterRestart() throws IOException {
+        // Seed the on-disk store first, then rebuild BlobIdSet to show startup
+        // rehydrates lookup state from the persisted file.
         try (FileWriter writer = new FileWriter(storeFile)) {
             writer.write("blob-from-store\n");
         }
@@ -69,6 +71,9 @@ public class BlobIdSetCompatibilityTest {
 
     @Test
     public void containsIgnoresNewStoreEntryUntilBloomFilterIsUpdated() throws IOException {
+        // The first miss teaches the in-memory structures about the blob id state.
+        // Writing directly to disk afterwards must stay invisible until add() updates
+        // the bloom filter and the in-memory cache consistently.
         assertFalse(blobIdSet.contains("missing"));
 
         try (FileWriter writer = new FileWriter(storeFile)) {

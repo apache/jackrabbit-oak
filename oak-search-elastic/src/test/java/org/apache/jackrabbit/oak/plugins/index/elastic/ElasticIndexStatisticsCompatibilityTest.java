@@ -67,6 +67,7 @@ public class ElasticIndexStatisticsCompatibilityTest {
 
     @Test
     public void numDocsReturnsMockedCountFromElasticsearch() throws Exception {
+        // Baseline behavior: a cache miss should load the document count from Elasticsearch.
         CountResponse countResponse = Mockito.mock(CountResponse.class);
         Mockito.when(countResponse.count()).thenReturn(42L);
         Mockito.when(elasticClientMock.count(ArgumentMatchers.any(CountRequest.class)))
@@ -79,6 +80,8 @@ public class ElasticIndexStatisticsCompatibilityTest {
 
     @Test
     public void numDocsCachesResultOnSubsequentCalls() throws Exception {
+        // Call numDocs() twice with the same descriptor and verify only the first
+        // call reaches Elasticsearch.
         CountResponse countResponse = Mockito.mock(CountResponse.class);
         Mockito.when(countResponse.count()).thenReturn(99L);
         Mockito.when(elasticClientMock.count(ArgumentMatchers.any(CountRequest.class)))
@@ -96,6 +99,8 @@ public class ElasticIndexStatisticsCompatibilityTest {
 
     @Test
     public void numDocsPropagatesIOExceptionAsRuntimeFailure() throws Exception {
+        // Use a checked IOException from the client and assert callers still see a
+        // runtime failure that preserves the original cause chain.
         Mockito.when(elasticClientMock.count(ArgumentMatchers.any(CountRequest.class)))
                 .thenThrow(new IOException("ES down"));
 
@@ -126,6 +131,8 @@ public class ElasticIndexStatisticsCompatibilityTest {
 
     @Test
     public void numDocsAndGetDocCountForUseIndependentCacheKeys() throws Exception {
+        // numDocs() and getDocCountFor(field) should not alias each other in the cache,
+        // so both lookups must hit Elasticsearch once.
         CountResponse countResponse = Mockito.mock(CountResponse.class);
         Mockito.when(countResponse.count()).thenReturn(5L);
         Mockito.when(elasticClientMock.count(ArgumentMatchers.any(CountRequest.class)))
@@ -141,6 +148,8 @@ public class ElasticIndexStatisticsCompatibilityTest {
 
     @Test
     public void numDocsRefreshesValueAfterRefreshWindow() throws Exception {
+        // Keep the same statistics object alive past the refresh window and check
+        // that repeated reads eventually observe the refreshed value.
         System.setProperty("oak.elastic.statsExpireSeconds", "30");
         System.setProperty("oak.elastic.statsRefreshSeconds", "1");
 
@@ -175,6 +184,8 @@ public class ElasticIndexStatisticsCompatibilityTest {
 
     @Test
     public void numDocsReturnsStaleValueWhileRefreshIsInFlight() throws Exception {
+        // Block the refresh call on a latch so the test can prove a stale value is
+        // served immediately while the background refresh is still running.
         System.setProperty("oak.elastic.statsExpireSeconds", "30");
         System.setProperty("oak.elastic.statsRefreshSeconds", "1");
 
@@ -221,6 +232,8 @@ public class ElasticIndexStatisticsCompatibilityTest {
 
     @Test
     public void numDocsKeepsCachedValueWhenRefreshFails() throws Exception {
+        // Make the reload attempt fail after a successful first load and verify the
+        // old cached value remains available to callers.
         System.setProperty("oak.elastic.statsExpireSeconds", "30");
         System.setProperty("oak.elastic.statsRefreshSeconds", "1");
 

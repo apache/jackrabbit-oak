@@ -37,6 +37,7 @@ public class AzureBlobStoreBackendCompatibilityTest {
 
     @Test
     public void setHttpDownloadURIExpirySecondsUpdatesField() throws Exception {
+        // Setter coverage for the direct-download expiry value used by presigned URIs.
         AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
 
         backend.setHttpDownloadURIExpirySeconds(3600);
@@ -46,6 +47,7 @@ public class AzureBlobStoreBackendCompatibilityTest {
 
     @Test
     public void setHttpUploadURIExpirySecondsUpdatesField() throws Exception {
+        // Setter coverage for the direct-upload expiry used during upload initiation.
         AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
 
         backend.setHttpUploadURIExpirySeconds(1800);
@@ -55,6 +57,7 @@ public class AzureBlobStoreBackendCompatibilityTest {
 
     @Test
     public void setHttpDownloadURICacheSizeCreatesAndDisablesCache() throws Exception {
+        // Verify the cache-size toggle actually creates and then removes the backing cache.
         AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
         backend.setHttpDownloadURIExpirySeconds(3600);
 
@@ -67,6 +70,7 @@ public class AzureBlobStoreBackendCompatibilityTest {
 
     @Test
     public void createHttpDownloadURIReturnsNullWhenDisabled() {
+        // With no download expiry configured, direct download access should stay disabled.
         AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
 
         URI downloadURI = backend.createHttpDownloadURI(
@@ -78,6 +82,7 @@ public class AzureBlobStoreBackendCompatibilityTest {
 
     @Test
     public void initiateHttpUploadReturnsNullWhenDisabled() {
+        // Upload initiation follows the same disabled-by-default contract until configured.
         AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
 
         assertNull(backend.initiateHttpUpload(1024, 1, DataRecordUploadOptions.DEFAULT));

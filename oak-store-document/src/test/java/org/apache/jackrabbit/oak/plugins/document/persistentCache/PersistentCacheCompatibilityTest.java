@@ -47,6 +47,8 @@ public class PersistentCacheCompatibilityTest {
 
     @Test
     public void wrapReturnsNodeCacheForEnabledCacheType() throws Exception {
+        // Wrapping a DIFF cache through PersistentCache should produce the persistent
+        // NodeCache adapter that fronts the in-memory base cache.
         CacheHandle handle = openDiffCache("wrap");
         try {
             assertTrue(handle.cache instanceof NodeCache);
@@ -57,6 +59,8 @@ public class PersistentCacheCompatibilityTest {
 
     @Test
     public void invalidateRemovesOnlyTheRequestedPersistedEntry() throws Exception {
+        // Persist two keys, invalidate only one after reopening, then reopen again
+        // to prove the removal was durable and did not affect the sibling entry.
         MemoryDiffCache.Key first = key(1);
         MemoryDiffCache.Key second = key(2);
 
@@ -88,6 +92,8 @@ public class PersistentCacheCompatibilityTest {
 
     @Test
     public void invalidateAllClearsPersistedEntriesAcrossReopen() throws Exception {
+        // Persist entries, clear the wrapped cache, and reopen the persistent layer
+        // to verify invalidateAll() removes the durable state as well.
         MemoryDiffCache.Key first = key(1);
         MemoryDiffCache.Key second = key(2);
 
@@ -119,6 +125,8 @@ public class PersistentCacheCompatibilityTest {
 
     @Test
     public void getWrapsCheckedLoaderFailureInExecutionException() throws Exception {
+        // Use a checked loader failure here because NodeCache exposes the same
+        // checked get(key, loader) contract as the in-memory cache underneath it.
         CacheHandle handle = openDiffCache("loaderFailure");
         Exception failure = new Exception("simulated persistent-cache load failure");
 

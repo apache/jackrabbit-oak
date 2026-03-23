@@ -45,6 +45,8 @@ public class LocalDiffCacheCompatibilityTest {
 
     @Test
     public void getChangesReturnsEmptyStringForMissingPathInsideCachedDiff() {
+        // Cache only the root diff and then ask for an uncached child path from the
+        // same revision pair; LocalDiffCache should report that as an empty diff.
         LocalDiffCache cache = buildCache();
         RevisionVector from = new RevisionVector(Revision.newRevision(CLUSTER_ID));
         RevisionVector to = new RevisionVector(Revision.newRevision(CLUSTER_ID));
@@ -58,6 +60,8 @@ public class LocalDiffCacheCompatibilityTest {
 
     @Test
     public void getChangesDelegatesToLoaderWhenRevisionPairIsNotCached() {
+        // Start from a completely uncached revision pair and verify getChanges()
+        // falls back to the supplied loader instead of inventing a cached value.
         LocalDiffCache cache = buildCache();
         RevisionVector from = new RevisionVector(Revision.newRevision(CLUSTER_ID));
         RevisionVector to = new RevisionVector(Revision.newRevision(CLUSTER_ID));

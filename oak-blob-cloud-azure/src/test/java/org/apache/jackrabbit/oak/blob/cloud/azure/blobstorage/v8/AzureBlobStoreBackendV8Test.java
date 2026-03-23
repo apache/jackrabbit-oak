@@ -168,6 +168,7 @@ public class AzureBlobStoreBackendV8Test {
 
   @Test
   public void setHttpDownloadURIExpirySecondsUpdatesField() throws Exception {
+    // Setter coverage for the v8 direct-download expiry value used by presigned URIs.
     AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
 
     backend.setHttpDownloadURIExpirySeconds(3600);
@@ -177,6 +178,7 @@ public class AzureBlobStoreBackendV8Test {
 
   @Test
   public void setHttpUploadURIExpirySecondsUpdatesField() throws Exception {
+    // Setter coverage for the v8 direct-upload expiry used during upload initiation.
     AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
 
     backend.setHttpUploadURIExpirySeconds(1800);
@@ -186,6 +188,7 @@ public class AzureBlobStoreBackendV8Test {
 
   @Test
   public void setHttpDownloadURICacheSizeCreatesAndDisablesCache() throws Exception {
+    // Verify the cache-size toggle actually creates and then removes the backing cache.
     AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
     backend.setHttpDownloadURIExpirySeconds(3600);
 
@@ -198,6 +201,7 @@ public class AzureBlobStoreBackendV8Test {
 
   @Test
   public void createHttpDownloadURIReturnsNullWhenDisabled() throws DataStoreException {
+    // With no download expiry configured, direct download access should stay disabled.
     AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
 
     assertNull(backend.createHttpDownloadURI(new org.apache.jackrabbit.core.data.DataIdentifier("test"),
@@ -206,6 +210,7 @@ public class AzureBlobStoreBackendV8Test {
 
   @Test
   public void initiateHttpUploadReturnsNullWhenDisabled() throws DataStoreException {
+    // Upload initiation follows the same disabled-by-default contract until configured.
     AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
 
     assertNull(backend.initiateHttpUpload(1024, 1,
@@ -214,6 +219,8 @@ public class AzureBlobStoreBackendV8Test {
 
   @Test
   public void createHttpDownloadURIReturnsCachedURIWithoutRecheckingStore() throws Exception {
+    // Seed the internal cache first and make exists() fail if it is touched,
+    // so the test proves a cache hit short-circuits the expensive store check.
     CacheHitBackend backend = new CacheHitBackend();
     org.apache.jackrabbit.core.data.DataIdentifier identifier =
             new org.apache.jackrabbit.core.data.DataIdentifier("cached");

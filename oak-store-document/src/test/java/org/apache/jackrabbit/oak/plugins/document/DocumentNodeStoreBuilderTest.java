@@ -35,6 +35,8 @@ public class DocumentNodeStoreBuilderTest {
 
     @Test
     public void buildNodeDocumentCacheReturnsNonNull() {
+        // Verify the builder can construct the node-document cache with the default
+        // in-memory configuration and a plain in-memory document store.
         DocumentStore store = new MemoryDocumentStore();
         NodeDocumentCache cache = DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder()
                 .buildNodeDocumentCache(store, new StripedNodeDocumentLocks());
@@ -43,6 +45,8 @@ public class DocumentNodeStoreBuilderTest {
 
     @Test
     public void buildNodeDocumentCacheStatsAreNonEmpty() {
+        // The builder wires cache stats as part of construction, so the returned
+        // cache should already expose at least one stats entry.
         DocumentStore store = new MemoryDocumentStore();
         NodeDocumentCache cache = DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder()
                 .buildNodeDocumentCache(store, new StripedNodeDocumentLocks());
@@ -53,6 +57,8 @@ public class DocumentNodeStoreBuilderTest {
 
     @Test
     public void buildNodeDocumentCacheIsUsable() throws Exception {
+        // Round-trip a document through the built cache so this test checks
+        // observable put/get behavior instead of just construction.
         DocumentStore docStore = new MemoryDocumentStore();
         NodeDocumentCache cache = DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder()
                 .buildNodeDocumentCache(docStore, new StripedNodeDocumentLocks());
@@ -86,6 +92,8 @@ public class DocumentNodeStoreBuilderTest {
 
     @Test
     public void buildDocumentCacheStoresAndRetrievesDocuments() throws Exception {
+        // buildDocumentCache() currently returns an implementation-specific cache type,
+        // so this test uses reflection and checks only the observable put/get contract.
         DocumentStore store = new MemoryDocumentStore();
         Object cache = DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder().buildDocumentCache(store);
         NodeDocument document = new NodeDocument(store, 1L);

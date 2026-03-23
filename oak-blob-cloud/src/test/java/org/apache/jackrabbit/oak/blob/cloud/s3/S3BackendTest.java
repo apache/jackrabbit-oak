@@ -39,6 +39,8 @@ public class S3BackendTest {
 
     @Test
     public void setHttpDownloadURIExpirySecondsUpdatesField() throws Exception {
+        // Setter coverage: direct-download expiry must be stored verbatim because
+        // later cache/window calculations depend on this value.
         S3Backend backend = new S3Backend();
 
         backend.setHttpDownloadURIExpirySeconds(3600);
@@ -48,6 +50,7 @@ public class S3BackendTest {
 
     @Test
     public void setHttpUploadURIExpirySecondsUpdatesField() throws Exception {
+        // Setter coverage for the upload-side expiry used by presigned upload URIs.
         S3Backend backend = new S3Backend();
 
         backend.setHttpUploadURIExpirySeconds(1800);
@@ -57,6 +60,8 @@ public class S3BackendTest {
 
     @Test
     public void setHttpDownloadURICacheSizeCreatesAndDisablesCache() throws Exception {
+        // Toggle the cache on and back off again to verify the configuration method
+        // controls the backing cache lifecycle directly.
         S3Backend backend = new S3Backend();
         backend.setHttpDownloadURIExpirySeconds(3600);
 
@@ -69,6 +74,8 @@ public class S3BackendTest {
 
     @Test
     public void createHttpDownloadURIReturnsNullWhenDisabled() {
+        // With download expiry left at the default disabled state, direct download
+        // access must stay off and return null immediately.
         S3Backend backend = new S3Backend();
 
         URI downloadURI = backend.createHttpDownloadURI(
@@ -80,6 +87,7 @@ public class S3BackendTest {
 
     @Test
     public void initiateHttpUploadReturnsNullWhenDisabled() {
+        // Upload URIs use the same disabled-by-default contract when no expiry is configured.
         S3Backend backend = new S3Backend();
 
         assertNull(backend.initiateHttpUpload(1024, 1));
@@ -87,6 +95,8 @@ public class S3BackendTest {
 
     @Test
     public void createHttpDownloadURIReturnsCachedURIWithoutRecheckingStore() throws Exception {
+        // Seed the internal cache first and make exists() fail if it is touched,
+        // so the test proves a cache hit short-circuits the expensive store check.
         CacheHitBackend backend = new CacheHitBackend();
         DataIdentifier identifier = new DataIdentifier("cached");
         URI cachedUri = URI.create("https://cached.example/download");

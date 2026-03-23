@@ -37,6 +37,8 @@ public class CacheLIRSCompatibilityTest {
 
     @Test
     public void getWithCallableCachesLoadedValue() throws ExecutionException {
+        // Load through the Oak-visible callable API, then repeat the same lookup
+        // with a different loader to prove the cached value wins on the second call.
         CacheLIRS<String, String> cache = CacheLIRS.<String, String>newBuilder()
                 .maximumSize(10)
                 .build();
@@ -57,6 +59,8 @@ public class CacheLIRSCompatibilityTest {
 
     @Test
     public void getWithCallableWrapsCheckedLoaderFailureInExecutionException() {
+        // Use a checked exception from the loader and verify the legacy
+        // ExecutionException shape is preserved for callers.
         CacheLIRS<String, String> cache = CacheLIRS.<String, String>newBuilder()
                 .maximumSize(10)
                 .build();
@@ -76,6 +80,8 @@ public class CacheLIRSCompatibilityTest {
 
     @Test
     public void invalidateAllClearsPreviouslyCachedEntries() throws ExecutionException {
+        // Populate two keys first, then clear the cache and verify both the
+        // size counters and direct lookups observe an empty cache.
         CacheLIRS<String, String> cache = CacheLIRS.<String, String>newBuilder()
                 .maximumSize(10)
                 .build();
@@ -94,6 +100,8 @@ public class CacheLIRSCompatibilityTest {
 
     @Test
     public void evictionCallbackIsInvokedWhenEntryIsEvictedBySize() {
+        // Push the cache past capacity and capture the first callback so the
+        // test checks real size-based eviction instead of explicit invalidation.
         AtomicInteger evictions = new AtomicInteger();
         AtomicReference<String> firstEvictedKey = new AtomicReference<>();
         AtomicReference<String> firstEvictedValue = new AtomicReference<>();

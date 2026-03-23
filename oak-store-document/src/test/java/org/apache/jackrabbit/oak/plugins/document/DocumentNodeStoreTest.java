@@ -3501,6 +3501,8 @@ public class DocumentNodeStoreTest {
 
     @Test
     public void getNodeConvertsNodeCacheLoaderFailures() throws Exception {
+        // Build a store that starts healthy, then make only the node read path fail
+        // to verify getNode() converts loader failures into DocumentStoreException.
         AtomicBoolean failFind = new AtomicBoolean();
         String fooId = Utils.getIdFromPath("/foo");
         DocumentStore store = new DocumentStoreWrapper(new MemoryDocumentStore()) {
@@ -3536,6 +3538,8 @@ public class DocumentNodeStoreTest {
 
     @Test
     public void getChildrenConvertsNodeChildrenCacheLoaderFailures() throws Exception {
+        // Populate a parent/child structure first, then fail only the child query path
+        // so the test exercises getChildren() exception conversion through the cache loader.
         AtomicBoolean failQuery = new AtomicBoolean();
         DocumentStore store = new DocumentStoreWrapper(new MemoryDocumentStore()) {
             @NotNull
