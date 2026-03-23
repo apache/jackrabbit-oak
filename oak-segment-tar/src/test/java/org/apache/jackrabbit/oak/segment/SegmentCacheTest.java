@@ -71,8 +71,8 @@ public class SegmentCacheTest {
     }
 
     @Test
-    public void getSegmentWrapsLoaderFailureInExecutionException() {
-        RuntimeException failure = new RuntimeException("load failed");
+    public void getSegmentWrapsCheckedLoaderFailureInExecutionException() {
+        Exception failure = new Exception("load failed");
 
         try {
             cache.getSegment(id1, () -> {
