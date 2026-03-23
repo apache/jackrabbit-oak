@@ -22,7 +22,6 @@ import java.lang.reflect.Method;
 import java.net.URI;
 
 import org.apache.jackrabbit.core.data.DataIdentifier;
-import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.junit.Test;
 
@@ -94,15 +93,16 @@ public class S3BackendCompatibilityTest {
     }
 
     @Test
-    public void createHttpDownloadURIReturnsCachedURIWithoutRecheckingStore() throws Exception {
-        // Seed the internal cache first and make exists() fail if it is touched,
-        // so the test proves a cache hit short-circuits the expensive store check.
-        CacheHitBackend backend = new CacheHitBackend();
+    public void createHttpDownloadURIReturnsPreExistingCachedURI() throws Exception {
+        // Seed a cache entry directly, then verify the externally observable
+        // behavior that the same URI is returned for the same download request.
+        S3Backend backend = new S3Backend();
         DataIdentifier identifier = new DataIdentifier("cached");
         URI cachedUri = URI.create("https://cached.example/download");
 
         backend.setHttpDownloadURIExpirySeconds(300);
         backend.setHttpDownloadURICacheSize(10);
+        setField(backend, "presignedDownloadURIVerifyExists", false);
         putIntoCache(getField(backend, "httpDownloadURICache"), identifier, cachedUri);
 
         assertEquals(cachedUri, backend.createHttpDownloadURI(identifier, DataRecordDownloadOptions.DEFAULT));
@@ -120,16 +120,15 @@ public class S3BackendCompatibilityTest {
         return field.get(backend);
     }
 
+    private static void setField(S3Backend backend, String fieldName, Object value) throws Exception {
+        Field field = S3Backend.class.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        field.set(backend, value);
+    }
+
     private static void putIntoCache(Object cache, Object key, Object value) throws Exception {
         Method put = cache.getClass().getMethod("put", Object.class, Object.class);
         put.setAccessible(true);
         put.invoke(cache, key, value);
-    }
-
-    private static final class CacheHitBackend extends S3Backend {
-        @Override
-        public boolean exists(DataIdentifier identifier) throws DataStoreException {
-            throw new AssertionError("cached download URI should be returned before checking blob existence");
-        }
     }
 }

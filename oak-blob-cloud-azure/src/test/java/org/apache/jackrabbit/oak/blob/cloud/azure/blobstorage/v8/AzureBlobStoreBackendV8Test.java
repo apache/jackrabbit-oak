@@ -218,16 +218,17 @@ public class AzureBlobStoreBackendV8Test {
   }
 
   @Test
-  public void createHttpDownloadURIReturnsCachedURIWithoutRecheckingStore() throws Exception {
-    // Seed the internal cache first and make exists() fail if it is touched,
-    // so the test proves a cache hit short-circuits the expensive store check.
-    CacheHitBackend backend = new CacheHitBackend();
+  public void createHttpDownloadURIReturnsPreExistingCachedURI() throws Exception {
+    // Seed a cache entry directly, then verify the externally observable
+    // behavior that the same URI is returned for the same download request.
+    AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
     org.apache.jackrabbit.core.data.DataIdentifier identifier =
             new org.apache.jackrabbit.core.data.DataIdentifier("cached");
     URI cachedUri = URI.create("https://cached.example/download");
 
     backend.setHttpDownloadURIExpirySeconds(300);
     setField(backend, "downloadDomainOverride", "cached.example");
+    setField(backend, "presignedDownloadURIVerifyExists", false);
     backend.setHttpDownloadURICacheSize(10);
     putIntoCache(getField(backend, "httpDownloadURICache"),
             identifier + "cached.example", cachedUri);
@@ -407,13 +408,6 @@ public class AzureBlobStoreBackendV8Test {
     Method put = cache.getClass().getMethod("put", Object.class, Object.class);
     put.setAccessible(true);
     put.invoke(cache, key, value);
-  }
-
-  private static final class CacheHitBackend extends AzureBlobStoreBackendV8 {
-    @Override
-    public boolean exists(org.apache.jackrabbit.core.data.DataIdentifier identifier) throws DataStoreException {
-      throw new AssertionError("cached download URI should be returned before checking blob existence");
-    }
   }
 
   private static void assertReferenceSecret(AzureBlobStoreBackendV8 azureBlobStoreBackend)

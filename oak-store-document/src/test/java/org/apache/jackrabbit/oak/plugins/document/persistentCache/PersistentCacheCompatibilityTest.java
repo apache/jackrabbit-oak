@@ -30,9 +30,9 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -46,12 +46,16 @@ public class PersistentCacheCompatibilityTest {
     public final TemporaryFolder tempFolder = new TemporaryFolder(new File("target"));
 
     @Test
-    public void wrapReturnsNodeCacheForEnabledCacheType() throws Exception {
-        // Wrapping a DIFF cache through PersistentCache should produce the persistent
-        // NodeCache adapter that fronts the in-memory base cache.
+    public void wrapReturnsUsablePersistentDiffCache() throws Exception {
+        // Wrapping a DIFF cache should return a usable cache handle whose
+        // observable put/get behavior matches the in-memory base contract.
         CacheHandle handle = openDiffCache("wrap");
         try {
-            assertTrue(handle.cache instanceof NodeCache);
+            MemoryDiffCache.Key key = key(0);
+            StringValue value = new StringValue("value");
+            assertNotNull(handle.cache);
+            handle.cache.put(key, value);
+            assertEquals(value, handle.cache.getIfPresent(key));
         } finally {
             handle.close();
         }

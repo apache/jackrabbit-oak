@@ -29,9 +29,14 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.util.function.IntSupplier;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Compatibility tests for {@link ElasticIndexStatistics}.
@@ -60,8 +65,6 @@ public class ElasticIndexStatisticsCompatibilityTest {
 
     @After
     public void releaseMocks() throws Exception {
-        System.clearProperty("oak.elastic.statsExpireSeconds");
-        System.clearProperty("oak.elastic.statsRefreshSeconds");
         closeable.close();
     }
 
@@ -148,54 +151,16 @@ public class ElasticIndexStatisticsCompatibilityTest {
 
     @Test
     public void numDocsRefreshesValueAfterRefreshWindow() throws Exception {
-        // Keep the same statistics object alive past the refresh window and check
-        // that repeated reads eventually observe the refreshed value.
-        System.setProperty("oak.elastic.statsExpireSeconds", "30");
-        System.setProperty("oak.elastic.statsRefreshSeconds", "1");
-
-        CountResponse countResponse = Mockito.mock(CountResponse.class);
-        Mockito.when(countResponse.count()).thenReturn(100L);
-        Mockito.when(elasticClientMock.count(ArgumentMatchers.any(CountRequest.class)))
-                .thenReturn(countResponse);
-
-        ElasticIndexStatistics indexStatistics =
-                new ElasticIndexStatistics(elasticConnectionMock, indexDefinitionMock);
-
-        Assert.assertEquals(100, indexStatistics.numDocs());
-        Mockito.verify(elasticClientMock, Mockito.times(1)).count(ArgumentMatchers.any(CountRequest.class));
-
-        Mockito.when(countResponse.count()).thenReturn(1000L);
-
-        TimeUnit.MILLISECONDS.sleep(1200);
-
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
-        int refreshedValue = indexStatistics.numDocs();
-        while (System.nanoTime() < deadline) {
-            refreshedValue = indexStatistics.numDocs();
-            if (refreshedValue == 1000) {
-                break;
-            }
-            TimeUnit.MILLISECONDS.sleep(50);
-        }
-
-        Assert.assertEquals(1000, refreshedValue);
-        Mockito.verify(elasticClientMock, Mockito.atLeast(2)).count(ArgumentMatchers.any(CountRequest.class));
-    }
-
-    @Test
-    public void numDocsReturnsStaleValueWhileRefreshIsInFlight() throws Exception {
-        // Block the refresh call on a latch so the test can prove a stale value is
-        // served immediately while the background refresh is still running.
-        System.setProperty("oak.elastic.statsExpireSeconds", "30");
-        System.setProperty("oak.elastic.statsRefreshSeconds", "1");
-
+        // Advance a controllable clock past the refresh boundary, then release
+        // the blocked refresh and verify callers eventually observe the new value.
+        MutableClock clock = new MutableClock();
         CountResponse initialResponse = Mockito.mock(CountResponse.class);
         CountResponse refreshedResponse = Mockito.mock(CountResponse.class);
         Mockito.when(initialResponse.count()).thenReturn(100L);
         Mockito.when(refreshedResponse.count()).thenReturn(1000L);
-
         CountDownLatch refreshStarted = new CountDownLatch(1);
         CountDownLatch releaseRefresh = new CountDownLatch(1);
+        CountDownLatch refreshCompleted = new CountDownLatch(1);
         AtomicInteger invocations = new AtomicInteger();
         Mockito.when(elasticClientMock.count(ArgumentMatchers.any(CountRequest.class)))
                 .thenAnswer(invocation -> {
@@ -206,64 +171,113 @@ public class ElasticIndexStatisticsCompatibilityTest {
                     if (!releaseRefresh.await(5, TimeUnit.SECONDS)) {
                         throw new AssertionError("timed out waiting to release refresh");
                     }
+                    refreshCompleted.countDown();
                     return refreshedResponse;
                 });
 
         ElasticIndexStatistics indexStatistics =
-                new ElasticIndexStatistics(elasticConnectionMock, indexDefinitionMock);
+                newIndexStatistics(clock);
 
         Assert.assertEquals(100, indexStatistics.numDocs());
+        Mockito.verify(elasticClientMock, Mockito.times(1)).count(ArgumentMatchers.any(CountRequest.class));
 
-        TimeUnit.MILLISECONDS.sleep(1200);
+        clock.advanceSeconds(2);
         Assert.assertEquals(100, indexStatistics.numDocs());
+
         Assert.assertTrue("expected refresh to start", refreshStarted.await(5, TimeUnit.SECONDS));
-
         releaseRefresh.countDown();
-
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
-        int refreshedValue = indexStatistics.numDocs();
-        while (System.nanoTime() < deadline && refreshedValue != 1000) {
-            TimeUnit.MILLISECONDS.sleep(50);
-            refreshedValue = indexStatistics.numDocs();
-        }
-
-        Assert.assertEquals(1000, refreshedValue);
+        Assert.assertTrue("expected refresh completion", refreshCompleted.await(5, TimeUnit.SECONDS));
+        assertEventuallyEquals(1000, indexStatistics::numDocs);
+        Mockito.verify(elasticClientMock, Mockito.atLeast(2)).count(ArgumentMatchers.any(CountRequest.class));
     }
 
     @Test
-    public void numDocsKeepsCachedValueWhenRefreshFails() throws Exception {
-        // Make the reload attempt fail after a successful first load and verify the
-        // old cached value remains available to callers.
-        System.setProperty("oak.elastic.statsExpireSeconds", "30");
-        System.setProperty("oak.elastic.statsRefreshSeconds", "1");
-
+    public void numDocsReturnsStaleValueWhileRefreshIsInFlight() throws Exception {
+        // Advance a controllable clock into the refresh window, then block the
+        // reload so the read path can prove it returns the stale cached value.
+        MutableClock clock = new MutableClock();
         CountResponse initialResponse = Mockito.mock(CountResponse.class);
+        CountResponse refreshedResponse = Mockito.mock(CountResponse.class);
         Mockito.when(initialResponse.count()).thenReturn(100L);
+        Mockito.when(refreshedResponse.count()).thenReturn(1000L);
 
+        CountDownLatch refreshStarted = new CountDownLatch(1);
+        CountDownLatch releaseRefresh = new CountDownLatch(1);
+        CountDownLatch refreshCompleted = new CountDownLatch(1);
         AtomicInteger invocations = new AtomicInteger();
         Mockito.when(elasticClientMock.count(ArgumentMatchers.any(CountRequest.class)))
                 .thenAnswer(invocation -> {
                     if (invocations.getAndIncrement() == 0) {
                         return initialResponse;
                     }
+                    refreshStarted.countDown();
+                    if (!releaseRefresh.await(5, TimeUnit.SECONDS)) {
+                        throw new AssertionError("timed out waiting to release refresh");
+                    }
+                    refreshCompleted.countDown();
+                    return refreshedResponse;
+                });
+
+        ElasticIndexStatistics indexStatistics =
+                newIndexStatistics(clock);
+
+        Assert.assertEquals(100, indexStatistics.numDocs());
+
+        clock.advanceSeconds(2);
+        Assert.assertEquals(100, indexStatistics.numDocs());
+        Assert.assertTrue("expected refresh to start", refreshStarted.await(5, TimeUnit.SECONDS));
+
+        releaseRefresh.countDown();
+        Assert.assertTrue("expected refresh completion", refreshCompleted.await(5, TimeUnit.SECONDS));
+        assertEventuallyEquals(1000, indexStatistics::numDocs);
+    }
+
+    @Test
+    public void numDocsKeepsCachedValueWhenRefreshFails() throws Exception {
+        // Advance a controllable clock into the refresh window, then make the
+        // asynchronous refresh fail and verify the cached value is preserved.
+        MutableClock clock = new MutableClock();
+        CountResponse initialResponse = Mockito.mock(CountResponse.class);
+        Mockito.when(initialResponse.count()).thenReturn(100L);
+
+        CountDownLatch refreshAttempted = new CountDownLatch(1);
+        AtomicInteger invocations = new AtomicInteger();
+        Mockito.when(elasticClientMock.count(ArgumentMatchers.any(CountRequest.class)))
+                .thenAnswer(invocation -> {
+                    if (invocations.getAndIncrement() == 0) {
+                        return initialResponse;
+                    }
+                    refreshAttempted.countDown();
                     throw new IOException("refresh failed");
                 });
 
         ElasticIndexStatistics indexStatistics =
-                new ElasticIndexStatistics(elasticConnectionMock, indexDefinitionMock);
+                newIndexStatistics(clock);
 
         Assert.assertEquals(100, indexStatistics.numDocs());
 
-        TimeUnit.MILLISECONDS.sleep(1200);
+        clock.advanceSeconds(2);
         Assert.assertEquals(100, indexStatistics.numDocs());
+        Assert.assertTrue("expected refresh attempt", refreshAttempted.await(5, TimeUnit.SECONDS));
+        Assert.assertEquals(100, indexStatistics.numDocs());
+    }
 
+    private ElasticIndexStatistics newIndexStatistics(Clock clock) {
+        return new ElasticIndexStatistics(
+                elasticConnectionMock,
+                indexDefinitionMock,
+                ElasticIndexStatistics.setupCountCache(100, 30, 1, clock),
+                null);
+    }
+
+    private static void assertEventuallyEquals(int expected, IntSupplier supplier) throws InterruptedException {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
-        while (System.nanoTime() < deadline && invocations.get() < 2) {
-            TimeUnit.MILLISECONDS.sleep(50);
+        int actual = supplier.getAsInt();
+        while (System.nanoTime() < deadline && actual != expected) {
+            TimeUnit.MILLISECONDS.sleep(25);
+            actual = supplier.getAsInt();
         }
-
-        Assert.assertTrue("expected refresh attempt", invocations.get() >= 2);
-        Assert.assertEquals(100, indexStatistics.numDocs());
+        Assert.assertEquals(expected, actual);
     }
 
     private static Throwable findCause(Throwable throwable, Class<? extends Throwable> type) {
@@ -275,5 +289,33 @@ public class ElasticIndexStatisticsCompatibilityTest {
             current = current.getCause();
         }
         return null;
+    }
+
+    private static final class MutableClock extends Clock {
+        private final AtomicLong currentMillis = new AtomicLong();
+
+        @Override
+        public ZoneId getZone() {
+            return ZoneId.of("UTC");
+        }
+
+        @Override
+        public Clock withZone(ZoneId zone) {
+            return this;
+        }
+
+        @Override
+        public Instant instant() {
+            return Instant.ofEpochMilli(currentMillis.get());
+        }
+
+        @Override
+        public long millis() {
+            return currentMillis.get();
+        }
+
+        private void advanceSeconds(long seconds) {
+            currentMillis.addAndGet(TimeUnit.SECONDS.toMillis(seconds));
+        }
     }
 }

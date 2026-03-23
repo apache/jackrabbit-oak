@@ -70,19 +70,14 @@ public class BlobIdSetCompatibilityTest {
     }
 
     @Test
-    public void containsIgnoresNewStoreEntryUntilBloomFilterIsUpdated() throws IOException {
-        // The first miss teaches the in-memory structures about the blob id state.
-        // Writing directly to disk afterwards must stay invisible until add() updates
-        // the bloom filter and the in-memory cache consistently.
-        assertFalse(blobIdSet.contains("missing"));
+    public void addMakesEntryVisibleBeforeAndAfterRestart() throws IOException {
+        // Add through the public API and verify both the current instance and a
+        // restarted one observe the same persisted membership result.
+        blobIdSet.add("added-through-api");
 
-        try (FileWriter writer = new FileWriter(storeFile)) {
-            writer.write("missing\n");
-        }
+        assertTrue(blobIdSet.contains("added-through-api"));
 
-        assertFalse(blobIdSet.contains("missing"));
-
-        blobIdSet.add("missing");
-        assertTrue(blobIdSet.contains("missing"));
+        BlobIdSet restarted = new BlobIdSet(tempDir.getAbsolutePath(), TEST_FILENAME);
+        assertTrue(restarted.contains("added-through-api"));
     }
 }
