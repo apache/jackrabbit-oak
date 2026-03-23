@@ -56,8 +56,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.NativeQueryIndex;
 
@@ -75,6 +77,9 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     public static final String ATTR_PLAN_RESULT = "oak.fulltext.planResult";
 
     private static final double MIN_COST = 2.1;
+
+    // Index types that may compete; other types (e.g. "disabled") are excluded
+    private static final Set<String> COMPETING_INDEX_TYPES = Set.of("lucene", "elasticsearch");
 
     protected abstract IndexNode acquireIndexNode(String indexPath);
 
@@ -121,6 +126,10 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         } else {
             indexPaths = IndexName.filterNewestIndexes(indexPaths);
         }
+        Collection<String> allCompetingPaths = new IndexLookup(rootState,
+                state -> COMPETING_INDEX_TYPES.contains(state.getString(TYPE_PROPERTY_NAME)))
+                .collectIndexNodePaths(filter);
+        indexPaths = IndexName.filterGloballySuperseded(indexPaths, allCompetingPaths);
         List<IndexPlan> plans = new ArrayList<>(indexPaths.size());
         for (String path : indexPaths) {
             IndexNode indexNode = null;
