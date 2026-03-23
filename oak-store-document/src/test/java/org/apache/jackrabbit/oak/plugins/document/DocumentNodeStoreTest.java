@@ -3499,6 +3499,81 @@ public class DocumentNodeStoreTest {
         assertNull(ns.getNodeCache().getIfPresent(new PathRev(path, before)));
     }
 
+    @Test
+    public void getNodeConvertsNodeCacheLoaderFailures() throws Exception {
+        AtomicBoolean failFind = new AtomicBoolean();
+        String fooId = Utils.getIdFromPath("/foo");
+        DocumentStore store = new DocumentStoreWrapper(new MemoryDocumentStore()) {
+            @Override
+            public <T extends Document> T find(Collection<T> collection, String key) {
+                if (collection == NODES && fooId.equals(key) && failFind.get()) {
+                    throw new IllegalStateException("node lookup failed");
+                }
+                return super.find(collection, key);
+            }
+        };
+
+        DocumentNodeStore writer = builderProvider.newBuilder().setAsyncDelay(0)
+                .setDocumentStore(store).getNodeStore();
+        NodeBuilder builder = writer.getRoot().builder();
+        builder.child("foo");
+        merge(writer, builder);
+        writer.dispose();
+
+        DocumentNodeStore reader = builderProvider.newBuilder().setAsyncDelay(0)
+                .setDocumentStore(store).getNodeStore();
+        try {
+            failFind.set(true);
+            reader.getNode(Path.fromString("/foo"), reader.getHeadRevision());
+            fail("must fail with DocumentStoreException");
+        } catch (DocumentStoreException e) {
+            assertThat(e.getMessage(), containsString("node lookup failed"));
+            assertTrue(e.getCause() instanceof IllegalStateException);
+        } finally {
+            reader.dispose();
+        }
+    }
+
+    @Test
+    public void getChildrenConvertsNodeChildrenCacheLoaderFailures() throws Exception {
+        AtomicBoolean failQuery = new AtomicBoolean();
+        DocumentStore store = new DocumentStoreWrapper(new MemoryDocumentStore()) {
+            @NotNull
+            @Override
+            public <T extends Document> List<T> query(Collection<T> collection,
+                                                      String fromKey,
+                                                      String toKey,
+                                                      int limit) {
+                if (collection == NODES && failQuery.get()) {
+                    throw new IllegalStateException("child query failed");
+                }
+                return super.query(collection, fromKey, toKey, limit);
+            }
+        };
+
+        DocumentNodeStore writer = builderProvider.newBuilder().setAsyncDelay(0)
+                .setDocumentStore(store).getNodeStore();
+        NodeBuilder builder = writer.getRoot().builder();
+        builder.child("parent").child("child");
+        merge(writer, builder);
+        writer.dispose();
+
+        DocumentNodeStore reader = builderProvider.newBuilder().setAsyncDelay(0)
+                .setDocumentStore(store).getNodeStore();
+        try {
+            DocumentNodeState parent = reader.getNode(Path.fromString("/parent"), reader.getHeadRevision());
+            assertNotNull(parent);
+            failQuery.set(true);
+            reader.getChildren(parent, "", 10);
+            fail("must fail with DocumentStoreException");
+        } catch (DocumentStoreException e) {
+            assertThat(e.getMessage(), containsString("Error occurred while fetching children for path /parent"));
+            assertTrue(e.getCause() instanceof IllegalStateException);
+        } finally {
+            reader.dispose();
+        }
+    }
+
     // OAK-6351
     @Test
     public void inconsistentNodeChildrenCache() throws Exception {

@@ -234,6 +234,22 @@ public class CommitValueResolverTest {
         assertThat(countDocumentLookUps(() -> cvr.resolve(commitRev, foo)), equalTo(0));
     }
 
+    @Test
+    public void committedValueFromPreviousDocumentIsCached() throws Exception {
+        CommitValueResolver cachingResolver = newCachingCommitValueResolver(100);
+        Revision revision = addNode("/foo");
+        assertTrue(getDocument("/").getLocalRevisions().containsKey(revision));
+        while (getDocument("/").getLocalRevisions().containsKey(revision)) {
+            someChange("/");
+            ns.runBackgroundUpdateOperations();
+        }
+
+        NodeDocument root = getDocument("/");
+        assertEquals("c", cachingResolver.resolve(revision, root));
+        NodeDocument cachedRoot = getDocument("/");
+        assertThat(countDocumentLookUps(() -> cachingResolver.resolve(revision, cachedRoot)), equalTo(0));
+    }
+
     private int countDocumentLookUps(Callable<?> c) throws Exception {
         int numCalls = store.getNumFindCalls(NODES);
         c.call();
