@@ -39,8 +39,6 @@
           <instructions>
             <Export-Package>
               org.apache.jackrabbit.core.data,
-              org.apache.jackrabbit.core.data.db,
-              org.apache.jackrabbit.core.util.db,
               org.apache.jackrabbit.oak.spi.blob,
               org.apache.jackrabbit.oak.spi.blob.stats,
               org.apache.jackrabbit.oak.spi.blob.split
