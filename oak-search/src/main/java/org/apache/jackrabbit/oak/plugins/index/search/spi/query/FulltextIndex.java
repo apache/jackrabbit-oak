@@ -44,7 +44,9 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,6 +82,14 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
 
     // Index types that may compete; other types (e.g. "disabled") are excluded
     private static final Set<String> COMPETING_INDEX_TYPES = Set.of("lucene", "elasticsearch");
+
+    public static final String FT_FILTER_GLOBALLY_SUPERSEDED = "FT_OAK-12146";
+
+    @Nullable private Feature filterGloballySupersededFeature;
+
+    public void setFilterGloballySupersededFeature(@Nullable Feature feature) {
+        this.filterGloballySupersededFeature = feature;
+    }
 
     protected abstract IndexNode acquireIndexNode(String indexPath);
 
@@ -141,7 +151,9 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
                 })
                 .collectIndexNodePaths(filter);
 
-        indexPaths = IndexName.filterGloballySuperseded(indexPaths, allCompetingPaths);
+        if (filterGloballySupersededFeature == null || filterGloballySupersededFeature.isEnabled()) {
+            indexPaths = IndexName.filterGloballySuperseded(indexPaths, allCompetingPaths);
+        }
         List<IndexPlan> plans = new ArrayList<>(indexPaths.size());
         for (String path : indexPaths) {
             IndexNode indexNode = null;

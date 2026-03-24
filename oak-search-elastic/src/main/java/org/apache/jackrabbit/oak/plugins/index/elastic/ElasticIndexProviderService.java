@@ -30,10 +30,12 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.Inference
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceMBeanImpl;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -186,6 +188,7 @@ public class ElasticIndexProviderService {
     private final List<Registration> oakRegs = new ArrayList<>();
 
     private Whiteboard whiteboard;
+    private Feature filterGloballySupersededFeature;
 
     private ElasticConnection elasticConnection;
     private ElasticMetricHandler metricHandler;
@@ -270,6 +273,10 @@ public class ElasticIndexProviderService {
             reg.unregister();
         }
 
+        if (filterGloballySupersededFeature != null) {
+            filterGloballySupersededFeature.close();
+        }
+
         try {
             this.elasticIndexEditorProvider.close();
         } catch (Exception e) {
@@ -297,6 +304,9 @@ public class ElasticIndexProviderService {
         long facetsEvaluationTimeoutMs = Long.getLong(PROP_ELASTIC_FACETS_EVALUATION_TIMEOUT_MS,
                 config.elasticsearch_facetsEvaluationTimeoutMs());
         ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker, asyncIteratorEnqueueTimeoutMs, facetsEvaluationTimeoutMs);
+        filterGloballySupersededFeature = Feature.newFeature(
+                FulltextIndex.FT_FILTER_GLOBALLY_SUPERSEDED, whiteboard);
+        indexProvider.setFilterGloballySupersededFeature(filterGloballySupersededFeature);
 
         Dictionary<String, Object> props = new Hashtable<>();
         props.put("type", ElasticIndexDefinition.TYPE_ELASTICSEARCH);

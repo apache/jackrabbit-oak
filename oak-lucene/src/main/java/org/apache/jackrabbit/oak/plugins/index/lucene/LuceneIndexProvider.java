@@ -20,12 +20,15 @@ import java.io.Closeable;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.plugins.index.aggregate.AggregateIndex;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A provider for Lucene indexes.
@@ -39,6 +42,12 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
     protected volatile QueryIndex.NodeAggregator aggregator = null;
 
     IndexAugmentorFactory augmentorFactory;
+
+    @Nullable private Feature filterGloballySupersededFeature;
+
+    public void setFilterGloballySupersededFeature(@Nullable Feature feature) {
+        this.filterGloballySupersededFeature = feature;
+    }
 
     public LuceneIndexProvider() {
         this(new IndexTracker());
@@ -80,7 +89,9 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
     }
 
     protected LucenePropertyIndex newLucenePropertyIndex() {
-        return new LucenePropertyIndex(tracker, augmentorFactory);
+        LucenePropertyIndex index = new LucenePropertyIndex(tracker, augmentorFactory);
+        index.setFilterGloballySupersededFeature(filterGloballySupersededFeature);
+        return index;
     }
 
     /**
