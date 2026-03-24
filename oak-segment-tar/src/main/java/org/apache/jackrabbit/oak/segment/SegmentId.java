@@ -24,7 +24,7 @@ import static org.apache.jackrabbit.oak.segment.SegmentStore.EMPTY_STORE;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -252,9 +252,9 @@ public class SegmentId implements Comparable<SegmentId> {
 
     @Override
     public int compareTo(@NotNull SegmentId that) {
-        int d = Long.valueOf(this.msb).compareTo(that.msb);
+        int d = Long.compare(this.msb, that.msb);
         if (d == 0) {
-            d = Long.valueOf(this.lsb).compareTo(that.lsb);
+            d = Long.compare(this.lsb, that.lsb);
         }
         return d;
     }

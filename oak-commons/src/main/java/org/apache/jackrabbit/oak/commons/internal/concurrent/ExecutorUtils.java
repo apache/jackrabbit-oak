@@ -21,12 +21,12 @@ package org.apache.jackrabbit.oak.commons.internal.concurrent;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -47,7 +47,7 @@ public class ExecutorUtils {
     }
 
     public static ExecutorService getExitingExecutorService(ThreadPoolExecutor executor) {
-        setDeamonThreadFactory(executor);
+        setDaemonThreadFactory(executor);
         final ExecutorService service = Executors.unconfigurableExecutorService(executor);
         // JVM shutdown hook for graceful executor shutdown
         addRuntimeShutdownHook(executor);
@@ -56,7 +56,7 @@ public class ExecutorUtils {
     }
 
     public static ScheduledExecutorService getExitingScheduledExecutorService(ScheduledThreadPoolExecutor executor) {
-        setDeamonThreadFactory(executor);
+        setDaemonThreadFactory(executor);
         ScheduledExecutorService service = Executors.unconfigurableScheduledExecutorService(executor);
         // JVM shutdown hook for graceful executor shutdown
         addRuntimeShutdownHook(executor);
@@ -70,11 +70,12 @@ public class ExecutorUtils {
                 "RuntimeShutdownHook-for-" + executor));
     }
 
-    private static void setDeamonThreadFactory(final ThreadPoolExecutor executor) {
-        executor.setThreadFactory(
-                new ThreadFactoryBuilder()
-                        .setDaemon(true)
-                        .setThreadFactory(executor.getThreadFactory())
-                        .build());
+    private static void setDaemonThreadFactory(ThreadPoolExecutor executor) {
+        ThreadFactory delegate = executor.getThreadFactory();
+        executor.setThreadFactory(r -> {
+            Thread t = delegate != null ? delegate.newThread(r) : new Thread(r);
+            t.setDaemon(true);
+            return t;
+        });
     }
 }

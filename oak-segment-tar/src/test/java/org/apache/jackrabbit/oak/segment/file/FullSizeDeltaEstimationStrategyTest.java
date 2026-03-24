@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
+import static org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration.newGCGeneration;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 

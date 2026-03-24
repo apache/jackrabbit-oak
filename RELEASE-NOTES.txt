@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.88.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.92.0
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.88.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.92.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
@@ -15,79 +15,71 @@ production use.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.88.0
+Changes in Oak 1.92.0
 ---------------------
 
-Technical task
+** Technical task
+    * [OAK-11224] - remove guava dependencies from POMs (ongoing)
+    * [OAK-11950] - Remove usage of Queues.drainUninterruptibly
+    * [OAK-12037] - Remove usage of Guava's Monitor from oak-lucene
+    * [OAK-12061] - Remove usage of Guava's ThreadFactoryBuilder
+    * [OAK-12064] - Remove usage of Guava's Striped
+    * [OAK-12072] - Remove usage of Guava's Monitor from ChangeProcessor
+    * [OAK-12074] - Add awaitUninterruptibly() method
+    * [OAK-12075] - Remove usage of Guava's Uninterruptibles.awaitUninterruptibly
+    * [OAK-12076] - Add sleepUninterruptibly() method
+    * [OAK-12077] - Add joinUninterruptibly() method
+    * [OAK-12078] - Remove usage of Guava's Uninterruptibles.sleepUninterruptibly
+    * [OAK-12080] - Remove usage of Guava's Comparators.isInOrder
+    * [OAK-12081] - Add isInOrder() api in IterableUtils
+    * [OAK-12083] - Remove usage of Guava's Uninterruptibles.joinUninterruptibly
 
-    [OAK-11911] - expose DirectExecutor in Oak from ExecutorUtils
-    [OAK-11912] - Create a new DirectExecutorService
-    [OAK-11913] - Create a new ForwardingExecutorService
-    [OAK-11914] - Remove usage of Guava's HashBasedTable
-    [OAK-11926] - Remove usage of Guava's Functions
-    [OAK-11927] - Remove usage of Guava's Queues.newLinkedBlockingQueue
-    [OAK-11928] - Remove usage of Guava's Queues.newSynchronousQueue
-    [OAK-11972] - eliminate uses of org.apache.jackrabbit.core.data.RandomInputStream
-    [OAK-11974] - remove usage of jackrabbit-data - NamedThreadFactory
+** Bug
+    * [OAK-10344] - oak-run ITs fail with failsafe >= 3.0.0
+    * [OAK-11960] - oak-examples: The static content of the webapp still refers to RMI features that are no longer supported
+    * [OAK-12053] - oak-search-elastic: queries with excerpts fail on large fields
+    * [OAK-12054] - Fix creation of ThreadPoolExecutors using an unbounded LinkedBlockingQueue
+    * [OAK-12062] - Fix NPE while uploading metadata on AWS
+    * [OAK-12066] - NPE in AstElement "quote()"
+    * [OAK-12067] - Utils.alignWithExternalRevisions logs timestamps with second resolution
+    * [OAK-12068] - segment graph UUID deduplication (OAK-12005) can be too inefficient
+    * [OAK-12071] - oak-search-elastic: remove property does not work for externally modifiable indexes
+    * [OAK-12085] - OutOfMemory in oak-segment-azure tests
+    * [OAK-12086] - oak-segment-tar: remove optional log4j dependency
+    * [OAK-12112] - Add UnresolvedAddressException to the list of transient exceptions that can prevent lease renewal
 
-Bug
+** Story
+    * [OAK-11267] - Upgrade Azure SDK V8 to V12 for oak-blob-azure
 
-    [OAK-11848] - oak-standalone does not start anymore
-    [OAK-11895] - CheckpointCompactor writes to "after" instead of "onto" NodeState
-    [OAK-11899] - Empty tokenLength property values cause token not being generated
-    [OAK-11902] - TarWriterTest unstable
-    [OAK-11931] - Wrong default value for PREV_NO_PROP_CACHE
-    [OAK-11955] - oak-examples: The metrics page of the standalone app doesn't work
-    [OAK-11959] - oak-examples: The webapp doesn't work at all
-    [OAK-11965] - Persist new base states as complete during compaction
-    [OAK-11987] - org.apache.jackrabbit.oak.segment.azure.tool.SegmentStoreMigrator.migrateBinaryRef is missing a null check
+** Improvement
+    * [OAK-11697] - Indexing / query limit / traversal error: improve diagnostics 
+    * [OAK-12010] - Simplified index management
+    * [OAK-12045] - oak-search-elastic: :fulltext field cleanup
+    * [OAK-12047] - CachingSegmentArchiveReader#readSegment should check if segment is present in archive before trying to load it from cache
+    * [OAK-12052] - oak-search-elastic: log entire request on query failure
+    * [OAK-12069] - reduce SegmentPreloader memory usage
+    * [OAK-12070] - Reduce memory consumption of azure segment stores
+    * [OAK-12094] - segment-azure: increased heap usage due to OAK-12040
+    * [OAK-12110] - Simplified index management - take 2
 
-Epic
-
-    [OAK-11904] - Oak should compile & test on Java 25
-
-Story
-
-    [OAK-11936] - Allow updating the inference config via JMX
-    [OAK-11949] - Union queries should still order by score
-
-Improvement
-
-    [OAK-11898] - ElasticSecureFacets should be decoupled from the AsyncIterator
-    [OAK-11929] - NPE in Lucene's implementation of secure facets
-    [OAK-11930] - JCR observation events should not serialize the propertyState for binary properties
-    [OAK-11934] - segment preloading for PersistentCache
-    [OAK-11969] - NodeDelegate: remove double check for existence of child tree
-    [OAK-11977] - Tree store: BufferOverflowException
-    [OAK-11980] - improve parallelization of I/O during segment-azure initialization
-    [OAK-11982] - Remove initialization of constant value from NodeImpl c'tor
-    [OAK-11984] - Support UserId Change for External Users
-    [OAK-11997] - Log slow Mongo queries in DocumentNodeStore
-
-Task
-
-    [OAK-11892] - Expose hidden mount for elasticsearch indexes in IndexStats
-    [OAK-11935] - Upgrade oak-blob-cloud aws java sdk from 1.x to 2.x
-    [OAK-11937] - Upgrade mockito-core to 5.20.0
-    [OAK-11938] - Upgrade assertj-core to 3.27.5
-    [OAK-11939] - Upgrade groovy version to 3.0.25
-    [OAK-11940] - Upgrade org.jetbrains.annotations to 26.0.2-1
-    [OAK-11942] - jdk 25 is unhappy with annotations on shaded types not directly referenced in the POM
-    [OAK-11943] - Upgrade netty version to 4.1.127.Final
-    [OAK-11944] - Upgrade aws-java-sdk-s3 version to 1.12.791
-    [OAK-11957] - oak-benchmarks/oak-it-osgi: update commons-compress dependency to 1.28.0
-    [OAK-11962] - Update commons-lang3 dependency to 3.19.0
-    [OAK-11964] - refactor parallel compaction inheritance
-    [OAK-11968] - SystemPropertySupplier should not declare IllegalArgumentExceptions
-    [OAK-11970] - Update MongoDockerRule to use Mongo 8 docker image
-    [OAK-11971] - Update MongodProcess to use Mongo 8 process
-    [OAK-11981] - blob-plugins - remove use of TransientFileFactory
-    [OAK-11983] - benchmarks: remove jackrabbit-core dependency
-    [OAK-11985] - Add MongoServerUnavailableException to transient error list
-    [OAK-11994] - [oak-run] remove dependency to joda-time
-    [OAK-11996] - Expand oak/docs/participating wrt to test coverage and Sonar
-    [OAK-11998] - Bump elasticsearch version to 8.19.5 / lucene 9.12.2
-
+** Task
+    * [OAK-10342] - Update Apache Parent POM to version 37
+    * [OAK-11941] - Upgrade (shaded) Guava to 33.5.0
+    * [OAK-11975] - Use Mockito as an agent in Oak
+    * [OAK-12056] - Speed up NamespaceRegistryCommandTest by reusing the NodeStore across tests.
+    * [OAK-12059] - Update Oak trunk to Jackrabbit 2.22.3
+    * [OAK-12063] - Feature toggle cleanup
+    * [OAK-12065] - Create StripedUtil class for lock stripping
+    * [OAK-12073] - Create UninterruptibleUtils in oak-commons
+    * [OAK-12082] - add test coverage for org.apache.jackrabbit.oak.jcr.xml.BufferedStringValue
+    * [OAK-12084] - Move GCGeneration class to exported SPI package
+    * [OAK-12087] - bump netty version to 4.1.131.Final
+    * [OAK-12088] - Fix timeout issue while uploading multiple files on AWS
+    * [OAK-12090] - Update commons-lang3 dependency to 3.20.0
+    * [OAK-12092] - Update commons-text dependency to 1.15.0
+    * [OAK-12103] - MongoDocumentStore: improve diagnostics for too large docs in request payloads
+    * [OAK-12105] - run/lucene: update gson dependencies to 2.13.2
+    * [OAK-12109] - MongoDocumentStore: improve diagnostics for too large docs in bulk request payloads
 
 In addition to the above-mentioned changes, this release contains all
 changes up to the previous release.

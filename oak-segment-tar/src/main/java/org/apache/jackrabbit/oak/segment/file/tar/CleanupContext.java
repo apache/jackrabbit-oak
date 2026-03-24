@@ -17,6 +17,8 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar;
 
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
+
 import java.util.Collection;
 import java.util.UUID;
 

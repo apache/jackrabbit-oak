@@ -25,6 +25,8 @@ import java.util.Properties;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v8.AzureBlobStoreBackendV8;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
@@ -35,18 +37,34 @@ import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AzureDataStore extends AbstractSharedCachingDataStore implements ConfigurableDataRecordAccessProvider {
+
+    private static final Logger log = LoggerFactory.getLogger(AzureDataStore.class);
+
     private int minRecordLength = 16*1024;
 
     protected Properties properties;
 
-    private AzureBlobStoreBackend azureBlobStoreBackend;
+    private AbstractAzureBlobStoreBackend azureBlobStoreBackend;
+
+    private static final String AZURE_SDK_12_ENABLED = "blob.azure.v12.enabled";
 
     @Override
     protected AbstractSharedBackend createBackend() {
-        azureBlobStoreBackend = new AzureBlobStoreBackend();
-        if (null != properties) {
+        boolean useAzureSdkV12 = SystemPropertySupplier.create(AZURE_SDK_12_ENABLED, false).get();
+
+        if (useAzureSdkV12) {
+            log.info("Starting blob store using Azure SDK 12");
+            azureBlobStoreBackend = new AzureBlobStoreBackend();
+        } else {
+            log.info("Starting blob store using Azure SDK 8");
+            azureBlobStoreBackend = new AzureBlobStoreBackendV8();
+        }
+
+        if (properties != null) {
             azureBlobStoreBackend.setProperties(properties);
         }
         return azureBlobStoreBackend;
@@ -74,7 +92,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
     //
     @Override
     public void setDirectUploadURIExpirySeconds(int seconds) {
-        if (null != azureBlobStoreBackend) {
+        if (azureBlobStoreBackend != null) {
             azureBlobStoreBackend.setHttpUploadURIExpirySeconds(seconds);
         }
     }
@@ -87,15 +105,15 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
     @Nullable
     @Override
     public DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
-            throws IllegalArgumentException, DataRecordUploadException {
+            throws DataRecordUploadException {
         return initiateDataRecordUpload(maxUploadSizeInBytes, maxNumberOfURIs, DataRecordUploadOptions.DEFAULT);
     }
 
     @Nullable
     @Override
     public DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs, @NotNull final DataRecordUploadOptions options)
-            throws IllegalArgumentException, DataRecordUploadException {
-        if (null == azureBlobStoreBackend) {
+            throws DataRecordUploadException {
+        if (azureBlobStoreBackend == null) {
             throw new DataRecordUploadException("Backend not initialized");
         }
         return azureBlobStoreBackend.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURIs, options);
@@ -103,9 +121,9 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
 
     @NotNull
     @Override
-    public DataRecord completeDataRecordUpload(String uploadToken)
-            throws IllegalArgumentException, DataRecordUploadException, DataStoreException {
-        if (null == azureBlobStoreBackend) {
+    public DataRecord completeDataRecordUpload(@NotNull String uploadToken)
+            throws DataRecordUploadException, DataStoreException {
+        if (azureBlobStoreBackend == null) {
             throw new DataRecordUploadException("Backend not initialized");
         }
         return azureBlobStoreBackend.completeHttpUpload(uploadToken);
@@ -113,7 +131,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
 
     @Override
     public void setDirectDownloadURIExpirySeconds(int seconds) {
-        if (null != azureBlobStoreBackend) {
+        if (azureBlobStoreBackend != null) {
             azureBlobStoreBackend.setHttpDownloadURIExpirySeconds(seconds);
         }
     }
@@ -127,7 +145,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
     @Override
     public URI getDownloadURI(@NotNull DataIdentifier identifier,
                               @NotNull DataRecordDownloadOptions downloadOptions) {
-        if (null != azureBlobStoreBackend) {
+        if (azureBlobStoreBackend != null) {
             return azureBlobStoreBackend.createHttpDownloadURI(identifier, downloadOptions);
         }
         return null;

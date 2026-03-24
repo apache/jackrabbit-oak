@@ -24,7 +24,7 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCTy
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 class TailCompactionStrategy extends AbstractCompactionStrategy {

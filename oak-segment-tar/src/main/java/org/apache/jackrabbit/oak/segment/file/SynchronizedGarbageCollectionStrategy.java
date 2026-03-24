@@ -74,4 +74,11 @@ class SynchronizedGarbageCollectionStrategy implements GarbageCollectionStrategy
         }
     }
 
+    @Override
+    public List<String> cleanup(Context context, CompactionResult compactionResult) throws IOException {
+        synchronized (lock) {
+            return strategy.cleanup(context, compactionResult);
+        }
+    }
+
 }

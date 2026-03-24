@@ -28,15 +28,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.channels.UnresolvedAddressException;
 import java.time.Duration;
 import java.util.Set;
+import java.util.concurrent.TimeoutException;
 
 public class AzureRepositoryLock implements RepositoryLock {
 
     private static final Logger log = LoggerFactory.getLogger(AzureRepositoryLock.class);
 
     private static final int TIMEOUT_SEC = Integer.getInteger("oak.segment.azure.lock.timeout", 0);
-    private static final Integer LEASE_RENEWAL_TIMEOUT_MS = 5000;
+
+    public static final String LEASE_RENEWAL_TIMEOUT_PROP = "oak.segment.azure.lock.leaseRenewalTimeoutInMs";
+    private static final int LEASE_RENEWAL_TIMEOUT_MS = Integer.getInteger(LEASE_RENEWAL_TIMEOUT_PROP, 5000);
 
     public static final String LEASE_DURATION_PROP = "oak.segment.azure.lock.leaseDurationInSec";
     private final int leaseDuration = Integer.getInteger(LEASE_DURATION_PROP, 60);
@@ -160,6 +164,8 @@ public class AzureRepositoryLock implements RepositoryLock {
                         } else {
                             log.warn("Could not renew lease due to storage exception. Retry in progress ... ", e);
                         }
+                    } else if (isTransientClientSideException(e)) {
+                        log.warn("Could not renew the lease due to transient client-side error. Retry in progress ...", e);
                     } else {
                         log.error("Can't renew the lease", e);
                         shutdownHook.run();
@@ -209,6 +215,33 @@ public class AzureRepositoryLock implements RepositoryLock {
 
     private boolean isInError() {
         return inError;
+    }
+
+    /**
+     * Checks if the exception is a transient client-side exception that should be retried.
+     * This includes timeouts and IO/network errors that can occur when communicating with Azure.
+     * <p>
+     * Per Azure SDK documentation, the timeout parameter causes a RuntimeException to be raised.
+     * Reactor-core throws IllegalStateException with message "Timeout on blocking read" when
+     * the timeout expires (see BlockingSingleSubscriber.blockingGet in reactor-core).
+     * <p>
+     * {@link java.nio.channels.UnresolvedAddressException} (extends IllegalArgumentException)
+     * can occur when DNS resolution temporarily fails.
+     * @param e the exception to check
+     * @return true if this is a transient exception that should be retried
+     */
+    private boolean isTransientClientSideException(Exception e) {
+        Throwable current = e;
+        while (current != null) {
+            if (current instanceof TimeoutException ||
+                current instanceof IOException ||
+                current instanceof IllegalStateException ||
+                current instanceof UnresolvedAddressException) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     private void waitABit(long millis) {

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
+import com.azure.core.http.policy.HttpPipelinePolicy;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
@@ -72,15 +73,14 @@ public class AzuriteDockerRule extends ExternalResource {
         return new Statement() {
             @Override
             public void evaluate() throws Throwable {
-                try {
-                    before();
-                } catch (IllegalStateException e) {
-                    Assume.assumeNoException(STARTUP_EXCEPTION.get());
-                    throw e;
-                }
-
                 List<Throwable> errors = new ArrayList<Throwable>();
                 try {
+                    try {
+                        before();
+                    } catch (IllegalStateException e) {
+                        Assume.assumeNoException(STARTUP_EXCEPTION.get());
+                        throw e;
+                    }
                     base.evaluate();
                 } catch (Throwable t) {
                     errors.add(t);
@@ -139,5 +139,41 @@ public class AzuriteDockerRule extends ExternalResource {
 
     public int getMappedPort() {
         return azuriteContainer.getMappedPort(10000);
+    }
+
+    /**
+     * Creates a BlobContainerClient with custom HTTP pipeline policies.
+     * Useful for testing scenarios like injecting delays or errors.
+     *
+     * @param containerName the container name
+     * @param retryOptions  retry options (can be null)
+     * @param policies      additional HTTP pipeline policies to add
+     * @return the configured BlobContainerClient
+     */
+    public BlobContainerClient getContainerClientWithPolicies(String containerName,
+                                                               RequestRetryOptions retryOptions,
+                                                               HttpPipelinePolicy... policies) {
+        String blobEndpoint = "BlobEndpoint=" + getBlobEndpoint();
+        String accountName = "AccountName=" + ACCOUNT_NAME;
+        String accountKey = "AccountKey=" + ACCOUNT_KEY;
+
+        BlobServiceClientBuilder builder = new BlobServiceClientBuilder()
+                .endpoint(getBlobEndpoint())
+                .connectionString(("DefaultEndpointsProtocol=http;" + accountName + ";" + accountKey + ";" + blobEndpoint));
+
+        // Add custom policies first
+        for (HttpPipelinePolicy policy : policies) {
+            builder.addPolicy(policy);
+        }
+
+        // Add logging policy
+        builder.addPolicy(new AzureHttpRequestLoggingTestingPolicy());
+
+        if (retryOptions != null) {
+            builder.retryOptions(retryOptions);
+        }
+
+        BlobServiceClient blobServiceClient = builder.buildClient();
+        return blobServiceClient.getBlobContainerClient(containerName);
     }
 }

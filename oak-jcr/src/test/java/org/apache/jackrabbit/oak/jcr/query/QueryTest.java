@@ -18,6 +18,10 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
+import static org.apache.jackrabbit.oak.spi.commit.CommitInfo.EMPTY;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -41,6 +45,7 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.ValueFactory;
+import javax.jcr.Workspace;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.query.InvalidQueryException;
 import javax.jcr.query.Query;
@@ -60,6 +65,8 @@ import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -136,6 +143,37 @@ public class QueryTest extends AbstractRepositoryTest {
             it.next();
         }
         assertEquals(90, count);
+    }
+
+    @Test
+    public void traversalExtendedDiagnosis() throws Exception {
+        Session session = getAdminSession();
+        Workspace workspace = session.getWorkspace();
+        NodeBuilder rootBuilder = getNodeStore().getRoot().builder();
+        createIndexDefinition(
+                rootBuilder.child(INDEX_DEFINITIONS_NAME), "foo", true, false,
+                Set.of("foo"), null);
+        getNodeStore().merge(rootBuilder, EmptyHook.INSTANCE, EMPTY);
+        session.refresh(true);
+        rootBuilder.child("a").setProperty("foo", "abc");
+        //set reindex=true without a CommitHook to simulate an ongoing re-indexing process.
+        rootBuilder.child(INDEX_DEFINITIONS_NAME).child("foo").setProperty(REINDEX_PROPERTY_NAME, true);
+        getNodeStore().merge(rootBuilder, EmptyHook.INSTANCE, EMPTY);
+        session.refresh(true);
+        Node foo = session.getNode("/" + INDEX_DEFINITIONS_NAME).getNode("foo");
+        assertTrue(foo.getProperty(REINDEX_PROPERTY_NAME).getBoolean());
+        Query query = workspace.getQueryManager().createQuery("select * from [nt:base] where [x] = 1 or [y] = 2 option(traversal fail)", Query.JCR_SQL2);
+        try {
+            query.execute();
+            fail("traversing query should not succeed");
+        } catch (RepositoryException e) {
+            String message = e.getMessage();
+            assertTrue(message.contains("Traversal query (query without index)"));
+            assertTrue(message.contains("Execution plan"));
+            assertTrue(message.contains("[nt:base] as [nt:base] /* traverse"));
+            assertTrue(message.contains("Note that the following indexes were re-indexing at query time"));
+            assertTrue(message.contains("foo"));
+        }
     }
 
     @Test

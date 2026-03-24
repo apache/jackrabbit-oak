@@ -16,8 +16,6 @@
   -->
 # Oak Composite NodeStore
 
-**The documentation of the Composite NodeStore implementation is work-in-progress. Please ask on oak-dev for things that are missing or unclear.**
-
 ## Overview
 
 The `CompositeNodeStore` is a `NodeStore` implementation that wraps multiple `NodeStore` instances
@@ -37,25 +35,31 @@ The mount name for the _default mount_ is always `composite-global` and mapped t
 
 Each non-default mount defines a number of entry path's which are used from the underlying `NodeStore`. Other parts outside the `mountPaths` are hidden.
 
-## Seed
+## Seeding
 
-In order to pre-populate the empty default store one can use the seed mount. That is automatically copied over to the default `NodeStore` if the latter is not yet initialized as Composite default store (i.e. is lacking the `:composite` child node below its root). This happens at most once!
+### Default Mount
+
+In order to pre-populate the empty default mount one can use the seed mount. That is automatically copied over to the default `NodeStore` if the latter is not yet initialized as Composite default store (i.e. is lacking the `:composite` child node below its root). This happens at most once!
+
+### Non-default Mounts
+
+In order to bootstrap/initialize the NodeStore which later is used as non-default mount, one needs to start Oak without the Composite NodeStore first. Only then it is possible to populate the NodeStore later acting as non-default mount (as only then one can write to it).
 
 ## Design limitations
 
 ### Read-only mounts
 
-The implementation allows for a default mount, which is read-write, and for any number of 
-additional mounts, which are read-only. This limitation is by design and is not expected to
+The implementation allows for a default mount, which is *read-write*, and for any number of 
+additional mounts, which are *read-only*. This limitation is by design and is not expected to
 be removed in future Oak version.
 
 There are two major reasons for this limitation
 
-1. Having a commit run accross two or more multiple node stores is complicated in terms of
-implementation. Atomic commits will be very hard to ensure in a performant manner across
-multiple stores. Additionally, it will impose implementation burders to each NodeStore
+1. Having a commit run across two or more node stores is complicated to implement.
+Atomic commits will be very hard to ensure in a performant manner under these circumstances.
+Additionally, it will impose implementation burdens to each NodeStore
 in order to support this special-case scenario.
-1. There are multiple Oak subsystems that are not composite-aware and that would need to 
+1. There are multiple Oak subsystems that are not CompositeNodeStore aware and that would need to 
 changed for that to happen, and this would again complicate the implementation for a
 special-case scenario.
 
@@ -79,7 +83,7 @@ This constraint also means that:
 
 * versionable nodes are not permitted in non-default mounts, as they are referenceable
 * `nt:resource` nodes (usually found as children of `nt:file` nodes) are not permitted. It is recommended
-  to replace them with `oak:Resource` ( see also [OAK-4567](https://issues.apache.org/jira/browse/OAK-4567) ).
+  to replace them with `oak:Resource` (see also [OAK-4567](https://issues.apache.org/jira/browse/OAK-4567)).
 
 ## Checking for read-only access
 
@@ -89,6 +93,3 @@ read-only status is surfaced via `Session.hasCapability`. See [OAK-6563][OAK-656
 
 [OAK-6563]: https://issues.apache.org/jira/browse/OAK-6563
 
-## Bootstrapping
-
-In order to bootstrap/initialize the NodeStore which later is used as non-default mount, one needs to start Oak without the Composite NodeStore first. Only then it is possible to populate the NodeStore later acting as non-default mount (as only then one can write to it).

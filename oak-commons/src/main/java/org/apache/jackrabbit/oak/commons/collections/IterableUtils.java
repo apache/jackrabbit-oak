@@ -451,4 +451,39 @@ public class IterableUtils {
 
         return last;
     }
+
+    /**
+     * Returns {@code true} if the elements of the given {@link Iterable} are in
+     * non-decreasing order according to the supplied {@link Comparator}.
+     * Consecutive elements {@code a}, {@code b} are considered in order if
+     * {@code comparator.compare(a, b) <= 0}.
+     * <p>
+     * Empty iterables and single-element iterables are always considered to be in order.
+     *
+     * @param iterable   the elements to check; must not be {@code null}
+     * @param comparator the comparator defining the desired order; must not be {@code null}
+     * @param <T>        the element type
+     * @return {@code true} if the iterable is in non-decreasing order according to
+     *         {@code comparator}, otherwise {@code false}
+     * @throws NullPointerException if {@code iterable} or {@code comparator} is {@code null}
+     */
+    public static <T> boolean isInOrder(final Iterable<? extends T> iterable, final Comparator<T> comparator) {
+        Objects.requireNonNull(iterable, "iterable");
+        Objects.requireNonNull(comparator, "comparator");
+        Iterator<? extends T> it = iterable.iterator();
+        if (!it.hasNext()) {
+            return true;
+        }
+
+        T prev = it.next();
+        while (it.hasNext()) {
+            T next = it.next();
+            if (comparator.compare(prev, next) > 0) {
+                return false;
+            }
+            prev = next;
+        }
+        return true;
+    }
+
 }

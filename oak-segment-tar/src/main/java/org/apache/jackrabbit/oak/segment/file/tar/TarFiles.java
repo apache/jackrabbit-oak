@@ -42,7 +42,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -59,6 +58,7 @@ import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.stats.CounterStats;
@@ -338,7 +338,7 @@ public class TarFiles implements Closeable {
 
     private final long maxFileSize;
 
-    private SegmentArchiveManager archiveManager;
+    private final SegmentArchiveManager archiveManager;
 
     /**
      * Guards access to the {@link #readers} and {@link #writer} references.
@@ -907,22 +907,15 @@ public class TarFiles implements Closeable {
 
         for (TarReader reader : iterable(head)) {
             if (fileName.equals(reader.getFileName())) {
-                Map<String, Set<UUID>> indices = getIndices();
-                Map<UUID, UUID> uuidDeduplicationMap = indices.values().stream()
-                        .flatMap(Set::stream)
-                        .collect(Collectors.toUnmodifiableMap(Function.identity(), Function.identity()));
-                UnaryOperator<UUID> uuidDeduplicator = uuid -> uuidDeduplicationMap.getOrDefault(uuid, uuid);
-                Set<UUID> uuids = indices.get(reader.getFileName());
-                Map<UUID, Set<UUID>> edges = reader.getGraph().getEdges();
-                // Create a map covering all UUIDs contained in the file's index and deduplicate
-                // all UUID instances based on the UUIDs already present in _all_ archives' indices.
-                // This helps to keep the memory overhead during the lifetime of graph-maps to a minimum.
-                return uuids.stream().collect(Collectors.toUnmodifiableMap(
-                        uuidDeduplicator,
-                        uuid -> edges.getOrDefault(uuid, emptySet()).stream()
-                                .map(uuidDeduplicator)
-                                .collect(Collectors.toUnmodifiableSet())));
-
+                SegmentGraph graph = reader.getGraph();
+                Set<UUID> uuids = reader.getUUIDs();
+                return uuids.stream()
+                        .collect(Collectors.toMap(
+                                Function.identity(),
+                                graph::getEdges,
+                                (a, b) -> { a.addAll(b); return a; },
+                                () -> new HashMap<>(Math.toIntExact(uuids.size()), 1.0f)
+                        ));
             }
         }
         return emptyMap();
@@ -938,7 +931,7 @@ public class TarFiles implements Closeable {
             lock.readLock().unlock();
         }
 
-        Map<String, Set<UUID>> index = new HashMap<>();
+        Map<String, Set<UUID>> index = new HashMap<>(Math.toIntExact(getSize(head)), 1.0f);
         for (TarReader reader : iterable(head)) {
             index.put(reader.getFileName(), reader.getUUIDs());
         }

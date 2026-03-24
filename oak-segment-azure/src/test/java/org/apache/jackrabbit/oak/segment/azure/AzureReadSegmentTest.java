@@ -24,7 +24,6 @@ import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
@@ -61,29 +60,20 @@ public class AzureReadSegmentTest {
     @Test(expected = SegmentNotFoundException.class)
     public void testReadNonExistentSegmentRepositoryReachable() throws IOException, InvalidFileStoreVersionException, BlobStorageException {
         AzurePersistence p = new AzurePersistence(readBlobContainerClient, writeBlobContainerClient, noRetryBlobContainerClient, "oak");
-        FileStore fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();
-        SegmentId id = new SegmentId(fs, 0, 0);
-
-        try {
+        try (FileStore fs = FileStoreTestUtil.createFileStore(new File("target"), p)) {
+            SegmentId id = new SegmentId(fs, 0, 0);
             fs.readSegment(id);
-        } finally {
-            fs.close();
         }
     }
 
     @Test(expected = RepositoryNotReachableException.class)
     public void testReadExistentSegmentRepositoryNotReachable() throws IOException, InvalidFileStoreVersionException, BlobStorageException {
         AzurePersistence p = new ReadFailingAzurePersistence(readBlobContainerClient, writeBlobContainerClient, noRetryBlobContainerClient, "oak");
-        FileStore fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();
-
-        SegmentId id = new SegmentId(fs, 0, 0);
-        byte[] buffer = new byte[2];
-
-        try {
+        try (FileStore fs = FileStoreTestUtil.createFileStore(new File("target"), p)) {
+            SegmentId id = new SegmentId(fs, 0, 0);
+            byte[] buffer = new byte[2];
             fs.writeSegment(id, buffer, 0, 2);
             fs.readSegment(id);
-        } finally {
-            fs.close();
         }
     }
 

@@ -184,22 +184,22 @@ public class SegmentPreloaderTest {
             long msb = uuid.getMostSignificantBits();
             long lsb = uuid.getLeastSignificantBits();
 
-            DispatchTask task1 = preloader.createDispatchTask(msb, lsb, 1);
+            DispatchTask task1 = createDispatchTask(preloader, msb, lsb, 1);
             assertEquals(task1, task1);
 
-            DispatchTask task2 = preloader.createDispatchTask(msb, lsb, 1);
+            DispatchTask task2 = createDispatchTask(preloader, msb, lsb, 1);
             assertEquals(task1, task2);
 
-            DispatchTask task3 = preloader.createDispatchTask(msb, lsb, 0);
+            DispatchTask task3 = createDispatchTask(preloader, msb, lsb, 0);
             assertNotEquals(task1, task3);
 
-            DispatchTask task4 = preloader.createDispatchTask(msb, lsb + 1, 1);
+            DispatchTask task4 = createDispatchTask(preloader, msb, lsb + 1, 1);
             assertNotEquals(task1, task4);
 
-            DispatchTask task5 = preloader.createDispatchTask(msb + 1, lsb, 1);
+            DispatchTask task5 = createDispatchTask(preloader, msb + 1, lsb, 1);
             assertNotEquals(task1, task5);
 
-            assertNotEquals(task1, new Object());
+            assertNotEquals(new Object(), task1);
         });
     }
 
@@ -207,7 +207,7 @@ public class SegmentPreloaderTest {
     public void testDispatchTaskArgumentValidation() throws IOException {
         withSegmentPreloader(preloader -> {
             UUID uuid = UUID.randomUUID();
-            assertThrows(IllegalArgumentException.class, () -> preloader.createDispatchTask(uuid.getMostSignificantBits(), uuid.getLeastSignificantBits(), 3));
+            assertThrows(IllegalArgumentException.class, () -> createDispatchTask(preloader, uuid.getMostSignificantBits(), uuid.getLeastSignificantBits(), 3));
         });
     }
 
@@ -216,8 +216,8 @@ public class SegmentPreloaderTest {
         withSegmentPreloader(preloader -> {
             UUID uuid = UUID.randomUUID();
             assertEquals(
-                    "DispatchTask{segmentId=" + uuid + ", depth=1}",
-                    preloader.createDispatchTask(uuid.getMostSignificantBits(), uuid.getLeastSignificantBits(), 1).toString());
+                    "DispatchTask{segmentId=" + uuid + ", depth=1, references=0}",
+                    createDispatchTask(preloader, uuid.getMostSignificantBits(), uuid.getLeastSignificantBits(), 1).toString());
         });
     }
 
@@ -225,9 +225,9 @@ public class SegmentPreloaderTest {
     public void testDispatchTaskCompareTo() throws IOException {
         withSegmentPreloader(preloader -> {
             UUID uuid = UUID.randomUUID();
-            DispatchTask task1 = preloader.createDispatchTask(uuid.getMostSignificantBits(), uuid.getLeastSignificantBits(), 2);
-            DispatchTask task2 = preloader.createDispatchTask(uuid.getMostSignificantBits(), uuid.getLeastSignificantBits(), 1);
-            DispatchTask task3 = preloader.createDispatchTask(uuid.getMostSignificantBits(), uuid.getLeastSignificantBits(), 2);
+            DispatchTask task1 = createDispatchTask(preloader, uuid.getMostSignificantBits(), uuid.getLeastSignificantBits(), 2);
+            DispatchTask task2 = createDispatchTask(preloader, uuid.getMostSignificantBits(), uuid.getLeastSignificantBits(), 1);
+            DispatchTask task3 = createDispatchTask(preloader, uuid.getMostSignificantBits(), uuid.getLeastSignificantBits(), 2);
             List<DispatchTask> tasks = new ArrayList<>();
             tasks.add(task1);
             tasks.add(task2);
@@ -273,6 +273,15 @@ public class SegmentPreloaderTest {
         });
     }
 
+    @Test
+    public void testAdaptPreloadDepth() {
+        assertEquals(4, SegmentPreloader.adaptPreloadDepth(4, 0.0));
+        assertEquals(3, SegmentPreloader.adaptPreloadDepth(4, 0.25));
+        assertEquals(2, SegmentPreloader.adaptPreloadDepth(4, 0.5));
+        assertEquals(1, SegmentPreloader.adaptPreloadDepth(4, 0.75));
+        assertEquals(1, SegmentPreloader.adaptPreloadDepth(4, 1.0));
+    }
+
     private void withSegmentPreloader(Consumer<SegmentPreloader> withPreloader) throws IOException {
         MemoryTestCache cache = new MemoryTestCache();
         PersistentCachePreloadingConfiguration config =
@@ -287,6 +296,10 @@ public class SegmentPreloaderTest {
         String line = journalFileReader.readLine();
         String[] parts = line.split(":");
         return UUID.fromString(parts[0]);
+    }
+
+    private static @NotNull DispatchTask createDispatchTask(SegmentPreloader preloader, long msb, long lsb, int depth) {
+        return preloader.createDispatchTask(msb, lsb, SegmentIds.EMPTY, depth);
     }
 
     private void assertReferencedSegmentsLoaded(Set<UUID> referencedSegments, MemoryTestCache underlyingCache, SegmentPreloader preloadingCache) {

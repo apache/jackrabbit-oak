@@ -23,7 +23,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType.FULL;
 
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 
 class FullCompactionStrategy extends AbstractCompactionStrategy {
 

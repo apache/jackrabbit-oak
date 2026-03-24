@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.89-SNAPSHOT</version>
+    <version>1.93-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -126,9 +126,6 @@
             <Embed-Dependency>
               oak-search;scope=compile|runtime;inline=true,
                 lucene-*;inline=true,
-              <!-- TODO FIXME OAK-3598 -->
-              oak-core-spi;inline="org/apache/jackrabbit/oak/cache/AbstractCacheStats.class|org/apache/jackrabbit/oak/cache/CacheStats.class"
-              <!-- TODO FIXME OAK-3598 -->
             </Embed-Dependency>
           </instructions>
         </configuration>
@@ -178,11 +175,6 @@
       <scope>provided</scope>
     </dependency>
 
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-shaded-guava</artifactId>
-      <version>${project.version}</version>
-    </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-api</artifactId>
@@ -443,7 +435,6 @@
     <dependency>
       <groupId>com.google.code.gson</groupId>
       <artifactId>gson</artifactId>
-      <version>2.11.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>

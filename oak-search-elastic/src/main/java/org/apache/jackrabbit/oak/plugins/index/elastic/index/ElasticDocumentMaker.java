@@ -165,19 +165,6 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
                 || pd.getType() == Type.DOUBLE.tag();
     }
 
-    /**
-     * ElasticDocument can be updated. If a property gets deleted from the node, we need to add it to the list of properties to remove.
-     * This is needed to remove the property from the index. See @{link ElasticBulkProcessorHandler#updateDocument} for more details.
-     */
-    @Override
-    protected boolean addTypedFields(ElasticDocument doc, PropertyState property, String pname, PropertyDefinition pd) {
-        boolean added = super.addTypedFields(doc, property, pname, pd);
-        if (!added) {
-            doc.removeProperty(pname);
-        }
-        return added;
-    }
-
     @Override
     protected void indexTypedProperty(ElasticDocument doc, PropertyState property, String propertyName, PropertyDefinition pd, int i) {
         // Get the Type tag from the defined index definition here - and not from the actual persisted property state - this way in case
@@ -203,11 +190,16 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
                 f = property.getValue(Type.DOUBLE, i);
             } else if (tag == Type.BOOLEAN.tag()) {
                 f = property.getValue(Type.BOOLEAN, i).toString();
+            } else if (tag == Type.BINARY.tag()) {
+                // ignore - never call getValue(Type.STRING) on a binary (see OAK-12133)
+                f = null;
             } else {
                 f = property.getValue(Type.STRING, i);
             }
 
-            doc.addProperty(fieldName, f);
+            if (f != null) {
+                doc.addProperty(fieldName, f);
+            }
         } catch (Exception e) {
             if (!LOG_SILENCER.silence(LOG_KEY_COULD_NOT_CONVERT_PROPERTY)) {
                 LOG.warn(
@@ -255,10 +247,9 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     }
 
     @Override
-    protected boolean indexSimilarityTag(ElasticDocument doc, PropertyState property) {
-        String val = property.getValue(Type.STRING);
-        if (!val.isEmpty()) {
-            doc.addSimilarityTag(val);
+    protected boolean indexSimilarityTag(ElasticDocument doc, String value) {
+        if (!value.isEmpty()) {
+            doc.addSimilarityTag(value);
             return true;
         }
         return false;
@@ -297,5 +288,14 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
             return true;
         }
         return false;
+    }
+
+    /**
+     * ElasticDocument can be updated. If a property gets deleted from the node, we need to add it to the list of properties to remove.
+     * This is needed to remove the property from the index. See @{link ElasticBulkProcessorHandler#updateDocument} for more details.
+     */
+    @Override
+    protected void removeProperty(ElasticDocument doc, String propertyName) {
+        doc.removeProperty(propertyName);
     }
 }

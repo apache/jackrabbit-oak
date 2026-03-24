@@ -21,7 +21,7 @@
     <parent>
         <artifactId>oak-parent</artifactId>
         <groupId>org.apache.jackrabbit</groupId>
-        <version>1.89-SNAPSHOT</version>
+        <version>1.93-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -38,29 +38,51 @@
                 <configuration>
                     <instructions combine.self="override">
                         <Import-Package>
-                            com.fasterxml.jackson.annotation;resolution:=optional,
-                            com.fasterxml.jackson.databind*;resolution:=optional,
-                            com.fasterxml.jackson.dataformat.xml;resolution:=optional,
-                            com.fasterxml.jackson.datatype*;resolution:=optional,
-                            com.azure.identity.broker.implementation;resolution:=optional,
-                            com.azure.xml;resolution:=optional,
-                            com.microsoft.aad.msal4jextensions*;resolution:=optional,
+                            <!-- Optional system packages -->
                             com.sun.net.httpserver;resolution:=optional,
                             sun.misc;resolution:=optional,
                             net.jcip.annotations;resolution:=optional,
                             org.objectweb.asm;resolution:=optional,
-                            com.nimbusds.langtag;resolution:=optional,
                             com.sun.jna*;resolution:=optional,
-                            io.netty.channel.epoll;resolution:=optional,
-                            io.netty.handler.codec.*;resolution:=optional,
+
+                            <!-- Packages not needed (truly excluded) -->
                             !com.google.*,
-                            !org.checkerframework.*,
                             !android.os,
+                            !com.microsoft.aad.*,
+
+                            <!-- Exclude all embedded Azure packages -->
+                            !com.azure.*,
+                            !com.microsoft.azure.*,
+
+                            <!-- Exclude all embedded Netty packages -->
+                            !io.netty.*,
+
+                            <!-- Exclude all embedded Reactor packages -->
+                            !reactor.*,
+                            !org.reactivestreams,
+
+                            <!-- Exclude all embedded Nimbusds/OAuth packages -->
+                            !com.nimbusds.*,
+
+                            <!-- Exclude all embedded JSON packages -->
+                            !net.minidev.*,
+
+                            <!-- Exclude Stax2 (embedded) -->
+                            !org.codehaus.stax2.*,
+
+                            <!-- Exclude all embedded Jackson packages -->
+                            !com.fasterxml.jackson.*,
+
+                            <!-- Import everything else (Oak, Guava, Commons, etc.) -->
                             *
                         </Import-Package>
                         <Export-Package>
-                            org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage
+                            !*
                         </Export-Package>
+                        <Private-Package>
+                            org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.*,
+                            io.netty.util.internal.shaded.*
+                        </Private-Package>
                         <DynamicImport-Package>sun.io</DynamicImport-Package>
                         <Embed-Dependency>
                             azure-storage,
@@ -68,7 +90,10 @@
                             azure-core,
                             azure-identity,
                             azure-json,
-                            guava,
+                            azure-xml,
+                            azure-storage-blob,
+                            azure-storage-common,
+                            azure-storage-internal-avro,
                             jsr305,
                             reactive-streams,
                             msal4j,
@@ -81,7 +106,9 @@
                             json-smart,
                             content-type,
                             accessors-smart,
-                            nimbus-jose-jwt
+                            nimbus-jose-jwt,
+                            jackson-*,
+                            stax2-api
                         </Embed-Dependency>
                         <!-- needed to override value from oak-parent; can be removed when OAK-6741 is resolved -->
                         <_plugin />
@@ -127,16 +154,10 @@
         <dependency>
             <groupId>javax.jcr</groupId>
             <artifactId>jcr</artifactId>
-            <version>2.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>jackrabbit-jcr-commons</artifactId>
-            <version>${jackrabbit.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.jackrabbit</groupId>
-            <artifactId>jackrabbit-data</artifactId>
             <version>${jackrabbit.version}</version>
         </dependency>
 
@@ -171,6 +192,14 @@
             <artifactId>azure-storage</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-blob</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-common</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-keyvault-core</artifactId>
         </dependency>
@@ -187,6 +216,16 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-json</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-xml</artifactId>
+        </dependency>
+        <!-- Transitive dependency of jackson-dataformat-xml, required for OSGi bundle resolution -->
+        <dependency>
+            <groupId>org.codehaus.woodstox</groupId>
+            <artifactId>stax2-api</artifactId>
+            <version>4.2.2</version>
         </dependency>
         <dependency>
             <groupId>org.reactivestreams</groupId>
@@ -288,26 +327,34 @@
             <artifactId>nimbus-jose-jwt</artifactId>
         </dependency>
 
-        <!-- Azure Guava dependency -->
+        <!-- Jackson dependencies - explicitly use version 2.17.3 -->
         <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>33.1.0-jre</version>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-xml</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>
-            <version>3.0.2</version>
         </dependency>
 
         <!-- Test dependencies -->
-        <dependency>
-            <groupId>org.apache.jackrabbit</groupId>
-            <artifactId>jackrabbit-data</artifactId>
-            <version>${jackrabbit.version}</version>
-            <classifier>tests</classifier>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-blob-plugins</artifactId>

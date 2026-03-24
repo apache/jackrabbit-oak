@@ -38,10 +38,11 @@ import org.apache.jackrabbit.oak.segment.SegmentWriterFactory;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.GarbageCollectionStrategy.SuccessfulGarbageCollectionListener;
 import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 class GarbageCollector {
 
@@ -111,6 +112,15 @@ class GarbageCollector {
      * because of a system restart).
      */
     private SegmentGCOptions.GCType lastCompactionType = FULL;
+
+    /**
+     * Result of the last compaction, or {@code null} if no compaction has been
+     * performed since this store was opened or since the last cleanup. Used by
+     * standalone cleanup (e.g. offline compaction via oak-run) to persist the
+     * GC journal entry.
+     */
+    @Nullable
+    private CompactionResult lastCompactionResult;
 
     private volatile boolean cancelRequested;
 
@@ -292,16 +302,30 @@ class GarbageCollector {
 
     synchronized CompactionResult compactFull(GarbageCollectionStrategy strategy) throws IOException {
         cancelRequested = false;
-        return strategy.compactFull(newGarbageCollectionContext(GC_COUNT.get()));
+        CompactionResult result = strategy.compactFull(newGarbageCollectionContext(GC_COUNT.get()));
+        if (result.requiresGCJournalEntry()) {
+            lastCompactionResult = result;
+        }
+        return result;
     }
 
     synchronized CompactionResult compactTail(GarbageCollectionStrategy strategy) throws IOException {
         cancelRequested = false;
-        return strategy.compactTail(newGarbageCollectionContext(GC_COUNT.get()));
+        CompactionResult result = strategy.compactTail(newGarbageCollectionContext(GC_COUNT.get()));
+        if (result.requiresGCJournalEntry()) {
+            lastCompactionResult = result;
+        }
+        return result;
     }
 
     synchronized List<String> cleanup(GarbageCollectionStrategy strategy) throws IOException {
         cancelRequested = false;
+        CompactionResult compactionResult = lastCompactionResult;
+        if (compactionResult != null) {
+            List<String> result = strategy.cleanup(newGarbageCollectionContext(GC_COUNT.get()), compactionResult);
+            lastCompactionResult = null;
+            return result;
+        }
         return strategy.cleanup(newGarbageCollectionContext(GC_COUNT.get()));
     }
 

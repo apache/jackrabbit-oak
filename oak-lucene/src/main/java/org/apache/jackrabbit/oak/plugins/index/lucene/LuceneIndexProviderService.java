@@ -26,11 +26,8 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -38,6 +35,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorHelper;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
@@ -79,7 +77,6 @@ import org.apache.lucene.analysis.util.TokenFilterFactory;
 import org.apache.lucene.analysis.util.TokenizerFactory;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.util.InfoStream;
-import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.annotations.Activate;
@@ -266,6 +263,7 @@ public class LuceneIndexProviderService {
     }
 
     public static final String REPOSITORY_HOME = "repository.home";
+    private static final int INDEX_COPIER_POOL_SIZE = 5;
 
     private LuceneIndexProvider indexProvider;
 
@@ -335,8 +333,6 @@ public class LuceneIndexProviderService {
 
     private ExecutorService executorService;
 
-    private int threadPoolSize;
-
     private ExtractedTextCache extractedTextCache;
 
     private boolean hybridIndex;
@@ -373,7 +369,6 @@ public class LuceneIndexProviderService {
         }
 
         whiteboard = new OsgiWhiteboard(bundleContext);
-        threadPoolSize = config.threadPoolSize();
         initializeIndexDir(bundleContext, config);
         initializeExtractedTextCache(bundleContext, config, statisticsProvider);
         tracker = createTracker(bundleContext, config);
@@ -572,24 +567,9 @@ public class LuceneIndexProviderService {
     }
 
     private ExecutorService createExecutor() {
-        ThreadPoolExecutor executor = new ThreadPoolExecutor(5, 5, 60L, TimeUnit.SECONDS,
-                new LinkedBlockingQueue<>(), new ThreadFactory() {
-            private final AtomicInteger counter = new AtomicInteger();
-            private final Thread.UncaughtExceptionHandler handler = (t, e) -> log.warn("Error occurred in asynchronous processing ", e);
-            @Override
-            public Thread newThread(@NotNull Runnable r) {
-                Thread thread = new Thread(r, createName());
-                thread.setDaemon(true);
-                thread.setPriority(Thread.MIN_PRIORITY);
-                thread.setUncaughtExceptionHandler(handler);
-                return thread;
-            }
-
-            private String createName() {
-                return "oak-lucene-" + counter.getAndIncrement();
-            }
-        });
-        executor.setKeepAliveTime(1, TimeUnit.MINUTES);
+        ThreadPoolExecutor executor = ExecutorHelper.linkedQueueExecutor(
+                INDEX_COPIER_POOL_SIZE, "oak-lucene-%d", 
+                (t, e) -> log.warn("Error occurred in asynchronous processing ", e));
         executor.allowCoreThreadTimeOut(true);
         return executor;
     }

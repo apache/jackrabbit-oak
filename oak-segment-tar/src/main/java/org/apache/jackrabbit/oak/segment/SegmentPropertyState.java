@@ -49,10 +49,13 @@ import javax.jcr.PropertyType;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
+import org.apache.jackrabbit.oak.commons.log.LogSilencer;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractPropertyState;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A property, which can read a value or list record from a segment. It
@@ -62,6 +65,10 @@ import org.jetbrains.annotations.NotNull;
  * of type "LIST" (for arrays).
  */
 public class SegmentPropertyState extends Record implements PropertyState {
+    private static final Logger LOG = LoggerFactory.getLogger(SegmentPropertyState.class);
+
+    private static final LogSilencer LOG_SILENCER = new LogSilencer(10_000, 64);
+
     @NotNull
     private final SegmentReader reader;
 
@@ -190,7 +197,33 @@ public class SegmentPropertyState extends Record implements PropertyState {
             return (T) reader.readBlob(id); // load binaries lazily
         }
 
-        String value = reader.readString(id);
+        // OAK-12133: Detect when trying to read a binary property as a string
+        Type<?> actualType = getType();
+        if (actualType.isArray()) {
+            actualType = actualType.getBaseType();
+        }
+        String message = null;
+        if (actualType == BINARY && type != BINARY) {
+            message = String.format(
+                "Attempting to read binary property '%s' as %s. " +
+                "This can fail if the binary is stored externally. " +
+                "Binary properties should be checked before getValue() is called.",
+                name, type);
+            if (!LOG_SILENCER.silence(name)) {
+                LOG.warn(message, new Exception("Stack trace"));
+            }
+        }
+
+        String value;
+        try {
+            value = reader.readString(id);
+        } catch (IllegalStateException e) {
+            if (message != null && e.getMessage() != null &&
+                    e.getMessage().contains("possibly trying to read a BLOB using getString")) {
+                throw new IllegalStateException(message, e);
+            }
+            throw e;
+        }
         if (type == STRING || type == URI || type == DATE
                 || type == NAME || type == PATH
                 || type == REFERENCE || type == WEAKREFERENCE) {

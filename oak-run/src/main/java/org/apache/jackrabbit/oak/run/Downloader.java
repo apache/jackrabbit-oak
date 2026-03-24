@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,8 +45,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -128,26 +126,8 @@ public class Downloader implements Closeable {
             this.checksumAlgorithm = null;
         }
         this.bufferSize = bufferSize;
-
-        // The maximum number of threads in each executor service,
-        // when using a LinkedBlockingQueue(), is corePoolSize.
-        // all other tasks are kept in the LinkedBlockingQueue, which
-        // is unbounded.
-        // (Using a bounded queue, such as SynchronousQueue,
-        // would result in RejectedExecutionHandler).
-        // We want to keep things simple and don't want
-        // to use back presssure or other mechanisms.
-        // So in summary, corePoolSize threads are used, per service.
-        this.executorService = new ThreadPoolExecutor(
-                corePoolSize, concurrency, 60L, TimeUnit.SECONDS,
-                new LinkedBlockingQueue<>(),
-                BasicThreadFactory.builder().namingPattern("downloader-%d").daemon().build()
-        );
-        this.executorServiceForParts = new ThreadPoolExecutor(
-                corePoolSize, concurrency, 60L, TimeUnit.SECONDS,
-                new LinkedBlockingQueue<>(),
-                BasicThreadFactory.builder().namingPattern("partDownloader-%d").daemon().build()
-        );
+        this.executorService = ExecutorHelper.linkedQueueExecutor(corePoolSize, "downloader-%d");
+        this.executorServiceForParts = ExecutorHelper.linkedQueueExecutor(corePoolSize, "partDownloader-%d");
         this.responses = new ArrayList<>();
     }
 

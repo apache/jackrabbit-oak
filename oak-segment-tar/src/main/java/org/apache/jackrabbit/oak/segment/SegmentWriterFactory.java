@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 
 public interface SegmentWriterFactory {
     SegmentWriter newSegmentWriter(GCGeneration generation);

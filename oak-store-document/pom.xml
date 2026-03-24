@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.89-SNAPSHOT</version>
+    <version>1.93-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -54,6 +54,16 @@
             </Export-Package>
             <Embed-Dependency>quartz;inline=org/quartz/CronExpression*|org/quartz/ValueSet*</Embed-Dependency>
           </instructions>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.rat</groupId>
+        <artifactId>apache-rat-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>.claude/**</exclude>
+            <exclude>AGENTS.md</exclude>
+          </excludes>
         </configuration>
       </plugin>
       <plugin>

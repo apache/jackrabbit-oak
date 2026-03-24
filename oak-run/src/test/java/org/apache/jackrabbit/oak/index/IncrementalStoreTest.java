@@ -143,8 +143,17 @@ public class IncrementalStoreTest {
         c.getDatabase().drop();
     }
 
+    static void resetSystemProperties() {
+        System.clearProperty(OAK_INDEXER_USE_LZ4);
+        System.clearProperty(OAK_INDEXER_USE_ZIP);
+        System.clearProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX);
+        System.clearProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING);
+        System.clearProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS);
+    }
+
     @Test
     public void testWithNoCompression() throws Exception {
+        resetSystemProperties();
         System.setProperty(OAK_INDEXER_USE_ZIP, "false");
         algorithm = IndexStoreUtils.compressionAlgorithm();
         incrementalFFSTest(false, false);
@@ -152,6 +161,7 @@ public class IncrementalStoreTest {
 
     @Test
     public void testWithGzipCompression() throws Exception {
+        resetSystemProperties();
         // LZ4 compression is used by default - so disable that, fallback is gzip
         System.setProperty(OAK_INDEXER_USE_LZ4, "false");
         algorithm = IndexStoreUtils.compressionAlgorithm();
@@ -160,12 +170,14 @@ public class IncrementalStoreTest {
 
     @Test
     public void testWithLz4Compression() throws Exception {
+        resetSystemProperties();
         algorithm = IndexStoreUtils.compressionAlgorithm();
         incrementalFFSTest(false, false);
     }
 
     @Test
     public void testWithLz4CompressionWithCustomRegexFilter() throws Exception {
+        resetSystemProperties();
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX,
                 "(.*/jcr:content/renditions/foo\\.metadata\\.xml.*$)|(.*/jcr:content/renditions/foo\\.metadata\\..*$)|(.*/jcr:content/metadata/fooBar$)");
         algorithm = IndexStoreUtils.compressionAlgorithm();
@@ -174,6 +186,7 @@ public class IncrementalStoreTest {
 
     @Test
     public void testWithLz4CompressionWithCustomExcludedPaths() throws Exception {
+        resetSystemProperties();
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING,
                 "true");
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS, "/oak:index,/var/foo");
@@ -183,6 +196,7 @@ public class IncrementalStoreTest {
 
     @Test
     public void testWithLz4CompressionWithCustomRegexFilterAndCustomExcludedPaths() throws Exception {
+        resetSystemProperties();
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX,
                 "(.*/jcr:content/renditions/foo\\.metadata\\.xml.*$)|(.*/jcr:content/renditions/foo\\.metadata\\..*$)|(.*/jcr:content/metadata/fooBar$)");
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING,

@@ -61,12 +61,6 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     public static final String OAK_QUERY_PREFETCH_COUNT = "oak.prefetchCount";
 
-    public static final String FT_NAME_PREFETCH_FOR_QUERIES = "FT_OAK-10490";
-
-    public static final String FT_NAME_IMPROVED_IS_NULL_COST = "FT_OAK-10532";
-
-    public static final String FT_OPTIMIZE_IN_RESTRICTIONS_FOR_FUNCTIONS = "FT_OAK-11214";
-
     public static final String FT_SORT_UNION_QUERY_BY_SCORE = "FT_OAK-11949";
 
     public static final String FT_OPTIMIZE_XPATH_UNION = "FT_OAK-12007";
@@ -126,8 +120,6 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     private final long queryLengthErrorLimit = Long.getLong(OAK_QUERY_LENGTH_ERROR_LIMIT, 100 * 1024 * 1024); //100MB
 
     private Feature prefetchFeature;
-    private Feature improvedIsNullCostFeature;
-    private Feature optimizeInRestrictionsForFunctions;
     private Feature sortUnionQueryByScoreFeature;
     private Feature optimizeXPathUnion;
 
@@ -232,26 +224,6 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     public void setFastQuerySize(boolean fastQuerySize) {
         this.fastQuerySize = fastQuerySize;
         System.setProperty(OAK_FAST_QUERY_SIZE, String.valueOf(fastQuerySize));
-    }
-
-    public void setImprovedIsNullCostFeature(@Nullable Feature feature) {
-        this.improvedIsNullCostFeature = feature;
-    }
-
-    @Override
-    public boolean getImprovedIsNullCost() {
-        // enabled if the feature toggle is not used
-        return improvedIsNullCostFeature == null || improvedIsNullCostFeature.isEnabled();
-    }
-
-    public void setOptimizeInRestrictionsForFunctions(@Nullable Feature feature) {
-        this.optimizeInRestrictionsForFunctions = feature;
-    }
-
-    @Override
-    public boolean getOptimizeInRestrictionsForFunctions() {
-        // enabled if the feature toggle is not used
-        return optimizeInRestrictionsForFunctions == null || optimizeInRestrictionsForFunctions.isEnabled();
     }
 
     public void setSortUnionQueryByScoreFeature(@Nullable Feature feature) {

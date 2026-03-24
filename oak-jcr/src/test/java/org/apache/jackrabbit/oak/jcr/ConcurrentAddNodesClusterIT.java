@@ -37,7 +37,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.UninterruptibleUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -152,7 +152,7 @@ public class ConcurrentAddNodesClusterIT {
                     @Override
                     public void run() {
                         try {
-                            Uninterruptibles.awaitUninterruptibly(latch);
+                            UninterruptibleUtils.awaitUninterruptibly(latch);
                             session.refresh(false);
                             Node node = session.getRootNode().addNode(name+count++, "oak:Unstructured");
                             for (int j = 0; j < NODE_COUNT && !stop.get() ; j++) {

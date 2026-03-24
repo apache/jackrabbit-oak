@@ -26,6 +26,7 @@ import java.util.stream.StreamSupport;
 
 import com.mongodb.ReadPreference;
 
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport;
@@ -41,7 +42,6 @@ import static java.util.Comparator.comparing;
 import static java.util.List.of;
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.jackrabbit.guava.common.collect.Comparators.isInOrder;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
@@ -279,7 +279,7 @@ public class VersionGCSupportTest extends AbstractDocumentStoreTest {
 
         for (int i = 0; i < 5; i++) {
             Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), MAX_VALUE, 1000, oldestModifiedDocId, EMPTY_STRING_SET, EMPTY_STRING_SET);
-            assertTrue(isInOrder(modifiedDocs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
+            assertTrue(IterableUtils.isInOrder(modifiedDocs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
             long count = StreamSupport.stream(modifiedDocs.spliterator(), false).count();
             assertEquals(1000, count);
             for (NodeDocument modifiedDoc : modifiedDocs) {
@@ -314,7 +314,7 @@ public class VersionGCSupportTest extends AbstractDocumentStoreTest {
 
         for(int i = 0; i < 5; i++) {
             Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), MAX_VALUE, 1000, oldestModifiedDocId, EMPTY_STRING_SET, EMPTY_STRING_SET);
-            assertTrue(isInOrder(modifiedDocs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
+            assertTrue(IterableUtils.isInOrder(modifiedDocs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
             long count = StreamSupport.stream(modifiedDocs.spliterator(), false).count();
             assertEquals(1000, count);
             for (NodeDocument modifiedDoc : modifiedDocs) {
@@ -327,7 +327,7 @@ public class VersionGCSupportTest extends AbstractDocumentStoreTest {
         // fetch last remaining document now
         Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), MAX_VALUE, 1000, oldestModifiedDocId, EMPTY_STRING_SET, EMPTY_STRING_SET);
         assertEquals(1, StreamSupport.stream(modifiedDocs.spliterator(), false).count());
-        assertTrue(isInOrder(modifiedDocs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
+        assertTrue(IterableUtils.isInOrder(modifiedDocs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
         oldestModifiedDoc = modifiedDocs.iterator().next();
         oldestModifiedDocId = oldestModifiedDoc.getId();
         oldestModifiedDocTs = ofNullable(oldestModifiedDoc.getModified()).orElse(0L);
@@ -361,7 +361,7 @@ public class VersionGCSupportTest extends AbstractDocumentStoreTest {
 
         for(int i = 0; i < 5; i++) {
             Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), MAX_VALUE, 1000, oldestModifiedDocId, EMPTY_STRING_SET, EMPTY_STRING_SET);
-            assertTrue(isInOrder(modifiedDocs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
+            assertTrue(IterableUtils.isInOrder(modifiedDocs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
             long count = StreamSupport.stream(modifiedDocs.spliterator(), false).count();
             assertEquals(1000, count);
             for (NodeDocument modifiedDoc : modifiedDocs) {
@@ -565,6 +565,6 @@ public class VersionGCSupportTest extends AbstractDocumentStoreTest {
     private void assertModified(long fromSeconds, long toSeconds, long num) {
         Iterable<NodeDocument> docs = gcSupport.getModifiedDocs(SECONDS.toMillis(fromSeconds), SECONDS.toMillis(toSeconds), 10, MIN_ID_VALUE, EMPTY_STRING_SET, EMPTY_STRING_SET);
         assertEquals(num, StreamSupport.stream(docs.spliterator(), false).count());
-        assertTrue(isInOrder(docs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
+        assertTrue(IterableUtils.isInOrder(docs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
     }
 }
