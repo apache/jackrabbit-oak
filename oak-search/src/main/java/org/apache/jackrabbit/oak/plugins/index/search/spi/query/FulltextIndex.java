@@ -127,8 +127,20 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
             indexPaths = IndexName.filterNewestIndexes(indexPaths);
         }
         Collection<String> allCompetingPaths = new IndexLookup(rootState,
-                state -> COMPETING_INDEX_TYPES.contains(state.getString(TYPE_PROPERTY_NAME)))
+                state -> {
+                    String type = state.getString(TYPE_PROPERTY_NAME);
+                    if (type == null) {
+                        // indexes without type don't compete (to avoid NPE)
+                        return false;
+                    } else if (getIndexDefinitionPredicate().test(state)) {
+                        // index of this type don't compete. this is to avoid
+                        // that indexes that are disabled are considered competing
+                        return false;
+                    }
+                    return COMPETING_INDEX_TYPES.contains(type);
+                })
                 .collectIndexNodePaths(filter);
+
         indexPaths = IndexName.filterGloballySuperseded(indexPaths, allCompetingPaths);
         List<IndexPlan> plans = new ArrayList<>(indexPaths.size());
         for (String path : indexPaths) {
