@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.cache;
 import org.junit.Assert;
 import org.junit.Test;
 
+/** Tests for {@link OakCacheStats}. */
 public class OakCacheStatsTest {
 
     private OakCacheStats stats(long hits, long misses, long loadSuccess, long loadFail,
@@ -26,36 +27,42 @@ public class OakCacheStatsTest {
         return new OakCacheStats(hits, misses, loadSuccess, loadFail, loadTime, evictions);
     }
 
+    /** Verifies that {@code requestCount()} returns the sum of hits and misses. */
     @Test
     public void requestCountIsHitsPlusMisses() {
         OakCacheStats s = stats(3, 7, 0, 0, 0, 0);
         Assert.assertEquals(10, s.requestCount());
     }
 
+    /** Verifies that {@code hitRate()} returns hits divided by total requests. */
     @Test
     public void hitRateWithRequests() {
         OakCacheStats s = stats(3, 7, 0, 0, 0, 0);
         Assert.assertEquals(0.3, s.hitRate(), 0.001);
     }
 
+    /** Verifies that {@code hitRate()} returns {@code 1.0} when no requests have been made. */
     @Test
     public void hitRateWithNoRequestsReturnsOne() {
         OakCacheStats s = stats(0, 0, 0, 0, 0, 0);
         Assert.assertEquals(1.0, s.hitRate(), 0.0);
     }
 
+    /** Verifies that {@code missRate()} returns misses divided by total requests. */
     @Test
     public void missRateWithRequests() {
         OakCacheStats s = stats(3, 7, 0, 0, 0, 0);
         Assert.assertEquals(0.7, s.missRate(), 0.001);
     }
 
+    /** Verifies that {@code missRate()} returns {@code 0.0} when no requests have been made. */
     @Test
     public void missRateWithNoRequestsReturnsZero() {
         OakCacheStats s = stats(0, 0, 0, 0, 0, 0);
         Assert.assertEquals(0.0, s.missRate(), 0.0);
     }
 
+    /** Verifies that {@code minus()} produces the correct per-field delta between two snapshots. */
     @Test
     public void minusProducesDelta() {
         OakCacheStats later  = stats(10, 5, 4, 1, 1000, 3);
@@ -70,6 +77,7 @@ public class OakCacheStatsTest {
         Assert.assertEquals(2,   delta.evictionCount());
     }
 
+    /** Verifies that {@code minus()} clamps negative deltas to zero when the earlier snapshot has larger values. */
     @Test
     public void minusClampsNegativeValuesToZero() {
         OakCacheStats later   = stats(5, 2, 1, 0, 100, 1);
@@ -84,6 +92,7 @@ public class OakCacheStatsTest {
         Assert.assertEquals(0, delta.evictionCount());
     }
 
+    /** Verifies that all record accessors return the values supplied to the canonical constructor. */
     @Test
     public void accessorsReturnConstructorValues() {
         OakCacheStats s = stats(1, 2, 3, 4, 5, 6);
@@ -95,6 +104,7 @@ public class OakCacheStatsTest {
         Assert.assertEquals(6, s.evictionCount());
     }
 
+    /** Verifies that {@code toString()} includes every field name and its value. */
     @Test
     public void toStringContainsAllFields() {
         OakCacheStats s = stats(1, 2, 3, 4, 5, 6);
