@@ -24,89 +24,21 @@ import org.jetbrains.annotations.NotNull;
  * <p>Returned by {@link OakCache#stats()}. All counters are cumulative since
  * the cache was created. Use {@link #minus(OakCacheStats)} to compute a delta
  * between two snapshots.</p>
+ *
+ * @param hitCount         number of times a requested key was found in the cache
+ * @param missCount        number of times a requested key was not found in the cache
+ * @param loadSuccessCount number of times a new value was successfully loaded
+ * @param loadFailureCount number of times a value load attempt threw an exception
+ * @param totalLoadTime    total time spent loading new values, in nanoseconds
+ * @param evictionCount    number of entries evicted from the cache
  */
-public final class OakCacheStats {
-
-    private final long hitCount;
-    private final long missCount;
-    private final long loadSuccessCount;
-    private final long loadFailureCount;
-    private final long totalLoadTime;
-    private final long evictionCount;
-
-    /**
-     * Creates a new stats snapshot.
-     *
-     * @param hitCount         number of cache hits
-     * @param missCount        number of cache misses
-     * @param loadSuccessCount number of successful cache loads
-     * @param loadFailureCount number of failed cache loads
-     * @param totalLoadTime    total time spent loading values, in nanoseconds
-     * @param evictionCount    number of entries evicted
-     */
-    public OakCacheStats(long hitCount, long missCount, long loadSuccessCount,
-                         long loadFailureCount, long totalLoadTime, long evictionCount) {
-        this.hitCount = hitCount;
-        this.missCount = missCount;
-        this.loadSuccessCount = loadSuccessCount;
-        this.loadFailureCount = loadFailureCount;
-        this.totalLoadTime = totalLoadTime;
-        this.evictionCount = evictionCount;
-    }
-
-    /**
-     * Returns the number of times a requested key was found in the cache.
-     *
-     * @return hit count
-     */
-    public long hitCount() {
-        return hitCount;
-    }
-
-    /**
-     * Returns the number of times a requested key was not found in the cache.
-     *
-     * @return miss count
-     */
-    public long missCount() {
-        return missCount;
-    }
-
-    /**
-     * Returns the number of times a new value was successfully loaded.
-     *
-     * @return load success count
-     */
-    public long loadSuccessCount() {
-        return loadSuccessCount;
-    }
-
-    /**
-     * Returns the number of times a value load attempt threw an exception.
-     *
-     * @return load failure count
-     */
-    public long loadFailureCount() {
-        return loadFailureCount;
-    }
-
-    /**
-     * Returns the total time spent loading new values, in nanoseconds.
-     *
-     * @return total load time in nanoseconds
-     */
-    public long totalLoadTime() {
-        return totalLoadTime;
-    }
-
-    /**
-     * Returns the number of entries evicted from the cache.
-     *
-     * @return eviction count
-     */
-    public long evictionCount() {
-        return evictionCount;
-    }
+public record OakCacheStats(
+        long hitCount,
+        long missCount,
+        long loadSuccessCount,
+        long loadFailureCount,
+        long totalLoadTime,
+        long evictionCount) {
 
     /**
      * Returns the total number of requests (hits + misses).
@@ -156,15 +88,5 @@ public final class OakCacheStats {
                 Math.max(0, totalLoadTime - other.totalLoadTime),
                 Math.max(0, evictionCount - other.evictionCount)
         );
-    }
-
-    @Override
-    public String toString() {
-        return "OakCacheStats{hitCount=" + hitCount
-                + ", missCount=" + missCount
-                + ", loadSuccessCount=" + loadSuccessCount
-                + ", loadFailureCount=" + loadFailureCount
-                + ", totalLoadTime=" + totalLoadTime
-                + ", evictionCount=" + evictionCount + "}";
     }
 }
