@@ -14,14 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.core.fs;
+package org.apache.jackrabbit.oak.spi.blob.fs;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.core.fs.FileSystemPathUtil;
 
 /**
  * A <code>FileSystemResource</code> represents a resource (i.e. file) in a

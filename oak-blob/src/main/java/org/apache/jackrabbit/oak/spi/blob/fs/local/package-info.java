@@ -16,4 +16,4 @@
  */
 /* see JCR-4060 */
 @org.osgi.annotation.versioning.Version("2.13.5")
-package org.apache.jackrabbit.core.fs.local;
+package org.apache.jackrabbit.oak.spi.blob.fs.local;

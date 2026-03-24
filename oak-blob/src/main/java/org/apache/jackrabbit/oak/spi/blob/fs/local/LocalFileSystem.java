@@ -14,12 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.core.fs.local;
+package org.apache.jackrabbit.oak.spi.blob.fs.local;
 
-import org.apache.jackrabbit.core.fs.FileSystem;
-import org.apache.jackrabbit.core.fs.FileSystemException;
-import org.apache.jackrabbit.core.fs.local.FileUtil;
-import org.apache.jackrabbit.core.fs.local.HandleMonitor;
+import org.apache.jackrabbit.oak.spi.blob.fs.FileSystem;
+import org.apache.jackrabbit.oak.spi.blob.fs.FileSystemException;
 import org.apache.jackrabbit.util.LazyFileInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

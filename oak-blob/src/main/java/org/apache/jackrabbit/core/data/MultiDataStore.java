@@ -31,10 +31,10 @@ import java.util.concurrent.locks.ReentrantLock;
 import javax.jcr.RepositoryException;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.core.fs.FileSystem;
-import org.apache.jackrabbit.core.fs.FileSystemException;
-import org.apache.jackrabbit.core.fs.FileSystemResource;
-import org.apache.jackrabbit.core.fs.local.LocalFileSystem;
+import org.apache.jackrabbit.oak.spi.blob.fs.FileSystem;
+import org.apache.jackrabbit.oak.spi.blob.fs.FileSystemException;
+import org.apache.jackrabbit.oak.spi.blob.fs.FileSystemResource;
+import org.apache.jackrabbit.oak.spi.blob.fs.local.LocalFileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
