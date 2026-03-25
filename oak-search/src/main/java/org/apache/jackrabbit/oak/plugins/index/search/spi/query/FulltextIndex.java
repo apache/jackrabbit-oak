@@ -149,7 +149,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
                         } else if (getIndexDefinitionPredicate().test(state)) {
                             // index of this type don't compete. this is to avoid
                             // that indexes that are disabled are considered competing
-                            return true;
+                            return false;
                         }
                         return COMPETING_INDEX_TYPES.contains(type);
                     })
