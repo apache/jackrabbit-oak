@@ -54,6 +54,7 @@ import javax.jcr.PropertyType;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -137,7 +138,9 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
             indexPaths = IndexName.filterNewestIndexes(indexPaths);
         }
         if (filterGloballySupersededFeature == null || filterGloballySupersededFeature.isEnabled()) {
-            Collection<String> allCompetingPaths = new IndexLookup(rootState,
+            // first collect indexes of the other types (collect lucene indexes if we look at elastic,
+            // and vice versa)
+            Collection<String> allCompetingPathsOfOtherTypes = new IndexLookup(rootState,
                     state -> {
                         String type = state.getString(TYPE_PROPERTY_NAME);
                         if (type == null) {
@@ -146,11 +149,15 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
                         } else if (getIndexDefinitionPredicate().test(state)) {
                             // index of this type don't compete. this is to avoid
                             // that indexes that are disabled are considered competing
-                            return false;
+                            return true;
                         }
                         return COMPETING_INDEX_TYPES.contains(type);
                     })
                     .collectIndexNodePaths(filter);
+            // build a combined set: these indexes of other types,
+            HashSet<String> allCompetingPaths = new HashSet<>(allCompetingPathsOfOtherTypes);
+            // plus the _active_ indexes of the current type
+            allCompetingPaths.addAll(indexPaths);
             indexPaths = IndexName.filterGloballySuperseded(indexPaths, allCompetingPaths);
         }
         List<IndexPlan> plans = new ArrayList<>(indexPaths.size());
