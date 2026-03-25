@@ -32,7 +32,6 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.Throttler;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.jetbrains.annotations.NotNull;
-import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,14 +84,14 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public <T extends Document> @NonNull List<T> query(Collection<T> collection,
+    public <T extends Document> @NotNull List<T> query(Collection<T> collection,
                                                        String fromKey, String toKey, int limit) {
         return leaseChecking(() ->
                 delegate.query(collection, fromKey, toKey, limit));
     }
 
     @Override
-    public <T extends Document> @NonNull List<T> query(Collection<T> collection,
+    public <T extends Document> @NotNull List<T> query(Collection<T> collection,
                                                        String fromKey, String toKey, String indexedProperty,
                                                        long startValue, int limit) {
         return leaseChecking(() ->
@@ -100,10 +99,9 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    @NotNull
-    public <T extends Document> List<T> query(final Collection<T> collection, final String fromKey, final String toKey,
-                                              final String indexedProperty, final long startValue, final int limit,
-                                              final List<String> projection) {
+    public <T extends Document> @NotNull List<T> query(final Collection<T> collection, final String fromKey, final String toKey,
+                                                       final String indexedProperty, final long startValue, final int limit,
+                                                       final List<String> projection) {
         return leaseChecking(() ->
                 delegate.query(collection, fromKey, toKey, indexedProperty, startValue, limit, projection));
     }
@@ -164,8 +162,7 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    @NotNull
-    public <T extends Document> List<T> findAndUpdate(@NotNull Collection<T> collection, @NotNull List<UpdateOp> updateOps) {
+    public <T extends Document> @NotNull List<T> findAndUpdate(@NotNull Collection<T> collection, @NotNull List<UpdateOp> updateOps) {
         return leaseChecking(() ->
                 delegate.findAndUpdate(collection, updateOps));
     }
@@ -225,9 +222,8 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
         return leaseChecking(delegate::getMetadata);
     }
 
-    @NotNull
     @Override
-    public Map<String, String> getStats() {
+    public @NotNull Map<String, String> getStats() {
         return leaseChecking(delegate::getStats);
     }
 
