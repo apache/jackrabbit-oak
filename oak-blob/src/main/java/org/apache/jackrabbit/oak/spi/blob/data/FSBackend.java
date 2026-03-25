@@ -113,7 +113,7 @@ public class FSBackend extends AbstractBackend {
                     throws DataStoreException {
         File file = getFile(identifier);
         try {
-            return new LazyFileInputStream(file);
+            return new AutoClosingLazyFileInputStream(file);
         } catch (IOException e) {
             throw new DataStoreException("Error opening input stream of "
                 + file.getAbsolutePath(), e);

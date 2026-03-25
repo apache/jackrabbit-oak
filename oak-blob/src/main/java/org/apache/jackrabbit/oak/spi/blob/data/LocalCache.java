@@ -170,7 +170,7 @@ public class LocalCache {
             cache.put(fileName, f.length());
         }
         tryPurge();
-        return new LazyFileInputStream(f);
+        return new AutoClosingLazyFileInputStream(f);
     }
 
     /**
@@ -250,7 +250,7 @@ public class LocalCache {
      */
     public InputStream getIfStored(String fileName) throws IOException {
         File file = getFileIfStored(fileName);
-        return file == null ? null : new LazyFileInputStream(file);
+        return file == null ? null : new AutoClosingLazyFileInputStream(file);
     }
 
     public File getFileIfStored(String fileName) throws IOException {

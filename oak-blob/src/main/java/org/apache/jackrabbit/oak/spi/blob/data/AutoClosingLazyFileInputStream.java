@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.blob.data;
 
 import java.io.File;
-import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -28,13 +27,15 @@ import org.apache.commons.io.input.AutoCloseInputStream;
  * This input stream delays opening the file until the first byte is read, and
  * closes and discards the underlying stream as soon as the end of input has
  * been reached or when the stream is explicitly closed.
+ * <p>
+ * This class differs from {@link org.apache.jackrabbit.util.LazyFileInputStream}
+ * in the auto-closing behavior.
+ * <p>
+ * It is similar to {@link org.apache.jackrabbit.oak.commons.io.LazyInputStream}
+ * in that it delays opening the wrapped stream, but comes with additional
+ * handling of {@link File}s.
  */
-public class LazyFileInputStream extends AutoCloseInputStream {
-
-    /**
-     * The file descriptor to use.
-     */
-    protected final FileDescriptor fd;
+public class AutoClosingLazyFileInputStream extends AutoCloseInputStream {
 
     /**
      * The file to read from.
@@ -56,38 +57,13 @@ public class LazyFileInputStream extends AutoCloseInputStream {
      * @param file the file
      * @throws java.io.FileNotFoundException
      */
-    public LazyFileInputStream(File file)
+    public AutoClosingLazyFileInputStream(File file)
             throws FileNotFoundException {
         super(null);
         if (!file.canRead()) {
             throw new FileNotFoundException(file.getPath());
         }
         this.file = file;
-        this.fd = null;
-    }
-
-    /**
-     * Creates a new <code>LazyFileInputStream</code> for the given file
-     * descriptor.
-     * The file is not opened until the first byte is read from the stream.
-     *
-     * @param fd
-     */
-    public LazyFileInputStream(FileDescriptor fd) {
-        super(null);
-        this.file = null;
-        this.fd = fd;
-    }
-
-    /**
-     * Creates a new <code>LazyFileInputStream</code> for the given file. If the
-     * file is unreadable, a FileNotFoundException is thrown.
-     *
-     * @param name
-     * @throws java.io.FileNotFoundException
-     */
-    public LazyFileInputStream(String name) throws FileNotFoundException {
-        this(new File(name));
     }
 
     /**
@@ -98,11 +74,7 @@ public class LazyFileInputStream extends AutoCloseInputStream {
     protected void open() throws IOException {
         if (!opened) {
             opened = true;
-            if (fd != null) {
-                in = new FileInputStream(fd);
-            } else {
-                in = new FileInputStream(file);
-            }
+            in = new FileInputStream(file);
         }
     }
 
@@ -117,7 +89,7 @@ public class LazyFileInputStream extends AutoCloseInputStream {
     }
 
     public void close() throws IOException {
-        // make sure the file is not opened afterwards
+        // make sure the file is not opened afterward
         opened = true;
         
         // only close the file if it was in fact opened

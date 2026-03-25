@@ -56,7 +56,7 @@ public class FileDataRecord extends AbstractDataRecord {
      */
     public InputStream getStream() throws DataStoreException {
         try {
-            return new LazyFileInputStream(file);
+            return new AutoClosingLazyFileInputStream(file);
         } catch (IOException e) {
             throw new DataStoreException("Error opening input stream of " + file.getAbsolutePath(), e);
         }
