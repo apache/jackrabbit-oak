@@ -38,10 +38,10 @@
         <configuration>
           <instructions>
             <Export-Package>
-              org.apache.jackrabbit.core.data,
               org.apache.jackrabbit.oak.spi.blob,
-              org.apache.jackrabbit.oak.spi.blob.stats,
-              org.apache.jackrabbit.oak.spi.blob.split
+              org.apache.jackrabbit.oak.spi.blob.data,
+              org.apache.jackrabbit.oak.spi.blob.split,
+              org.apache.jackrabbit.oak.spi.blob.stats
             </Export-Package>
           </instructions>
         </configuration>

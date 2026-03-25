@@ -37,7 +37,7 @@
     <!--
         data store configuration
     -->
-    <DataStore class="org.apache.jackrabbit.core.data.FileDataStore"/>
+    <DataStore class="org.apache.jackrabbit.oak.spi.blob.data.FileDataStore"/>
 
     <!--
         security configuration

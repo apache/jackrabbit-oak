@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.spi.blob;
 
-import org.apache.jackrabbit.core.data.DataIdentifier;
-import org.apache.jackrabbit.core.data.DataRecord;
+import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
+import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
 
 /**
  * Implements {@link DataRecord}

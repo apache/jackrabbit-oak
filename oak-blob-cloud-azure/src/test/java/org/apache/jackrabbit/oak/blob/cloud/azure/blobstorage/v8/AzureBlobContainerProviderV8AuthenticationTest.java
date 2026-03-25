@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v8;
 
 import org.apache.commons.lang3.reflect.MethodUtils;
-import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
 import org.junit.After;
 import org.junit.Test;
 import org.mockito.MockedStatic;

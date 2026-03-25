@@ -42,11 +42,11 @@ import javax.jcr.RepositoryException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.core.data.DataIdentifier;
-import org.apache.jackrabbit.core.data.DataRecord;
-import org.apache.jackrabbit.core.data.DataStore;
-import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.core.data.MultiDataStoreAware;
+import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
+import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
+import org.apache.jackrabbit.oak.spi.blob.data.MultiDataStoreAware;
 import org.apache.jackrabbit.guava.common.cache.LoadingCache;
 import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -80,7 +80,7 @@ import org.slf4j.LoggerFactory;
 /**
  * BlobStore wrapper for DataStore. Wraps Jackrabbit 2 DataStore and expose them as BlobStores
  * It also handles inlining binaries if there size is smaller than
- * {@link org.apache.jackrabbit.core.data.DataStore#getMinRecordLength()}
+ * {@link DataStore#getMinRecordLength()}
  */
 public class DataStoreBlobStore
     implements DataStore, BlobStore, GarbageCollectableBlobStore, BlobTrackingStore, TypedDataStore,

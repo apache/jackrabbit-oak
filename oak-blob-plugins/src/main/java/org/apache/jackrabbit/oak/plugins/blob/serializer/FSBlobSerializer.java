@@ -24,8 +24,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
+import org.apache.jackrabbit.oak.spi.blob.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.json.BlobDeserializer;
 import org.apache.jackrabbit.oak.json.BlobSerializer;

@@ -19,9 +19,8 @@
 
 package org.apache.jackrabbit.oak.jcr.binary.fixtures.datastore;
 
-import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  *  DataStore fixture for parametrized tests. To be used inside NodeStoreFixture implementations.

@@ -26,9 +26,7 @@ import com.azure.storage.common.policy.RequestRetryOptions;
 import com.microsoft.aad.msal4j.MsalServiceException;
 
 import org.apache.commons.lang3.reflect.MethodUtils;
-import org.apache.jackrabbit.core.data.DataStoreException;
-import org.junit.After;
-import org.junit.Before;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
 import org.junit.ClassRule;
 import org.junit.Test;
 
