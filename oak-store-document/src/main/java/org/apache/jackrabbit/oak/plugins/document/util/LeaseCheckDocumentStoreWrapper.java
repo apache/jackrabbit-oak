@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.Throttler;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +53,7 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
             throw new IllegalArgumentException("delegate must not be null");
         }
         this.delegate = delegate;
-        // clusterNodeInfo is allowed to be null - eg for testing
+        // clusterNodeInfo is allowed to be null - e.g. for testing
         this.clusterNodeInfo = clusterNodeInfo;
     }
 
@@ -84,16 +85,16 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public <T extends Document> List<T> query(Collection<T> collection,
-                                              String fromKey, String toKey, int limit) {
+    public <T extends Document> @NonNull List<T> query(Collection<T> collection,
+                                                       String fromKey, String toKey, int limit) {
         return leaseChecking(() ->
                 delegate.query(collection, fromKey, toKey, limit));
     }
 
     @Override
-    public <T extends Document> List<T> query(Collection<T> collection,
-                                              String fromKey, String toKey, String indexedProperty,
-                                              long startValue, int limit) {
+    public <T extends Document> @NonNull List<T> query(Collection<T> collection,
+                                                       String fromKey, String toKey, String indexedProperty,
+                                                       long startValue, int limit) {
         return leaseChecking(() ->
                 delegate.query(collection, fromKey, toKey, indexedProperty, startValue, limit));
     }
@@ -190,7 +191,7 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
 
     @Override
     public void dispose() {
-        // this is debatable whether or not a lease check should be done on dispose.
+        // this is debatable whether a lease check should be done on dispose.
         // I'd say the lease must still be valid as on dispose there could be
         // stuff written to the document store which should only be done
         // when the lease is valid.
@@ -216,27 +217,23 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
 
     @Override
     public Iterable<CacheStats> getCacheStats() {
-        return leaseChecking(() ->
-            delegate.getCacheStats());
+        return leaseChecking(delegate::getCacheStats);
     }
 
     @Override
     public Map<String, String> getMetadata() {
-        return leaseChecking(() ->
-                delegate.getMetadata());
+        return leaseChecking(delegate::getMetadata);
     }
 
     @NotNull
     @Override
     public Map<String, String> getStats() {
-        return leaseChecking(() ->
-                delegate.getStats());
+        return leaseChecking(delegate::getStats);
     }
 
     @Override
     public long determineServerTimeDifferenceMillis() {
-        return leaseChecking(() ->
-                delegate.determineServerTimeDifferenceMillis());
+        return leaseChecking(delegate::determineServerTimeDifferenceMillis);
     }
 
     @Override
