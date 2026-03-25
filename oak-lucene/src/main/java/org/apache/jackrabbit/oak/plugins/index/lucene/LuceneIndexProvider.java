@@ -20,7 +20,6 @@ import java.io.Closeable;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.plugins.index.aggregate.AggregateIndex;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -32,7 +31,7 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * A provider for Lucene indexes.
- * 
+ *
  * @see LuceneIndex
  */
 public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closeable {
