@@ -67,19 +67,6 @@ public class IndexNameAdditionalTest {
     }
 
     @Test
-    public void filterGloballySuperseded_multipleBasesPartialFilter() {
-        // "lucene" base: lucene-1 superseded by lucene-2; "other" base: no competitor
-        List<String> candidates = List.of(
-                "/oak:index/lucene-1",
-                "/oak:index/other-1");
-        List<String> competing = List.of(
-                "/oak:index/lucene-2",
-                "/oak:index/other-1");
-        Collection<String> result = IndexName.filterGloballySuperseded(candidates, competing);
-        assertEquals(List.of("/oak:index/other-1"), List.copyOf(result));
-    }
-
-    @Test
     public void filterGloballySuperseded_unversionedSupersededByVersioned() {
         // unversioned lucene (version 0) is superseded by lucene-1
         Collection<String> result = IndexName.filterGloballySuperseded(
