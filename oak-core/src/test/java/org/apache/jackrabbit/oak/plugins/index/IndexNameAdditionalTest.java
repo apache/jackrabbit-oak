@@ -50,7 +50,7 @@ public class IndexNameAdditionalTest {
 
     @Test
     public void filterGloballySuperseded_newerCompetitorFilters() {
-        // lucene-1 vs. elasticsearch-2 (same base): lucene-1 is superseded
+        // lucene-1 vs. lucene-2 (same base): lucene-1 is superseded
         Collection<String> result = IndexName.filterGloballySuperseded(
                 List.of("/oak:index/lucene-1"),
                 List.of("/oak:index/lucene-1", "/oak:index/lucene-2"));
