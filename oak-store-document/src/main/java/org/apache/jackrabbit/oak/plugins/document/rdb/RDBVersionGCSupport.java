@@ -116,7 +116,7 @@ public class RDBVersionGCSupport extends VersionGCSupport {
 
     private Iterable<NodeDocument> identifyGarbageMode1(final Set<SplitDocType> gcTypes, final RevisionVector sweepRevs,
             final long oldestRevTimeStamp) {
-        return filter(getSplitDocuments(), getGarbageCheckPredicate(gcTypes, sweepRevs, oldestRevTimeStamp));
+        return filter(getSplitDocuments(gcTypes, sweepRevs, oldestRevTimeStamp), getGarbageCheckPredicate(gcTypes, sweepRevs, oldestRevTimeStamp));
     }
 
     private Predicate<NodeDocument> getGarbageCheckPredicate(final Set<SplitDocType> gcTypes, final RevisionVector sweepRevs,
