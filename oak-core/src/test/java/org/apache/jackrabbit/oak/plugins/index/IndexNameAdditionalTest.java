@@ -41,7 +41,7 @@ public class IndexNameAdditionalTest {
 
     @Test
     public void filterGloballySuperseded_olderCompetitorKept() {
-        // lucene-2 vs. elasticsearch-1: lucene is newer, so lucene passes
+        // lucene-2 is newer than /oak:index/lucene-1-custom-1, so it passes
         Collection<String> result = IndexName.filterGloballySuperseded(
                 List.of("/oak:index/lucene-2"),
                 List.of("/oak:index/lucene-2", "/oak:index/lucene-1-custom-1"));
