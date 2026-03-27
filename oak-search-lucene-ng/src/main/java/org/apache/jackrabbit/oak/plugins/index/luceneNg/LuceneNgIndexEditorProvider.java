@@ -17,7 +17,9 @@
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.index.CatchUpCapable;
 import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
+import org.apache.jackrabbit.oak.plugins.index.IndexDefinitionHelper;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
@@ -31,18 +33,13 @@ import org.slf4j.LoggerFactory;
 
 /**
  * IndexEditorProvider for Lucene 9 indexes.
- * Routes index write operations to Lucene 9 editor for lucene9 type indexes.
+ * Handles write operations for {@code type=lucene9} index definitions.
  */
-public class LuceneNgIndexEditorProvider implements IndexEditorProvider {
+public class LuceneNgIndexEditorProvider implements IndexEditorProvider, CatchUpCapable {
     private static final Logger LOG = LoggerFactory.getLogger(LuceneNgIndexEditorProvider.class);
 
     private final LuceneNgIndexTracker indexTracker;
 
-    /**
-     * Creates a new LuceneNgIndexEditorProvider.
-     *
-     * @param indexTracker the index tracker for managing index lifecycle
-     */
     public LuceneNgIndexEditorProvider(@NotNull LuceneNgIndexTracker indexTracker) {
         this.indexTracker = indexTracker;
     }
@@ -55,12 +52,18 @@ public class LuceneNgIndexEditorProvider implements IndexEditorProvider {
                                  @NotNull IndexUpdateCallback callback)
             throws CommitFailedException {
 
-        // Only handle lucene9 type indexes
-        if (!LuceneNgIndexConstants.TYPE_LUCENE9.equals(type)) {
+        if (!IndexDefinitionHelper.shouldWrite(definition.getNodeState(), LuceneNgIndexConstants.TYPE_LUCENE9)) {
             return null;
         }
 
-        LOG.debug("Creating Lucene 9 index editor for type: {}", type);
+        // Block normal indexing while catch-up is in progress for this target.
+        // Catch-up calls pass type=lucene9 explicitly and are allowed through.
+        NodeBuilder trackingNode = definition.getChildNode(CatchUpCapable.CATCH_UP_TRACKING_NODE);
+        if (trackingNode.exists() && trackingNode.hasProperty(LuceneNgIndexConstants.TYPE_LUCENE9)) {
+            if (!LuceneNgIndexConstants.TYPE_LUCENE9.equals(type)) {
+                return null;
+            }
+        }
 
         if (!(callback instanceof ContextAwareCallback)) {
             throw new IllegalStateException("callback instance not of type ContextAwareCallback [" + callback + "]");
@@ -74,7 +77,7 @@ public class LuceneNgIndexEditorProvider implements IndexEditorProvider {
             return new LuceneNgIndexEditor("/", indexPath, storage, definition, root, reindex, callback);
         } catch (Exception e) {
             throw new CommitFailedException("Lucene9", 1,
-                    "Failed to create LuceneNgIndexEditor", e);
+                    "Failed to create LuceneNgIndexEditor for " + indexPath, e);
         }
     }
 
