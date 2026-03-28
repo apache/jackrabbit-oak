@@ -23,7 +23,7 @@ import java.util.concurrent.ExecutionException;
 
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.guava.common.cache.RemovalCause;
-import org.jspecify.annotations.NonNull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@link OakCache} adapter wrapping a {@link CacheLIRS} instance.
@@ -40,22 +40,22 @@ class LirsCacheAdapter<K, V> implements OakCache<K, V> {
     }
 
     @Override
-    public V getIfPresent(@NonNull K key) {
+    public V getIfPresent(@NotNull K key) {
         return cache.getIfPresent(key);
     }
 
     @Override
-    public V get(@NonNull K key, @NonNull Callable<? extends V> valueLoader) throws ExecutionException {
+    public V get(@NotNull K key, @NotNull Callable<? extends V> valueLoader) throws ExecutionException {
         return cache.get(key, valueLoader);
     }
 
     @Override
-    public void put(@NonNull K key, @NonNull V value) {
+    public void put(@NotNull K key, @NotNull V value) {
         cache.put(key, value);
     }
 
     @Override
-    public void invalidate(@NonNull K key) {
+    public void invalidate(@NotNull K key) {
         cache.invalidate(key);
     }
 
@@ -65,7 +65,7 @@ class LirsCacheAdapter<K, V> implements OakCache<K, V> {
     }
 
     @Override
-    public void invalidateAll(@NonNull Iterable<? extends K> keys) {
+    public void invalidateAll(@NotNull Iterable<? extends K> keys) {
         cache.invalidateAll(keys);
     }
 
@@ -75,7 +75,7 @@ class LirsCacheAdapter<K, V> implements OakCache<K, V> {
     }
 
     @Override
-    @NonNull
+    @NotNull
     public OakCacheStats stats() {
         CacheStats s = cache.stats();
         return new OakCacheStats(
@@ -85,14 +85,14 @@ class LirsCacheAdapter<K, V> implements OakCache<K, V> {
     }
 
     @Override
-    @NonNull
+    @NotNull
     public ConcurrentMap<K, V> asMap() {
         return cache.asMap();
     }
 
     @Override
-    @NonNull
-    public Map<K, V> getAllPresent(@NonNull Iterable<? extends K> keys) {
+    @NotNull
+    public Map<K, V> getAllPresent(@NotNull Iterable<? extends K> keys) {
         return cache.getAllPresent(keys);
     }
 
@@ -132,12 +132,12 @@ class LirsLoadingCacheAdapter<K, V> extends LirsCacheAdapter<K, V> implements Oa
     }
 
     @Override
-    public @NonNull V get(@NonNull K key) throws ExecutionException {
+    public @NotNull V get(@NotNull K key) throws ExecutionException {
         return cache.get(key);
     }
 
     @Override
-    public void refresh(@NonNull K key) {
+    public void refresh(@NotNull K key) {
         cache.refresh(key);
     }
 }

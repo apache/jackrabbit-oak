@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.cache;
 
 import org.apache.jackrabbit.guava.common.cache.Weigher;
-import org.jspecify.annotations.NonNull;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +33,7 @@ public class EmpiricalWeigher extends GuavaCompatibleEmpiricalWeigher
     static final Logger LOG = LoggerFactory.getLogger(EmpiricalWeigher.class);
 
     @Override
-    public int weigh(@NonNull CacheValue key, @NonNull CacheValue value) {
+    public int weigh(@NotNull CacheValue key, @NotNull CacheValue value) {
         long size = 168;                // overhead for each cache entry
         size += key.getMemory();        // key
         size += value.getMemory();      // value
