@@ -96,8 +96,7 @@ public class RDBVersionGCSupport extends VersionGCSupport {
     }
 
     // MODE==1
-    private Iterable<NodeDocument> getSplitDocuments(final Set<SplitDocType> gcTypes, final RevisionVector sweepRevs,
-                                                     final long oldestRevTimeStamp) {
+    private Iterable<NodeDocument> getSplitDocuments(final Set<SplitDocType> gcTypes, final long oldestRevTimeStamp) {
         List<QueryCondition> conditions = new ArrayList<>();
         if (store.getTable(Collection.NODES).hasSplitDocs()) {
             // we can add constraints on SDTYPE
