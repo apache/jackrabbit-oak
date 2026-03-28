@@ -67,6 +67,17 @@ public class ExtractedTextCacheTest {
     }
 
     @Test
+    public void cacheStatsTrackRequestsImplementationIndependently() throws Exception {
+        ExtractedTextCache cache = new ExtractedTextCache(10 * FileUtils.ONE_MB, 100);
+
+        Blob blob = new IdBlob("hello", "stats-id");
+        assertNull(cache.get("/a", "foo", blob, false));
+
+        assertEquals(1, cache.getCacheStats().getRequestCount());
+        assertEquals(1, cache.getCacheStats().getMissCount());
+    }
+
+    @Test
     public void cacheEnabledNonIdBlob() throws Exception {
         ExtractedTextCache cache = new ExtractedTextCache(10 * FileUtils.ONE_MB, 100);
 

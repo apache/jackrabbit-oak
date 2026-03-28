@@ -18,11 +18,14 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.UUID;
 
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class MemoryDiffCacheTest {
 
@@ -42,6 +45,60 @@ public class MemoryDiffCacheTest {
         entry.done();
         assertNotNull(cache.getChanges(from, to, Path.ROOT, null));
         assertNull(cache.getChanges(from, to, Path.fromString("/foo"), null));
+    }
+
+    @Test
+    public void invalidateAllClearsAllCachedEntries() {
+        DiffCache cache = new MemoryDiffCache(builderProvider.newBuilder()
+                .setCacheSegmentCount(1)
+                .memoryCacheDistribution(0, 0, 0, 99, 0));
+        RevisionVector from = new RevisionVector(Revision.newRevision(1));
+        RevisionVector to = new RevisionVector(Revision.newRevision(1));
+        DiffCache.Entry entry = cache.newEntry(from, to, false);
+        entry.append(Path.ROOT, "^\"foo\":{}");
+        entry.done();
+
+        assertNotNull(cache.getChanges(from, to, Path.ROOT, null));
+        cache.invalidateAll();
+        assertNull(cache.getChanges(from, to, Path.ROOT, null));
+    }
+
+    @Test
+    public void getStatsReturnsNonEmptyIterable() {
+        DiffCache cache = new MemoryDiffCache(builderProvider.newBuilder()
+                .setCacheSegmentCount(1)
+                .memoryCacheDistribution(0, 0, 0, 99, 0));
+        Iterable<CacheStats> statsIterable = cache.getStats();
+        assertNotNull(statsIterable);
+        assertTrue(statsIterable.iterator().hasNext());
+    }
+
+    @Test
+    public void getChangesReturnsNullForUncachedRevisions() {
+        DiffCache cache = new MemoryDiffCache(builderProvider.newBuilder()
+                .setCacheSegmentCount(1)
+                .memoryCacheDistribution(0, 0, 0, 99, 0));
+        RevisionVector from = new RevisionVector(Revision.newRevision(1));
+        RevisionVector to = new RevisionVector(Revision.newRevision(1));
+        assertNull(cache.getChanges(from, to, Path.ROOT, null));
+    }
+
+    @Test
+    public void doneMakesRootPathChangesReadableFromCache() {
+        DiffCache cache = new MemoryDiffCache(builderProvider.newBuilder()
+                .setCacheSegmentCount(1)
+                .memoryCacheDistribution(0, 0, 0, 99, 0));
+        RevisionVector from = new RevisionVector(Revision.newRevision(1));
+        RevisionVector to = new RevisionVector(Revision.newRevision(1));
+        String rootPathChanges = "^\"foo\":{}";
+
+        DiffCache.Entry entry = cache.newEntry(from, to, false);
+        entry.append(Path.ROOT, rootPathChanges);
+        entry.done();
+
+        String actualChanges = cache.getChanges(from, to, Path.ROOT, null);
+        assertNotNull(actualChanges);
+        assertEquals(rootPathChanges, actualChanges);
     }
 
     private static String changes(int minLength) {

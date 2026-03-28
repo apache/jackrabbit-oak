@@ -207,6 +207,8 @@ public class CommitValueResolverTest {
 
     @Test
     public void cacheEmptyCommitValue() throws Exception {
+        // Remove a commit value after the change is written, then compare a resolver
+        // without negative caching to one that remembers old empty results.
         addNode("/foo");
         // add changes and remove commit value
         NodeBuilder builder = ns.getRoot().builder();
@@ -232,6 +234,25 @@ public class CommitValueResolverTest {
         // resolver with negative cache will look up only the first time
         assertNull(cvr.resolve(commitRev, foo));
         assertThat(countDocumentLookUps(() -> cvr.resolve(commitRev, foo)), equalTo(0));
+    }
+
+    @Test
+    public void committedValueFromPreviousDocumentIsCached() throws Exception {
+        // Move a committed revision out of the main document into previous documents,
+        // resolve it once, then verify a caching resolver can answer again without
+        // additional document-store lookups.
+        CommitValueResolver cachingResolver = newCachingCommitValueResolver(100);
+        Revision revision = addNode("/foo");
+        assertTrue(getDocument("/").getLocalRevisions().containsKey(revision));
+        while (getDocument("/").getLocalRevisions().containsKey(revision)) {
+            someChange("/");
+            ns.runBackgroundUpdateOperations();
+        }
+
+        NodeDocument root = getDocument("/");
+        assertEquals("c", cachingResolver.resolve(revision, root));
+        NodeDocument cachedRoot = getDocument("/");
+        assertThat(countDocumentLookUps(() -> cachingResolver.resolve(revision, cachedRoot)), equalTo(0));
     }
 
     private int countDocumentLookUps(Callable<?> c) throws Exception {

@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.cache;
 
+import java.util.concurrent.ExecutionException;
+
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -28,6 +31,10 @@ import org.junit.Test;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class NodeDocumentCacheTest {
 
@@ -66,6 +73,69 @@ public class NodeDocumentCacheTest {
         cache.putNonConflictingDocs(queryTracker, singleton(current));
 
         assertEquals(updated.getModCount(), cache.get(ID, () -> updated).getModCount());
+    }
+
+    @Test
+    public void getWithCallableLoadsDocumentOnMiss() throws Exception {
+        NodeDocument doc = createDocument(1L);
+        NodeDocument loaded = cache.get(ID, () -> doc);
+        assertEquals(doc.getModCount(), loaded.getModCount());
+    }
+
+    @Test
+    public void getWithCallableReturnsCachedDocumentOnHit() throws Exception {
+        NodeDocument doc = createDocument(1L);
+        cache.put(doc);
+        // loader should not be called since doc is already cached
+        NodeDocument loaded = cache.get(ID, () -> {
+            throw new RuntimeException("loader must not be called on cache hit");
+        });
+        assertEquals(doc.getModCount(), loaded.getModCount());
+    }
+
+    @Test
+    public void getWithCallableWrapsCheckedLoaderFailureInExecutionException() {
+        Exception failure = new Exception("simulated load failure");
+        try {
+            cache.get(ID, () -> {
+                // This verifies the existing Oak-visible checked-exception
+                // contract, not raw runtime propagation.
+                throw failure;
+            });
+            fail("expected ExecutionException");
+        } catch (ExecutionException e) {
+            assertEquals(failure, e.getCause());
+            assertEquals("simulated load failure", e.getCause().getMessage());
+        }
+    }
+
+    @Test
+    public void getIfPresentReturnsNullForUncachedKey() {
+        assertNull(cache.getIfPresent("not-cached"));
+    }
+
+    @Test
+    public void putAndGetIfPresentReturnsDocument() {
+        NodeDocument doc = createDocument(5L);
+        cache.put(doc);
+        NodeDocument result = cache.getIfPresent(ID);
+        assertNotNull(result);
+        assertEquals(doc.getModCount(), result.getModCount());
+    }
+
+    @Test
+    public void invalidateRemovesDocumentFromCache() {
+        NodeDocument doc = createDocument(1L);
+        cache.put(doc);
+        cache.invalidate(ID);
+        assertNull(cache.getIfPresent(ID));
+    }
+
+    @Test
+    public void getCacheStatsReturnsNonEmptyIterable() {
+        Iterable<CacheStats> statsIterable = cache.getCacheStats();
+        assertNotNull(statsIterable);
+        assertTrue(statsIterable.iterator().hasNext());
     }
 
     private NodeDocument createDocument(long modCount) {
