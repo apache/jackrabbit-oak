@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.cache;
 
-import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 
 import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
@@ -25,12 +25,9 @@ import org.osgi.annotation.versioning.ProviderType;
  * A cache that automatically loads absent entries from a pre-configured
  * {@link OakCacheLoader}.
  *
- * <p>Obtain instances via {@code OakCacheBuilder.build(OakCacheLoader)}.
- * <!-- TODO OAK-TASK2: restore {@link OakCacheBuilder#build(OakCacheLoader)} once TASK-2 is merged. -->
- * Matches Caffeine's {@code LoadingCache} contract: {@link #get(Object)} throws
- * an unchecked {@link CompletionException} on loader failure. Implementations
- * backed by CacheLIRS bridge the checked {@code ExecutionException} by wrapping
- * it into {@code CompletionException}.</p>
+ * <p>Obtain instances via {@link OakCacheBuilder#build(OakCacheLoader)}.
+ * Loading failures are exposed as {@link ExecutionException} to preserve the
+ * legacy Oak-visible loading-cache contract.</p>
  *
  * @param <K> the type of cache keys
  * @param <V> the type of cache values
@@ -44,11 +41,10 @@ public interface OakLoadingCache<K, V> extends OakCache<K, V> {
      *
      * @param key the key whose value should be returned or loaded (must not be null)
      * @return the current or newly loaded value (never null)
-     * @throws CompletionException wrapping the loader's exception if loading fails,
-     *         matching Caffeine's {@code LoadingCache.get(K)} contract
+     * @throws ExecutionException if the value cannot be loaded
      */
     @NotNull
-    V get(@NotNull K key);
+    V get(@NotNull K key) throws ExecutionException;
 
     /**
      * Triggers a reload of the value for {@code key}. The stale value remains

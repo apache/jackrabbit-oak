@@ -16,28 +16,19 @@
  */
 package org.apache.jackrabbit.oak.cache;
 
-import org.jetbrains.annotations.NotNull;
-
 /**
- * Computes or loads a value for a missing cache entry.
+ * Selects the backing cache implementation used by {@link OakCacheBuilder}.
  *
- * <p>Used with {@link OakCacheBuilder#build(OakCacheLoader)} to create an
- * {@link OakLoadingCache}. The loader is key-aware (receives the lookup key)
- * and may throw a checked exception.</p>
- *
- * @param <K> the type of cache keys
- * @param <V> the type of cache values
+ * <p>Pass to {@link OakCacheBuilder#implementation(CacheImplementation)} to pin a specific
+ * cache to one backend, overriding the global {@code oak.cache.type} system property.
+ * When no per-instance override is set, the builder resolves the implementation from
+ * {@code System.getProperty("oak.cache.type", "lirs")}.</p>
  */
-@FunctionalInterface
-public interface OakCacheLoader<K, V> {
+public enum CacheImplementation {
 
-    /**
-     * Computes the value for the given key.
-     *
-     * @param key the key whose value should be loaded (never null)
-     * @return the loaded value (never null)
-     * @throws Exception if the value cannot be loaded
-     */
-    @NotNull
-    V load(@NotNull K key) throws Exception;
+    /** LIRS (Low Inter-reference Recency Set) eviction, backed by {@code CacheLIRS}. */
+    LIRS,
+
+    /** W-TinyLFU eviction, backed by Caffeine. */
+    CAFFEINE
 }

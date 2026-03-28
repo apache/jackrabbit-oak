@@ -22,8 +22,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Callback invoked when an entry is removed from the cache.
  *
- * <p>Register via {@code OakCacheBuilder.removalListener(OakRemovalListener)}.
- * <!-- TODO OAK-TASK2: restore {@link OakCacheBuilder#removalListener(OakRemovalListener)} once TASK-2 is merged. -->
+ * <p>Register via {@link OakCacheBuilder#removalListener(OakRemovalListener)}.
  * The callback is invoked synchronously during cache operations that trigger
  * removal (eviction, invalidation, replacement).</p>
  *

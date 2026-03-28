@@ -21,13 +21,10 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Determines the weight of a cache entry.
  *
- * <p>Used with {@code OakCacheBuilder.weigher(OakWeigher)} in combination with
- * {@code OakCacheBuilder.maximumWeight(long)} to create weight-bounded caches.
+ * <p>Used with {@link OakCacheBuilder#weigher(OakWeigher)} in combination with
+ * {@link OakCacheBuilder#maximumWeight(long)} to create weight-bounded caches.
  * The unit is typically bytes but is cache-specific. The returned weight must
  * be non-negative.</p>
- *
- * <!-- TODO OAK-TASK2: restore {@link OakCacheBuilder#weigher(OakWeigher)} and
- *      {@link OakCacheBuilder#maximumWeight(long)} once TASK-2 is merged. -->
  *
  * @param <K> the type of cache keys
  * @param <V> the type of cache values

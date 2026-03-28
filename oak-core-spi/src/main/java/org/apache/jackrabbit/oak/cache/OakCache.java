@@ -17,8 +17,9 @@
 package org.apache.jackrabbit.oak.cache;
 
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
-import java.util.function.Function;
+import java.util.concurrent.ExecutionException;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -28,15 +29,11 @@ import org.osgi.annotation.versioning.ProviderType;
  * A size-bounded, thread-safe cache.
  *
  * <p>Implementations may use different eviction strategies (LIRS, W-TinyLFU/Caffeine,
- * etc.) but callers see only this interface. Obtain instances via OakCacheBuilder.</p>
+ * etc.) but callers see only this interface. Obtain instances via {@link OakCacheBuilder}.</p>
  *
- * <!-- TODO OAK-TASK2: replace plain-text OakCacheBuilder reference above with
- *      {@link OakCacheBuilder} once OakCacheBuilder is introduced in TASK-2. -->
- *
- * <p>The {@link #get(Object, Function)} signature matches Caffeine's
- * {@code Cache.get(K, Function)} contract exactly: the loader is key-aware and any
- * exception thrown by the mapping function propagates as an unchecked
- * {@code RuntimeException} (or {@code CompletionException}).</p>
+ * <p>The {@link #get(Object, Callable)} method preserves the legacy Oak-visible
+ * cache contract: callers supply a {@link Callable} and loading failures are
+ * exposed as {@link ExecutionException}.</p>
  *
  * @param <K> the type of cache keys
  * @param <V> the type of cache values
@@ -56,21 +53,19 @@ public interface OakCache<K, V> {
 
     /**
      * Returns the value associated with {@code key}, computing it via
-     * {@code mappingFunction} and caching the result if it was absent.
+     * {@code valueLoader} and caching the result if it was absent.
      *
-     * <p>Matches Caffeine's {@code Cache.get(K, Function)} contract: any exception
-     * thrown by the mapping function propagates as an unchecked
-     * {@code RuntimeException} or {@code CompletionException}. Implementations
-     * backed by CacheLIRS bridge internally by wrapping any checked
-     * {@code ExecutionException} into {@code CompletionException}.</p>
+     * <p>Preserves the legacy Oak-visible cache contract: failures from the loader
+     * are exposed as {@link ExecutionException}.</p>
      *
-     * @param key             the key whose associated value is to be returned (must not be null)
-     * @param mappingFunction the function to compute a value if the key is absent (must not be null)
+     * @param key         the key whose associated value is to be returned (must not be null)
+     * @param valueLoader the loader used to compute a value if the key is absent (must not be null)
      * @return the current (existing or computed) value, or {@code null} if the
-     *         mapping function returns {@code null}
+     *         loader returns {@code null}
+     * @throws ExecutionException if the value cannot be loaded
      */
     @Nullable
-    V get(@NotNull K key, @NotNull Function<? super K, ? extends V> mappingFunction);
+    V get(@NotNull K key, @NotNull Callable<? extends V> valueLoader) throws ExecutionException;
 
     /**
      * Associates {@code value} with {@code key} in the cache. If the cache
@@ -116,8 +111,7 @@ public interface OakCache<K, V> {
 
     /**
      * Returns a snapshot of this cache's cumulative statistics. If statistics
-     * collection was not enabled via {@code OakCacheBuilder.recordStats()}, all
-     * <!-- TODO OAK-TASK2: restore {@link OakCacheBuilder#recordStats()} once TASK-2 is merged. -->
+     * collection was not enabled via {@link OakCacheBuilder#recordStats()}, all
      * counters will be zero.
      *
      * @return a stats snapshot (never null)

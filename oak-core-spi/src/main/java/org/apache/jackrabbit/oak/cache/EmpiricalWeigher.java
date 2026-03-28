@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.cache;
 
 import org.apache.jackrabbit.guava.common.cache.Weigher;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,12 +27,13 @@ import org.slf4j.LoggerFactory;
  * Determines the weight of object based on the memory taken by them. The memory estimates
  * are based on empirical data and not exact
  */
-public class EmpiricalWeigher implements Weigher<CacheValue, CacheValue> {
+public class EmpiricalWeigher extends GuavaCompatibleEmpiricalWeigher
+        implements OakWeigher<CacheValue, CacheValue> {
 
     static final Logger LOG = LoggerFactory.getLogger(EmpiricalWeigher.class);
 
     @Override
-    public int weigh(CacheValue key, CacheValue value) {
+    public int weigh(@NonNull CacheValue key, @NonNull CacheValue value) {
         long size = 168;                // overhead for each cache entry
         size += key.getMemory();        // key
         size += value.getMemory();      // value
@@ -42,4 +44,16 @@ public class EmpiricalWeigher implements Weigher<CacheValue, CacheValue> {
         return (int) size;
     }
     
+}
+
+/**
+ * Compatibility base class that keeps {@link EmpiricalWeigher} assignable to the
+ * legacy Guava-shim {@link Weigher} type while the public API migrates to
+ * {@link OakWeigher}.
+ *
+ * <p>TODO OAK-TASK16: per {@code TASKS.md}, remove this compatibility base in
+ * TASK-16 once downstream callers no longer require {@link Weigher}
+ * assignability.</p>
+ */
+abstract class GuavaCompatibleEmpiricalWeigher implements Weigher<CacheValue, CacheValue> {
 }
