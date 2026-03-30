@@ -76,6 +76,8 @@ public class AsyncLaneSwitcher {
                     && !currentAsyncState.isArray()
                     && laneName.equals(currentAsyncState.getValue(Type.STRING))) {
                 // Lane already switched to the target — no-op
+                LOG.info("Index definition contains existing '{}' property (async='{}', target lane='{}') - " +
+                        "skipping lane switch", ASYNC_PREVIOUS, currentAsyncState, laneName);
                 return;
             }
             // async-previous is present but async != target lane: stale / user-provided value
