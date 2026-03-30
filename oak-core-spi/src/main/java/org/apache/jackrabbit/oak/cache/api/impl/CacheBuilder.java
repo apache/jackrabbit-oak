@@ -14,20 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.cache;
+package org.apache.jackrabbit.oak.cache.api.impl;
 
 import java.time.Duration;
 import java.util.Locale;
 
-import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
 
-import org.apache.jackrabbit.guava.common.cache.CacheLoader;
+import org.apache.jackrabbit.oak.cache.CacheLIRS;
+import org.apache.jackrabbit.oak.cache.api.Cache;
+import org.apache.jackrabbit.oak.cache.api.CacheLoader;
+import org.apache.jackrabbit.oak.cache.api.LoadingCache;
+import org.apache.jackrabbit.oak.cache.api.EvictionListener;
+import org.apache.jackrabbit.oak.cache.api.Weigher;
+import org.apache.jackrabbit.oak.cache.api.impl.caffeine.CacheComputationException;
+import org.apache.jackrabbit.oak.cache.api.impl.caffeine.CaffeineCacheAdapter;
+import org.apache.jackrabbit.oak.cache.api.impl.caffeine.CaffeineLoadingCacheAdapter;
+import org.apache.jackrabbit.oak.cache.api.impl.lirs.LirsCacheAdapter;
+import org.apache.jackrabbit.oak.cache.api.impl.lirs.LirsLoadingCacheAdapter;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Builder for {@link OakCache} and {@link OakLoadingCache} instances.
+ * Builder for {@link Cache} and {@link LoadingCache} instances.
  *
  * <p>The backing implementation is chosen by a two-level resolution:</p>
  * <ol>
@@ -50,15 +58,15 @@ import org.jetbrains.annotations.NotNull;
  * @param <K> the type of cache keys
  * @param <V> the type of cache values
  */
-public final class OakCacheBuilder<K, V> {
+public final class CacheBuilder<K, V> {
 
     // Common fields
     private String module;
     private CacheImplementation implementation;
     private long maximumWeight = -1;
     private long maximumSize = -1;
-    private OakWeigher<K, V> weigher;
-    private OakRemovalListener<K, V> removalListener;
+    private Weigher<? super K, ? super V> weigher;
+    private EvictionListener<? super K, ? super V> removalListener;
     private boolean recordStats;
     // Caffeine-only time-based expiry
     private Duration expireAfterAccess;
@@ -69,7 +77,7 @@ public final class OakCacheBuilder<K, V> {
     private int stackMoveDistance = -1;
     private long averageWeight = -1;
 
-    private OakCacheBuilder() {
+    private CacheBuilder() {
     }
 
     /**
@@ -80,8 +88,8 @@ public final class OakCacheBuilder<K, V> {
      * @return a new builder instance
      */
     @NotNull
-    public static <K, V> OakCacheBuilder<K, V> newBuilder() {
-        return new OakCacheBuilder<>();
+    public static <K, V> CacheBuilder<K, V> newBuilder() {
+        return new CacheBuilder<>();
     }
 
     /**
@@ -91,7 +99,7 @@ public final class OakCacheBuilder<K, V> {
      * @return this builder
      */
     @NotNull
-    public OakCacheBuilder<K, V> module(@NotNull String module) {
+    public CacheBuilder<K, V> module(@NotNull String module) {
         if (module == null || module.isEmpty()) {
             throw new IllegalArgumentException("module must not be null or empty");
         }
@@ -107,7 +115,7 @@ public final class OakCacheBuilder<K, V> {
      * @return this builder
      */
     @NotNull
-    public OakCacheBuilder<K, V> implementation(@NotNull CacheImplementation implementation) {
+    public CacheBuilder<K, V> implementation(@NotNull CacheImplementation implementation) {
         if (implementation == null) {
             throw new IllegalArgumentException("implementation must not be null");
         }
@@ -117,14 +125,14 @@ public final class OakCacheBuilder<K, V> {
 
     /**
      * Sets the maximum total weight of entries the cache may hold.
-     * Must be used together with {@link #weigher(OakWeigher)} and may not be
+     * Must be used together with {@link #weigher(Weigher)} and may not be
      * combined with {@link #maximumSize(long)}.
      *
      * @param maximumWeight the maximum weight (must be non-negative)
      * @return this builder
      */
     @NotNull
-    public OakCacheBuilder<K, V> maximumWeight(long maximumWeight) {
+    public CacheBuilder<K, V> maximumWeight(long maximumWeight) {
         if (maximumWeight < 0) {
             throw new IllegalArgumentException("maximumWeight must be non-negative, got: " + maximumWeight);
         }
@@ -140,7 +148,7 @@ public final class OakCacheBuilder<K, V> {
      * @return this builder
      */
     @NotNull
-    public OakCacheBuilder<K, V> maximumSize(long maximumSize) {
+    public CacheBuilder<K, V> maximumSize(long maximumSize) {
         if (maximumSize < 0) {
             throw new IllegalArgumentException("maximumSize must be non-negative, got: " + maximumSize);
         }
@@ -156,7 +164,7 @@ public final class OakCacheBuilder<K, V> {
      * @return this builder
      */
     @NotNull
-    public OakCacheBuilder<K, V> weigher(@NotNull OakWeigher<K, V> weigher) {
+    public CacheBuilder<K, V> weigher(@NotNull Weigher<? super K, ? super V> weigher) {
         if (weigher == null) {
             throw new IllegalArgumentException("weigher must not be null");
         }
@@ -171,7 +179,7 @@ public final class OakCacheBuilder<K, V> {
      * @return this builder
      */
     @NotNull
-    public OakCacheBuilder<K, V> removalListener(@NotNull OakRemovalListener<K, V> removalListener) {
+    public CacheBuilder<K, V> removalListener(@NotNull EvictionListener<? super K, ? super V> removalListener) {
         if (removalListener == null) {
             throw new IllegalArgumentException("removalListener must not be null");
         }
@@ -180,12 +188,12 @@ public final class OakCacheBuilder<K, V> {
     }
 
     /**
-     * Enables collection of cache statistics accessible via {@link OakCache#stats()}.
+     * Enables collection of cache statistics accessible via {@link Cache#stats()}.
      *
      * @return this builder
      */
     @NotNull
-    public OakCacheBuilder<K, V> recordStats() {
+    public CacheBuilder<K, V> recordStats() {
         this.recordStats = true;
         return this;
     }
@@ -198,7 +206,7 @@ public final class OakCacheBuilder<K, V> {
      * @return this builder
      */
     @NotNull
-    public OakCacheBuilder<K, V> expireAfterAccess(@NotNull Duration duration) {
+    public CacheBuilder<K, V> expireAfterAccess(@NotNull Duration duration) {
         if (duration == null) {
             throw new IllegalArgumentException("duration must not be null");
         }
@@ -214,7 +222,7 @@ public final class OakCacheBuilder<K, V> {
      * @return this builder
      */
     @NotNull
-    public OakCacheBuilder<K, V> expireAfterWrite(@NotNull Duration duration) {
+    public CacheBuilder<K, V> expireAfterWrite(@NotNull Duration duration) {
         if (duration == null) {
             throw new IllegalArgumentException("duration must not be null");
         }
@@ -224,14 +232,14 @@ public final class OakCacheBuilder<K, V> {
 
     /**
      * Sets how soon a loading cache should automatically refresh entries after write.
-     * Applies to the Caffeine backend only; requires {@link #build(OakCacheLoader)}
+     * Applies to the Caffeine backend only; requires {@link #build(CacheLoader)}
      * and is ignored for LIRS.
      *
      * @param duration the refresh interval (must not be null)
      * @return this builder
      */
     @NotNull
-    public OakCacheBuilder<K, V> refreshAfterWrite(@NotNull Duration duration) {
+    public CacheBuilder<K, V> refreshAfterWrite(@NotNull Duration duration) {
         if (duration == null) {
             throw new IllegalArgumentException("duration must not be null");
         }
@@ -246,7 +254,7 @@ public final class OakCacheBuilder<K, V> {
      * @return this builder
      */
     @NotNull
-    public OakCacheBuilder<K, V> segmentCount(int segmentCount) {
+    public CacheBuilder<K, V> segmentCount(int segmentCount) {
         if (segmentCount <= 0) {
             throw new IllegalArgumentException("segmentCount must be positive, got: " + segmentCount);
         }
@@ -261,7 +269,7 @@ public final class OakCacheBuilder<K, V> {
      * @return this builder
      */
     @NotNull
-    public OakCacheBuilder<K, V> stackMoveDistance(int stackMoveDistance) {
+    public CacheBuilder<K, V> stackMoveDistance(int stackMoveDistance) {
         if (stackMoveDistance < 0) {
             throw new IllegalArgumentException("stackMoveDistance must be non-negative, got: " + stackMoveDistance);
         }
@@ -278,7 +286,7 @@ public final class OakCacheBuilder<K, V> {
      * @return this builder
      */
     @NotNull
-    public OakCacheBuilder<K, V> averageWeight(long averageWeight) {
+    public CacheBuilder<K, V> averageWeight(long averageWeight) {
         if (averageWeight <= 0) {
             throw new IllegalArgumentException("averageWeight must be positive, got: " + averageWeight);
         }
@@ -289,10 +297,10 @@ public final class OakCacheBuilder<K, V> {
     /**
      * Builds and returns a cache with no auto-loading behaviour.
      *
-     * @return a new {@link OakCache}
+     * @return a new {@link Cache}
      */
     @NotNull
-    public OakCache<K, V> build() {
+    public Cache<K, V> build() {
         validateConfiguration(false);
         return switch (resolveImplementation()) {
             case LIRS -> buildLirs();
@@ -305,10 +313,10 @@ public final class OakCacheBuilder<K, V> {
      * using the given loader.
      *
      * @param loader the loader invoked when a key is absent (must not be null)
-     * @return a new {@link OakLoadingCache}
+     * @return a new {@link LoadingCache}
      */
     @NotNull
-    public OakLoadingCache<K, V> build(@NotNull OakCacheLoader<K, V> loader) {
+    public LoadingCache<K, V> build(@NotNull CacheLoader<K, V> loader) {
         if (loader == null) {
             throw new IllegalArgumentException("loader must not be null");
         }
@@ -334,14 +342,15 @@ public final class OakCacheBuilder<K, V> {
         }
     }
 
-    private OakCache<K, V> buildLirs() {
+    private Cache<K, V> buildLirs() {
         return new LirsCacheAdapter<>(configureLirsBuilder().build());
     }
 
-    private OakLoadingCache<K, V> buildLirs(OakCacheLoader<K, V> loader) {
-        CacheLIRS<K, V> cache = configureLirsBuilder().build(new CacheLoader<K, V>() {
+    private LoadingCache<K, V> buildLirs(CacheLoader<K, V> loader) {
+        CacheLIRS<K, V> cache = configureLirsBuilder().build(new org.apache.jackrabbit.guava.common.cache.CacheLoader<K, V>() {
             @Override
-            public V load(K key) throws Exception {
+            @NotNull
+            public V load(@NotNull K key) throws Exception {
                 return loader.load(key);
             }
         });
@@ -354,8 +363,8 @@ public final class OakCacheBuilder<K, V> {
             b = b.module(module);
         }
         if (weigher != null) {
-            OakWeigher<K, V> w = weigher;
-            b = b.weigher((k, v) -> w.weigh(k, v));
+            Weigher<? super K, ? super V> w = weigher;
+            b = b.weigher(w::weigh);
             if (maximumWeight >= 0) {
                 b = b.maximumWeight(maximumWeight);
             }
@@ -377,20 +386,18 @@ public final class OakCacheBuilder<K, V> {
             b = b.recordStats();
         }
         if (removalListener != null) {
-            OakRemovalListener<K, V> listener = removalListener;
-            b = b.evictionCallback((k, v, cause) -> listener.onRemoval(k, v, LirsCacheAdapter.toOakCause(cause)));
+            EvictionListener<? super K, ? super V> listener = removalListener;
+            b = b.evictionCallback((k, v, cause) -> listener.onEviction(k, v, LirsCacheAdapter.toOakCause(cause)));
         }
         return b;
     }
 
-    @SuppressWarnings("unchecked")
-    private OakCache<K, V> buildCaffeine() {
-        return new CaffeineCacheAdapter<>((Cache<K, V>) configureCaffeineBuilder().build());
+    private Cache<K, V> buildCaffeine() {
+        return new CaffeineCacheAdapter<>(configureCaffeineBuilder().build());
     }
 
-    @SuppressWarnings("unchecked")
-    private OakLoadingCache<K, V> buildCaffeine(OakCacheLoader<K, V> loader) {
-        LoadingCache<K, V> cache = (LoadingCache<K, V>) configureCaffeineBuilder().build(key -> {
+    private LoadingCache<K, V> buildCaffeine(CacheLoader<K, V> loader) {
+        com.github.benmanes.caffeine.cache.LoadingCache<K, V> cache = configureCaffeineBuilder().build(key -> {
             try {
                 return loader.load(key);
             } catch (Exception e) {
@@ -404,7 +411,7 @@ public final class OakCacheBuilder<K, V> {
     private Caffeine<K, V> configureCaffeineBuilder() {
         Caffeine caffeineBuilder = Caffeine.newBuilder();
         if (weigher != null) {
-            OakWeigher<K, V> w = weigher;
+            Weigher<? super K, ? super V> w = weigher;
             caffeineBuilder = caffeineBuilder.weigher((k, v) -> w.weigh((K) k, (V) v));
             if (maximumWeight >= 0) {
                 caffeineBuilder = caffeineBuilder.maximumWeight(maximumWeight);
@@ -421,9 +428,9 @@ public final class OakCacheBuilder<K, V> {
             // Run maintenance (including removal callbacks) on the calling thread
             // so the listener is invoked synchronously, matching the OakCache contract.
             caffeineBuilder = caffeineBuilder.executor(Runnable::run);
-            OakRemovalListener<K, V> listener = removalListener;
+            EvictionListener<? super K, ? super V> listener = removalListener;
             caffeineBuilder = caffeineBuilder.removalListener(
-                    (k, v, cause) -> listener.onRemoval((K) k, (V) v, CaffeineCacheAdapter.toOakCause(cause)));
+                    (k, v, cause) -> listener.onEviction((K) k, (V) v, CaffeineCacheAdapter.toOakCause(cause)));
         }
         if (expireAfterAccess != null) {
             caffeineBuilder = caffeineBuilder.expireAfterAccess(expireAfterAccess);

@@ -14,13 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.cache;
+package org.apache.jackrabbit.oak.cache.api;
 
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.jackrabbit.oak.cache.api.impl.CacheBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
@@ -29,7 +30,7 @@ import org.osgi.annotation.versioning.ProviderType;
  * A size-bounded, thread-safe cache.
  *
  * <p>Implementations may use different eviction strategies (LIRS, W-TinyLFU/Caffeine,
- * etc.) but callers see only this interface. Obtain instances via {@link OakCacheBuilder}.</p>
+ * etc.) but callers see only this interface. Obtain instances via {@link CacheBuilder}.</p>
  *
  * <p>The {@link #get(Object, Callable)} method preserves the legacy Oak-visible
  * cache contract: callers supply a {@link Callable} and loading failures are
@@ -39,7 +40,7 @@ import org.osgi.annotation.versioning.ProviderType;
  * @param <V> the type of cache values
  */
 @ProviderType
-public interface OakCache<K, V> {
+public interface Cache<K, V> {
 
     /**
      * Returns the value associated with {@code key} if it is currently in the
@@ -111,13 +112,13 @@ public interface OakCache<K, V> {
 
     /**
      * Returns a snapshot of this cache's cumulative statistics. If statistics
-     * collection was not enabled via {@link OakCacheBuilder#recordStats()}, all
+     * collection was not enabled via {@link CacheBuilder#recordStats()}, all
      * counters will be zero.
      *
      * @return a stats snapshot (never null)
      */
     @NotNull
-    OakCacheStats stats();
+    CacheStats stats();
 
     /**
      * Returns a view of the entries stored in this cache as a thread-safe map.

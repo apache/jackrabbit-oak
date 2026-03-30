@@ -14,30 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.cache;
-
-import org.jetbrains.annotations.NotNull;
+package org.apache.jackrabbit.oak.cache.api;
 
 /**
- * Determines the weight of a cache entry.
+ * The reason an entry was removed from the cache.
  *
- * <p>Used with {@link OakCacheBuilder#weigher(OakWeigher)} in combination with
- * {@link OakCacheBuilder#maximumWeight(long)} to create weight-bounded caches.
- * The unit is typically bytes but is cache-specific. The returned weight must
- * be non-negative.</p>
- *
- * @param <K> the type of cache keys
- * @param <V> the type of cache values
+ * <p>Passed to {@link EvictionListener#onEviction(Object, Object, EvictionCause)}
+ * when an entry is evicted or invalidated. Covers the common subset of removal
+ * causes across CacheLIRS and Caffeine without exposing either.</p>
  */
-@FunctionalInterface
-public interface OakWeigher<K, V> {
+public enum EvictionCause {
 
-    /**
-     * Returns the weight of the given cache entry.
-     *
-     * @param key   the cache key (never null)
-     * @param value the cache value (never null)
-     * @return the weight of the entry; must be non-negative
-     */
-    int weigh(@NotNull K key, @NotNull V value);
+    /** The entry was manually removed via {@code invalidate}. */
+    EXPLICIT,
+
+    /** The entry was replaced by a new value for the same key. */
+    REPLACED,
+
+    /** The entry was evicted due to a size or weight constraint. */
+    SIZE,
+
+    /** The entry expired. */
+    EXPIRED,
+
+    /** The entry was collected by the garbage collector (weak/soft reference). */
+    COLLECTED
 }

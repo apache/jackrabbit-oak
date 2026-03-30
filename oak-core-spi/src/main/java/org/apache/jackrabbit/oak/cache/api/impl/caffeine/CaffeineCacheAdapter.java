@@ -14,27 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.cache;
+package org.apache.jackrabbit.oak.cache.api.impl.caffeine;
 
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.RemovalCause;
-import com.github.benmanes.caffeine.cache.stats.CacheStats;
+import org.apache.jackrabbit.oak.cache.api.CacheStats;
+import org.apache.jackrabbit.oak.cache.api.Cache;
+import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * {@link OakCache} adapter wrapping a Caffeine {@link Cache}.
+ * {@link Cache} adapter wrapping a Caffeine {@link com.github.benmanes.caffeine.cache.Cache}.
  */
-class CaffeineCacheAdapter<K, V> implements OakCache<K, V> {
+public class CaffeineCacheAdapter<K, V> implements Cache<K, V> {
 
-    private final Cache<K, V> cache;
+    private final com.github.benmanes.caffeine.cache.Cache<K, V> cache;
 
-    CaffeineCacheAdapter(Cache<K, V> cache) {
+    public CaffeineCacheAdapter(com.github.benmanes.caffeine.cache.Cache<K, V> cache) {
         this.cache = cache;
     }
 
@@ -81,9 +81,9 @@ class CaffeineCacheAdapter<K, V> implements OakCache<K, V> {
 
     @Override
     @NotNull
-    public OakCacheStats stats() {
-        CacheStats s = cache.stats();
-        return new OakCacheStats(
+    public CacheStats stats() {
+        com.github.benmanes.caffeine.cache.stats.CacheStats s = cache.stats();
+        return new CacheStats(
                 s.hitCount(), s.missCount(),
                 s.loadSuccessCount(), s.loadFailureCount(),
                 s.totalLoadTime(), s.evictionCount());
@@ -107,15 +107,15 @@ class CaffeineCacheAdapter<K, V> implements OakCache<K, V> {
     }
 
     /**
-     * Maps a Caffeine {@code RemovalCause} to the Oak-neutral {@link OakRemovalCause}.
+     * Maps a Caffeine {@code RemovalCause} to the Oak-neutral {@link EvictionCause}.
      */
-    static OakRemovalCause toOakCause(RemovalCause cause) {
+    public static EvictionCause toOakCause(RemovalCause cause) {
         return switch (cause) {
-            case EXPLICIT   -> OakRemovalCause.EXPLICIT;
-            case REPLACED   -> OakRemovalCause.REPLACED;
-            case SIZE       -> OakRemovalCause.SIZE;
-            case EXPIRED    -> OakRemovalCause.EXPIRED;
-            case COLLECTED  -> OakRemovalCause.COLLECTED;
+            case EXPLICIT   -> EvictionCause.EXPLICIT;
+            case REPLACED   -> EvictionCause.REPLACED;
+            case SIZE       -> EvictionCause.SIZE;
+            case EXPIRED    -> EvictionCause.EXPIRED;
+            case COLLECTED  -> EvictionCause.COLLECTED;
         };
     }
 
@@ -128,51 +128,3 @@ class CaffeineCacheAdapter<K, V> implements OakCache<K, V> {
     }
 }
 
-/**
- * {@link OakLoadingCache} adapter wrapping a Caffeine {@link LoadingCache}.
- *
- * <p>TODO OAK-TASK16: per {@code TASKS.md}, remove this temporary bridge in
- * TASK-16 once the migration cleanup drops the Oak-visible loading-cache
- * compatibility layer.</p>
- */
-class CaffeineLoadingCacheAdapter<K, V> extends CaffeineCacheAdapter<K, V> implements OakLoadingCache<K, V> {
-
-    private final LoadingCache<K, V> loadingCache;
-
-    CaffeineLoadingCacheAdapter(LoadingCache<K, V> loadingCache) {
-        super(loadingCache);
-        this.loadingCache = loadingCache;
-    }
-
-    @Override
-    @NotNull
-    public V get(@NotNull K key) throws ExecutionException {
-        try {
-            return loadingCache.get(key);
-        } catch (CacheComputationException e) {
-            throw new ExecutionException(e.getCause());
-        } catch (RuntimeException e) {
-            throw new ExecutionException(e);
-        }
-    }
-
-    @Override
-    public void refresh(@NotNull K key) {
-        loadingCache.refresh(key);
-    }
-}
-
-/**
- * Internal wrapper used to tunnel checked loader failures through Caffeine's
- * unchecked loader callbacks before restoring them as {@link ExecutionException}
- * on the Oak-visible API surface.
- *
- * <p>TODO OAK-TASK16: per {@code TASKS.md}, remove this helper in TASK-16 once
- * checked-exception compatibility is no longer required on top of Caffeine.</p>
- */
-class CacheComputationException extends RuntimeException {
-
-    CacheComputationException(Throwable cause) {
-        super(cause);
-    }
-}

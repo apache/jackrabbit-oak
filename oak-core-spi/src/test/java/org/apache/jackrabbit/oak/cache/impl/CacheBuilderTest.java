@@ -14,21 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.cache;
+package org.apache.jackrabbit.oak.cache.impl;
 
 import java.time.Duration;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.jackrabbit.oak.cache.api.Cache;
+import org.apache.jackrabbit.oak.cache.api.CacheStats;
+import org.apache.jackrabbit.oak.cache.api.LoadingCache;
+import org.apache.jackrabbit.oak.cache.api.EvictionCause;
+import org.apache.jackrabbit.oak.cache.api.impl.CacheBuilder;
+import org.apache.jackrabbit.oak.cache.api.impl.CacheImplementation;
+import org.apache.jackrabbit.oak.cache.api.impl.CacheStatsAdapter;
+import org.apache.jackrabbit.oak.cache.api.impl.caffeine.CaffeineCacheAdapter;
+import org.apache.jackrabbit.oak.cache.api.impl.lirs.LirsCacheAdapter;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Tests for {@link OakCacheBuilder}.
+ * Tests for {@link CacheBuilder}.
  */
-public class OakCacheBuilderTest {
+public class CacheBuilderTest {
 
     private String savedCacheType;
 
@@ -50,7 +59,7 @@ public class OakCacheBuilderTest {
     @Test
     public void buildViaGlobalPropertyLirs() {
         System.setProperty("oak.cache.type", "lirs");
-        OakCache<String, String> cache = OakCacheBuilder.<String, String>newBuilder()
+        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                 .maximumSize(10)
                 .build();
         Assert.assertTrue(cache instanceof LirsCacheAdapter);
@@ -60,7 +69,7 @@ public class OakCacheBuilderTest {
     @Test
     public void buildViaGlobalPropertyCaffeine() {
         System.setProperty("oak.cache.type", "caffeine");
-        OakCache<String, String> cache = OakCacheBuilder.<String, String>newBuilder()
+        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                 .maximumSize(10)
                 .build();
         Assert.assertTrue(cache instanceof CaffeineCacheAdapter);
@@ -70,7 +79,7 @@ public class OakCacheBuilderTest {
     @Test
     public void perInstanceCaffeineOverridesLirsGlobal() {
         System.setProperty("oak.cache.type", "lirs");
-        OakCache<String, String> cache = OakCacheBuilder.<String, String>newBuilder()
+        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                 .maximumSize(10)
                 .implementation(CacheImplementation.CAFFEINE)
                 .build();
@@ -81,7 +90,7 @@ public class OakCacheBuilderTest {
     @Test
     public void perInstanceLirsOverridesCaffeineGlobal() {
         System.setProperty("oak.cache.type", "caffeine");
-        OakCache<String, String> cache = OakCacheBuilder.<String, String>newBuilder()
+        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                 .maximumSize(10)
                 .implementation(CacheImplementation.LIRS)
                 .build();
@@ -92,24 +101,24 @@ public class OakCacheBuilderTest {
     @Test
     public void buildReturnsManualCacheOnly() {
         for (CacheImplementation impl : CacheImplementation.values()) {
-            OakCache<String, String> cache = OakCacheBuilder.<String, String>newBuilder()
+            Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                     .maximumSize(10)
                     .implementation(impl)
                     .build();
 
             Assert.assertFalse("manual cache must not implement OakLoadingCache for impl " + impl,
-                    cache instanceof OakLoadingCache);
+                    cache instanceof LoadingCache);
         }
     }
 
     /** Weigher and removalListener are wired correctly for both backends. */
     @Test
     public void weigherAndRemovalListenerWiring() {
-        AtomicReference<OakRemovalCause> capturedCause = new AtomicReference<>();
+        AtomicReference<EvictionCause> capturedCause = new AtomicReference<>();
 
         for (CacheImplementation impl : CacheImplementation.values()) {
             capturedCause.set(null);
-            OakCache<String, String> cache = OakCacheBuilder.<String, String>newBuilder()
+            Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                     .maximumWeight(1000)
                     .weigher((k, v) -> k.length() + v.length())
                     .removalListener((k, v, cause) -> capturedCause.set(cause))
@@ -122,7 +131,7 @@ public class OakCacheBuilderTest {
             cache.cleanUp();
 
             Assert.assertEquals("expected EXPLICIT cause for impl " + impl,
-                    OakRemovalCause.EXPLICIT, capturedCause.get());
+                    EvictionCause.EXPLICIT, capturedCause.get());
         }
     }
 
@@ -132,7 +141,7 @@ public class OakCacheBuilderTest {
         Exception loaderFailure = new Exception("load failed");
 
         for (CacheImplementation impl : CacheImplementation.values()) {
-            OakLoadingCache<String, String> cache = OakCacheBuilder.<String, String>newBuilder()
+            LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                     .maximumSize(10)
                     .implementation(impl)
                     .build(k -> { throw loaderFailure; });
@@ -153,7 +162,7 @@ public class OakCacheBuilderTest {
         RuntimeException loaderFailure = new RuntimeException("load failed");
 
         for (CacheImplementation impl : CacheImplementation.values()) {
-            OakLoadingCache<String, String> cache = OakCacheBuilder.<String, String>newBuilder()
+            LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                     .maximumSize(10)
                     .implementation(impl)
                     .build(k -> { throw loaderFailure; });
@@ -174,7 +183,7 @@ public class OakCacheBuilderTest {
         RuntimeException mappingFailure = new RuntimeException("mapping failed");
 
         for (CacheImplementation impl : CacheImplementation.values()) {
-            OakCache<String, String> cache = OakCacheBuilder.<String, String>newBuilder()
+            Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                     .maximumSize(10)
                     .implementation(impl)
                     .build();
@@ -195,7 +204,7 @@ public class OakCacheBuilderTest {
     @Test
     public void statsReturnsCorrectHitMissCounts() {
         for (CacheImplementation impl : CacheImplementation.values()) {
-            OakCache<String, String> cache = OakCacheBuilder.<String, String>newBuilder()
+            Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                     .maximumSize(10)
                     .recordStats()
                     .implementation(impl)
@@ -205,7 +214,7 @@ public class OakCacheBuilderTest {
             cache.getIfPresent("k");        // hit
             cache.getIfPresent("missing");  // miss
 
-            OakCacheStats stats = cache.stats();
+            CacheStats stats = cache.stats();
             Assert.assertNotNull("stats must not be null for impl " + impl, stats);
             Assert.assertEquals("hit count for impl " + impl, 1, stats.hitCount());
             Assert.assertEquals("miss count for impl " + impl, 1, stats.missCount());
@@ -216,39 +225,39 @@ public class OakCacheBuilderTest {
     @Test
     public void buildRejectsInvalidConfigurations() {
         assertInvalidBuild(
-                OakCacheBuilder.<String, String>newBuilder(),
+                CacheBuilder.<String, String>newBuilder(),
                 "Either maximumSize or maximumWeight must be configured");
         assertInvalidBuild(
-                OakCacheBuilder.<String, String>newBuilder().maximumSize(10).maximumWeight(20).weigher((k, v) -> 1),
+                CacheBuilder.<String, String>newBuilder().maximumSize(10).maximumWeight(20).weigher((k, v) -> 1),
                 "maximumSize and maximumWeight are mutually exclusive");
         assertInvalidBuild(
-                OakCacheBuilder.<String, String>newBuilder().maximumWeight(10),
+                CacheBuilder.<String, String>newBuilder().maximumWeight(10),
                 "maximumWeight requires weigher");
         assertInvalidBuild(
-                OakCacheBuilder.<String, String>newBuilder().maximumSize(10).weigher((k, v) -> 1),
+                CacheBuilder.<String, String>newBuilder().maximumSize(10).weigher((k, v) -> 1),
                 "weigher requires maximumWeight");
         assertInvalidBuild(
-                OakCacheBuilder.<String, String>newBuilder().maximumSize(10).refreshAfterWrite(Duration.ofSeconds(1)),
+                CacheBuilder.<String, String>newBuilder().maximumSize(10).refreshAfterWrite(Duration.ofSeconds(1)),
                 "refreshAfterWrite requires build(OakCacheLoader)");
         assertInvalidBuild(
-                OakCacheBuilder.<String, String>newBuilder().maximumWeight(10).weigher((k, v) -> 1)
+                CacheBuilder.<String, String>newBuilder().maximumWeight(10).weigher((k, v) -> 1)
                         .averageWeight((long) Integer.MAX_VALUE + 1L),
                 "averageWeight must be less than or equal to Integer.MAX_VALUE");
         assertInvalidBuild(
-                OakCacheBuilder.<String, String>newBuilder().maximumSize(10).averageWeight(10),
+                CacheBuilder.<String, String>newBuilder().maximumSize(10).averageWeight(10),
                 "averageWeight requires maximumWeight");
     }
 
     /** OakCacheStatsAdapter exposes stats and live weight estimates from an OakCache. */
     @Test
     public void oakCacheStatsAdapterBridgesOakStats() {
-        OakCache<String, String> cache = OakCacheBuilder.<String, String>newBuilder()
+        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                 .maximumWeight(100)
                 .weigher((k, v) -> k.length() + v.length())
                 .recordStats()
                 .implementation(CacheImplementation.CAFFEINE)
                 .build();
-        OakCacheStatsAdapter stats = new OakCacheStatsAdapter(
+        CacheStatsAdapter stats = new CacheStatsAdapter(
                 cache, "testCache", (k, v) -> k.toString().length() + v.toString().length(), 100);
 
         cache.put("aa", "bbb");
@@ -266,7 +275,7 @@ public class OakCacheBuilderTest {
         Assert.assertEquals(1, stats.getHitCount());
     }
 
-    private static void assertInvalidBuild(OakCacheBuilder<String, String> builder, String expectedMessagePart) {
+    private static void assertInvalidBuild(CacheBuilder<String, String> builder, String expectedMessagePart) {
         try {
             builder.build();
             Assert.fail("expected IllegalArgumentException containing: " + expectedMessagePart);

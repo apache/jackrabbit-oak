@@ -14,29 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.cache;
+package org.apache.jackrabbit.oak.cache.api.impl.caffeine;
 
-/**
- * The reason an entry was removed from the cache.
+import java.util.concurrent.ExecutionException; /**
+ * Internal wrapper used to tunnel checked loader failures through Caffeine's
+ * unchecked loader callbacks before restoring them as {@link ExecutionException}
+ * on the Oak-visible API surface.
  *
- * <p>Passed to {@link OakRemovalListener#onRemoval(Object, Object, OakRemovalCause)}
- * when an entry is evicted or invalidated. Covers the common subset of removal
- * causes across CacheLIRS and Caffeine without exposing either.</p>
+ * <p>TODO OAK-TASK16: per {@code TASKS.md}, remove this helper in TASK-16 once
+ * checked-exception compatibility is no longer required on top of Caffeine.</p>
  */
-public enum OakRemovalCause {
+public class CacheComputationException extends RuntimeException {
 
-    /** The entry was manually removed via {@code invalidate}. */
-    EXPLICIT,
-
-    /** The entry was replaced by a new value for the same key. */
-    REPLACED,
-
-    /** The entry was evicted due to a size or weight constraint. */
-    SIZE,
-
-    /** The entry expired. */
-    EXPIRED,
-
-    /** The entry was collected by the garbage collector (weak/soft reference). */
-    COLLECTED
+    public CacheComputationException(Throwable cause) {
+        super(cause);
+    }
 }

@@ -14,28 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.cache;
+package org.apache.jackrabbit.oak.cache.api.impl.lirs;
 
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 
-import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.guava.common.cache.RemovalCause;
+import org.apache.jackrabbit.oak.cache.CacheLIRS;
+import org.apache.jackrabbit.oak.cache.api.CacheStats;
+import org.apache.jackrabbit.oak.cache.api.Cache;
+import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * {@link OakCache} adapter wrapping a {@link CacheLIRS} instance.
+ * {@link Cache} adapter wrapping a {@link CacheLIRS} instance.
  *
  * <p>Exposes the checked {@link ExecutionException} contract used by the
  * legacy Oak-visible cache API.</p>
  */
-class LirsCacheAdapter<K, V> implements OakCache<K, V> {
+public class LirsCacheAdapter<K, V> implements Cache<K, V> {
 
     private final CacheLIRS<K, V> cache;
 
-    LirsCacheAdapter(CacheLIRS<K, V> cache) {
+    public LirsCacheAdapter(CacheLIRS<K, V> cache) {
         this.cache = cache;
     }
 
@@ -76,9 +79,9 @@ class LirsCacheAdapter<K, V> implements OakCache<K, V> {
 
     @Override
     @NotNull
-    public OakCacheStats stats() {
-        CacheStats s = cache.stats();
-        return new OakCacheStats(
+    public CacheStats stats() {
+        org.apache.jackrabbit.guava.common.cache.CacheStats s = cache.stats();
+        return new CacheStats(
                 s.hitCount(), s.missCount(),
                 s.loadSuccessCount(), s.loadExceptionCount(),
                 s.totalLoadTime(), s.evictionCount());
@@ -102,42 +105,16 @@ class LirsCacheAdapter<K, V> implements OakCache<K, V> {
     }
 
     /**
-     * Maps a Guava shim {@code RemovalCause} to the Oak-neutral {@link OakRemovalCause}.
+     * Maps a Guava shim {@code RemovalCause} to the Oak-neutral {@link EvictionCause}.
      */
-    static OakRemovalCause toOakCause(RemovalCause cause) {
+    public static EvictionCause toOakCause(RemovalCause cause) {
         return switch (cause) {
-            case EXPLICIT   -> OakRemovalCause.EXPLICIT;
-            case REPLACED   -> OakRemovalCause.REPLACED;
-            case SIZE       -> OakRemovalCause.SIZE;
-            case EXPIRED    -> OakRemovalCause.EXPIRED;
-            case COLLECTED  -> OakRemovalCause.COLLECTED;
+            case EXPLICIT   -> EvictionCause.EXPLICIT;
+            case REPLACED   -> EvictionCause.REPLACED;
+            case SIZE       -> EvictionCause.SIZE;
+            case EXPIRED    -> EvictionCause.EXPIRED;
+            case COLLECTED  -> EvictionCause.COLLECTED;
         };
     }
 }
 
-/**
- * {@link OakLoadingCache} adapter wrapping a loading {@link CacheLIRS} instance.
- *
- * <p>TODO OAK-TASK16: per {@code TASKS.md}, remove this temporary bridge in
- * TASK-16 once loading-cache callers have been migrated off the legacy
- * compatibility contract.</p>
- */
-class LirsLoadingCacheAdapter<K, V> extends LirsCacheAdapter<K, V> implements OakLoadingCache<K, V> {
-
-    private final CacheLIRS<K, V> cache;
-
-    LirsLoadingCacheAdapter(CacheLIRS<K, V> cache) {
-        super(cache);
-        this.cache = cache;
-    }
-
-    @Override
-    public @NotNull V get(@NotNull K key) throws ExecutionException {
-        return cache.get(key);
-    }
-
-    @Override
-    public void refresh(@NotNull K key) {
-        cache.refresh(key);
-    }
-}

@@ -14,22 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.cache;
+package org.apache.jackrabbit.oak.cache.api;
 
+import org.apache.jackrabbit.oak.cache.api.impl.CacheBuilder;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Computes or loads a value for a missing cache entry.
  *
- * <p>Used with {@link OakCacheBuilder#build(OakCacheLoader)} to create an
- * {@link OakLoadingCache}. The loader is key-aware (receives the lookup key)
+ * <p>Used with {@link CacheBuilder#build(CacheLoader)} to create an
+ * {@link LoadingCache}. The loader is key-aware (receives the lookup key)
  * and may throw a checked exception.</p>
  *
  * @param <K> the type of cache keys
  * @param <V> the type of cache values
  */
 @FunctionalInterface
-public interface OakCacheLoader<K, V> {
+public interface CacheLoader<K, V> {
 
     /**
      * Computes the value for the given key.

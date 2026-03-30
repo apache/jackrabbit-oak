@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.cache;
+package org.apache.jackrabbit.oak.cache.api.impl;
 
 /**
- * Selects the backing cache implementation used by {@link OakCacheBuilder}.
+ * Selects the backing cache implementation used by {@link CacheBuilder}.
  *
- * <p>Pass to {@link OakCacheBuilder#implementation(CacheImplementation)} to pin a specific
+ * <p>Pass to {@link CacheBuilder#implementation(CacheImplementation)} to pin a specific
  * cache to one backend, overriding the global {@code oak.cache.type} system property.
  * When no per-instance override is set, the builder resolves the implementation from
  * {@code System.getProperty("oak.cache.type", "lirs")}.</p>

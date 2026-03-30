@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.cache;
+package org.apache.jackrabbit.oak.cache.api;
 
 import org.jetbrains.annotations.NotNull;
 
 /**
  * An immutable snapshot of cache statistics at a point in time.
  *
- * <p>Returned by {@link OakCache#stats()}. All counters are cumulative since
- * the cache was created. Use {@link #minus(OakCacheStats)} to compute a delta
+ * <p>Returned by {@link Cache#stats()}. All counters are cumulative since
+ * the cache was created. Use {@link #minus(CacheStats)} to compute a delta
  * between two snapshots.</p>
  *
  * @param hitCount         number of times a requested key was found in the cache
@@ -32,7 +32,7 @@ import org.jetbrains.annotations.NotNull;
  * @param totalLoadTime    total time spent loading new values, in nanoseconds
  * @param evictionCount    number of entries evicted from the cache
  */
-public record OakCacheStats(
+public record CacheStats(
         long hitCount,
         long missCount,
         long loadSuccessCount,
@@ -79,8 +79,8 @@ public record OakCacheStats(
      * @return a new snapshot representing the delta
      */
     @NotNull
-    public OakCacheStats minus(@NotNull OakCacheStats other) {
-        return new OakCacheStats(
+    public CacheStats minus(@NotNull CacheStats other) {
+        return new CacheStats(
                 Math.max(0, hitCount - other.hitCount),
                 Math.max(0, missCount - other.missCount),
                 Math.max(0, loadSuccessCount - other.loadSuccessCount),

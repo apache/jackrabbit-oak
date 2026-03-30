@@ -14,18 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.cache;
+package org.apache.jackrabbit.oak.cache.api;
 
 import java.util.concurrent.ExecutionException;
 
+import org.apache.jackrabbit.oak.cache.api.impl.CacheBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * A cache that automatically loads absent entries from a pre-configured
- * {@link OakCacheLoader}.
+ * {@link CacheLoader}.
  *
- * <p>Obtain instances via {@link OakCacheBuilder#build(OakCacheLoader)}.
+ * <p>Obtain instances via {@link CacheBuilder#build(CacheLoader)}.
  * Loading failures are exposed as {@link ExecutionException} to preserve the
  * legacy Oak-visible loading-cache contract.</p>
  *
@@ -33,11 +34,11 @@ import org.osgi.annotation.versioning.ProviderType;
  * @param <V> the type of cache values
  */
 @ProviderType
-public interface OakLoadingCache<K, V> extends OakCache<K, V> {
+public interface LoadingCache<K, V> extends Cache<K, V> {
 
     /**
      * Returns the value associated with {@code key}, loading it via the
-     * pre-configured {@link OakCacheLoader} if absent.
+     * pre-configured {@link CacheLoader} if absent.
      *
      * @param key the key whose value should be returned or loaded (must not be null)
      * @return the current or newly loaded value (never null)

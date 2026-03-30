@@ -14,30 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.cache;
+package org.apache.jackrabbit.oak.cache.api.impl;
 
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
+import org.apache.jackrabbit.oak.cache.api.Cache;
+import org.apache.jackrabbit.oak.cache.api.CacheStats;
+import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Exposes an {@link OakCache}'s statistics via the {@link org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean}
- * interface by bridging {@link OakCacheStats} to the Guava shim {@link CacheStats} expected
+ * Exposes an {@link Cache}'s statistics via the {@link org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean}
+ * interface by bridging {@link CacheStats} to the Guava shim {@link org.apache.jackrabbit.guava.common.cache.CacheStats} expected
  * by {@link AbstractCacheStats}.
  *
  * <p>The Guava return type from {@link #getCurrentStats()} is kept until TASK-16 updates
- * the base class to use {@link OakCacheStats} directly.</p>
+ * the base class to use {@link CacheStats} directly.</p>
  *
  * <p>TODO OAK-TASK16: per {@code TASKS.md}, remove this temporary adapter in
- * TASK-16 once {@link AbstractCacheStats} consumes {@link OakCacheStats}
+ * TASK-16 once {@link AbstractCacheStats} consumes {@link CacheStats}
  * directly.</p>
  */
-class OakCacheStatsAdapter extends AbstractCacheStats {
+public class CacheStatsAdapter extends AbstractCacheStats {
 
-    private final OakCache<Object, Object> cache;
-    private final OakWeigher<Object, Object> weigher;
+    private final Cache<Object, Object> cache;
+    private final Weigher<Object, Object> weigher;
     private final long maxWeight;
 
     /**
@@ -49,21 +52,21 @@ class OakCacheStatsAdapter extends AbstractCacheStats {
      * @param maxWeight configured maximum weight for the cache; {@code -1} if unbounded
      */
     @SuppressWarnings("unchecked")
-    OakCacheStatsAdapter(
-            @NotNull OakCache<?, ?> cache,
+    public CacheStatsAdapter(
+            @NotNull Cache<?, ?> cache,
             @NotNull String name,
-            @Nullable OakWeigher<?, ?> weigher,
+            @Nullable Weigher<?, ?> weigher,
             long maxWeight) {
         super(name);
-        this.cache = (OakCache<Object, Object>) cache;
-        this.weigher = (OakWeigher<Object, Object>) weigher;
+        this.cache = (Cache<Object, Object>) cache;
+        this.weigher = (Weigher<Object, Object>) weigher;
         this.maxWeight = maxWeight;
     }
 
     @Override
-    protected CacheStats getCurrentStats() {
-        OakCacheStats s = cache.stats();
-        return new CacheStats(
+    protected org.apache.jackrabbit.guava.common.cache.CacheStats getCurrentStats() {
+        CacheStats s = cache.stats();
+        return new org.apache.jackrabbit.guava.common.cache.CacheStats(
                 s.hitCount(), s.missCount(),
                 s.loadSuccessCount(), s.loadFailureCount(),
                 s.totalLoadTime(), s.evictionCount());
