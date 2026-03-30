@@ -44,7 +44,6 @@ import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.core.search.SourceConfig;
 import co.elastic.clients.elasticsearch.core.search.TotalHitsRelation;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashSet;
@@ -292,7 +291,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
 
         ElasticQueryScanner(List<ElasticResponseListener> listeners) {
             this.query = elasticRequestHandler.baseQuery();
-            this.sessionId = "oak-" + ElasticIndexUtils.sha256Hash(this.query.toString().getBytes(StandardCharsets.UTF_8));
+            this.sessionId = "oak-" + ElasticIndexUtils.fastHash(this.query.toString());
             this.sorts = elasticRequestHandler.baseSorts();
             this.highlight = elasticRequestHandler.highlight();
 
