@@ -64,6 +64,8 @@ public class AsyncLaneSwitcher {
      * {@code laneName}, the property is treated as stale (e.g. copied from a running system
      * into a user-provided index definition). In that case the stale value is discarded and
      * the switch proceeds normally so the index is not silently skipped during reindexing.
+     * If {@code async-previous} is missing, then the switch to the temporary lane required for
+     * offline reindexing has not yet happened and will be carried out.
      */
     public static void switchLane(NodeBuilder idxBuilder, String laneName) {
         PropertyState currentAsyncState = idxBuilder.getProperty(ASYNC_PROPERTY_NAME);
