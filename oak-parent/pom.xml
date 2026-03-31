@@ -90,9 +90,9 @@
     <!-- refresh interval in seconds for elastic stats cache (default is 60 seconds).
      Lower interval is needed for tests to execute faster. So setting to 10 seconds using a system property-->
     <oak.elastic.statsRefreshSeconds>10</oak.elastic.statsRefreshSeconds>
-    <sonar.coverage.jacoco.xmlReportPaths>
-      ${project.reporting.outputDirectory}/jacoco-ut/jacoco.xml
-    </sonar.coverage.jacoco.xmlReportPaths>
+    <!-- this project uses cross-module reports with one aggregate, https://docs.sonarsource.com/sonarcloud/enriching/test-coverage/java-test-coverage/#add-coverage-in-a-multi-module-maven-project -->
+    <!-- "maven.multiModuleProjectDirectory" is undocumented (https://issues.apache.org/jira/browse/MNG-6589) but the only way to reference the aggregate root directory in Maven 3.x-->
+    <sonar.coverage.jacoco.xmlReportPaths>${maven.multiModuleProjectDirectory}/target/site/jacoco-aggregate/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     <sonar.organization>apache</sonar.organization>
     <sonar.host.url>https://sonarcloud.io</sonar.host.url>
   </properties>
