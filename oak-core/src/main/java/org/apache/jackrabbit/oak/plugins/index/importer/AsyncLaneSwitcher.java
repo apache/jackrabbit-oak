@@ -25,6 +25,8 @@ import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 
@@ -35,6 +37,8 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPE
  * operation would be no op.
  */
 public class AsyncLaneSwitcher {
+    private static final Logger LOG = LoggerFactory.getLogger(AsyncLaneSwitcher.class);
+
     /**
      * Property name where previous value of 'async' is stored
      */
@@ -52,17 +56,35 @@ public class AsyncLaneSwitcher {
     private static final String TEMP_LANE_PREFIX = "temp-";
 
     /**
-     * Make a copy of current async value and replace it with one required for offline reindexing
-     * The switch lane operation can be safely repeated and if the index
-     * lane is found to be switched already it would not be modified
+     * Make a copy of current async value and replace it with one required for offline reindexing.
+     * The switch lane operation can be safely repeated: if the index lane is already set to the
+     * target lane, the call is a no-op.
+     * <p>
+     * If {@code async-previous} is present but {@code async} does not already equal
+     * {@code laneName}, the property is treated as stale (e.g. copied from a running system
+     * into a user-provided index definition). In that case the stale value is discarded and
+     * the switch proceeds normally so the index is not silently skipped during reindexing.
+     * If {@code async-previous} is missing, then the switch to the temporary lane required for
+     * offline reindexing has not yet happened and will be carried out.
      */
     public static void switchLane(NodeBuilder idxBuilder, String laneName) {
         PropertyState currentAsyncState = idxBuilder.getProperty(ASYNC_PROPERTY_NAME);
         PropertyState newAsyncState = PropertyStates.createProperty(ASYNC_PROPERTY_NAME, laneName, Type.STRING);
 
-        if (idxBuilder.hasProperty(ASYNC_PREVIOUS)){
-            //Lane already switched
-            return;
+        if (idxBuilder.hasProperty(ASYNC_PREVIOUS)) {
+            if (currentAsyncState != null
+                    && !currentAsyncState.isArray()
+                    && laneName.equals(currentAsyncState.getValue(Type.STRING))) {
+                // Lane already switched to the target — no-op
+                LOG.info("Index definition contains existing '{}' property (async='{}', target lane='{}') - " +
+                        "skipping lane switch", ASYNC_PREVIOUS, currentAsyncState, laneName);
+                return;
+            }
+            // async-previous is present but async != target lane: stale / user-provided value
+            // Discard it and fall through to perform the switch correctly
+            LOG.warn("Index definition contains stale '{}' property (async='{}', target lane='{}') - " +
+                    "discarding stale value and switching lane", ASYNC_PREVIOUS, currentAsyncState, laneName);
+            idxBuilder.removeProperty(ASYNC_PREVIOUS);
         }
 
         PropertyState previousAsyncState;
