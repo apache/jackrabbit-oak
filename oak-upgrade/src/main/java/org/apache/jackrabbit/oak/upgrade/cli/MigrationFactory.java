@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.upgrade.cli;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.ServiceLoader;
@@ -27,7 +26,6 @@ import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
-import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -124,92 +122,4 @@ public class MigrationFactory {
         ServiceLoader<CommitHook> loader = ServiceLoader.load(CommitHook.class);
         return Collections.unmodifiableList(ListUtils.toList(loader.iterator()));
     }
-
-    /**
-     * Wraps An Oak BlobStore around a Jackrabbit Datastore
-     */
-    private static class ToJackrabbitDataStoreDelegatingBlobStore implements BlobStore {
-
-        private org.apache.jackrabbit.core.data.DataStore delegate;
-
-        public ToJackrabbitDataStoreDelegatingBlobStore(
-                org.apache.jackrabbit.core.data.DataStore delegate) {
-            this.delegate = delegate;
-        }
-
-        @Override
-        public String writeBlob(InputStream inputStream) throws IOException {
-            try {
-                org.apache.jackrabbit.core.data.DataRecord record = delegate.addRecord(inputStream);
-                return record.getIdentifier().toString();
-            } catch (org.apache.jackrabbit.core.data.DataStoreException ex) {
-                throw new IOException("Failed to write blob", ex);
-            }
-        }
-
-        @Override
-        public String writeBlob(InputStream inputStream, BlobOptions options) throws IOException {
-            try {
-                org.apache.jackrabbit.core.data.DataRecord record = delegate.addRecord(inputStream);
-                return record.getIdentifier().toString();
-            } catch (org.apache.jackrabbit.core.data.DataStoreException ex) {
-                throw new IOException("Failed to write blob", ex);
-            }
-        }
-
-        @Override
-        public int readBlob(String blobId, long pos, byte[] buff, int off, int length)
-                throws IOException {
-
-            try (InputStream is = getInputStream(blobId)) {
-
-                if (pos > 0) {
-                    long skipped = is.skip(pos);
-                    if (skipped < pos) {
-                        return -1;
-                    }
-                }
-
-                return is.read(buff, off, length);
-            }
-        }
-
-        @Override
-        public long getBlobLength(String blobId) throws IOException {
-            try {
-                org.apache.jackrabbit.core.data.DataRecord record = delegate.getRecord(new org.apache.jackrabbit.core.data.DataIdentifier(blobId));
-                return record.getLength();
-            } catch (org.apache.jackrabbit.core.data.DataStoreException ex) {
-                throw new IOException("Failed to get blob length", ex);
-            }
-        }
-
-        @Override
-        public InputStream getInputStream(String blobId) throws IOException {
-            try {
-                org.apache.jackrabbit.core.data.DataRecord record = delegate.getRecord(new org.apache.jackrabbit.core.data.DataIdentifier(blobId));
-                return record.getStream();
-            } catch (org.apache.jackrabbit.core.data.DataStoreException ex) {
-                throw new IOException("Failed to get input stream", ex);
-            }
-        }
-
-        @Override
-        public String getBlobId(String reference) {
-            // Usually same as blobId for Jackrabbit datastore
-            return reference;
-        }
-
-        @Override
-        public String getReference(String blobId) {
-            // Jackrabbit DataStore doesn't distinguish strongly here
-            return blobId;
-        }
-
-        @Override
-        public void close() throws Exception {
-            delegate.close();
-        }
-    }
-
 }
