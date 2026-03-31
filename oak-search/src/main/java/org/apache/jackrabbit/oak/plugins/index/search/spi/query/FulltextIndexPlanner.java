@@ -59,6 +59,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import static org.apache.jackrabbit.JcrConstants.JCR_SCORE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getAncestorPath;
@@ -71,6 +73,27 @@ import static org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 public class FulltextIndexPlanner {
 
     public static final int DEFAULT_PROPERTY_WEIGHT = Integer.getInteger("oak.fulltext.defaultPropertyWeight", 5);
+
+    /**
+     * Default weight used for null/not-null cost estimation when no explicit weight is configured.
+     * Corresponds to the heuristic that such conditions match ~10% of indexed entries.
+     */
+    public static final int DEFAULT_NULL_CHECK_WEIGHT = 10;
+
+    /**
+     * Feature toggle name for OAK-12171.
+     * When the toggle is enabled (set to true), the improved null/not-null weight estimation
+     * is disabled and the legacy behavior (weight=1) is used instead.
+     * The improved behavior is active by default.
+     */
+    public static final String FT_OAK_12171 = "FT_OAK-12171";
+
+    /**
+     * Kill switch for the improved null/not-null weight estimation introduced by OAK-12171.
+     * Set to {@code true} to revert to the legacy behavior. Default is {@code false} (improved
+     * behavior active). This is wired to the {@link #FT_OAK_12171} feature toggle at runtime.
+     */
+    public static final AtomicBoolean FT_OAK_12171_DISABLE = new AtomicBoolean(false);
 
     /**
      * IndexPlan Attribute name which refers to the name of the fields that should be used for facets.
@@ -814,6 +837,21 @@ public class FulltextIndexPlanner {
         return PathUtils.denotesRoot(parentPath) ? "" : parentPath;
     }
 
+    /**
+     * Returns the effective weight to use for null/not-null cost estimation.
+     * Priority: specificWeight (weightNull/weightNotNull) &gt; propertyWeight (if explicitly
+     * configured and &gt; 1) &gt; {@link #DEFAULT_NULL_CHECK_WEIGHT} heuristic.
+     */
+    private static int resolveNullCheckWeight(int specificWeight, int propertyWeight, boolean hasExplicitWeight) {
+        if (specificWeight > 0) {
+            return specificWeight;
+        }
+        if (hasExplicitWeight && propertyWeight > 1) {
+            return propertyWeight;
+        }
+        return DEFAULT_NULL_CHECK_WEIGHT;
+    }
+
     private int getNumDocs() {
         IndexStatistics indexStatistics = indexNode.getIndexStatistics();
         if (indexStatistics == null) {
@@ -850,13 +888,19 @@ public class FulltextIndexPlanner {
 
             if (pr != null) {
                 if (pr.isNotNullRestriction()) {
-                    // don't use weight for "is not null" restrictions
-                    // as all documents with this field can match;
-                    weight = 1;
+                    if (FT_OAK_12171_DISABLE.get()) {
+                        weight = 1;
+                    } else {
+                        PropertyDefinition pd = propDef.getValue();
+                        weight = resolveNullCheckWeight(pd.weightNotNull, pd.weight, pd.hasExplicitWeight);
+                    }
                 } else if (pr.isNullRestriction()) {
-                    // don't use the weight for "is null" restrictions
-                    // as all documents with ":nullProps" can match
-                    weight = 1;
+                    if (FT_OAK_12171_DISABLE.get()) {
+                        weight = 1;
+                    } else {
+                        PropertyDefinition pd = propDef.getValue();
+                        weight = resolveNullCheckWeight(pd.weightNull, pd.weight, pd.hasExplicitWeight);
+                    }
                 } else {
                     if (weight > 1) {
                         // for non-equality conditions such as

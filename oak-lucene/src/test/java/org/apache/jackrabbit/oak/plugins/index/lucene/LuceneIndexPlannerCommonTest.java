@@ -89,12 +89,13 @@ public class LuceneIndexPlannerCommonTest extends IndexPlannerCommonTest {
         assertEquals(1.0, plan.getCostPerExecution(), 0);
         assertEquals(1.0, plan.getCostPerEntry(), 0);
 
-        // Query on "foo" is not null
+        // Query on "foo" is not null: no explicit weight -> heuristic weight applied
         filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.NOT_EQUAL, null);
         planner = new FulltextIndexPlanner(node, "/test", filter, Collections.emptyList());
         plan = planner.getPlan();
-        assertEquals(numOfDocs, plan.getEstimatedEntryCount());
+        assertEquals((long) Math.ceil((double) numOfDocs / FulltextIndexPlanner.DEFAULT_NULL_CHECK_WEIGHT),
+                plan.getEstimatedEntryCount());
 
         // Query on "foo" like x
         filter = createFilter("nt:base");
@@ -355,45 +356,40 @@ public class LuceneIndexPlannerCommonTest extends IndexPlannerCommonTest {
         Directory sampleDirectory = createSampleDirectory(0, list);
         LuceneIndexNode node = createIndexNode(idxDefn, sampleDirectory);
 
-        // foo is null
-        // that can be at most 20, because there are only
-        // that many documents with ":nullProps"
+        // foo is null: no explicit weight -> heuristic weight=10 applied to :nullProps docCount (20)
         FilterImpl filter = createFilter("nt:unstructured");
         filter.restrictProperty("foo", Operator.EQUAL, null);
 
         FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
-        assertEquals(20, plan.getEstimatedEntryCount());
+        assertEquals(2, plan.getEstimatedEntryCount());
         assertEquals(1.0, plan.getCostPerExecution(), 0);
         assertEquals(1.0, plan.getCostPerEntry(), 0);
 
-        // foo2 is null:
-        // that can be at most 20, because there are only 10 documents with this property
+        // foo2 is null: same :nullProps docCount (20), heuristic weight=10 -> ceil(20/10) = 2
         filter = createFilter("nt:unstructured");
         filter.restrictProperty("foo2", Operator.EQUAL, null);
 
         planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
         plan = planner.getPlan();
 
-        assertEquals(20, plan.getEstimatedEntryCount());
+        assertEquals(2, plan.getEstimatedEntryCount());
         assertEquals(1.0, plan.getCostPerExecution(), 0);
         assertEquals(1.0, plan.getCostPerEntry(), 0);
 
-        // foo is not null:
-        // that can be at most 10, because there are only 10 documents with this property
+        // foo is not null: no explicit weight -> heuristic weight=10 applied to foo docCount (10)
         filter = createFilter("nt:unstructured");
         filter.restrictProperty("foo", Operator.NOT_EQUAL, null);
 
         planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
         plan = planner.getPlan();
 
-        assertEquals(10, plan.getEstimatedEntryCount());
+        assertEquals(1, plan.getEstimatedEntryCount());
         assertEquals(1.0, plan.getCostPerExecution(), 0);
         assertEquals(1.0, plan.getCostPerEntry(), 0);
 
-        // foo2 is not null:
-        // that can be at most 0, because there are no documents wit this property
+        // foo2 is not null: foo2 docCount is 0, ceil(0/10) = 0
         filter = createFilter("nt:unstructured");
         filter.restrictProperty("foo2", Operator.NOT_EQUAL, null);
 
@@ -404,6 +400,84 @@ public class LuceneIndexPlannerCommonTest extends IndexPlannerCommonTest {
         assertEquals(1.0, plan.getCostPerExecution(), 0);
         assertEquals(1.0, plan.getCostPerEntry(), 0);
 
+    }
+
+    @Test
+    public void nullCheckWeightEstimation() throws Exception {
+        String indexPath = "/test";
+        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(child(builder, indexPath));
+        idxBuilder.indexRule("nt:unstructured")
+                .property("updated").propertyIndex().nullCheckEnabled().notNullCheckEnabled().weight(500);
+        NodeState defn = idxBuilder.build();
+
+        LuceneIndexDefinition idxDefn = new LuceneIndexDefinition(root, defn, indexPath);
+        List<Document> list = new ArrayList<>();
+        // 100 documents have the "updated" property
+        for (int i = 0; i < 100; i++) {
+            Document doc = new Document();
+            doc.add(new StringField("updated", "v" + i, Field.Store.NO));
+            list.add(doc);
+        }
+        // 200 documents don't have "updated" (recorded in :nullProps)
+        for (int i = 0; i < 200; i++) {
+            Document doc = new Document();
+            doc.add(new StringField(FieldNames.NULL_PROPS, "updated", Field.Store.NO));
+            list.add(doc);
+        }
+        Directory sampleDirectory = createSampleDirectory(0, list);
+        LuceneIndexNode node = createIndexNode(idxDefn, sampleDirectory);
+
+        // "is null" with weight=500 as fallback: ceil(200/500) = 1
+        FilterImpl filter = createFilter("nt:unstructured");
+        filter.restrictProperty("updated", Operator.EQUAL, null);
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+        assertEquals(1, planner.getPlan().getEstimatedEntryCount());
+
+        // "is not null" with weight=500 as fallback: ceil(100/500) = 1
+        filter = createFilter("nt:unstructured");
+        filter.restrictProperty("updated", Operator.NOT_EQUAL, null);
+        planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+        assertEquals(1, planner.getPlan().getEstimatedEntryCount());
+
+        // explicit weightNull=10 overrides weight: ceil(200/10) = 20
+        idxBuilder = new LuceneIndexDefinitionBuilder(child(builder, indexPath + "2"));
+        idxBuilder.indexRule("nt:unstructured")
+                .property("updated").propertyIndex().nullCheckEnabled().weight(500).weightNull(10);
+        LuceneIndexNode node2 = createIndexNode(
+                new LuceneIndexDefinition(root, idxBuilder.build(), indexPath + "2"), sampleDirectory);
+
+        filter = createFilter("nt:unstructured");
+        filter.restrictProperty("updated", Operator.EQUAL, null);
+        planner = new FulltextIndexPlanner(node2, indexPath + "2", filter, Collections.emptyList());
+        assertEquals(20, planner.getPlan().getEstimatedEntryCount());
+
+        // explicit weightNotNull=5 overrides weight: ceil(100/5) = 20
+        idxBuilder = new LuceneIndexDefinitionBuilder(child(builder, indexPath + "3"));
+        idxBuilder.indexRule("nt:unstructured")
+                .property("updated").propertyIndex().notNullCheckEnabled().weight(500).weightNotNull(5);
+        LuceneIndexNode node3 = createIndexNode(
+                new LuceneIndexDefinition(root, idxBuilder.build(), indexPath + "3"), sampleDirectory);
+
+        filter = createFilter("nt:unstructured");
+        filter.restrictProperty("updated", Operator.NOT_EQUAL, null);
+        planner = new FulltextIndexPlanner(node3, indexPath + "3", filter, Collections.emptyList());
+        assertEquals(20, planner.getPlan().getEstimatedEntryCount());
+
+        // kill switch: FT_OAK-12171 enabled -> old behavior (weight=1, raw docCount returned)
+        FulltextIndexPlanner.FT_OAK_12171_DISABLE.set(true);
+        try {
+            filter = createFilter("nt:unstructured");
+            filter.restrictProperty("updated", Operator.EQUAL, null);
+            planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+            assertEquals(200, planner.getPlan().getEstimatedEntryCount());
+
+            filter = createFilter("nt:unstructured");
+            filter.restrictProperty("updated", Operator.NOT_EQUAL, null);
+            planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+            assertEquals(100, planner.getPlan().getEstimatedEntryCount());
+        } finally {
+            FulltextIndexPlanner.FT_OAK_12171_DISABLE.set(false);
+        }
     }
 
     @Test
