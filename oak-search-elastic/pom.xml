@@ -44,6 +44,12 @@
         <artifactId>maven-bundle-plugin</artifactId>
         <configuration>
           <instructions combine.self="override">
+            <Export-Package>
+              org.apache.jackrabbit.oak.plugins.index.elastic,
+              org.apache.jackrabbit.oak.plugins.index.elastic.index,
+              org.apache.jackrabbit.oak.plugins.index.elastic.query,
+              org.apache.jackrabbit.oak.plugins.index.elastic.util
+            </Export-Package>
             <_exportcontents>
               org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService
             </_exportcontents>
