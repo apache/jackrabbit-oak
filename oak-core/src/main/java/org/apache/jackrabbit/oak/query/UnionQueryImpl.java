@@ -576,8 +576,14 @@ public class UnionQueryImpl implements Query {
             if (scoreValue == null) {
                 return 0.0;
             }
+            Type<?> type = scoreValue.getType();
+            if (type != Type.DOUBLE && type != Type.LONG && type != Type.DECIMAL) {
+                LOG.warn("Unexpected jcr:score type: {}, defaulting to 0.0", type);
+                return 0.0;
+            }
             return scoreValue.getValue(Type.DOUBLE);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            LOG.warn("Could not retrieve jcr:score value, defaulting to 0.0: {}", e.getMessage());
             return 0.0;
         }
     }

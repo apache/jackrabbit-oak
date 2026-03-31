@@ -488,6 +488,35 @@ public class UnionQueryTest extends AbstractQueryTest {
     }
 
     @Test
+    public void testUnionMergingWithStringScoreValue() throws Exception {
+        QueryImpl mockQuery = Mockito.mock(QueryImpl.class);
+        ColumnImpl[] columns = new ColumnImpl[] {
+                new ColumnImpl("a", "jcr:path", "jcr:path"),
+                new ColumnImpl("a", "jcr:score", "jcr:score")
+        };
+        Mockito.when(mockQuery.getColumnIndex("jcr:path")).thenReturn(0);
+        Mockito.when(mockQuery.getColumnIndex("jcr:score")).thenReturn(1);
+        Mockito.when(mockQuery.getColumns()).thenReturn(columns);
+        // Score stored as String instead of Double
+        PropertyValue[] valuesWithStringScore = new PropertyValue[] {
+                PropertyValues.newString("/left/doc1"),
+                PropertyValues.newString("not-a-number")
+        };
+        List<ResultRowImpl> leftResults = new ArrayList<>();
+        leftResults.add(new ResultRowImpl(mockQuery, null, valuesWithStringScore, null, null));
+        Mockito.when(mockQuery.getRows()).thenReturn(leftResults.iterator());
+
+        MockQueryBuilder rightQuery = new MockQueryBuilder(true)
+                .addResult("/right/doc1", 0.9);
+
+        UnionQueryImpl unionQuery = new UnionQueryImpl(true, mockQuery, rightQuery.build(), qeSettings);
+        List<ScoredResult> results = executeUnionAndGetScoredResults(unionQuery);
+
+        // String-typed score should default to 0.0, sorting it after the real score
+        assertPathOrder(results, new String[]{"/right/doc1", "/left/doc1"});
+    }
+
+    @Test
     public void testNestedUnionWithMixedScores() throws Exception {
         // Simulates scenario where score exists for some rows, and is null for others
         MockQueryBuilder queryA = new MockQueryBuilder(true)
