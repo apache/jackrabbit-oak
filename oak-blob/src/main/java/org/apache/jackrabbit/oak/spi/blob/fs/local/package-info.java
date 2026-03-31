@@ -14,6 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/* see JCR-4060 */
-@org.osgi.annotation.versioning.Version("2.13.5")
+
+@Version("1.0.0")
+@Internal
 package org.apache.jackrabbit.oak.spi.blob.fs.local;
+
+import org.apache.jackrabbit.oak.commons.annotations.Internal;
+import org.osgi.annotation.versioning.Version;
