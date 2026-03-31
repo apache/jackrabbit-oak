@@ -63,7 +63,7 @@ import org.slf4j.LoggerFactory;
  *     &lt;param name="{@link #setSleepBetweenRecords(long) sleepBetweenRecords}" value="100"/&gt;
  *     &lt;param name="{@link #setDelayedDelete(boolean) delayedDelete}" value="false"/&gt;
  *     &lt;param name="{@link #setDelayedDeleteSleep(long) delayedDeleteSleep}" value="86400"/&gt;
- *     &lt;param name="primary" value="org.apache.jackrabbit.core.data.db.DbDataStore"&gt;
+ *     &lt;param name="primary" value="org.example.TapeArchiveStore"&gt;
  *        &lt;param .../&gt;
  *     &lt;/param&gt;
  *     &lt;param name="archive" value="org.apache.jackrabbit.oak.spi.blob.data.FileDataStore"&gt;
