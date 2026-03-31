@@ -48,7 +48,7 @@ import javax.jcr.RepositoryException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.oak.spi.blob.data.util.NamedThreadFactory;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -355,7 +355,7 @@ public abstract class CachingDataStore extends AbstractDataStore implements
                 }
             }
             downloadExecService = Executors.newFixedThreadPool(5,
-                new NamedThreadFactory("backend-file-download-worker"));
+                    BasicThreadFactory.builder().namingPattern("backend-file-download-worker-%d").build());
             cache = new LocalCache(path, tmpDir.getAbsolutePath(), cacheSize,
                 cachePurgeTrigFactor, cachePurgeResizeFactor, asyncWriteCache);
             /*
@@ -1281,7 +1281,7 @@ public abstract class CachingDataStore extends AbstractDataStore implements
             long startTime = System.currentTimeMillis();
             LOG.info(" Uploading [{}] using [{}] threads.", files.size(), threads);
             ExecutorService executor = Executors.newFixedThreadPool(threads,
-                new NamedThreadFactory("backend-file-upload-worker"));
+                BasicThreadFactory.builder().namingPattern("backend-file-upload-worker-%d").build());
             int partitionSize = files.size() / (threads);
             int startIndex = 0;
             int endIndex = partitionSize;
