@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
  * A facet result column expression.
  */
 public class FacetColumnImpl extends ColumnImpl {
+
     FacetColumnImpl(String selectorName, String propertyName, String columnName) {
         super(selectorName, propertyName, columnName);
     }
@@ -31,6 +32,11 @@ public class FacetColumnImpl extends ColumnImpl {
     @Override
     public PropertyValue currentProperty() {
         return this.getSelector().currentOakProperty(getPropertyName());
+    }
+
+    @Override
+    public AstElement copyOf() {
+        return new FacetColumnImpl(getSelectorName(), getPropertyName(), getColumnName());
     }
 
 }
