@@ -14,6 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+// copied from Apache Jackrabbit jackrabbit-data module; original class org.apache.jackrabbit.core.data.LazyFileInputStream
+
 package org.apache.jackrabbit.oak.spi.blob.data;
 
 import java.io.File;
