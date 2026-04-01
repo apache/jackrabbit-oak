@@ -79,6 +79,7 @@ import java.util.stream.Stream;
 
 import static org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConstants.ENRICHER_CONFIG;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConstants.TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConstants.VECTOR_SPACES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -1087,5 +1088,116 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
             assertEquals(1, results.size());
         });
 
+    }
+
+    @Test
+    public void testElasticKnnQueryForRegression() throws Exception {
+        String jcrIndexName = UUID.randomUUID().toString();
+        String inferenceServiceUrl = "http://localhost:" + wireMock.port() + "/v1/embeddings";
+        String inferenceModelConfigName = "inferenceConfig1";
+        String inferenceModelName = "paraphrase-multilingual-MiniLM-L12-v2";
+        double similarityThreshold = 0.5;
+
+        createInferenceConfig(jcrIndexName, true, defaultEnricherConfig, inferenceModelConfigName,
+                inferenceModelName, inferenceServiceUrl, similarityThreshold, 1L, true, true);
+        setupEnricherStatus(defaultEnricherStatusMapping, defaultEnricherStatusData);
+
+        IndexDefinitionBuilder builder = createIndex();
+        builder.includedPaths("/content/assets");
+        IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule("nt:base");
+        indexRule.property("jcr:content/metadata/dc:format").propertyIndex().analyzed().nodeScopeIndex().facets();
+        indexRule.property("jcr:content/metadata/status").propertyIndex().analyzed().nodeScopeIndex().facets();
+        builder.getBuilderTree().addChild("facets").setProperty("secure", "insecure");
+
+        Tree index = setIndex(jcrIndexName, builder);
+        root.commit();
+
+        Tree content = root.getTree("/").addChild("content").addChild("assets");
+        Tree asset = content.addChild("photo1.jpg");
+        Tree metadata = asset.addChild("jcr:content").addChild("metadata");
+        metadata.setProperty("dc:format", "image/jpeg");
+        metadata.setProperty("status", "approved");
+        root.commit();
+
+        List<Float> embeddings = List.of(0.1f, 0.2f, 0.3f);
+        createDocumentWithEmbeddings(
+                index, "/content/assets/photo1.jpg", inferenceModelConfigName, inferenceModelName, embeddings);
+
+        assertEventually(() -> {
+            assertTrue(countDocuments(index) > 0);
+            ObjectNode doc = getDocument(index, "/content/assets/photo1.jpg");
+            assertNotNull(doc.get(VECTOR_SPACES));
+            assertNotNull(doc.get(VECTOR_SPACES).get(inferenceModelConfigName));
+        });
+
+        ObjectNode embeddingResponse = MAPPER.createObjectNode();
+        embeddingResponse.put("object", "list");
+        ArrayNode data = embeddingResponse.putArray("data");
+        ObjectNode embeddingObj = data.addObject();
+        embeddingObj.put("object", "embedding");
+        ArrayNode embeddingArray = embeddingObj.putArray("embedding");
+        embeddings.forEach(embeddingArray::add);
+        embeddingObj.put("index", 0);
+
+        wireMock.stubFor(WireMock.post("/v1/embeddings")
+                .willReturn(WireMock.ok()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody(MAPPER.writeValueAsString(embeddingResponse))));
+
+        String sql2Query = "select [jcr:path], [rep:facet(jcr:content/metadata/dc:format)], " +
+                "[rep:facet(jcr:content/metadata/status)] from [nt:base] where " +
+                "ISDESCENDANTNODE('/content/assets') and contains(*, '?{}?find similar images')";
+        String explainResult = explain(sql2Query, SQL2);
+        assertNotNull(explainResult);
+
+        // Get ES request from the plan explanation
+        String jsonBody = extractSearchRequestJsonBody(explainResult);
+        URL expectedJsonUrl = ElasticInferenceUsingConfigTest.class.getResource(
+                "/inferenceUsingConfig/expected/semantic_search_with_facets.json");
+        assertNotNull(expectedJsonUrl);
+        String expectedSearchRequestJson = IOUtils.toString(expectedJsonUrl, StandardCharsets.UTF_8);
+        JsonNode actualJson = MAPPER.readTree(jsonBody);
+        JsonNode expectedJson = MAPPER.readTree(expectedSearchRequestJson);
+
+        // Check elastic query matches exactly the expected query
+        assertJsonEquals("SearchRequest", expectedJson, actualJson, 1e-6);
+    }
+
+    private String extractSearchRequestJsonBody(String explainResult) {
+        final String token = "SearchRequest";
+        int tokenIdx = explainResult.indexOf(token);
+        assertTrue("Explain output should contain " + token, tokenIdx >= 0);
+        int jsonStart = explainResult.indexOf('{', tokenIdx);
+        assertTrue("Explain output should contain JSON body after " + token, jsonStart >= 0);
+        String jsonBody = explainResult.substring(jsonStart);
+        int newlineIdx = jsonBody.indexOf('\n');
+        if (newlineIdx > 0) {
+            jsonBody = jsonBody.substring(0, newlineIdx).trim();
+        }
+        return jsonBody;
+    }
+
+    /**
+     * assertEquals for Json, but with a delta tolerance for floats.
+     */
+    private void assertJsonEquals(String path, JsonNode expected, JsonNode actual, double tolerance) {
+        assertEquals(path + " - node type mismatch", expected.getNodeType(), actual.getNodeType());
+        if (expected.isObject()) {
+            expected.fieldNames().forEachRemaining(field ->
+                    assertTrue(path + " - missing field: " + field, actual.has(field)));
+            actual.fieldNames().forEachRemaining(field ->
+                    assertTrue(path + " - unexpected field: " + field, expected.has(field)));
+            expected.fieldNames().forEachRemaining(field ->
+                    assertJsonEquals(path + "." + field, expected.get(field), actual.get(field), tolerance));
+        } else if (expected.isArray()) {
+            assertEquals(path + " - array size", expected.size(), actual.size());
+            for (int i = 0; i < expected.size(); i++) {
+                assertJsonEquals(path + "[" + i + "]", expected.get(i), actual.get(i), tolerance);
+            }
+        } else if (expected.isNumber()) {
+            assertEquals(path, expected.doubleValue(), actual.doubleValue(), tolerance);
+        } else {
+            assertEquals(path, expected, actual);
+        }
     }
 }
