@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-@Version("2.13.5")
+@Version("1.0.0")
 @Internal
 package org.apache.jackrabbit.oak.spi.blob.data.util;
 
