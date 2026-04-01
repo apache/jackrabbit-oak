@@ -310,7 +310,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             }
             if (!definition.isDynamicBoostLiteEnabled() && pd.dynamicBoost) {
                 try {
-                    dirty |= collectDynamicBoost(doc, pname, pd.nodeName, state);
+                    collectDynamicBoost(pname, pd.nodeName, state);
                 } catch (Exception e) {
                     log.error("Could not collect dynamic boost for property {} and definition {}", property, pd, e);
                 }
@@ -722,16 +722,14 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
      * @param propertyName the property name
      * @param nodeName the node name
      * @param nodeState the node state containing the dynamic boost tags
-     * @return true if any valid tags were collected, false otherwise
      */
-    protected boolean collectDynamicBoost(D doc, String propertyName, String nodeName, NodeState nodeState) {
+    protected void collectDynamicBoost(String propertyName, String nodeName, NodeState nodeState) {
         NodeState propertyNode = nodeState;
         String parentName = PathUtils.getParentPath(propertyName);
         for (String c : PathUtils.elements(parentName)) {
             propertyNode = propertyNode.getChildNode(c);
         }
 
-        List<DynamicBoost> tagsForThisProperty = new ArrayList<>();
         for (String childNodeName : propertyNode.getChildNodeNames()) {
             NodeState dynaTag = propertyNode.getChildNode(childNodeName);
             PropertyState p = dynaTag.getProperty(DYNAMIC_BOOST_TAG_NAME);
@@ -772,11 +770,8 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                 continue;
             }
 
-            tagsForThisProperty.add(new DynamicBoost(parentName, nodeName, dynaTagValue, dynaTagConfidence));
+            dynamicBoostTags.add(new DynamicBoost(parentName, nodeName, dynaTagValue, dynaTagConfidence));
         }
-
-        dynamicBoostTags.addAll(tagsForThisProperty);
-        return !tagsForThisProperty.isEmpty();
     }
 
     protected String getIndexName() {
@@ -805,19 +800,17 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     private boolean indexTopDynamicBoost(D doc, int maxCount) {
         dynamicBoostTags.sort(Comparator.comparingDouble((DynamicBoost tag) -> tag.confidence).reversed());
 
-        boolean added = false;
         int count = 0;
         for (DynamicBoost tag : dynamicBoostTags) {
             if (maxCount >= 0 && count >= maxCount) {
                 break;
             }
             if (indexDynamicBoost(doc, tag.parent, tag.nodeName, tag.value, tag.confidence)) {
-                added = true;
                 count++;
             }
         }
 
-        return added;
+        return count > 0;
     }
 
     /*
