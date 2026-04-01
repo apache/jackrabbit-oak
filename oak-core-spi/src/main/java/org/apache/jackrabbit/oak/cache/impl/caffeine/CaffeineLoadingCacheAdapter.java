@@ -14,17 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.cache.api.impl.caffeine;
+package org.apache.jackrabbit.oak.cache.impl.caffeine;
+
+import java.util.concurrent.CompletableFuture;
 
 import org.apache.jackrabbit.oak.cache.api.LoadingCache;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.concurrent.ExecutionException; /**
+/**
  * {@link LoadingCache} adapter wrapping a Caffeine {@link com.github.benmanes.caffeine.cache.LoadingCache}.
- *
- * <p>TODO OAK-TASK16: per {@code TASKS.md}, remove this temporary bridge in
- * TASK-16 once the migration cleanup drops the Oak-visible loading-cache
- * compatibility layer.</p>
  */
 public class CaffeineLoadingCacheAdapter<K, V> extends CaffeineCacheAdapter<K, V> implements LoadingCache<K, V> {
 
@@ -37,18 +35,13 @@ public class CaffeineLoadingCacheAdapter<K, V> extends CaffeineCacheAdapter<K, V
 
     @Override
     @NotNull
-    public V get(@NotNull K key) throws ExecutionException {
-        try {
-            return loadingCache.get(key);
-        } catch (CacheComputationException e) {
-            throw new ExecutionException(e.getCause());
-        } catch (RuntimeException e) {
-            throw new ExecutionException(e);
-        }
+    public V get(@NotNull K key) {
+        return loadingCache.get(key);
     }
 
     @Override
-    public void refresh(@NotNull K key) {
-        loadingCache.refresh(key);
+    @NotNull
+    public CompletableFuture<V> refresh(@NotNull K key) {
+        return loadingCache.refresh(key);
     }
 }

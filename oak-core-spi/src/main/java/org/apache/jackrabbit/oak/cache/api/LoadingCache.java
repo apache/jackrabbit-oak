@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.cache.api;
 
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
-import org.apache.jackrabbit.oak.cache.api.impl.CacheBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
@@ -27,8 +27,9 @@ import org.osgi.annotation.versioning.ProviderType;
  * {@link CacheLoader}.
  *
  * <p>Obtain instances via {@link CacheBuilder#build(CacheLoader)}.
- * Loading failures are exposed as {@link ExecutionException} to preserve the
- * legacy Oak-visible loading-cache contract.</p>
+ * Loading failures follow Caffeine's contract: runtime exceptions are
+ * propagated directly and checked loader failures are wrapped in
+ * {@link CompletionException}.</p>
  *
  * @param <K> the type of cache keys
  * @param <V> the type of cache values
@@ -42,17 +43,19 @@ public interface LoadingCache<K, V> extends Cache<K, V> {
      *
      * @param key the key whose value should be returned or loaded (must not be null)
      * @return the current or newly loaded value (never null)
-     * @throws ExecutionException if the value cannot be loaded
      */
     @NotNull
-    V get(@NotNull K key) throws ExecutionException;
+    V get(@NotNull K key);
 
     /**
      * Triggers a reload of the value for {@code key}. The stale value remains
-     * available until the reload completes (Caffeine's {@code refreshAfterWrite}
-     * semantics; best-effort for the CacheLIRS implementation).
+     * available until the reload completes. The returned future follows
+     * Caffeine's refresh contract; the CacheLIRS implementation completes it
+     * after its best-effort synchronous refresh path runs.
      *
      * @param key the key whose value should be refreshed (must not be null)
+     * @return a future representing the refresh work (never null)
      */
-    void refresh(@NotNull K key);
+    @NotNull
+    CompletableFuture<V> refresh(@NotNull K key);
 }

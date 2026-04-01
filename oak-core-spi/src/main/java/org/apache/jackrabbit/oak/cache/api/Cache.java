@@ -17,11 +17,9 @@
 package org.apache.jackrabbit.oak.cache.api;
 
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
 
-import org.apache.jackrabbit.oak.cache.api.impl.CacheBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
@@ -32,9 +30,9 @@ import org.osgi.annotation.versioning.ProviderType;
  * <p>Implementations may use different eviction strategies (LIRS, W-TinyLFU/Caffeine,
  * etc.) but callers see only this interface. Obtain instances via {@link CacheBuilder}.</p>
  *
- * <p>The {@link #get(Object, Callable)} method preserves the legacy Oak-visible
- * cache contract: callers supply a {@link Callable} and loading failures are
- * exposed as {@link ExecutionException}.</p>
+ * <p>The {@link #get(Object, Function)} method follows Caffeine's manual-cache
+ * contract: callers supply a key-aware mapping function and failures are
+ * exposed as unchecked exceptions.</p>
  *
  * @param <K> the type of cache keys
  * @param <V> the type of cache values
@@ -54,19 +52,18 @@ public interface Cache<K, V> {
 
     /**
      * Returns the value associated with {@code key}, computing it via
-     * {@code valueLoader} and caching the result if it was absent.
+     * {@code mappingFunction} and caching the result if it was absent.
      *
-     * <p>Preserves the legacy Oak-visible cache contract: failures from the loader
-     * are exposed as {@link ExecutionException}.</p>
+     * <p>Matches Caffeine's manual-cache contract: the mapping function receives
+     * the cache key and failures are exposed as unchecked exceptions.</p>
      *
-     * @param key         the key whose associated value is to be returned (must not be null)
-     * @param valueLoader the loader used to compute a value if the key is absent (must not be null)
+     * @param key             the key whose associated value is to be returned (must not be null)
+     * @param mappingFunction the function used to compute a value if the key is absent (must not be null)
      * @return the current (existing or computed) value, or {@code null} if the
-     *         loader returns {@code null}
-     * @throws ExecutionException if the value cannot be loaded
+     *         mapping function returns {@code null}
      */
     @Nullable
-    V get(@NotNull K key, @NotNull Callable<? extends V> valueLoader) throws ExecutionException;
+    V get(@NotNull K key, @NotNull Function<? super K, ? extends V> mappingFunction);
 
     /**
      * Associates {@code value} with {@code key} in the cache. If the cache
@@ -118,7 +115,7 @@ public interface Cache<K, V> {
      * @return a stats snapshot (never null)
      */
     @NotNull
-    CacheStats stats();
+    CacheStatsSnapshot stats();
 
     /**
      * Returns a view of the entries stored in this cache as a thread-safe map.

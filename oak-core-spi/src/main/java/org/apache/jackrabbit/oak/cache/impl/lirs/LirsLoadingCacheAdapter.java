@@ -14,18 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.cache.api.impl.lirs;
+package org.apache.jackrabbit.oak.cache.impl.lirs;
 
+import java.util.concurrent.CompletableFuture;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.api.LoadingCache;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.concurrent.ExecutionException; /**
+import java.util.concurrent.ExecutionException;
+
+/**
  * {@link LoadingCache} adapter wrapping a loading {@link CacheLIRS} instance.
- *
- * <p>TODO OAK-TASK16: per {@code TASKS.md}, remove this temporary bridge in
- * TASK-16 once loading-cache callers have been migrated off the legacy
- * compatibility contract.</p>
  */
 public class LirsLoadingCacheAdapter<K, V> extends LirsCacheAdapter<K, V> implements LoadingCache<K, V> {
 
@@ -37,12 +36,18 @@ public class LirsLoadingCacheAdapter<K, V> extends LirsCacheAdapter<K, V> implem
     }
 
     @Override
-    public @NotNull V get(@NotNull K key) throws ExecutionException {
-        return cache.get(key);
+    public @NotNull V get(@NotNull K key) {
+        try {
+            return cache.get(key);
+        } catch (ExecutionException e) {
+            throw toCaffeineException(e);
+        }
     }
 
     @Override
-    public void refresh(@NotNull K key) {
+    @NotNull
+    public CompletableFuture<V> refresh(@NotNull K key) {
         cache.refresh(key);
+        return CompletableFuture.completedFuture(cache.getIfPresent(key));
     }
 }

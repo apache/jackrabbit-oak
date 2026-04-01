@@ -14,15 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.cache.api.impl.caffeine;
+package org.apache.jackrabbit.oak.cache.impl.caffeine;
 
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
 
 import com.github.benmanes.caffeine.cache.RemovalCause;
-import org.apache.jackrabbit.oak.cache.api.CacheStats;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
 import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.jetbrains.annotations.NotNull;
@@ -44,14 +43,8 @@ public class CaffeineCacheAdapter<K, V> implements Cache<K, V> {
     }
 
     @Override
-    public V get(@NotNull K key, @NotNull Callable<? extends V> valueLoader) throws ExecutionException {
-        try {
-            return cache.get(key, k -> callUnchecked(valueLoader));
-        } catch (CacheComputationException e) {
-            throw new ExecutionException(e.getCause());
-        } catch (RuntimeException e) {
-            throw new ExecutionException(e);
-        }
+    public V get(@NotNull K key, @NotNull Function<? super K, ? extends V> mappingFunction) {
+        return cache.get(key, mappingFunction);
     }
 
     @Override
@@ -81,9 +74,9 @@ public class CaffeineCacheAdapter<K, V> implements Cache<K, V> {
 
     @Override
     @NotNull
-    public CacheStats stats() {
+    public CacheStatsSnapshot stats() {
         com.github.benmanes.caffeine.cache.stats.CacheStats s = cache.stats();
-        return new CacheStats(
+        return new CacheStatsSnapshot(
                 s.hitCount(), s.missCount(),
                 s.loadSuccessCount(), s.loadFailureCount(),
                 s.totalLoadTime(), s.evictionCount());
@@ -119,12 +112,4 @@ public class CaffeineCacheAdapter<K, V> implements Cache<K, V> {
         };
     }
 
-    private static <V> V callUnchecked(Callable<? extends V> valueLoader) {
-        try {
-            return valueLoader.call();
-        } catch (Exception e) {
-            throw new CacheComputationException(e);
-        }
-    }
 }
-

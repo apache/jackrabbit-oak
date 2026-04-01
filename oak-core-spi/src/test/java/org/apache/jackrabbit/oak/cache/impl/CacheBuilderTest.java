@@ -17,21 +17,18 @@
 package org.apache.jackrabbit.oak.cache.impl;
 
 import java.time.Duration;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.oak.cache.api.Cache;
-import org.apache.jackrabbit.oak.cache.api.CacheStats;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
 import org.apache.jackrabbit.oak.cache.api.LoadingCache;
 import org.apache.jackrabbit.oak.cache.api.EvictionCause;
-import org.apache.jackrabbit.oak.cache.api.impl.CacheBuilder;
-import org.apache.jackrabbit.oak.cache.api.impl.CacheImplementation;
-import org.apache.jackrabbit.oak.cache.api.impl.CacheStatsAdapter;
-import org.apache.jackrabbit.oak.cache.api.impl.caffeine.CaffeineCacheAdapter;
-import org.apache.jackrabbit.oak.cache.api.impl.lirs.LirsCacheAdapter;
-import org.junit.After;
+import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
+import org.apache.jackrabbit.oak.cache.impl.caffeine.CaffeineCacheAdapter;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
 /**
@@ -39,186 +36,136 @@ import org.junit.Test;
  */
 public class CacheBuilderTest {
 
-    private String savedCacheType;
-
-    @Before
-    public void saveSystemProperty() {
-        savedCacheType = System.getProperty("oak.cache.type");
-    }
-
-    @After
-    public void restoreSystemProperty() {
-        if (savedCacheType == null) {
-            System.clearProperty("oak.cache.type");
-        } else {
-            System.setProperty("oak.cache.type", savedCacheType);
-        }
-    }
-
-    /** LIRS backend is used when global property is set to "lirs". */
+    /** CacheBuilder always creates a Caffeine-backed manual cache. */
     @Test
-    public void buildViaGlobalPropertyLirs() {
-        System.setProperty("oak.cache.type", "lirs");
-        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
-                .maximumSize(10)
-                .build();
-        Assert.assertTrue(cache instanceof LirsCacheAdapter);
-    }
-
-    /** Caffeine backend is used when global property is set to "caffeine". */
-    @Test
-    public void buildViaGlobalPropertyCaffeine() {
-        System.setProperty("oak.cache.type", "caffeine");
+    public void buildCreatesCaffeineManualCache() {
         Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                 .maximumSize(10)
                 .build();
         Assert.assertTrue(cache instanceof CaffeineCacheAdapter);
     }
 
-    /** Per-instance CAFFEINE override wins over lirs global property. */
-    @Test
-    public void perInstanceCaffeineOverridesLirsGlobal() {
-        System.setProperty("oak.cache.type", "lirs");
-        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
-                .maximumSize(10)
-                .implementation(CacheImplementation.CAFFEINE)
-                .build();
-        Assert.assertTrue(cache instanceof CaffeineCacheAdapter);
-    }
-
-    /** Per-instance LIRS override wins over caffeine global property. */
-    @Test
-    public void perInstanceLirsOverridesCaffeineGlobal() {
-        System.setProperty("oak.cache.type", "caffeine");
-        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
-                .maximumSize(10)
-                .implementation(CacheImplementation.LIRS)
-                .build();
-        Assert.assertTrue(cache instanceof LirsCacheAdapter);
-    }
-
-    /** build() produces a manual cache that does not expose OakLoadingCache at runtime. */
+    /** build() produces a manual cache that does not expose LoadingCache at runtime. */
     @Test
     public void buildReturnsManualCacheOnly() {
-        for (CacheImplementation impl : CacheImplementation.values()) {
-            Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
-                    .maximumSize(10)
-                    .implementation(impl)
-                    .build();
+        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumSize(10)
+                .build();
 
-            Assert.assertFalse("manual cache must not implement OakLoadingCache for impl " + impl,
-                    cache instanceof LoadingCache);
-        }
+        Assert.assertFalse("manual cache must not implement LoadingCache", cache instanceof LoadingCache);
     }
 
-    /** Weigher and removalListener are wired correctly for both backends. */
+    /** Weigher and evictionListener are wired correctly. */
     @Test
-    public void weigherAndRemovalListenerWiring() {
+    public void weigherAndEvictionListenerWiring() {
         AtomicReference<EvictionCause> capturedCause = new AtomicReference<>();
 
-        for (CacheImplementation impl : CacheImplementation.values()) {
-            capturedCause.set(null);
-            Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
-                    .maximumWeight(1000)
-                    .weigher((k, v) -> k.length() + v.length())
-                    .removalListener((k, v, cause) -> capturedCause.set(cause))
-                    .implementation(impl)
-                    .build();
+        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumWeight(1000)
+                .weigher((k, v) -> k.length() + v.length())
+                .evictionListener((k, v, cause) -> capturedCause.set(cause))
+                .build();
 
-            cache.put("key", "value");
-            cache.invalidate("key");
-            // Caffeine processes removal notifications lazily; cleanUp() drains the pending queue.
-            cache.cleanUp();
+        cache.put("key", "value");
+        cache.invalidate("key");
+        cache.cleanUp();
 
-            Assert.assertEquals("expected EXPLICIT cause for impl " + impl,
-                    EvictionCause.EXPLICIT, capturedCause.get());
-        }
+        Assert.assertEquals(EvictionCause.EXPLICIT, capturedCause.get());
     }
 
-    /** build(OakCacheLoader) wraps checked loader failures in ExecutionException. */
+    /** build(CacheLoader) wraps checked loader failures in CompletionException. */
     @Test
-    public void loadingCacheCheckedLoaderFailureThrowsExecutionException() {
+    public void loadingCacheCheckedLoaderFailureThrowsCompletionException() {
         Exception loaderFailure = new Exception("load failed");
 
-        for (CacheImplementation impl : CacheImplementation.values()) {
-            LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
-                    .maximumSize(10)
-                    .implementation(impl)
-                    .build(k -> { throw loaderFailure; });
+        LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumSize(10)
+                .build(k -> { throw loaderFailure; });
 
-            try {
-                cache.get("missing");
-                Assert.fail("expected ExecutionException for impl " + impl);
-            } catch (ExecutionException e) {
-                Assert.assertSame("cause should be the loader exception for impl " + impl,
-                        loaderFailure, e.getCause());
-            }
+        try {
+            cache.get("missing");
+            Assert.fail("expected CompletionException");
+        } catch (CompletionException e) {
+            Assert.assertSame(loaderFailure, e.getCause());
         }
     }
 
-    /** build(OakCacheLoader) preserves ExecutionException shape for runtime loader failures. */
+    /** build(CacheLoader) propagates runtime loader failures directly. */
     @Test
-    public void loadingCacheRuntimeFailureThrowsExecutionException() {
+    public void loadingCacheRuntimeFailureThrowsRuntimeException() {
         RuntimeException loaderFailure = new RuntimeException("load failed");
 
-        for (CacheImplementation impl : CacheImplementation.values()) {
-            LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
-                    .maximumSize(10)
-                    .implementation(impl)
-                    .build(k -> { throw loaderFailure; });
+        LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumSize(10)
+                .build(k -> { throw loaderFailure; });
 
-            try {
-                cache.get("missing");
-                Assert.fail("expected ExecutionException for impl " + impl);
-            } catch (ExecutionException e) {
-                Assert.assertSame("runtime failure cause should be preserved for impl " + impl,
-                        loaderFailure, e.getCause());
-            }
+        try {
+            cache.get("missing");
+            Assert.fail("expected RuntimeException");
+        } catch (RuntimeException e) {
+            Assert.assertSame(loaderFailure, e);
         }
     }
 
-    /** get(K, Callable) preserves ExecutionException shape for mapping failures. */
+    /** get(K, Function) propagates mapping failures directly. */
     @Test
-    public void getWithCallableFailureThrowsExecutionException() {
+    public void getWithFunctionFailureThrowsRuntimeException() {
         RuntimeException mappingFailure = new RuntimeException("mapping failed");
 
-        for (CacheImplementation impl : CacheImplementation.values()) {
-            Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
-                    .maximumSize(10)
-                    .implementation(impl)
-                    .build();
+        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumSize(10)
+                .build();
 
-            try {
-                cache.get("missing", () -> {
-                    throw mappingFailure;
-                });
-                Assert.fail("expected ExecutionException for impl " + impl);
-            } catch (ExecutionException e) {
-                Assert.assertSame("mapping failure cause should be preserved for impl " + impl,
-                        mappingFailure, e.getCause());
-            }
+        try {
+            cache.get("missing", key -> {
+                throw mappingFailure;
+            });
+            Assert.fail("expected RuntimeException");
+        } catch (RuntimeException e) {
+            Assert.assertSame(mappingFailure, e);
         }
     }
 
-    /** stats() returns non-null OakCacheStats with correct hit/miss counts. */
+    /** Cache.get(K, Function) passes the cache key into the mapping function. */
+    @Test
+    public void getWithFunctionReceivesKey() {
+        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumSize(10)
+                .build();
+
+        Assert.assertEquals("value-missing", cache.get("missing", key -> "value-" + key));
+    }
+
+    /** LoadingCache.refresh(K) returns a future for the refresh operation. */
+    @Test
+    public void refreshReturnsFuture() {
+        LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumSize(10)
+                .build(key -> "loaded-" + key);
+
+        cache.get("missing");
+        CompletableFuture<String> future = cache.refresh("missing");
+
+        Assert.assertNotNull(future);
+        Assert.assertEquals("loaded-missing", future.join());
+    }
+
+    /** stats() returns non-null CacheStats with correct hit/miss counts. */
     @Test
     public void statsReturnsCorrectHitMissCounts() {
-        for (CacheImplementation impl : CacheImplementation.values()) {
-            Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
-                    .maximumSize(10)
-                    .recordStats()
-                    .implementation(impl)
-                    .build();
+        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumSize(10)
+                .recordStats()
+                .build();
 
-            cache.put("k", "v");
-            cache.getIfPresent("k");        // hit
-            cache.getIfPresent("missing");  // miss
+        cache.put("k", "v");
+        cache.getIfPresent("k");
+        cache.getIfPresent("missing");
 
-            CacheStats stats = cache.stats();
-            Assert.assertNotNull("stats must not be null for impl " + impl, stats);
-            Assert.assertEquals("hit count for impl " + impl, 1, stats.hitCount());
-            Assert.assertEquals("miss count for impl " + impl, 1, stats.missCount());
-        }
+        CacheStatsSnapshot stats = cache.stats();
+        Assert.assertNotNull(stats);
+        Assert.assertEquals(1, stats.hitCount());
+        Assert.assertEquals(1, stats.missCount());
     }
 
     /** Invalid builder combinations are rejected before backend-specific build logic runs. */
@@ -238,24 +185,16 @@ public class CacheBuilderTest {
                 "weigher requires maximumWeight");
         assertInvalidBuild(
                 CacheBuilder.<String, String>newBuilder().maximumSize(10).refreshAfterWrite(Duration.ofSeconds(1)),
-                "refreshAfterWrite requires build(OakCacheLoader)");
-        assertInvalidBuild(
-                CacheBuilder.<String, String>newBuilder().maximumWeight(10).weigher((k, v) -> 1)
-                        .averageWeight((long) Integer.MAX_VALUE + 1L),
-                "averageWeight must be less than or equal to Integer.MAX_VALUE");
-        assertInvalidBuild(
-                CacheBuilder.<String, String>newBuilder().maximumSize(10).averageWeight(10),
-                "averageWeight requires maximumWeight");
+                "refreshAfterWrite requires build(CacheLoader)");
     }
 
-    /** OakCacheStatsAdapter exposes stats and live weight estimates from an OakCache. */
+    /** CacheStatsAdapter exposes stats and live weight estimates from a Cache. */
     @Test
     public void oakCacheStatsAdapterBridgesOakStats() {
         Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                 .maximumWeight(100)
                 .weigher((k, v) -> k.length() + v.length())
                 .recordStats()
-                .implementation(CacheImplementation.CAFFEINE)
                 .build();
         CacheStatsAdapter stats = new CacheStatsAdapter(
                 cache, "testCache", (k, v) -> k.toString().length() + v.toString().length(), 100);

@@ -14,27 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.cache.api.impl;
+package org.apache.jackrabbit.oak.cache.api;
 
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
-import org.apache.jackrabbit.oak.cache.api.Cache;
-import org.apache.jackrabbit.oak.cache.api.CacheStats;
-import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * Exposes an {@link Cache}'s statistics via the {@link org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean}
- * interface by bridging {@link CacheStats} to the Guava shim {@link org.apache.jackrabbit.guava.common.cache.CacheStats} expected
+ * interface by bridging {@link CacheStatsSnapshot} to the Guava shim {@link org.apache.jackrabbit.guava.common.cache.CacheStats} expected
  * by {@link AbstractCacheStats}.
  *
  * <p>The Guava return type from {@link #getCurrentStats()} is kept until TASK-16 updates
- * the base class to use {@link CacheStats} directly.</p>
+ * the base class to use {@link CacheStatsSnapshot} directly.</p>
  *
  * <p>TODO OAK-TASK16: per {@code TASKS.md}, remove this temporary adapter in
- * TASK-16 once {@link AbstractCacheStats} consumes {@link CacheStats}
+ * TASK-16 once {@link AbstractCacheStats} consumes {@link CacheStatsSnapshot}
  * directly.</p>
  */
 public class CacheStatsAdapter extends AbstractCacheStats {
@@ -65,7 +62,7 @@ public class CacheStatsAdapter extends AbstractCacheStats {
 
     @Override
     protected org.apache.jackrabbit.guava.common.cache.CacheStats getCurrentStats() {
-        CacheStats s = cache.stats();
+        CacheStatsSnapshot s = cache.stats();
         return new org.apache.jackrabbit.guava.common.cache.CacheStats(
                 s.hitCount(), s.missCount(),
                 s.loadSuccessCount(), s.loadFailureCount(),

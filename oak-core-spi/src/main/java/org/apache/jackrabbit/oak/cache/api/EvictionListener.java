@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.cache.api;
 
-import org.apache.jackrabbit.oak.cache.api.impl.CacheBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * Callback invoked when an entry is removed from the cache.
  *
- * <p>Register via {@link CacheBuilder#removalListener(EvictionListener)}.
+ * <p>Register via {@link CacheBuilder#evictionListener(EvictionListener)}.
  * The callback is invoked synchronously during cache operations that trigger
  * removal (eviction, invalidation, replacement).</p>
  *

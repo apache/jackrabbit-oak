@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.cache.api;
 
-import org.apache.jackrabbit.oak.cache.api.impl.CacheBuilder;
 import org.jetbrains.annotations.NotNull;
 
 /**

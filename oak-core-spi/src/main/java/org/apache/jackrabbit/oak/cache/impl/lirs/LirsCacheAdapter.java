@@ -14,16 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.cache.api.impl.lirs;
+package org.apache.jackrabbit.oak.cache.impl.lirs;
 
 import java.util.Map;
-import java.util.concurrent.Callable;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
 
 import org.apache.jackrabbit.guava.common.cache.RemovalCause;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
-import org.apache.jackrabbit.oak.cache.api.CacheStats;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
 import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.jetbrains.annotations.NotNull;
@@ -31,8 +32,9 @@ import org.jetbrains.annotations.NotNull;
 /**
  * {@link Cache} adapter wrapping a {@link CacheLIRS} instance.
  *
- * <p>Exposes the checked {@link ExecutionException} contract used by the
- * legacy Oak-visible cache API.</p>
+ * <p>Adapts CacheLIRS's checked loading contract to the Caffeine-aligned Oak
+ * API: runtime failures propagate directly and checked loader failures are
+ * wrapped in {@link CompletionException}.</p>
  */
 public class LirsCacheAdapter<K, V> implements Cache<K, V> {
 
@@ -48,8 +50,12 @@ public class LirsCacheAdapter<K, V> implements Cache<K, V> {
     }
 
     @Override
-    public V get(@NotNull K key, @NotNull Callable<? extends V> valueLoader) throws ExecutionException {
-        return cache.get(key, valueLoader);
+    public V get(@NotNull K key, @NotNull Function<? super K, ? extends V> mappingFunction) {
+        try {
+            return cache.get(key, () -> mappingFunction.apply(key));
+        } catch (ExecutionException e) {
+            throw toCaffeineException(e);
+        }
     }
 
     @Override
@@ -79,9 +85,9 @@ public class LirsCacheAdapter<K, V> implements Cache<K, V> {
 
     @Override
     @NotNull
-    public CacheStats stats() {
+    public CacheStatsSnapshot stats() {
         org.apache.jackrabbit.guava.common.cache.CacheStats s = cache.stats();
-        return new CacheStats(
+        return new CacheStatsSnapshot(
                 s.hitCount(), s.missCount(),
                 s.loadSuccessCount(), s.loadExceptionCount(),
                 s.totalLoadTime(), s.evictionCount());
@@ -116,5 +122,15 @@ public class LirsCacheAdapter<K, V> implements Cache<K, V> {
             case COLLECTED  -> EvictionCause.COLLECTED;
         };
     }
-}
 
+    static RuntimeException toCaffeineException(ExecutionException e) {
+        Throwable cause = e.getCause();
+        if (cause instanceof RuntimeException runtimeException) {
+            return runtimeException;
+        }
+        if (cause instanceof Error error) {
+            throw error;
+        }
+        return new CompletionException(cause == null ? e : cause);
+    }
+}
