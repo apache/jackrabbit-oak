@@ -19,8 +19,14 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -54,6 +60,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static javax.jcr.PropertyType.TYPENAME_STRING;
@@ -1572,17 +1579,67 @@ public abstract class IndexPlannerCommonTest {
 
     protected abstract IndexDefinitionBuilder getIndexDefinitionBuilder(NodeBuilder builder);
 
+    protected abstract ContentRepository createContentRepository(MemoryNodeStore store) throws IOException;
+
+    protected abstract IndexNode getIndexNodeFromStore(String indexPath, NodeState root) throws IOException;
+
+    protected Map<String, Object> getCommitAttributes() {
+        return Collections.emptyMap();
+    }
+
+    protected void awaitIndexing() {
+        // no-op by default; backends with eventual consistency (e.g. Elastic) override this
+    }
+
     /**
      * Creates an index node where {@code notNullCount} documents have the given property
-     * and {@code nullCount} documents are recorded as missing it (in {@link FieldNames#NULL_PROPS}).
+     * and {@code nullCount} documents are recorded as missing it.
      */
-    protected abstract IndexNode createIndexNodeForNullCheckTest(IndexDefinition defn, String propertyName,
-                                                        int notNullCount, int nullCount) throws IOException;
+    protected final IndexNode createIndexNodeForNullCheckTest(IndexDefinition defn, String propertyName,
+                                                        int notNullCount, int nullCount) throws IOException {
+        MemoryNodeStore store = new MemoryNodeStore();
+        ContentRepository repo = createContentRepository(store);
+        try (ContentSession session = repo.login(null, null)) {
+            Root jcrRoot = session.getLatestRoot();
+            String idxName = PathUtils.getName(defn.getIndexPath());
+            IndexDefinitionBuilder idxBuilder = getIndexDefinitionBuilder();
+            idxBuilder.noAsync();
+            idxBuilder.includedPaths("/content-" + idxName);
+            IndexDefinition.IndexingRule rule = defn.getApplicableIndexingRule("nt:unstructured");
+            if (rule != null) {
+                PropertyDefinition pd = rule.getConfig(propertyName);
+                if (pd != null) {
+                    IndexDefinitionBuilder.PropertyRule propRule = idxBuilder.indexRule("nt:unstructured")
+                            .property(propertyName).propertyIndex();
+                    if (pd.nullCheckEnabled) propRule.nullCheckEnabled();
+                    if (pd.notNullCheckEnabled) propRule.notNullCheckEnabled();
+                    if (pd.hasExplicitWeight) propRule.weight(pd.weight);
+                    if (pd.weightNull > 0) propRule.weightNull(pd.weightNull);
+                    if (pd.weightNotNull > 0) propRule.weightNotNull(pd.weightNotNull);
+                }
+            }
+            Tree oakIndex = jcrRoot.getTree("/").addChild(INDEX_DEFINITIONS_NAME);
+            idxBuilder.build(oakIndex.addChild(idxName));
+            jcrRoot.commit();
+            Tree content = jcrRoot.getTree("/").addChild("content-" + idxName);
+            for (int i = 0; i < notNullCount; i++) {
+                Tree n = content.addChild("nn" + i);
+                n.setProperty(JCR_PRIMARYTYPE, "nt:unstructured", NAME);
+                n.setProperty(propertyName, "v" + i);
+            }
+            for (int i = 0; i < nullCount; i++) {
+                content.addChild("nl" + i).setProperty(JCR_PRIMARYTYPE, "nt:unstructured", NAME);
+            }
+            jcrRoot.commit(getCommitAttributes());
+        } catch (Exception e) {
+            throw new IOException("Failed to create index node for null check test", e);
+        }
+        awaitIndexing();
+        return getIndexNodeFromStore(defn.getIndexPath(), store.getRoot());
+    }
 
     protected void assertEquals(long expected, long got) {
-        StackTraceElement caller = new Exception().getStackTrace()[1];
-        System.out.println("expected=" + expected + ", got=" + got
-                + ", calledFrom=" + caller.getMethodName() + ":" + caller.getLineNumber());
+        org.junit.Assert.assertEquals(expected, got);
     }
 
     protected void assertEquals(double expected, double actual, double delta) {

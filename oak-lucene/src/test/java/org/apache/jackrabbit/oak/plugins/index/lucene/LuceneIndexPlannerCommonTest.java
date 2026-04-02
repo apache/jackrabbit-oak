@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.IndexPlannerCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
@@ -31,14 +34,18 @@ import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.plugins.index.search.util.FunctionIndexProcessor;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextParser;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.Document;
@@ -608,20 +615,23 @@ public class LuceneIndexPlannerCommonTest extends IndexPlannerCommonTest {
 
 
     @Override
-    protected IndexNode createIndexNodeForNullCheckTest(IndexDefinition defn, String propertyName,
-                                                        int notNullCount, int nullCount) throws IOException {
-        List<Document> docs = new ArrayList<>();
-        for (int i = 0; i < notNullCount; i++) {
-            Document doc = new Document();
-            doc.add(new StringField(propertyName, "v" + i, Field.Store.NO));
-            docs.add(doc);
-        }
-        for (int i = 0; i < nullCount; i++) {
-            Document doc = new Document();
-            doc.add(new StringField(FieldNames.NULL_PROPS, propertyName, Field.Store.NO));
-            docs.add(doc);
-        }
-        return createIndexNode((LuceneIndexDefinition) defn, createSampleDirectory(0, docs));
+    protected ContentRepository createContentRepository(MemoryNodeStore store) {
+        LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider();
+        LuceneIndexProvider indexProvider = new LuceneIndexProvider();
+        return new Oak(store)
+                .with(new InitialContent())
+                .with(new OpenSecurityProvider())
+                .with(editorProvider)
+                .with((Observer) indexProvider)
+                .with((QueryIndexProvider) indexProvider)
+                .createContentRepository();
+    }
+
+    @Override
+    protected IndexNode getIndexNodeFromStore(String indexPath, NodeState root) throws IOException {
+        IndexTracker tracker = new IndexTracker();
+        tracker.update(root);
+        return tracker.acquireIndexNode(indexPath);
     }
 
     @Override

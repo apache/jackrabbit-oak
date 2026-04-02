@@ -18,16 +18,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexPlannerCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.TestUtil;
@@ -37,7 +31,6 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvide
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
-import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -81,7 +74,7 @@ public class ElasticIndexPlannerCommonTest extends IndexPlannerCommonTest {
     // before it can get the estimated doc count from the remote ES index
     @Rule
     public final ProvideSystemProperty updateSystemProperties
-            = new ProvideSystemProperty("oak.elastic.statsRefreshSeconds", "5");
+            = new ProvideSystemProperty("oak.elastic.statsRefreshSeconds", "1");
 
     @Rule
     public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties();
@@ -162,55 +155,32 @@ public class ElasticIndexPlannerCommonTest extends IndexPlannerCommonTest {
     }
 
     @Override
-    protected IndexNode createIndexNodeForNullCheckTest(IndexDefinition defn, String propertyName,
-                                                        int notNullCount, int nullCount) throws IOException {
-        MemoryNodeStore store = new MemoryNodeStore();
+    protected ContentRepository createContentRepository(MemoryNodeStore store) {
         ElasticIndexTracker tracker = new ElasticIndexTracker(esConnection, new ElasticMetricHandler(StatisticsProvider.NOOP));
         ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(tracker, esConnection, null);
-        ContentRepository repo = new Oak(store)
+        return new Oak(store)
                 .with(new InitialContent())
                 .with(new OpenSecurityProvider())
                 .with(editorProvider)
                 .with(tracker)
                 .with(new ElasticIndexProvider(tracker))
                 .createContentRepository();
-        try (ContentSession session = repo.login(null, null)) {
-            Root root = session.getLatestRoot();
-            String indexName = PathUtils.getName(defn.getIndexPath());
-            ElasticIndexDefinitionBuilder idxBuilder = new ElasticIndexDefinitionBuilder();
-            idxBuilder.noAsync();
-            IndexDefinition.IndexingRule rule = defn.getApplicableIndexingRule("nt:unstructured");
-            if (rule != null) {
-                PropertyDefinition pd = rule.getConfig(propertyName);
-                if (pd != null) {
-                    IndexDefinitionBuilder.PropertyRule propRule = idxBuilder.indexRule("nt:unstructured")
-                            .property(propertyName).propertyIndex();
-                    if (pd.nullCheckEnabled) propRule.nullCheckEnabled();
-                    if (pd.notNullCheckEnabled) propRule.notNullCheckEnabled();
-                    if (pd.hasExplicitWeight) propRule.weight(pd.weight);
-                    if (pd.weightNull > 0) propRule.weightNull(pd.weightNull);
-                    if (pd.weightNotNull > 0) propRule.weightNotNull(pd.weightNotNull);
-                }
-            }
-            Tree oakIndex = root.getTree("/").addChild(INDEX_DEFINITIONS_NAME);
-            idxBuilder.build(oakIndex.addChild(indexName));
-            root.commit();
-            Tree content = root.getTree("/").addChild("content-" + indexName);
-            for (int i = 0; i < notNullCount; i++) {
-                Tree n = content.addChild("nn" + i);
-                n.setProperty(JcrConstants.JCR_PRIMARYTYPE, "nt:unstructured", Type.NAME);
-                n.setProperty(propertyName, "v" + i);
-            }
-            for (int i = 0; i < nullCount; i++) {
-                content.addChild("nl" + i).setProperty(JcrConstants.JCR_PRIMARYTYPE, "nt:unstructured", Type.NAME);
-            }
-            root.commit(Map.of("sync-mode", "rt"));
-        } catch (Exception e) {
-            throw new IOException("Error in createIndexNodeForNullCheckTest", e);
-        }
-        // wait for ES stats to refresh (oak.elastic.statsRefreshSeconds=5 in test rule)
-        try { Thread.sleep(6000); } catch (InterruptedException ignored) {}
-        return new ElasticIndexNodeManager(defn.getIndexPath(), store.getRoot(), esConnection).getIndexNode();
+    }
+
+    @Override
+    protected IndexNode getIndexNodeFromStore(String indexPath, NodeState root) {
+        return new ElasticIndexNodeManager(indexPath, root, esConnection).getIndexNode();
+    }
+
+    @Override
+    protected Map<String, Object> getCommitAttributes() {
+        return Map.of("sync-mode", "rt");
+    }
+
+    @Override
+    protected void awaitIndexing() {
+        // wait for ES stats to refresh (oak.elastic.statsRefreshSeconds=1 in test rule)
+        try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
     }
 
     @Override
