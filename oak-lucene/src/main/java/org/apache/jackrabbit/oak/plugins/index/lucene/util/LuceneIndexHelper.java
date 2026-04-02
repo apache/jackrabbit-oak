@@ -138,4 +138,5 @@ public class LuceneIndexHelper extends IndexHelper {
     public static boolean isLuceneIndexNode(NodeState node){
         return IndexHelper.isIndexNodeOfType(node, TYPE_LUCENE);
     }
+
 }

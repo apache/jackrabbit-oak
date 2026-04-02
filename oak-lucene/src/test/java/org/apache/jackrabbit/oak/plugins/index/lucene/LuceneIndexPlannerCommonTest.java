@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.IndexPlannerCommonTest;
+import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
@@ -48,7 +49,6 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -60,13 +60,15 @@ import java.util.Set;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexStatistics.SYNTHETICALLY_FALLIABLE_FIELD;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.child;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_FUNCTION;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.assertEquals;
 
 public class LuceneIndexPlannerCommonTest extends IndexPlannerCommonTest {
+
+    {
+        indexOptions = new LuceneIndexOptions();
+    }
 
     @Test
     public void useNumDocsOnFieldForCost() throws Exception {
@@ -403,84 +405,6 @@ public class LuceneIndexPlannerCommonTest extends IndexPlannerCommonTest {
     }
 
     @Test
-    public void nullCheckWeightEstimation() throws Exception {
-        String indexPath = "/test";
-        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(child(builder, indexPath));
-        idxBuilder.indexRule("nt:unstructured")
-                .property("updated").propertyIndex().nullCheckEnabled().notNullCheckEnabled().weight(500);
-        NodeState defn = idxBuilder.build();
-
-        LuceneIndexDefinition idxDefn = new LuceneIndexDefinition(root, defn, indexPath);
-        List<Document> list = new ArrayList<>();
-        // 100 documents have the "updated" property
-        for (int i = 0; i < 100; i++) {
-            Document doc = new Document();
-            doc.add(new StringField("updated", "v" + i, Field.Store.NO));
-            list.add(doc);
-        }
-        // 200 documents don't have "updated" (recorded in :nullProps)
-        for (int i = 0; i < 200; i++) {
-            Document doc = new Document();
-            doc.add(new StringField(FieldNames.NULL_PROPS, "updated", Field.Store.NO));
-            list.add(doc);
-        }
-        Directory sampleDirectory = createSampleDirectory(0, list);
-        LuceneIndexNode node = createIndexNode(idxDefn, sampleDirectory);
-
-        // "is null" with weight=500 as fallback: ceil(200/500) = 1
-        FilterImpl filter = createFilter("nt:unstructured");
-        filter.restrictProperty("updated", Operator.EQUAL, null);
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
-        assertEquals(1, planner.getPlan().getEstimatedEntryCount());
-
-        // "is not null" with weight=500 as fallback: ceil(100/500) = 1
-        filter = createFilter("nt:unstructured");
-        filter.restrictProperty("updated", Operator.NOT_EQUAL, null);
-        planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
-        assertEquals(1, planner.getPlan().getEstimatedEntryCount());
-
-        // explicit weightNull=10 overrides weight: ceil(200/10) = 20
-        idxBuilder = new LuceneIndexDefinitionBuilder(child(builder, indexPath + "2"));
-        idxBuilder.indexRule("nt:unstructured")
-                .property("updated").propertyIndex().nullCheckEnabled().weight(500).weightNull(10);
-        LuceneIndexNode node2 = createIndexNode(
-                new LuceneIndexDefinition(root, idxBuilder.build(), indexPath + "2"), sampleDirectory);
-
-        filter = createFilter("nt:unstructured");
-        filter.restrictProperty("updated", Operator.EQUAL, null);
-        planner = new FulltextIndexPlanner(node2, indexPath + "2", filter, Collections.emptyList());
-        assertEquals(20, planner.getPlan().getEstimatedEntryCount());
-
-        // explicit weightNotNull=5 overrides weight: ceil(100/5) = 20
-        idxBuilder = new LuceneIndexDefinitionBuilder(child(builder, indexPath + "3"));
-        idxBuilder.indexRule("nt:unstructured")
-                .property("updated").propertyIndex().notNullCheckEnabled().weight(500).weightNotNull(5);
-        LuceneIndexNode node3 = createIndexNode(
-                new LuceneIndexDefinition(root, idxBuilder.build(), indexPath + "3"), sampleDirectory);
-
-        filter = createFilter("nt:unstructured");
-        filter.restrictProperty("updated", Operator.NOT_EQUAL, null);
-        planner = new FulltextIndexPlanner(node3, indexPath + "3", filter, Collections.emptyList());
-        assertEquals(20, planner.getPlan().getEstimatedEntryCount());
-
-        // kill switch: FT_OAK-12171 enabled -> old behavior (weight=1, raw docCount returned)
-        FulltextIndexPlanner.FT_OAK_12171_DISABLE.set(true);
-        try {
-            filter = createFilter("nt:unstructured");
-            filter.restrictProperty("updated", Operator.EQUAL, null);
-            planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
-            assertEquals(200, planner.getPlan().getEstimatedEntryCount());
-
-            filter = createFilter("nt:unstructured");
-            filter.restrictProperty("updated", Operator.NOT_EQUAL, null);
-            planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
-            assertEquals(100, planner.getPlan().getEstimatedEntryCount());
-        } finally {
-            FulltextIndexPlanner.FT_OAK_12171_DISABLE.set(false);
-        }
-    }
-
-    @Test
     public void fullTextWithPropRestriction() throws Exception{
         String indexPath = "/test";
         LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(child(builder, indexPath));
@@ -684,6 +608,28 @@ public class LuceneIndexPlannerCommonTest extends IndexPlannerCommonTest {
 
 
     @Override
+    protected boolean supportsDocCountByField() {
+        return true;
+    }
+
+    @Override
+    protected IndexNode createIndexNodeForNullCheckTest(IndexDefinition defn, String propertyName,
+                                                        int notNullCount, int nullCount) throws IOException {
+        List<Document> docs = new ArrayList<>();
+        for (int i = 0; i < notNullCount; i++) {
+            Document doc = new Document();
+            doc.add(new StringField(propertyName, "v" + i, Field.Store.NO));
+            docs.add(doc);
+        }
+        for (int i = 0; i < nullCount; i++) {
+            Document doc = new Document();
+            doc.add(new StringField(FieldNames.NULL_PROPS, propertyName, Field.Store.NO));
+            docs.add(doc);
+        }
+        return createIndexNode((LuceneIndexDefinition) defn, createSampleDirectory(0, docs));
+    }
+
+    @Override
     protected IndexNode createIndexNode(IndexDefinition defn) throws IOException {
         return new LuceneIndexNodeManager("foo", (LuceneIndexDefinition) defn, new TestReaderFactory(createSampleDirectory()).createReaders((LuceneIndexDefinition) defn, EMPTY_NODE, defn.getIndexPath()), null).acquire();
     }
@@ -700,17 +646,6 @@ public class LuceneIndexPlannerCommonTest extends IndexPlannerCommonTest {
     @Override
     protected IndexDefinition getIndexDefinition(NodeState root, NodeState defn, String indexPath) {
         return new LuceneIndexDefinition(root, defn, indexPath);
-    }
-
-    @Override
-    protected NodeBuilder getPropertyIndexDefinitionNodeBuilder(@NotNull NodeBuilder builder, @NotNull String name, @NotNull Set<String> includes, @NotNull String async) {
-        NodeBuilder oakIndex = builder.child("oak:index");
-        return newLucenePropertyIndexDefinition(oakIndex, name, includes, async);
-    }
-
-    @Override
-    protected NodeBuilder getIndexDefinitionNodeBuilder(@NotNull NodeBuilder index, @NotNull String name, @Nullable Set<String> propertyTypes) {
-        return newLuceneIndexDefinition(index, name, propertyTypes);
     }
 
     @Override

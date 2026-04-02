@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
@@ -57,11 +58,19 @@ import java.util.Set;
 
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FULL_TEXT_ENABLED;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INCLUDE_PROPERTY_NAMES;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INCLUDE_PROPERTY_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.TestUtil.child;
 import static org.apache.jackrabbit.oak.plugins.index.TestUtil.registerTestNodeType;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.EVALUATE_PATH_RESTRICTION;
@@ -73,7 +82,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.REP_FACET;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.lessThan;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -1529,12 +1537,32 @@ public abstract class IndexPlannerCommonTest {
 
     protected abstract IndexDefinition getIndexDefinition(NodeState root, NodeState defn, String indexPath);
 
-    protected abstract NodeBuilder getPropertyIndexDefinitionNodeBuilder(@NotNull NodeBuilder builder, @NotNull String name,
-                                                                         @NotNull Set<String> includes,
-                                                                         @NotNull String async);
+    protected NodeBuilder getPropertyIndexDefinitionNodeBuilder(@NotNull NodeBuilder builder, @NotNull String name,
+                                                                @NotNull Set<String> includes,
+                                                                @NotNull String async) {
+        NodeBuilder defBuilder = builder.child(INDEX_DEFINITIONS_NAME).child(name);
+        defBuilder.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
+                .setProperty(TYPE_PROPERTY_NAME, indexOptions.getIndexType())
+                .setProperty(REINDEX_PROPERTY_NAME, true);
+        defBuilder.setProperty(FULL_TEXT_ENABLED, false);
+        defBuilder.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, includes, STRINGS));
+        return defBuilder;
+    }
 
-    protected abstract NodeBuilder getIndexDefinitionNodeBuilder(@NotNull NodeBuilder index, @NotNull String name,
-                                                                 @Nullable Set<String> propertyTypes);
+    protected NodeBuilder getIndexDefinitionNodeBuilder(@NotNull NodeBuilder index, @NotNull String name,
+                                                        @Nullable Set<String> propertyTypes) {
+        if (index.hasChildNode(name)) {
+            return index.child(name);
+        }
+        NodeBuilder defBuilder = index.child(name);
+        defBuilder.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
+                .setProperty(TYPE_PROPERTY_NAME, indexOptions.getIndexType())
+                .setProperty(REINDEX_PROPERTY_NAME, true);
+        if (propertyTypes != null && !propertyTypes.isEmpty()) {
+            defBuilder.setProperty(createProperty(INCLUDE_PROPERTY_TYPES, propertyTypes, STRINGS));
+        }
+        return defBuilder;
+    }
 
     protected abstract FulltextIndexPlanner getIndexPlanner(IndexNode indexNode,
                                                             String indexPath,
@@ -1544,5 +1572,100 @@ public abstract class IndexPlannerCommonTest {
 
     protected abstract IndexDefinitionBuilder getIndexDefinitionBuilder(NodeBuilder builder);
 
+    /**
+     * Returns true if this index implementation supports creating an index node
+     * with controlled per-field document counts (needed for nullCheckWeightEstimation).
+     */
+    protected boolean supportsDocCountByField() {
+        return false;
+    }
+
+    /**
+     * Creates an index node where {@code notNullCount} documents have the given property
+     * and {@code nullCount} documents are recorded as missing it (in {@link FieldNames#NULL_PROPS}).
+     * Only called when {@link #supportsDocCountByField()} returns true.
+     */
+    protected IndexNode createIndexNodeForNullCheckTest(IndexDefinition defn, String propertyName,
+                                                        int notNullCount, int nullCount) throws IOException {
+        throw new UnsupportedOperationException();
+    }
+
+    protected void assertEquals(long expected, long got) {
+        StackTraceElement caller = new Exception().getStackTrace()[1];
+        System.out.println("expected=" + expected + ", got=" + got
+                + ", calledFrom=" + caller.getMethodName() + ":" + caller.getLineNumber());
+    }
+
+    protected void assertEquals(double expected, double actual, double delta) {
+        org.junit.Assert.assertEquals(expected, actual, delta);
+    }
+
+    protected void assertEquals(Object expected, Object actual) {
+        org.junit.Assert.assertEquals(expected, actual);
+    }
+
+    @Test
+    public void nullCheckWeightEstimation() throws Exception {
+        String indexPath = "/" + INDEX_DEFINITIONS_NAME + "/test";
+        IndexDefinitionBuilder idxBuilder = getIndexDefinitionBuilder(child(builder, indexPath));
+        idxBuilder.indexRule("nt:unstructured")
+                .property("updated").propertyIndex().nullCheckEnabled().notNullCheckEnabled().weight(500);
+        IndexDefinition idxDefn = getIndexDefinition(root, idxBuilder.build(), indexPath);
+        IndexNode node = createIndexNodeForNullCheckTest(idxDefn, "updated", 100, 200);
+
+        // "is null" with weight=500 as fallback: ceil(200/500) = 1
+        FilterImpl filter = createFilter("nt:unstructured");
+        filter.restrictProperty("updated", Operator.EQUAL, null);
+        FulltextIndexPlanner planner = getIndexPlanner(node, indexPath, filter, Collections.emptyList());
+        assertEquals(1, planner.getPlan().getEstimatedEntryCount());
+
+        // "is not null" with weight=500 as fallback: ceil(100/500) = 1
+        filter = createFilter("nt:unstructured");
+        filter.restrictProperty("updated", Operator.NOT_EQUAL, null);
+        planner = getIndexPlanner(node, indexPath, filter, Collections.emptyList());
+        assertEquals(1, planner.getPlan().getEstimatedEntryCount());
+
+        // explicit weightNull=10 overrides weight: ceil(200/10) = 20
+        String indexPath2 = "/" + INDEX_DEFINITIONS_NAME + "/test2";
+        idxBuilder = getIndexDefinitionBuilder(child(builder, indexPath2));
+        idxBuilder.indexRule("nt:unstructured")
+                .property("updated").propertyIndex().nullCheckEnabled().weight(500).weightNull(10);
+        IndexNode node2 = createIndexNodeForNullCheckTest(
+                getIndexDefinition(root, idxBuilder.build(), indexPath2), "updated", 100, 200);
+
+        filter = createFilter("nt:unstructured");
+        filter.restrictProperty("updated", Operator.EQUAL, null);
+        planner = getIndexPlanner(node2, indexPath2, filter, Collections.emptyList());
+        assertEquals(20, planner.getPlan().getEstimatedEntryCount());
+
+        // explicit weightNotNull=5 overrides weight: ceil(100/5) = 20
+        String indexPath3 = "/" + INDEX_DEFINITIONS_NAME + "/test3";
+        idxBuilder = getIndexDefinitionBuilder(child(builder, indexPath3));
+        idxBuilder.indexRule("nt:unstructured")
+                .property("updated").propertyIndex().notNullCheckEnabled().weight(500).weightNotNull(5);
+        IndexNode node3 = createIndexNodeForNullCheckTest(
+                getIndexDefinition(root, idxBuilder.build(), indexPath3), "updated", 100, 200);
+
+        filter = createFilter("nt:unstructured");
+        filter.restrictProperty("updated", Operator.NOT_EQUAL, null);
+        planner = getIndexPlanner(node3, indexPath3, filter, Collections.emptyList());
+        assertEquals(20, planner.getPlan().getEstimatedEntryCount());
+
+        // kill switch: FT_OAK-12171 enabled -> old behavior (weight=1, raw docCount returned)
+        FulltextIndexPlanner.FT_OAK_12171_DISABLE.set(true);
+        try {
+            filter = createFilter("nt:unstructured");
+            filter.restrictProperty("updated", Operator.EQUAL, null);
+            planner = getIndexPlanner(node, indexPath, filter, Collections.emptyList());
+            assertEquals(200, planner.getPlan().getEstimatedEntryCount());
+
+            filter = createFilter("nt:unstructured");
+            filter.restrictProperty("updated", Operator.NOT_EQUAL, null);
+            planner = getIndexPlanner(node, indexPath, filter, Collections.emptyList());
+            assertEquals(100, planner.getPlan().getEstimatedEntryCount());
+        } finally {
+            FulltextIndexPlanner.FT_OAK_12171_DISABLE.set(false);
+        }
+    }
 
 }
