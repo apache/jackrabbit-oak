@@ -608,11 +608,6 @@ public class LuceneIndexPlannerCommonTest extends IndexPlannerCommonTest {
 
 
     @Override
-    protected boolean supportsDocCountByField() {
-        return true;
-    }
-
-    @Override
     protected IndexNode createIndexNodeForNullCheckTest(IndexDefinition defn, String propertyName,
                                                         int notNullCount, int nullCount) throws IOException {
         List<Document> docs = new ArrayList<>();

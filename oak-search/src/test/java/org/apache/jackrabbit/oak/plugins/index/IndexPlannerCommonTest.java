@@ -1573,22 +1573,11 @@ public abstract class IndexPlannerCommonTest {
     protected abstract IndexDefinitionBuilder getIndexDefinitionBuilder(NodeBuilder builder);
 
     /**
-     * Returns true if this index implementation supports creating an index node
-     * with controlled per-field document counts (needed for nullCheckWeightEstimation).
-     */
-    protected boolean supportsDocCountByField() {
-        return false;
-    }
-
-    /**
      * Creates an index node where {@code notNullCount} documents have the given property
      * and {@code nullCount} documents are recorded as missing it (in {@link FieldNames#NULL_PROPS}).
-     * Only called when {@link #supportsDocCountByField()} returns true.
      */
-    protected IndexNode createIndexNodeForNullCheckTest(IndexDefinition defn, String propertyName,
-                                                        int notNullCount, int nullCount) throws IOException {
-        throw new UnsupportedOperationException();
-    }
+    protected abstract IndexNode createIndexNodeForNullCheckTest(IndexDefinition defn, String propertyName,
+                                                        int notNullCount, int nullCount) throws IOException;
 
     protected void assertEquals(long expected, long got) {
         StackTraceElement caller = new Exception().getStackTrace()[1];
