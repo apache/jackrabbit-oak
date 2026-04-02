@@ -17,12 +17,11 @@
 // copied from Apache Jackrabbit jackrabbit-data module; original class org.apache.jackrabbit.core.data.AbstractBackend
 package org.apache.jackrabbit.oak.spi.blob.data;
 
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
+
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
-
-import org.apache.jackrabbit.oak.spi.blob.data.util.NamedThreadFactory;
 
 /**
  * Abstract Backend which has a reference to the underlying {@link CachingDataStore} and is
@@ -169,8 +168,8 @@ public abstract class AbstractBackend implements Backend {
         Executor asyncExecutor;
 
         if (dataStore.getAsyncUploadLimit() > 0 && getAsyncWritePoolSize() > 0) {
-            asyncExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(getAsyncWritePoolSize(),
-                    new NamedThreadFactory(getClass().getSimpleName() + "-write-worker"));
+            asyncExecutor = Executors.newFixedThreadPool(getAsyncWritePoolSize(),
+                    BasicThreadFactory.builder().namingPattern(getClass().getSimpleName() + "-write-worker-%d").build());
         } else {
             asyncExecutor = new ImmediateExecutor();
         }

@@ -33,7 +33,7 @@ import junit.framework.TestCase;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.oak.spi.blob.data.util.NamedThreadFactory;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -345,7 +345,7 @@ public class TestLocalCache extends TestCase {
             cache.close();
 
             ExecutorService executor = Executors.newFixedThreadPool(10,
-                new NamedThreadFactory("localcache-store-worker"));
+                    BasicThreadFactory.builder().namingPattern("localcache-store-worker-%d").build());
             cache = new LocalCache(cacheDirPath, tempDirPath, 10000000, 0.95,
                 0.70, pendingFiles);
             executor.execute(new StoreWorker(cache, byteMap));
