@@ -106,6 +106,24 @@ public class PropertyDefinition {
 
     public final int weight;
 
+    /**
+     * Whether the {@code weight} property was explicitly set in the index definition.
+     * Used to distinguish an explicitly configured weight from the default value.
+     */
+    public final boolean hasExplicitWeight;
+
+    /**
+     * Weight for cost estimation of "is null" restrictions.
+     * -1 if not explicitly configured; falls back to {@link #weight}.
+     */
+    public final int weightNull;
+
+    /**
+     * Weight for cost estimation of "is not null" restrictions.
+     * -1 if not explicitly configured; falls back to {@link #weight}.
+     */
+    public final int weightNotNull;
+
     public final boolean dynamicBoost;
 
     /**
@@ -143,7 +161,10 @@ public class PropertyDefinition {
         this.name = getNamePropertyValue(defn, nodeName);
         this.relative = isRelativeProperty(name);
         this.boost = getOptionalValue(defn, FIELD_BOOST, DEFAULT_BOOST);
+        this.hasExplicitWeight = defn.hasProperty(PROP_WEIGHT);
         this.weight = getOptionalValue(defn, PROP_WEIGHT, DEFAULT_PROPERTY_WEIGHT);
+        this.weightNull = getOptionalValue(defn, FulltextIndexConstants.PROP_WEIGHT_NULL, -1);
+        this.weightNotNull = getOptionalValue(defn, FulltextIndexConstants.PROP_WEIGHT_NOT_NULL, -1);
         this.dynamicBoost = getOptionalValue(defn, FulltextIndexConstants.PROP_DYNAMIC_BOOST, false);
 
         //By default if a property is defined it is indexed

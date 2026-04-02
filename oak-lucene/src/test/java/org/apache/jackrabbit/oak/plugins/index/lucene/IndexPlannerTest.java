@@ -1337,12 +1337,13 @@ public class IndexPlannerTest {
         assertEquals(1.0, plan.getCostPerExecution(), 0);
         assertEquals(1.0, plan.getCostPerEntry(), 0);
 
-        // Query on "foo" is not null
+        // Query on "foo" is not null: no explicit weight -> heuristic weight applied
         filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.NOT_EQUAL, null);
         planner = new FulltextIndexPlanner(node, "/test", filter, Collections.emptyList());
         plan = planner.getPlan();
-        assertEquals(numOfDocs, plan.getEstimatedEntryCount());
+        assertEquals((long) Math.ceil((double) numOfDocs / FulltextIndexPlanner.DEFAULT_NULL_CHECK_WEIGHT),
+                plan.getEstimatedEntryCount());
 
         // Query on "foo" like x
         filter = createFilter("nt:base");

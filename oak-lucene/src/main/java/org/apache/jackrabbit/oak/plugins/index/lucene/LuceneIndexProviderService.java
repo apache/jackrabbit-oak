@@ -58,6 +58,8 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderF
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.TextExtractionStatsMBean;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
+import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
@@ -369,6 +371,9 @@ public class LuceneIndexProviderService {
         }
 
         whiteboard = new OsgiWhiteboard(bundleContext);
+        oakRegs.add(whiteboard.register(FeatureToggle.class,
+                new FeatureToggle(FulltextIndexPlanner.FT_OAK_12171, FulltextIndexPlanner.FT_OAK_12171_DISABLE),
+                emptyMap()));
         initializeIndexDir(bundleContext, config);
         initializeExtractedTextCache(bundleContext, config, statisticsProvider);
         tracker = createTracker(bundleContext, config);
