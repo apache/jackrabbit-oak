@@ -344,8 +344,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
 
             ongoingRequest = indexNode.getConnection().getAsyncClient()
                     .search(searchRequest, ObjectNode.class)
-                    .whenCompleteAsync((response, throwable) ->
-                            handleResponse(response, throwable, System.currentTimeMillis()));
+                    .whenCompleteAsync(this::handleResponse);
             metricHandler.markQuery(indexNode.getDefinition().getIndexPath(), true);
         }
 
@@ -356,8 +355,8 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
          * Some code in this method relies on structure that are not thread safe. We need to make sure
          * these data structures are modified before releasing the semaphore.
          */
-        private void onSuccess(@NotNull SearchResponse<ObjectNode> searchResponse, long responseTimeMs) {
-            long searchTotalTime = responseTimeMs - searchStartTime;
+        private void onSuccess(@NotNull SearchResponse<ObjectNode> searchResponse) {
+            long searchTotalTime = System.currentTimeMillis() - searchStartTime;
             List<Hit<ObjectNode>> searchHits = searchResponse.hits().hits();
             int hitsSize = searchHits != null ? searchHits.size() : 0;
             metricHandler.measureQuery(indexNode.getDefinition().getIndexPath(), hitsSize, searchResponse.took(),
@@ -417,9 +416,9 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
             }
         }
 
-        private void onFailure(@NotNull Throwable t, long responseTimeMs) {
+        private void onFailure(@NotNull Throwable t) {
             metricHandler.measureFailedQuery(indexNode.getDefinition().getIndexPath(),
-                    responseTimeMs - searchStartTime);
+                    System.currentTimeMillis() - searchStartTime);
             // Check in case errorRef is already set - this seems unlikely since we close the scanner once we hit failure.
             // But still, in case this do happen, we will log a warning.
             Throwable error = queryErrorRef.getAndSet(t);
@@ -464,15 +463,14 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
                 searchStartTime = System.currentTimeMillis();
                 ongoingRequest = indexNode.getConnection().getAsyncClient()
                         .search(searchReq, ObjectNode.class)
-                        .whenCompleteAsync((response, throwable) ->
-                                handleResponse(response, throwable, System.currentTimeMillis()));
+                        .whenCompleteAsync(this::handleResponse);
                 metricHandler.markQuery(indexNode.getDefinition().getIndexPath(), false);
             } else {
                 LOG.trace("Scanner is closing or still processing data from the previous scan");
             }
         }
 
-        private void handleResponse(SearchResponse<ObjectNode> searchResponse, Throwable throwable, long responseTimeMs) {
+        private void handleResponse(SearchResponse<ObjectNode> searchResponse, Throwable throwable) {
             ongoingRequest = null;
             if (isClosed.get()) {
                 LOG.info("Scanner is closed, not processing search response");
@@ -480,9 +478,9 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
             }
             try {
                 if (throwable == null) {
-                    onSuccess(searchResponse, responseTimeMs);
+                    onSuccess(searchResponse);
                 } else {
-                    onFailure(throwable, responseTimeMs);
+                    onFailure(throwable);
                 }
             } catch (Throwable t) {
                 LOG.warn("Error processing search response", t);
