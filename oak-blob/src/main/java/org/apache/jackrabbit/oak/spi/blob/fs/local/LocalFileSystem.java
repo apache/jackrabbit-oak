@@ -17,6 +17,7 @@
 // copied from Apache Jackrabbit jackrabbit-data module; original class org.apache.jackrabbit.core.fs.local.LocalFileSystem
 package org.apache.jackrabbit.oak.spi.blob.fs.local;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.spi.blob.fs.FileSystem;
 import org.apache.jackrabbit.oak.spi.blob.fs.FileSystemException;
 import org.apache.jackrabbit.util.LazyFileInputStream;
@@ -202,7 +203,7 @@ public class LocalFileSystem implements FileSystem {
             throw new FileSystemException(msg);
         }
         try {
-            FileUtil.delete(f);
+            FileUtils.forceDelete(f);
         } catch (IOException ioe) {
             String msg = "failed to delete " + f.getPath();
             if (monitor != null && monitor.isOpen(f)) {
@@ -225,7 +226,7 @@ public class LocalFileSystem implements FileSystem {
             throw new FileSystemException(msg);
         }
         try {
-            FileUtil.delete(f);
+            FileUtils.forceDelete(f);
         } catch (IOException ioe) {
             String msg = "failed to delete " + f.getPath();
             log.debug(msg);
