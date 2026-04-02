@@ -160,15 +160,4 @@ public interface FileSystem {
      *                             another error occurs.
      */
     void deleteFile(String filePath) throws FileSystemException;
-
-    /**
-     * Deletes the folder denoted by this path. Any contents of this folder
-     * (folders and files) will be deleted recursively.
-     *
-     * @param folderPath the path of the folder to be deleted.
-     * @throws FileSystemException if this path does not denote a folder or if
-     *                             another error occurs.
-     */
-    void deleteFolder(String folderPath) throws FileSystemException;
-
 }

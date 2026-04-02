@@ -20,10 +20,15 @@ package org.apache.jackrabbit.oak.spi.blob.data;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Iterator;
@@ -32,10 +37,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import javax.jcr.RepositoryException;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.oak.spi.blob.fs.FileSystem;
-import org.apache.jackrabbit.oak.spi.blob.fs.FileSystemException;
-import org.apache.jackrabbit.oak.spi.blob.fs.FileSystemResource;
-import org.apache.jackrabbit.oak.spi.blob.fs.local.LocalFileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -146,7 +147,7 @@ public class MultiDataStore implements DataStore {
     /**
      * File that holds the data identifiers if delayDelete is enabled.
      */
-    private FileSystemResource identifiersToDeleteFile = null;
+    private File identifiersToDeleteFile = null;
 
     private Thread deleteDelayedIdentifiersTaskThread;
 
@@ -328,11 +329,7 @@ public class MultiDataStore implements DataStore {
      */
     public void init(String homeDir) throws RepositoryException {
         if (delayedDelete) {
-            // First initialize the identifiersToDeleteFile
-            LocalFileSystem fileSystem = new LocalFileSystem();
-            fileSystem.setRoot(new File(homeDir));
-            identifiersToDeleteFile = new FileSystemResource(fileSystem, FileSystem.SEPARATOR
-                    + IDENTIFIERS_TO_DELETE_FILE_KEY);
+            identifiersToDeleteFile = Paths.get(homeDir,IDENTIFIERS_TO_DELETE_FILE_KEY).toFile();
         }
         moveDataTaskThread = new Thread(new MoveDataTask(),
                 "Jackrabbit-MulitDataStore-MoveDataTaskThread");
@@ -341,26 +338,21 @@ public class MultiDataStore implements DataStore {
         log.info("MultiDataStore-MoveDataTask thread started; first run scheduled at "
                 + moveDataTaskNextRun.getTime());
         if (delayedDelete) {
-            try {
-                // Run on startup the DeleteDelayedIdentifiersTask only if the
-                // file exists and modify date is older than the
-                // delayedDeleteSleep timeout ...
-                if (identifiersToDeleteFile != null
-                        && identifiersToDeleteFile.exists()
-                        && (identifiersToDeleteFile.lastModified() + (delayedDeleteSleep * 1000)) < System
-                                .currentTimeMillis()) {
-                    deleteDelayedIdentifiersTaskThread = new Thread(
-                            //Start immediately ...
-                            new DeleteDelayedIdentifiersTask(0L),
-                            "Jackrabbit-MultiDataStore-DeleteDelayedIdentifiersTaskThread");
-                    deleteDelayedIdentifiersTaskThread.setDaemon(true);
-                    deleteDelayedIdentifiersTaskThread.start();
-                    log.info("Old entries in the " + IDENTIFIERS_TO_DELETE_FILE_KEY
-                            + " File found. DeleteDelayedIdentifiersTask-Thread started now.");
-                }
-            } catch (FileSystemException e) {
-                throw new RepositoryException("I/O error while reading from '"
-                        + identifiersToDeleteFile.getPath() + "'", e);
+            // Run on startup the DeleteDelayedIdentifiersTask only if the
+            // file exists and modify date is older than the
+            // delayedDeleteSleep timeout ...
+            if (identifiersToDeleteFile != null
+                    && identifiersToDeleteFile.exists()
+                    && (identifiersToDeleteFile.lastModified() + (delayedDeleteSleep * 1000)) < System
+                            .currentTimeMillis()) {
+                deleteDelayedIdentifiersTaskThread = new Thread(
+                        //Start immediately ...
+                        new DeleteDelayedIdentifiersTask(0L),
+                        "Jackrabbit-MultiDataStore-DeleteDelayedIdentifiersTaskThread");
+                deleteDelayedIdentifiersTaskThread.setDaemon(true);
+                deleteDelayedIdentifiersTaskThread.start();
+                log.info("Old entries in the " + IDENTIFIERS_TO_DELETE_FILE_KEY
+                        + " File found. DeleteDelayedIdentifiersTask-Thread started now.");
             }
         }
     }
@@ -491,10 +483,7 @@ public class MultiDataStore implements DataStore {
     private boolean writeDelayedDataIdentifier(DataIdentifier identifier) {
         BufferedWriter writer = null;
         try {
-            File identifierFile = new File(
-                    ((LocalFileSystem) identifiersToDeleteFile.getFileSystem()).getPath(),
-                    identifiersToDeleteFile.getPath());
-            writer = new BufferedWriter(new FileWriter(identifierFile, true));
+            writer = new BufferedWriter(new FileWriter(identifiersToDeleteFile, true));
             writer.write(identifier.toString());
             return true;
         } catch (Exception e) {
@@ -516,7 +505,7 @@ public class MultiDataStore implements DataStore {
         BufferedWriter writer = null;
         try {
             writer = new BufferedWriter(new OutputStreamWriter(
-                    identifiersToDeleteFile.getOutputStream()));
+                    new FileOutputStream(identifiersToDeleteFile)));
             writer.write("");
             return true;
         } catch (Exception e) {
@@ -665,7 +654,7 @@ public class MultiDataStore implements DataStore {
                 try {
                     int deleted = 0;
                     reader = new BufferedReader(new InputStreamReader(
-                            identifiersToDeleteFile.getInputStream()));
+                            new FileInputStream(identifiersToDeleteFile)));
                     while (true) {
                         String s = reader.readLine();
                         if (s == null || s.equals("")) {
@@ -691,8 +680,8 @@ public class MultiDataStore implements DataStore {
                     log.info("Deleted " + deleted + " DataRecords from the primary data store.");
                     if (problemIdentifiers.isEmpty()) {
                         try {
-                            identifiersToDeleteFile.delete();
-                        } catch (FileSystemException e) {
+                            Files.delete(identifiersToDeleteFile.toPath());
+                        } catch (IOException e) {
                             log.warn("Unable to delete the " + IDENTIFIERS_TO_DELETE_FILE_KEY
                                     + " File.");
                             if (!purgeDelayedDeleteFile()) {

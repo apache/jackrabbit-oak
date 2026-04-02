@@ -158,25 +158,6 @@ public class LocalFileSystem implements FileSystem {
     /**
      * {@inheritDoc}
      */
-    public void deleteFolder(String folderPath) throws FileSystemException {
-        File f = new File(root, osPath(folderPath));
-        if (!f.isDirectory()) {
-            String msg = f.getPath() + " does not denote an existing folder";
-            log.debug(msg);
-            throw new FileSystemException(msg);
-        }
-        try {
-            FileUtils.forceDelete(f);
-        } catch (IOException ioe) {
-            String msg = "failed to delete " + f.getPath();
-            log.debug(msg);
-            throw new FileSystemException(msg, ioe);
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public boolean exists(String path) throws FileSystemException {
         File f = new File(root, osPath(path));
         return f.exists();
