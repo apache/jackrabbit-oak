@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
 import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
 import org.apache.jackrabbit.oak.cache.impl.caffeine.CaffeineCacheAdapter;
+import org.apache.jackrabbit.oak.cache.impl.caffeine.CaffeineLoadingCacheAdapter;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -43,6 +44,15 @@ public class CacheBuilderTest {
                 .maximumSize(10)
                 .build();
         Assert.assertTrue(cache instanceof CaffeineCacheAdapter);
+    }
+
+    /** CacheBuilder always creates a Caffeine-backed loading cache. */
+    @Test
+    public void buildCreatesCaffeineLoadingCache() {
+        LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumSize(10)
+                .build(key -> "loaded-" + key);
+        Assert.assertTrue(cache instanceof CaffeineLoadingCacheAdapter);
     }
 
     /** build() produces a manual cache that does not expose LoadingCache at runtime. */
@@ -150,7 +160,7 @@ public class CacheBuilderTest {
         Assert.assertEquals("loaded-missing", future.join());
     }
 
-    /** stats() returns non-null CacheStats with correct hit/miss counts. */
+    /** stats() returns non-null CacheStatsSnapshot with correct hit/miss counts. */
     @Test
     public void statsReturnsCorrectHitMissCounts() {
         Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
@@ -186,6 +196,12 @@ public class CacheBuilderTest {
         assertInvalidBuild(
                 CacheBuilder.<String, String>newBuilder().maximumSize(10).refreshAfterWrite(Duration.ofSeconds(1)),
                 "refreshAfterWrite requires build(CacheLoader)");
+        try {
+            CacheBuilder.<String, String>newBuilder().maximumSize(10).build(null);
+            Assert.fail("expected NullPointerException");
+        } catch (NullPointerException e) {
+            // expected
+        }
     }
 
     /** CacheStatsAdapter exposes stats and live weight estimates from a Cache. */
