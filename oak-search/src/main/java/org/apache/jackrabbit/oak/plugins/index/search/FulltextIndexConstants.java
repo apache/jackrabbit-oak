@@ -139,6 +139,18 @@ public interface FulltextIndexConstants {
 
     String PROP_WEIGHT = "weight";
 
+    /**
+     * Weight used for cost estimation of "is null" property restrictions.
+     * Falls back to {@link #PROP_WEIGHT} if not set.
+     */
+    String PROP_WEIGHT_NULL = "weightNull";
+
+    /**
+     * Weight used for cost estimation of "is not null" property restrictions.
+     * Falls back to {@link #PROP_WEIGHT} if not set.
+     */
+    String PROP_WEIGHT_NOT_NULL = "weightNotNull";
+
     String PROP_DYNAMIC_BOOST = "dynamicBoost";
 
     float DYNAMIC_BOOST_WEIGHT = 0.0001f;

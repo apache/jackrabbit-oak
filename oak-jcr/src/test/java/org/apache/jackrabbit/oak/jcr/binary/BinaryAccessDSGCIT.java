@@ -51,7 +51,7 @@ import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.api.binary.BinaryDownload;
 import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
 import org.apache.jackrabbit.api.binary.BinaryUpload;
-import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.binary.fixtures.datastore.AzureDataStoreFixture;
 import org.apache.jackrabbit.oak.jcr.binary.fixtures.datastore.S3DataStoreFixture;

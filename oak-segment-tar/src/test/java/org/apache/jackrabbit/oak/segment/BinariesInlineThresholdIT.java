@@ -30,7 +30,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Random;
 
-import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.oak.spi.blob.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;

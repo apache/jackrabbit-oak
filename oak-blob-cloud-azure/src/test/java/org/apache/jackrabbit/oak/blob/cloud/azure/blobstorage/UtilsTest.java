@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.common.policy.RequestRetryOptions;
-import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;

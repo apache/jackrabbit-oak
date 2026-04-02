@@ -30,13 +30,12 @@ import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.blob.specialized.BlockBlobClient;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.Closeable;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.time.OffsetDateTime;

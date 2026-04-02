@@ -39,8 +39,9 @@
           <instructions>
             <Export-Package>
               org.apache.jackrabbit.oak.spi.blob,
-              org.apache.jackrabbit.oak.spi.blob.stats,
-              org.apache.jackrabbit.oak.spi.blob.split
+              org.apache.jackrabbit.oak.spi.blob.data,
+              org.apache.jackrabbit.oak.spi.blob.split,
+              org.apache.jackrabbit.oak.spi.blob.stats
             </Export-Package>
           </instructions>
         </configuration>
@@ -81,15 +82,16 @@
       <artifactId>jcr</artifactId>
       <version>2.0</version>
     </dependency>
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>jackrabbit-data</artifactId>
-      <version>${jackrabbit.version}</version>
-    </dependency>
+
     <!-- Dependencies to other Oak components -->
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-commons</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-jackrabbit-api</artifactId>
       <version>${project.version}</version>
     </dependency>
 

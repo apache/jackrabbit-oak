@@ -23,7 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 import javax.jcr.Repository;
 
-import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;

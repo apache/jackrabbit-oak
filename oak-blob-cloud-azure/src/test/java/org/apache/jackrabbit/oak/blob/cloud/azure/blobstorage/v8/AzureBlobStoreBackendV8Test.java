@@ -23,8 +23,9 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
 
-import org.apache.jackrabbit.core.data.DataRecord;
-import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
+import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.jetbrains.annotations.NotNull;
@@ -36,7 +37,10 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.URISyntaxException;
+import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
@@ -161,6 +165,76 @@ public class AzureBlobStoreBackendV8Test {
 
     azureBlobStoreBackend.init();
     assertReferenceSecret(azureBlobStoreBackend);
+  }
+
+  @Test
+  public void setHttpDownloadURIExpirySecondsUpdatesField() throws Exception {
+    // Setter coverage for the v8 direct-download expiry value used by presigned URIs.
+    AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+
+    backend.setHttpDownloadURIExpirySeconds(3600);
+
+    assertEquals(3600, getIntField(backend, "httpDownloadURIExpirySeconds"));
+  }
+
+  @Test
+  public void setHttpUploadURIExpirySecondsUpdatesField() throws Exception {
+    // Setter coverage for the v8 direct-upload expiry used during upload initiation.
+    AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+
+    backend.setHttpUploadURIExpirySeconds(1800);
+
+    assertEquals(1800, getIntField(backend, "httpUploadURIExpirySeconds"));
+  }
+
+  @Test
+  public void setHttpDownloadURICacheSizeCreatesAndDisablesCache() throws Exception {
+    // Verify the cache-size toggle actually creates and then removes the backing cache.
+    AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+    backend.setHttpDownloadURIExpirySeconds(3600);
+
+    backend.setHttpDownloadURICacheSize(100);
+    assertNotNull(getField(backend, "httpDownloadURICache"));
+
+    backend.setHttpDownloadURICacheSize(0);
+    assertNull(getField(backend, "httpDownloadURICache"));
+  }
+
+  @Test
+  public void createHttpDownloadURIReturnsNullWhenDisabled() throws DataStoreException {
+    // With no download expiry configured, direct download access should stay disabled.
+    AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+
+    assertNull(backend.createHttpDownloadURI(new DataIdentifier("test"),
+            org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions.DEFAULT));
+  }
+
+  @Test
+  public void initiateHttpUploadReturnsNullWhenDisabled() throws DataStoreException {
+    // Upload initiation follows the same disabled-by-default contract until configured.
+    AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+
+    assertNull(backend.initiateHttpUpload(1024, 1,
+            org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions.DEFAULT));
+  }
+
+  @Test
+  public void createHttpDownloadURIReturnsPreExistingCachedURI() throws Exception {
+    // Seed a cache entry directly, then verify the externally observable
+    // behavior that the same URI is returned for the same download request.
+    AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+    DataIdentifier identifier = new DataIdentifier("cached");
+    URI cachedUri = URI.create("https://cached.example/download");
+
+    backend.setHttpDownloadURIExpirySeconds(300);
+    setField(backend, "downloadDomainOverride", "cached.example");
+    setField(backend, "presignedDownloadURIVerifyExists", false);
+    backend.setHttpDownloadURICacheSize(10);
+    putIntoCache(getField(backend, "httpDownloadURICache"),
+            identifier + "cached.example", cachedUri);
+
+    assertEquals(cachedUri, backend.createHttpDownloadURI(identifier,
+            org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions.DEFAULT));
   }
 
   /* make sure that blob1.txt and blob2.txt are uploaded to AZURE_ACCOUNT_NAME/blobstore container before
@@ -310,6 +384,30 @@ public class AzureBlobStoreBackendV8Test {
 
   private static String getConnectionString() {
     return UtilsV8.getConnectionString(AzuriteDockerRule.ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_KEY, azurite.getBlobEndpoint());
+  }
+
+  private static int getIntField(AzureBlobStoreBackendV8 backend, String fieldName) throws Exception {
+    Field field = AzureBlobStoreBackendV8.class.getDeclaredField(fieldName);
+    field.setAccessible(true);
+    return (int) field.get(backend);
+  }
+
+  private static Object getField(AzureBlobStoreBackendV8 backend, String fieldName) throws Exception {
+    Field field = AzureBlobStoreBackendV8.class.getDeclaredField(fieldName);
+    field.setAccessible(true);
+    return field.get(backend);
+  }
+
+  private static void setField(AzureBlobStoreBackendV8 backend, String fieldName, Object value) throws Exception {
+    Field field = AzureBlobStoreBackendV8.class.getDeclaredField(fieldName);
+    field.setAccessible(true);
+    field.set(backend, value);
+  }
+
+  private static void putIntoCache(Object cache, Object key, Object value) throws Exception {
+    Method put = cache.getClass().getMethod("put", Object.class, Object.class);
+    put.setAccessible(true);
+    put.invoke(cache, key, value);
   }
 
   private static void assertReferenceSecret(AzureBlobStoreBackendV8 azureBlobStoreBackend)
@@ -503,7 +601,7 @@ public class AzureBlobStoreBackendV8Test {
     backend.init();
 
     try {
-      backend.read(new org.apache.jackrabbit.core.data.DataIdentifier("nonexistent"));
+      backend.read(new DataIdentifier("nonexistent"));
       fail("Expected DataStoreException when reading non-existent blob");
     } catch (DataStoreException e) {
       assertTrue("Should contain missing blob error", e.getMessage().contains("Trying to read missing blob"));
@@ -519,7 +617,7 @@ public class AzureBlobStoreBackendV8Test {
     backend.init();
 
     try {
-      backend.getRecord(new org.apache.jackrabbit.core.data.DataIdentifier("nonexistent"));
+      backend.getRecord(new DataIdentifier("nonexistent"));
       fail("Expected DataStoreException when getting non-existent record");
     } catch (DataStoreException e) {
       assertTrue("Should contain retrieve blob error", e.getMessage().contains("Cannot retrieve blob"));
@@ -535,7 +633,7 @@ public class AzureBlobStoreBackendV8Test {
     backend.init();
 
     // Should not throw exception when deleting non-existent record
-    backend.deleteRecord(new org.apache.jackrabbit.core.data.DataIdentifier("nonexistent"));
+    backend.deleteRecord(new DataIdentifier("nonexistent"));
     // No exception expected
     assertTrue("Delete should not throw exception for non-existent record", true);
   }
@@ -686,7 +784,7 @@ public class AzureBlobStoreBackendV8Test {
     backend.init();
 
     try {
-      backend.write(new org.apache.jackrabbit.core.data.DataIdentifier("test"), null);
+      backend.write(new DataIdentifier("test"), null);
       fail("Expected NullPointerException for null file");
     } catch (NullPointerException e) {
       assertEquals("file must not be null", e.getMessage());
@@ -781,8 +879,8 @@ public class AzureBlobStoreBackendV8Test {
       writer2.write("test content 2");
     }
 
-    org.apache.jackrabbit.core.data.DataIdentifier id1 = new org.apache.jackrabbit.core.data.DataIdentifier("test1");
-    org.apache.jackrabbit.core.data.DataIdentifier id2 = new org.apache.jackrabbit.core.data.DataIdentifier("test2");
+    DataIdentifier id1 = new DataIdentifier("test1");
+    DataIdentifier id2 = new DataIdentifier("test2");
 
     try {
       // Write test records
@@ -790,12 +888,12 @@ public class AzureBlobStoreBackendV8Test {
       backend.write(id2, tempFile2);
 
       // Test getAllIdentifiers
-      java.util.Iterator<org.apache.jackrabbit.core.data.DataIdentifier> identifiers = backend.getAllIdentifiers();
+      java.util.Iterator<DataIdentifier> identifiers = backend.getAllIdentifiers();
       assertNotNull("Identifiers iterator should not be null", identifiers);
 
       java.util.Set<String> foundIds = new java.util.HashSet<>();
       while (identifiers.hasNext()) {
-        org.apache.jackrabbit.core.data.DataIdentifier id = identifiers.next();
+        DataIdentifier id = identifiers.next();
         foundIds.add(id.toString());
       }
 
@@ -830,8 +928,8 @@ public class AzureBlobStoreBackendV8Test {
       writer2.write(content2);
     }
 
-    org.apache.jackrabbit.core.data.DataIdentifier id1 = new org.apache.jackrabbit.core.data.DataIdentifier("test1");
-    org.apache.jackrabbit.core.data.DataIdentifier id2 = new org.apache.jackrabbit.core.data.DataIdentifier("test2");
+    DataIdentifier id1 = new DataIdentifier("test1");
+    DataIdentifier id2 = new DataIdentifier("test2");
 
     try {
       // Write test records
@@ -884,7 +982,7 @@ public class AzureBlobStoreBackendV8Test {
       writer.write(testContent);
     }
 
-    org.apache.jackrabbit.core.data.DataIdentifier identifier = new org.apache.jackrabbit.core.data.DataIdentifier("writetest");
+    DataIdentifier identifier = new DataIdentifier("writetest");
 
     try {
       // Write the file
@@ -926,7 +1024,7 @@ public class AzureBlobStoreBackendV8Test {
       writer.write(testContent);
     }
 
-    org.apache.jackrabbit.core.data.DataIdentifier identifier = new org.apache.jackrabbit.core.data.DataIdentifier("existingtest");
+    DataIdentifier identifier = new DataIdentifier("existingtest");
 
     try {
       // Write the file first time
@@ -972,7 +1070,7 @@ public class AzureBlobStoreBackendV8Test {
       writer.write(content2);
     }
 
-    org.apache.jackrabbit.core.data.DataIdentifier identifier = new org.apache.jackrabbit.core.data.DataIdentifier("lengthtest");
+    DataIdentifier identifier = new DataIdentifier("lengthtest");
 
     try {
       // Write the first file
@@ -1003,7 +1101,7 @@ public class AzureBlobStoreBackendV8Test {
     backend.setProperties(getConfigurationWithConnectionString());
     backend.init();
 
-    org.apache.jackrabbit.core.data.DataIdentifier identifier = new org.apache.jackrabbit.core.data.DataIdentifier("existstest");
+    DataIdentifier identifier = new DataIdentifier("existstest");
 
     // Test non-existent file
     assertFalse("Non-existent file should return false", backend.exists(identifier));
@@ -1047,7 +1145,7 @@ public class AzureBlobStoreBackendV8Test {
       writer.write(testContent);
     }
 
-    org.apache.jackrabbit.core.data.DataIdentifier identifier = new org.apache.jackrabbit.core.data.DataIdentifier("datarecordtest");
+    DataIdentifier identifier = new DataIdentifier("datarecordtest");
 
     try {
       // Write the file
@@ -1285,7 +1383,7 @@ public class AzureBlobStoreBackendV8Test {
 
     try {
       // Test getAllIdentifiers with empty container
-      java.util.Iterator<org.apache.jackrabbit.core.data.DataIdentifier> identifiers = backend.getAllIdentifiers();
+      java.util.Iterator<DataIdentifier> identifiers = backend.getAllIdentifiers();
       assertNotNull("Identifiers iterator should not be null", identifiers);
       assertFalse("Empty container should have no identifiers", identifiers.hasNext());
 
@@ -1415,8 +1513,8 @@ public class AzureBlobStoreBackendV8Test {
     }
 
     // Test with identifier that will test key name transformation
-    org.apache.jackrabbit.core.data.DataIdentifier identifier =
-        new org.apache.jackrabbit.core.data.DataIdentifier("abcd1234567890abcdef");
+    DataIdentifier identifier =
+        new DataIdentifier("abcd1234567890abcdef");
 
     try {
       // Write and read to test key name transformation
@@ -1461,8 +1559,8 @@ public class AzureBlobStoreBackendV8Test {
       writer.write(testContent);
     }
 
-    org.apache.jackrabbit.core.data.DataIdentifier identifier =
-        new org.apache.jackrabbit.core.data.DataIdentifier("largefile");
+    DataIdentifier identifier =
+        new DataIdentifier("largefile");
 
     try {
       // Write the large file
@@ -1540,8 +1638,8 @@ public class AzureBlobStoreBackendV8Test {
       writer.write(testContent);
     }
 
-    org.apache.jackrabbit.core.data.DataIdentifier identifier =
-        new org.apache.jackrabbit.core.data.DataIdentifier("directaccess");
+    DataIdentifier identifier =
+        new DataIdentifier("directaccess");
 
     try {
       // Write the file
@@ -1590,8 +1688,8 @@ public class AzureBlobStoreBackendV8Test {
       writer.write(testContent);
     }
 
-    org.apache.jackrabbit.core.data.DataIdentifier identifier =
-        new org.apache.jackrabbit.core.data.DataIdentifier("directaccess");
+    DataIdentifier identifier =
+        new DataIdentifier("directaccess");
 
     try {
       // Write the file
@@ -1651,7 +1749,7 @@ public class AzureBlobStoreBackendV8Test {
     // Test createHttpDownloadURI with null options
     try {
       backend.createHttpDownloadURI(
-          new org.apache.jackrabbit.core.data.DataIdentifier("test"), null);
+          new DataIdentifier("test"), null);
       fail("Expected NullPointerException for null options");
     } catch (NullPointerException e) {
       assertEquals("downloadOptions must not be null", e.getMessage());
@@ -1874,8 +1972,8 @@ public class AzureBlobStoreBackendV8Test {
       writer.write("test content for context class loader");
     }
 
-    org.apache.jackrabbit.core.data.DataIdentifier identifier =
-        new org.apache.jackrabbit.core.data.DataIdentifier("contextclassloadertest");
+    DataIdentifier identifier =
+        new DataIdentifier("contextclassloadertest");
 
     try {
       // Set a custom context class loader
@@ -1915,8 +2013,8 @@ public class AzureBlobStoreBackendV8Test {
       writer.write("small content"); // Less than AZURE_BLOB_BUFFERED_STREAM_THRESHOLD
     }
 
-    org.apache.jackrabbit.core.data.DataIdentifier smallId =
-        new org.apache.jackrabbit.core.data.DataIdentifier("smallfile");
+    DataIdentifier smallId =
+        new DataIdentifier("smallfile");
 
     try {
       backend.write(smallId, smallFile);
@@ -1931,8 +2029,8 @@ public class AzureBlobStoreBackendV8Test {
         }
       }
 
-      org.apache.jackrabbit.core.data.DataIdentifier largeId =
-          new org.apache.jackrabbit.core.data.DataIdentifier("largefile");
+      DataIdentifier largeId =
+          new DataIdentifier("largefile");
 
       backend.write(largeId, largeFile);
       assertTrue("Large file should be written successfully", backend.exists(largeId));
@@ -1954,8 +2052,8 @@ public class AzureBlobStoreBackendV8Test {
     backend.setProperties(getConfigurationWithConnectionString());
     backend.init();
 
-    org.apache.jackrabbit.core.data.DataIdentifier identifier =
-        new org.apache.jackrabbit.core.data.DataIdentifier("existstest");
+    DataIdentifier identifier =
+        new DataIdentifier("existstest");
 
     // Set a custom context class loader
     ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
@@ -1989,8 +2087,8 @@ public class AzureBlobStoreBackendV8Test {
       writer.write("content to delete");
     }
 
-    org.apache.jackrabbit.core.data.DataIdentifier identifier =
-        new org.apache.jackrabbit.core.data.DataIdentifier("deletetest");
+    DataIdentifier identifier =
+        new DataIdentifier("deletetest");
 
     try {
       backend.write(identifier, tempFile);
@@ -2131,8 +2229,8 @@ public class AzureBlobStoreBackendV8Test {
       writer.write("download test content");
     }
 
-    org.apache.jackrabbit.core.data.DataIdentifier identifier =
-        new org.apache.jackrabbit.core.data.DataIdentifier("downloadtest");
+    DataIdentifier identifier =
+        new DataIdentifier("downloadtest");
 
     try {
       backend.write(identifier, tempFile);
@@ -2161,8 +2259,8 @@ public class AzureBlobStoreBackendV8Test {
     backend.setProperties(props);
     backend.init();
 
-    org.apache.jackrabbit.core.data.DataIdentifier nonExistentId =
-        new org.apache.jackrabbit.core.data.DataIdentifier("nonexistent");
+    DataIdentifier nonExistentId =
+        new DataIdentifier("nonexistent");
 
     org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions options =
         org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions.DEFAULT;
@@ -2286,8 +2384,8 @@ public class AzureBlobStoreBackendV8Test {
       writer.write("complete test content");
     }
 
-    org.apache.jackrabbit.core.data.DataIdentifier identifier =
-        new org.apache.jackrabbit.core.data.DataIdentifier("completetest");
+    DataIdentifier identifier =
+        new DataIdentifier("completetest");
 
     try {
       backend.write(identifier, tempFile);

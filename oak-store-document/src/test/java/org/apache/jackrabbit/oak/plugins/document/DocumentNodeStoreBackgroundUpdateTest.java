@@ -36,10 +36,9 @@ import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
-import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class DocumentNodeStoreBackgroundUpdateTest {
@@ -109,7 +108,9 @@ public class DocumentNodeStoreBackgroundUpdateTest {
                         ns.runBackgroundOperations();
                         fail("background operations must fail because of lease failure");
                     } catch (Exception ex) {
-                        assertThat(ex.getMessage(), containsString("concurrent update"));
+                        // OAK-12128, LeaseCheckDocumentStoreWrapper will check immediately when method call is done
+                        assertTrue(ex.getMessage(), ex.getMessage().contains("concurrent update") ||
+                                ex.getMessage().contains("failed to update the lease"));
                     }
                 } catch (Throwable t) {
                     exceptions.add(t);

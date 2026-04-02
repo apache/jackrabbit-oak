@@ -128,6 +128,22 @@ public class ElasticIndexUtils {
     }
 
     /**
+     * Computes a fast, deterministic hash of the given string for use in non-cryptographic
+     * contexts like ES shard routing preference.
+     *
+     * @param input the string to hash
+     * @return a hex string representation of the hash
+     */
+    public static String fastHash(String input) {
+        // Use long to reduce collision probability compared to int hashCode
+        long h = 0;
+        for (int i = 0; i < input.length(); i++) {
+            h = 31 * h + input.charAt(i);
+        }
+        return Long.toHexString(h);
+    }
+
+    /**
      * Converts a given byte array (of doubles) to a list of floats
      * @param array given byte array
      * @return list of floats

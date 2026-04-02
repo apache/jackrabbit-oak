@@ -22,8 +22,9 @@ package org.apache.jackrabbit.oak.spi.blob.stats;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.core.data.DataIdentifier;
-import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
+import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
 import org.osgi.annotation.versioning.ConsumerType;
 
 /**
@@ -188,7 +189,7 @@ public interface BlobStatsCollector {
 
     /**
      * Called when deleting binaries older than a specified date, via
-     * {@link org.apache.jackrabbit.core.data.DataStore#deleteAllOlderThan(long)}.
+     * {@link DataStore#deleteAllOlderThan(long)}.
      *
      * @param timeTaken time taken to perform the deletion
      * @param unit unit of time taken
@@ -197,21 +198,21 @@ public interface BlobStatsCollector {
     void deletedAllOlderThan(long timeTaken, TimeUnit unit, long min);
 
     /**
-     * Called when {@link org.apache.jackrabbit.core.data.DataStore#deleteAllOlderThan(long)} is completed.
+     * Called when {@link DataStore#deleteAllOlderThan(long)} is completed.
      *
      * @param deletedCount count of records deleted
      */
     void deleteAllOlderThanCompleted(int deletedCount);
 
     /**
-     * Called when {@link org.apache.jackrabbit.core.data.DataStore#deleteAllOlderThan(long)} fails.
+     * Called when {@link DataStore#deleteAllOlderThan(long)} fails.
      *
      * @param min time used for determining what to delete
      */
     void deleteAllOlderThanFailed(long min);
 
     /**
-     * Called when a binary is added via {@link org.apache.jackrabbit.core.data.DataStore#addRecord(InputStream)}.
+     * Called when a binary is added via {@link DataStore#addRecord(InputStream)}.
      *
      * @param timeTaken time taken to perform the operation
      * @param unit unit of time taken
@@ -220,20 +221,20 @@ public interface BlobStatsCollector {
     void recordAdded(long timeTaken, TimeUnit unit, long size);
 
     /**
-     * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#addRecord(InputStream)} is completed.
+     * Called when a call to {@link DataStore#addRecord(InputStream)} is completed.
      *
      * @param blobId id of the record which was added
      */
     void addRecordCompleted(String blobId);
 
     /**
-     * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#addRecord(InputStream)} fails.
+     * Called when a call to {@link DataStore#addRecord(InputStream)} fails.
      */
     void addRecordFailed();
 
     /**
-     * Called when a {@link org.apache.jackrabbit.core.data.DataRecord} is retrieved via
-     * {@link org.apache.jackrabbit.core.data.DataStore#getRecord(DataIdentifier)}.
+     * Called when a {@link DataRecord} is retrieved via
+     * {@link DataStore#getRecord(DataIdentifier)}.
      *
      * @param timeTaken time taken to perform the operation
      * @param unit unit of time taken
@@ -242,22 +243,22 @@ public interface BlobStatsCollector {
     void getRecordCalled(long timeTaken, TimeUnit unit, long size);
 
     /**
-     * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#getRecord(DataIdentifier)} is completed.
+     * Called when a call to {@link DataStore#getRecord(DataIdentifier)} is completed.
      *
      * @param blobId id of the record retrieved
      */
     void getRecordCompleted(String blobId);
 
     /**
-     * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#getRecord(DataIdentifier)} fails.
+     * Called when a call to {@link DataStore#getRecord(DataIdentifier)} fails.
      *
      * @param blobId id of the record
      */
     void getRecordFailed(String blobId);
 
     /**
-     * Called when a {@link org.apache.jackrabbit.core.data.DataRecord} is retrieved via
-     * {@link org.apache.jackrabbit.core.data.DataStore#getRecordIfStored(DataIdentifier)}.
+     * Called when a {@link DataRecord} is retrieved via
+     * {@link DataStore#getRecordIfStored(DataIdentifier)}.
      *
      * @param timeTaken time taken to perform the operation
      * @param unit unit of time taken
@@ -266,22 +267,22 @@ public interface BlobStatsCollector {
     void getRecordIfStoredCalled(long timeTaken, TimeUnit unit, long size);
 
     /**
-     * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#getRecordIfStored(DataIdentifier)} is completed.
+     * Called when a call to {@link DataStore#getRecordIfStored(DataIdentifier)} is completed.
      *
      * @param blobId id of the record retrieved
      */
     void getRecordIfStoredCompleted(String blobId);
 
     /**
-     * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#getRecordIfStored(DataIdentifier)} fails.
+     * Called when a call to {@link DataStore#getRecordIfStored(DataIdentifier)} fails.
      *
      * @param blobId id of the record
      */
     void getRecordIfStoredFailed(String blobId);
 
     /**
-     * Called when a {@link org.apache.jackrabbit.core.data.DataRecord} is retrieved via
-     * {@link org.apache.jackrabbit.core.data.DataStore#getRecordFromReference(String)}.
+     * Called when a {@link DataRecord} is retrieved via
+     * {@link DataStore#getRecordFromReference(String)}.
      *
      * @param timeTaken time taken to perform the operation
      * @param unit unit of time taken
@@ -290,14 +291,14 @@ public interface BlobStatsCollector {
     void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit, long size);
 
     /**
-     * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#getRecordFromReference(String)} is completed.
+     * Called when a call to {@link DataStore#getRecordFromReference(String)} is completed.
      *
      * @param reference reference of the record retrieved
      */
     void getRecordFromReferenceCompleted(String reference);
 
     /**
-     * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#getRecordFromReference(String)} fails.
+     * Called when a call to {@link DataStore#getRecordFromReference(String)} fails.
      *
      * @param reference reference of the record
      */
