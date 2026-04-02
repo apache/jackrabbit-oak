@@ -88,9 +88,6 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             DEFAULT_THROTTLE_WARN_LOGS_THRESHOLD_VALUE);
     protected static final boolean throttleWarnLogs = Boolean.getBoolean(THROTTLE_WARN_LOGS_KEY);
 
-    private int similarityTagCount;
-    private List<DynamicBoost> dynamicBoostTags;
-
     public FulltextDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
                                  @NotNull IndexDefinition definition,
                                  IndexDefinition.IndexingRule indexingRule,
@@ -173,10 +170,8 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     public D makeDocument(NodeState state, boolean isUpdate, @NotNull List<PropertyState> propertiesModified) throws IOException {
         boolean facet = false;
 
-        similarityTagCount = 0;
-        dynamicBoostTags = new ArrayList<>();
-
         D document = initDoc();
+        DocumentBuildContext ctx = new DocumentBuildContext();
         boolean dirty = false;
 
         // we make a copy of the modified properties names. These will be removed while iterating over all properties.
@@ -205,7 +200,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                 dirty |= addTypedOrderedFields(document, property, pname, pd);
             }
 
-            var indexed = indexProperty(path, document, state, property, pname, pd);
+            var indexed = indexProperty(path, document, ctx, state, property, pname, pd);
             if (indexed) {
                 dirty = true;
                 // property was indexed, so remove from the removed list
@@ -215,19 +210,19 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             facet |= pd.facet;
         }
 
-        ResultCollector resultCollector = indexAggregates(path, document, state);
+        ResultCollector resultCollector = indexAggregates(path, document, ctx, state);
         dirty |= resultCollector.dirtyFlag; // any (aggregate) indexing happened
         facet |= resultCollector.facetFlag; // facet indexing during (index-time) aggregation
         dirty |= indexNullCheckEnabledProps(path, document, state);
         dirty |= indexFunctionRestrictions(path, document, state);
         dirty |= indexNotNullCheckEnabledProps(path, document, state);
-        int dynamicBoostTagCount = dynamicBoostTags.size();
+        int dynamicBoostTagCount = ctx.dynamicBoostTags.size();
         int maxDynamicBoostCount = definition.getMaxDynamicBoostCount();
         if (maxDynamicBoostCount >= 0 && dynamicBoostTagCount > maxDynamicBoostCount) {
             log.warn("[{}] Number of collected dynamic boost tags ({}) exceeds the maximum allowed ({}). Some tags will be skipped",
                     getIndexName(), dynamicBoostTagCount, maxDynamicBoostCount);
         }
-        dirty |= indexTopDynamicBoost(document, maxDynamicBoostCount);
+        dirty |= indexTopDynamicBoost(document, ctx.dynamicBoostTags, maxDynamicBoostCount);
         dirty |= augmentCustomFields(path, document, state);
 
         if (!propertiesToRemove.isEmpty()) {
@@ -281,6 +276,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     private boolean indexProperty(String path,
                                   D doc,
+                                  DocumentBuildContext ctx,
                                   NodeState state,
                                   PropertyState property,
                                   String pname,
@@ -310,7 +306,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             }
             if (!definition.isDynamicBoostLiteEnabled() && pd.dynamicBoost) {
                 try {
-                    collectDynamicBoost(pname, pd.nodeName, state);
+                    collectDynamicBoost(pname, pd.nodeName, state, ctx.dynamicBoostTags);
                 } catch (Exception e) {
                     log.error("Could not collect dynamic boost for property {} and definition {}", property, pd, e);
                 }
@@ -363,15 +359,15 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             }
             if (pd.similarityTags) {
                 String value = property.getValue(Type.STRING);
-                if (isTagWithinLimits(value, true)) {
+                if (isSimilarityTagWithinLimits(value, ctx.similarityTagCount)) {
                     if (indexSimilarityTag(doc, value)) {
-                        similarityTagCount++;
+                        ctx.similarityTagCount++;
                         dirty = true;
                     }
                 } else if (!LOG_SILENCER.silence(pname)) {
                     log.warn("[{}] Skipping similarity tag for property {}. Either value length {} exceeds maximum" +
                                     "allowed length or number of indexed tags {} exceeds maximum allowed count",
-                            getIndexName(), pname, value.length(), similarityTagCount);
+                            getIndexName(), pname, value.length(), ctx.similarityTagCount);
                 }
             }
 
@@ -611,8 +607,8 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     /*
      * index aggregates on a certain path
      */
-    private ResultCollector indexAggregates(final String path, final D document, final NodeState state) {
-        ResultCollector resultCollector = new ResultCollector(path, document, state);
+    private ResultCollector indexAggregates(final String path, final D document, final DocumentBuildContext ctx, final NodeState state) {
+        ResultCollector resultCollector = new ResultCollector(path, document, ctx, state);
         indexingRule.getAggregate().collectAggregates(state, resultCollector);
         return resultCollector;
     }
@@ -620,13 +616,15 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     private class ResultCollector implements Aggregate.ResultCollector {
         private final String path;
         private final D document;
+        private final DocumentBuildContext ctx;
         private final NodeState state;
         private boolean dirtyFlag = false;
         private boolean facetFlag = false;
 
-        ResultCollector(String path, D document, NodeState state) {
+        ResultCollector(String path, D document, DocumentBuildContext ctx, NodeState state) {
             this.path = path;
             this.document = document;
+            this.ctx = ctx;
             this.state = state;
         }
 
@@ -640,7 +638,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             if (result.pd.ordered) {
                 dirtyFlag |= addTypedOrderedFields(document, result.propertyState, result.propertyPath, result.pd);
             }
-            dirtyFlag |= indexProperty(path, document, state, result.propertyState, result.propertyPath, result.pd);
+            dirtyFlag |= indexProperty(path, document, ctx, state, result.propertyState, result.propertyPath, result.pd);
 
             if (result.pd.facet) {
                 facetFlag = true;
@@ -715,15 +713,16 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     }
 
     /**
-     * Collects dynamic boost tags from a NodeState property for later indexing.
+     * Collects dynamic boost tags from a NodeState property into {@code tags} for later indexing.
      * Tags are collected and added to the document-level collection, then sorted by confidence
      * and indexed (top N only) at the end of document processing.
      *
      * @param propertyName the property name
      * @param nodeName the node name
      * @param nodeState the node state containing the dynamic boost tags
+     * @param tags the collection to add discovered dynamic boost tags to
      */
-    protected void collectDynamicBoost(String propertyName, String nodeName, NodeState nodeState) {
+    private void collectDynamicBoost(String propertyName, String nodeName, NodeState nodeState, List<DynamicBoost> tags) {
         NodeState propertyNode = nodeState;
         String parentName = PathUtils.getParentPath(propertyName);
         for (String c : PathUtils.elements(parentName)) {
@@ -742,7 +741,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                 continue;
             }
             String dynaTagValue = p.getValue(Type.STRING);
-            if (!isTagWithinLimits(dynaTagValue, false)) {
+            if (!isTagLengthWithinLimits(dynaTagValue)) {
                 if (!LOG_SILENCER.silence(p.getName())) {
                     log.warn("[{}] Skipping dynamic boost tag for property {}. Value length {} exceeds maximum allowed length",
                             getIndexName(), p.getName(), dynaTagValue.length());
@@ -770,7 +769,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                 continue;
             }
 
-            dynamicBoostTags.add(new DynamicBoost(parentName, nodeName, dynaTagValue, dynaTagConfidence));
+            tags.add(new DynamicBoost(parentName, nodeName, dynaTagValue, dynaTagConfidence));
         }
     }
 
@@ -778,26 +777,23 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         return definition.getIndexName();
     }
 
-    private boolean isTagWithinLimits(String value, boolean isSimilarityTag) {
+    private boolean isTagLengthWithinLimits(String value) {
         int maxLength = definition.getMaxTagLength();
-        if (maxLength >= 0 && value.length() > maxLength) {
+        return maxLength < 0 || value.length() <= maxLength;
+    }
+
+    private boolean isSimilarityTagWithinLimits(String value, int similarityTagCount) {
+        if (!isTagLengthWithinLimits(value)) {
             return false;
         }
-
-        if (isSimilarityTag) {
-            int maxCount = definition.getMaxSimilarityTagsCount();
-            if (maxCount >= 0 && similarityTagCount >= maxCount) {
-                return false;
-            }
-        }
-
-        return true;
+        int maxCount = definition.getMaxSimilarityTagsCount();
+        return maxCount < 0 || similarityTagCount < maxCount;
     }
 
     /**
      * Process collected dynamic boost tags: sort by confidence (descending) and index only the top N
      */
-    private boolean indexTopDynamicBoost(D doc, int maxCount) {
+    private boolean indexTopDynamicBoost(D doc, List<DynamicBoost> dynamicBoostTags, int maxCount) {
         dynamicBoostTags.sort(Comparator.comparingDouble((DynamicBoost tag) -> tag.confidence).reversed());
 
         int count = 0;
@@ -827,18 +823,11 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         indexNodeName(doc, value);
     }
 
-    private static class DynamicBoost {
-        final String parent;
-        final String nodeName;
-        final String value;
-        final double confidence;
-
-        DynamicBoost(String parent, String nodeName, String value, double confidence) {
-            this.parent = parent;
-            this.nodeName = nodeName;
-            this.value = value;
-            this.confidence = confidence;
-        }
+    private static class DocumentBuildContext {
+        int similarityTagCount;
+        final List<DynamicBoost> dynamicBoostTags = new ArrayList<>();
     }
+
+    private record DynamicBoost(String parent, String nodeName, String value, double confidence) {}
 
 }
