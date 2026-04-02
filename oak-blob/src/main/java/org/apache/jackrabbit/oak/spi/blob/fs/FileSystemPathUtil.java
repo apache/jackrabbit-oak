@@ -17,7 +17,6 @@
 // copied from Apache Jackrabbit jackrabbit-data module; original class org.apache.jackrabbit.core.fs.FileSystemPathUtil
 package org.apache.jackrabbit.oak.spi.blob.fs;
 
-import java.io.ByteArrayOutputStream;
 import java.util.BitSet;
 
 
