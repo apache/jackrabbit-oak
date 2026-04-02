@@ -35,9 +35,9 @@ import com.azure.storage.blob.specialized.BlockBlobClient;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.microsoft.azure.storage.RetryPolicy;
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.core.data.DataIdentifier;
-import org.apache.jackrabbit.core.data.DataRecord;
-import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
+import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
@@ -90,7 +90,6 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordU
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadToken;
 
 import static java.nio.file.StandardOpenOption.DELETE_ON_CLOSE;
-import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_BUFFERED_STREAM_THRESHOLD;
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_DEFAULT_CONCURRENT_REQUEST_COUNT;
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_LAST_MODIFIED_KEY;
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_MAX_ALLOWABLE_UPLOAD_URIS;

@@ -26,7 +26,7 @@ import com.microsoft.azure.storage.RetryPolicy;
 import com.microsoft.azure.storage.blob.BlobRequestOptions;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.junit.After;
 import org.junit.Test;

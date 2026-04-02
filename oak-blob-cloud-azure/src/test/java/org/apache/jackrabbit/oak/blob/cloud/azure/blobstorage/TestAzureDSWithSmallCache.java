@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
-import org.apache.jackrabbit.core.data.CachingDataStore;
-import org.apache.jackrabbit.core.data.LocalCache;
+import org.apache.jackrabbit.oak.spi.blob.data.CachingDataStore;
+import org.apache.jackrabbit.oak.spi.blob.data.LocalCache;
 import org.junit.Before;
 
 /**

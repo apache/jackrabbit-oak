@@ -30,7 +30,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.oak.spi.blob.data.FileDataStore;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;

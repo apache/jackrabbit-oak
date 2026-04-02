@@ -23,7 +23,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
 
-import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.oak.spi.blob.data.FileDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.junit.Rule;

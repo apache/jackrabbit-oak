@@ -24,8 +24,8 @@ import java.util.Properties;
 import javax.jcr.RepositoryException;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.core.data.DataRecord;
-import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.junit.After;

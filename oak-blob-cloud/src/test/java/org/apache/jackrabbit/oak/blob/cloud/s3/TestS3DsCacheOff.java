@@ -16,12 +16,13 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
+import org.apache.jackrabbit.oak.spi.blob.data.CachingDataStore;
 import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Test {@link org.apache.jackrabbit.core.data.CachingDataStore} with S3Backend
+ * Test {@link CachingDataStore} with S3Backend
  * and local cache Off.
  * It requires to pass aws config file via system property or system properties by prefixing with 'ds.'.
  * See details @ {@link S3DataStoreUtils}.

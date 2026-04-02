@@ -23,8 +23,8 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.core.data.DataRecord;
-import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
+import org.apache.jackrabbit.oak.spi.blob.data.FileDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;

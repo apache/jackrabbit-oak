@@ -36,7 +36,7 @@ import javax.net.ssl.HttpsURLConnection;
 import com.azure.storage.blob.BlobContainerClient;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;

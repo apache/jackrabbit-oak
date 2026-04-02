@@ -30,7 +30,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.junit.After;

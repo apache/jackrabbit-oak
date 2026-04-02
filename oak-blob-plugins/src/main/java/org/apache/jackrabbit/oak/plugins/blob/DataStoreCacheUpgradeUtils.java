@@ -18,10 +18,7 @@ package org.apache.jackrabbit.oak.plugins.blob;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -31,6 +28,8 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.serialization.ValidatingObjectInputStream;
 import org.apache.jackrabbit.oak.commons.io.FileTreeTraverser;
+import org.apache.jackrabbit.oak.spi.blob.data.AsyncUploadCache;
+import org.apache.jackrabbit.oak.spi.blob.data.CachingDataStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +37,7 @@ import static org.apache.jackrabbit.oak.plugins.blob.DataStoreCacheUtils.recursi
 
 /**
  * Utility methods to upgrade Old DataStore cache
- * {@link org.apache.jackrabbit.core.data.CachingDataStore}.
+ * {@link CachingDataStore}.
  */
 public class DataStoreCacheUpgradeUtils {
     private static final Logger LOG = LoggerFactory.getLogger(DataStoreCacheUpgradeUtils.class);
@@ -48,7 +47,7 @@ public class DataStoreCacheUpgradeUtils {
     static final String DOWNLOAD_DIR = FileCache.DOWNLOAD_DIR;
 
     /**
-     * De-serialize the pending uploads map from {@link org.apache.jackrabbit.core.data.AsyncUploadCache}.
+     * De-serialize the pending uploads map from {@link AsyncUploadCache}.
      *
      * @param homeDir the directory where the serialized file is maintained
      * @return the de-serialized map
@@ -175,7 +174,7 @@ public class DataStoreCacheUpgradeUtils {
     }
 
     /**
-     * Upgrades the {@link org.apache.jackrabbit.core.data.CachingDataStore}.
+     * Upgrades the {@link CachingDataStore}.
      *
      * @param homeDir the repository home directory
      * @param path the root of the datastore

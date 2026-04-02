@@ -28,10 +28,10 @@ import java.util.List;
 import javax.net.ssl.HttpsURLConnection;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.core.data.DataIdentifier;
-import org.apache.jackrabbit.core.data.DataRecord;
-import org.apache.jackrabbit.core.data.DataStore;
-import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
+import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
