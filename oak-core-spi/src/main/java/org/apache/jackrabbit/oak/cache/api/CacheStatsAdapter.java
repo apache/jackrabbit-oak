@@ -49,10 +49,10 @@ public class CacheStatsAdapter extends AbstractCacheStats {
      * @param maxWeight configured maximum weight for the cache; {@code -1} if unbounded
      */
     @SuppressWarnings("unchecked")
-    public CacheStatsAdapter(
-            @NotNull Cache<?, ?> cache,
+    public <K, V> CacheStatsAdapter(
+            @NotNull Cache<K, V> cache,
             @NotNull String name,
-            @Nullable Weigher<?, ?> weigher,
+            @Nullable Weigher<K, V> weigher,
             long maxWeight) {
         super(name);
         this.cache = (Cache<Object, Object>) cache;

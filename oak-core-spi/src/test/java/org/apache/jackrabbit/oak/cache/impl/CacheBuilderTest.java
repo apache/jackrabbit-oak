@@ -213,7 +213,7 @@ public class CacheBuilderTest {
                 .recordStats()
                 .build();
         CacheStatsAdapter stats = new CacheStatsAdapter(
-                cache, "testCache", (k, v) -> k.toString().length() + v.toString().length(), 100);
+                cache, "testCache", (k, v) -> k.length() + v.length(), 100);
 
         cache.put("aa", "bbb");
         cache.getIfPresent("aa");
