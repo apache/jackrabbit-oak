@@ -17,49 +17,10 @@
 // copied from Apache Jackrabbit jackrabbit-data module; original class org.apache.jackrabbit.core.fs.FileSystemPathUtil
 package org.apache.jackrabbit.oak.spi.blob.fs;
 
-import java.util.BitSet;
-
-
 /**
  * Utility class for handling paths in a file system.
  */
 public final class FileSystemPathUtil {
-
-    /**
-     * The list of characters that are not encoded by the <code>escapeName(String)</code>
-     * and <code>unescape(String)</code> methods. They contains the characters
-     * which can safely be used in file names:
-     */
-    public static final BitSet SAFE_NAMECHARS;
-
-    /**
-     * The list of characters that are not encoded by the <code>escapePath(String)</code>
-     * and <code>unescape(String)</code> methods. They contains the characters
-     * which can safely be used in file paths:
-     */
-    public static final BitSet SAFE_PATHCHARS;
-
-    static {
-        // build list of valid name characters
-        SAFE_NAMECHARS = new BitSet(256);
-        int i;
-        for (i = 'a'; i <= 'z'; i++) {
-            SAFE_NAMECHARS.set(i);
-        }
-        for (i = 'A'; i <= 'Z'; i++) {
-            SAFE_NAMECHARS.set(i);
-        }
-        for (i = '0'; i <= '9'; i++) {
-            SAFE_NAMECHARS.set(i);
-        }
-        SAFE_NAMECHARS.set('-');
-        SAFE_NAMECHARS.set('_');
-        SAFE_NAMECHARS.set('.');
-
-        // build list of valid path characters (includes name characters)
-        SAFE_PATHCHARS = (BitSet) SAFE_NAMECHARS.clone();
-        SAFE_PATHCHARS.set(FileSystem.SEPARATOR_CHAR);
-    }
 
     /**
      * private constructor
