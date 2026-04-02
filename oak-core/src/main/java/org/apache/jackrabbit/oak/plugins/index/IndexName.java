@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -230,6 +231,36 @@ public class IndexName implements Comparable<IndexName> {
         ArrayList<String> result = new ArrayList<>(latestVersions.size());
         for (IndexName n : latestVersions.values()) {
             result.add(n.nodeName);
+        }
+        return result;
+    }
+
+    /**
+     * Remove indexes if there is a newer, active version.
+     * This suppresses indexes when a newer version of a different type exists
+     * (e.g. lucene vs. elasticsearch).
+     *
+     * @param candidatePaths    paths of one specific index type being evaluated
+     * @param allCompetingPaths paths of all competing index types (e.g. both lucene and elasticsearch)
+     * @return candidates that are not superseded by a higher-versioned entry in allCompetingPaths
+     */
+    public static Collection<String> filterGloballySuperseded(
+            Collection<String> candidatePaths, Collection<String> allCompetingPaths) {
+        Map<String, IndexName> maxByBase = new HashMap<>();
+        for (String p : allCompetingPaths) {
+            IndexName n = IndexName.parse(PathUtils.getName(p));
+            IndexName stored = maxByBase.get(n.baseName);
+            if (stored == null || stored.compareTo(n) < 0) {
+                maxByBase.put(n.baseName, n);
+            }
+        }
+        List<String> result = new ArrayList<>();
+        for (String p : candidatePaths) {
+            IndexName n = IndexName.parse(PathUtils.getName(p));
+            IndexName globalMax = maxByBase.get(n.baseName);
+            if (globalMax == null || globalMax.compareTo(n) == 0) {
+                result.add(p);
+            }
         }
         return result;
     }

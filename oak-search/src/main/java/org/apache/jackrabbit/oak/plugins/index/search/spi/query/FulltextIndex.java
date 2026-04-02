@@ -44,7 +44,9 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,12 +54,15 @@ import javax.jcr.PropertyType;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.NativeQueryIndex;
 
@@ -75,6 +80,17 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     public static final String ATTR_PLAN_RESULT = "oak.fulltext.planResult";
 
     private static final double MIN_COST = 2.1;
+
+    // Index types that may compete; other types (e.g. "disabled") are excluded
+    private static final Set<String> COMPETING_INDEX_TYPES = Set.of("lucene", "elasticsearch");
+
+    public static final String FT_FILTER_GLOBALLY_SUPERSEDED = "FT_OAK-12146";
+
+    @Nullable private Feature filterGloballySupersededFeature;
+
+    public void setFilterGloballySupersededFeature(@Nullable Feature feature) {
+        this.filterGloballySupersededFeature = feature;
+    }
 
     protected abstract IndexNode acquireIndexNode(String indexPath);
 
@@ -120,6 +136,29 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
             indexPaths = IndexName.filterReplacedIndexes(indexPaths, rootState, runIsActiveIndexCheck());
         } else {
             indexPaths = IndexName.filterNewestIndexes(indexPaths);
+        }
+        if (filterGloballySupersededFeature == null || filterGloballySupersededFeature.isEnabled()) {
+            // first collect indexes of the other types (collect lucene indexes if we look at elastic,
+            // and vice versa)
+            Collection<String> allCompetingPathsOfOtherTypes = new IndexLookup(rootState,
+                    state -> {
+                        String type = state.getString(TYPE_PROPERTY_NAME);
+                        if (type == null) {
+                            // indexes without type don't compete (to avoid NPE)
+                            return false;
+                        } else if (getIndexDefinitionPredicate().test(state)) {
+                            // index of this type don't compete. this is to avoid
+                            // that indexes that are disabled are considered competing
+                            return false;
+                        }
+                        return COMPETING_INDEX_TYPES.contains(type);
+                    })
+                    .collectIndexNodePaths(filter);
+            // build a combined set: these indexes of other types,
+            HashSet<String> allCompetingPaths = new HashSet<>(allCompetingPathsOfOtherTypes);
+            // plus the _active_ indexes of the current type
+            allCompetingPaths.addAll(indexPaths);
+            indexPaths = IndexName.filterGloballySuperseded(indexPaths, allCompetingPaths);
         }
         List<IndexPlan> plans = new ArrayList<>(indexPaths.size());
         for (String path : indexPaths) {
