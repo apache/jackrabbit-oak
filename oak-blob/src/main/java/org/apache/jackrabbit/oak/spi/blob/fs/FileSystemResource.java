@@ -17,11 +17,8 @@
 // copied from Apache Jackrabbit jackrabbit-data module; original class org.apache.jackrabbit.core.fs.FileSystemResource
 package org.apache.jackrabbit.oak.spi.blob.fs;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-
-import org.apache.commons.io.IOUtils;
 
 /**
  * A <code>FileSystemResource</code> represents a resource (i.e. file) in a
@@ -75,34 +72,12 @@ public class FileSystemResource {
     }
 
     /**
-     * Returns the parent directory of this resource.
-     *
-     * @return the parent directory.
-     */
-    public String getParentDir() {
-        return FileSystemPathUtil.getParentDir(path);
-    }
-
-    /**
      * Returns the name of this resource.
      *
      * @return the name.
      */
     public String getName() {
         return FileSystemPathUtil.getName(path);
-    }
-
-    /**
-     * Creates the parent directory of this resource, including any necessary
-     * but nonexistent parent directories.
-     *
-     * @throws FileSystemException
-     */
-    public synchronized void makeParentDirs() throws FileSystemException {
-        String parentDir = getParentDir();
-        if (!fs.exists(parentDir)) {
-            fs.createFolder(parentDir);
-        }
     }
 
     /**
@@ -148,24 +123,6 @@ public class FileSystemResource {
      */
     public InputStream getInputStream() throws FileSystemException {
         return fs.getInputStream(path);
-    }
-
-    /**
-     * Spools this resource to the given output stream.
-     *
-     * @param out output stream where to spool the resource
-     * @throws FileSystemException if the input stream for this resource could
-     *                             not be obtained
-     * @throws IOException         if an error occurs while while spooling
-     * @see FileSystem#getInputStream
-     */
-    public void spool(OutputStream out) throws FileSystemException, IOException {
-        InputStream in = fs.getInputStream(path);
-        try {
-            IOUtils.copy(in, out);
-        } finally {
-            IOUtils.closeQuietly(in);
-        }
     }
 
     /**

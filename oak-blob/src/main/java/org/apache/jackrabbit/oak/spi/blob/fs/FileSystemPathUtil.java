@@ -27,16 +27,6 @@ import java.util.BitSet;
 public final class FileSystemPathUtil {
 
     /**
-     * Array of lowercase hexadecimal characters used in creating hex escapes.
-     */
-    private static final char[] HEX_TABLE = "0123456789abcdef".toCharArray();
-
-    /**
-     * The escape character used to mark hex escape sequences.
-     */
-    private static final char ESCAPE_CHAR = '%';
-
-    /**
      * The list of characters that are not encoded by the <code>escapeName(String)</code>
      * and <code>unescape(String)</code> methods. They contains the characters
      * which can safely be used in file names:
@@ -79,82 +69,6 @@ public final class FileSystemPathUtil {
     }
 
     /**
-     * Escapes the given string using URL encoding for all bytes not included
-     * in the given set of safe characters.
-     *
-     * @param s the string to escape
-     * @param safeChars set of safe characters (bytes)
-     * @return escaped string
-     */
-    private static String escape(String s, BitSet safeChars) {
-        byte[] bytes = s.getBytes();
-        StringBuilder out = new StringBuilder(bytes.length);
-        for (int i = 0; i < bytes.length; i++) {
-            int c = bytes[i] & 0xff;
-            if (safeChars.get(c) && c != ESCAPE_CHAR) {
-                out.append((char) c);
-            } else {
-                out.append(ESCAPE_CHAR);
-                out.append(HEX_TABLE[(c >> 4) & 0x0f]);
-                out.append(HEX_TABLE[(c) & 0x0f]);
-            }
-        }
-        return out.toString();
-    }
-
-    /**
-     * Encodes the specified <code>path</code>. Same as
-     * <code>{@link #escapeName(String)}</code> except that the separator
-     * character <b><code>/</code></b> is regarded as a legal path character
-     * that needs no escaping.
-     *
-     * @param path the path to encode.
-     * @return the escaped path
-     */
-    public static String escapePath(String path) {
-        return escape(path, SAFE_PATHCHARS);
-    }
-
-    /**
-     * Encodes the specified <code>name</code>. Same as
-     * <code>{@link #escapePath(String)}</code> except that the separator character
-     * <b><code>/</code></b> is regarded as an illegal character that needs
-     * escaping.
-     *
-     * @param name the name to encode.
-     * @return the escaped name
-     */
-    public static String escapeName(String name) {
-        return escape(name, SAFE_NAMECHARS);
-    }
-
-    /**
-     * Decodes the specified path/name.
-     *
-     * @param pathOrName the escaped path/name
-     * @return the unescaped path/name
-     */
-    public static String unescape(String pathOrName) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream(pathOrName.length());
-        for (int i = 0; i < pathOrName.length(); i++) {
-            char c = pathOrName.charAt(i);
-            if (c == ESCAPE_CHAR) {
-                try {
-                    out.write(Integer.parseInt(pathOrName.substring(i + 1, i + 3), 16));
-                } catch (NumberFormatException e) {
-                    IllegalArgumentException iae = new IllegalArgumentException("Failed to unescape escape sequence");
-                    iae.initCause(e);
-                    throw iae;
-                }
-                i += 2;
-            } else {
-                out.write(c);
-            }
-        }
-        return new String(out.toByteArray());
-    }
-
-    /**
      * Tests whether the specified path represents the root path, i.e. "/".
      *
      * @param path path to test
@@ -162,41 +76,6 @@ public final class FileSystemPathUtil {
      */
     public static boolean denotesRoot(String path) {
         return path.equals(FileSystem.SEPARATOR);
-    }
-
-    /**
-     * Checks if <code>path</code> is a valid path.
-     *
-     * @param path the path to be checked
-     * @throws FileSystemException If <code>path</code> is not a valid path
-     */
-    public static void checkFormat(String path) throws FileSystemException {
-        if (path == null) {
-            throw new FileSystemException("null path");
-        }
-
-        // path must be absolute, i.e. starting with '/'
-        if (!path.startsWith(FileSystem.SEPARATOR)) {
-            throw new FileSystemException("not an absolute path: " + path);
-        }
-
-        // trailing '/' is not allowed (except for root path)
-        if (path.endsWith(FileSystem.SEPARATOR) && path.length() > 1) {
-            throw new FileSystemException("malformed path: " + path);
-        }
-
-        String[] names = path.split(FileSystem.SEPARATOR);
-        for (int i = 1; i < names.length; i++) {
-            // name must not be empty
-            if (names[i].length() == 0) {
-                throw new FileSystemException("empty name: " + path);
-            }
-            // leading/trailing whitespace is not allowed
-            String trimmed = names[i].trim();
-            if (!trimmed.equals(names[i])) {
-                throw new FileSystemException("illegal leading or trailing whitespace in name: " + path);
-            }
-        }
     }
 
     /**

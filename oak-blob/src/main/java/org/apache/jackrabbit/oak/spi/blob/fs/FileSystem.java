@@ -78,17 +78,6 @@ public interface FileSystem {
     OutputStream getOutputStream(String filePath) throws FileSystemException;
 
     /**
-     * Creates the folder named by this path, including any necessary but
-     * nonexistent parent folders. Note that if this operation fails it
-     * may have succeeded in creating some of the necessary parent folders.
-     *
-     * @param folderPath the path of the folder to be created.
-     * @throws FileSystemException if a file system entry denoted by path
-     *                             already exists or if another error occurs.
-     */
-    void createFolder(String folderPath) throws FileSystemException;
-
-    /**
      * Tests whether the file system entry denoted by this path exists.
      *
      * @param path the path of a file system entry.
@@ -106,16 +95,6 @@ public interface FileSystem {
      * @throws FileSystemException
      */
     boolean isFile(String path) throws FileSystemException;
-
-    /**
-     * Tests whether the file system entry denoted by this path exists and
-     * is a folder.
-     *
-     * @param path the path of a file system entry.
-     * @return true if the file system entry at path is a folder; false otherwise.
-     * @throws FileSystemException
-     */
-    boolean isFolder(String path) throws FileSystemException;
 
     /**
      * Tests whether the file system entry denoted by this path has child entries.
@@ -172,18 +151,6 @@ public interface FileSystem {
      *                             another error occurs.
      */
     String[] listFiles(String folderPath) throws FileSystemException;
-
-    /**
-     * Returns an array of strings naming the folders in the folder
-     * denoted by this path.
-     *
-     * @param folderPath the path of the folder whose contents is to be listed.
-     * @return an array of strings naming the folders in the folder
-     *         denoted by this path.
-     * @throws FileSystemException if this path does not denote a folder or if
-     *                             another error occurs.
-     */
-    String[] listFolders(String folderPath) throws FileSystemException;
 
     /**
      * Deletes the file denoted by this path.

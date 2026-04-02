@@ -41,8 +41,6 @@ public class LocalFileSystem implements FileSystem {
 
     private File root;
 
-    private HandleMonitor monitor;
-
     /**
      * Default constructor
      */
@@ -70,39 +68,6 @@ public class LocalFileSystem implements FileSystem {
 
     public void setRoot(File root) {
         this.root = root;
-    }
-
-    /**
-     * Enables/Disables the use of the handle monitor.
-     *
-     * @param enable
-     */
-    public void setEnableHandleMonitor(String enable) {
-        setEnableHandleMonitor(Boolean.valueOf(enable).booleanValue());
-    }
-
-    /**
-     * Enables/Disables the use of the handle monitor.
-     *
-     * @param enable flag
-     */
-    public void setEnableHandleMonitor(boolean enable) {
-        if (enable && monitor == null) {
-            monitor = new HandleMonitor();
-        }
-        if (!enable && monitor != null) {
-            monitor = null;
-        }
-    }
-
-    /**
-     * Returns <code>true</code> if use of the handle monitor is currently
-     * enabled, otherwise returns <code>false</code>.
-     *
-     * @see #setEnableHandleMonitor(boolean)
-     */
-    public String getEnableHandleMonitor() {
-        return monitor == null ? "false" : "true";
     }
 
     private String osPath(String genericPath) {
@@ -164,9 +129,6 @@ public class LocalFileSystem implements FileSystem {
             }
         }
         log.info("LocalFileSystem initialized at path " + root.getPath());
-        if (monitor != null) {
-            log.info("LocalFileSystem using handle monitor");
-        }
     }
 
     /**
@@ -174,23 +136,6 @@ public class LocalFileSystem implements FileSystem {
      */
     public void close() throws FileSystemException {
         root = null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public void createFolder(String folderPath) throws FileSystemException {
-        File f = new File(root, osPath(folderPath));
-        if (f.exists()) {
-            String msg = f.getPath() + " already exists";
-            log.debug(msg);
-            throw new FileSystemException(msg);
-        }
-        if (!f.mkdirs()) {
-            String msg = "failed to create folder " + f.getPath();
-            log.debug(msg);
-            throw new FileSystemException(msg);
-        }
     }
 
     /**
@@ -206,11 +151,6 @@ public class LocalFileSystem implements FileSystem {
             FileUtils.forceDelete(f);
         } catch (IOException ioe) {
             String msg = "failed to delete " + f.getPath();
-            if (monitor != null && monitor.isOpen(f)) {
-                log.error("Unable to delete. There are still open streams.");
-                monitor.dump(f);
-            }
-
             throw new FileSystemException(msg, ioe);
         }
     }
@@ -249,11 +189,7 @@ public class LocalFileSystem implements FileSystem {
             throws FileSystemException {
         File f = new File(root, osPath(filePath));
         try {
-            if (monitor == null) {
-                return new LazyFileInputStream(f);
-            } else {
-                return monitor.open(f);
-            }
+            return new LazyFileInputStream(f);
         } catch (FileNotFoundException fnfe) {
             String msg = f.getPath() + " does not denote an existing file";
             log.debug(msg);
@@ -298,14 +234,6 @@ public class LocalFileSystem implements FileSystem {
     public boolean isFile(String path) throws FileSystemException {
         File f = new File(root, osPath(path));
         return f.isFile();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public boolean isFolder(String path) throws FileSystemException {
-        File f = new File(root, osPath(path));
-        return f.isDirectory();
     }
 
     /**
@@ -362,27 +290,4 @@ public class LocalFileSystem implements FileSystem {
         }
         return entries;
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    public String[] listFolders(String folderPath) throws FileSystemException {
-        File file = new File(root, osPath(folderPath));
-        File[] folders = file.listFiles(new FileFilter() {
-            public boolean accept(File f) {
-                return f.isDirectory();
-            }
-        });
-        if (folders == null) {
-            String msg = folderPath + " does not denote a folder";
-            log.debug(msg);
-            throw new FileSystemException(msg);
-        }
-        String[] entries = new String[folders.length];
-        for (int i = 0; i < folders.length; i++) {
-            entries[i] = folders[i].getName();
-        }
-        return entries;
-    }
-
 }
