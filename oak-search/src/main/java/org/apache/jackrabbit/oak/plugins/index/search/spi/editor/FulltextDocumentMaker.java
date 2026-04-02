@@ -801,8 +801,12 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             if (maxCount >= 0 && count >= maxCount) {
                 break;
             }
-            if (indexDynamicBoost(doc, tag.parent, tag.nodeName, tag.value, tag.confidence)) {
-                count++;
+            try {
+                if (indexDynamicBoost(doc, tag.parent, tag.nodeName, tag.value, tag.confidence)) {
+                    count++;
+                }
+            } catch (Exception e) {
+                log.error("Could not index dynamic boost tag '{}' for property {} and node {}", tag.value, tag.parent, tag.nodeName, e);
             }
         }
 
