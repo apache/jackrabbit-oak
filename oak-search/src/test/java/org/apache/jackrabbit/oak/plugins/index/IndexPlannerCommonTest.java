@@ -1697,6 +1697,26 @@ public abstract class IndexPlannerCommonTest {
         planner = getIndexPlanner(node3, indexPath3, filter, Collections.emptyList());
         assertEquals(20, planner.getPlan().getEstimatedEntryCount());
 
+        // no explicit weight -> DEFAULT_NULL_CHECK_WEIGHT applied
+        String indexPath4 = "/" + INDEX_DEFINITIONS_NAME + "/test4";
+        idxBuilder = getIndexDefinitionBuilder(child(builder, indexPath4));
+        idxBuilder.indexRule("nt:unstructured")
+                .property("updated").propertyIndex().nullCheckEnabled().notNullCheckEnabled();
+        IndexNode node4 = createIndexNodeForNullCheckTest(
+                getIndexDefinition(root, idxBuilder.build(), indexPath4), "updated", 100, 200);
+
+        filter = createFilter("nt:unstructured");
+        filter.restrictProperty("updated", Operator.EQUAL, null);
+        planner = getIndexPlanner(node4, indexPath4, filter, Collections.emptyList());
+        assertEquals((long) Math.ceil(200.0 / FulltextIndexPlanner.DEFAULT_NULL_CHECK_WEIGHT),
+                planner.getPlan().getEstimatedEntryCount());
+
+        filter = createFilter("nt:unstructured");
+        filter.restrictProperty("updated", Operator.NOT_EQUAL, null);
+        planner = getIndexPlanner(node4, indexPath4, filter, Collections.emptyList());
+        assertEquals((long) Math.ceil(100.0 / FulltextIndexPlanner.DEFAULT_NULL_CHECK_WEIGHT),
+                planner.getPlan().getEstimatedEntryCount());
+
         // kill switch: FT_OAK-12171 enabled -> old behavior (weight=1, raw docCount returned)
         FulltextIndexPlanner.FT_OAK_12171_DISABLE.set(true);
         try {

@@ -74,9 +74,9 @@ public class FulltextIndexPlanner {
 
     /**
      * Default weight used for null/not-null cost estimation when no explicit weight is configured.
-     * Corresponds to the heuristic that such conditions match ~10% of indexed entries.
+     * Corresponds to the heuristic that such conditions match ~20% of indexed entries.
      */
-    public static final int DEFAULT_NULL_CHECK_WEIGHT = 10;
+    public static final int DEFAULT_NULL_CHECK_WEIGHT = 5;
 
     /**
      * Feature toggle name for OAK-12171.

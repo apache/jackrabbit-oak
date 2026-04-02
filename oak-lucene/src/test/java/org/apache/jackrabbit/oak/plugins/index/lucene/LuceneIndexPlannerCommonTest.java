@@ -365,40 +365,40 @@ public class LuceneIndexPlannerCommonTest extends IndexPlannerCommonTest {
         Directory sampleDirectory = createSampleDirectory(0, list);
         LuceneIndexNode node = createIndexNode(idxDefn, sampleDirectory);
 
-        // foo is null: no explicit weight -> heuristic weight=10 applied to :nullProps docCount (20)
+        // foo is null: no explicit weight -> heuristic weight=5 applied to :nullProps docCount (20) -> ceil(20/5) = 4
         FilterImpl filter = createFilter("nt:unstructured");
         filter.restrictProperty("foo", Operator.EQUAL, null);
 
         FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
-        assertEquals(2, plan.getEstimatedEntryCount());
+        assertEquals(4, plan.getEstimatedEntryCount());
         assertEquals(1.0, plan.getCostPerExecution(), 0);
         assertEquals(1.0, plan.getCostPerEntry(), 0);
 
-        // foo2 is null: same :nullProps docCount (20), heuristic weight=10 -> ceil(20/10) = 2
+        // foo2 is null: same :nullProps docCount (20), heuristic weight=5 -> ceil(20/5) = 4
         filter = createFilter("nt:unstructured");
         filter.restrictProperty("foo2", Operator.EQUAL, null);
 
         planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
         plan = planner.getPlan();
 
-        assertEquals(2, plan.getEstimatedEntryCount());
+        assertEquals(4, plan.getEstimatedEntryCount());
         assertEquals(1.0, plan.getCostPerExecution(), 0);
         assertEquals(1.0, plan.getCostPerEntry(), 0);
 
-        // foo is not null: no explicit weight -> heuristic weight=10 applied to foo docCount (10)
+        // foo is not null: no explicit weight -> heuristic weight=5 applied to foo docCount (10) -> ceil(10/5) = 2
         filter = createFilter("nt:unstructured");
         filter.restrictProperty("foo", Operator.NOT_EQUAL, null);
 
         planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
         plan = planner.getPlan();
 
-        assertEquals(1, plan.getEstimatedEntryCount());
+        assertEquals(2, plan.getEstimatedEntryCount());
         assertEquals(1.0, plan.getCostPerExecution(), 0);
         assertEquals(1.0, plan.getCostPerEntry(), 0);
 
-        // foo2 is not null: foo2 docCount is 0, ceil(0/10) = 0
+        // foo2 is not null: foo2 docCount is 0, ceil(0/5) = 0
         filter = createFilter("nt:unstructured");
         filter.restrictProperty("foo2", Operator.NOT_EQUAL, null);
 
