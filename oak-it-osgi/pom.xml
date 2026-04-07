@@ -32,6 +32,10 @@
 
   <properties>
     <skip.deployment>true</skip.deployment>
+    <!-- Tika 3.x depends on SLF4J 2.x-->
+    <slf4j.api.version>2.0.17</slf4j.api.version>
+    <slf4j.version>${slf4j.api.version}</slf4j.version>
+    <logback.version>1.5.24</logback.version>
   </properties>
 
   <build>

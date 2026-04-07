@@ -34,6 +34,7 @@
     <jetty.version>9.4.53.v20231009</jetty.version>
     <!--
       Size History:
+      + 94 MB (Tika 3.2.3, OAK-9752)
       + 87 MB (Aws Sdk 2.x, OAK-11935)
       + 84 MB (RDB/Tomcat, OAK-10752)
       + 80 MB (Java 17, OAK-10638)
@@ -52,7 +53,7 @@
       + 41 MB build failing on the release profile (OAK-6250)
       + 38 MB. Initial value. Current 35MB plus a 10%
     -->
-    <max.jar.size>91226112</max.jar.size>
+    <max.jar.size>95000000</max.jar.size>
   </properties>
 
   <build>
@@ -364,7 +365,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.tika</groupId>
-      <artifactId>tika-parsers</artifactId>
+      <artifactId>tika-parsers-standard-package</artifactId>
       <version>${tika.version}</version>
     </dependency>
     <dependency>

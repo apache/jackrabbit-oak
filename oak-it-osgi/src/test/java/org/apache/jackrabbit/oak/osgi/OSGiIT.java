@@ -26,8 +26,8 @@ import static org.ops4j.pax.exam.CoreOptions.vmOption;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URISyntaxException;
 
 import javax.inject.Inject;
@@ -51,6 +51,7 @@ import org.osgi.framework.BundleContext;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.Version;
+import org.osgi.framework.wiring.BundleRevision;
 
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerClass.class)
@@ -76,6 +77,8 @@ public class OSGiIT {
                 mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-annotations").version("2.17.2"),
                 mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-databind").version("2.17.2"),
 
+                // SPIFly as implementation for OSGi serviceloader (required by SLF4J 2.x)
+                mavenBundle("org.apache.aries.spifly", "org.apache.aries.spifly.dynamic.framework.extension", "1.3.7"), 
                 frameworkProperty("repository.home").value("target"),
                 systemProperties(new SystemPropertyOption("felix.fileinstall.dir").value(getConfigDir())),
                 jarBundles(),
@@ -123,9 +126,15 @@ public class OSGiIT {
     @Test
     public void bundleStates() {
         for (Bundle bundle : context.getBundles()) {
-            assertEquals(
-                String.format("Bundle %s not active. have a look at the logs", bundle.toString()), 
-                Bundle.ACTIVE, bundle.getState());
+            if ((bundle.adapt(BundleRevision.class).getTypes() & BundleRevision.TYPE_FRAGMENT) != 0) {
+                assertEquals(
+                        String.format("Bundle fragment %s not resolved. have a look at the logs", bundle.toString()), 
+                        Bundle.RESOLVED, bundle.getState());
+            } else {
+                assertEquals(
+                    String.format("Bundle %s not active. have a look at the logs", bundle.toString()), 
+                    Bundle.ACTIVE, bundle.getState());
+            }
         }
     }
 
