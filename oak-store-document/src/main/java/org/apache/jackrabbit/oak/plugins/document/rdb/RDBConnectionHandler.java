@@ -46,7 +46,7 @@ public class RDBConnectionHandler implements Closeable {
      * This becomes a problem when the pool implemented by the {@link DataSource} re-uses the connection, and may
      * affect subsequent users of that connection. This system property allows to enable a check to be done upon
      * {@link #closeConnection(Connection)} so that problems can be detected early rather than late.
-     * See also https://issues.apache.org/jira/browse/OAK-2337.
+     * See also <a href="https://issues.apache.org/jira/browse/OAK-2337">...</a>.
      */
     private static final boolean CHECKCONNECTIONONCLOSE = SystemPropertySupplier
             .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBConnectionHandler.CHECKCONNECTIONONCLOSE", Boolean.FALSE)
@@ -155,7 +155,7 @@ public class RDBConnectionHandler implements Closeable {
         if (LOG.isDebugEnabled()) {
             long elapsed = System.currentTimeMillis() - ts;
             if (elapsed >= 20) {
-                LOG.debug("Obtaining a new connection from " + this.ds + " took " + elapsed + "ms", new Exception("call stack"));
+                LOG.debug("Obtaining a new connection from {} took {}ms", this.ds, elapsed, new Exception("call stack"));
             }
         }
         return c;
@@ -176,8 +176,7 @@ public class RDBConnectionHandler implements Closeable {
                     c.setReadOnly(true);
                     this.setReadOnlyThrows = Boolean.FALSE;
                 } catch (SQLException ex) {
-                    LOG.error("Connection class " + c.getClass()
-                            + " erroneously throws SQLException on setReadOnly(true); not trying again");
+                    LOG.error("Connection class {} erroneously throws SQLException on setReadOnly(true); not trying again", c.getClass());
                     this.setReadOnlyThrows = Boolean.TRUE;
                 }
             } else if (!this.setReadOnlyThrows) {
@@ -190,8 +189,7 @@ public class RDBConnectionHandler implements Closeable {
                     c.setReadOnly(false);
                     this.setReadWriteThrows = Boolean.FALSE;
                 } catch (SQLException ex) {
-                    LOG.error("Connection class " + c.getClass()
-                            + " erroneously throws SQLException on setReadOnly(false); not trying again");
+                    LOG.error("Connection class {} erroneously throws SQLException on setReadOnly(false); not trying again", c.getClass());
                     this.setReadWriteThrows = Boolean.TRUE;
                 }
             } else if (!this.setReadWriteThrows) {
@@ -222,7 +220,7 @@ public class RDBConnectionHandler implements Closeable {
     }
 
     // map holding references to currently open connections
-    private ConcurrentMap<WeakReference<Connection>, ConnectionHolder> connectionMap = new ConcurrentHashMap<>();
+    private final ConcurrentMap<WeakReference<Connection>, ConnectionHolder> connectionMap = new ConcurrentHashMap<>();
 
     // time in millis for a connection in the map to be logged as "old"; note
     // that this is meant to catch both connection leaks and long-running
@@ -255,8 +253,7 @@ public class RDBConnectionHandler implements Closeable {
                     }
                 }
                 if (cnt > 0) {
-                    LOG.trace(cnt + " connections with age >= " + LOGTHRESHOLD + "ms active while obtaining new connection: "
-                            + sb.toString());
+                    LOG.trace("{} connections with age >= " + LOGTHRESHOLD + "ms active while obtaining new connection: {}", cnt, sb);
                 }
             }
         }
@@ -264,7 +261,7 @@ public class RDBConnectionHandler implements Closeable {
 
     private void remember(Connection c) {
         if (LOG.isTraceEnabled()) {
-            connectionMap.put(new WeakReference<Connection>(c), new ConnectionHolder());
+            connectionMap.put(new WeakReference<>(c), new ConnectionHolder());
         }
     }
 
@@ -288,7 +285,7 @@ public class RDBConnectionHandler implements Closeable {
                     }
                     sb.append('.').append(e.getMethodName()).append('(').append(loc).append(')');
                 } else {
-                    sb.append(e.toString());
+                    sb.append(e);
                 }
                 prevClass = e.getClassName();
             }

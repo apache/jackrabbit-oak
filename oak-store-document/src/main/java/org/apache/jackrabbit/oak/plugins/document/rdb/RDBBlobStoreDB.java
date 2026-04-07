@@ -152,12 +152,11 @@ public enum RDBBlobStoreDB {
 
     protected RDBCommonVendorSpecificCode vendorCode = RDBCommonVendorSpecificCode.DEFAULT;
 
-    private RDBBlobStoreDB(String description) {
+    RDBBlobStoreDB(String description) {
         this.description = description;
-        this.vendorCode = RDBCommonVendorSpecificCode.DEFAULT;
     }
 
-    private RDBBlobStoreDB(String description, RDBCommonVendorSpecificCode vendorCode) {
+    RDBBlobStoreDB(String description, RDBCommonVendorSpecificCode vendorCode) {
         this.description = description;
         this.vendorCode = vendorCode;
     }
@@ -187,7 +186,7 @@ public enum RDBBlobStoreDB {
             }
         }
 
-        LOG.error("DB type " + desc + " unknown, trying default settings");
+        LOG.error("DB type {} unknown, trying default settings", desc);
         DEFAULT.description = desc + " - using default settings";
         return DEFAULT;
     }

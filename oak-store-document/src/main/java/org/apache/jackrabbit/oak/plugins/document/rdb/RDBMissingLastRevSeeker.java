@@ -44,10 +44,8 @@ public class RDBMissingLastRevSeeker extends MissingLastRevSeeker {
     private static final int DEFAULTMODE = 2;
 
     private static final int MODE = SystemPropertySupplier.create(RDBMissingLastRevSeeker.class.getName() + ".MODE", DEFAULTMODE)
-            .loggingTo(LOG).validateWith(value -> (value == 1 || value == 2)).formatSetMessage((name, value) -> {
-                return String.format("Strategy for %s set to %s (via system property %s)", RDBMissingLastRevSeeker.class.getName(),
-                        name, value);
-            }).get();
+            .loggingTo(LOG).validateWith(value -> (value == 1 || value == 2)).formatSetMessage((name, value) -> String.format("Strategy for %s set to %s (via system property %s)", RDBMissingLastRevSeeker.class.getName(),
+                    name, value)).get();
 
     private final RDBDocumentStore store;
 
@@ -59,7 +57,7 @@ public class RDBMissingLastRevSeeker extends MissingLastRevSeeker {
     @Override
     @NotNull
     public Iterable<NodeDocument> getCandidates(final long startTime) {
-        LOG.debug("Running getCandidates() in mode " + MODE);
+        LOG.debug("Running getCandidates() in mode {}", MODE);
         if (MODE == 1) {
             return super.getCandidates(startTime);
         } else {

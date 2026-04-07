@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
 
 import org.apache.jackrabbit.oak.commons.LongUtils;
@@ -45,8 +46,8 @@ import org.jetbrains.annotations.Nullable;
  * <li>a {@link Map}, mapping member names to representations.
  * </ul>
  * <p>
- * The boolean parameter of the constructor ({link
- * {@link #RDBJSONSupport(boolean)}) allows changing the default for the maps to
+ * The boolean parameter of the constructor
+ * ({@link #RDBJSONSupport(boolean)}) allows changing the default for the maps to
  * use sorted maps using {@link Revision}s as keys, as used internally be the
  * {@link DocumentNodeStore}.
  */
@@ -86,20 +87,13 @@ public class RDBJSONSupport {
             case JsopReader.NUMBER:
                 String t = json.getToken();
                 Long parsed = LongUtils.tryParse(t);
-                if (parsed != null) {
-                    return parsed;
-                } else {
-                    return Double.parseDouble(t);
-                }
+                return Objects.requireNonNullElseGet(parsed, () -> Double.parseDouble(t));
             case JsopReader.STRING:
                 return json.getToken();
             case '{':
                 if (useRevisionMaps) {
-                    Map<Revision, Object> map = new TreeMap<Revision, Object>(StableRevisionComparator.REVERSE);
-                    while (true) {
-                        if (json.matches('}')) {
-                            break;
-                        }
+                    Map<Revision, Object> map = new TreeMap<>(StableRevisionComparator.REVERSE);
+                    while (!json.matches('}')) {
                         String k = json.readString();
                         if (k == null) {
                             throw new IllegalArgumentException("unexpected null revision");
@@ -110,11 +104,8 @@ public class RDBJSONSupport {
                     }
                     return map;
                 } else {
-                    Map<String, Object> map = new HashMap<String, Object>();
-                    while (true) {
-                        if (json.matches('}')) {
-                            break;
-                        }
+                    Map<String, Object> map = new HashMap<>();
+                    while (!json.matches('}')) {
                         String k = json.readString();
                         if (k == null) {
                             throw new IllegalArgumentException("unexpected null key");
@@ -126,11 +117,8 @@ public class RDBJSONSupport {
                     return map;
                 }
             case '[':
-                List<Object> list = new ArrayList<Object>();
-                while (true) {
-                    if (json.matches(']')) {
-                        break;
-                    }
+                List<Object> list = new ArrayList<>();
+                while (!json.matches(']')) {
                     list.add(parse(json));
                     json.matches(',');
                 }
@@ -169,9 +157,9 @@ public class RDBJSONSupport {
         if (value == null) {
             sb.append("null");
         } else if (value instanceof Number) {
-            sb.append(value.toString());
+            sb.append(value);
         } else if (value instanceof Boolean) {
-            sb.append(value.toString());
+            sb.append(value);
         } else if (value instanceof String) {
             appendJsonString(sb, (String) value);
         } else if (value instanceof Map) {

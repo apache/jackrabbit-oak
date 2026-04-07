@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -53,7 +51,7 @@ public class RDBVersionGCSupport extends VersionGCSupport {
 
     private static final Logger LOG = LoggerFactory.getLogger(RDBVersionGCSupport.class);
 
-    private RDBDocumentStore store;
+    private final RDBDocumentStore store;
 
     // 1: seek using historical, paging mode
     // 2: use custom single query directly using RDBDocumentStore API
@@ -71,7 +69,7 @@ public class RDBVersionGCSupport extends VersionGCSupport {
 
     @Override
     public Iterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified, final long toModified) {
-        List<QueryCondition> conditions = new ArrayList<QueryCondition>();
+        List<QueryCondition> conditions = new ArrayList<>();
         conditions.add(new QueryCondition(NodeDocument.DELETED_ONCE, "=", 1));
         conditions.add(new QueryCondition(NodeDocument.MODIFIED_IN_SECS, "<", NodeDocument.getModifiedInSecs(toModified)));
         conditions.add(new QueryCondition(NodeDocument.MODIFIED_IN_SECS, ">=", NodeDocument.getModifiedInSecs(fromModified)));
@@ -102,7 +100,7 @@ public class RDBVersionGCSupport extends VersionGCSupport {
 
     private Iterable<NodeDocument> identifyGarbageMode1(final Set<SplitDocType> gcTypes, final RevisionVector sweepRevs,
             final long oldestRevTimeStamp) {
-        return IterableUtils.filter(getSplitDocuments(), getGarbageCheckPredicate(gcTypes, sweepRevs, oldestRevTimeStamp)::test);
+        return IterableUtils.filter(getSplitDocuments(), getGarbageCheckPredicate(gcTypes, sweepRevs, oldestRevTimeStamp));
     }
 
     private Predicate<NodeDocument> getGarbageCheckPredicate(final Set<SplitDocType> gcTypes, final RevisionVector sweepRevs,
@@ -126,7 +124,7 @@ public class RDBVersionGCSupport extends VersionGCSupport {
                 gcTypeCodes.add(type.typeCode());
             }
 
-            List<QueryCondition> conditions1 = new ArrayList<QueryCondition>();
+            List<QueryCondition> conditions1 = new ArrayList<>();
             conditions1.add(new QueryCondition(NodeDocument.SD_TYPE, "in", gcTypeCodes));
             conditions1.add(new QueryCondition(NodeDocument.SD_MAX_REV_TIME_IN_SECS, "<=", NodeDocument.getModifiedInSecs(oldestRevTimeStamp)));
             conditions1.add(new QueryCondition(RDBDocumentStore.VERSIONPROP, ">=", 2));
@@ -134,7 +132,7 @@ public class RDBVersionGCSupport extends VersionGCSupport {
             it1 = store.queryAsIterable(Collection.NODES, null, null, Collections.emptyList(), conditions1,
                     Integer.MAX_VALUE, null);
 
-            List<QueryCondition> conditions2 = new ArrayList<QueryCondition>();
+            List<QueryCondition> conditions2 = new ArrayList<>();
             conditions2.add(new QueryCondition(RDBDocumentStore.VERSIONPROP, "null or <", 2));
             it2 = store.queryAsIterable(Collection.NODES, null, null, excludeKeyPatterns, conditions2,
                     Integer.MAX_VALUE, null);
@@ -155,31 +153,28 @@ public class RDBVersionGCSupport extends VersionGCSupport {
 
         Predicate<NodeDocument> pred = getGarbageCheckPredicate(gcTypes, sweepRevs, oldestRevTimeStamp);
 
-        final CountingPredicate<NodeDocument> cp1 = new CountingPredicate<NodeDocument>(name1, pred);
-        final CountingPredicate<NodeDocument> cp2 = new CountingPredicate<NodeDocument>(name2, pred);
+        final CountingPredicate<NodeDocument> cp1 = new CountingPredicate<>(name1, pred);
+        final CountingPredicate<NodeDocument> cp2 = new CountingPredicate<>(name2, pred);
 
-        return CloseableIterable.wrap(IterableUtils.chainedIterable(IterableUtils.filter(fit1, cp1::test), IterableUtils.filter(fit2, cp2::test)),
-                new Closeable() {
-                    @Override
-            public void close() throws IOException {
-                Utils.closeIfCloseable(fit1);
-                Utils.closeIfCloseable(fit2);
-                if (LOG.isDebugEnabled()) {
-                    String stats1 = cp1.getStats();
-                    String stats2 = cp2.getStats();
-                    String message = "";
-                    if (!stats1.isEmpty()) {
-                        message = stats1;
-                    }
-                    if (!stats2.isEmpty()) {
-                        if (!message.isEmpty()) {
-                            message += ", ";
-                        }
-                        message += stats2;
-                    }
+        return CloseableIterable.wrap(IterableUtils.chainedIterable(IterableUtils.filter(fit1, cp1), IterableUtils.filter(fit2, cp2)),
+                () -> {
+            Utils.closeIfCloseable(fit1);
+            Utils.closeIfCloseable(fit2);
+            if (LOG.isDebugEnabled()) {
+                String stats1 = cp1.getStats();
+                String stats2 = cp2.getStats();
+                String message = "";
+                if (!stats1.isEmpty()) {
+                    message = stats1;
+                }
+                if (!stats2.isEmpty()) {
                     if (!message.isEmpty()) {
-                        LOG.debug(message);
+                        message += ", ";
                     }
+                    message += stats2;
+                }
+                if (!message.isEmpty()) {
+                    LOG.debug(message);
                 }
             }
         });
@@ -239,39 +234,34 @@ public class RDBVersionGCSupport extends VersionGCSupport {
     }
 
     private Iterable<NodeDocument> getIterator(final List<String> excludeKeyPatterns, final List<QueryCondition> conditions) {
-        return new Iterable<NodeDocument>() {
+        return () -> new AbstractIterator<>() {
+
+            private static final int BATCH_SIZE = 100;
+            private String startId = NodeDocument.MIN_ID_VALUE;
+            private Iterator<NodeDocument> batch = nextBatch();
+
             @Override
-            public Iterator<NodeDocument> iterator() {
-                return new AbstractIterator<NodeDocument>() {
+            protected NodeDocument computeNext() {
+                // read next batch if necessary
+                if (!batch.hasNext()) {
+                    batch = nextBatch();
+                }
 
-                    private static final int BATCH_SIZE = 100;
-                    private String startId = NodeDocument.MIN_ID_VALUE;
-                    private Iterator<NodeDocument> batch = nextBatch();
+                NodeDocument doc;
+                if (batch.hasNext()) {
+                    doc = batch.next();
+                    // remember current id
+                    startId = doc.getId();
+                } else {
+                    doc = endOfData();
+                }
+                return doc;
+            }
 
-                    @Override
-                    protected NodeDocument computeNext() {
-                        // read next batch if necessary
-                        if (!batch.hasNext()) {
-                            batch = nextBatch();
-                        }
-
-                        NodeDocument doc;
-                        if (batch.hasNext()) {
-                            doc = batch.next();
-                            // remember current id
-                            startId = doc.getId();
-                        } else {
-                            doc = endOfData();
-                        }
-                        return doc;
-                    }
-
-                    private Iterator<NodeDocument> nextBatch() {
-                        List<NodeDocument> result = store.query(Collection.NODES, startId, NodeDocument.MAX_ID_VALUE,
-                                excludeKeyPatterns, conditions, BATCH_SIZE);
-                        return result.iterator();
-                    }
-                };
+            private Iterator<NodeDocument> nextBatch() {
+                List<NodeDocument> result = store.query(Collection.NODES, startId, NodeDocument.MAX_ID_VALUE,
+                        excludeKeyPatterns, conditions, BATCH_SIZE);
+                return result.iterator();
             }
         };
     }

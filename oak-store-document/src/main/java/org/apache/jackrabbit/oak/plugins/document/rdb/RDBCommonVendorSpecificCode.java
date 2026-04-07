@@ -39,7 +39,7 @@ public enum RDBCommonVendorSpecificCode {
 
     DB2() {
         @Override
-        public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+        public @NotNull Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
             Connection con = null;
             PreparedStatement stmt = null;
             ResultSet rs = null;
@@ -85,7 +85,7 @@ public enum RDBCommonVendorSpecificCode {
 
     MSSQL() {
         @Override
-        public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+        public @NotNull Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
             Connection con = null;
             PreparedStatement stmt = null;
             ResultSet rs = null;
@@ -116,7 +116,7 @@ public enum RDBCommonVendorSpecificCode {
 
     MYSQL() {
         @Override
-        public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+        public @NotNull Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
             Connection con = null;
             PreparedStatement stmt = null;
             ResultSet rs = null;
@@ -153,7 +153,7 @@ public enum RDBCommonVendorSpecificCode {
 
     ORACLE() {
         @Override
-        public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+        public @NotNull Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
             Connection con = null;
             Statement stmt = null;
             ResultSet rs = null;
@@ -181,7 +181,7 @@ public enum RDBCommonVendorSpecificCode {
 
     POSTGRES() {
         @Override
-        public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+        public @NotNull Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
             Connection con = null;
             PreparedStatement stmt = null;
             ResultSet rs = null;
@@ -212,7 +212,7 @@ public enum RDBCommonVendorSpecificCode {
 
     protected String description;
 
-    private RDBCommonVendorSpecificCode() {
+    RDBCommonVendorSpecificCode() {
     }
 
     @NotNull

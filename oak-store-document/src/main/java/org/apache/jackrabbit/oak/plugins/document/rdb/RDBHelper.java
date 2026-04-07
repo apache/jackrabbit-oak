@@ -30,7 +30,7 @@ import java.util.Arrays;
  */
 public class RDBHelper {
 
-    private static String[] DATABASES = { "Apache Derby", "DB2", "H2", "Microsoft SQL Server", "MySQL", "Oracle", "PostgreSQL",
+    private static final String[] DATABASES = { "Apache Derby", "DB2", "H2", "Microsoft SQL Server", "MySQL", "Oracle", "PostgreSQL",
             "default" };
 
     public static void main(String[] args) {

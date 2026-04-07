@@ -35,6 +35,7 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -81,7 +82,7 @@ public class RDBDocumentStoreJDBC {
     private final RDBDocumentSerializer ser;
     private final int queryHitsLimit, queryTimeLimit;
 
-    private static final Long INITIALMODCOUNT = Long.valueOf(1);
+    private static final Long INITIALMODCOUNT = 1L;
 
     public RDBDocumentStoreJDBC(RDBDocumentStoreDB dbInfo, RDBDocumentSerializer ser, int queryHitsLimit, int queryTimeLimit) {
         this.dbInfo = dbInfo;
@@ -96,19 +97,18 @@ public class RDBDocumentStoreJDBC {
         String appendDataWithComma = "," + appendData;
         PreparedStatementComponent stringAppend = this.dbInfo.getConcatQuery(appendDataWithComma, tmd.getDataLimitInOctets());
         StringBuilder t = new StringBuilder();
-        t.append("update " + tmd.getName() + " set ");
+        t.append("update ").append(tmd.getName()).append(" set ");
         t.append(setModifiedConditionally ? "MODIFIED = case when ? > MODIFIED then ? else MODIFIED end, " : "MODIFIED = ?, ");
         t.append("HASBINARY = ?, DELETEDONCE = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = DSIZE + ?, ");
         if (tmd.hasVersion()) {
             t.append("VERSION = " + SCHEMAVERSION + ", ");
         }
-        t.append("DATA = " + stringAppend.getStatementComponent() + " ");
+        t.append("DATA = ").append(stringAppend.getStatementComponent()).append(" ");
         t.append("where ID = ?");
         if (oldmodcount != null) {
             t.append(" and MODCOUNT = ?");
         }
-        PreparedStatement stmt = connection.prepareStatement(t.toString());
-        try {
+        try (PreparedStatement stmt = connection.prepareStatement(t.toString())) {
             int si = 1;
             stmt.setObject(si++, modified, Types.BIGINT);
             if (setModifiedConditionally) {
@@ -127,11 +127,9 @@ public class RDBDocumentStoreJDBC {
             }
             int result = stmt.executeUpdate();
             if (result != 1) {
-                LOG.debug("DB append update failed for " + tmd.getName() + "/" + id + " with oldmodcount=" + oldmodcount);
+                LOG.debug("DB append update failed for {}/{} with oldmodcount={}", tmd.getName(), id, oldmodcount);
             }
             return result == 1;
-        } finally {
-            stmt.close();
         }
     }
 
@@ -148,7 +146,7 @@ public class RDBDocumentStoreJDBC {
                 inClause.setParameters(stmt, 1);
                 int result = stmt.executeUpdate();
                 if (result != ids.size()) {
-                    LOG.debug("DB delete failed for " + tmd.getName() + "/" + ids);
+                    LOG.debug("DB delete failed for {}/{}", tmd.getName(), ids);
                 }
                 count += result;
             } finally {
@@ -161,8 +159,8 @@ public class RDBDocumentStoreJDBC {
 
     public int delete(Connection connection, RDBTableMetaData tmd, Map<String, Long> toDelete)
             throws SQLException {
-        PreparedStatement stmt = connection.prepareStatement("delete from " + tmd.getName() + " where ID=? and MODIFIED=?");
-        try {
+        String statement = "delete from " + tmd.getName() + " where ID=? and MODIFIED=?";
+        try (PreparedStatement stmt = connection.prepareStatement(statement)) {
             for (Entry<String, Long> entry : toDelete.entrySet()) {
                 setIdInStatement(tmd, stmt, 1, entry.getKey());
                 stmt.setLong(2, entry.getValue());
@@ -176,8 +174,6 @@ public class RDBDocumentStoreJDBC {
                 }
             }
             return updatedRows;
-        } finally {
-            stmt.close();
         }
     }
 
@@ -187,22 +183,19 @@ public class RDBDocumentStoreJDBC {
         StringBuilder query = new StringBuilder("delete from " + tmd.getName());
 
         String whereClause = buildWhereClause(null, null, null, conditions);
-        if (whereClause.length() != 0) {
+        if (!whereClause.isEmpty()) {
             query.append(" where ").append(whereClause);
         }
 
-        PreparedStatement stmt = connection.prepareStatement(query.toString());
-        try {
+        try (PreparedStatement stmt = connection.prepareStatement(query.toString())) {
             int si = 1;
             for (QueryCondition cond : conditions) {
                 if (cond.getOperands().size() != 1) {
                     throw new DocumentStoreException("unexpected condition: " + cond);
                 }
-                stmt.setLong(si++, (Long)cond.getOperands().get(0));
+                stmt.setLong(si++, (Long) cond.getOperands().get(0));
             }
             return stmt.executeUpdate();
-        } finally {
-            stmt.close();
         }
     }
 
@@ -210,7 +203,7 @@ public class RDBDocumentStoreJDBC {
         String sql = this.dbInfo.getCurrentTimeStampInSecondsSyntax();
 
         if (sql.isEmpty()) {
-            LOG.debug("{}: unsupported database, skipping DB server time check", this.dbInfo.toString());
+            LOG.debug("{}: unsupported database, skipping DB server time check", this.dbInfo);
             return 0;
         } else {
             PreparedStatement stmt = null;
@@ -295,7 +288,7 @@ public class RDBDocumentStoreJDBC {
         } finally {
             stmt.close();
         }
-        Set<String> succesfullyInserted = new HashSet<String>();
+        Set<String> succesfullyInserted = new HashSet<>();
         for (int i = 0; i < results.length; i++) {
             int result = results[i];
             if (result != 1 && result != Statement.SUCCESS_NO_INFO) {
@@ -316,7 +309,7 @@ public class RDBDocumentStoreJDBC {
      * If the {@code upsert} parameter is set to true, the method will also try to insert new documents, those
      * which modcount equals to 1.
      * <p>
-     * The order of applying updates will be different than order of the passed list, so there shouldn't be two
+     * The order of applying updates will be different from order of the passed list, so there shouldn't be two
      * updates related to the same document. An {@link IllegalArgumentException} will be thrown if there are.
      *
      * @param connection JDBC connection
@@ -330,15 +323,15 @@ public class RDBDocumentStoreJDBC {
             throws SQLException {
         assertNoDuplicatedIds(documents);
 
-        Set<String> successfulUpdates = new HashSet<String>();
-        List<String> updatedKeys = new ArrayList<String>();
+        Set<String> successfulUpdates = new HashSet<>();
+        List<String> updatedKeys = new ArrayList<>();
         List<Long> modCounts = LOG.isTraceEnabled() ? new ArrayList<>() : null;
         int[] batchResults = new int[0];
 
-        PreparedStatement stmt = connection.prepareStatement("update " + tmd.getName()
+        String statement = "update " + tmd.getName()
                 + " set MODIFIED = ?, HASBINARY = ?, DELETEDONCE = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = ?, DATA = ?, "
-                + (tmd.hasVersion() ? (" VERSION = " + SCHEMAVERSION + ", ") : "") + "BDATA = ? where ID = ? and MODCOUNT = ?");
-        try {
+                + (tmd.hasVersion() ? (" VERSION = " + SCHEMAVERSION + ", ") : "") + "BDATA = ? where ID = ? and MODCOUNT = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(statement)) {
             boolean batchIsEmpty = true;
             for (T document : sortDocuments(documents)) {
                 Long modcount = (Long) document.get(MODCOUNT);
@@ -385,8 +378,6 @@ public class RDBDocumentStoreJDBC {
         } catch (BatchUpdateException ex) {
             LOG.debug("Some of the batch updates failed", ex);
             batchResults = ex.getUpdateCounts();
-        } finally {
-            stmt.close();
         }
 
         if (!updatedKeys.isEmpty() && LOG.isTraceEnabled()) {
@@ -411,7 +402,7 @@ public class RDBDocumentStoreJDBC {
         }
 
         if (upsert) {
-            List<T> toBeInserted = new ArrayList<T>(documents.size());
+            List<T> toBeInserted = new ArrayList<>(documents.size());
             for (T doc : documents) {
                 if (INITIALMODCOUNT.equals(doc.get(MODCOUNT))) {
                     toBeInserted.add(doc);
@@ -419,9 +410,7 @@ public class RDBDocumentStoreJDBC {
             }
 
             if (!toBeInserted.isEmpty()) {
-                for (String id : insert(connection, tmd, toBeInserted)) {
-                    successfulUpdates.add(id);
-                }
+                successfulUpdates.addAll(insert(connection, tmd, toBeInserted));
             }
         }
         return successfulUpdates;
@@ -437,7 +426,7 @@ public class RDBDocumentStoreJDBC {
     public List<RDBRow> query(Connection connection, RDBTableMetaData tmd, String minId, String maxId,
             List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit) throws SQLException {
         long start = System.currentTimeMillis();
-        List<RDBRow> result = new ArrayList<RDBRow>();
+        List<RDBRow> result = new ArrayList<>();
         long dataTotal = 0, bdataTotal = 0;
         PreparedStatement stmt = null;
         String fields;
@@ -496,7 +485,7 @@ public class RDBDocumentStoreJDBC {
                     maxId, excludeKeyPatterns, conditions, limit);
 
             String resultRange = "";
-            if (result.size() > 0) {
+            if (!result.isEmpty()) {
                 resultRange = String.format(" Result range: '%s'...'%s'.", result.get(0).getId(),
                         result.get(result.size() - 1).getId());
             }
@@ -542,8 +531,7 @@ public class RDBDocumentStoreJDBC {
                 long elapsed = System.currentTimeMillis() - start;
                 String params = String.format("params minid '%s' maxid '%s' excludeKeyPatterns %s conditions %s.", minId, maxId,
                         excludeKeyPatterns, conditions);
-                LOG.debug("Aggregate query " + selector + " on " + tmd.getName() + " with " + params + " -> " + result + ", took "
-                        + elapsed + "ms");
+                LOG.debug("Aggregate query {} on {} with {} -> {}, took {}ms", selector, tmd.getName(), params, result, elapsed);
             }
         }
     }
@@ -556,9 +544,9 @@ public class RDBDocumentStoreJDBC {
 
     private class ResultSetIterator implements Iterator<RDBRow>, Closeable {
 
-        private RDBConnectionHandler ch;
+        private final RDBConnectionHandler ch;
         private Connection connection;
-        private RDBTableMetaData tmd;
+        private final RDBTableMetaData tmd;
         private PreparedStatement stmt;
         private ResultSet rs;
         private RDBRow next = null;
@@ -566,7 +554,7 @@ public class RDBDocumentStoreJDBC {
         private long elapsed = 0;
         private String message = null;
         private long cnt = 0;
-        private long pstart;
+        private final long pstart;
 
         public ResultSetIterator(RDBConnectionHandler ch, RDBTableMetaData tmd, String minId, String maxId,
                 List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit, String sortBy) throws SQLException {
@@ -659,19 +647,18 @@ public class RDBDocumentStoreJDBC {
         }
 
         @Override
-        public void close() throws IOException {
+        public void close() {
             internalClose();
         }
 
-        @SuppressWarnings("deprecation")
         @Override
         public void finalize() throws Throwable {
             try {
                 if (this.connection != null) {
                     if (this.callstack != null) {
-                        LOG.error("finalizing unclosed " + this + "; check caller", this.callstack);
+                        LOG.error("finalizing unclosed {}; check caller", this, this.callstack);
                     } else {
-                        LOG.error("finalizing unclosed " + this);
+                        LOG.error("finalizing unclosed {}", this);
                     }
                 }
             } finally {
@@ -685,7 +672,7 @@ public class RDBDocumentStoreJDBC {
             this.ch.closeConnection(this.connection);
             this.connection = null;
             if (LOG.isDebugEnabled()) {
-                LOG.debug(this.message + " -> " + this.cnt + " results in " + elapsed + "ms");
+                LOG.debug("{} -> {} results in {}ms", this.message, this.cnt, elapsed);
             }
         }
     }
@@ -697,17 +684,17 @@ public class RDBDocumentStoreJDBC {
         StringBuilder selectClause = new StringBuilder();
 
         if (limit != Integer.MAX_VALUE && this.dbInfo.getFetchFirstSyntax() == FETCHFIRSTSYNTAX.TOP) {
-            selectClause.append("TOP " + limit + " ");
+            selectClause.append("TOP ").append(limit).append(" ");
         }
 
-        selectClause.append(columns + " from " + tmd.getName());
+        selectClause.append(columns).append(" from ").append(tmd.getName());
 
         String whereClause = buildWhereClause(minId, maxId, excludeKeyPatterns, conditions);
 
         StringBuilder query = new StringBuilder();
         query.append("select ").append(selectClause);
 
-        if (whereClause.length() != 0) {
+        if (!whereClause.isEmpty()) {
             query.append(" where ").append(whereClause);
         }
 
@@ -718,10 +705,10 @@ public class RDBDocumentStoreJDBC {
         if (limit != Integer.MAX_VALUE) {
             switch (this.dbInfo.getFetchFirstSyntax()) {
                 case LIMIT:
-                    query.append(" LIMIT " + limit);
+                    query.append(" LIMIT ").append(limit);
                     break;
                 case FETCHFIRST:
-                    query.append(" FETCH FIRST " + limit + " ROWS ONLY");
+                    query.append(" FETCH FIRST ").append(limit).append(" ROWS ONLY");
                     break;
                 default:
                     break;
@@ -753,7 +740,7 @@ public class RDBDocumentStoreJDBC {
 
     public List<RDBRow> read(Connection connection, RDBTableMetaData tmd, Collection<String> allKeys) throws SQLException {
 
-        List<RDBRow> rows = new ArrayList<RDBRow>();
+        List<RDBRow> rows = new ArrayList<>();
 
         for (List<String> keys : IterableUtils.partition(allKeys, RDBJDBCTools.MAX_IN_CLAUSE)) {
             long pstart = PERFLOG.start(PERFLOG.isDebugEnabled() ? ("reading: " + keys) : null);
@@ -797,7 +784,7 @@ public class RDBDocumentStoreJDBC {
                             modcount, modified, (data == null ? 0 : data.length()), (bdata == null ? 0 : bdata.length));
                 }
             } catch (SQLException ex) {
-                LOG.debug("attempting to read " + keys, ex);
+                LOG.debug("attempting to read {}", keys, ex);
                 PERFLOG.end(pstart, 10, "read: table={} -> exception={}", tmd.getName(), ex.getMessage());
 
                 // DB2 throws an SQLException for invalid keys; handle this more
@@ -847,7 +834,7 @@ public class RDBDocumentStoreJDBC {
             // or the database does not support CASE in SELECT
             sql.append("DATA, BDATA ");
         }
-        sql.append("from " + tmd.getName() + " where ID = ?");
+        sql.append("from ").append(tmd.getName()).append(" where ID = ?");
         PreparedStatement stmt = connection.prepareStatement(sql.toString());
         ResultSet rs = null;
 
@@ -886,7 +873,7 @@ public class RDBDocumentStoreJDBC {
                 return null;
             }
         } catch (SQLException ex) {
-            LOG.debug("attempting to read " + id + " (id length is " + id.length() + ")", ex);
+            LOG.debug("attempting to read {} (id length is {})", id, id.length(), ex);
             PERFLOG.end(pstart, 10, "read: table={}, id={}, lastmodcount={}, lastmodified={} -> exception={}", tmd.getName(), id,
                     lastmodcount, lastmodified, ex.getMessage());
 
@@ -912,15 +899,13 @@ public class RDBDocumentStoreJDBC {
             Boolean deletedOnce, Long modcount, Long cmodcount, Long oldmodcount, String data) throws SQLException {
 
         StringBuilder t = new StringBuilder();
-        t.append("update " + tmd.getName() + " set ");
-        t.append("MODIFIED = ?, HASBINARY = ?, DELETEDONCE = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = ?, DATA = ?, "
-                + (tmd.hasVersion() ? (" VERSION = " + SCHEMAVERSION + ", ") : "") + "BDATA = ? ");
+        t.append("update ").append(tmd.getName()).append(" set ");
+        t.append("MODIFIED = ?, HASBINARY = ?, DELETEDONCE = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = ?, DATA = ?, ").append(tmd.hasVersion() ? (" VERSION = " + SCHEMAVERSION + ", ") : "").append("BDATA = ? ");
         t.append("where ID = ?");
         if (oldmodcount != null) {
             t.append(" and MODCOUNT = ?");
         }
-        PreparedStatement stmt = connection.prepareStatement(t.toString());
-        try {
+        try (PreparedStatement stmt = connection.prepareStatement(t.toString())) {
             int si = 1;
             stmt.setObject(si++, modified, Types.BIGINT);
             stmt.setObject(si++, hasBinaryAsNullOrInteger(hasBinary), Types.SMALLINT);
@@ -945,17 +930,15 @@ public class RDBDocumentStoreJDBC {
             }
             int result = stmt.executeUpdate();
             if (result != 1) {
-                LOG.debug("DB update failed for " + tmd.getName() + "/" + id + " with oldmodcount=" + oldmodcount);
+                LOG.debug("DB update failed for {}/{} with oldmodcount={}", tmd.getName(), id, oldmodcount);
             }
             return result == 1;
-        } finally {
-            stmt.close();
         }
     }
 
     private final static Map<String, String> INDEXED_PROP_MAPPING;
     static {
-        Map<String, String> tmp = new HashMap<String, String>();
+        Map<String, String> tmp = new HashMap<>();
         tmp.put(MODIFIED, "MODIFIED");
         tmp.put(NodeDocument.HAS_BINARY_FLAG, "HASBINARY");
         tmp.put(NodeDocument.DELETED_ONCE, "DELETEDONCE");
@@ -968,17 +951,7 @@ public class RDBDocumentStoreJDBC {
 
     private final static Set<String> SUPPORTED_OPS;
     static {
-        Set<String> tmp = new HashSet<String>();
-        tmp.add(">=");
-        tmp.add(">");
-        tmp.add("<=");
-        tmp.add("<");
-        tmp.add("=");
-        tmp.add("in");
-        tmp.add("is null");
-        tmp.add("is not null");
-        tmp.add("null or <");
-        SUPPORTED_OPS = Collections.unmodifiableSet(tmp);
+        SUPPORTED_OPS = Set.of(">=", ">", "<=", "<", "=", "in", "is null", "is not null", "null or <");
     }
 
     // some DBs do not accept null character as string
@@ -1029,7 +1002,7 @@ public class RDBDocumentStoreJDBC {
                 }
                 result.append(column).append(" ").append(realOperand);
 
-                List<? extends Object> operands = cond.getOperands();
+                List<?> operands = cond.getOperands();
                 if (operands.size() == 1) {
                     result.append(" ?");
                 } else if (operands.size() > 1) {
@@ -1072,7 +1045,7 @@ public class RDBDocumentStoreJDBC {
                 stmt.setString(idx, id);
             }
         } catch (IOException ex) {
-            LOG.warn("Invalid ID: " + id, ex);
+            LOG.warn("Invalid ID: {}", id, ex);
             throw asDocumentStoreException(ex, "Invalid ID: " + id);
         }
     }
@@ -1093,13 +1066,13 @@ public class RDBDocumentStoreJDBC {
     @Nullable
     private static Boolean readBooleanOrNullFromResultSet(ResultSet res, int index) throws SQLException {
         long v = res.getLong(index);
-        return res.wasNull() ? null : Boolean.valueOf(v != 0);
+        return res.wasNull() ? null : v != 0;
     }
 
     @Nullable
     private static Long readLongOrNullFromResultSet(ResultSet res, int index) throws SQLException {
         long v = res.getLong(index);
-        return res.wasNull() ? null : Long.valueOf(v);
+        return res.wasNull() ? null : v;
     }
 
     private static final Integer INT_FALSE = 0;
@@ -1107,7 +1080,7 @@ public class RDBDocumentStoreJDBC {
 
     @Nullable
     private static Integer deletedOnceAsNullOrInteger(Boolean b) {
-        return b == null ? null : (b.booleanValue() ? INT_TRUE : INT_FALSE);
+        return b == null ? null : (b ? INT_TRUE : INT_FALSE);
     }
 
     @Nullable
@@ -1116,8 +1089,8 @@ public class RDBDocumentStoreJDBC {
     }
 
     private static <T extends Document> List<T> sortDocuments(Collection<T> documents) {
-        List<T> result = new ArrayList<T>(documents);
-        Collections.sort(result, (o1, o2) ->  Objects.toString(o1.getId(), "").compareTo(Objects.toString(o2.getId(), "")));
+        List<T> result = new ArrayList<>(documents);
+        result.sort(Comparator.comparing(o -> Objects.toString(o.getId(), "")));
         return result;
     }
 }

@@ -53,6 +53,7 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QueryCondition;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.RDBTableMetaData;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -289,13 +290,13 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
         }
 
         @Override
-        public Connection getROConnection() throws SQLException {
+        public @NotNull Connection getROConnection() throws SQLException {
             cnt.incrementAndGet();
             return super.getROConnection();
         }
 
         @Override
-        public Connection getRWConnection() throws SQLException {
+        public @NotNull Connection getRWConnection() throws SQLException {
             throw new RuntimeException();
         }
 

@@ -70,7 +70,7 @@ public enum RDBDocumentStoreDB {
 
         @Override
         public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
-            Map<String, String> result = new HashMap<String, String>();
+            Map<String, String> result = new HashMap<>();
             Connection con = null;
 
             try {
@@ -141,13 +141,13 @@ public enum RDBDocumentStoreDB {
 
         @Override
         public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
-            Map<String, String> result = new HashMap<String, String>();
+            Map<String, String> result = new HashMap<>();
             Connection con = null;
             SortedSet<String> indexNames = Collections.emptySortedSet();
 
             // get index names
             try {
-                SortedSet<String> in = new TreeSet<String>();
+                SortedSet<String> in = new TreeSet<>();
                 con = ch.getROConnection();
                 try (PreparedStatement stmt = con.prepareStatement("SELECT indexname FROM pg_indexes WHERE tablename=?")) {
                     stmt.setString(1, tableName.toLowerCase(Locale.ENGLISH));
@@ -222,7 +222,7 @@ public enum RDBDocumentStoreDB {
 
         @Override
         public List<String> getIndexCreationStatements(String tableName, int schema) {
-            List<String> statements = new ArrayList<String>();
+            List<String> statements = new ArrayList<>();
             String pkName = tableName + "_pk";
             statements.add("create unique index " + pkName + " on " + tableName + " ( ID ) cluster");
             statements.add("alter table " + tableName + " add constraint " + pkName + " primary key ( ID )");
@@ -233,7 +233,7 @@ public enum RDBDocumentStoreDB {
         @Override
         public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
 
-            Map<String, String> result = new HashMap<String, String>();
+            Map<String, String> result = new HashMap<>();
 
             Connection con = null;
 
@@ -326,7 +326,7 @@ public enum RDBDocumentStoreDB {
         @Override
         public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
 
-            Map<String, String> result = new HashMap<String, String>();
+            Map<String, String> result = new HashMap<>();
 
             Connection con = null;
 
@@ -342,7 +342,7 @@ public enum RDBDocumentStoreDB {
                     try (ResultSet rs = stmt.executeQuery()) {
                         while (rs.next()) {
                             String data = extractFields(rs, tableStats);
-                            result.put("_data", data.toString());
+                            result.put("_data", data);
                         }
                     }
                 }
@@ -437,7 +437,7 @@ public enum RDBDocumentStoreDB {
         @Override
         public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
 
-            Map<String, String> result = new HashMap<String, String>();
+            Map<String, String> result = new HashMap<>();
 
             Connection con = null;
 
@@ -454,7 +454,7 @@ public enum RDBDocumentStoreDB {
                     try (ResultSet rs = stmt.executeQuery()) {
                         while (rs.next()) {
                             String data = extractFields(rs, tableStats);
-                            result.put("_data", data.toString());
+                            result.put("_data", data);
                         }
                     }
                 }
@@ -553,7 +553,7 @@ public enum RDBDocumentStoreDB {
 
         @Override
         public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
-            Map<String, String> result = new HashMap<String, String>();
+            Map<String, String> result = new HashMap<>();
             Connection con = null;
 
             // table data
@@ -625,7 +625,7 @@ public enum RDBDocumentStoreDB {
 
     public enum FETCHFIRSTSYNTAX {
         FETCHFIRST, LIMIT, TOP
-    };
+    }
 
     /**
      * Check the database brand and version
@@ -735,7 +735,7 @@ public enum RDBDocumentStoreDB {
      * <dd>size of individual indexes</dd>
      * </dl>
      * <p>
-     * Additionally, a information obtained from the databases system
+     * Additionally, an information obtained from the databases system
      * tables/views can be included:
      * <dl>
      * <dt>_data</dt>
@@ -848,12 +848,12 @@ public enum RDBDocumentStoreDB {
         return data.toString();
     }
 
-    private RDBDocumentStoreDB(String description) {
+    RDBDocumentStoreDB(String description) {
         this.description = description;
         this.vendorCode = RDBCommonVendorSpecificCode.DEFAULT;
     }
 
-    private RDBDocumentStoreDB(String description, RDBCommonVendorSpecificCode vendorCode) {
+    RDBDocumentStoreDB(String description, RDBCommonVendorSpecificCode vendorCode) {
         this.description = description;
         this.vendorCode = vendorCode;
     }
@@ -873,7 +873,7 @@ public enum RDBDocumentStoreDB {
             }
         }
 
-        LOG.error("DB type " + desc + " unknown, trying default settings");
+        LOG.error("DB type {} unknown, trying default settings", desc);
         DEFAULT.description = desc + " - using default settings";
         return DEFAULT;
     }

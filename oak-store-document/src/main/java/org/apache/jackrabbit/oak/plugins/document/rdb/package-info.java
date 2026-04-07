@@ -16,10 +16,6 @@
  */
 
 /**
- * Implementations of {@link DocumentStore} and {@link BlobStore} for relational databases.
+ * Implementations of {@link org.apache.jackrabbit.oak.plugins.document.DocumentStore} and {@link org.apache.jackrabbit.oak.spi.blob.BlobStore} for relational databases.
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
-
-import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-
