@@ -216,13 +216,13 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         dirty |= indexNullCheckEnabledProps(path, document, state);
         dirty |= indexFunctionRestrictions(path, document, state);
         dirty |= indexNotNullCheckEnabledProps(path, document, state);
-        int dynamicBoostTagCount = ctx.dynamicBoostTags.size();
+        int dynamicBoostTagCount = ctx.collectedBoosts.size();
         int maxDynamicBoostCount = definition.getMaxDynamicBoostCount();
         if (maxDynamicBoostCount >= 0 && dynamicBoostTagCount > maxDynamicBoostCount) {
             log.warn("[{}] Number of collected dynamic boost tags ({}) exceeds the maximum allowed ({}). Some tags will be skipped",
                     getIndexName(), dynamicBoostTagCount, maxDynamicBoostCount);
         }
-        dirty |= indexTopDynamicBoost(document, ctx.dynamicBoostTags, maxDynamicBoostCount);
+        dirty |= indexTopDynamicBoost(document, ctx.collectedBoosts, maxDynamicBoostCount);
         dirty |= augmentCustomFields(path, document, state);
 
         if (!propertiesToRemove.isEmpty()) {
@@ -306,7 +306,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             }
             if (!definition.isDynamicBoostLiteEnabled() && pd.dynamicBoost) {
                 try {
-                    collectDynamicBoost(pname, pd.nodeName, state, ctx.dynamicBoostTags);
+                    collectDynamicBoost(pname, pd.nodeName, state, ctx.collectedBoosts);
                 } catch (Exception e) {
                     log.error("Could not collect dynamic boost for property {} and definition {}", property, pd, e);
                 }
@@ -713,16 +713,9 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     }
 
     /**
-     * Collects dynamic boost tags from a NodeState property into {@code tags} for later indexing.
-     * Tags are collected and added to the document-level collection, then sorted by confidence
-     * and indexed (top N only) at the end of document processing.
-     *
-     * @param propertyName the property name
-     * @param nodeName the node name
-     * @param nodeState the node state containing the dynamic boost tags
-     * @param tags the collection to add discovered dynamic boost tags to
+     * Collects dynamic boost tags from a NodeState property into {@code collectedBoosts} for later indexing.
      */
-    private void collectDynamicBoost(String propertyName, String nodeName, NodeState nodeState, List<DynamicBoost> tags) {
+    private void collectDynamicBoost(String propertyName, String nodeName, NodeState nodeState, List<DynamicBoost> collectedBoosts) {
         NodeState propertyNode = nodeState;
         String parentName = PathUtils.getParentPath(propertyName);
         for (String c : PathUtils.elements(parentName)) {
@@ -769,7 +762,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                 continue;
             }
 
-            tags.add(new DynamicBoost(parentName, nodeName, dynaTagValue, dynaTagConfidence));
+            collectedBoosts.add(new DynamicBoost(parentName, nodeName, dynaTagValue, dynaTagConfidence));
         }
     }
 
@@ -793,11 +786,11 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     /**
      * Process collected dynamic boost tags: sort by confidence (descending) and index only the top N
      */
-    private boolean indexTopDynamicBoost(D doc, List<DynamicBoost> dynamicBoostTags, int maxCount) {
-        dynamicBoostTags.sort(Comparator.comparingDouble((DynamicBoost tag) -> tag.confidence).reversed());
+    private boolean indexTopDynamicBoost(D doc, List<DynamicBoost> collectedBoosts, int maxCount) {
+        collectedBoosts.sort(Comparator.comparingDouble((DynamicBoost tag) -> tag.confidence).reversed());
 
         int count = 0;
-        for (DynamicBoost tag : dynamicBoostTags) {
+        for (DynamicBoost tag : collectedBoosts) {
             if (maxCount >= 0 && count >= maxCount) {
                 break;
             }
@@ -829,7 +822,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     private static class DocumentBuildContext {
         int similarityTagCount;
-        final List<DynamicBoost> dynamicBoostTags = new ArrayList<>();
+        final List<DynamicBoost> collectedBoosts = new ArrayList<>();
     }
 
     private record DynamicBoost(String parent, String nodeName, String value, double confidence) {}
