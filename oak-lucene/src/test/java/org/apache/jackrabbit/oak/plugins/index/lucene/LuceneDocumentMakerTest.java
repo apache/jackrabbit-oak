@@ -102,4 +102,45 @@ public class LuceneDocumentMakerTest {
         assertNull(doc.get(FieldNames.SIMILARITY_TAGS));
     }
 
+    @Test
+    public void similarityTagCountLimit() throws Exception{
+        LuceneIndexDefinitionBuilder builder = new LuceneIndexDefinitionBuilder();
+        builder.indexRule("nt:base")
+                .property("jcr:primaryType")
+                .propertyIndex();
+        builder.indexRule("nt:base")
+                .property("tag1")
+                .similarityTags(true);
+        builder.indexRule("nt:base")
+                .property("tag2")
+                .similarityTags(true);
+        builder.indexRule("nt:base")
+                .property("tag3")
+                .similarityTags(true);
+        builder.indexRule("nt:base")
+                .property("tag4")
+                .similarityTags(true);
+        builder.indexRule("nt:base")
+                .property("tag5")
+                .similarityTags(true);
+
+        builder.getBuilderTree().setProperty(FulltextIndexConstants.MAX_SIMILARITY_TAGS_COUNT, 3);
+
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newLuceneBuilder(root, builder.build(), "/foo").build();
+        LuceneDocumentMaker docMaker = new LuceneDocumentMaker(defn,
+                defn.getApplicableIndexingRule("nt:base"), "/x");
+
+        NodeBuilder test = EMPTY_NODE.builder();
+        test.setProperty("tag1", "value1");
+        test.setProperty("tag2", "value2");
+        test.setProperty("tag3", "value3");
+        test.setProperty("tag4", "value4");
+        test.setProperty("tag5", "value5");
+        Document doc = docMaker.makeDocument(test.getNodeState());
+        assertNotNull(doc);
+
+        String[] tags = doc.getValues(FieldNames.SIMILARITY_TAGS);
+        assertEquals(3, tags.length);
+    }
+
 }

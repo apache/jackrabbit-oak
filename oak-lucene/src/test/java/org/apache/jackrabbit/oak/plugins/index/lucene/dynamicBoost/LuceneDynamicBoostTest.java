@@ -186,7 +186,7 @@ public class LuceneDynamicBoostTest extends DynamicBoostCommonTest {
 
     @Test
     public void dynamicBoostMaxLengthFiltering() throws Exception {
-        createAssetsIndexAndProperties(false, false, true, 10);
+        createAssetsIndexAndProperties(false, false, true, 10, 10);
 
         Tree testParent = createNodeWithType(root.getTree("/"), "test", JcrConstants.NT_UNSTRUCTURED, "");
 
@@ -211,10 +211,40 @@ public class LuceneDynamicBoostTest extends DynamicBoostCommonTest {
         });
     }
 
+    @Test
+    public void dynamicBoostCountLimit() throws Exception {
+        createAssetsIndexAndProperties(false, false, true, 10, 2);
+
+        Tree testParent = createNodeWithType(root.getTree("/"), "test", JcrConstants.NT_UNSTRUCTURED, "");
+
+        Tree predicted1 = createAssetNodeWithPredicted(testParent, "asset1", "test");
+        createPredictedTag(predicted1, "lowconf1", 0.1);
+        createPredictedTag(predicted1, "lowconf2", 0.2);
+        createPredictedTag(predicted1, "highconf1", 0.9);
+        createPredictedTag(predicted1, "highconf2", 0.8);
+
+        Tree predicted2 = createAssetNodeWithPredicted(testParent, "asset2", "test");
+        createPredictedTag(predicted2, "highconf1", 0.9);
+        createPredictedTag(predicted2, "highconf2", 0.8);
+
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'highconf1')]", XPATH,
+                    List.of("/test/asset1", "/test/asset2"));
+            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'highconf2')]", XPATH,
+                    List.of("/test/asset1", "/test/asset2"));
+
+            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'lowconf1')]", XPATH, List.of());
+            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'lowconf2')]", XPATH, List.of());
+        });
+    }
+
     @Override
-    protected void createAssetsIndexAndProperties(boolean lite, boolean similarityTags, boolean useInFullTextQuery, Integer maxTagLength) throws Exception {
+    protected void createAssetsIndexAndProperties(boolean lite, boolean similarityTags, boolean useInFullTextQuery,
+                                                  Integer maxTagLength, Integer maxTagCount) throws Exception {
         factory.queryTermsProvider = new FulltextQueryTermsProviderImpl();
-        super.createAssetsIndexAndProperties(lite, similarityTags, useInFullTextQuery, maxTagLength);
+        super.createAssetsIndexAndProperties(lite, similarityTags, useInFullTextQuery, maxTagLength, maxTagCount);
     }
 
     private String runIndexingTest(Class<?> loggerClass, boolean nameProperty) throws CommitFailedException {
