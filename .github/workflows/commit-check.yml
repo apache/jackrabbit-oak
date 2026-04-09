@@ -24,15 +24,26 @@ on:
 jobs:
   commit-check:
     runs-on: ubuntu-latest
-    permissions:
+    permissions:  # use permissions because of use pr-comments
       contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}  # checkout PR HEAD commit
           fetch-depth: 0  # required for merge-base check
-      - name: Validate commit messages
+      # https://github.com/commit-check
+      # must be pinned due to https://infra.apache.org/github-actions-policy.html
+      - uses: commit-check/commit-check-action@8d507e12899a9feb405c3ed546252ff9508724e0
         env:
-          GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: bash .github/scripts/check-commit-messages.sh
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # use GITHUB_TOKEN because of use pr-comments
+        with:
+          # check commit message formatting convention
+          message: true
+          branch: true
+          author-name: true
+          author-email: true
+          commit-signoff: false
+          merge-base: false
+          job-summary: true
+          pr-comments: ${{ github.event_name == 'pull_request' }}
