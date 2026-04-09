@@ -51,8 +51,8 @@ public class EmpiricalWeigher extends GuavaCompatibleEmpiricalWeigher
  * legacy Guava-shim {@link org.apache.jackrabbit.guava.common.cache.Weigher} type while the public API migrates to
  * {@link Weigher}.
  *
- * <p>TODO OAK-TASK16: per {@code TASKS.md}, remove this compatibility base in
- * TASK-16 once downstream callers no longer require {@link org.apache.jackrabbit.guava.common.cache.Weigher}
+ * <p>TODO OAK-12162: remove this compatibility base in
+ * OAK-12162 once downstream callers no longer require {@link org.apache.jackrabbit.guava.common.cache.Weigher}
  * assignability.</p>
  */
 abstract class GuavaCompatibleEmpiricalWeigher implements org.apache.jackrabbit.guava.common.cache.Weigher<CacheValue, CacheValue> {
