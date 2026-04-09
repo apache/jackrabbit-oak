@@ -209,15 +209,13 @@ public final class CacheBuilder<K, V> {
     private Caffeine<K, V> configureCaffeineBuilder() {
         Caffeine caffeineBuilder = Caffeine.newBuilder();
         if (weigher != null) {
+            // validateConfiguration() guarantees maximumWeight >= 0 when weigher is set
             Weigher<? super K, ? super V> w = weigher;
             caffeineBuilder = caffeineBuilder.weigher((k, v) -> w.weigh((K) k, (V) v));
-            if (maximumWeight >= 0) {
-                caffeineBuilder = caffeineBuilder.maximumWeight(maximumWeight);
-            }
-        } else if (maximumSize >= 0) {
-            caffeineBuilder = caffeineBuilder.maximumSize(maximumSize);
-        } else if (maximumWeight >= 0) {
             caffeineBuilder = caffeineBuilder.maximumWeight(maximumWeight);
+        } else {
+            // validateConfiguration() guarantees maximumSize >= 0 when weigher is absent
+            caffeineBuilder = caffeineBuilder.maximumSize(maximumSize);
         }
         if (recordStats) {
             caffeineBuilder = caffeineBuilder.recordStats();
