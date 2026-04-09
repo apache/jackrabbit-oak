@@ -16,21 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
+package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12;
 
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * Represents the optional headers that can be returned using SAS (Shared Access Signature).
- * This class is the Azure SDK 12 equivalent of the legacy {@code com.microsoft.azure.storage.blob.SharedAccessBlobHeaders}.
+ * This class is the Azure SDK 12 equivalent of the legacy V8 {@code SharedAccessBlobHeaders}.
  * 
  * <p>These headers are set on the {@link BlobServiceSasSignatureValues} object and will be
  * returned to the client when the SAS token is used to access the blob.</p>
  * 
  * @see <a href="https://learn.microsoft.com/en-us/java/api/com.azure.storage.blob.sas.blobservicesassignaturevalues">BlobServiceSasSignatureValues</a>
  */
-public class BlobSasHeaders {
+public class BlobSasHeadersV12 {
     
     private String cacheControl;
     private String contentDisposition;
@@ -39,13 +39,13 @@ public class BlobSasHeaders {
     private String contentType;
 
     /**
-     * Creates an empty BlobSasHeaders object.
+     * Creates an empty BlobSasHeadersV12 object.
      */
-    public BlobSasHeaders() {
+    public BlobSasHeadersV12() {
     }
 
     /**
-     * Creates a BlobSasHeaders object with the specified values.
+     * Creates a BlobSasHeadersV12 object with the specified values.
      *
      * @param cacheControl the cache-control header value
      * @param contentDisposition the content-disposition header value
@@ -53,7 +53,7 @@ public class BlobSasHeaders {
      * @param contentLanguage the content-language header value
      * @param contentType the content-type header value
      */
-    public BlobSasHeaders(@Nullable String cacheControl,
+    public BlobSasHeadersV12(@Nullable String cacheControl,
                           @Nullable String contentDisposition,
                           @Nullable String contentEncoding,
                           @Nullable String contentLanguage,
@@ -79,9 +79,9 @@ public class BlobSasHeaders {
      * Sets the cache-control header value.
      *
      * @param cacheControl the cache-control header value
-     * @return this BlobSasHeaders object for method chaining
+     * @return this BlobSasHeadersV12 object for method chaining
      */
-    public BlobSasHeaders setCacheControl(@Nullable String cacheControl) {
+    public BlobSasHeadersV12 setCacheControl(@Nullable String cacheControl) {
         this.cacheControl = cacheControl;
         return this;
     }
@@ -100,9 +100,9 @@ public class BlobSasHeaders {
      * Sets the content-disposition header value.
      *
      * @param contentDisposition the content-disposition header value
-     * @return this BlobSasHeaders object for method chaining
+     * @return this BlobSasHeadersV12 object for method chaining
      */
-    public BlobSasHeaders setContentDisposition(@Nullable String contentDisposition) {
+    public BlobSasHeadersV12 setContentDisposition(@Nullable String contentDisposition) {
         this.contentDisposition = contentDisposition;
         return this;
     }
@@ -121,9 +121,9 @@ public class BlobSasHeaders {
      * Sets the content-encoding header value.
      *
      * @param contentEncoding the content-encoding header value
-     * @return this BlobSasHeaders object for method chaining
+     * @return this BlobSasHeadersV12 object for method chaining
      */
-    public BlobSasHeaders setContentEncoding(@Nullable String contentEncoding) {
+    public BlobSasHeadersV12 setContentEncoding(@Nullable String contentEncoding) {
         this.contentEncoding = contentEncoding;
         return this;
     }
@@ -142,9 +142,9 @@ public class BlobSasHeaders {
      * Sets the content-language header value.
      *
      * @param contentLanguage the content-language header value
-     * @return this BlobSasHeaders object for method chaining
+     * @return this BlobSasHeadersV12 object for method chaining
      */
-    public BlobSasHeaders setContentLanguage(@Nullable String contentLanguage) {
+    public BlobSasHeadersV12 setContentLanguage(@Nullable String contentLanguage) {
         this.contentLanguage = contentLanguage;
         return this;
     }
@@ -163,9 +163,9 @@ public class BlobSasHeaders {
      * Sets the content-type header value.
      *
      * @param contentType the content-type header value
-     * @return this BlobSasHeaders object for method chaining
+     * @return this BlobSasHeadersV12 object for method chaining
      */
-    public BlobSasHeaders setContentType(@Nullable String contentType) {
+    public BlobSasHeadersV12 setContentType(@Nullable String contentType) {
         this.contentType = contentType;
         return this;
     }

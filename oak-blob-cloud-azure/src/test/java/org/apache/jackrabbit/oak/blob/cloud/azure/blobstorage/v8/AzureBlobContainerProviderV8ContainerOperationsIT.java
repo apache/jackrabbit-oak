@@ -36,7 +36,7 @@ import static org.mockito.Mockito.mockStatic;
  * Tests getBlobContainer operations and container access patterns.
  * Includes both unit tests with mock credentials and integration tests with Azurite.
  */
-public class AzureBlobContainerProviderV8ContainerOperationsTest {
+public class AzureBlobContainerProviderV8ContainerOperationsIT {
 
     @ClassRule
     public static AzuriteDockerRule azurite = new AzuriteDockerRule();

@@ -18,73 +18,44 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
-import static org.junit.Assume.assumeTrue;
-
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
-import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.Properties;
 
-import javax.net.ssl.HttpsURLConnection;
-
-import com.azure.storage.blob.BlobContainerClient;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12.UtilsV12;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v8.UtilsV8;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Extension to {@link DataStoreUtils} to enable Azure extensions for cleaning and initialization.
+ * Test utility for creating and managing Azure DataStore instances.
+ * Used by oak-run, oak-it and other modules for integration testing with real Azure credentials.
  */
 public class AzureDataStoreUtils extends DataStoreUtils {
+
     private static final Logger log = LoggerFactory.getLogger(AzureDataStoreUtils.class);
 
     private static final String DEFAULT_CONFIG_PATH = "./src/test/resources/azure.properties";
     private static final String DEFAULT_PROPERTY_FILE = "azure.properties";
     private static final String SYS_PROP_NAME = "azure.config";
 
-    /**
-     * Check for presence of mandatory properties.
-     *
-     * @return true if mandatory props configured.
-     */
     public static boolean isAzureConfigured() {
         Properties props = getAzureConfig();
-        //need either access keys or sas or service principal
-        if (!props.containsKey(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY) || !props.containsKey(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME)
-                || !(props.containsKey(AzureConstants.AZURE_BLOB_CONTAINER_NAME))) {
-            if (!props.containsKey(AzureConstants.AZURE_SAS) || !props.containsKey(AzureConstants.AZURE_BLOB_ENDPOINT)
-                    || !(props.containsKey(AzureConstants.AZURE_BLOB_CONTAINER_NAME))) {
-                // service principal
-                return props.containsKey(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME) && props.containsKey(AzureConstants.AZURE_TENANT_ID) &&
-                        props.containsKey(AzureConstants.AZURE_CLIENT_ID) && props.containsKey(AzureConstants.AZURE_CLIENT_SECRET) &&
-                        props.containsKey(AzureConstants.AZURE_BLOB_CONTAINER_NAME);
-            }
+        AzureSdkVersion version = AzureSdkVersion.resolve(props);
+        if (version == AzureSdkVersion.V12) {
+            return UtilsV12.isConfigured(props);
         }
-        return true;
+        return UtilsV8.isConfigured(props);
     }
 
-    /**
-     * Read any config property configured.
-     * Also, read any props available as system properties.
-     * System properties take precedence.
-     *
-     * @return Properties instance
-     */
     public static Properties getAzureConfig() {
         String config = System.getProperty(SYS_PROP_NAME);
         if (StringUtils.isEmpty(config)) {
@@ -108,14 +79,13 @@ public class AzureDataStoreUtils extends DataStoreUtils {
             } finally {
                 IOUtils.closeQuietly(is);
             }
-            props.putAll(getConfig());
+            props.putAll(DataStoreUtils.getConfig());
             Map<String, String> filtered = MapUtils.filterEntries(MapUtils.fromProperties(props),
                     input -> !StringUtils.isEmpty(input.getValue()));
             props = new Properties();
             props.putAll(filtered);
         }
 
-        props.setProperty("blob.azure.v12.enabled", "true");
         return props;
     }
 
@@ -124,49 +94,7 @@ public class AzureDataStoreUtils extends DataStoreUtils {
         PropertiesUtil.populate(ds, MapUtils.fromProperties(props), false);
         ds.setProperties(props);
         ds.init(homeDir);
-
         return ds;
-    }
-
-    public static <T extends DataStore> T setupDirectAccessDataStore(
-            @NotNull final TemporaryFolder homeDir,
-            int directDownloadExpirySeconds,
-            int directUploadExpirySeconds)
-            throws Exception {
-        return setupDirectAccessDataStore(homeDir, directDownloadExpirySeconds, directUploadExpirySeconds, null);
-    }
-
-    @SuppressWarnings("unchecked")
-    public static <T extends DataStore> T setupDirectAccessDataStore(
-            @NotNull final TemporaryFolder homeDir,
-            int directDownloadExpirySeconds,
-            int directUploadExpirySeconds,
-            @Nullable final Properties overrideProperties)
-            throws Exception {
-        assumeTrue(isAzureConfigured());
-        T ds = (T) getAzureDataStore(getDirectAccessDataStoreProperties(overrideProperties), homeDir.newFolder().getAbsolutePath());
-        if (ds instanceof ConfigurableDataRecordAccessProvider) {
-            ((ConfigurableDataRecordAccessProvider) ds).setDirectDownloadURIExpirySeconds(directDownloadExpirySeconds);
-            ((ConfigurableDataRecordAccessProvider) ds).setDirectUploadURIExpirySeconds(directUploadExpirySeconds);
-        }
-        return ds;
-    }
-
-    public static Properties getDirectAccessDataStoreProperties() {
-        return getDirectAccessDataStoreProperties(null);
-    }
-
-    public static Properties getDirectAccessDataStoreProperties(@Nullable final Properties overrideProperties) {
-        Properties mergedProperties = new Properties();
-        mergedProperties.putAll(getAzureConfig());
-        if (overrideProperties != null) {
-            mergedProperties.putAll(overrideProperties);
-        }
-        // set properties needed for direct access testing
-        if (mergedProperties.getProperty("cacheSize", null) == null) {
-            mergedProperties.put("cacheSize", "0");
-        }
-        return mergedProperties;
     }
 
     public static void deleteContainer(String containerName) throws Exception {
@@ -178,22 +106,7 @@ public class AzureDataStoreUtils extends DataStoreUtils {
         Properties props = getAzureConfig();
         props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, containerName);
 
-        AzureBlobContainerProvider azureBlobContainerProvider = AzureBlobContainerProvider.Builder.builder(containerName).initializeWithProperties(props).build();
-        BlobContainerClient container = azureBlobContainerProvider.getBlobContainer();
-        boolean result = container.deleteIfExists();
+        boolean result = AzureBlobContainers.deleteIfExists(props);
         log.info("Container deleted. containerName={} existed={}", containerName, result);
-    }
-
-    protected static HttpsURLConnection getHttpsConnection(long length, URI uri) throws IOException {
-        HttpsURLConnection conn = (HttpsURLConnection) uri.toURL().openConnection();
-        conn.setDoOutput(true);
-        conn.setRequestMethod("PUT");
-        conn.setRequestProperty("Content-Length", String.valueOf(length));
-        conn.setRequestProperty("Date", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX")
-            .withZone(ZoneOffset.UTC)
-            .format(Instant.now()));
-        conn.setRequestProperty("x-ms-version", "2017-11-09");
-
-        return conn;
     }
 }

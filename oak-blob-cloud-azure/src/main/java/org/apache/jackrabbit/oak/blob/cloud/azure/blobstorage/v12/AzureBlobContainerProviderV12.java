@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
+package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12;
 
 import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
@@ -42,8 +42,8 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Properties;
 
-public class AzureBlobContainerProvider {
-    private static final Logger log = LoggerFactory.getLogger(AzureBlobContainerProvider.class);
+public class AzureBlobContainerProviderV12 {
+    private static final Logger log = LoggerFactory.getLogger(AzureBlobContainerProviderV12.class);
     private static final String DEFAULT_ENDPOINT_SUFFIX = "core.windows.net";
     private final String azureConnectionString;
     private final String accountName;
@@ -55,7 +55,7 @@ public class AzureBlobContainerProvider {
     private final String clientId;
     private final String clientSecret;
 
-    private AzureBlobContainerProvider(Builder builder) {
+    private AzureBlobContainerProviderV12(Builder builder) {
         this.azureConnectionString = builder.azureConnectionString;
         this.accountName = builder.accountName;
         this.containerName = builder.containerName;
@@ -128,19 +128,19 @@ public class AzureBlobContainerProvider {
         }
 
         public Builder initializeWithProperties(Properties properties) {
-            withAzureConnectionString(properties.getProperty(AzureConstants.AZURE_CONNECTION_STRING, ""));
-            withAccountName(properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, ""));
-            withBlobEndpoint(properties.getProperty(AzureConstants.AZURE_BLOB_ENDPOINT, ""));
-            withSasToken(properties.getProperty(AzureConstants.AZURE_SAS, ""));
-            withAccountKey(properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, ""));
-            withTenantId(properties.getProperty(AzureConstants.AZURE_TENANT_ID, ""));
-            withClientId(properties.getProperty(AzureConstants.AZURE_CLIENT_ID, ""));
-            withClientSecret(properties.getProperty(AzureConstants.AZURE_CLIENT_SECRET, ""));
+            withAzureConnectionString(properties.getProperty(AzureConstantsV12.AZURE_CONNECTION_STRING, ""));
+            withAccountName(properties.getProperty(AzureConstantsV12.AZURE_STORAGE_ACCOUNT_NAME, ""));
+            withBlobEndpoint(properties.getProperty(AzureConstantsV12.AZURE_BLOB_ENDPOINT, ""));
+            withSasToken(properties.getProperty(AzureConstantsV12.AZURE_SAS, ""));
+            withAccountKey(properties.getProperty(AzureConstantsV12.AZURE_STORAGE_ACCOUNT_KEY, ""));
+            withTenantId(properties.getProperty(AzureConstantsV12.AZURE_TENANT_ID, ""));
+            withClientId(properties.getProperty(AzureConstantsV12.AZURE_CLIENT_ID, ""));
+            withClientSecret(properties.getProperty(AzureConstantsV12.AZURE_CLIENT_SECRET, ""));
             return this;
         }
 
-        public AzureBlobContainerProvider build() {
-            return new AzureBlobContainerProvider(this);
+        public AzureBlobContainerProviderV12 build() {
+            return new AzureBlobContainerProviderV12(this);
         }
     }
 
@@ -162,18 +162,18 @@ public class AzureBlobContainerProvider {
         // connection string will be given preference over service principals / sas / account key
         if (StringUtils.isNotBlank(azureConnectionString)) {
             log.debug("connecting to azure blob storage via azureConnectionString");
-            return Utils.getBlobContainerFromConnectionString(getAzureConnectionString(), containerName);
+            return UtilsV12.getBlobContainerFromConnectionString(getAzureConnectionString(), containerName);
         } else if (authenticateViaServicePrincipal()) {
             log.debug("connecting to azure blob storage via service principal credentials");
             return getBlobContainerFromServicePrincipals(accountName, retryOptions);
         } else if (StringUtils.isNotBlank(sasToken)) {
             log.debug("connecting to azure blob storage via sas token");
-            final String connectionStringWithSasToken = Utils.getConnectionStringForSas(sasToken, blobEndpoint, accountName);
-            return Utils.getBlobContainer(connectionStringWithSasToken, containerName, retryOptions, properties);
+            final String connectionStringWithSasToken = UtilsV12.getConnectionStringForSas(sasToken, blobEndpoint, accountName);
+            return UtilsV12.getBlobContainer(connectionStringWithSasToken, containerName, retryOptions, properties);
         }
         log.debug("connecting to azure blob storage via access key");
-        final String connectionStringWithAccountKey = Utils.getConnectionString(accountName, accountKey, blobEndpoint);
-        return Utils.getBlobContainer(connectionStringWithAccountKey, containerName, retryOptions, properties);
+        final String connectionStringWithAccountKey = UtilsV12.getConnectionString(accountName, accountKey, blobEndpoint);
+        return UtilsV12.getBlobContainer(connectionStringWithAccountKey, containerName, retryOptions, properties);
     }
 
     @NotNull
@@ -206,7 +206,7 @@ public class AzureBlobContainerProvider {
                                                 BlobSasPermission blobSasPermissions,
                                                 int expirySeconds,
                                                 Properties properties,
-                                                @Nullable BlobSasHeaders optionalHeaders) throws DataStoreException, URISyntaxException, InvalidKeyException {
+                                                @Nullable BlobSasHeadersV12 optionalHeaders) throws DataStoreException, URISyntaxException, InvalidKeyException {
 
         OffsetDateTime expiry = OffsetDateTime.now().plusSeconds(expirySeconds);
         BlobServiceSasSignatureValues serviceSasSignatureValues = new BlobServiceSasSignatureValues(expiry, blobSasPermissions);
@@ -229,14 +229,7 @@ public class AzureBlobContainerProvider {
                                                      BlobServiceSasSignatureValues serviceSasSignatureValues,
                                                      OffsetDateTime expiryTime) {
 
-        AzureHttpRequestLoggingPolicy loggingPolicy = new AzureHttpRequestLoggingPolicy();
-
-        String endpoint = getEndpointUrl(accountName, blobEndpoint);
-        BlobServiceClient blobServiceClient = new BlobServiceClientBuilder()
-                .endpoint(endpoint)
-                .credential(getClientSecretCredential())
-                .addPolicy(loggingPolicy)
-                .buildClient();
+        BlobServiceClient blobServiceClient = getOrCreateServicePrincipalClient();
         OffsetDateTime startTime = OffsetDateTime.now(ZoneOffset.UTC);
         UserDelegationKey userDelegationKey = blobServiceClient.getUserDelegationKey(startTime, expiryTime);
         return blobClient.generateUserDelegationSas(serviceSasSignatureValues, userDelegationKey);
@@ -245,6 +238,28 @@ public class AzureBlobContainerProvider {
     private boolean authenticateViaServicePrincipal() {
         return StringUtils.isBlank(azureConnectionString) &&
                 StringUtils.isNoneBlank(accountName, tenantId, clientId, clientSecret);
+    }
+
+    private volatile BlobServiceClient cachedServicePrincipalClient;
+
+    private BlobServiceClient getOrCreateServicePrincipalClient() {
+        BlobServiceClient client = cachedServicePrincipalClient;
+        if (client == null) {
+            synchronized (this) {
+                client = cachedServicePrincipalClient;
+                if (client == null) {
+                    AzureHttpRequestLoggingPolicyV12 loggingPolicy = new AzureHttpRequestLoggingPolicyV12();
+                    String endpoint = getEndpointUrl(accountName, blobEndpoint);
+                    client = new BlobServiceClientBuilder()
+                            .endpoint(endpoint)
+                            .credential(getClientSecretCredential())
+                            .addPolicy(loggingPolicy)
+                            .buildClient();
+                    cachedServicePrincipalClient = client;
+                }
+            }
+        }
+        return client;
     }
 
     private ClientSecretCredential getClientSecretCredential() {
@@ -258,7 +273,7 @@ public class AzureBlobContainerProvider {
     @NotNull
     private BlobContainerClient getBlobContainerFromServicePrincipals(String accountName, RequestRetryOptions retryOptions) {
         ClientSecretCredential clientSecretCredential = getClientSecretCredential();
-        AzureHttpRequestLoggingPolicy loggingPolicy = new AzureHttpRequestLoggingPolicy();
+        AzureHttpRequestLoggingPolicyV12 loggingPolicy = new AzureHttpRequestLoggingPolicyV12();
 
         String endpoint = getEndpointUrl(accountName, blobEndpoint);
         return new BlobContainerClientBuilder()

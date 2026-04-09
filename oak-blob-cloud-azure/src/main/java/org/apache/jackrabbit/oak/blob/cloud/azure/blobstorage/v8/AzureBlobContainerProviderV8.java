@@ -35,7 +35,6 @@ import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
-import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -89,6 +88,7 @@ public class AzureBlobContainerProviderV8 implements Closeable {
         this.clientId = builder.clientId;
         this.clientSecret = builder.clientSecret;
     }
+
 
     public static class Builder {
         private final String containerName;
@@ -151,14 +151,14 @@ public class AzureBlobContainerProviderV8 implements Closeable {
         }
 
         public Builder initializeWithProperties(Properties properties) {
-            withAzureConnectionString(properties.getProperty(AzureConstants.AZURE_CONNECTION_STRING, ""));
-            withAccountName(properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, ""));
-            withBlobEndpoint(properties.getProperty(AzureConstants.AZURE_BLOB_ENDPOINT, ""));
-            withSasToken(properties.getProperty(AzureConstants.AZURE_SAS, ""));
-            withAccountKey(properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, ""));
-            withTenantId(properties.getProperty(AzureConstants.AZURE_TENANT_ID, ""));
-            withClientId(properties.getProperty(AzureConstants.AZURE_CLIENT_ID, ""));
-            withClientSecret(properties.getProperty(AzureConstants.AZURE_CLIENT_SECRET, ""));
+            withAzureConnectionString(properties.getProperty(AzureConstantsV8.AZURE_CONNECTION_STRING, ""));
+            withAccountName(properties.getProperty(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_NAME, ""));
+            withBlobEndpoint(properties.getProperty(AzureConstantsV8.AZURE_BLOB_ENDPOINT, ""));
+            withSasToken(properties.getProperty(AzureConstantsV8.AZURE_SAS, ""));
+            withAccountKey(properties.getProperty(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_KEY, ""));
+            withTenantId(properties.getProperty(AzureConstantsV8.AZURE_TENANT_ID, ""));
+            withClientId(properties.getProperty(AzureConstantsV8.AZURE_CLIENT_ID, ""));
+            withClientSecret(properties.getProperty(AzureConstantsV8.AZURE_CLIENT_SECRET, ""));
             return this;
         }
 

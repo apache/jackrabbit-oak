@@ -238,6 +238,7 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
         FailingDocumentStore fs1 = new FailingDocumentStore(ds);
         PausableDocumentStore store1 = new PausableDocumentStore(fs1);
         DocumentNodeStore ns1 = builderProvider.newBuilder().setClusterId(1).setAsyncDelay(0).clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
                 .setPrevNoPropCacheFeature(createFeature(prevNoPropCacheEnabled))
                 .setDocumentStore(store1).build();
 

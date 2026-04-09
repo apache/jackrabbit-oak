@@ -16,13 +16,10 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
-import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureBlobContainer;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
-import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -36,20 +33,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Date;
-import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.LIST;
-import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.READ;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
-public class DataStoreCopyCommandTest {
+public class DataStoreCopyCommandIT {
 
     @ClassRule
     public static AzuriteDockerRule AZURITE = new AzuriteDockerRule();
@@ -67,7 +60,7 @@ public class DataStoreCopyCommandTest {
     @Rule
     public TemporaryFolder outDir = new TemporaryFolder(new File("target"));
 
-    private CloudBlobContainer container;
+    private AzureBlobContainer container;
 
     @Before
     public void setUp() throws Exception {
@@ -87,7 +80,7 @@ public class DataStoreCopyCommandTest {
         DataStoreCopyCommand cmd = new DataStoreCopyCommand();
         cmd.execute(
                 "--source-repo",
-                container.getUri().toURL().toString()
+                java.net.URI.create(container.getContainerUri()).toURL().toString()
         );
     }
 
@@ -96,7 +89,7 @@ public class DataStoreCopyCommandTest {
         DataStoreCopyCommand cmd = new DataStoreCopyCommand();
         cmd.execute(
                 "--source-repo",
-                container.getUri().toURL().toString(),
+                java.net.URI.create(container.getContainerUri()).toURL().toString(),
                 "--include-path",
                 BLOB1,
                 "--out-dir",
@@ -109,11 +102,11 @@ public class DataStoreCopyCommandTest {
         DataStoreCopyCommand cmd = new DataStoreCopyCommand();
         cmd.execute(
                 "--source-repo",
-                container.getUri().toURL().toString(),
+                java.net.URI.create(container.getContainerUri()).toURL().toString(),
                 "--include-path",
                 BLOB1,
                 "--sas-token",
-                container.generateSharedAccessSignature(policy(EnumSet.of(READ, LIST)), null),
+                container.generateSharedAccessSignature(Instant.now().plus(Duration.ofDays(7))),
                 "--out-dir",
                 outDir.getRoot().getAbsolutePath()
         );
@@ -139,11 +132,11 @@ public class DataStoreCopyCommandTest {
         DataStoreCopyCommand cmd = new DataStoreCopyCommand();
         cmd.execute(
                 "--source-repo",
-                container.getUri().toURL().toString(),
+                java.net.URI.create(container.getContainerUri()).toURL().toString(),
                 "--file-include-path",
                 blobs.toString(),
                 "--sas-token",
-                container.generateSharedAccessSignature(policy(EnumSet.of(READ, LIST)), null),
+                container.generateSharedAccessSignature(Instant.now().plus(Duration.ofDays(7))),
                 "--out-dir",
                 outDir.getRoot().getAbsolutePath()
         );
@@ -161,11 +154,11 @@ public class DataStoreCopyCommandTest {
         DataStoreCopyCommand cmd = new DataStoreCopyCommand();
         cmd.execute(
                 "--source-repo",
-                container.getUri().toURL().toString(),
+                java.net.URI.create(container.getContainerUri()).toURL().toString(),
                 "--file-include-path",
                 blobs.toString(),
                 "--sas-token",
-                container.generateSharedAccessSignature(policy(EnumSet.of(READ, LIST)), null),
+                container.generateSharedAccessSignature(Instant.now().plus(Duration.ofDays(7))),
                 "--out-dir",
                 outDir.getRoot().getAbsolutePath()
         );
@@ -182,11 +175,11 @@ public class DataStoreCopyCommandTest {
         DataStoreCopyCommand cmd = new DataStoreCopyCommand();
         assertThrows(RuntimeException.class, () -> cmd.execute(
                 "--source-repo",
-                container.getUri().toURL().toString(),
+                java.net.URI.create(container.getContainerUri()).toURL().toString(),
                 "--file-include-path",
                 blobs.toString(),
                 "--sas-token",
-                container.generateSharedAccessSignature(policy(EnumSet.of(READ, LIST)), null),
+                container.generateSharedAccessSignature(Instant.now().plus(Duration.ofDays(7))),
                 "--out-dir",
                 outDir.getRoot().getAbsolutePath()
         ));
@@ -200,11 +193,11 @@ public class DataStoreCopyCommandTest {
         DataStoreCopyCommand cmd = new DataStoreCopyCommand();
         assertThrows(RuntimeException.class, () -> cmd.execute(
                 "--source-repo",
-                container.getUri().toURL().toString(),
+                java.net.URI.create(container.getContainerUri()).toURL().toString(),
                 "--file-include-path",
                 blobs.toString(),
                 "--sas-token",
-                container.generateSharedAccessSignature(policy(EnumSet.of(READ, LIST)), null),
+                container.generateSharedAccessSignature(Instant.now().plus(Duration.ofDays(7))),
                 "--out-dir",
                 outDir.getRoot().getAbsolutePath(),
                 "--fail-on-error",
@@ -217,7 +210,7 @@ public class DataStoreCopyCommandTest {
         DataStoreCopyCommand cmd = new DataStoreCopyCommand();
         cmd.parseCommandLineParams(
                 "--source-repo",
-                container.getUri().toURL().toString(),
+                java.net.URI.create(container.getContainerUri()).toURL().toString(),
                 "--include-path",
                 BLOB1,
                 "--out-dir",
@@ -237,11 +230,11 @@ public class DataStoreCopyCommandTest {
         DataStoreCopyCommand cmd = new DataStoreCopyCommand();
         assertThrows(RuntimeException.class, () -> cmd.execute(
                 "--source-repo",
-                container.getUri().toURL().toString(),
+                java.net.URI.create(container.getContainerUri()).toURL().toString(),
                 "--file-include-path",
                 blobs.toString(),
                 "--sas-token",
-                container.generateSharedAccessSignature(policy(EnumSet.of(READ, LIST)), null),
+                container.generateSharedAccessSignature(Instant.now().plus(Duration.ofDays(7))),
                 "--out-dir",
                 outDir.getRoot().getAbsolutePath(),
                 "--checksum",
@@ -257,11 +250,11 @@ public class DataStoreCopyCommandTest {
         DataStoreCopyCommand cmd = new DataStoreCopyCommand();
         cmd.execute(
                 "--source-repo",
-                container.getUri().toURL().toString(),
+                java.net.URI.create(container.getContainerUri()).toURL().toString(),
                 "--file-include-path",
                 blobs.toString(),
                 "--sas-token",
-                container.generateSharedAccessSignature(policy(EnumSet.of(READ, LIST)), null),
+                container.generateSharedAccessSignature(Instant.now().plus(Duration.ofDays(7))),
                 "--out-dir",
                 outDir.getRoot().getAbsolutePath(),
                 "--checksum",
@@ -281,24 +274,11 @@ public class DataStoreCopyCommandTest {
                 IOUtils.toString(Path.of(cmd.getDestinationFromId(BLOB2)).toUri(), StandardCharsets.UTF_8));
     }
 
-    private CloudBlobContainer createBlobContainer() throws Exception {
-        container = AZURITE.getContainer("blobstore");
+    private AzureBlobContainer createBlobContainer() throws Exception {
+        container = AZURITE.getAzureBlobContainer("blobstore");
         for (Map.Entry<String, String> blob : BLOBS_WITH_CONTENT.entrySet()) {
-            container.getBlockBlobReference(blob.getKey()).uploadText(blob.getValue());
+            container.uploadBlockBlob(blob.getKey(), new java.io.ByteArrayInputStream(blob.getValue().getBytes(StandardCharsets.UTF_8)), blob.getValue().getBytes(StandardCharsets.UTF_8).length);
         }
         return container;
-    }
-
-    @NotNull
-    private static SharedAccessBlobPolicy policy(EnumSet<SharedAccessBlobPermissions> permissions, Instant expirationTime) {
-        SharedAccessBlobPolicy sharedAccessBlobPolicy = new SharedAccessBlobPolicy();
-        sharedAccessBlobPolicy.setPermissions(permissions);
-        sharedAccessBlobPolicy.setSharedAccessExpiryTime(Date.from(expirationTime));
-        return sharedAccessBlobPolicy;
-    }
-
-    @NotNull
-    private static SharedAccessBlobPolicy policy(EnumSet<SharedAccessBlobPermissions> permissions) {
-        return policy(permissions, Instant.now().plus(Duration.ofDays(7)));
     }
 }

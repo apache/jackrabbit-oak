@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
+package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -41,29 +41,31 @@ import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public final class Utils {
+public final class UtilsV12 {
     public static final String DASH = "-";
     public static final String DEFAULT_CONFIG_FILE = "azure.properties";
 
-    private Utils() {}
+    private UtilsV12() {}
 
     public static BlobContainerClient getBlobContainer(@NotNull final String connectionString,
                                                        @NotNull final String containerName,
                                                        @Nullable final RequestRetryOptions retryOptions,
                                                        final Properties properties) throws DataStoreException {
         try {
-            AzureHttpRequestLoggingPolicy loggingPolicy = new AzureHttpRequestLoggingPolicy();
+            AzureHttpRequestLoggingPolicyV12 loggingPolicy = new AzureHttpRequestLoggingPolicyV12();
 
             BlobServiceClientBuilder builder = new BlobServiceClientBuilder()
                     .connectionString(connectionString)
                     .retryOptions(retryOptions)
                     .addPolicy(loggingPolicy);
 
+            ProxyOptions proxyOptions = computeProxyOptions(properties);
+            if (proxyOptions != null) {
                 HttpClient httpClient = new NettyAsyncHttpClientBuilder()
-                        .proxy(computeProxyOptions(properties))
+                        .proxy(proxyOptions)
                         .build();
-
                 builder.httpClient(httpClient);
+            }
 
             BlobServiceClient blobServiceClient = builder.buildClient();
             return blobServiceClient.getBlobContainerClient(containerName);
@@ -74,8 +76,8 @@ public final class Utils {
     }
 
     public static ProxyOptions computeProxyOptions(final Properties properties) {
-        String proxyHost = properties.getProperty(AzureConstants.PROXY_HOST);
-        String proxyPort = properties.getProperty(AzureConstants.PROXY_PORT);
+        String proxyHost = properties.getProperty(AzureConstantsV12.PROXY_HOST);
+        String proxyPort = properties.getProperty(AzureConstantsV12.PROXY_PORT);
 
         if(!(Objects.toString(proxyHost, "").isEmpty() || Objects.toString(proxyPort, "").isEmpty())) {
             return new ProxyOptions(ProxyOptions.Type.HTTP,
@@ -101,11 +103,11 @@ public final class Utils {
     }
 
     public static String getConnectionStringFromProperties(Properties properties) {
-        String sasUri = properties.getProperty(AzureConstants.AZURE_SAS, "");
-        String blobEndpoint = properties.getProperty(AzureConstants.AZURE_BLOB_ENDPOINT, "");
-        String connectionString = properties.getProperty(AzureConstants.AZURE_CONNECTION_STRING, "");
-        String accountName = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "");
-        String accountKey = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, "");
+        String sasUri = properties.getProperty(AzureConstantsV12.AZURE_SAS, "");
+        String blobEndpoint = properties.getProperty(AzureConstantsV12.AZURE_BLOB_ENDPOINT, "");
+        String connectionString = properties.getProperty(AzureConstantsV12.AZURE_CONNECTION_STRING, "");
+        String accountName = properties.getProperty(AzureConstantsV12.AZURE_STORAGE_ACCOUNT_NAME, "");
+        String accountKey = properties.getProperty(AzureConstantsV12.AZURE_STORAGE_ACCOUNT_KEY, "");
 
         if (!connectionString.isEmpty()) {
             return connectionString;
@@ -140,13 +142,38 @@ public final class Utils {
     }
 
     public static BlobContainerClient getBlobContainerFromConnectionString(final String azureConnectionString, final String containerName) {
-        AzureHttpRequestLoggingPolicy loggingPolicy = new AzureHttpRequestLoggingPolicy();
+        AzureHttpRequestLoggingPolicyV12 loggingPolicy = new AzureHttpRequestLoggingPolicyV12();
 
         return new BlobContainerClientBuilder()
                 .connectionString(azureConnectionString)
                 .containerName(containerName)
                 .addPolicy(loggingPolicy)
                 .buildClient();
+    }
+
+    /**
+     * Check whether the given properties contain sufficient Azure configuration
+     * for V12 SDK connectivity (account key, SAS, or AAD credentials).
+     */
+    public static boolean isConfigured(Properties props) {
+        // Account key auth
+        if (props.containsKey(AzureConstantsV12.AZURE_STORAGE_ACCOUNT_KEY)
+                && props.containsKey(AzureConstantsV12.AZURE_STORAGE_ACCOUNT_NAME)
+                && props.containsKey(AzureConstantsV12.AZURE_BLOB_CONTAINER_NAME)) {
+            return true;
+        }
+        // SAS auth
+        if (props.containsKey(AzureConstantsV12.AZURE_SAS)
+                && props.containsKey(AzureConstantsV12.AZURE_BLOB_ENDPOINT)
+                && props.containsKey(AzureConstantsV12.AZURE_BLOB_CONTAINER_NAME)) {
+            return true;
+        }
+        // AAD client credentials
+        return props.containsKey(AzureConstantsV12.AZURE_STORAGE_ACCOUNT_NAME)
+                && props.containsKey(AzureConstantsV12.AZURE_TENANT_ID)
+                && props.containsKey(AzureConstantsV12.AZURE_CLIENT_ID)
+                && props.containsKey(AzureConstantsV12.AZURE_CLIENT_SECRET)
+                && props.containsKey(AzureConstantsV12.AZURE_BLOB_CONTAINER_NAME);
     }
 
     /**

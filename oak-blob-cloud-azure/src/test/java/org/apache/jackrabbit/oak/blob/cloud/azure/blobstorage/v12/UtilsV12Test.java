@@ -14,7 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
+package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12;
+
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.common.policy.RequestRetryOptions;
@@ -35,7 +37,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
-public class UtilsTest {
+public class UtilsV12Test {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -43,17 +45,17 @@ public class UtilsTest {
     @Test
     public void testConnectionStringIsBasedOnProperty() {
         Properties properties = new Properties();
-        properties.put(AzureConstants.AZURE_CONNECTION_STRING, "DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=accountKey");
-        String connectionString = Utils.getConnectionStringFromProperties(properties);
+        properties.put(AzureConstantsV12.AZURE_CONNECTION_STRING, "DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=accountKey");
+        String connectionString = UtilsV12.getConnectionStringFromProperties(properties);
         assertEquals("DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=accountKey", connectionString);
     }
 
     @Test
     public void testConnectionStringIsBasedOnSAS() {
         Properties properties = new Properties();
-        properties.put(AzureConstants.AZURE_SAS, "sas");
-        properties.put(AzureConstants.AZURE_BLOB_ENDPOINT, "endpoint");
-        String connectionString = Utils.getConnectionStringFromProperties(properties);
+        properties.put(AzureConstantsV12.AZURE_SAS, "sas");
+        properties.put(AzureConstantsV12.AZURE_BLOB_ENDPOINT, "endpoint");
+        String connectionString = UtilsV12.getConnectionStringFromProperties(properties);
         assertEquals(connectionString,
                 String.format("BlobEndpoint=%s;SharedAccessSignature=%s", "endpoint", "sas"));
     }
@@ -61,9 +63,9 @@ public class UtilsTest {
     @Test
     public void testConnectionStringIsBasedOnSASWithoutEndpoint() {
         Properties properties = new Properties();
-        properties.put(AzureConstants.AZURE_SAS, "sas");
-        properties.put(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "account");
-        String connectionString = Utils.getConnectionStringFromProperties(properties);
+        properties.put(AzureConstantsV12.AZURE_SAS, "sas");
+        properties.put(AzureConstantsV12.AZURE_STORAGE_ACCOUNT_NAME, "account");
+        String connectionString = UtilsV12.getConnectionStringFromProperties(properties);
         assertEquals(connectionString,
                 String.format("AccountName=%s;SharedAccessSignature=%s", "account", "sas"));
     }
@@ -71,10 +73,10 @@ public class UtilsTest {
     @Test
     public void testConnectionStringIsBasedOnAccessKeyIfSASMissing() {
         Properties properties = new Properties();
-        properties.put(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "accessKey");
-        properties.put(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, "secretKey");
+        properties.put(AzureConstantsV12.AZURE_STORAGE_ACCOUNT_NAME, "accessKey");
+        properties.put(AzureConstantsV12.AZURE_STORAGE_ACCOUNT_KEY, "secretKey");
 
-        String connectionString = Utils.getConnectionStringFromProperties(properties);
+        String connectionString = UtilsV12.getConnectionStringFromProperties(properties);
         assertEquals(connectionString,
                 String.format("DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s","accessKey","secretKey"));
     }
@@ -82,13 +84,13 @@ public class UtilsTest {
     @Test
     public void testConnectionStringSASIsPriority() {
         Properties properties = new Properties();
-        properties.put(AzureConstants.AZURE_SAS, "sas");
-        properties.put(AzureConstants.AZURE_BLOB_ENDPOINT, "endpoint");
+        properties.put(AzureConstantsV12.AZURE_SAS, "sas");
+        properties.put(AzureConstantsV12.AZURE_BLOB_ENDPOINT, "endpoint");
 
-        properties.put(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "accessKey");
-        properties.put(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, "secretKey");
+        properties.put(AzureConstantsV12.AZURE_STORAGE_ACCOUNT_NAME, "accessKey");
+        properties.put(AzureConstantsV12.AZURE_STORAGE_ACCOUNT_KEY, "secretKey");
 
-        String connectionString = Utils.getConnectionStringFromProperties(properties);
+        String connectionString = UtilsV12.getConnectionStringFromProperties(properties);
         assertEquals(connectionString,
                 String.format("BlobEndpoint=%s;SharedAccessSignature=%s", "endpoint", "sas"));
     }
@@ -101,14 +103,14 @@ public class UtilsTest {
             writer.write("key2=value2\n");
         }
 
-        Properties properties = Utils.readConfig(tempFile.getAbsolutePath());
+        Properties properties = UtilsV12.readConfig(tempFile.getAbsolutePath());
         assertEquals("value1", properties.getProperty("key1"));
         assertEquals("value2", properties.getProperty("key2"));
     }
 
     @Test
     public void testReadConfig_exception() {
-        assertThrows(IOException.class, () -> Utils.readConfig("non-existent-file"));
+        assertThrows(IOException.class, () -> UtilsV12.readConfig("non-existent-file"));
     }
 
     @Test
@@ -122,31 +124,31 @@ public class UtilsTest {
         Properties properties = new Properties();
         properties.load(new FileInputStream(tempFile));
 
-        String connectionString = Utils.getConnectionString(AzuriteDockerRule.ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_KEY, "http://127.0.0.1:10000/devstoreaccount1" );
+        String connectionString = UtilsV12.getConnectionString(AzuriteDockerRule.ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_KEY, "http://127.0.0.1:10000/devstoreaccount1" );
         String containerName = "test-container";
-        RequestRetryOptions retryOptions = Utils.getRetryOptions("3", 3, null);
+        RequestRetryOptions retryOptions = UtilsV12.getRetryOptions("3", 3, null);
 
-        BlobContainerClient containerClient = Utils.getBlobContainer(connectionString, containerName, retryOptions, properties);
+        BlobContainerClient containerClient = UtilsV12.getBlobContainer(connectionString, containerName, retryOptions, properties);
         assertNotNull(containerClient);
     }
 
     @Test
     public void testGetRetryOptions() {
-        RequestRetryOptions retryOptions = Utils.getRetryOptions("3", 3, null);
+        RequestRetryOptions retryOptions = UtilsV12.getRetryOptions("3", 3, null);
         assertNotNull(retryOptions);
         assertEquals(3, retryOptions.getMaxTries());
     }
 
     @Test
     public void testGetRetryOptionsNoRetry() {
-        RequestRetryOptions retryOptions = Utils.getRetryOptions("0",3,  null);
+        RequestRetryOptions retryOptions = UtilsV12.getRetryOptions("0",3,  null);
         assertNotNull(retryOptions);
         assertEquals(1, retryOptions.getMaxTries());
     }
 
     @Test
     public void testGetRetryOptionsInvalid() {
-        RequestRetryOptions retryOptions = Utils.getRetryOptions("-1", 3, null);
+        RequestRetryOptions retryOptions = UtilsV12.getRetryOptions("-1", 3, null);
         assertNull(retryOptions);
     }
 
@@ -156,7 +158,7 @@ public class UtilsTest {
         String accountKey = "testkey";
         String blobEndpoint = "https://testaccount.blob.core.windows.net";
 
-        String connectionString = Utils.getConnectionString(accountName, accountKey, blobEndpoint);
+        String connectionString = UtilsV12.getConnectionString(accountName, accountKey, blobEndpoint);
         String expected = "DefaultEndpointsProtocol=https;AccountName=testaccount;AccountKey=testkey;BlobEndpoint=https://testaccount.blob.core.windows.net";
         assertEquals("Connection string should match expected format", expected, connectionString);
     }
@@ -166,7 +168,7 @@ public class UtilsTest {
         String accountName = "testaccount";
         String accountKey = "testkey";
 
-        String connectionString = Utils.getConnectionString(accountName, accountKey, null);
+        String connectionString = UtilsV12.getConnectionString(accountName, accountKey, null);
         String expected = "DefaultEndpointsProtocol=https;AccountName=testaccount;AccountKey=testkey";
         assertEquals("Connection string should match expected format without endpoint", expected, connectionString);
     }
@@ -176,7 +178,7 @@ public class UtilsTest {
         String accountName = "testaccount";
         String accountKey = "testkey";
 
-        String connectionString = Utils.getConnectionString(accountName, accountKey, "");
+        String connectionString = UtilsV12.getConnectionString(accountName, accountKey, "");
         String expected = "DefaultEndpointsProtocol=https;AccountName=testaccount;AccountKey=testkey";
         assertEquals("Connection string should match expected format with empty endpoint", expected, connectionString);
     }
@@ -187,7 +189,7 @@ public class UtilsTest {
         String blobEndpoint = "https://testaccount.blob.core.windows.net";
         String accountName = "testaccount";
 
-        String connectionString = Utils.getConnectionStringForSas(sasUri, blobEndpoint, accountName);
+        String connectionString = UtilsV12.getConnectionStringForSas(sasUri, blobEndpoint, accountName);
         String expected = "BlobEndpoint=https://testaccount.blob.core.windows.net;SharedAccessSignature=sas-token";
         assertEquals("SAS connection string should match expected format", expected, connectionString);
     }
@@ -197,7 +199,7 @@ public class UtilsTest {
         String sasUri = "sas-token";
         String accountName = "testaccount";
 
-        String connectionString = Utils.getConnectionStringForSas(sasUri, null, accountName);
+        String connectionString = UtilsV12.getConnectionStringForSas(sasUri, null, accountName);
         String expected = "AccountName=testaccount;SharedAccessSignature=sas-token";
         assertEquals("SAS connection string should use account name when endpoint is null", expected, connectionString);
     }
@@ -207,7 +209,7 @@ public class UtilsTest {
         String sasUri = "sas-token";
         String accountName = "testaccount";
 
-        String connectionString = Utils.getConnectionStringForSas(sasUri, "", accountName);
+        String connectionString = UtilsV12.getConnectionStringForSas(sasUri, "", accountName);
         String expected = "AccountName=testaccount;SharedAccessSignature=sas-token";
         assertEquals("SAS connection string should use account name when endpoint is empty", expected, connectionString);
     }
@@ -215,10 +217,10 @@ public class UtilsTest {
     @Test
     public void testComputeProxyOptionsWithBothHostAndPort() {
         Properties properties = new Properties();
-        properties.setProperty(AzureConstants.PROXY_HOST, "proxy.example.com");
-        properties.setProperty(AzureConstants.PROXY_PORT, "8080");
+        properties.setProperty(AzureConstantsV12.PROXY_HOST, "proxy.example.com");
+        properties.setProperty(AzureConstantsV12.PROXY_PORT, "8080");
 
-        com.azure.core.http.ProxyOptions proxyOptions = Utils.computeProxyOptions(properties);
+        com.azure.core.http.ProxyOptions proxyOptions = UtilsV12.computeProxyOptions(properties);
         assertNotNull("Proxy options should not be null", proxyOptions);
         assertEquals("Proxy host should match", "proxy.example.com", proxyOptions.getAddress().getHostName());
         assertEquals("Proxy port should match", 8080, proxyOptions.getAddress().getPort());
@@ -227,28 +229,28 @@ public class UtilsTest {
     @Test(expected = NumberFormatException.class)
     public void testComputeProxyOptionsWithInvalidPort() {
         Properties properties = new Properties();
-        properties.setProperty(AzureConstants.PROXY_HOST, "proxy.example.com");
-        properties.setProperty(AzureConstants.PROXY_PORT, "invalid");
+        properties.setProperty(AzureConstantsV12.PROXY_HOST, "proxy.example.com");
+        properties.setProperty(AzureConstantsV12.PROXY_PORT, "invalid");
 
-      Utils.computeProxyOptions(properties);
+      UtilsV12.computeProxyOptions(properties);
       fail("Expected NumberFormatException when port is invalid");
     }
 
     @Test
     public void testComputeProxyOptionsWithHostOnly() {
         Properties properties = new Properties();
-        properties.setProperty(AzureConstants.PROXY_HOST, "proxy.example.com");
+        properties.setProperty(AzureConstantsV12.PROXY_HOST, "proxy.example.com");
 
-        com.azure.core.http.ProxyOptions proxyOptions = Utils.computeProxyOptions(properties);
+        com.azure.core.http.ProxyOptions proxyOptions = UtilsV12.computeProxyOptions(properties);
         assertNull("Proxy options should be null when port is missing", proxyOptions);
     }
 
     @Test
     public void testComputeProxyOptionsWithPortOnly() {
         Properties properties = new Properties();
-        properties.setProperty(AzureConstants.PROXY_PORT, "8080");
+        properties.setProperty(AzureConstantsV12.PROXY_PORT, "8080");
 
-        com.azure.core.http.ProxyOptions proxyOptions = Utils.computeProxyOptions(properties);
+        com.azure.core.http.ProxyOptions proxyOptions = UtilsV12.computeProxyOptions(properties);
         assertNull("Proxy options should be null when host is missing", proxyOptions);
     }
 
@@ -256,17 +258,17 @@ public class UtilsTest {
     public void testComputeProxyOptionsWithEmptyProperties() {
         Properties properties = new Properties();
 
-        com.azure.core.http.ProxyOptions proxyOptions = Utils.computeProxyOptions(properties);
+        com.azure.core.http.ProxyOptions proxyOptions = UtilsV12.computeProxyOptions(properties);
         assertNull("Proxy options should be null with empty properties", proxyOptions);
     }
 
     @Test
     public void testComputeProxyOptionsWithEmptyValues() {
         Properties properties = new Properties();
-        properties.setProperty(AzureConstants.PROXY_HOST, "");
-        properties.setProperty(AzureConstants.PROXY_PORT, "");
+        properties.setProperty(AzureConstantsV12.PROXY_HOST, "");
+        properties.setProperty(AzureConstantsV12.PROXY_PORT, "");
 
-        com.azure.core.http.ProxyOptions proxyOptions = Utils.computeProxyOptions(properties);
+        com.azure.core.http.ProxyOptions proxyOptions = UtilsV12.computeProxyOptions(properties);
         assertNull("Proxy options should be null with empty values", proxyOptions);
     }
 
@@ -275,7 +277,7 @@ public class UtilsTest {
         String connectionString = getConnectionString();
         String containerName = "test-container";
 
-        BlobContainerClient containerClient = Utils.getBlobContainerFromConnectionString(connectionString, containerName);
+        BlobContainerClient containerClient = UtilsV12.getBlobContainerFromConnectionString(connectionString, containerName);
         assertNotNull("Container client should not be null", containerClient);
         assertEquals("Container name should match", containerName, containerClient.getBlobContainerName());
     }
@@ -283,14 +285,14 @@ public class UtilsTest {
     @Test
     public void testGetRetryOptionsWithSecondaryLocation() {
         String secondaryLocation = "https://testaccount-secondary.blob.core.windows.net";
-        RequestRetryOptions retryOptions = Utils.getRetryOptions("3", 30, secondaryLocation);
+        RequestRetryOptions retryOptions = UtilsV12.getRetryOptions("3", 30, secondaryLocation);
         assertNotNull("Retry options should not be null", retryOptions);
         assertEquals("Max tries should be 3", 3, retryOptions.getMaxTries());
     }
 
     @Test
     public void testGetRetryOptionsWithNullValues() {
-        RequestRetryOptions retryOptions = Utils.getRetryOptions(null, null, null);
+        RequestRetryOptions retryOptions = UtilsV12.getRetryOptions(null, null, null);
         assertNull("Retry options should be null with null max retry count", retryOptions);
     }
 

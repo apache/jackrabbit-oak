@@ -26,10 +26,9 @@ import java.util.UUID;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureBlobContainer;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureBlobContainers;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
-import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Utils;
-import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v8.UtilsV8;
-import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.binary.fixtures.nodestore.FixtureUtils;
 import org.jetbrains.annotations.NotNull;
@@ -37,9 +36,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.azure.storage.blob.BlobContainerClient;
 
 /**
  * Fixture for AzureDataStore based on an azure.properties config file. It creates
@@ -67,8 +63,7 @@ public class AzureDataStoreFixture implements DataStoreFixture {
 
     @Nullable
     private final Properties azProps;
-    private final Map<DataStore, Object> containers = new HashMap<>();
-    private static final String AZURE_SDK_12_ENABLED = "blob.azure.v12.enabled";
+    private final Map<DataStore, AzureBlobContainer> containers = new HashMap<>();
 
     public AzureDataStoreFixture() {
         azProps = FixtureUtils.loadDataStoreProperties("azure.config", "azure.properties", ".azure");
@@ -96,26 +91,11 @@ public class AzureDataStoreFixture implements DataStoreFixture {
 
         log.info("Creating Azure test blob container {}", containerName);
 
-        String connectionString = Utils.getConnectionStringFromProperties(azProps);
         try {
-            boolean useSDK12 = SystemPropertySupplier.create(AZURE_SDK_12_ENABLED, false).get();
-            Object container;
-            
-            if (useSDK12) {
-                log.info("Starting blob store using azure sdk 12");
-                BlobContainerClient containerClient = Utils.getBlobContainer(connectionString, containerName, null, azProps);
-                containerClient.createIfNotExists();
-                container = containerClient;
-            } else {
-                log.info("Starting blob store using azure sdk 8");
-                CloudBlobContainer blobContainer = UtilsV8.getBlobContainer(connectionString, containerName);
-                blobContainer.createIfNotExists();
-                container = blobContainer;
-            }
-
-            // create new properties since azProps is shared for all created DataStores
             Properties clonedAzProps = new Properties(azProps);
             clonedAzProps.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, containerName);
+            AzureBlobContainer container = AzureBlobContainers.create(clonedAzProps);
+            container.createIfNotExists();
 
             // setup Oak DS
             AzureDataStore dataStore = new AzureDataStore();
@@ -125,7 +105,7 @@ public class AzureDataStoreFixture implements DataStoreFixture {
             containers.put(dataStore, container);
             return dataStore;
 
-        } catch (DataStoreException | StorageException e) {
+        } catch (Exception e) {
             throw new AssertionError("Azure DataStore fixture fails because of issue with Azure config or connection", e);
         }
     }
@@ -142,18 +122,11 @@ public class AzureDataStoreFixture implements DataStoreFixture {
             log.warn("Issue while disposing DataStore", e);
         }
 
-        Object container = containers.get(dataStore);
+        AzureBlobContainer container = containers.get(dataStore);
         if (container != null) {
-            try {
-                if (container instanceof CloudBlobContainer) {
-                    CloudBlobContainer blobContainer = (CloudBlobContainer) container;
-                    log.info("Removing Azure test blob container {}", blobContainer.getName());
-                    blobContainer.delete();
-                } else if (container instanceof BlobContainerClient) {
-                    BlobContainerClient containerClient = (BlobContainerClient) container;
-                    log.info("Removing Azure test blob container {}", containerClient.getBlobContainerName());
-                    containerClient.delete();
-                }
+            try (AzureBlobContainer closableContainer = container) {
+                log.info("Removing Azure test blob container {}", container.getName());
+                closableContainer.delete();
             } catch (Exception e) {
                 log.warn("Unable to delete Azure Blob container", e);
             }

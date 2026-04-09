@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
+package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12;
+
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 
 import com.azure.identity.ClientSecretCredential;
 import com.azure.storage.blob.BlobContainerClient;
@@ -39,19 +41,19 @@ import java.util.Properties;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
-public class AzureBlobContainerProviderTest {
+public class AzureBlobContainerProviderV12IT {
 
     @ClassRule
     public static AzuriteDockerRule azurite = new AzuriteDockerRule();
 
     private static final String CONTAINER_NAME = "test-container";
-    private AzureBlobContainerProvider provider;
+    private AzureBlobContainerProviderV12 provider;
 
     @Test
     public void testBuilderWithConnectionString() {
         String connectionString = getConnectionString();
         
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString(connectionString)
                 .build();
@@ -63,7 +65,7 @@ public class AzureBlobContainerProviderTest {
 
     @Test
     public void testBuilderWithAccountNameAndKey() {
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("testaccount")
                 .withAccountKey("testkey")
@@ -75,7 +77,7 @@ public class AzureBlobContainerProviderTest {
 
     @Test
     public void testBuilderWithServicePrincipal() {
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("testaccount")
                 .withTenantId("tenant-id")
@@ -89,7 +91,7 @@ public class AzureBlobContainerProviderTest {
 
     @Test
     public void testBuilderWithSasToken() {
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("testaccount")
                 .withSasToken("sas-token")
@@ -103,16 +105,16 @@ public class AzureBlobContainerProviderTest {
     @Test
     public void testBuilderInitializeWithProperties() {
         Properties properties = new Properties();
-        properties.setProperty(AzureConstants.AZURE_CONNECTION_STRING, getConnectionString());
-        properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "testaccount");
-        properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, "testkey");
-        properties.setProperty(AzureConstants.AZURE_TENANT_ID, "tenant-id");
-        properties.setProperty(AzureConstants.AZURE_CLIENT_ID, "client-id");
-        properties.setProperty(AzureConstants.AZURE_CLIENT_SECRET, "client-secret");
-        properties.setProperty(AzureConstants.AZURE_SAS, "sas-token");
-        properties.setProperty(AzureConstants.AZURE_BLOB_ENDPOINT, "https://testaccount.blob.core.windows.net");
+        properties.setProperty(AzureConstantsV12.AZURE_CONNECTION_STRING, getConnectionString());
+        properties.setProperty(AzureConstantsV12.AZURE_STORAGE_ACCOUNT_NAME, "testaccount");
+        properties.setProperty(AzureConstantsV12.AZURE_STORAGE_ACCOUNT_KEY, "testkey");
+        properties.setProperty(AzureConstantsV12.AZURE_TENANT_ID, "tenant-id");
+        properties.setProperty(AzureConstantsV12.AZURE_CLIENT_ID, "client-id");
+        properties.setProperty(AzureConstantsV12.AZURE_CLIENT_SECRET, "client-secret");
+        properties.setProperty(AzureConstantsV12.AZURE_SAS, "sas-token");
+        properties.setProperty(AzureConstantsV12.AZURE_BLOB_ENDPOINT, "https://testaccount.blob.core.windows.net");
         
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .initializeWithProperties(properties)
                 .build();
@@ -126,7 +128,7 @@ public class AzureBlobContainerProviderTest {
     public void testGetBlobContainerWithConnectionString() throws DataStoreException {
         String connectionString = getConnectionString();
         
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString(connectionString)
                 .build();
@@ -142,7 +144,7 @@ public class AzureBlobContainerProviderTest {
         RequestRetryOptions retryOptions = new RequestRetryOptions();
         Properties properties = new Properties();
         
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString(connectionString)
                 .build();
@@ -155,14 +157,14 @@ public class AzureBlobContainerProviderTest {
     @Test
     public void testBuilderWithNullContainerName() {
         // Builder accepts null container name - no validation
-        AzureBlobContainerProvider.Builder builder = AzureBlobContainerProvider.Builder.builder(null);
+        AzureBlobContainerProviderV12.Builder builder = AzureBlobContainerProviderV12.Builder.builder(null);
         assertNotNull("Builder should not be null", builder);
     }
 
     @Test
     public void testBuilderWithEmptyContainerName() {
         // Builder accepts empty container name - no validation
-        AzureBlobContainerProvider.Builder builder = AzureBlobContainerProvider.Builder.builder("");
+        AzureBlobContainerProviderV12.Builder builder = AzureBlobContainerProviderV12.Builder.builder("");
         assertNotNull("Builder should not be null", builder);
     }
 
@@ -170,7 +172,7 @@ public class AzureBlobContainerProviderTest {
     public void testGenerateSharedAccessSignatureWithConnectionString() {
         String connectionString = getConnectionString();
 
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString(connectionString)
                 .build();
@@ -196,7 +198,7 @@ public class AzureBlobContainerProviderTest {
 
     @Test
     public void testGetBlobContainerWithInvalidConnectionString() {
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString("invalid-connection-string")
                 .build();
@@ -214,7 +216,7 @@ public class AzureBlobContainerProviderTest {
 
     @Test
     public void testGetBlobContainerWithServicePrincipalMissingCredentials() throws DataStoreException{
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("testaccount")
                 .withTenantId("tenant-id")
@@ -229,7 +231,7 @@ public class AzureBlobContainerProviderTest {
 
     @Test(expected = DataStoreException.class)
     public void testGetBlobContainerWithSasTokenMissingEndpoint() throws DataStoreException{
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("testaccount")
                 .withSasToken("sas-token")
@@ -241,7 +243,7 @@ public class AzureBlobContainerProviderTest {
 
     @Test
     public void testBuilderChaining() {
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString("connection1")
                 .withAccountName("account1")
@@ -260,7 +262,7 @@ public class AzureBlobContainerProviderTest {
 
     @Test
     public void testBuilderWithEmptyStrings() {
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString("")
                 .withAccountName("")
@@ -280,11 +282,11 @@ public class AzureBlobContainerProviderTest {
     @Test
     public void testInitializeWithPropertiesEmptyValues() {
         Properties properties = new Properties();
-        properties.setProperty(AzureConstants.AZURE_CONNECTION_STRING, "");
-        properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "");
-        properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, "");
+        properties.setProperty(AzureConstantsV12.AZURE_CONNECTION_STRING, "");
+        properties.setProperty(AzureConstantsV12.AZURE_STORAGE_ACCOUNT_NAME, "");
+        properties.setProperty(AzureConstantsV12.AZURE_STORAGE_ACCOUNT_KEY, "");
 
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .initializeWithProperties(properties)
                 .build();
@@ -298,7 +300,7 @@ public class AzureBlobContainerProviderTest {
         Properties properties = new Properties();
         // Properties with null values (getProperty returns default empty string)
 
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .initializeWithProperties(properties)
                 .build();
@@ -309,7 +311,7 @@ public class AzureBlobContainerProviderTest {
 
     @Test
     public void testGetBlobContainerServicePrincipalPath() {
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("testaccount")
                 .withTenantId("tenant-id")
@@ -329,7 +331,7 @@ public class AzureBlobContainerProviderTest {
 
     @Test
     public void testGetBlobContainerSasTokenPath() {
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("testaccount")
                 .withSasToken("sv=2020-08-04&ss=b&srt=sco&sp=rwdlacx&se=2023-12-31T23:59:59Z&st=2023-01-01T00:00:00Z&spr=https&sig=test")
@@ -348,7 +350,7 @@ public class AzureBlobContainerProviderTest {
 
     @Test
     public void testGenerateSharedAccessSignatureServicePrincipalPath() throws DataStoreException, URISyntaxException, InvalidKeyException{
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("testaccount")
                 .withTenantId("tenant-id")
@@ -377,7 +379,7 @@ public class AzureBlobContainerProviderTest {
 
     @Test
     public void testGenerateSharedAccessSignatureAccountKeyPath() throws DataStoreException, URISyntaxException, InvalidKeyException {
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("testaccount")
                 .withAccountKey("testkey")
@@ -396,10 +398,10 @@ public class AzureBlobContainerProviderTest {
 
     @Test
     public void testBuilderStaticMethod() {
-        AzureBlobContainerProvider.Builder builder = AzureBlobContainerProvider.Builder.builder("test-container");
+        AzureBlobContainerProviderV12.Builder builder = AzureBlobContainerProviderV12.Builder.builder("test-container");
         assertNotNull("Builder should not be null", builder);
 
-        AzureBlobContainerProvider provider = builder.build();
+        AzureBlobContainerProviderV12 provider = builder.build();
         assertNotNull("Provider should not be null", provider);
         assertEquals("Container name should match", "test-container", provider.getContainerName());
     }
@@ -407,19 +409,19 @@ public class AzureBlobContainerProviderTest {
     @Test
     public void testBuilderConstructorAccess() throws Exception {
         // Test that Builder constructor is private by accessing it via reflection
-        java.lang.reflect.Constructor<AzureBlobContainerProvider.Builder> constructor =
-                AzureBlobContainerProvider.Builder.class.getDeclaredConstructor(String.class);
+        java.lang.reflect.Constructor<AzureBlobContainerProviderV12.Builder> constructor =
+                AzureBlobContainerProviderV12.Builder.class.getDeclaredConstructor(String.class);
         assertFalse("Constructor should not be public", constructor.isAccessible());
 
         // Make it accessible and test
         constructor.setAccessible(true);
-        AzureBlobContainerProvider.Builder builder = constructor.newInstance("test-container");
+        AzureBlobContainerProviderV12.Builder builder = constructor.newInstance("test-container");
         assertNotNull("Builder should not be null", builder);
     }
 
     @Test
     public void testDefaultEndpointSuffixUsage() throws Exception {
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("testaccount")
                 .withTenantId("tenant-id")
@@ -428,7 +430,7 @@ public class AzureBlobContainerProviderTest {
                 .build();
 
         // Use reflection to access the DEFAULT_ENDPOINT_SUFFIX constant
-        Field defaultEndpointField = AzureBlobContainerProvider.class.getDeclaredField("DEFAULT_ENDPOINT_SUFFIX");
+        Field defaultEndpointField = AzureBlobContainerProviderV12.class.getDeclaredField("DEFAULT_ENDPOINT_SUFFIX");
         defaultEndpointField.setAccessible(true);
         String defaultEndpoint = (String) defaultEndpointField.get(null);
         assertEquals("Default endpoint should be core.windows.net", "core.windows.net", defaultEndpoint);
@@ -448,7 +450,7 @@ public class AzureBlobContainerProviderTest {
 
     @Test
     public void testGenerateUserDelegationKeySignedSasWithMockTime() {
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("testaccount")
                 .withTenantId("tenant-id")
@@ -476,7 +478,7 @@ public class AzureBlobContainerProviderTest {
     public void testGetBlobContainerWithNullRetryOptions() throws DataStoreException {
         String connectionString = getConnectionString();
 
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString(connectionString)
                 .build();
@@ -491,7 +493,7 @@ public class AzureBlobContainerProviderTest {
     public void testGetBlobContainerWithEmptyProperties() throws DataStoreException {
         String connectionString = getConnectionString();
 
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString(connectionString)
                 .build();
@@ -505,7 +507,7 @@ public class AzureBlobContainerProviderTest {
 
     @Test
     public void testBuilderWithNullValues() {
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString(null)
                 .withAccountName(null)
@@ -526,7 +528,7 @@ public class AzureBlobContainerProviderTest {
     public void testInitializeWithPropertiesNullProperties() {
         // Test with null properties object
         try {
-            AzureBlobContainerProvider.Builder.builder(CONTAINER_NAME)
+            AzureBlobContainerProviderV12.Builder.builder(CONTAINER_NAME)
                     .initializeWithProperties(null);
             fail("Should throw NullPointerException with null properties");
         } catch (NullPointerException e) {
@@ -538,7 +540,7 @@ public class AzureBlobContainerProviderTest {
     @Test
     public void testAuthenticationPriorityOrder() throws Exception {
         // Test that connection string takes priority over other authentication methods
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString(getConnectionString())
                 .withAccountName("testaccount")
@@ -557,7 +559,7 @@ public class AzureBlobContainerProviderTest {
 
     @Test
     public void testGetBlobContainerWithAccountKeyFallback() {
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("testaccount")
                 .withAccountKey("testkey")
@@ -575,7 +577,7 @@ public class AzureBlobContainerProviderTest {
 
     @Test
     public void testAuthenticateViaServicePrincipalTrue() throws Exception {
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("testaccount")
                 .withTenantId("tenant-id")
@@ -590,7 +592,7 @@ public class AzureBlobContainerProviderTest {
 
     @Test
     public void testAuthenticateViaServicePrincipalFalseWithConnectionString() throws Exception {
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString("connection-string")
                 .withAccountName("testaccount")
@@ -606,7 +608,7 @@ public class AzureBlobContainerProviderTest {
 
     @Test
     public void testAuthenticateViaServicePrincipalFalseWithMissingCredentials() throws Exception {
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("testaccount")
                 .withTenantId("tenant-id")
@@ -621,7 +623,7 @@ public class AzureBlobContainerProviderTest {
 
     @Test
     public void testGetClientSecretCredential() throws Exception {
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withTenantId("tenant-id")
                 .withClientId("client-id")
@@ -635,7 +637,7 @@ public class AzureBlobContainerProviderTest {
 
     @Test
     public void testGetBlobContainerFromServicePrincipals() throws Exception {
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("testaccount")
                 .withTenantId("tenant-id")
@@ -660,7 +662,7 @@ public class AzureBlobContainerProviderTest {
 
     @Test
     public void testGenerateUserDelegationKeySignedSas() {
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("testaccount")
                 .withTenantId("tenant-id")
@@ -688,7 +690,7 @@ public class AzureBlobContainerProviderTest {
 
     @Test
     public void testGenerateSas() throws Exception {
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAccountName("testaccount")
                 .withAccountKey("testkey")
@@ -707,7 +709,7 @@ public class AzureBlobContainerProviderTest {
 
     @Test
     public void testBuilderFieldAccess() throws Exception {
-        AzureBlobContainerProvider.Builder builder = AzureBlobContainerProvider.Builder.builder(CONTAINER_NAME);
+        AzureBlobContainerProviderV12.Builder builder = AzureBlobContainerProviderV12.Builder.builder(CONTAINER_NAME);
 
         // Test all builder methods and verify fields are set correctly
         builder.withAzureConnectionString("conn-string")
@@ -719,38 +721,38 @@ public class AzureBlobContainerProviderTest {
                .withClientId("client")
                .withClientSecret("secret");
 
-        AzureBlobContainerProvider provider = builder.build();
+        AzureBlobContainerProviderV12 provider = builder.build();
 
         // Use reflection to verify all fields are set
         assertEquals("Container name should match", CONTAINER_NAME, provider.getContainerName());
         assertEquals("Connection string should match", "conn-string", provider.getAzureConnectionString());
 
         // Test private fields using reflection
-        Field accountNameField = AzureBlobContainerProvider.class.getDeclaredField("accountName");
+        Field accountNameField = AzureBlobContainerProviderV12.class.getDeclaredField("accountName");
         accountNameField.setAccessible(true);
         assertEquals("Account name should match", "account", accountNameField.get(provider));
 
-        Field blobEndpointField = AzureBlobContainerProvider.class.getDeclaredField("blobEndpoint");
+        Field blobEndpointField = AzureBlobContainerProviderV12.class.getDeclaredField("blobEndpoint");
         blobEndpointField.setAccessible(true);
         assertEquals("Blob endpoint should match", "endpoint", blobEndpointField.get(provider));
 
-        Field sasTokenField = AzureBlobContainerProvider.class.getDeclaredField("sasToken");
+        Field sasTokenField = AzureBlobContainerProviderV12.class.getDeclaredField("sasToken");
         sasTokenField.setAccessible(true);
         assertEquals("SAS token should match", "sas", sasTokenField.get(provider));
 
-        Field accountKeyField = AzureBlobContainerProvider.class.getDeclaredField("accountKey");
+        Field accountKeyField = AzureBlobContainerProviderV12.class.getDeclaredField("accountKey");
         accountKeyField.setAccessible(true);
         assertEquals("Account key should match", "key", accountKeyField.get(provider));
 
-        Field tenantIdField = AzureBlobContainerProvider.class.getDeclaredField("tenantId");
+        Field tenantIdField = AzureBlobContainerProviderV12.class.getDeclaredField("tenantId");
         tenantIdField.setAccessible(true);
         assertEquals("Tenant ID should match", "tenant", tenantIdField.get(provider));
 
-        Field clientIdField = AzureBlobContainerProvider.class.getDeclaredField("clientId");
+        Field clientIdField = AzureBlobContainerProviderV12.class.getDeclaredField("clientId");
         clientIdField.setAccessible(true);
         assertEquals("Client ID should match", "client", clientIdField.get(provider));
 
-        Field clientSecretField = AzureBlobContainerProvider.class.getDeclaredField("clientSecret");
+        Field clientSecretField = AzureBlobContainerProviderV12.class.getDeclaredField("clientSecret");
         clientSecretField.setAccessible(true);
         assertEquals("Client secret should match", "secret", clientSecretField.get(provider));
     }
@@ -768,7 +770,7 @@ public class AzureBlobContainerProviderTest {
     @Test
     public void testGenerateSharedAccessSignatureWithoutHeaders() throws Exception {
         String connectionString = getConnectionString();
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString(connectionString)
                 .build();
@@ -795,7 +797,7 @@ public class AzureBlobContainerProviderTest {
     @Test
     public void testGenerateSharedAccessSignatureWithHeaders() throws Exception {
         String connectionString = getConnectionString();
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString(connectionString)
                 .build();
@@ -808,7 +810,7 @@ public class AzureBlobContainerProviderTest {
 
         // Generate SAS with headers
         BlobSasPermission permissions = new BlobSasPermission().setReadPermission(true);
-        BlobSasHeaders headers = new BlobSasHeaders()
+        BlobSasHeadersV12 headers = new BlobSasHeadersV12()
                 .setCacheControl("private, max-age=3600, immutable")
                 .setContentType("image/png")
                 .setContentDisposition("attachment; filename=\"test.png\"");
@@ -836,7 +838,7 @@ public class AzureBlobContainerProviderTest {
     @Test
     public void testGenerateSharedAccessSignatureWithNullHeaders() throws Exception {
         String connectionString = getConnectionString();
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString(connectionString)
                 .build();
@@ -863,7 +865,7 @@ public class AzureBlobContainerProviderTest {
     @Test
     public void testGenerateSharedAccessSignatureWithPartialHeaders() throws Exception {
         String connectionString = getConnectionString();
-        provider = AzureBlobContainerProvider.Builder
+        provider = AzureBlobContainerProviderV12.Builder
                 .builder(CONTAINER_NAME)
                 .withAzureConnectionString(connectionString)
                 .build();
@@ -876,7 +878,7 @@ public class AzureBlobContainerProviderTest {
 
         // Generate SAS with only content-type header
         BlobSasPermission permissions = new BlobSasPermission().setReadPermission(true);
-        BlobSasHeaders headers = new BlobSasHeaders().setContentType("application/json");
+        BlobSasHeadersV12 headers = new BlobSasHeadersV12().setContentType("application/json");
 
         String sas = provider.generateSharedAccessSignature(
                 null, blobName, permissions, 3600, new Properties(), headers);

@@ -18,10 +18,46 @@ package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
 import static org.apache.commons.codec.binary.Hex.encodeHexString;
 import static org.apache.commons.io.FileUtils.copyInputStreamToFile;
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyLong;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
-import com.azure.storage.blob.BlobContainerClient;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.StringWriter;
+import java.net.URI;
+import java.security.DigestOutputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Random;
+import java.util.Set;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.NullOutputStream;
@@ -29,6 +65,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
 import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12.AzureBlobStoreBackendV12;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v8.AzureBlobStoreBackendV8;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
@@ -36,32 +73,38 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordU
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.MockitoAnnotations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import javax.jcr.RepositoryException;
-import java.io.*;
-import java.net.URI;
-import java.security.DigestOutputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.*;
 
 /**
  * Combined unit and integration tests for AzureDataStore class.
  * Unit tests use Mockito and don't require Azure configuration.
  * Integration tests use Azurite (Azure Storage emulator) for local testing.
+ *
+ * <p>Parameterized over {@link AzureSdkVersion} so that every integration test
+ * runs against both SDK v8 and SDK v12.
  */
-@RunWith(MockitoJUnitRunner.class)
-public class AzureDataStoreTest {
-    protected static final Logger LOG = LoggerFactory.getLogger(AzureDataStoreTest.class);
+@RunWith(Parameterized.class)
+public class AzureDataStoreIT {
+    protected static final Logger LOG = LoggerFactory.getLogger(AzureDataStoreIT.class);
+
+    @Parameterized.Parameters(name = "SDK {0}")
+    public static Object[] sdkVersions() {
+        return AzureSdkVersion.values();
+    }
+
+    @Parameterized.Parameter
+    public AzureSdkVersion sdkVersion;
 
     // Azurite Docker container for integration tests
     @ClassRule
@@ -82,12 +125,22 @@ public class AzureDataStoreTest {
     private AzureDataStore ds;
     private AbstractAzureBlobStoreBackend backend;
     private String container;
-    private BlobContainerClient azuriteContainer;
+    private AzureBlobContainer azuriteContainer;
     Random randomGen = new Random();
+
+    private AutoCloseable mocks;
 
     @Before
     public void setUp() {
+        mocks = MockitoAnnotations.openMocks(this);
         azureDataStore = new AzureDataStore();
+    }
+
+    @After
+    public void closeMocks() throws Exception {
+        if (mocks != null) {
+            mocks.close();
+        }
     }
 
     ////
@@ -117,7 +170,7 @@ public class AzureDataStoreTest {
         azureDataStore.setProperties(null);
 
         // Should not throw exception
-        assertTrue("Should not throw exception", true);
+
     }
 
     @Test
@@ -174,7 +227,7 @@ public class AzureDataStoreTest {
         azureDataStore.setBinaryTransferAccelerationEnabled(true);
         azureDataStore.setBinaryTransferAccelerationEnabled(false);
         // No exception should be thrown
-        assertTrue("Should not throw exception", true);
+
     }
 
     @Test
@@ -184,7 +237,7 @@ public class AzureDataStoreTest {
         azureDataStore.setDirectUploadURIExpirySeconds(0);
         azureDataStore.setDirectUploadURIExpirySeconds(-1);
         // No exception should be thrown
-        assertTrue("Should not throw exception", true);
+
     }
 
     @Test
@@ -195,7 +248,7 @@ public class AzureDataStoreTest {
         azureDataStore.setDirectDownloadURIExpirySeconds(-1);
 
         // No exception should be thrown
-        assertTrue("Should not throw exception", true);
+
     }
 
     @Test(expected = DataRecordUploadException.class)
@@ -222,14 +275,7 @@ public class AzureDataStoreTest {
 
     @Test
     public void testSetDirectDownloadURICacheSizeWithoutBackend() {
-        // This should call the method on null backend, which will cause NPE
-        // But looking at the implementation, it doesn't check for null like the other methods
-        try {
-            azureDataStore.setDirectDownloadURICacheSize(100);
-            fail("Expected NullPointerException");
-        } catch (NullPointerException e) {
-            // Expected behavior since the method doesn't check for null backend
-        }
+        azureDataStore.setDirectDownloadURICacheSize(100);
     }
 
     @Test
@@ -278,7 +324,7 @@ public class AzureDataStoreTest {
         azureDataStore.setDirectUploadURIExpirySeconds(-1);
 
         // Should not throw exceptions
-        assertTrue("Should not throw exception", true);
+
     }
 
     @Test
@@ -292,7 +338,7 @@ public class AzureDataStoreTest {
         azureDataStore.setDirectDownloadURIExpirySeconds(-1);
 
         // Should not throw exceptions
-        assertTrue("Should not throw exception", true);
+
     }
 
     @Test
@@ -306,7 +352,7 @@ public class AzureDataStoreTest {
         azureDataStore.setDirectDownloadURICacheSize(-1);
 
         // Should not throw exceptions
-        assertTrue("Should not throw exception", true);
+
     }
 
     @Test(expected = NullPointerException.class)
@@ -407,11 +453,34 @@ public class AzureDataStoreTest {
             // Verify that the backend is an instance of AzureBlobStoreBackend (SDK 12)
             assertNotNull("Backend should not be null", backend);
             assertTrue("Backend should be an instance of AzureBlobStoreBackend when SDK 12 is enabled",
-                    backend instanceof AzureBlobStoreBackend);
+                    backend instanceof AzureBlobStoreBackendV12);
             assertFalse("Backend should not be an instance of AzureBlobStoreBackendV8 when SDK 12 is enabled",
                     backend instanceof AzureBlobStoreBackendV8);
         } finally {
             // Restore original system property
+            if (originalProperty != null) {
+                System.setProperty("blob.azure.v12.enabled", originalProperty);
+            } else {
+                System.clearProperty("blob.azure.v12.enabled");
+            }
+        }
+    }
+
+    @Test
+    public void testBackendPropertiesOverrideSystemProperty() {
+        String originalProperty = System.getProperty("blob.azure.v12.enabled");
+        try {
+            System.setProperty("blob.azure.v12.enabled", "false");
+            Properties properties = new Properties();
+            properties.setProperty(AzureConstants.AZURE_V12_ENABLED_PROPERTY, "true");
+
+            AzureDataStore dataStore = new AzureDataStore();
+            dataStore.setProperties(properties);
+
+            AbstractSharedBackend backend = dataStore.createBackend();
+
+            assertTrue(backend instanceof AzureBlobStoreBackendV12);
+        } finally {
             if (originalProperty != null) {
                 System.setProperty("blob.azure.v12.enabled", originalProperty);
             } else {
@@ -483,7 +552,7 @@ public class AzureDataStoreTest {
         azureDataStore.setBinaryTransferAccelerationEnabled(false);
 
         // These should not throw exceptions even without backend
-        assertTrue("Should not throw exception", true);
+
     }
 
     @Test
@@ -549,7 +618,7 @@ public class AzureDataStoreTest {
         azureDataStore.setDirectDownloadURICacheSize(100);
 
         // No exceptions should be thrown
-        assertTrue("Should not throw exception", true);
+
     }
 
     ////
@@ -557,16 +626,17 @@ public class AzureDataStoreTest {
     // These tests use Azurite Docker container for local testing without requiring real Azure credentials
     ////
 
-    private void setupIntegrationTest() throws IOException, RepositoryException {
+    private void setupIntegrationTest() throws Exception {
         // Generate unique container name for this test run
         container = String.valueOf(randomGen.nextInt(9999)) + "-" + String.valueOf(randomGen.nextInt(9999))
                     + "-test";
 
-        // Create Azurite container
-        azuriteContainer = azurite.getContainer(container, getConnectionString());
-
         // Setup properties for Azurite
         props = createAzuriteProperties();
+
+        // Create Azurite container via SDK-neutral factory
+        AzureBlobContainers.deleteIfExists(props);
+        azuriteContainer = AzureBlobContainers.create(props);
 
         ds = new AzureDataStore();
         ds.setProperties(props);
@@ -598,7 +668,8 @@ public class AzureDataStoreTest {
     }
 
     /**
-     * Creates properties configured for Azurite local testing.
+     * Creates properties configured for Azurite local testing,
+     * selecting the SDK version supplied by the parameterized runner.
      */
     private Properties createAzuriteProperties() {
         Properties properties = new Properties();
@@ -606,8 +677,10 @@ public class AzureDataStoreTest {
         properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_NAME);
         properties.setProperty(AzureConstants.AZURE_BLOB_ENDPOINT, azurite.getBlobEndpoint());
         properties.setProperty(AzureConstants.AZURE_CONNECTION_STRING, getConnectionString());
-        properties.setProperty(AzureConstants.AZURE_CREATE_CONTAINER, "true");
-        properties.setProperty(AzureConstants.AZURE_REF_ON_INIT, "true"); // Enable reference key creation
+        properties.setProperty(AzureConstants.AZURE_V12_ENABLED_PROPERTY,
+                String.valueOf(sdkVersion == AzureSdkVersion.V12));
+        properties.setProperty("azureCreateContainer", "true");
+        properties.setProperty("refOnInit", "true"); // Enable reference key creation
         return properties;
     }
 
@@ -615,11 +688,7 @@ public class AzureDataStoreTest {
      * Gets the Azurite connection string.
      */
     private static String getConnectionString() {
-        return Utils.getConnectionString(
-            AzuriteDockerRule.ACCOUNT_NAME,
-            AzuriteDockerRule.ACCOUNT_KEY,
-            azurite.getBlobEndpoint()
-        );
+        return azurite.getConnectionString();
     }
 
     private void validateRecord(final DataRecord record,
@@ -790,41 +859,8 @@ public class AzureDataStoreTest {
         }
     }
 
-    @Test
-    public void testBackendWriteRecordNullIdentifierThrowsNullPointerException() throws Exception {
-        setupIntegrationTest();
-        try {
-            DataIdentifier identifier = null;
-            File testFile = folder.newFile();
-            copyInputStreamToFile(randomStream(0, 10), testFile);
-            try {
-                backend.write(identifier, testFile);
-                fail();
-            } catch (NullPointerException e) {
-                assertEquals("identifier must not be null", e.getMessage());
-            }
-        } finally {
-            teardownIntegrationTest();
-        }
-    }
-
-    @Test
-    public void testBackendWriteRecordNullFileThrowsNullPointerException() throws Exception {
-        setupIntegrationTest();
-        try {
-            File testFile = null;
-            DataIdentifier identifier = new DataIdentifier("fake");
-            try {
-                backend.write(identifier, testFile);
-                fail();
-            }
-            catch (NullPointerException e) {
-                assertTrue("file must not be null".equals(e.getMessage()));
-            }
-        } finally {
-            teardownIntegrationTest();
-        }
-    }
+    // Version-specific null parameter validation tests (with message checks) are in
+    // v8/AzureBlobStoreBackendV8IT and v12/AzureBlobStoreBackendV12IT
 
     @Test
     public void testBackendWriteRecordFileNotFoundThrowsException() throws Exception {
@@ -845,22 +881,6 @@ public class AzureDataStoreTest {
         }
     }
 
-    @Test
-    public void testBackendReadRecordNullIdentifier() throws Exception {
-        setupIntegrationTest();
-        try {
-            DataIdentifier identifier = null;
-            try {
-                backend.read(identifier);
-                fail();
-            }
-            catch (NullPointerException e) {
-                assert("identifier must not be null".equals(e.getMessage()));
-            }
-        } finally {
-            teardownIntegrationTest();
-        }
-    }
 
     @Test(expected = DataStoreException.class)
     public void testBackendReadRecordInvalidIdentifier() throws Exception {
@@ -880,22 +900,6 @@ public class AzureDataStoreTest {
         }
     }
 
-    @Test
-    public void testBackendDeleteRecordNullIdentifier() throws Exception {
-        setupIntegrationTest();
-        try {
-            DataIdentifier identifier = null;
-            try {
-                backend.deleteRecord(identifier);
-                fail();
-            }
-            catch (NullPointerException e) {
-                assert("identifier must not be null".equals(e.getMessage()));
-            }
-        } finally {
-            teardownIntegrationTest();
-        }
-    }
 
     @Test
     public void testBackendDeleteRecordInvalidIdentifier() throws Exception {
@@ -984,22 +988,6 @@ public class AzureDataStoreTest {
         }
     }
 
-    @Test
-    public void testBackendGetRecordNullIdentifierThrowsNullPointerException() throws Exception {
-        setupIntegrationTest();
-        try {
-            try {
-                DataIdentifier identifier = null;
-                backend.getRecord(identifier);
-                fail();
-            }
-            catch (NullPointerException e) {
-                assertTrue("identifier must not be null".equals(e.getMessage()));
-            }
-        } finally {
-            teardownIntegrationTest();
-        }
-    }
 
     @Test
     public void testBackendGetRecordInvalidIdentifierThrowsDataStoreException() throws Exception {
@@ -1115,63 +1103,6 @@ public class AzureDataStoreTest {
         }
     }
 
-    @Test
-    public void testBackendAddMetadataRecordNullInputStreamThrowsNullPointerException() throws Exception {
-        setupIntegrationTest();
-        try {
-            try {
-                backend.addMetadataRecord((InputStream)null, "name");
-                fail();
-            }
-            catch (NullPointerException e) {
-                assertTrue("input must not be null".equals(e.getMessage()));
-            }
-        } finally {
-            teardownIntegrationTest();
-        }
-    }
-
-    @Test
-    public void testBackendAddMetadataRecordNullFileThrowsNullPointerException() throws Exception {
-        setupIntegrationTest();
-        try {
-            try {
-                backend.addMetadataRecord((File)null, "name");
-                fail();
-            }
-            catch (NullPointerException e) {
-                assertTrue("input must not be null".equals(e.getMessage()));
-            }
-        } finally {
-            teardownIntegrationTest();
-        }
-    }
-
-    @Test
-    public void testBackendAddMetadataRecordNullEmptyNameThrowsIllegalArgumentException() throws Exception {
-        setupIntegrationTest();
-        try {
-            final String data = "testData";
-            for (boolean fromInputStream : List.of(false, true)) {
-                for (String name : Arrays.asList(null, "")) {
-                    try {
-                        if (fromInputStream) {
-                            backend.addMetadataRecord(new ByteArrayInputStream(data.getBytes()), name);
-                        } else {
-                            File testFile = folder.newFile();
-                            copyInputStreamToFile(new ByteArrayInputStream(data.getBytes()), testFile);
-                            backend.addMetadataRecord(testFile, name);
-                        }
-                        fail();
-                    } catch (IllegalArgumentException e) {
-                        assertTrue("name should not be empty".equals(e.getMessage()));
-                    }
-                }
-            }
-        } finally {
-            teardownIntegrationTest();
-        }
-    }
 
     @Test
     public void testBackendGetMetadataRecordInvalidName() throws Exception {
@@ -1224,21 +1155,6 @@ public class AzureDataStoreTest {
         }
     }
 
-    @Test
-    public void testBackendGetAllMetadataRecordsNullPrefixThrowsNullPointerException() throws Exception {
-        setupIntegrationTest();
-        try {
-            try {
-                backend.getAllMetadataRecords(null);
-                fail();
-            }
-            catch (NullPointerException e) {
-              assertEquals("prefix must not be null", e.getMessage());
-            }
-        } finally {
-            teardownIntegrationTest();
-        }
-    }
 
     @Test
     public void testBackendDeleteMetadataRecord() throws Exception {
@@ -1334,21 +1250,6 @@ public class AzureDataStoreTest {
         }
     }
 
-    @Test
-    public void testBackendDeleteAllMetadataRecordsNullPrefixThrowsNullPointerException() throws Exception {
-        setupIntegrationTest();
-        try {
-            try {
-                backend.deleteAllMetadataRecords(null);
-                fail();
-            }
-            catch (NullPointerException e) {
-              assertEquals("prefix must not be null", e.getMessage());
-            }
-        } finally {
-            teardownIntegrationTest();
-        }
-    }
 
     @Test
     public void testSecret() throws Exception {

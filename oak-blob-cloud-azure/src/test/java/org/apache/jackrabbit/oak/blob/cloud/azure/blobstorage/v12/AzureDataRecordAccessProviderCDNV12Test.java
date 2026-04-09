@@ -17,11 +17,13 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
+package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12;
 
-import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_DOMAIN_OVERRIDE;
-import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS;
-import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.PRESIGNED_HTTP_UPLOAD_URI_DOMAIN_OVERRIDE;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
+
+import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12.AzureConstantsV12.PRESIGNED_HTTP_DOWNLOAD_URI_DOMAIN_OVERRIDE;
+import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12.AzureConstantsV12.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS;
+import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12.AzureConstantsV12.PRESIGNED_HTTP_UPLOAD_URI_DOMAIN_OVERRIDE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
@@ -46,44 +48,37 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class AzureDataRecordAccessProviderCDNTest extends AzureDataRecordAccessProviderTest {
+public class AzureDataRecordAccessProviderCDNV12Test extends AzureDataRecordAccessProviderV12Test {
     @ClassRule
     public static TemporaryFolder homeDir = new TemporaryFolder(new File("target"));
 
     private static AzureDataStore cdnDataStore;
 
-    private static String DOWNLOAD_URI_DOMAIN = AzureDataStoreUtils
-            .getDirectAccessDataStoreProperties()
-            .getProperty(PRESIGNED_HTTP_DOWNLOAD_URI_DOMAIN_OVERRIDE, null);
-    private static String UPLOAD_URI_DOMAIN = AzureDataStoreUtils
-            .getDirectAccessDataStoreProperties()
-            .getProperty(PRESIGNED_HTTP_UPLOAD_URI_DOMAIN_OVERRIDE, null);
-
-    private static String cdnSetupNotice = String.format(
-            "%s\n%s %s '%s' %s '%s' %s %s",
-            "No override domains configured - skipping Azure CDN tests.",
-            "To run these tests, set up an Azure CDN in the Azure console or command line,",
-            "then set the CDN domain as the property value for",
-            PRESIGNED_HTTP_DOWNLOAD_URI_DOMAIN_OVERRIDE,
-            "and/or",
-            PRESIGNED_HTTP_UPLOAD_URI_DOMAIN_OVERRIDE,
-            "in your Azure configuration file, and then provide this file to the",
-            "test via the -Dazure.config command-line switch"
-    );
+    private static final String cdnSetupNotice =
+            "No override domains configured - skipping Azure CDN tests. " +
+            "To run these tests, set up an Azure CDN in the Azure console or command line, " +
+            "then set the CDN domain as the property value for '" +
+            PRESIGNED_HTTP_DOWNLOAD_URI_DOMAIN_OVERRIDE + "' and/or '" +
+            PRESIGNED_HTTP_UPLOAD_URI_DOMAIN_OVERRIDE +
+            "' in your Azure configuration file, and then provide this file to the " +
+            "test via the -Dazure.config command-line switch";
 
     @BeforeClass
     public static void setupDataStore() throws Exception {
         assumeTrue(cdnSetupNotice, isCDNConfigured());
-        cdnDataStore = AzureDataStoreUtils.setupDirectAccessDataStore(homeDir,
+        cdnDataStore = setupDirectAccessDataStore(homeDir,
                 expirySeconds, expirySeconds);
     }
 
     private static boolean isCDNConfigured() {
-        return ! StringUtils.isEmpty(DOWNLOAD_URI_DOMAIN) && ! StringUtils.isEmpty(UPLOAD_URI_DOMAIN);
+        Properties props = getDirectAccessDataStoreProperties();
+        String downloadDomain = props.getProperty(PRESIGNED_HTTP_DOWNLOAD_URI_DOMAIN_OVERRIDE, null);
+        String uploadDomain = props.getProperty(PRESIGNED_HTTP_UPLOAD_URI_DOMAIN_OVERRIDE, null);
+        return !StringUtils.isEmpty(downloadDomain) && !StringUtils.isEmpty(uploadDomain);
     }
 
     private static AzureDataStore createDataStore(@NotNull Properties properties) throws Exception {
-        return AzureDataStoreUtils.setupDirectAccessDataStore(homeDir, expirySeconds, expirySeconds, properties);
+        return setupDirectAccessDataStore(homeDir, expirySeconds, expirySeconds, properties);
     }
 
     @Override
@@ -93,7 +88,7 @@ public class AzureDataRecordAccessProviderCDNTest extends AzureDataRecordAccessP
 
     @Override
     protected ConfigurableDataRecordAccessProvider getDataStore(@NotNull Properties overrideProperties) throws Exception {
-        return createDataStore(AzureDataStoreUtils.getDirectAccessDataStoreProperties(overrideProperties));
+        return createDataStore(getDirectAccessDataStoreProperties(overrideProperties));
     }
 
     private ConfigurableDataRecordAccessProvider getCDNEnabledDataStore() throws Exception {
@@ -109,23 +104,29 @@ public class AzureDataRecordAccessProviderCDNTest extends AzureDataRecordAccessP
         DataIdentifier id = new DataIdentifier("identifier");
         URI downloadUri = ds.getDownloadURI(id, DataRecordDownloadOptions.DEFAULT);
         assertNotNull(downloadUri);
-        assertEquals(DOWNLOAD_URI_DOMAIN, downloadUri.getHost());
+        String expectedDownloadDomain = getDirectAccessDataStoreProperties()
+                .getProperty(PRESIGNED_HTTP_DOWNLOAD_URI_DOMAIN_OVERRIDE, null);
+        assertEquals(expectedDownloadDomain, downloadUri.getHost());
     }
 
     @Test
     public void testCDNUploadURIContainsUploadDomain() throws Exception {
+        String expectedUploadDomain = getDirectAccessDataStoreProperties()
+                .getProperty(PRESIGNED_HTTP_UPLOAD_URI_DOMAIN_OVERRIDE, null);
         Properties properties = new Properties();
         ConfigurableDataRecordAccessProvider ds = getDataStore(properties);
         DataRecordUpload upload = ds.initiateDataRecordUpload(ONE_MB, 10);
         assertNotNull(upload);
         assertTrue(upload.getUploadURIs().size() > 0);
         for (URI uri : upload.getUploadURIs()) {
-            assertEquals(UPLOAD_URI_DOMAIN, uri.getHost());
+            assertEquals(expectedUploadDomain, uri.getHost());
         }
     }
 
     @Test
     public void testVetoDownloadDomainOverride() throws Exception {
+        String downloadDomain = getDirectAccessDataStoreProperties()
+                .getProperty(PRESIGNED_HTTP_DOWNLOAD_URI_DOMAIN_OVERRIDE, null);
         ConfigurableDataRecordAccessProvider ds = getCDNEnabledDataStore();
         DataIdentifier id = new DataIdentifier("identifier");
         DataRecordDownloadOptions options =
@@ -134,10 +135,10 @@ public class AzureDataRecordAccessProviderCDNTest extends AzureDataRecordAccessP
                 );
         URI downloadUri = ds.getDownloadURI(id, options);
         assertNotNull(downloadUri);
-        assertNotEquals(DOWNLOAD_URI_DOMAIN, downloadUri.getHost());
+        assertNotEquals(downloadDomain, downloadUri.getHost());
 
-        Properties properties = AzureDataStoreUtils.getDirectAccessDataStoreProperties();
-        String accountName = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, null);
+        Properties properties = getDirectAccessDataStoreProperties();
+        String accountName = properties.getProperty(AzureConstantsV12.AZURE_STORAGE_ACCOUNT_NAME, null);
         assertNotNull(accountName);
         assertEquals(String.format("%s.blob.core.windows.net", accountName), downloadUri.getHost());
     }
@@ -150,8 +151,8 @@ public class AzureDataRecordAccessProviderCDNTest extends AzureDataRecordAccessP
         assertNotNull(upload);
         assertTrue(upload.getUploadURIs().size() > 0);
 
-        Properties properties = AzureDataStoreUtils.getDirectAccessDataStoreProperties();
-        String accountName = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, null);
+        Properties properties = getDirectAccessDataStoreProperties();
+        String accountName = properties.getProperty(AzureConstantsV12.AZURE_STORAGE_ACCOUNT_NAME, null);
         assertNotNull(accountName);
         String defaultDomain = String.format("%s.blob.core.windows.net", accountName);
         for (URI uri : upload.getUploadURIs()) {

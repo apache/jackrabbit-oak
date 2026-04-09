@@ -34,12 +34,12 @@ import java.util.Properties;
 
 public abstract class AbstractAzureBlobStoreBackend extends AbstractSharedBackend {
 
-    protected abstract DataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs, @NotNull final DataRecordUploadOptions options);
-    protected abstract DataRecord completeHttpUpload(@NotNull String uploadTokenStr) throws DataRecordUploadException, DataStoreException;
-    protected abstract void setHttpDownloadURIExpirySeconds(int seconds);
-    protected abstract  void setHttpUploadURIExpirySeconds(int seconds);
-    protected abstract void setHttpDownloadURICacheSize(int maxSize);
-    protected abstract URI createHttpDownloadURI(@NotNull DataIdentifier identifier, @NotNull DataRecordDownloadOptions downloadOptions);
+    public abstract DataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs, @NotNull final DataRecordUploadOptions options);
+    public abstract DataRecord completeHttpUpload(@NotNull String uploadTokenStr) throws DataRecordUploadException, DataStoreException;
+    public abstract void setHttpDownloadURIExpirySeconds(int seconds);
+    public abstract void setHttpUploadURIExpirySeconds(int seconds);
+    public abstract void setHttpDownloadURICacheSize(int maxSize);
+    public abstract URI createHttpDownloadURI(@NotNull DataIdentifier identifier, @NotNull DataRecordDownloadOptions downloadOptions);
     public abstract void setProperties(final Properties properties);
 
 }

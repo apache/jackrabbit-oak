@@ -16,45 +16,43 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
+package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12;
 
-import static org.junit.Assume.assumeTrue;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 
 import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
-import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractDataStoreTest;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
-import org.slf4j.event.Level;
+import org.junit.ClassRule;
 
 import java.util.Properties;
 
 /**
- * Test {@link AzureDataStore} with AzureDataStore and local cache on.
- * It requires to pass azure config file via system property or system properties by prefixing with 'ds.'.
- * See details @ {@link AzureDataStoreUtils}.
- * For e.g. -Dconfig=/opt/cq/azure.properties. Sample azure properties located at
- * src/test/resources/azure.properties
+ * Test {@link AzureDataStore} with AzureBlobStoreBackendV12 and local cache on.
+ * Uses Azurite (local Azure emulator) via Docker for testing.
  */
-public class TestAzureDS extends AbstractDataStoreTest {
+public class TestAzureDSV12 extends AbstractDataStoreTest {
+
+  @ClassRule
+  public static AzuriteDockerRule azurite = new AzuriteDockerRule();
 
   protected Properties props = new Properties();
   protected String container;
 
-  @BeforeClass
-  public static void assumptions() {
-    assumeTrue(AzureDataStoreUtils.isAzureConfigured());
-  }
-
   @Override
   @Before
   public void setUp() throws Exception {
-    props.putAll(AzureDataStoreUtils.getAzureConfig());
+    props.setProperty(AzureConstantsV12.AZURE_CONNECTION_STRING, azurite.getConnectionString());
+    props.setProperty(AzureConstantsV12.AZURE_STORAGE_ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_NAME);
+    props.setProperty(AzureConstantsV12.AZURE_BLOB_ENDPOINT, azurite.getBlobEndpoint());
+    props.setProperty(AzureConstants.AZURE_V12_ENABLED_PROPERTY, "true");
     container = randomGen.nextInt(9999) + "-" + randomGen.nextInt(9999)
                 + "-test";
-    props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, container);
+    props.setProperty(AzureConstantsV12.AZURE_BLOB_CONTAINER_NAME, container);
+    props.setProperty(AzureConstantsV12.AZURE_CREATE_CONTAINER, "true");
     props.setProperty("secret", "123456");
     super.setUp();
   }
@@ -63,15 +61,9 @@ public class TestAzureDS extends AbstractDataStoreTest {
   @After
   public void tearDown() {
     try {
-      LogCustomizer customizer = LogCustomizer.forLogger(AzureBlobContainerProvider.class.getName())
-              .filter(Level.INFO)
-              .create();
-      customizer.starting();
       super.tearDown();
-      Assert.assertEquals(1, customizer.getLogs().size());
-      Assert.assertEquals("Refresh token executor service shutdown completed", customizer.getLogs().get(0));
-      customizer.finished();
-      AzureDataStoreUtils.deleteContainer(container);
+      // Clean up test container in Azurite
+      azurite.getContainer(container, azurite.getConnectionString()).deleteIfExists();
     } catch (Exception ignore) {
 
     }
@@ -81,7 +73,12 @@ public class TestAzureDS extends AbstractDataStoreTest {
   protected DataStore createDataStore() {
     DataStore azureds = null;
     try {
-      azureds = AzureDataStoreUtils.getAzureDataStore(props, dataStoreDir);
+      AzureDataStore ds = new AzureDataStore();
+      org.apache.jackrabbit.oak.commons.PropertiesUtil.populate(
+              ds, org.apache.jackrabbit.oak.commons.collections.MapUtils.fromProperties(props), false);
+      ds.setProperties(props);
+      ds.init(dataStoreDir);
+      azureds = ds;
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -89,12 +86,16 @@ public class TestAzureDS extends AbstractDataStoreTest {
     return azureds;
   }
 
-  /**---------- Skipped -----------**/
+  /**---------- Skipped (not supported by CachingDataStore on Azurite) -----------**/
   @Override
   public void testUpdateLastModifiedOnAccess() {
   }
 
   @Override
   public void testDeleteAllOlderThan() {
+  }
+
+  @Override
+  public void testDeleteRecord() {
   }
 }

@@ -23,6 +23,7 @@ import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
+
 import org.junit.Assume;
 import org.junit.rules.ExternalResource;
 import org.junit.runner.Description;
@@ -37,6 +38,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class AzuriteDockerRule extends ExternalResource {
@@ -103,6 +105,19 @@ public class AzuriteDockerRule extends ExternalResource {
         return "http://127.0.0.1:" + getMappedPort() + "/devstoreaccount1";
     }
 
+    public String getConnectionString() {
+        return "DefaultEndpointsProtocol=http;AccountName=" + ACCOUNT_NAME
+                + ";AccountKey=" + ACCOUNT_KEY
+                + ";BlobEndpoint=" + getBlobEndpoint();
+    }
+
+    public Properties getProperties(String containerName) {
+        Properties properties = new Properties();
+        properties.setProperty(AzureConstants.AZURE_CONNECTION_STRING, getConnectionString());
+        properties.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, containerName);
+        return properties;
+    }
+
     public CloudBlobContainer getContainer(String name) throws URISyntaxException, StorageException, InvalidKeyException {
         CloudStorageAccount cloud = getCloudStorageAccount();
         CloudBlobClient cloudBlobClient = cloud.createCloudBlobClient();
@@ -121,6 +136,11 @@ public class AzuriteDockerRule extends ExternalResource {
         blobContainerClient.deleteIfExists();
         blobContainerClient.create();
         return blobContainerClient;
+    }
+
+    public AzureBlobContainer getAzureBlobContainer(String containerName) throws Exception {
+        AzureBlobContainers.deleteIfExists(getProperties(containerName));
+        return AzureBlobContainers.create(getProperties(containerName));
     }
 
     public CloudStorageAccount getCloudStorageAccount() throws URISyntaxException, InvalidKeyException {

@@ -30,7 +30,7 @@ import static org.junit.Assert.assertNull;
 
 /**
  * Compatibility tests for direct-download and upload cache configuration in
- * {@link AzureBlobStoreBackend}. The assertions are intentionally behavior-
+ * {@link org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12.AzureBlobStoreBackendV12}. The assertions are intentionally behavior-
  * based and do not depend on a specific cache library.
  */
 public class AzureBlobStoreBackendCompatibilityTest {
@@ -38,7 +38,7 @@ public class AzureBlobStoreBackendCompatibilityTest {
     @Test
     public void setHttpDownloadURIExpirySecondsUpdatesField() throws Exception {
         // Setter coverage for the direct-download expiry value used by presigned URIs.
-        AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
+        org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12.AzureBlobStoreBackendV12 backend = new org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12.AzureBlobStoreBackendV12();
 
         backend.setHttpDownloadURIExpirySeconds(3600);
 
@@ -48,7 +48,7 @@ public class AzureBlobStoreBackendCompatibilityTest {
     @Test
     public void setHttpUploadURIExpirySecondsUpdatesField() throws Exception {
         // Setter coverage for the direct-upload expiry used during upload initiation.
-        AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
+        org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12.AzureBlobStoreBackendV12 backend = new org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12.AzureBlobStoreBackendV12();
 
         backend.setHttpUploadURIExpirySeconds(1800);
 
@@ -58,7 +58,7 @@ public class AzureBlobStoreBackendCompatibilityTest {
     @Test
     public void setHttpDownloadURICacheSizeCreatesAndDisablesCache() throws Exception {
         // Verify the cache-size toggle actually creates and then removes the backing cache.
-        AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
+        org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12.AzureBlobStoreBackendV12 backend = new org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12.AzureBlobStoreBackendV12();
         backend.setHttpDownloadURIExpirySeconds(3600);
 
         backend.setHttpDownloadURICacheSize(100);
@@ -71,7 +71,7 @@ public class AzureBlobStoreBackendCompatibilityTest {
     @Test
     public void createHttpDownloadURIReturnsNullWhenDisabled() {
         // With no download expiry configured, direct download access should stay disabled.
-        AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
+        org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12.AzureBlobStoreBackendV12 backend = new org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12.AzureBlobStoreBackendV12();
 
         URI downloadURI = backend.createHttpDownloadURI(
                 new DataIdentifier("test"),
@@ -83,19 +83,19 @@ public class AzureBlobStoreBackendCompatibilityTest {
     @Test
     public void initiateHttpUploadReturnsNullWhenDisabled() {
         // Upload initiation follows the same disabled-by-default contract until configured.
-        AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
+        org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12.AzureBlobStoreBackendV12 backend = new org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12.AzureBlobStoreBackendV12();
 
         assertNull(backend.initiateHttpUpload(1024, 1, DataRecordUploadOptions.DEFAULT));
     }
 
-    private static int getIntField(AzureBlobStoreBackend backend, String fieldName) throws Exception {
-        Field field = AzureBlobStoreBackend.class.getDeclaredField(fieldName);
+    private static int getIntField(org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12.AzureBlobStoreBackendV12 backend, String fieldName) throws Exception {
+        Field field = org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12.AzureBlobStoreBackendV12.class.getDeclaredField(fieldName);
         field.setAccessible(true);
         return (int) field.get(backend);
     }
 
-    private static Object getField(AzureBlobStoreBackend backend, String fieldName) throws Exception {
-        Field field = AzureBlobStoreBackend.class.getDeclaredField(fieldName);
+    private static Object getField(org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12.AzureBlobStoreBackendV12 backend, String fieldName) throws Exception {
+        Field field = org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12.AzureBlobStoreBackendV12.class.getDeclaredField(fieldName);
         field.setAccessible(true);
         return field.get(backend);
     }

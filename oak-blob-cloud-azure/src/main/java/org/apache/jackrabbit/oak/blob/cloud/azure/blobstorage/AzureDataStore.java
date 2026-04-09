@@ -25,8 +25,8 @@ import java.util.Properties;
 import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
 import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12.AzureBlobStoreBackendV12;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v8.AzureBlobStoreBackendV8;
-import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
@@ -50,18 +50,20 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
 
     private AbstractAzureBlobStoreBackend azureBlobStoreBackend;
 
-    private static final String AZURE_SDK_12_ENABLED = "blob.azure.v12.enabled";
-
     @Override
     protected AbstractSharedBackend createBackend() {
-        boolean useAzureSdkV12 = SystemPropertySupplier.create(AZURE_SDK_12_ENABLED, false).get();
+        AzureSdkVersion version = AzureSdkVersion.resolve(properties);
 
-        if (useAzureSdkV12) {
-            log.info("Starting blob store using Azure SDK 12");
-            azureBlobStoreBackend = new AzureBlobStoreBackend();
-        } else {
-            log.info("Starting blob store using Azure SDK 8");
-            azureBlobStoreBackend = new AzureBlobStoreBackendV8();
+        switch (version) {
+            case V12:
+                log.info("Starting blob store using Azure SDK 12");
+                azureBlobStoreBackend = new AzureBlobStoreBackendV12();
+                break;
+            case V8:
+            default:
+                log.info("Starting blob store using Azure SDK 8");
+                azureBlobStoreBackend = new AzureBlobStoreBackendV8();
+                break;
         }
 
         if (properties != null) {
@@ -138,7 +140,9 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
 
     @Override
     public void setDirectDownloadURICacheSize(int maxSize) {
-        azureBlobStoreBackend.setHttpDownloadURICacheSize(maxSize);
+        if (azureBlobStoreBackend != null) {
+            azureBlobStoreBackend.setHttpDownloadURICacheSize(maxSize);
+        }
     }
 
     @Nullable

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
+package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12;
 
 import com.azure.core.http.HttpPipelineCallContext;
 import com.azure.core.http.HttpPipelineNextPolicy;
@@ -36,14 +36,14 @@ import java.util.concurrent.TimeUnit;
  *
  * This policy logs HTTP request details including method, URL, status code, and duration.
  * Verbose logging can be enabled by setting the system property:
- * -Dblob.azure.http.verbose.enabled=true
+ * -Dblob.azure.v12.http.verbose.enabled=true
  *
- * This is similar to the AzureHttpRequestLoggingPolicy in oak-segment-azure but specifically
+ * This is similar to the AzureHttpRequestLoggingPolicyV12 in oak-segment-azure but specifically
  * designed for the blob storage operations in oak-blob-cloud-azure.
  */
-public class AzureHttpRequestLoggingPolicy implements HttpPipelinePolicy {
+public class AzureHttpRequestLoggingPolicyV12 implements HttpPipelinePolicy {
 
-    private static final Logger log = LoggerFactory.getLogger(AzureHttpRequestLoggingPolicy.class);
+    private static final Logger log = LoggerFactory.getLogger(AzureHttpRequestLoggingPolicyV12.class);
 
     private static final String AZURE_SDK_VERBOSE_LOGGING_ENABLED = "blob.azure.v12.http.verbose.enabled";
 

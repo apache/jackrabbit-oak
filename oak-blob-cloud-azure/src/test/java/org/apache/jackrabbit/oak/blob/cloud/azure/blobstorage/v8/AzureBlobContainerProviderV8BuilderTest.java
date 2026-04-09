@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v8;
 
-import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.junit.After;
 import org.junit.Test;
 
@@ -54,14 +53,14 @@ public class AzureBlobContainerProviderV8BuilderTest {
     @Test
     public void testBuilderInitializeWithProperties() {
         Properties properties = new Properties();
-        properties.setProperty(AzureConstants.AZURE_CONNECTION_STRING, CONNECTION_STRING);
-        properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, ACCOUNT_NAME);
-        properties.setProperty(AzureConstants.AZURE_BLOB_ENDPOINT, BLOB_ENDPOINT);
-        properties.setProperty(AzureConstants.AZURE_SAS, SAS_TOKEN);
-        properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, ACCOUNT_KEY);
-        properties.setProperty(AzureConstants.AZURE_TENANT_ID, TENANT_ID);
-        properties.setProperty(AzureConstants.AZURE_CLIENT_ID, CLIENT_ID);
-        properties.setProperty(AzureConstants.AZURE_CLIENT_SECRET, CLIENT_SECRET);
+        properties.setProperty(AzureConstantsV8.AZURE_CONNECTION_STRING, CONNECTION_STRING);
+        properties.setProperty(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_NAME, ACCOUNT_NAME);
+        properties.setProperty(AzureConstantsV8.AZURE_BLOB_ENDPOINT, BLOB_ENDPOINT);
+        properties.setProperty(AzureConstantsV8.AZURE_SAS, SAS_TOKEN);
+        properties.setProperty(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_KEY, ACCOUNT_KEY);
+        properties.setProperty(AzureConstantsV8.AZURE_TENANT_ID, TENANT_ID);
+        properties.setProperty(AzureConstantsV8.AZURE_CLIENT_ID, CLIENT_ID);
+        properties.setProperty(AzureConstantsV8.AZURE_CLIENT_SECRET, CLIENT_SECRET);
 
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
@@ -199,8 +198,8 @@ public class AzureBlobContainerProviderV8BuilderTest {
     public void testBuilderWithPropertiesOverride() {
         // Test that explicit builder methods override properties
         Properties properties = new Properties();
-        properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "properties-account");
-        properties.setProperty(AzureConstants.AZURE_TENANT_ID, "properties-tenant");
+        properties.setProperty(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_NAME, "properties-account");
+        properties.setProperty(AzureConstantsV8.AZURE_TENANT_ID, "properties-tenant");
 
         provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)

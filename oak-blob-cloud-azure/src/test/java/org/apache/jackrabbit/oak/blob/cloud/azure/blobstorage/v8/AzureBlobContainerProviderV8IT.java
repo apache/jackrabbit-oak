@@ -26,7 +26,6 @@ import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
 import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
-import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
@@ -56,7 +55,7 @@ import static java.util.stream.Collectors.toSet;
 import static org.junit.Assert.*;
 import static org.junit.Assume.assumeNotNull;
 
-public class AzureBlobContainerProviderV8Test {
+public class AzureBlobContainerProviderV8IT {
 
     private static final String AZURE_ACCOUNT_NAME = "AZURE_ACCOUNT_NAME";
     private static final String AZURE_TENANT_ID = "AZURE_TENANT_ID";
@@ -89,14 +88,14 @@ public class AzureBlobContainerProviderV8Test {
     @Test
     public void testBuilderWithAllProperties() {
         Properties properties = new Properties();
-        properties.setProperty(AzureConstants.AZURE_CONNECTION_STRING, "test-connection");
-        properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "testaccount");
-        properties.setProperty(AzureConstants.AZURE_BLOB_ENDPOINT, "https://test.blob.core.windows.net");
-        properties.setProperty(AzureConstants.AZURE_SAS, "test-sas");
-        properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, "test-key");
-        properties.setProperty(AzureConstants.AZURE_TENANT_ID, "test-tenant");
-        properties.setProperty(AzureConstants.AZURE_CLIENT_ID, "test-client");
-        properties.setProperty(AzureConstants.AZURE_CLIENT_SECRET, "test-secret");
+        properties.setProperty(AzureConstantsV8.AZURE_CONNECTION_STRING, "test-connection");
+        properties.setProperty(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_NAME, "testaccount");
+        properties.setProperty(AzureConstantsV8.AZURE_BLOB_ENDPOINT, "https://test.blob.core.windows.net");
+        properties.setProperty(AzureConstantsV8.AZURE_SAS, "test-sas");
+        properties.setProperty(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_KEY, "test-key");
+        properties.setProperty(AzureConstantsV8.AZURE_TENANT_ID, "test-tenant");
+        properties.setProperty(AzureConstantsV8.AZURE_CLIENT_ID, "test-client");
+        properties.setProperty(AzureConstantsV8.AZURE_CLIENT_SECRET, "test-secret");
 
         AzureBlobContainerProviderV8 provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
@@ -142,8 +141,8 @@ public class AzureBlobContainerProviderV8Test {
     public void testBuilderWithNullProperties() {
         Properties properties = new Properties();
         // Properties with null values should default to empty strings
-        properties.setProperty(AzureConstants.AZURE_CONNECTION_STRING, "");
-        properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "");
+        properties.setProperty(AzureConstantsV8.AZURE_CONNECTION_STRING, "");
+        properties.setProperty(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_NAME, "");
 
         AzureBlobContainerProviderV8 provider = AzureBlobContainerProviderV8.Builder
                 .builder(CONTAINER_NAME)
@@ -477,11 +476,11 @@ public class AzureBlobContainerProviderV8Test {
         final String clientSecret = getEnvironmentVariable(AZURE_CLIENT_SECRET);
 
         Properties properties = new Properties();
-        properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, accountName);
-        properties.setProperty(AzureConstants.AZURE_TENANT_ID, tenantId);
-        properties.setProperty(AzureConstants.AZURE_CLIENT_ID, clientId);
-        properties.setProperty(AzureConstants.AZURE_CLIENT_SECRET, clientSecret);
-        properties.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, CONTAINER_NAME);
+        properties.setProperty(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_NAME, accountName);
+        properties.setProperty(AzureConstantsV8.AZURE_TENANT_ID, tenantId);
+        properties.setProperty(AzureConstantsV8.AZURE_CLIENT_ID, clientId);
+        properties.setProperty(AzureConstantsV8.AZURE_CLIENT_SECRET, clientSecret);
+        properties.setProperty(AzureConstantsV8.AZURE_BLOB_CONTAINER_NAME, CONTAINER_NAME);
         return properties;
     }
 
@@ -599,32 +598,32 @@ public class AzureBlobContainerProviderV8Test {
 
     private static Properties getConfigurationWithSasToken(String sasToken) {
         Properties properties = getBasicConfiguration();
-        properties.setProperty(AzureConstants.AZURE_SAS, sasToken);
-        properties.setProperty(AzureConstants.AZURE_CREATE_CONTAINER, "false");
-        properties.setProperty(AzureConstants.AZURE_REF_ON_INIT, "false");
+        properties.setProperty(AzureConstantsV8.AZURE_SAS, sasToken);
+        properties.setProperty(AzureConstantsV8.AZURE_CREATE_CONTAINER, "false");
+        properties.setProperty(AzureConstantsV8.AZURE_REF_ON_INIT, "false");
         return properties;
     }
 
     private static Properties getConfigurationWithAccessKey() {
         Properties properties = getBasicConfiguration();
-        properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, AzuriteDockerRule.ACCOUNT_KEY);
+        properties.setProperty(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_KEY, AzuriteDockerRule.ACCOUNT_KEY);
         return properties;
     }
 
     @NotNull
     private static Properties getConfigurationWithConnectionString() {
         Properties properties = getBasicConfiguration();
-        properties.setProperty(AzureConstants.AZURE_CONNECTION_STRING, getConnectionString());
+        properties.setProperty(AzureConstantsV8.AZURE_CONNECTION_STRING, getConnectionString());
         return properties;
     }
 
     @NotNull
     private static Properties getBasicConfiguration() {
         Properties properties = new Properties();
-        properties.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, CONTAINER_NAME);
-        properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_NAME);
-        properties.setProperty(AzureConstants.AZURE_BLOB_ENDPOINT, azurite.getBlobEndpoint());
-        properties.setProperty(AzureConstants.AZURE_CREATE_CONTAINER, "");
+        properties.setProperty(AzureConstantsV8.AZURE_BLOB_CONTAINER_NAME, CONTAINER_NAME);
+        properties.setProperty(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_NAME);
+        properties.setProperty(AzureConstantsV8.AZURE_BLOB_ENDPOINT, azurite.getBlobEndpoint());
+        properties.setProperty(AzureConstantsV8.AZURE_CREATE_CONTAINER, "");
         return properties;
     }
 

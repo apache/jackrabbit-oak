@@ -23,9 +23,9 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.read.ListAppender;
-import com.azure.storage.blob.BlobContainerClient;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureBlobContainerProvider;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureBlobContainer;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureBlobContainers;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.jetbrains.annotations.NotNull;
@@ -36,8 +36,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -45,6 +43,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -53,7 +52,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-public class DataStoreUtilsTest {
+public class DataStoreUtilsIT {
     @ClassRule
     public static AzuriteDockerRule azuriteDockerRule = new AzuriteDockerRule();
 
@@ -71,18 +70,20 @@ public class DataStoreUtilsTest {
     private static final String CONTAINER_DELETED_MESSAGE = "container [%s] deleted";
     private static final String DELETING_CONTAINER_MESSAGE = "deleting container [%s]";
 
-    private BlobContainerClient container;
+    private AzureBlobContainer container;
 
     @Before
-    public void init() throws URISyntaxException, InvalidKeyException {
-        container = azuriteDockerRule.getContainer(CONTAINER_NAME, String.format(AZURE_CONNECTION_STRING, AzuriteDockerRule.ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_KEY, azuriteDockerRule.getBlobEndpoint()));
+    public void init() throws Exception {
+        container = azuriteDockerRule.getAzureBlobContainer(CONTAINER_NAME);
         assertTrue(container.exists());
     }
 
     @After
-    public void cleanup()  {
+    public void cleanup() throws Exception {
         if (container != null) {
-            container.deleteIfExists();
+            try (AzureBlobContainer closableContainer = container) {
+                closableContainer.deleteIfExists();
+            }
         }
     }
 
@@ -154,17 +155,12 @@ public class DataStoreUtilsTest {
         Assume.assumeNotNull(clientSecret);
         Assume.assumeNotNull(tenantId);
 
-        BlobContainerClient container;
-        AzureBlobContainerProvider azureBlobContainerProvider = AzureBlobContainerProvider.Builder.builder(CONTAINER_NAME)
-                .withAccountName(accountName)
-                .withClientId(clientId)
-                .withClientSecret(clientSecret)
-                .withTenantId(tenantId).build();
-        container = azureBlobContainerProvider.getBlobContainer();
-        container.createIfNotExists();
+        try (AzureBlobContainer container = AzureBlobContainers.create(toProperties(getConfigMap(null, accountName, null, null, null, clientId, clientSecret, tenantId), CONTAINER_NAME))) {
+            container.createIfNotExists();
 
-        assertNotNull(container);
-        assertTrue(container.exists());
+            assertNotNull(container);
+            assertTrue(container.exists());
+        }
 
         ListAppender<ILoggingEvent> logAppender = subscribeAppender();
 
@@ -237,6 +233,15 @@ public class DataStoreUtilsTest {
 
     private String getEnvironmentVariable(String variableName) {
         return System.getenv(variableName);
+    }
+
+    private Properties toProperties(Map<String, ?> config, String containerName) {
+        Properties properties = new Properties();
+        config.entrySet().stream()
+                .filter(entry -> entry.getValue() != null)
+                .forEach(entry -> properties.put(entry.getKey(), entry.getValue()));
+        properties.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, containerName);
+        return properties;
     }
 
     private Map<String, ?> getConfigMap(String connectionString,

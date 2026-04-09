@@ -19,18 +19,6 @@
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v8;
 
 import static java.lang.Thread.currentThread;
-import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_BUFFERED_STREAM_THRESHOLD;
-import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_DEFAULT_CONCURRENT_REQUEST_COUNT;
-import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_LAST_MODIFIED_KEY;
-import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_MAX_ALLOWABLE_UPLOAD_URIS;
-import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_MAX_BINARY_UPLOAD_SIZE;
-import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_MAX_CONCURRENT_REQUEST_COUNT;
-import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_MAX_MULTIPART_UPLOAD_PART_SIZE;
-import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_MAX_SINGLE_PUT_UPLOAD_SIZE;
-import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BlOB_META_DIR_NAME;
-import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_META_KEY_PREFIX;
-import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_MIN_MULTIPART_UPLOAD_PART_SIZE;
-import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_REF_KEY;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
@@ -59,14 +47,13 @@ import java.util.Properties;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
+import org.apache.commons.lang3.StringUtils;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AbstractAzureBlobStoreBackend;
 import org.apache.jackrabbit.oak.commons.collections.AbstractIterator;
-import org.apache.jackrabbit.oak.commons.time.Stopwatch;
-
 import com.microsoft.azure.storage.AccessCondition;
 import com.microsoft.azure.storage.LocationMode;
 import com.microsoft.azure.storage.ResultContinuation;
@@ -81,19 +68,15 @@ import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
+import com.microsoft.azure.storage.blob.CopyStatus;
 import com.microsoft.azure.storage.blob.ListBlobItem;
 import com.microsoft.azure.storage.blob.SharedAccessBlobHeaders;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
 import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
-import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AbstractAzureBlobStoreBackend;
-import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
-import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Utils;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
@@ -114,7 +97,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
 
     private Properties properties;
     private AzureBlobContainerProviderV8 azureBlobContainerProvider;
-    private int concurrentRequestCount = AZURE_BLOB_DEFAULT_CONCURRENT_REQUEST_COUNT;
+    private int concurrentRequestCount = AzureConstantsV8.AZURE_BLOB_DEFAULT_CONCURRENT_REQUEST_COUNT;
     private RetryPolicy retryPolicy;
     private Integer requestTimeout;
     private int httpDownloadURIExpirySeconds = 0; // disabled by default
@@ -123,7 +106,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
     private String downloadDomainOverride = null;
     private boolean createBlobContainer = true;
     private boolean presignedDownloadURIVerifyExists = true;
-    private boolean enableSecondaryLocation = AzureConstants.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_DEFAULT;
+    private boolean enableSecondaryLocation = AzureConstantsV8.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_DEFAULT;
 
     private Cache<String, URI> httpDownloadURICache;
 
@@ -133,20 +116,26 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
         this.properties = properties;
     }
 
-    private final AtomicReference<CloudBlobContainer> azureContainerReference = new AtomicReference<>();
+    private volatile CloudBlobContainer azureContainer = null;
 
-    public CloudBlobContainer getAzureContainer() throws DataStoreException {
-        azureContainerReference.compareAndSet(null, azureBlobContainerProvider.getBlobContainer(getBlobRequestOptions()));
-        return azureContainerReference.get();
+    protected CloudBlobContainer getAzureContainer() throws DataStoreException {
+        if (azureContainer == null) {
+            synchronized (this) {
+                if (azureContainer == null) {
+                    azureContainer = azureBlobContainerProvider.getBlobContainer(getBlobRequestOptions());
+                }
+            }
+        }
+        return azureContainer;
     }
 
     @NotNull
     protected BlobRequestOptions getBlobRequestOptions() {
         BlobRequestOptions requestOptions = new BlobRequestOptions();
-        if (retryPolicy != null) {
+        if (null != retryPolicy) {
             requestOptions.setRetryPolicyFactory(retryPolicy);
         }
-        if (requestTimeout != null) {
+        if (null != requestTimeout) {
             requestOptions.setTimeoutIntervalInMs(requestTimeout);
         }
         requestOptions.setConcurrentRequestCount(concurrentRequestCount);
@@ -159,14 +148,14 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
     @Override
     public void init() throws DataStoreException {
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
-        Stopwatch watch = Stopwatch.createStarted();
+        long start = System.currentTimeMillis();
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
             LOG.debug("Started backend initialization");
 
-            if (properties == null) {
+            if (null == properties) {
                 try {
-                    properties = Utils.readConfig(UtilsV8.DEFAULT_CONFIG_FILE);
+                    properties = UtilsV8.readConfig(UtilsV8.DEFAULT_CONFIG_FILE);
                 }
                 catch (IOException e) {
                     throw new DataStoreException("Unable to initialize Azure Data Store from " + UtilsV8.DEFAULT_CONFIG_FILE, e);
@@ -176,35 +165,35 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
             try {
                 UtilsV8.setProxyIfNeeded(properties);
                 createBlobContainer = PropertiesUtil.toBoolean(
-                    org.apache.jackrabbit.oak.commons.StringUtils.emptyToNull(properties.getProperty(AzureConstants.AZURE_CREATE_CONTAINER)), true);
+                    org.apache.jackrabbit.oak.commons.StringUtils.emptyToNull(properties.getProperty(AzureConstantsV8.AZURE_CREATE_CONTAINER)), true);
                 initAzureDSConfig();
 
                 concurrentRequestCount = PropertiesUtil.toInteger(
-                        properties.getProperty(AzureConstants.AZURE_BLOB_CONCURRENT_REQUESTS_PER_OPERATION),
-                        AZURE_BLOB_DEFAULT_CONCURRENT_REQUEST_COUNT);
-                if (concurrentRequestCount < AZURE_BLOB_DEFAULT_CONCURRENT_REQUEST_COUNT) {
+                        properties.getProperty(AzureConstantsV8.AZURE_BLOB_CONCURRENT_REQUESTS_PER_OPERATION),
+                        AzureConstantsV8.AZURE_BLOB_DEFAULT_CONCURRENT_REQUEST_COUNT);
+                if (concurrentRequestCount < AzureConstantsV8.AZURE_BLOB_DEFAULT_CONCURRENT_REQUEST_COUNT) {
                     LOG.warn("Invalid setting [{}] for concurrentRequestsPerOperation (too low); resetting to {}",
                             concurrentRequestCount,
-                             AZURE_BLOB_DEFAULT_CONCURRENT_REQUEST_COUNT);
-                    concurrentRequestCount = AZURE_BLOB_DEFAULT_CONCURRENT_REQUEST_COUNT;
-                } else if (concurrentRequestCount > AZURE_BLOB_MAX_CONCURRENT_REQUEST_COUNT) {
+                            AzureConstantsV8.AZURE_BLOB_DEFAULT_CONCURRENT_REQUEST_COUNT);
+                    concurrentRequestCount = AzureConstantsV8.AZURE_BLOB_DEFAULT_CONCURRENT_REQUEST_COUNT;
+                } else if (concurrentRequestCount > AzureConstantsV8.AZURE_BLOB_MAX_CONCURRENT_REQUEST_COUNT) {
                     LOG.warn("Invalid setting [{}] for concurrentRequestsPerOperation (too high); resetting to {}",
                             concurrentRequestCount,
-                             AZURE_BLOB_MAX_CONCURRENT_REQUEST_COUNT);
-                    concurrentRequestCount = AZURE_BLOB_MAX_CONCURRENT_REQUEST_COUNT;
+                            AzureConstantsV8.AZURE_BLOB_MAX_CONCURRENT_REQUEST_COUNT);
+                    concurrentRequestCount = AzureConstantsV8.AZURE_BLOB_MAX_CONCURRENT_REQUEST_COUNT;
                 }
                 LOG.info("Using concurrentRequestsPerOperation={}", concurrentRequestCount);
 
-                retryPolicy = UtilsV8.getRetryPolicy(properties.getProperty(AzureConstants.AZURE_BLOB_MAX_REQUEST_RETRY));
-                if (properties.getProperty(AzureConstants.AZURE_BLOB_REQUEST_TIMEOUT) != null) {
-                    requestTimeout = PropertiesUtil.toInteger(properties.getProperty(AzureConstants.AZURE_BLOB_REQUEST_TIMEOUT), RetryPolicy.DEFAULT_CLIENT_RETRY_COUNT);
+                retryPolicy = UtilsV8.getRetryPolicy(properties.getProperty(AzureConstantsV8.AZURE_BLOB_MAX_REQUEST_RETRY));
+                if (properties.getProperty(AzureConstantsV8.AZURE_BLOB_REQUEST_TIMEOUT) != null) {
+                    requestTimeout = PropertiesUtil.toInteger(properties.getProperty(AzureConstantsV8.AZURE_BLOB_REQUEST_TIMEOUT), RetryPolicy.DEFAULT_CLIENT_RETRY_COUNT);
                 }
                 presignedDownloadURIVerifyExists = PropertiesUtil.toBoolean(
-                        org.apache.jackrabbit.oak.commons.StringUtils.emptyToNull(properties.getProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS)), true);
+                    org.apache.jackrabbit.oak.commons.StringUtils.emptyToNull(properties.getProperty(AzureConstantsV8.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS)), true);
 
                 enableSecondaryLocation = PropertiesUtil.toBoolean(
-                        properties.getProperty(AzureConstants.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_NAME),
-                        AzureConstants.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_DEFAULT
+                        properties.getProperty(AzureConstantsV8.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_NAME),
+                        AzureConstantsV8.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_DEFAULT
                 );
 
                 CloudBlobContainer azureContainer = getAzureContainer();
@@ -215,38 +204,37 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
                 } else {
                     LOG.info("Reusing existing container. containerName={}", getContainerName());
                 }
-                LOG.debug("Backend initialized. duration={}", watch.elapsed(TimeUnit.MILLISECONDS));
+                LOG.debug("Backend initialized. duration={}", (System.currentTimeMillis() - start));
 
                 // settings pertaining to DataRecordAccessProvider functionality
-                String putExpiry = properties.getProperty(AzureConstants.PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS);
-                if (putExpiry != null) {
+                String putExpiry = properties.getProperty(AzureConstantsV8.PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS);
+                if (null != putExpiry) {
                     this.setHttpUploadURIExpirySeconds(Integer.parseInt(putExpiry));
                 }
-                String getExpiry = properties.getProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS);
-                if (getExpiry != null) {
+                String getExpiry = properties.getProperty(AzureConstantsV8.PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS);
+                if (null != getExpiry) {
                     this.setHttpDownloadURIExpirySeconds(Integer.parseInt(getExpiry));
-                    String cacheMaxSize = properties.getProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_CACHE_MAX_SIZE);
-                    if (cacheMaxSize != null) {
+                    String cacheMaxSize = properties.getProperty(AzureConstantsV8.PRESIGNED_HTTP_DOWNLOAD_URI_CACHE_MAX_SIZE);
+                    if (null != cacheMaxSize) {
                         this.setHttpDownloadURICacheSize(Integer.parseInt(cacheMaxSize));
                     }
                     else {
                         this.setHttpDownloadURICacheSize(0); // default
                     }
                 }
-                uploadDomainOverride = properties.getProperty(AzureConstants.PRESIGNED_HTTP_UPLOAD_URI_DOMAIN_OVERRIDE, null);
-                downloadDomainOverride = properties.getProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_DOMAIN_OVERRIDE, null);
+                uploadDomainOverride = properties.getProperty(AzureConstantsV8.PRESIGNED_HTTP_UPLOAD_URI_DOMAIN_OVERRIDE, null);
+                downloadDomainOverride = properties.getProperty(AzureConstantsV8.PRESIGNED_HTTP_DOWNLOAD_URI_DOMAIN_OVERRIDE, null);
 
                 // Initialize reference key secret
                 boolean createRefSecretOnInit = PropertiesUtil.toBoolean(
-                        org.apache.jackrabbit.oak.commons.StringUtils.emptyToNull(properties.getProperty(AzureConstants.AZURE_REF_ON_INIT)), true);
+                    org.apache.jackrabbit.oak.commons.StringUtils.emptyToNull(properties.getProperty(AzureConstantsV8.AZURE_REF_ON_INIT)), true);
 
                 if (createRefSecretOnInit) {
                     getOrCreateReferenceKey();
                 }
             }
             catch (StorageException e) {
-                LOG.error("Error performing blob storage creation: {}", e.getMessage());
-                throw new DataStoreException("Error performing backend initialization", e);
+                throw new DataStoreException(e);
             }
         }
         finally {
@@ -255,24 +243,24 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
     }
 
     private void initAzureDSConfig() {
-        AzureBlobContainerProviderV8.Builder builder = AzureBlobContainerProviderV8.Builder.builder(properties.getProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME))
-                .withAzureConnectionString(properties.getProperty(AzureConstants.AZURE_CONNECTION_STRING, ""))
-                .withAccountName(properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, ""))
-                .withBlobEndpoint(properties.getProperty(AzureConstants.AZURE_BLOB_ENDPOINT, ""))
-                .withSasToken(properties.getProperty(AzureConstants.AZURE_SAS, ""))
-                .withAccountKey(properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, ""))
-                .withTenantId(properties.getProperty(AzureConstants.AZURE_TENANT_ID, ""))
-                .withClientId(properties.getProperty(AzureConstants.AZURE_CLIENT_ID, ""))
-                .withClientSecret(properties.getProperty(AzureConstants.AZURE_CLIENT_SECRET, ""));
+        AzureBlobContainerProviderV8.Builder builder = AzureBlobContainerProviderV8.Builder.builder(properties.getProperty(AzureConstantsV8.AZURE_BLOB_CONTAINER_NAME))
+                .withAzureConnectionString(properties.getProperty(AzureConstantsV8.AZURE_CONNECTION_STRING, ""))
+                .withAccountName(properties.getProperty(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_NAME, ""))
+                .withBlobEndpoint(properties.getProperty(AzureConstantsV8.AZURE_BLOB_ENDPOINT, ""))
+                .withSasToken(properties.getProperty(AzureConstantsV8.AZURE_SAS, ""))
+                .withAccountKey(properties.getProperty(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_KEY, ""))
+                .withTenantId(properties.getProperty(AzureConstantsV8.AZURE_TENANT_ID, ""))
+                .withClientId(properties.getProperty(AzureConstantsV8.AZURE_CLIENT_ID, ""))
+                .withClientSecret(properties.getProperty(AzureConstantsV8.AZURE_CLIENT_SECRET, ""));
         azureBlobContainerProvider = builder.build();
     }
 
     @Override
     public InputStream read(DataIdentifier identifier) throws DataStoreException {
-        Objects.requireNonNull(identifier, "identifier must not be null");
+        if (null == identifier) throw new NullPointerException("identifier");
 
         String key = getKeyName(identifier);
-        Stopwatch watch = Stopwatch.createStarted();
+        long start = System.currentTimeMillis();
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(
@@ -283,18 +271,21 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
             }
 
             InputStream is = blob.openInputStream();
-            LOG.debug("Got input stream for blob. identifier={} duration={}", key, watch.elapsed(TimeUnit.MILLISECONDS));
+            LOG.debug("Got input stream for blob. identifier={} duration={}", key, (System.currentTimeMillis() - start));
             if (LOG_STREAMS_DOWNLOAD.isDebugEnabled()) {
                 // Log message, with exception so we can get a trace to see where the call came from
                 LOG_STREAMS_DOWNLOAD.debug("Binary downloaded from Azure Blob Storage - identifier={}", key, new Exception());
             }
             return is;
         }
-        catch (StorageException | URISyntaxException e) {
-            LOG.error("Error reading blob. identifier={}", key);
+        catch (StorageException e) {
+            LOG.info("Error reading blob. identifier={}", key);
             throw new DataStoreException(String.format("Cannot read blob. identifier=%s", key), e);
         }
-        finally {
+        catch (URISyntaxException e) {
+            LOG.debug("Error reading blob. identifier={}", key);
+            throw new DataStoreException(String.format("Cannot read blob. identifier=%s", key), e);
+        } finally {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
             }
@@ -303,11 +294,14 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
 
     @Override
     public void write(DataIdentifier identifier, File file) throws DataStoreException {
-        Objects.requireNonNull(identifier, "identifier must not be null");
-        Objects.requireNonNull(file, "file must not be null");
-
+        if (null == identifier) {
+            throw new NullPointerException("identifier");
+        }
+        if (null == file) {
+            throw new NullPointerException("file");
+        }
         String key = getKeyName(identifier);
-        Stopwatch watch = Stopwatch.createStarted();
+        long start = System.currentTimeMillis();
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
 
         try {
@@ -321,23 +315,26 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
 
                 BlobRequestOptions options = new BlobRequestOptions();
                 options.setConcurrentRequestCount(concurrentRequestCount);
-                boolean useBufferedStream = len < AZURE_BLOB_BUFFERED_STREAM_THRESHOLD;
-              try (InputStream in = useBufferedStream ? new BufferedInputStream(new FileInputStream(file)) : new FileInputStream(file)) {
-                blob.upload(in, len, null, options, null);
-                LOG.debug("Blob created. identifier={} length={} duration={} buffered={}", key, len, watch.elapsed(TimeUnit.MILLISECONDS), useBufferedStream);
-                if (LOG_STREAMS_UPLOAD.isDebugEnabled()) {
-                  // Log message, with exception so we can get a trace to see where the call came from
-                  LOG_STREAMS_UPLOAD.debug("Binary uploaded to Azure Blob Storage - identifier={}", key, new Exception());
+                boolean useBufferedStream = len < AzureConstantsV8.AZURE_BLOB_BUFFERED_STREAM_THRESHOLD;
+                final InputStream in = useBufferedStream  ? new BufferedInputStream(new FileInputStream(file)) : new FileInputStream(file);
+                try {
+                    blob.upload(in, len, null, options, null);
+                    LOG.debug("Blob created. identifier={} length={} duration={} buffered={}", key, len, (System.currentTimeMillis() - start), useBufferedStream);
+                    if (LOG_STREAMS_UPLOAD.isDebugEnabled()) {
+                        // Log message, with exception so we can get a trace to see where the call came from
+                        LOG_STREAMS_UPLOAD.debug("Binary uploaded to Azure Blob Storage - identifier={}", key, new Exception());
+                    }
+                } finally {
+                    in.close();
                 }
-              }
                 return;
             }
 
             blob.downloadAttributes();
             if (blob.getProperties().getLength() != len) {
                 throw new DataStoreException("Length Collision. identifier=" + key +
-                        " new length=" + len +
-                        " old length=" + blob.getProperties().getLength());
+                                             " new length=" + len +
+                                             " old length=" + blob.getProperties().getLength());
             }
 
             LOG.trace("Blob already exists. identifier={} lastModified={}", key, getLastModified(blob));
@@ -345,24 +342,81 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
             blob.uploadMetadata();
 
             LOG.debug("Blob updated. identifier={} lastModified={} duration={}", key,
-                    getLastModified(blob), watch.elapsed(TimeUnit.MILLISECONDS));
+                      getLastModified(blob), (System.currentTimeMillis() - start));
         }
-        catch (StorageException | URISyntaxException | IOException e) {
+        catch (StorageException e) {
+            LOG.info("Error writing blob. identifier={}", key, e);
+            throw new DataStoreException(String.format("Cannot write blob. identifier=%s", key), e);
+        }
+        catch (URISyntaxException | IOException e) {
             LOG.debug("Error writing blob. identifier={}", key, e);
             throw new DataStoreException(String.format("Cannot write blob. identifier=%s", key), e);
         } finally {
-            if (contextClassLoader != null) {
+            if (null != contextClassLoader) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
             }
         }
     }
-    
+
+    private static boolean waitForCopy(CloudBlob blob) throws StorageException, InterruptedException {
+        boolean continueLoop = true;
+        CopyStatus status = CopyStatus.PENDING;
+        while (continueLoop) {
+            blob.downloadAttributes();
+            status = blob.getCopyState().getStatus();
+            continueLoop = status == CopyStatus.PENDING;
+            // Sleep if retry is needed
+            if (continueLoop) {
+                Thread.sleep(500);
+            }
+        }
+        return status == CopyStatus.SUCCESS;
+    }
+
+    @Override
+    public byte[] getOrCreateReferenceKey() throws DataStoreException {
+        try {
+            if (secret != null && secret.length != 0) {
+                return secret;
+            } else {
+                byte[] key;
+                // Try reading from the metadata folder if it exists
+                key = readMetadataBytes(AzureConstantsV8.AZURE_BLOB_REF_KEY);
+                if (key == null) {
+                    key = super.getOrCreateReferenceKey();
+                    addMetadataRecord(new ByteArrayInputStream(key), AzureConstantsV8.AZURE_BLOB_REF_KEY);
+                    key = readMetadataBytes(AzureConstantsV8.AZURE_BLOB_REF_KEY);
+                }
+                secret = key;
+                return secret;
+            }
+        } catch (IOException e) {
+            throw new DataStoreException("Unable to get or create key " + e);
+        }
+    }
+
+    private byte[] readMetadataBytes(String name) throws IOException, DataStoreException {
+        DataRecord rec = getMetadataRecord(name);
+        byte[] key = null;
+        if (rec != null) {
+            InputStream stream = null;
+            try {
+                stream = rec.getStream();
+                return IOUtils.toByteArray(stream);
+            } finally {
+                IOUtils.closeQuietly(stream);
+            }
+        }
+        return key;
+    }
+
     @Override
     public DataRecord getRecord(DataIdentifier identifier) throws DataStoreException {
-        Objects.requireNonNull(identifier, "identifier must not be null");
-
+        if (null == identifier) {
+            throw new NullPointerException("identifier");
+        }
         String key = getKeyName(identifier);
-        Stopwatch watch = Stopwatch.createStarted();
+        long start = System.currentTimeMillis();
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
@@ -376,7 +430,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
                     getLastModified(blob),
                     blob.getProperties().getLength());
             LOG.debug("Data record read for blob. identifier={} duration={} record={}",
-                    key, watch.elapsed(TimeUnit.MILLISECONDS), record);
+                      key, (System.currentTimeMillis() - start), record);
             return record;
         }
         catch (StorageException e) {
@@ -404,9 +458,11 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
                 input -> new DataIdentifier(getIdentifierName(input.getName())));
     }
 
+
+
     @Override
     public Iterator<DataRecord> getAllRecords() {
-        final AbstractSharedBackend backend = this;
+        final org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend backend = this;
         return new RecordsIterator<>(
                 input -> new AzureBlobStoreDataRecord(
                         backend,
@@ -419,40 +475,38 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
 
     @Override
     public boolean exists(DataIdentifier identifier) throws DataStoreException {
-        Stopwatch watch = Stopwatch.createStarted();
+        long start = System.currentTimeMillis();
         String key = getKeyName(identifier);
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 
-            boolean exists = getAzureContainer().getBlockBlobReference(key).exists();
-            LOG.debug("Blob exists={} identifier={} duration={}", exists, key, watch.elapsed(TimeUnit.MILLISECONDS));
+            boolean exists =getAzureContainer().getBlockBlobReference(key).exists();
+            LOG.debug("Blob exists={} identifier={} duration={}", exists, key, (System.currentTimeMillis() - start));
             return exists;
         }
         catch (Exception e) {
             throw new DataStoreException(e);
         }
         finally {
-            if (contextClassLoader != null) {
+            if (null != contextClassLoader) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
             }
         }
     }
 
     @Override
-    public void close() {
-        if(azureBlobContainerProvider != null) {
-            azureBlobContainerProvider.close();
-        }
+    public void close() throws DataStoreException {
+        azureBlobContainerProvider.close();
         LOG.info("AzureBlobBackend closed.");
     }
 
     @Override
     public void deleteRecord(DataIdentifier identifier) throws DataStoreException {
-        Objects.requireNonNull(identifier, "identifier must not be null");
+        if (null == identifier) throw new NullPointerException("identifier");
 
         String key = getKeyName(identifier);
-        Stopwatch watch = Stopwatch.createStarted();
+        long start = System.currentTimeMillis();
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
@@ -460,10 +514,13 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
             boolean result = getAzureContainer().getBlockBlobReference(key).deleteIfExists();
             LOG.debug("Blob {}. identifier={} duration={}",
                     result ? "deleted" : "delete requested, but it does not exist (perhaps already deleted)",
-                    key, watch.elapsed(TimeUnit.MILLISECONDS));
+                    key, (System.currentTimeMillis() - start));
         }
-        catch (StorageException | URISyntaxException e) {
-            LOG.error("Error deleting blob. identifier={}", key, e);
+        catch (StorageException e) {
+            LOG.info("Error deleting blob. identifier={}", key, e);
+            throw new DataStoreException(e);
+        }
+        catch (URISyntaxException e) {
             throw new DataStoreException(e);
         } finally {
             if (contextClassLoader != null) {
@@ -474,19 +531,22 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
 
     @Override
     public void addMetadataRecord(InputStream input, String name) throws DataStoreException {
-        Objects.requireNonNull(input, "input must not be null");
-        Validate.checkArgument(StringUtils.isNotEmpty(name), "name should not be empty");
-
-        Stopwatch watch = Stopwatch.createStarted();
+        if (null == input) {
+            throw new NullPointerException("input");
+        }
+        if (StringUtils.isEmpty(name)) {
+            throw new IllegalArgumentException("name");
+        }
+        long start = System.currentTimeMillis();
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 
             addMetadataRecordImpl(input, name, -1L);
-            LOG.debug("Metadata record added. metadataName={} duration={}", name, watch.elapsed(TimeUnit.MILLISECONDS));
+            LOG.debug("Metadata record added. metadataName={} duration={}", name, (System.currentTimeMillis() - start));
         }
         finally {
-            if (contextClassLoader != null) {
+            if (null != contextClassLoader) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
             }
         }
@@ -494,23 +554,25 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
 
     @Override
     public void addMetadataRecord(File input, String name) throws DataStoreException {
-        Objects.requireNonNull(input, "input must not be null");
-        Validate.checkArgument(StringUtils.isNotEmpty(name), "name should not be empty");
-
-        Stopwatch watch = Stopwatch.createStarted();
+        if (null == input) {
+            throw new NullPointerException("input");
+        }
+        if (StringUtils.isEmpty(name)) {
+            throw new IllegalArgumentException("name");
+        }
+        long start = System.currentTimeMillis();
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 
             addMetadataRecordImpl(new FileInputStream(input), name, input.length());
-            LOG.debug("Metadata record added. metadataName={} duration={}", name, watch.elapsed(TimeUnit.MILLISECONDS));
+            LOG.debug("Metadata record added. metadataName={} duration={}", name, (System.currentTimeMillis() - start));
         }
         catch (FileNotFoundException e) {
-            LOG.error("Error adding metadata record. metadataName={}", name, e);
             throw new DataStoreException(e);
         }
         finally {
-            if (contextClassLoader != null) {
+            if (null != contextClassLoader) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
             }
         }
@@ -518,13 +580,16 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
 
     private void addMetadataRecordImpl(final InputStream input, String name, long recordLength) throws DataStoreException {
         try {
-            CloudBlobDirectory metaDir = getAzureContainer().getDirectoryReference(AZURE_BlOB_META_DIR_NAME);
+            CloudBlobDirectory metaDir = getAzureContainer().getDirectoryReference(AzureConstantsV8.AZURE_BLOB_META_DIR_NAME);
             CloudBlockBlob blob = metaDir.getBlockBlobReference(name);
             addLastModified(blob);
             blob.upload(input, recordLength);
         }
-        catch (StorageException | URISyntaxException | IOException e) {
-            LOG.error("Error adding metadata record. metadataName={} length={}", name, recordLength, e);
+        catch (StorageException e) {
+            LOG.info("Error adding metadata record. metadataName={} length={}", name, recordLength, e);
+            throw new DataStoreException(e);
+        }
+        catch (URISyntaxException |  IOException e) {
             throw new DataStoreException(e);
         }
     }
@@ -532,11 +597,11 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
     @Override
     public DataRecord getMetadataRecord(String name) {
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
-        Stopwatch watch = Stopwatch.createStarted();
+        long start = System.currentTimeMillis();
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 
-            CloudBlobDirectory metaDir = getAzureContainer().getDirectoryReference(AZURE_BlOB_META_DIR_NAME);
+            CloudBlobDirectory metaDir = getAzureContainer().getDirectoryReference(AzureConstantsV8.AZURE_BLOB_META_DIR_NAME);
             CloudBlockBlob blob = metaDir.getBlockBlobReference(name);
             if (!blob.exists()) {
                 LOG.warn("Trying to read missing metadata. metadataName={}", name);
@@ -551,14 +616,17 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
                     lastModified,
                     length,
                     true);
-            LOG.debug("Metadata record read. metadataName={} duration={} record={}", name, watch.elapsed(TimeUnit.MILLISECONDS), record);
+            LOG.debug("Metadata record read. metadataName={} duration={} record={}", name, (System.currentTimeMillis() - start), record);
             return record;
 
-        } catch (StorageException | DataStoreException | URISyntaxException e) {
+        } catch (StorageException e) {
             LOG.info("Error reading metadata record. metadataName={}", name, e);
             throw new RuntimeException(e);
+        } catch (Exception e) {
+            LOG.debug("Error reading metadata record. metadataName={}", name, e);
+            throw new RuntimeException(e);
         } finally {
-            if (contextClassLoader != null) {
+            if (null != contextClassLoader) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
             }
         }
@@ -566,15 +634,16 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
 
     @Override
     public List<DataRecord> getAllMetadataRecords(String prefix) {
-        Objects.requireNonNull(prefix, "prefix must not be null");
-
-        Stopwatch watch = Stopwatch.createStarted();
+        if (null == prefix) {
+            throw new NullPointerException("prefix");
+        }
+        long start = System.currentTimeMillis();
         final List<DataRecord> records = new ArrayList<>();
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 
-            CloudBlobDirectory metaDir = getAzureContainer().getDirectoryReference(AZURE_BlOB_META_DIR_NAME);
+            CloudBlobDirectory metaDir = getAzureContainer().getDirectoryReference(AzureConstantsV8.AZURE_BLOB_META_DIR_NAME);
             for (ListBlobItem item : metaDir.listBlobs(prefix)) {
                 if (item instanceof CloudBlob) {
                     CloudBlob blob = (CloudBlob) item;
@@ -588,13 +657,16 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
                             true));
                 }
             }
-            LOG.debug("Metadata records read. recordsRead={} metadataFolder={} duration={}", records.size(), prefix, watch.elapsed(TimeUnit.MILLISECONDS));
+            LOG.debug("Metadata records read. recordsRead={} metadataFolder={} duration={}", records.size(), prefix, (System.currentTimeMillis() - start));
         }
-        catch (StorageException | DataStoreException | URISyntaxException e) {
-            LOG.error("Error reading all metadata records. metadataFolder={}", prefix, e);
+        catch (StorageException e) {
+            LOG.info("Error reading all metadata records. metadataFolder={}", prefix, e);
+        }
+        catch (DataStoreException | URISyntaxException e) {
+            LOG.debug("Error reading all metadata records. metadataFolder={}", prefix, e);
         }
         finally {
-            if (contextClassLoader != null) {
+            if (null != contextClassLoader) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
             }
         }
@@ -603,7 +675,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
 
     @Override
     public boolean deleteMetadataRecord(String name) {
-        Stopwatch watch = Stopwatch.createStarted();
+        long start = System.currentTimeMillis();
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
@@ -612,12 +684,15 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
             boolean result = blob.deleteIfExists();
             LOG.debug("Metadata record {}. metadataName={} duration={}",
                     result ? "deleted" : "delete requested, but it does not exist (perhaps already deleted)",
-                    name, watch.elapsed(TimeUnit.MILLISECONDS));
+                    name, (System.currentTimeMillis() - start));
             return result;
 
         }
-        catch (StorageException | DataStoreException | URISyntaxException e) {
-            LOG.error("Error deleting metadata record. metadataName={}", name, e);
+        catch (StorageException e) {
+            LOG.info("Error deleting metadata record. metadataName={}", name, e);
+        }
+        catch (DataStoreException | URISyntaxException e) {
+            LOG.debug("Error deleting metadata record. metadataName={}", name, e);
         }
         finally {
             if (contextClassLoader != null) {
@@ -629,14 +704,15 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
 
     @Override
     public void deleteAllMetadataRecords(String prefix) {
-        Objects.requireNonNull(prefix, "prefix must not be null");
-
-        Stopwatch watch = Stopwatch.createStarted();
+        if (null == prefix) {
+            throw new NullPointerException("prefix");
+        }
+        long start = System.currentTimeMillis();
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 
-            CloudBlobDirectory metaDir = getAzureContainer().getDirectoryReference(AZURE_BlOB_META_DIR_NAME);
+            CloudBlobDirectory metaDir = getAzureContainer().getDirectoryReference(AzureConstantsV8.AZURE_BLOB_META_DIR_NAME);
             int total = 0;
             for (ListBlobItem item : metaDir.listBlobs(prefix)) {
                 if (item instanceof CloudBlob) {
@@ -646,14 +722,17 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
                 }
             }
             LOG.debug("Metadata records deleted. recordsDeleted={} metadataFolder={} duration={}",
-                    total, prefix, watch.elapsed(TimeUnit.MILLISECONDS));
+                    total, prefix, (System.currentTimeMillis() - start));
 
         }
-        catch (StorageException | DataStoreException | URISyntaxException e) {
+        catch (StorageException e) {
+            LOG.info("Error deleting all metadata records. metadataFolder={}", prefix, e);
+        }
+        catch (DataStoreException | URISyntaxException e) {
             LOG.debug("Error deleting all metadata records. metadataFolder={}", prefix, e);
         }
         finally {
-            if (contextClassLoader != null) {
+            if (null != contextClassLoader) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
             }
         }
@@ -661,13 +740,13 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
 
     @Override
     public boolean metadataRecordExists(String name) {
-        Stopwatch watch = Stopwatch.createStarted();
+        long start = System.currentTimeMillis();
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
             CloudBlockBlob blob = getAzureContainer().getBlockBlobReference(addMetaKeyPrefix(name));
             boolean exists = blob.exists();
-            LOG.debug("Metadata record {} exists {}. duration={}", name, exists, watch.elapsed(TimeUnit.MILLISECONDS));
+            LOG.debug("Metadata record {} exists {}. duration={}", name, exists, (System.currentTimeMillis() - start));
             return exists;
         }
         catch (DataStoreException | StorageException | URISyntaxException e) {
@@ -680,6 +759,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
         }
         return false;
     }
+
 
     /**
      * Get key from data identifier. Object is stored with key in ADS.
@@ -695,39 +775,39 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
     private static String getIdentifierName(String key) {
         if (!key.contains(UtilsV8.DASH)) {
             return null;
-        } else if (key.contains(AZURE_BLOB_META_KEY_PREFIX)) {
+        } else if (key.contains(AzureConstantsV8.AZURE_BLOB_META_KEY_PREFIX)) {
             return key;
         }
         return key.substring(0, 4) + key.substring(5);
     }
 
     private static String addMetaKeyPrefix(final String key) {
-        return AZURE_BLOB_META_KEY_PREFIX + key;
+        return AzureConstantsV8.AZURE_BLOB_META_KEY_PREFIX + key;
     }
 
     private static String stripMetaKeyPrefix(String name) {
-        if (name.startsWith(AZURE_BLOB_META_KEY_PREFIX)) {
-            return name.substring(AZURE_BLOB_META_KEY_PREFIX.length());
+        if (name.startsWith(AzureConstantsV8.AZURE_BLOB_META_KEY_PREFIX)) {
+            return name.substring(AzureConstantsV8.AZURE_BLOB_META_KEY_PREFIX.length());
         }
         return name;
     }
 
     private static void addLastModified(CloudBlockBlob blob) {
-        blob.getMetadata().put(AZURE_BLOB_LAST_MODIFIED_KEY, String.valueOf(System.currentTimeMillis()));
+        blob.getMetadata().put(AzureConstantsV8.AZURE_BLOB_LAST_MODIFIED_KEY, String.valueOf(System.currentTimeMillis()));
     }
 
     private static long getLastModified(CloudBlob blob) {
-        if (blob.getMetadata().containsKey(AZURE_BLOB_LAST_MODIFIED_KEY)) {
-            return Long.parseLong(blob.getMetadata().get(AZURE_BLOB_LAST_MODIFIED_KEY));
+        if (blob.getMetadata().containsKey(AzureConstantsV8.AZURE_BLOB_LAST_MODIFIED_KEY)) {
+            return Long.parseLong(blob.getMetadata().get(AzureConstantsV8.AZURE_BLOB_LAST_MODIFIED_KEY));
         }
         return blob.getProperties().getLastModified().getTime();
     }
 
-    protected void setHttpDownloadURIExpirySeconds(int seconds) {
+    public void setHttpDownloadURIExpirySeconds(int seconds) {
         httpDownloadURIExpirySeconds = seconds;
     }
 
-    protected void setHttpDownloadURICacheSize(int maxSize) {
+    public void setHttpDownloadURICacheSize(int maxSize) {
         // max size 0 or smaller is used to turn off the cache
         if (maxSize > 0) {
             LOG.info("presigned GET URI cache enabled, maxSize = {} items, expiry = {} seconds", maxSize, httpDownloadURIExpirySeconds / 2);
@@ -741,27 +821,29 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
         }
     }
 
-    @Override
-    protected URI createHttpDownloadURI(@NotNull DataIdentifier identifier,
+    public URI createHttpDownloadURI(@NotNull DataIdentifier identifier,
                               @NotNull DataRecordDownloadOptions downloadOptions) {
         URI uri = null;
 
-        Objects.requireNonNull(identifier, "identifier must not be null");
-        Objects.requireNonNull(downloadOptions, "downloadOptions must not be null");
+        // When running unit test from Maven, it doesn't always honor the @NotNull decorators
+        if (null == identifier) throw new NullPointerException("identifier");
+        if (null == downloadOptions) throw new NullPointerException("downloadOptions");
 
         if (httpDownloadURIExpirySeconds > 0) {
 
             String domain = getDirectDownloadBlobStorageDomain(downloadOptions.isDomainOverrideIgnored());
-            Objects.requireNonNull(domain, "Could not determine domain for direct download");
+            if (null == domain) {
+                throw new NullPointerException("Could not determine domain for direct download");
+            }
 
-            String cacheKey = identifier
+            String cacheKey = identifier.toString()
                     + domain
                     + Objects.toString(downloadOptions.getContentTypeHeader(), "")
                     + Objects.toString(downloadOptions.getContentDispositionHeader(), "");
-            if (httpDownloadURICache != null) {
+            if (null != httpDownloadURICache) {
                 uri = httpDownloadURICache.getIfPresent(cacheKey);
             }
-            if (uri == null) {
+            if (null == uri) {
                 if (presignedDownloadURIVerifyExists) {
                     // Check if this identifier exists.  If not, we want to return null
                     // even if the identifier is in the download URI cache.
@@ -781,13 +863,13 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
                 headers.setCacheControl(String.format("private, max-age=%d, immutable", httpDownloadURIExpirySeconds));
 
                 String contentType = downloadOptions.getContentTypeHeader();
-                if (!Objects.toString(contentType, "").isEmpty()) {
+                if (! StringUtils.isEmpty(contentType)) {
                     headers.setContentType(contentType);
                 }
 
                 String contentDisposition =
                         downloadOptions.getContentDispositionHeader();
-                if (!Objects.toString(contentDisposition, "").isEmpty()) {
+                if (! StringUtils.isEmpty(contentDisposition)) {
                     headers.setContentDisposition(contentDisposition);
                 }
 
@@ -804,7 +886,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
         return uri;
     }
 
-    protected void setHttpUploadURIExpirySeconds(int seconds) { httpUploadURIExpirySeconds = seconds; }
+    public void setHttpUploadURIExpirySeconds(int seconds) { httpUploadURIExpirySeconds = seconds; }
 
     private DataIdentifier generateSafeRandomIdentifier() {
         return new DataIdentifier(
@@ -815,15 +897,35 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
         );
     }
 
-    protected DataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs, @NotNull final DataRecordUploadOptions options) {
+    public DataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs, @NotNull final DataRecordUploadOptions options) {
         List<URI> uploadPartURIs = new ArrayList<>();
-        long minPartSize = AZURE_BLOB_MIN_MULTIPART_UPLOAD_PART_SIZE;
-        long maxPartSize = AZURE_BLOB_MAX_MULTIPART_UPLOAD_PART_SIZE;
+        long minPartSize = AzureConstantsV8.AZURE_BLOB_MIN_MULTIPART_UPLOAD_PART_SIZE;
+        long maxPartSize = AzureConstantsV8.AZURE_BLOB_MAX_MULTIPART_UPLOAD_PART_SIZE;
 
-        Validate.checkArgument(maxUploadSizeInBytes > 0L, "maxUploadSizeInBytes must be > 0");
-        Validate.checkArgument(maxNumberOfURIs > 0 || maxNumberOfURIs == -1, "maxNumberOfURIs must either be > 0 or -1");
-        Validate.checkArgument(!(maxUploadSizeInBytes > AZURE_BLOB_MAX_SINGLE_PUT_UPLOAD_SIZE && maxNumberOfURIs == 1), "Cannot do single-put upload with file size %d - exceeds max single-put upload size of %d", maxUploadSizeInBytes, AZURE_BLOB_MAX_SINGLE_PUT_UPLOAD_SIZE);
-        Validate.checkArgument(maxUploadSizeInBytes <= AZURE_BLOB_MAX_BINARY_UPLOAD_SIZE, "Cannot do upload with file size %d - exceeds max upload size of %d", maxUploadSizeInBytes, AZURE_BLOB_MAX_BINARY_UPLOAD_SIZE);
+        if (0L >= maxUploadSizeInBytes) {
+            throw new IllegalArgumentException("maxUploadSizeInBytes must be > 0");
+        }
+        else if (0 == maxNumberOfURIs) {
+            throw new IllegalArgumentException("maxNumberOfURIs must either be > 0 or -1");
+        }
+        else if (-1 > maxNumberOfURIs) {
+            throw new IllegalArgumentException("maxNumberOfURIs must either be > 0 or -1");
+        }
+        else if (maxUploadSizeInBytes > AzureConstantsV8.AZURE_BLOB_MAX_SINGLE_PUT_UPLOAD_SIZE &&
+                maxNumberOfURIs == 1) {
+            throw new IllegalArgumentException(
+                    String.format("Cannot do single-put upload with file size %d - exceeds max single-put upload size of %d",
+                            maxUploadSizeInBytes,
+                            AzureConstantsV8.AZURE_BLOB_MAX_SINGLE_PUT_UPLOAD_SIZE)
+            );
+        }
+        else if (maxUploadSizeInBytes > AzureConstantsV8.AZURE_BLOB_MAX_BINARY_UPLOAD_SIZE) {
+            throw new IllegalArgumentException(
+                    String.format("Cannot do upload with file size %d - exceeds max upload size of %d",
+                            maxUploadSizeInBytes,
+                            AzureConstantsV8.AZURE_BLOB_MAX_BINARY_UPLOAD_SIZE)
+            );
+        }
 
         DataIdentifier newIdentifier = generateSafeRandomIdentifier();
         String blobId = getKeyName(newIdentifier);
@@ -856,7 +958,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
                             maxNumberOfURIs,
                             Math.min(
                                     (long) Math.ceil(((double) maxUploadSizeInBytes) / ((double) minPartSize)),
-                                    AZURE_BLOB_MAX_ALLOWABLE_UPLOAD_URIS
+                                    AzureConstantsV8.AZURE_BLOB_MAX_ALLOWABLE_UPLOAD_URIS
                             )
                     );
                 } else {
@@ -866,13 +968,15 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
                 }
             }
             else {
-                long maximalNumParts = (long) Math.ceil(((double) maxUploadSizeInBytes) / ((double) AZURE_BLOB_MIN_MULTIPART_UPLOAD_PART_SIZE));
-                numParts = Math.min(maximalNumParts, AZURE_BLOB_MAX_ALLOWABLE_UPLOAD_URIS);
+                long maximalNumParts = (long) Math.ceil(((double) maxUploadSizeInBytes) / ((double) AzureConstantsV8.AZURE_BLOB_MIN_MULTIPART_UPLOAD_PART_SIZE));
+                numParts = Math.min(maximalNumParts, AzureConstantsV8.AZURE_BLOB_MAX_ALLOWABLE_UPLOAD_URIS);
             }
 
             String key = getKeyName(newIdentifier);
             String domain = getDirectUploadBlobStorageDomain(options.isDomainOverrideIgnored());
-            Objects.requireNonNull(domain, "Could not determine domain for direct upload");
+            if (null == domain) {
+                throw new NullPointerException("Could not determine domain for direct upload");
+            }
 
             EnumSet<SharedAccessBlobPermissions> perms = EnumSet.of(SharedAccessBlobPermissions.WRITE);
             Map<String, String> presignedURIRequestParams = new HashMap<>();
@@ -924,10 +1028,12 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
         return null;
     }
 
-    protected DataRecord completeHttpUpload(@NotNull String uploadTokenStr)
+    public DataRecord completeHttpUpload(@NotNull String uploadTokenStr)
             throws DataRecordUploadException, DataStoreException {
 
-        Validate.checkArgument(StringUtils.isNotEmpty(uploadTokenStr), "uploadToken required");
+        if (StringUtils.isEmpty(uploadTokenStr)) {
+            throw new IllegalArgumentException("uploadToken required");
+        }
 
         DataRecordUploadToken uploadToken = DataRecordUploadToken.fromEncodedToken(uploadTokenStr, getOrCreateReferenceKey());
         String key = uploadToken.getBlobId();
@@ -984,8 +1090,8 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
     }
 
     private String getDefaultBlobStorageDomain() {
-        String accountName = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "");
-        if (Objects.toString(accountName, "").isEmpty()) {
+        String accountName = properties.getProperty(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_NAME, "");
+        if (StringUtils.isEmpty(accountName)) {
             LOG.warn("Can't generate presigned URI - Azure account name not found in properties");
             return null;
         }
@@ -996,7 +1102,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
         String domain = ignoreDomainOverride
                 ? getDefaultBlobStorageDomain()
                 : downloadDomainOverride;
-        if (Objects.toString(domain, "").isEmpty()) {
+        if (StringUtils.isEmpty(domain)) {
             domain = getDefaultBlobStorageDomain();
         }
         return domain;
@@ -1006,7 +1112,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
         String domain = ignoreDomainOverride
                 ? getDefaultBlobStorageDomain()
                 : uploadDomainOverride;
-        if (Objects.toString(domain, "").isEmpty()) {
+        if (StringUtils.isEmpty(domain)) {
             domain = getDefaultBlobStorageDomain();
         }
         return domain;
@@ -1034,7 +1140,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
                                    Map<String, String> additionalQueryParams,
                                    SharedAccessBlobHeaders optionalHeaders,
                                    String domain) {
-        if (Objects.toString(domain, "").isEmpty()) {
+        if (StringUtils.isEmpty(domain)) {
             LOG.warn("Can't generate presigned URI - no Azure domain provided (is Azure account name configured?)");
             return null;
         }
@@ -1065,7 +1171,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
             presignedURI = new URI(uriString);
         }
         catch (DataStoreException e) {
-            LOG.error("Error calling Azure Blob Storage", e);
+            LOG.error("No connection to Azure Blob Storage", e);
         }
         catch (URISyntaxException | InvalidKeyException e) {
             LOG.error("Can't generate a presigned URI for key {}", key, e);
@@ -1110,8 +1216,8 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
         public static AzureBlobInfo fromCloudBlob(CloudBlob cloudBlob) throws StorageException {
             cloudBlob.downloadAttributes();
             return new AzureBlobInfo(cloudBlob.getName(),
-                    AzureBlobStoreBackendV8.getLastModified(cloudBlob),
-                    cloudBlob.getProperties().getLength());
+                                     AzureBlobStoreBackendV8.getLastModified(cloudBlob),
+                                     cloudBlob.getProperties().getLength());
         }
     }
 
@@ -1138,7 +1244,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
         }
 
         private boolean loadItems() {
-            Stopwatch watch = Stopwatch.createStarted();
+            long start = System.currentTimeMillis();
             ClassLoader contextClassLoader = currentThread().getContextClassLoader();
             try {
                 currentThread().setContextClassLoader(getClass().getClassLoader());
@@ -1157,11 +1263,14 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
                     }
                 }
                 LOG.debug("Container records batch read. batchSize={} containerName={} duration={}",
-                        results.getLength(), getContainerName(),  watch.elapsed(TimeUnit.MILLISECONDS));
+                          results.getLength(), getContainerName(),  (System.currentTimeMillis() - start));
                 return results.getLength() > 0;
             }
-            catch (StorageException | DataStoreException e) {
-                LOG.error("Error listing blobs. containerName={}", getContainerName(), e);
+            catch (StorageException e) {
+                LOG.info("Error listing blobs. containerName={}", getContainerName(), e);
+            }
+            catch (DataStoreException e) {
+                LOG.debug("Cannot list blobs. containerName={}", getContainerName(), e);
             } finally {
                 if (contextClassLoader != null) {
                     currentThread().setContextClassLoader(contextClassLoader);
@@ -1177,12 +1286,12 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
         final long length;
         final boolean isMeta;
 
-        public AzureBlobStoreDataRecord(AbstractSharedBackend backend, AzureBlobContainerProviderV8 azureBlobContainerProvider,
+        public AzureBlobStoreDataRecord(org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend backend, AzureBlobContainerProviderV8 azureBlobContainerProvider,
                                         DataIdentifier key, long lastModified, long length) {
             this(backend, azureBlobContainerProvider, key, lastModified, length, false);
         }
 
-        public AzureBlobStoreDataRecord(AbstractSharedBackend backend, AzureBlobContainerProviderV8 azureBlobContainerProvider,
+        public AzureBlobStoreDataRecord(org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend backend, AzureBlobContainerProviderV8 azureBlobContainerProvider,
                                         DataIdentifier key, long lastModified, long length, boolean isMeta) {
             super(backend, key);
             this.azureBlobContainerProvider = azureBlobContainerProvider;
@@ -1192,7 +1301,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
         }
 
         @Override
-        public long getLength() {
+        public long getLength() throws DataStoreException {
             return length;
         }
 
@@ -1225,11 +1334,11 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
         @Override
         public String toString() {
             return "AzureBlobStoreDataRecord{" +
-                    "identifier=" + getIdentifier() +
-                    ", length=" + length +
-                    ", lastModified=" + lastModified +
-                    ", containerName='" + Optional.ofNullable(azureBlobContainerProvider).map(AzureBlobContainerProviderV8::getContainerName).orElse(null) + '\'' +
-                    '}';
+                   "identifier=" + getIdentifier() +
+                   ", length=" + length +
+                   ", lastModified=" + lastModified +
+                   ", containerName='" + Optional.ofNullable(azureBlobContainerProvider).map(AzureBlobContainerProviderV8::getContainerName).orElse(null) + '\'' +
+                   '}';
         }
     }
 
@@ -1238,42 +1347,4 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
                 .map(AzureBlobContainerProviderV8::getContainerName)
                 .orElse(null);
     }
-
-    @Override
-    public byte[] getOrCreateReferenceKey() throws DataStoreException {
-        try {
-            if (secret != null && secret.length != 0) {
-                return secret;
-            } else {
-                byte[] key;
-                // Try reading from the metadata folder if it exists
-                key = readMetadataBytes(AZURE_BLOB_REF_KEY);
-                if (key == null) {
-                    key = super.getOrCreateReferenceKey();
-                    addMetadataRecord(new ByteArrayInputStream(key), AZURE_BLOB_REF_KEY);
-                    key = readMetadataBytes(AZURE_BLOB_REF_KEY);
-                }
-                secret = key;
-                return secret;
-            }
-        } catch (IOException e) {
-            throw new DataStoreException("Unable to get or create key " + e);
-        }
-    }
-
-    protected byte[] readMetadataBytes(String name) throws IOException, DataStoreException {
-        DataRecord rec = getMetadataRecord(name);
-        byte[] key = null;
-        if (rec != null) {
-            InputStream stream = null;
-            try {
-                stream = rec.getStream();
-                return IOUtils.toByteArray(stream);
-            } finally {
-                IOUtils.closeQuietly(stream);
-            }
-        }
-        return key;
-    }
-
 }

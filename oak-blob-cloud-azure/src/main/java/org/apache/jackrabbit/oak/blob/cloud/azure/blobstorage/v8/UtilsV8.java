@@ -19,6 +19,17 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v8;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.SocketAddress;
+import java.net.URISyntaxException;
+import java.security.InvalidKeyException;
+import java.util.Properties;
+
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.RetryExponentialRetry;
@@ -30,18 +41,9 @@ import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
-import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.net.SocketAddress;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
-import java.util.Objects;
-import java.util.Properties;
 
 public final class UtilsV8 {
 
@@ -69,7 +71,7 @@ public final class UtilsV8 {
                                                 @Nullable final BlobRequestOptions requestOptions) throws URISyntaxException, InvalidKeyException {
         CloudStorageAccount account = CloudStorageAccount.parse(connectionString);
         CloudBlobClient client = account.createCloudBlobClient();
-        if (requestOptions != null) {
+        if (null != requestOptions) {
             client.setDefaultRequestOptions(requestOptions);
         }
         return client;
@@ -80,13 +82,12 @@ public final class UtilsV8 {
         return getBlobContainer(connectionString, containerName, null);
     }
 
-
     public static CloudBlobContainer getBlobContainer(@NotNull final String connectionString,
                                                       @NotNull final String containerName,
                                                       @Nullable final BlobRequestOptions requestOptions) throws DataStoreException {
         try {
             CloudBlobClient client = (
-                    (requestOptions == null)
+                    (null == requestOptions)
                             ? UtilsV8.getBlobClient(connectionString)
                             : UtilsV8.getBlobClient(connectionString, requestOptions)
             );
@@ -97,11 +98,11 @@ public final class UtilsV8 {
     }
 
     public static void setProxyIfNeeded(final Properties properties) {
-        String proxyHost = properties.getProperty(AzureConstants.PROXY_HOST);
-        String proxyPort = properties.getProperty(AzureConstants.PROXY_PORT);
+        String proxyHost = properties.getProperty(AzureConstantsV8.PROXY_HOST);
+        String proxyPort = properties.getProperty(AzureConstantsV8.PROXY_PORT);
 
-        if (!(Objects.toString(proxyHost, "").isEmpty() ||
-                Objects.toString(proxyPort, "").isEmpty())) {
+        if (!StringUtils.isEmpty(proxyHost) &&
+            !StringUtils.isEmpty(proxyPort)) {
             int port = Integer.parseInt(proxyPort);
             SocketAddress proxyAddr = new InetSocketAddress(proxyHost, port);
             Proxy proxy = new Proxy(Proxy.Type.HTTP, proxyAddr);
@@ -109,13 +110,25 @@ public final class UtilsV8 {
         }
     }
 
+    public static RetryPolicy getRetryPolicy(final String maxRequestRetry) {
+        int retries = PropertiesUtil.toInteger(maxRequestRetry, -1);
+        if (retries < 0) {
+            return null;
+        }
+        if (retries == 0) {
+            return new RetryNoRetry();
+        }
+        return new RetryExponentialRetry(RetryPolicy.DEFAULT_CLIENT_BACKOFF, retries);
+    }
+
+
     public static String getConnectionStringFromProperties(Properties properties) {
 
-        String sasUri = properties.getProperty(AzureConstants.AZURE_SAS, "");
-        String blobEndpoint = properties.getProperty(AzureConstants.AZURE_BLOB_ENDPOINT, "");
-        String connectionString = properties.getProperty(AzureConstants.AZURE_CONNECTION_STRING, "");
-        String accountName = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "");
-        String accountKey = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, "");
+        String sasUri = properties.getProperty(AzureConstantsV8.AZURE_SAS, "");
+        String blobEndpoint = properties.getProperty(AzureConstantsV8.AZURE_BLOB_ENDPOINT, "");
+        String connectionString = properties.getProperty(AzureConstantsV8.AZURE_CONNECTION_STRING, "");
+        String accountName = properties.getProperty(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_NAME, "");
+        String accountKey = properties.getProperty(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_KEY, "");
 
         if (!connectionString.isEmpty()) {
             return connectionString;
@@ -127,7 +140,7 @@ public final class UtilsV8 {
 
         return getConnectionString(
                 accountName,
-                accountKey,
+                accountKey, 
                 blobEndpoint);
     }
 
@@ -142,26 +155,64 @@ public final class UtilsV8 {
     public static String getConnectionString(final String accountName, final String accountKey) {
         return getConnectionString(accountName, accountKey, null);
     }
-
+    
     public static String getConnectionString(final String accountName, final String accountKey, String blobEndpoint) {
         StringBuilder connString = new StringBuilder("DefaultEndpointsProtocol=https");
         connString.append(";AccountName=").append(accountName);
         connString.append(";AccountKey=").append(accountKey);
-
-        if (!Objects.toString(blobEndpoint, "").isEmpty()) {
+        
+        if (!StringUtils.isEmpty(blobEndpoint)) {
             connString.append(";BlobEndpoint=").append(blobEndpoint);
         }
         return connString.toString();
     }
 
-    public static RetryPolicy getRetryPolicy(final String maxRequestRetry) {
-        int retries = PropertiesUtil.toInteger(maxRequestRetry, -1);
-        if (retries < 0) {
-            return null;
+    /**
+     * Check whether the given properties contain sufficient Azure configuration
+     * for V8 SDK connectivity (account key, SAS, or AAD credentials).
+     */
+    public static boolean isConfigured(Properties props) {
+        // Account key auth
+        if (props.containsKey(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_KEY)
+                && props.containsKey(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_NAME)
+                && props.containsKey(AzureConstantsV8.AZURE_BLOB_CONTAINER_NAME)) {
+            return true;
         }
-        else if (retries == 0) {
-            return new RetryNoRetry();
+        // SAS auth
+        if (props.containsKey(AzureConstantsV8.AZURE_SAS)
+                && props.containsKey(AzureConstantsV8.AZURE_BLOB_ENDPOINT)
+                && props.containsKey(AzureConstantsV8.AZURE_BLOB_CONTAINER_NAME)) {
+            return true;
         }
-        return new RetryExponentialRetry(RetryPolicy.DEFAULT_CLIENT_BACKOFF, retries);
+        // AAD client credentials
+        return props.containsKey(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_NAME)
+                && props.containsKey(AzureConstantsV8.AZURE_TENANT_ID)
+                && props.containsKey(AzureConstantsV8.AZURE_CLIENT_ID)
+                && props.containsKey(AzureConstantsV8.AZURE_CLIENT_SECRET)
+                && props.containsKey(AzureConstantsV8.AZURE_BLOB_CONTAINER_NAME);
+    }
+
+    /**
+     * Read a configuration properties file.
+     *
+     * @param fileName the properties file name
+     * @return the properties
+     * @throws java.io.IOException if the file doesn't exist
+     */
+    public static Properties readConfig(String fileName) throws IOException {
+        if (!new File(fileName).exists()) {
+            throw new IOException("Config file not found. fileName=" + fileName);
+        }
+        Properties prop = new Properties();
+        InputStream in = null;
+        try {
+            in = new FileInputStream(fileName);
+            prop.load(in);
+        } finally {
+            if (in != null) {
+                in.close();
+            }
+        }
+        return prop;
     }
 }

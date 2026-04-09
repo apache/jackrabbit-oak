@@ -14,21 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
+package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12;
+
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
 
 import org.apache.jackrabbit.oak.spi.blob.data.CachingDataStore;
 import org.junit.Before;
 
 /**
- * Test {@link CachingDataStore} with AzureBlobStoreBackend
- * and local cache Off.
- * It requires to pass azure config file via system property or system properties by prefixing with 'ds.'.
- * See details @ {@link AzureDataStoreUtils}.
- * For e.g. -Dconfig=/opt/cq/azure.properties. Sample azure properties located at
- * src/test/resources/azure.properties
-
+ * Test {@link CachingDataStore} with AzureBlobStoreBackendV12
+ * and local cache Off. Uses Azurite (local Azure emulator) via Docker for testing.
  */
-public class TestAzureDsCacheOff extends TestAzureDS {
+public class TestAzureDsCacheOffV12 extends TestAzureDSV12 {
 
   @Override
     @Before

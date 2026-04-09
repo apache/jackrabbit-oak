@@ -18,12 +18,11 @@
  */
 package org.apache.jackrabbit.oak.fixture;
 
-import com.azure.storage.blob.BlobContainerClient;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
-import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
-import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureBlobContainerProvider;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureBlobContainer;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureBlobContainers;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
@@ -124,22 +123,25 @@ public class DataStoreUtils {
             log.warn("container name is null or blank, cannot initialize blob container");
             return;
         }
-        BlobContainerClient container = getBlobContainerClient(config, containerName);
-        if (container == null) {
+        Properties properties = toAzureProperties(config, containerName);
+        if (properties == null) {
             log.warn("cannot delete the container as it is not initialized");
             return;
         }
-        log.info("deleting container [{}]", containerName);
-        if (container.deleteIfExists()) {
-            log.info("container [{}] deleted", containerName);
-        } else {
-            log.info("container [{}] doesn't exists", containerName);
+        AzureBlobContainer container = AzureBlobContainers.getReference(properties);
+        try (AzureBlobContainer closableContainer = container) {
+            log.info("deleting container [{}]", containerName);
+            if (closableContainer.deleteIfExists()) {
+                log.info("container [{}] deleted", containerName);
+            } else {
+                log.info("container [{}] doesn't exists", containerName);
+            }
         }
     }
 
     @Nullable
-    private static BlobContainerClient getBlobContainerClient(@NotNull Map<String, ?> config,
-                                                              @NotNull String containerName) throws DataStoreException {
+    private static Properties toAzureProperties(@NotNull Map<String, ?> config,
+                                                @NotNull String containerName) {
         final String azureConnectionString = (String) config.get(AzureConstants.AZURE_CONNECTION_STRING);
         final String clientId = (String) config.get(AzureConstants.AZURE_CLIENT_ID);
         final String clientSecret = (String) config.get(AzureConstants.AZURE_CLIENT_SECRET);
@@ -154,17 +156,37 @@ public class DataStoreUtils {
             return null;
         }
 
-        AzureBlobContainerProvider azureBlobContainerProvider = AzureBlobContainerProvider.Builder.builder(containerName)
-            .withAzureConnectionString(azureConnectionString)
-            .withAccountName(accountName)
-            .withClientId(clientId)
-            .withClientSecret(clientSecret)
-            .withTenantId(tenantId)
-            .withAccountKey(accountKey)
-            .withSasToken(sasToken)
-            .withBlobEndpoint(blobEndpoint)
-            .build();
-
-        return azureBlobContainerProvider.getBlobContainer();
+        Properties properties = new Properties();
+        config.forEach((k, v) -> {
+            if (k != null && v != null) {
+                properties.put(k, v);
+            }
+        });
+        properties.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, containerName);
+        if (azureConnectionString != null) {
+            properties.setProperty(AzureConstants.AZURE_CONNECTION_STRING, azureConnectionString);
+        }
+        if (accountName != null) {
+            properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, accountName);
+        }
+        if (accountKey != null) {
+            properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, accountKey);
+        }
+        if (blobEndpoint != null) {
+            properties.setProperty(AzureConstants.AZURE_BLOB_ENDPOINT, blobEndpoint);
+        }
+        if (sasToken != null) {
+            properties.setProperty(AzureConstants.AZURE_SAS, sasToken);
+        }
+        if (clientId != null) {
+            properties.setProperty(AzureConstants.AZURE_CLIENT_ID, clientId);
+        }
+        if (clientSecret != null) {
+            properties.setProperty(AzureConstants.AZURE_CLIENT_SECRET, clientSecret);
+        }
+        if (tenantId != null) {
+            properties.setProperty(AzureConstants.AZURE_TENANT_ID, tenantId);
+        }
+        return properties;
     }
 }

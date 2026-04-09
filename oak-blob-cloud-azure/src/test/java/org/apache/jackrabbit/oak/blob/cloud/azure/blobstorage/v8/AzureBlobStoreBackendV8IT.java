@@ -26,7 +26,6 @@ import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
 import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
 import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
-import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
@@ -58,9 +57,9 @@ import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.LIST;
 import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.READ;
 import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.WRITE;
 import static java.util.stream.Collectors.toSet;
-import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_DEFAULT_CONCURRENT_REQUEST_COUNT;
-import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_MAX_CONCURRENT_REQUEST_COUNT;
-import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BlOB_META_DIR_NAME;
+import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v8.AzureConstantsV8.AZURE_BLOB_DEFAULT_CONCURRENT_REQUEST_COUNT;
+import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v8.AzureConstantsV8.AZURE_BLOB_MAX_CONCURRENT_REQUEST_COUNT;
+import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v8.AzureConstantsV8.AZURE_BLOB_META_DIR_NAME;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -70,7 +69,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeNotNull;
 
-public class AzureBlobStoreBackendV8Test {
+public class AzureBlobStoreBackendV8IT {
   private static final String AZURE_ACCOUNT_NAME = "AZURE_ACCOUNT_NAME";
   private static final String AZURE_TENANT_ID = "AZURE_TENANT_ID";
   private static final String AZURE_CLIENT_ID = "AZURE_CLIENT_ID";
@@ -263,11 +262,11 @@ public class AzureBlobStoreBackendV8Test {
     final String clientSecret = getEnvironmentVariable(AZURE_CLIENT_SECRET);
 
     Properties properties = new Properties();
-    properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, accountName);
-    properties.setProperty(AzureConstants.AZURE_TENANT_ID, tenantId);
-    properties.setProperty(AzureConstants.AZURE_CLIENT_ID, clientId);
-    properties.setProperty(AzureConstants.AZURE_CLIENT_SECRET, clientSecret);
-    properties.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, CONTAINER_NAME);
+    properties.setProperty(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_NAME, accountName);
+    properties.setProperty(AzureConstantsV8.AZURE_TENANT_ID, tenantId);
+    properties.setProperty(AzureConstantsV8.AZURE_CLIENT_ID, clientId);
+    properties.setProperty(AzureConstantsV8.AZURE_CLIENT_SECRET, clientSecret);
+    properties.setProperty(AzureConstantsV8.AZURE_BLOB_CONTAINER_NAME, CONTAINER_NAME);
     return properties;
   }
 
@@ -285,32 +284,32 @@ public class AzureBlobStoreBackendV8Test {
 
   private static Properties getConfigurationWithSasToken(String sasToken) {
     Properties properties = getBasicConfiguration();
-    properties.setProperty(AzureConstants.AZURE_SAS, sasToken);
-    properties.setProperty(AzureConstants.AZURE_CREATE_CONTAINER, "false");
-    properties.setProperty(AzureConstants.AZURE_REF_ON_INIT, "false");
+    properties.setProperty(AzureConstantsV8.AZURE_SAS, sasToken);
+    properties.setProperty(AzureConstantsV8.AZURE_CREATE_CONTAINER, "false");
+    properties.setProperty(AzureConstantsV8.AZURE_REF_ON_INIT, "false");
     return properties;
   }
 
   private static Properties getConfigurationWithAccessKey() {
     Properties properties = getBasicConfiguration();
-    properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, AzuriteDockerRule.ACCOUNT_KEY);
+    properties.setProperty(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_KEY, AzuriteDockerRule.ACCOUNT_KEY);
     return properties;
   }
 
   @NotNull
   private static Properties getConfigurationWithConnectionString() {
     Properties properties = getBasicConfiguration();
-    properties.setProperty(AzureConstants.AZURE_CONNECTION_STRING, getConnectionString());
+    properties.setProperty(AzureConstantsV8.AZURE_CONNECTION_STRING, getConnectionString());
     return properties;
   }
 
   @NotNull
   private static Properties getBasicConfiguration() {
     Properties properties = new Properties();
-    properties.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, CONTAINER_NAME);
-    properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_NAME);
-    properties.setProperty(AzureConstants.AZURE_BLOB_ENDPOINT, azurite.getBlobEndpoint());
-    properties.setProperty(AzureConstants.AZURE_CREATE_CONTAINER, "");
+    properties.setProperty(AzureConstantsV8.AZURE_BLOB_CONTAINER_NAME, CONTAINER_NAME);
+    properties.setProperty(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_NAME);
+    properties.setProperty(AzureConstantsV8.AZURE_BLOB_ENDPOINT, azurite.getBlobEndpoint());
+    properties.setProperty(AzureConstantsV8.AZURE_CREATE_CONTAINER, "");
     return properties;
   }
 
@@ -473,7 +472,7 @@ public class AzureBlobStoreBackendV8Test {
 
       // In V8, metadata is stored in a directory structure
       com.microsoft.azure.storage.blob.CloudBlobDirectory metaDir =
-          azureContainer.getDirectoryReference(AZURE_BlOB_META_DIR_NAME);
+          azureContainer.getDirectoryReference(AZURE_BLOB_META_DIR_NAME);
       com.microsoft.azure.storage.blob.CloudBlockBlob blob = metaDir.getBlockBlobReference(testMetadataName);
 
       assertTrue("Blob should exist at expected path in V8", blob.exists());
@@ -549,8 +548,8 @@ public class AzureBlobStoreBackendV8Test {
   public void testInitWithInvalidConnectionString() {
     AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
     Properties props = new Properties();
-    props.setProperty(AzureConstants.AZURE_CONNECTION_STRING, "invalid-connection-string");
-    props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, "test-container");
+    props.setProperty(AzureConstantsV8.AZURE_CONNECTION_STRING, "invalid-connection-string");
+    props.setProperty(AzureConstantsV8.AZURE_BLOB_CONTAINER_NAME, "test-container");
     backend.setProperties(props);
 
     try {
@@ -571,7 +570,7 @@ public class AzureBlobStoreBackendV8Test {
     // Test with too low concurrent request count
     AzureBlobStoreBackendV8 backend1 = new AzureBlobStoreBackendV8();
     Properties props1 = getConfigurationWithConnectionString();
-    props1.setProperty(AzureConstants.AZURE_BLOB_CONCURRENT_REQUESTS_PER_OPERATION, "1"); // Too low
+    props1.setProperty(AzureConstantsV8.AZURE_BLOB_CONCURRENT_REQUESTS_PER_OPERATION, "1"); // Too low
     backend1.setProperties(props1);
     backend1.init();
     // Should reset to default minimum
@@ -581,7 +580,7 @@ public class AzureBlobStoreBackendV8Test {
     // Test with too high concurrent request count
     AzureBlobStoreBackendV8 backend2 = new AzureBlobStoreBackendV8();
     Properties props2 = getConfigurationWithConnectionString();
-    props2.setProperty(AzureConstants.AZURE_BLOB_CONCURRENT_REQUESTS_PER_OPERATION, "100"); // Too high
+    props2.setProperty(AzureConstantsV8.AZURE_BLOB_CONCURRENT_REQUESTS_PER_OPERATION, "100"); // Too high
     backend2.setProperties(props2);
     backend2.init();
     // Should reset to default maximum
@@ -651,7 +650,7 @@ public class AzureBlobStoreBackendV8Test {
       backend.read(null);
       fail("Expected NullPointerException for null identifier in read");
     } catch (NullPointerException e) {
-      assertEquals("identifier must not be null", e.getMessage());
+      assertEquals("identifier", e.getMessage());
     }
 
     // Test null identifier in getRecord
@@ -659,7 +658,7 @@ public class AzureBlobStoreBackendV8Test {
       backend.getRecord(null);
       fail("Expected NullPointerException for null identifier in getRecord");
     } catch (NullPointerException e) {
-      assertEquals("identifier must not be null", e.getMessage());
+      assertEquals("identifier", e.getMessage());
     }
 
     // Test null identifier in deleteRecord
@@ -667,7 +666,7 @@ public class AzureBlobStoreBackendV8Test {
       backend.deleteRecord(null);
       fail("Expected NullPointerException for null identifier in deleteRecord");
     } catch (NullPointerException e) {
-      assertEquals("identifier must not be null", e.getMessage());
+      assertEquals("identifier", e.getMessage());
     }
 
     // Test null input in addMetadataRecord
@@ -675,7 +674,7 @@ public class AzureBlobStoreBackendV8Test {
       backend.addMetadataRecord((java.io.InputStream) null, "test");
       fail("Expected NullPointerException for null input in addMetadataRecord");
     } catch (NullPointerException e) {
-      assertEquals("input must not be null", e.getMessage());
+      assertEquals("input", e.getMessage());
     }
 
     // Test null name in addMetadataRecord
@@ -683,7 +682,7 @@ public class AzureBlobStoreBackendV8Test {
       backend.addMetadataRecord(new ByteArrayInputStream("test".getBytes()), null);
       fail("Expected IllegalArgumentException for null name in addMetadataRecord");
     } catch (IllegalArgumentException e) {
-      assertEquals("name should not be empty", e.getMessage());
+      assertEquals("name", e.getMessage());
     }
   }
 
@@ -742,7 +741,7 @@ public class AzureBlobStoreBackendV8Test {
       backend.deleteAllMetadataRecords(null);
       fail("Expected NullPointerException for null prefix");
     } catch (NullPointerException e) {
-      assertEquals("prefix must not be null", e.getMessage());
+      assertEquals("prefix", e.getMessage());
     }
   }
 
@@ -758,7 +757,7 @@ public class AzureBlobStoreBackendV8Test {
       backend.getAllMetadataRecords(null);
       fail("Expected NullPointerException for null prefix");
     } catch (NullPointerException e) {
-      assertEquals("prefix must not be null", e.getMessage());
+      assertEquals("prefix", e.getMessage());
     }
   }
 
@@ -787,7 +786,7 @@ public class AzureBlobStoreBackendV8Test {
       backend.write(new DataIdentifier("test"), null);
       fail("Expected NullPointerException for null file");
     } catch (NullPointerException e) {
-      assertEquals("file must not be null", e.getMessage());
+      assertEquals("file", e.getMessage());
     }
   }
 
@@ -804,7 +803,7 @@ public class AzureBlobStoreBackendV8Test {
       backend.write(null, tempFile);
       fail("Expected NullPointerException for null identifier");
     } catch (NullPointerException e) {
-      assertEquals("identifier must not be null", e.getMessage());
+      assertEquals("identifier", e.getMessage());
     } finally {
       tempFile.delete();
     }
@@ -856,7 +855,7 @@ public class AzureBlobStoreBackendV8Test {
       backend.addMetadataRecord((java.io.File) null, "test");
       fail("Expected NullPointerException for null file");
     } catch (NullPointerException e) {
-      assertEquals("input must not be null", e.getMessage());
+      assertEquals("input", e.getMessage());
     }
   }
 
@@ -1253,9 +1252,9 @@ public class AzureBlobStoreBackendV8Test {
     Properties props = getConfigurationWithConnectionString();
 
     // Configure download URI settings
-    props.setProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS, "3600");
-    props.setProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_CACHE_MAX_SIZE, "100");
-    props.setProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_DOMAIN_OVERRIDE, "custom.domain.com");
+    props.setProperty(AzureConstantsV8.PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS, "3600");
+    props.setProperty(AzureConstantsV8.PRESIGNED_HTTP_DOWNLOAD_URI_CACHE_MAX_SIZE, "100");
+    props.setProperty(AzureConstantsV8.PRESIGNED_HTTP_DOWNLOAD_URI_DOMAIN_OVERRIDE, "custom.domain.com");
 
     backend.setProperties(props);
     backend.init();
@@ -1272,8 +1271,8 @@ public class AzureBlobStoreBackendV8Test {
     Properties props = getConfigurationWithConnectionString();
 
     // Configure upload URI settings
-    props.setProperty(AzureConstants.PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS, "1800");
-    props.setProperty(AzureConstants.PRESIGNED_HTTP_UPLOAD_URI_DOMAIN_OVERRIDE, "upload.domain.com");
+    props.setProperty(AzureConstantsV8.PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS, "1800");
+    props.setProperty(AzureConstantsV8.PRESIGNED_HTTP_UPLOAD_URI_DOMAIN_OVERRIDE, "upload.domain.com");
 
     backend.setProperties(props);
     backend.init();
@@ -1291,7 +1290,7 @@ public class AzureBlobStoreBackendV8Test {
     Properties props = getConfigurationWithConnectionString();
 
     // Enable secondary location
-    props.setProperty(AzureConstants.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_NAME, "true");
+    props.setProperty(AzureConstantsV8.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_NAME, "true");
 
     backend.setProperties(props);
 
@@ -1321,7 +1320,7 @@ public class AzureBlobStoreBackendV8Test {
     Properties props = getConfigurationWithConnectionString();
 
     // Set request timeout
-    props.setProperty(AzureConstants.AZURE_BLOB_REQUEST_TIMEOUT, "30000");
+    props.setProperty(AzureConstantsV8.AZURE_BLOB_REQUEST_TIMEOUT, "30000");
 
     backend.setProperties(props);
     backend.init();
@@ -1342,7 +1341,7 @@ public class AzureBlobStoreBackendV8Test {
     Properties props = getConfigurationWithConnectionString();
 
     // Disable verify exists for presigned download URIs
-    props.setProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS, "false");
+    props.setProperty(AzureConstantsV8.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS, "false");
 
     backend.setProperties(props);
     backend.init();
@@ -1360,7 +1359,7 @@ public class AzureBlobStoreBackendV8Test {
     Properties props = getConfigurationWithConnectionString();
 
     // Disable container creation
-    props.setProperty(AzureConstants.AZURE_CREATE_CONTAINER, "false");
+    props.setProperty(AzureConstantsV8.AZURE_CREATE_CONTAINER, "false");
 
     backend.setProperties(props);
     backend.init();
@@ -1376,8 +1375,8 @@ public class AzureBlobStoreBackendV8Test {
 
     AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
     Properties props = getBasicConfiguration();
-    props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, "empty-container");
-    props.setProperty(AzureConstants.AZURE_CONNECTION_STRING, getConnectionString());
+    props.setProperty(AzureConstantsV8.AZURE_BLOB_CONTAINER_NAME, "empty-container");
+    props.setProperty(AzureConstantsV8.AZURE_CONNECTION_STRING, getConnectionString());
     backend.setProperties(props);
     backend.init();
 
@@ -1469,7 +1468,7 @@ public class AzureBlobStoreBackendV8Test {
       backend.addMetadataRecord(new ByteArrayInputStream("test".getBytes()), "");
       fail("Expected IllegalArgumentException for empty name");
     } catch (IllegalArgumentException e) {
-      assertEquals("name should not be empty", e.getMessage());
+      assertEquals("name", e.getMessage());
     }
   }
 
@@ -1490,7 +1489,7 @@ public class AzureBlobStoreBackendV8Test {
       backend.addMetadataRecord(tempFile, "");
       fail("Expected IllegalArgumentException for empty name");
     } catch (IllegalArgumentException e) {
-      assertEquals("name should not be empty", e.getMessage());
+      assertEquals("name", e.getMessage());
     } finally {
       tempFile.delete();
     }
@@ -1593,9 +1592,9 @@ public class AzureBlobStoreBackendV8Test {
     Properties props = getConfigurationWithConnectionString();
 
     // Set various configuration options
-    props.setProperty(AzureConstants.AZURE_BLOB_CONCURRENT_REQUESTS_PER_OPERATION, "8");
-    props.setProperty(AzureConstants.AZURE_BLOB_REQUEST_TIMEOUT, "45000");
-    props.setProperty(AzureConstants.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_NAME, "true");
+    props.setProperty(AzureConstantsV8.AZURE_BLOB_CONCURRENT_REQUESTS_PER_OPERATION, "8");
+    props.setProperty(AzureConstantsV8.AZURE_BLOB_REQUEST_TIMEOUT, "45000");
+    props.setProperty(AzureConstantsV8.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_NAME, "true");
 
     backend.setProperties(props);
 
@@ -1675,8 +1674,8 @@ public class AzureBlobStoreBackendV8Test {
     Properties props = getConfigurationWithConnectionString();
 
     // Enable expiry for direct access
-    props.setProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS, "3600");
-    props.setProperty(AzureConstants.PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS, "1800");
+    props.setProperty(AzureConstantsV8.PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS, "3600");
+    props.setProperty(AzureConstantsV8.PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS, "1800");
 
     backend.setProperties(props);
     backend.init();
@@ -1708,8 +1707,8 @@ public class AzureBlobStoreBackendV8Test {
       org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions uploadOptions =
           org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions.DEFAULT;
 
-      // Use a larger file size to ensure we get 2 parts (2 * 256KB = 512KB)
-      long uploadSize = 2L * 256L * 1024L; // 512KB to ensure 2 parts
+      // Use a file size larger than 2 * minPartSize (10MB) to ensure we get 2 parts
+      long uploadSize = 2L * 10L * 1024L * 1024L + 1L; // just over 20MB
       org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload upload =
           backend.initiateHttpUpload(uploadSize, 2, uploadOptions);
       assertNotNull("Upload should not be null when expiry is enabled", upload);
@@ -1732,8 +1731,8 @@ public class AzureBlobStoreBackendV8Test {
 
     AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
     Properties props = getConfigurationWithConnectionString();
-    props.setProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS, "3600");
-    props.setProperty(AzureConstants.PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS, "1800");
+    props.setProperty(AzureConstantsV8.PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS, "3600");
+    props.setProperty(AzureConstantsV8.PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS, "1800");
     backend.setProperties(props);
     backend.init();
 
@@ -1743,7 +1742,7 @@ public class AzureBlobStoreBackendV8Test {
                                     org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions.DEFAULT);
       fail("Expected NullPointerException for null identifier");
     } catch (NullPointerException e) {
-      assertEquals("identifier must not be null", e.getMessage());
+      assertEquals("identifier", e.getMessage());
     }
 
     // Test createHttpDownloadURI with null options
@@ -1752,7 +1751,7 @@ public class AzureBlobStoreBackendV8Test {
           new DataIdentifier("test"), null);
       fail("Expected NullPointerException for null options");
     } catch (NullPointerException e) {
-      assertEquals("downloadOptions must not be null", e.getMessage());
+      assertEquals("downloadOptions", e.getMessage());
     }
 
     // Test initiateHttpUpload with null options
@@ -1770,7 +1769,7 @@ public class AzureBlobStoreBackendV8Test {
 
     AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
     Properties props = getConfigurationWithConnectionString();
-    props.setProperty(AzureConstants.PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS, "1800");
+    props.setProperty(AzureConstantsV8.PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS, "1800");
     backend.setProperties(props);
     backend.init();
 
@@ -1877,7 +1876,7 @@ public class AzureBlobStoreBackendV8Test {
 
     AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
     Properties props = getConfigurationWithConnectionString();
-    props.setProperty(AzureConstants.AZURE_BLOB_CONCURRENT_REQUESTS_PER_OPERATION, "0");
+    props.setProperty(AzureConstantsV8.AZURE_BLOB_CONCURRENT_REQUESTS_PER_OPERATION, "0");
     backend.setProperties(props);
     backend.init();
 
@@ -1891,7 +1890,7 @@ public class AzureBlobStoreBackendV8Test {
 
     AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
     Properties props = getConfigurationWithConnectionString();
-    props.setProperty(AzureConstants.AZURE_BLOB_CONCURRENT_REQUESTS_PER_OPERATION, "1000");
+    props.setProperty(AzureConstantsV8.AZURE_BLOB_CONCURRENT_REQUESTS_PER_OPERATION, "1000");
     backend.setProperties(props);
     backend.init();
 
@@ -1906,7 +1905,7 @@ public class AzureBlobStoreBackendV8Test {
 
     AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
     Properties props = getConfigurationWithConnectionString();
-    props.setProperty(AzureConstants.AZURE_CREATE_CONTAINER, "true");
+    props.setProperty(AzureConstantsV8.AZURE_CREATE_CONTAINER, "true");
     backend.setProperties(props);
     backend.init();
 
@@ -1920,11 +1919,11 @@ public class AzureBlobStoreBackendV8Test {
 
     AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
     Properties props = getConfigurationWithConnectionString();
-    props.setProperty(AzureConstants.PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS, "3600");
-    props.setProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS, "1800");
-    props.setProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_CACHE_MAX_SIZE, "100");
-    props.setProperty(AzureConstants.PRESIGNED_HTTP_UPLOAD_URI_DOMAIN_OVERRIDE, "custom-upload.domain.com");
-    props.setProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_DOMAIN_OVERRIDE, "custom-download.domain.com");
+    props.setProperty(AzureConstantsV8.PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS, "3600");
+    props.setProperty(AzureConstantsV8.PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS, "1800");
+    props.setProperty(AzureConstantsV8.PRESIGNED_HTTP_DOWNLOAD_URI_CACHE_MAX_SIZE, "100");
+    props.setProperty(AzureConstantsV8.PRESIGNED_HTTP_UPLOAD_URI_DOMAIN_OVERRIDE, "custom-upload.domain.com");
+    props.setProperty(AzureConstantsV8.PRESIGNED_HTTP_DOWNLOAD_URI_DOMAIN_OVERRIDE, "custom-download.domain.com");
     backend.setProperties(props);
     backend.init();
 
@@ -1937,7 +1936,7 @@ public class AzureBlobStoreBackendV8Test {
 
     AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
     Properties props = getConfigurationWithConnectionString();
-    props.setProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS, "1800");
+    props.setProperty(AzureConstantsV8.PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS, "1800");
     // Don't set cache max size - should use default (0)
     backend.setProperties(props);
     backend.init();
@@ -1951,7 +1950,7 @@ public class AzureBlobStoreBackendV8Test {
 
     AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
     Properties props = getConfigurationWithConnectionString();
-    props.setProperty(AzureConstants.AZURE_REF_ON_INIT, "false");
+    props.setProperty(AzureConstantsV8.AZURE_REF_ON_INIT, "false");
     backend.setProperties(props);
     backend.init();
 
@@ -2218,7 +2217,7 @@ public class AzureBlobStoreBackendV8Test {
 
     AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
     Properties props = getConfigurationWithConnectionString();
-    props.setProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS, "3600");
+    props.setProperty(AzureConstantsV8.PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS, "3600");
     // Don't set cache size - should disable cache
     backend.setProperties(props);
     backend.init();
@@ -2253,9 +2252,9 @@ public class AzureBlobStoreBackendV8Test {
 
     AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
     Properties props = getConfigurationWithConnectionString();
-    props.setProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS, "3600");
-    props.setProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_CACHE_MAX_SIZE, "10");
-    props.setProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS, "true");
+    props.setProperty(AzureConstantsV8.PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS, "3600");
+    props.setProperty(AzureConstantsV8.PRESIGNED_HTTP_DOWNLOAD_URI_CACHE_MAX_SIZE, "10");
+    props.setProperty(AzureConstantsV8.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS, "true");
     backend.setProperties(props);
     backend.init();
 
@@ -2433,15 +2432,15 @@ public class AzureBlobStoreBackendV8Test {
     AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
 
     Properties props = new Properties();
-    props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, "test-container");
-    props.setProperty(AzureConstants.AZURE_CONNECTION_STRING, getConnectionString());
-    props.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "testaccount");
-    props.setProperty(AzureConstants.AZURE_BLOB_ENDPOINT, "https://testaccount.blob.core.windows.net");
-    props.setProperty(AzureConstants.AZURE_SAS, "test-sas-token");
-    props.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, "test-account-key");
-    props.setProperty(AzureConstants.AZURE_TENANT_ID, "test-tenant-id");
-    props.setProperty(AzureConstants.AZURE_CLIENT_ID, "test-client-id");
-    props.setProperty(AzureConstants.AZURE_CLIENT_SECRET, "test-client-secret");
+    props.setProperty(AzureConstantsV8.AZURE_BLOB_CONTAINER_NAME, "test-container");
+    props.setProperty(AzureConstantsV8.AZURE_CONNECTION_STRING, getConnectionString());
+    props.setProperty(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_NAME, "testaccount");
+    props.setProperty(AzureConstantsV8.AZURE_BLOB_ENDPOINT, "https://testaccount.blob.core.windows.net");
+    props.setProperty(AzureConstantsV8.AZURE_SAS, "test-sas-token");
+    props.setProperty(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_KEY, "test-account-key");
+    props.setProperty(AzureConstantsV8.AZURE_TENANT_ID, "test-tenant-id");
+    props.setProperty(AzureConstantsV8.AZURE_CLIENT_ID, "test-client-id");
+    props.setProperty(AzureConstantsV8.AZURE_CLIENT_SECRET, "test-client-secret");
 
     backend.setProperties(props);
 
@@ -2457,20 +2456,20 @@ public class AzureBlobStoreBackendV8Test {
     AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
 
     Properties props = new Properties();
-    props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, "test-container");
+    props.setProperty(AzureConstantsV8.AZURE_BLOB_CONTAINER_NAME, "test-container");
     // Use Azurite endpoint but with invalid credentials
     String invalidConnectionString = UtilsV8.getConnectionString(
         AzuriteDockerRule.ACCOUNT_NAME,
         "INVALID_KEY_aW52YWxpZGtleWludmFsaWRrZXlpbnZhbGlka2V5aW52YWxpZGtleQ==",
         azurite.getBlobEndpoint());
-    props.setProperty(AzureConstants.AZURE_CONNECTION_STRING, invalidConnectionString);
-    props.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_NAME);
-    props.setProperty(AzureConstants.AZURE_BLOB_ENDPOINT, azurite.getBlobEndpoint());
-    props.setProperty(AzureConstants.AZURE_SAS, "invalid-sas-token");
-    props.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, "invalid-account-key");
-    props.setProperty(AzureConstants.AZURE_TENANT_ID, "invalid-tenant-id");
-    props.setProperty(AzureConstants.AZURE_CLIENT_ID, "invalid-client-id");
-    props.setProperty(AzureConstants.AZURE_CLIENT_SECRET, "invalid-client-secret");
+    props.setProperty(AzureConstantsV8.AZURE_CONNECTION_STRING, invalidConnectionString);
+    props.setProperty(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_NAME);
+    props.setProperty(AzureConstantsV8.AZURE_BLOB_ENDPOINT, azurite.getBlobEndpoint());
+    props.setProperty(AzureConstantsV8.AZURE_SAS, "invalid-sas-token");
+    props.setProperty(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_KEY, "invalid-account-key");
+    props.setProperty(AzureConstantsV8.AZURE_TENANT_ID, "invalid-tenant-id");
+    props.setProperty(AzureConstantsV8.AZURE_CLIENT_ID, "invalid-client-id");
+    props.setProperty(AzureConstantsV8.AZURE_CLIENT_SECRET, "invalid-client-secret");
 
     backend.setProperties(props);
     backend.init(); // Should throw DataStoreException due to invalid credentials
@@ -2483,18 +2482,18 @@ public class AzureBlobStoreBackendV8Test {
     AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
 
     Properties props = new Properties();
-    props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, "test-container");
+    props.setProperty(AzureConstantsV8.AZURE_BLOB_CONTAINER_NAME, "test-container");
     // Malformed connection string - missing required fields and invalid format
     // Still references Azurite endpoint to show it fails before even attempting connection
-    props.setProperty(AzureConstants.AZURE_CONNECTION_STRING,
+    props.setProperty(AzureConstantsV8.AZURE_CONNECTION_STRING,
         "InvalidFormat;BlobEndpoint=" + azurite.getBlobEndpoint() + ";MissingAccountName");
-    props.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_NAME);
-    props.setProperty(AzureConstants.AZURE_BLOB_ENDPOINT, azurite.getBlobEndpoint());
-    props.setProperty(AzureConstants.AZURE_SAS, "test-sas-token");
-    props.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, "test-account-key");
-    props.setProperty(AzureConstants.AZURE_TENANT_ID, "test-tenant-id");
-    props.setProperty(AzureConstants.AZURE_CLIENT_ID, "test-client-id");
-    props.setProperty(AzureConstants.AZURE_CLIENT_SECRET, "test-client-secret");
+    props.setProperty(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_NAME);
+    props.setProperty(AzureConstantsV8.AZURE_BLOB_ENDPOINT, azurite.getBlobEndpoint());
+    props.setProperty(AzureConstantsV8.AZURE_SAS, "test-sas-token");
+    props.setProperty(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_KEY, "test-account-key");
+    props.setProperty(AzureConstantsV8.AZURE_TENANT_ID, "test-tenant-id");
+    props.setProperty(AzureConstantsV8.AZURE_CLIENT_ID, "test-client-id");
+    props.setProperty(AzureConstantsV8.AZURE_CLIENT_SECRET, "test-client-secret");
 
     backend.setProperties(props);
     backend.init(); // Should throw IllegalArgumentException due to malformed connection string
@@ -2506,7 +2505,7 @@ public class AzureBlobStoreBackendV8Test {
     AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
 
     Properties props = new Properties();
-    props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, "minimal-container");
+    props.setProperty(AzureConstantsV8.AZURE_BLOB_CONTAINER_NAME, "minimal-container");
     // Only set container name, all other properties will use empty defaults
 
     backend.setProperties(props);
@@ -2531,9 +2530,9 @@ public class AzureBlobStoreBackendV8Test {
     AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
 
     Properties props = new Properties();
-    props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, "partial-container");
-    props.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "partialaccount");
-    props.setProperty(AzureConstants.AZURE_TENANT_ID, "partial-tenant");
+    props.setProperty(AzureConstantsV8.AZURE_BLOB_CONTAINER_NAME, "partial-container");
+    props.setProperty(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_NAME, "partialaccount");
+    props.setProperty(AzureConstantsV8.AZURE_TENANT_ID, "partial-tenant");
     // Mix of some properties set, others using defaults
 
     backend.setProperties(props);
@@ -2551,4 +2550,172 @@ public class AzureBlobStoreBackendV8Test {
       assertTrue("initAzureDSConfig was called during init", e.getMessage().contains("Invalid connection string"));
     }
   }
+
+  // =====================================================================
+  // CSO Prevention Tests (Step 3.2)
+  //
+  // These tests guard against the root cause of CSO-Release-24893:
+  // V12 constants (4000 MiB max part) leaking into V8 code path.
+  // =====================================================================
+
+  @Test
+  public void testV8MaxPartSize_MustBe100MiB() {
+    assertEquals("V8 MAX_MULTIPART_UPLOAD_PART_SIZE must be 100 MiB (CSO root cause guard)",
+        100L * 1024 * 1024,
+        AzureConstantsV8.AZURE_BLOB_MAX_MULTIPART_UPLOAD_PART_SIZE);
+  }
+
+  @Test
+  public void testV8MinPartSize_MustBe10MiB() {
+    assertEquals("V8 MIN_MULTIPART_UPLOAD_PART_SIZE must be 10 MiB",
+        10L * 1024 * 1024,
+        AzureConstantsV8.AZURE_BLOB_MIN_MULTIPART_UPLOAD_PART_SIZE);
+  }
+
+  @Test
+  public void testV8MaxBinaryUploadSize_MustBe4_75TiB() {
+    long expected = (long) Math.floor(1024L * 1024L * 1024L * 1024L * 4.75);
+    assertEquals("V8 MAX_BINARY_UPLOAD_SIZE must be ~4.75 TiB",
+        expected,
+        AzureConstantsV8.AZURE_BLOB_MAX_BINARY_UPLOAD_SIZE);
+  }
+
+  @Test
+  public void testV8BufferedStreamThreshold_MustBe1MiB() {
+    assertEquals("V8 BUFFERED_STREAM_THRESHOLD must be 1 MiB",
+        1024L * 1024,
+        AzureConstantsV8.AZURE_BLOB_BUFFERED_STREAM_THRESHOLD);
+  }
+
+  @Test
+  public void testV8DefaultConcurrentRequestCount_MustBe2() {
+    assertEquals("V8 DEFAULT_CONCURRENT_REQUEST_COUNT must be 2",
+        2,
+        AzureConstantsV8.AZURE_BLOB_DEFAULT_CONCURRENT_REQUEST_COUNT);
+  }
+
+  @Test
+  public void testV8MaxConcurrentRequestCount_MustBe50() {
+    assertEquals("V8 MAX_CONCURRENT_REQUEST_COUNT must be 50",
+        50,
+        AzureConstantsV8.AZURE_BLOB_MAX_CONCURRENT_REQUEST_COUNT);
+  }
+
+  @Test
+  public void testV8InitiateHttpUpload_100MiB_AtMost10URIs() throws Exception {
+    createBlobContainer();
+
+    AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+    Properties props = getConfigurationWithConnectionString();
+    props.setProperty(AzureConstantsV8.PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS, "60");
+    backend.setProperties(props);
+    backend.init();
+
+    org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions uploadOptions =
+        org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions.DEFAULT;
+
+    // 100 MiB with 10 URIs max: ceil(100MiB / 10MiB minPart) = 10, capped at maxNumberOfURIs=10
+    org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload upload =
+        backend.initiateHttpUpload(100L * 1024 * 1024, 10, uploadOptions);
+
+    assertNotNull("Upload should not be null", upload);
+    assertTrue("100 MiB upload with 10 URIs should produce at most 10 URIs",
+        upload.getUploadURIs().size() <= 10);
+    assertTrue("100 MiB upload should produce at least 1 URI",
+        upload.getUploadURIs().size() >= 1);
+  }
+
+  @Test
+  public void testV8InitiateHttpUpload_1GiB_MaxPart100MiB() throws Exception {
+    // DIRECT CSO REPRODUCTION: With V12 constants (4000 MiB max part),
+    // 1 GiB / 10 URIs = 100 MiB per part which is <= 4000 MiB, so only ~1 URI.
+    // With V8 constants (100 MiB max part), we get 10 URIs at 100 MiB each.
+    createBlobContainer();
+
+    AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+    Properties props = getConfigurationWithConnectionString();
+    props.setProperty(AzureConstantsV8.PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS, "60");
+    backend.setProperties(props);
+    backend.init();
+
+    org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions uploadOptions =
+        org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions.DEFAULT;
+
+    long oneGiB = 1024L * 1024 * 1024;
+    org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload upload =
+        backend.initiateHttpUpload(oneGiB, -1, uploadOptions);
+
+    assertNotNull("Upload should not be null", upload);
+    // With minPartSize=10MiB: ceil(1GiB / 10MiB) = ~103 URIs
+    // Must NOT be 1 URI (which would happen with V12 min of 256KiB and max of 4000MiB)
+    int uriCount = upload.getUploadURIs().size();
+    assertTrue("1 GiB upload with unlimited URIs must produce multiple URIs (got " + uriCount + ")",
+        uriCount > 1);
+    // ceil(1GiB / 10MiB) = 103
+    long expectedParts = (long) Math.ceil(((double) oneGiB) / ((double) AzureConstantsV8.AZURE_BLOB_MIN_MULTIPART_UPLOAD_PART_SIZE));
+    assertEquals("1 GiB upload with unlimited URIs should produce ceil(1GiB/10MiB) URIs",
+        expectedParts, uriCount);
+  }
+
+  @Test
+  public void testV8InitiateHttpUpload_4GiB_40URIs() throws Exception {
+    // 4 GiB with 40 URIs max: requestedPartSize = 4GiB/40 = ~107 MiB > 100 MiB maxPart → exception
+    // So test with 50 URIs: requestedPartSize = 4GiB/50 = ~86 MiB <= 100 MiB → OK
+    createBlobContainer();
+
+    AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+    Properties props = getConfigurationWithConnectionString();
+    props.setProperty(AzureConstantsV8.PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS, "60");
+    backend.setProperties(props);
+    backend.init();
+
+    org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions uploadOptions =
+        org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions.DEFAULT;
+
+    long fourGiB = 4L * 1024 * 1024 * 1024;
+
+    // With unlimited URIs: ceil(4GiB / 10MiB) = 410 URIs — not 1!
+    org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload upload =
+        backend.initiateHttpUpload(fourGiB, -1, uploadOptions);
+
+    assertNotNull("Upload should not be null", upload);
+    int uriCount = upload.getUploadURIs().size();
+    long expectedParts = (long) Math.ceil(((double) fourGiB) / ((double) AzureConstantsV8.AZURE_BLOB_MIN_MULTIPART_UPLOAD_PART_SIZE));
+    assertEquals("4 GiB upload with unlimited URIs should produce ceil(4GiB/10MiB) = " + expectedParts + " URIs",
+        expectedParts, uriCount);
+    assertTrue("4 GiB upload must produce many URIs, not 1 (got " + uriCount + ")",
+        uriCount > 10);
+  }
+
+  @Test
+  public void testV8InitiateHttpUpload_40GiB_UnlimitedURIs() throws Exception {
+    // 40 GiB is a realistic DAM archive size that triggered the production OOM.
+    // With V12's leaked 4000 MiB max part: 40 GiB / 10 MiB min = 4096 URIs, but
+    // the real danger was the oversized part allocation (4000 MiB buffers).
+    // With V8's correct 100 MiB max / 10 MiB min: ceil(40 GiB / 10 MiB) = 4096 URIs
+    // at manageable 10 MiB each — no OOM.
+    createBlobContainer();
+
+    AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+    Properties props = getConfigurationWithConnectionString();
+    props.setProperty(AzureConstantsV8.PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS, "60");
+    backend.setProperties(props);
+    backend.init();
+
+    org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions uploadOptions =
+        org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions.DEFAULT;
+
+    long fortyGiB = 40L * 1024 * 1024 * 1024;
+    org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload upload =
+        backend.initiateHttpUpload(fortyGiB, -1, uploadOptions);
+
+    assertNotNull("Upload should not be null", upload);
+    int uriCount = upload.getUploadURIs().size();
+    long expectedParts = (long) Math.ceil(((double) fortyGiB) / ((double) AzureConstantsV8.AZURE_BLOB_MIN_MULTIPART_UPLOAD_PART_SIZE));
+    assertEquals("40 GiB upload should produce ceil(40GiB/10MiB) = " + expectedParts + " URIs",
+        expectedParts, uriCount);
+    assertTrue("40 GiB upload must produce thousands of URIs, not a handful (got " + uriCount + ")",
+        uriCount > 100);
+  }
+
 }

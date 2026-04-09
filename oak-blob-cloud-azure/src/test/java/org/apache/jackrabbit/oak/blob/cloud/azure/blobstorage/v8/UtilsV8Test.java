@@ -27,7 +27,6 @@ import com.microsoft.azure.storage.blob.BlobRequestOptions;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
-import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.junit.After;
 import org.junit.Test;
 import org.mockito.MockedStatic;
@@ -76,7 +75,7 @@ public class UtilsV8Test {
     @Test
     public void testConnectionStringIsBasedOnProperty() {
         Properties properties = new Properties();
-        properties.put(AzureConstants.AZURE_CONNECTION_STRING, "DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=accountKey");
+        properties.put(AzureConstantsV8.AZURE_CONNECTION_STRING, "DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=accountKey");
         String connectionString = UtilsV8.getConnectionStringFromProperties(properties);
         assertEquals("DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=accountKey", connectionString);
     }
@@ -84,8 +83,8 @@ public class UtilsV8Test {
     @Test
     public void testConnectionStringIsBasedOnSAS() {
         Properties properties = new Properties();
-        properties.put(AzureConstants.AZURE_SAS, "sas");
-        properties.put(AzureConstants.AZURE_BLOB_ENDPOINT, "endpoint");
+        properties.put(AzureConstantsV8.AZURE_SAS, "sas");
+        properties.put(AzureConstantsV8.AZURE_BLOB_ENDPOINT, "endpoint");
         String connectionString = UtilsV8.getConnectionStringFromProperties(properties);
         assertEquals(connectionString,
                 String.format("BlobEndpoint=%s;SharedAccessSignature=%s", "endpoint", "sas"));
@@ -94,8 +93,8 @@ public class UtilsV8Test {
     @Test
     public void testConnectionStringIsBasedOnSASWithoutEndpoint() {
         Properties properties = new Properties();
-        properties.put(AzureConstants.AZURE_SAS, "sas");
-        properties.put(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "account");
+        properties.put(AzureConstantsV8.AZURE_SAS, "sas");
+        properties.put(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_NAME, "account");
         String connectionString = UtilsV8.getConnectionStringFromProperties(properties);
         assertEquals(connectionString,
                 String.format("AccountName=%s;SharedAccessSignature=%s", "account", "sas"));
@@ -104,8 +103,8 @@ public class UtilsV8Test {
     @Test
     public void testConnectionStringIsBasedOnAccessKeyIfSASMissing() {
         Properties properties = new Properties();
-        properties.put(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "accessKey");
-        properties.put(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, "secretKey");
+        properties.put(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_NAME, "accessKey");
+        properties.put(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_KEY, "secretKey");
 
         String connectionString = UtilsV8.getConnectionStringFromProperties(properties);
         assertEquals(connectionString,
@@ -115,11 +114,11 @@ public class UtilsV8Test {
     @Test
     public void testConnectionStringSASIsPriority() {
         Properties properties = new Properties();
-        properties.put(AzureConstants.AZURE_SAS, "sas");
-        properties.put(AzureConstants.AZURE_BLOB_ENDPOINT, "endpoint");
+        properties.put(AzureConstantsV8.AZURE_SAS, "sas");
+        properties.put(AzureConstantsV8.AZURE_BLOB_ENDPOINT, "endpoint");
 
-        properties.put(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "accessKey");
-        properties.put(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, "secretKey");
+        properties.put(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_NAME, "accessKey");
+        properties.put(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_KEY, "secretKey");
 
         String connectionString = UtilsV8.getConnectionStringFromProperties(properties);
         assertEquals(connectionString,
@@ -137,8 +136,8 @@ public class UtilsV8Test {
     public void testConnectionStringFromPropertiesWithNullValues() {
         Properties properties = new Properties();
         // Properties.put() doesn't accept null values, so we test with empty strings instead
-        properties.put(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "");
-        properties.put(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, "");
+        properties.put(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_NAME, "");
+        properties.put(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_KEY, "");
         String connectionString = UtilsV8.getConnectionStringFromProperties(properties);
         assertEquals("DefaultEndpointsProtocol=https;AccountName=;AccountKey=", connectionString);
     }
@@ -232,8 +231,8 @@ public class UtilsV8Test {
     @Test
     public void testSetProxyIfNeededWithValidProxySettings() {
         Properties properties = new Properties();
-        properties.setProperty(AzureConstants.PROXY_HOST, "proxy.example.com");
-        properties.setProperty(AzureConstants.PROXY_PORT, "8080");
+        properties.setProperty(AzureConstantsV8.PROXY_HOST, "proxy.example.com");
+        properties.setProperty(AzureConstantsV8.PROXY_PORT, "8080");
 
         UtilsV8.setProxyIfNeeded(properties);
 
@@ -250,7 +249,7 @@ public class UtilsV8Test {
     @Test
     public void testSetProxyIfNeededWithMissingProxyHost() {
         Properties properties = new Properties();
-        properties.setProperty(AzureConstants.PROXY_PORT, "8080");
+        properties.setProperty(AzureConstantsV8.PROXY_PORT, "8080");
 
         UtilsV8.setProxyIfNeeded(properties);
         assertNull("Proxy should not be set when host is missing", OperationContext.getDefaultProxy());
@@ -259,7 +258,7 @@ public class UtilsV8Test {
     @Test
     public void testSetProxyIfNeededWithMissingProxyPort() {
         Properties properties = new Properties();
-        properties.setProperty(AzureConstants.PROXY_HOST, "proxy.example.com");
+        properties.setProperty(AzureConstantsV8.PROXY_HOST, "proxy.example.com");
         // Missing port property - proxy should not be set
 
         UtilsV8.setProxyIfNeeded(properties);
@@ -276,8 +275,8 @@ public class UtilsV8Test {
     @Test
     public void testSetProxyIfNeededWithNullHost() {
         Properties properties = new Properties();
-        properties.setProperty(AzureConstants.PROXY_HOST, "");
-        properties.setProperty(AzureConstants.PROXY_PORT, "8080");
+        properties.setProperty(AzureConstantsV8.PROXY_HOST, "");
+        properties.setProperty(AzureConstantsV8.PROXY_PORT, "8080");
 
         UtilsV8.setProxyIfNeeded(properties);
         assertNull("Proxy should not be set with empty host", OperationContext.getDefaultProxy());
@@ -286,8 +285,8 @@ public class UtilsV8Test {
     @Test
     public void testSetProxyIfNeededWithEmptyPort() {
         Properties properties = new Properties();
-        properties.setProperty(AzureConstants.PROXY_HOST, "proxy.example.com");
-        properties.setProperty(AzureConstants.PROXY_PORT, "");
+        properties.setProperty(AzureConstantsV8.PROXY_HOST, "proxy.example.com");
+        properties.setProperty(AzureConstantsV8.PROXY_PORT, "");
         // Empty port string - proxy should not be set
 
         UtilsV8.setProxyIfNeeded(properties);
@@ -297,8 +296,8 @@ public class UtilsV8Test {
     @Test(expected = NumberFormatException.class)
     public void testSetProxyIfNeededWithInvalidPort() {
         Properties properties = new Properties();
-        properties.setProperty(AzureConstants.PROXY_HOST, "proxy.example.com");
-        properties.setProperty(AzureConstants.PROXY_PORT, "invalid");
+        properties.setProperty(AzureConstantsV8.PROXY_HOST, "proxy.example.com");
+        properties.setProperty(AzureConstantsV8.PROXY_PORT, "invalid");
 
         // After the bug fix, this should now throw NumberFormatException
         UtilsV8.setProxyIfNeeded(properties);
@@ -491,11 +490,11 @@ public class UtilsV8Test {
     public void testConnectionStringPriorityOrder() {
         // Test that connection string has highest priority
         Properties properties = new Properties();
-        properties.put(AzureConstants.AZURE_CONNECTION_STRING, "connection-string-value");
-        properties.put(AzureConstants.AZURE_SAS, "sas-value");
-        properties.put(AzureConstants.AZURE_BLOB_ENDPOINT, "endpoint-value");
-        properties.put(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "account-value");
-        properties.put(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, "key-value");
+        properties.put(AzureConstantsV8.AZURE_CONNECTION_STRING, "connection-string-value");
+        properties.put(AzureConstantsV8.AZURE_SAS, "sas-value");
+        properties.put(AzureConstantsV8.AZURE_BLOB_ENDPOINT, "endpoint-value");
+        properties.put(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_NAME, "account-value");
+        properties.put(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_KEY, "key-value");
 
         String result = UtilsV8.getConnectionStringFromProperties(properties);
         assertEquals("connection-string-value", result);
@@ -505,10 +504,10 @@ public class UtilsV8Test {
     public void testSASPriorityOverAccountKey() {
         // Test that SAS has priority over account key
         Properties properties = new Properties();
-        properties.put(AzureConstants.AZURE_SAS, "sas-value");
-        properties.put(AzureConstants.AZURE_BLOB_ENDPOINT, "endpoint-value");
-        properties.put(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "account-value");
-        properties.put(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, "key-value");
+        properties.put(AzureConstantsV8.AZURE_SAS, "sas-value");
+        properties.put(AzureConstantsV8.AZURE_BLOB_ENDPOINT, "endpoint-value");
+        properties.put(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_NAME, "account-value");
+        properties.put(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_KEY, "key-value");
 
         String result = UtilsV8.getConnectionStringFromProperties(properties);
         assertEquals("BlobEndpoint=endpoint-value;SharedAccessSignature=sas-value", result);
@@ -518,9 +517,9 @@ public class UtilsV8Test {
     public void testFallbackToAccountKey() {
         // Test fallback to account key when no connection string or SAS
         Properties properties = new Properties();
-        properties.put(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "account-value");
-        properties.put(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, "key-value");
-        properties.put(AzureConstants.AZURE_BLOB_ENDPOINT, "endpoint-value");
+        properties.put(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_NAME, "account-value");
+        properties.put(AzureConstantsV8.AZURE_STORAGE_ACCOUNT_KEY, "key-value");
+        properties.put(AzureConstantsV8.AZURE_BLOB_ENDPOINT, "endpoint-value");
 
         String result = UtilsV8.getConnectionStringFromProperties(properties);
         assertEquals("DefaultEndpointsProtocol=https;AccountName=account-value;AccountKey=key-value;BlobEndpoint=endpoint-value", result);
