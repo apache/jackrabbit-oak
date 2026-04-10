@@ -68,4 +68,14 @@ public interface QueryLimits {
         return false;
     };
 
+    /**
+     * See OAK-12057. By default, LIMIT is ignored when selecting indexes
+     * (allowing the query engine to select based on the best plan).
+     *
+     * @return true to ignore LIMIT in index selection, false for legacy behavior
+     */
+    default boolean isIgnoreLimitInIndexSelection() {
+        return true;
+    }
+
 }

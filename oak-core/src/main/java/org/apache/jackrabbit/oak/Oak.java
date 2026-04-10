@@ -597,6 +597,10 @@ public class Oak {
             LOG.info("Registered optimize XPath union feature: " + QueryEngineSettings.FT_OPTIMIZE_XPATH_UNION);
             closer.register(optimizeXPathUnion);
             queryEngineSettings.setOptimizeXPathUnion(optimizeXPathUnion);
+            Feature ignoreLimitInIndexSelection = newFeature(QueryEngineSettings.FT_IGNORE_LIMIT_IN_INDEX_SELECTION, whiteboard);
+            LOG.info("Registered ignore limit in index selection feature: " + QueryEngineSettings.FT_IGNORE_LIMIT_IN_INDEX_SELECTION);
+            closer.register(ignoreLimitInIndexSelection);
+            queryEngineSettings.setIgnoreLimitInIndexSelectionFeature(ignoreLimitInIndexSelection);
         }
 
         return this;
@@ -1019,6 +1023,10 @@ public class Oak {
 
         public void setOptimizeXPathUnion(@Nullable Feature feature) {
             settings.setOptimizeXPathUnion(feature);
+        }
+
+        public void setIgnoreLimitInIndexSelectionFeature(@Nullable Feature feature) {
+            settings.setIgnoreLimitInIndexSelectionFeature(feature);
         }
 
         @Override
