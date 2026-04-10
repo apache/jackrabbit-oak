@@ -14,33 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.cache;
+package org.apache.jackrabbit.oak.cache.api;
 
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Determines the weight of a cache entry.
+ * Computes or loads a value for a missing cache entry.
  *
- * <p>Used with {@code OakCacheBuilder.weigher(OakWeigher)} in combination with
- * {@code OakCacheBuilder.maximumWeight(long)} to create weight-bounded caches.
- * The unit is typically bytes but is cache-specific. The returned weight must
- * be non-negative.</p>
- *
- * <!-- TODO OAK-TASK2: restore {@link OakCacheBuilder#weigher(OakWeigher)} and
- *      {@link OakCacheBuilder#maximumWeight(long)} once TASK-2 is merged. -->
+ * <p>Used with {@link CacheBuilder#build(CacheLoader)} to create an
+ * {@link LoadingCache}. The loader is key-aware (receives the lookup key)
+ * and may throw a checked exception.</p>
  *
  * @param <K> the type of cache keys
  * @param <V> the type of cache values
  */
 @FunctionalInterface
-public interface OakWeigher<K, V> {
+public interface CacheLoader<K, V> {
 
     /**
-     * Returns the weight of the given cache entry.
+     * Computes the value for the given key.
      *
-     * @param key   the cache key (never null)
-     * @param value the cache value (never null)
-     * @return the weight of the entry; must be non-negative
+     * @param key the key whose value should be loaded (never null)
+     * @return the loaded value (never null)
+     * @throws Exception if the value cannot be loaded
      */
-    int weigh(@NotNull K key, @NotNull V value);
+    @NotNull
+    V load(@NotNull K key) throws Exception;
 }

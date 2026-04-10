@@ -78,6 +78,8 @@ public class OSGiIT {
                 mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-annotations").version("2.19.1"),
                 mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-databind").version("2.19.1"),
 
+                mavenBundle().groupId("com.github.ben-manes.caffeine").artifactId("caffeine").version("3.1.8"),
+
                 frameworkProperty("repository.home").value("target"),
                 systemProperties(new SystemPropertyOption("felix.fileinstall.dir").value(getConfigDir())),
                 jarBundles(),
