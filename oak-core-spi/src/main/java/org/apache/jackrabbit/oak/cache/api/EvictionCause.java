@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.cache;
+package org.apache.jackrabbit.oak.cache.api;
 
 /**
  * The reason an entry was removed from the cache.
  *
- * <p>Passed to {@link OakRemovalListener#onRemoval(Object, Object, OakRemovalCause)}
+ * <p>Passed to {@link EvictionListener#onEviction(Object, Object, EvictionCause)}
  * when an entry is evicted or invalidated. Covers the common subset of removal
  * causes across CacheLIRS and Caffeine without exposing either.</p>
  */
-public enum OakRemovalCause {
+public enum EvictionCause {
 
     /** The entry was manually removed via {@code invalidate}. */
     EXPLICIT,

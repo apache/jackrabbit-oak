@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.cache;
+package org.apache.jackrabbit.oak.cache.api;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
@@ -28,21 +28,17 @@ import org.osgi.annotation.versioning.ProviderType;
  * A size-bounded, thread-safe cache.
  *
  * <p>Implementations may use different eviction strategies (LIRS, W-TinyLFU/Caffeine,
- * etc.) but callers see only this interface. Obtain instances via OakCacheBuilder.</p>
+ * etc.) but callers see only this interface. Obtain instances via {@link CacheBuilder}.</p>
  *
- * <!-- TODO OAK-TASK2: replace plain-text OakCacheBuilder reference above with
- *      {@link OakCacheBuilder} once OakCacheBuilder is introduced in TASK-2. -->
- *
- * <p>The {@link #get(Object, Function)} signature matches Caffeine's
- * {@code Cache.get(K, Function)} contract exactly: the loader is key-aware and any
- * exception thrown by the mapping function propagates as an unchecked
- * {@code RuntimeException} (or {@code CompletionException}).</p>
+ * <p>The {@link #get(Object, Function)} method follows Caffeine's manual-cache
+ * contract: callers supply a key-aware mapping function and failures are
+ * exposed as unchecked exceptions.</p>
  *
  * @param <K> the type of cache keys
  * @param <V> the type of cache values
  */
 @ProviderType
-public interface OakCache<K, V> {
+public interface Cache<K, V> {
 
     /**
      * Returns the value associated with {@code key} if it is currently in the
@@ -58,14 +54,11 @@ public interface OakCache<K, V> {
      * Returns the value associated with {@code key}, computing it via
      * {@code mappingFunction} and caching the result if it was absent.
      *
-     * <p>Matches Caffeine's {@code Cache.get(K, Function)} contract: any exception
-     * thrown by the mapping function propagates as an unchecked
-     * {@code RuntimeException} or {@code CompletionException}. Implementations
-     * backed by CacheLIRS bridge internally by wrapping any checked
-     * {@code ExecutionException} into {@code CompletionException}.</p>
+     * <p>Matches Caffeine's manual-cache contract: the mapping function receives
+     * the cache key and failures are exposed as unchecked exceptions.</p>
      *
      * @param key             the key whose associated value is to be returned (must not be null)
-     * @param mappingFunction the function to compute a value if the key is absent (must not be null)
+     * @param mappingFunction the function used to compute a value if the key is absent (must not be null)
      * @return the current (existing or computed) value, or {@code null} if the
      *         mapping function returns {@code null}
      */
@@ -116,14 +109,13 @@ public interface OakCache<K, V> {
 
     /**
      * Returns a snapshot of this cache's cumulative statistics. If statistics
-     * collection was not enabled via {@code OakCacheBuilder.recordStats()}, all
-     * <!-- TODO OAK-TASK2: restore {@link OakCacheBuilder#recordStats()} once TASK-2 is merged. -->
+     * collection was not enabled via {@link CacheBuilder#recordStats()}, all
      * counters will be zero.
      *
      * @return a stats snapshot (never null)
      */
     @NotNull
-    OakCacheStats stats();
+    CacheStatsSnapshot stats();
 
     /**
      * Returns a view of the entries stored in this cache as a thread-safe map.

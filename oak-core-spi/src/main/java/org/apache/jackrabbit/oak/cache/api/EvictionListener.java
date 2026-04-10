@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.cache;
+package org.apache.jackrabbit.oak.cache.api;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -22,8 +22,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Callback invoked when an entry is removed from the cache.
  *
- * <p>Register via {@code OakCacheBuilder.removalListener(OakRemovalListener)}.
- * <!-- TODO OAK-TASK2: restore {@link OakCacheBuilder#removalListener(OakRemovalListener)} once TASK-2 is merged. -->
+ * <p>Register via {@link CacheBuilder#evictionListener(EvictionListener)}.
  * The callback is invoked synchronously during cache operations that trigger
  * removal (eviction, invalidation, replacement).</p>
  *
@@ -34,7 +33,7 @@ import org.jetbrains.annotations.Nullable;
  * @param <V> the type of cache values
  */
 @FunctionalInterface
-public interface OakRemovalListener<K, V> {
+public interface EvictionListener<K, V> {
 
     /**
      * Notifies the listener that an entry was removed.
@@ -43,5 +42,5 @@ public interface OakRemovalListener<K, V> {
      * @param value the value of the removed entry (may be null if collected)
      * @param cause the reason the entry was removed (never null)
      */
-    void onRemoval(@NotNull K key, @Nullable V value, @NotNull OakRemovalCause cause);
+    void onEviction(@NotNull K key, @Nullable V value, @NotNull EvictionCause cause);
 }
