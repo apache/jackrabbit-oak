@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
@@ -31,6 +32,8 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.Throttler;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Wrapper of another DocumentStore that does a lease check on any method
@@ -42,144 +45,150 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
 
     private final DocumentStore delegate;
     private final ClusterNodeInfo clusterNodeInfo;
+    private final Logger LOG = LoggerFactory.getLogger(LeaseCheckDocumentStoreWrapper.class);
 
     public LeaseCheckDocumentStoreWrapper(final DocumentStore delegate, final ClusterNodeInfo clusterNodeInfo) {
         if (delegate == null) {
             throw new IllegalArgumentException("delegate must not be null");
         }
         this.delegate = delegate;
-        // clusterNodeInfo is allowed to be null - eg for testing
+        // clusterNodeInfo is allowed to be null - e.g. for testing
         this.clusterNodeInfo = clusterNodeInfo;
     }
 
-    private final void performLeaseCheck() {
+    private void performLeaseCheck(boolean after) {
         if (clusterNodeInfo != null) {
-            clusterNodeInfo.performLeaseCheck();
+            try {
+                clusterNodeInfo.performLeaseCheck();
+            } catch (DocumentStoreException ex) {
+                if (after) {
+                    LOG.error("Potential late write operation detected", ex);
+                }
+                throw ex;
+            }
         }
     }
 
     @Override
-    public final <T extends Document> T find(Collection<T> collection, String key) {
-        performLeaseCheck();
-        return delegate.find(collection, key);
+    public <T extends Document> T find(Collection<T> collection, String key) {
+        return leaseChecking(() ->
+                delegate.find(collection, key));
     }
 
     @Override
-    public final <T extends Document> T find(Collection<T> collection, String key,
-            int maxCacheAge) {
-        performLeaseCheck();
-        return delegate.find(collection, key, maxCacheAge);
+    public <T extends Document> T find(Collection<T> collection, String key,
+                                       int maxCacheAge) {
+        return leaseChecking(() ->
+                delegate.find(collection, key, maxCacheAge));
+
     }
 
     @Override
-    public final <T extends Document> List<T> query(Collection<T> collection,
-            String fromKey, String toKey, int limit) {
-        performLeaseCheck();
-        return delegate.query(collection, fromKey, toKey, limit);
+    public <T extends Document> @NotNull List<T> query(Collection<T> collection,
+                                                       String fromKey, String toKey, int limit) {
+        return leaseChecking(() ->
+                delegate.query(collection, fromKey, toKey, limit));
     }
 
     @Override
-    public final <T extends Document> List<T> query(Collection<T> collection,
-            String fromKey, String toKey, String indexedProperty,
-            long startValue, int limit) {
-        performLeaseCheck();
-        return delegate.query(collection, fromKey, toKey, indexedProperty, startValue, limit);
+    public <T extends Document> @NotNull List<T> query(Collection<T> collection,
+                                                       String fromKey, String toKey, String indexedProperty,
+                                                       long startValue, int limit) {
+        return leaseChecking(() ->
+                delegate.query(collection, fromKey, toKey, indexedProperty, startValue, limit));
     }
 
     @Override
-    @NotNull
-    public <T extends Document> List<T> query(final Collection<T> collection, final String fromKey, final String toKey,
-                                              final String indexedProperty, final long startValue, final int limit,
-                                              final List<String> projection) {
-        performLeaseCheck();
-        return delegate.query(collection, fromKey, toKey, indexedProperty, startValue, limit, projection);
+    public <T extends Document> @NotNull List<T> query(final Collection<T> collection, final String fromKey, final String toKey,
+                                                       final String indexedProperty, final long startValue, final int limit,
+                                                       final List<String> projection) {
+        return leaseChecking(() ->
+                delegate.query(collection, fromKey, toKey, indexedProperty, startValue, limit, projection));
     }
 
     @Override
-    public final <T extends Document> void remove(Collection<T> collection, String key) {
-        performLeaseCheck();
-        delegate.remove(collection, key);
+    public <T extends Document> void remove(Collection<T> collection, String key) {
+        leaseChecking(() ->
+                delegate.remove(collection, key));
     }
 
     @Override
-    public final <T extends Document> void remove(Collection<T> collection,
-            List<String> keys) {
-        performLeaseCheck();
-        delegate.remove(collection, keys);
+    public <T extends Document> void remove(Collection<T> collection,
+                                            List<String> keys) {
+        leaseChecking(() ->
+                delegate.remove(collection, keys));
     }
 
     @Override
-    public final <T extends Document> int remove(Collection<T> collection,
-            Map<String, Long> toRemove) {
-        performLeaseCheck();
-        return delegate.remove(collection, toRemove);
+    public <T extends Document> int remove(Collection<T> collection,
+                                           Map<String, Long> toRemove) {
+        return leaseChecking(() ->
+                delegate.remove(collection, toRemove));
     }
 
     @Override
-    public<T extends Document> int remove(Collection<T> collection,
-                                          String indexedProperty, long startValue, long endValue)
-            throws DocumentStoreException {
-        performLeaseCheck();
-        return delegate.remove(collection, indexedProperty, startValue, endValue);
+    public <T extends Document> int remove(Collection<T> collection,
+                                           String indexedProperty, long startValue, long endValue) {
+        return leaseChecking(() ->
+                delegate.remove(collection, indexedProperty, startValue, endValue));
     }
 
     @Override
-    public final <T extends Document> boolean create(Collection<T> collection,
-            List<UpdateOp> updateOps) {
-        performLeaseCheck();
-        return delegate.create(collection, updateOps);
+    public <T extends Document> boolean create(Collection<T> collection,
+                                               List<UpdateOp> updateOps) {
+        return leaseChecking(() ->
+                delegate.create(collection, updateOps));
     }
 
     @Override
-    public final <T extends Document> T createOrUpdate(Collection<T> collection,
-            UpdateOp update) {
-        performLeaseCheck();
-        return delegate.createOrUpdate(collection, update);
+    public <T extends Document> T createOrUpdate(Collection<T> collection,
+                                                 UpdateOp update) {
+        return leaseChecking(() ->
+                delegate.createOrUpdate(collection, update));
     }
 
     @Override
     public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
-            List<UpdateOp> updateOps) {
-        performLeaseCheck();
-        return delegate.createOrUpdate(collection, updateOps);
+                                                       List<UpdateOp> updateOps) {
+        return leaseChecking(() ->
+                delegate.createOrUpdate(collection, updateOps));
     }
 
     @Override
-    public final <T extends Document> T findAndUpdate(Collection<T> collection,
-            UpdateOp update) {
-        performLeaseCheck();
-        return delegate.findAndUpdate(collection, update);
+    public <T extends Document> T findAndUpdate(Collection<T> collection,
+                                                UpdateOp update) {
+        return leaseChecking(() ->
+                delegate.findAndUpdate(collection, update));
     }
 
     @Override
-    @NotNull
-    public <T extends Document> List<T> findAndUpdate(@NotNull Collection<T> collection, @NotNull List<UpdateOp> updateOps) {
-        performLeaseCheck();
-        return delegate.findAndUpdate(collection, updateOps);
+    public <T extends Document> @NotNull List<T> findAndUpdate(@NotNull Collection<T> collection, @NotNull List<UpdateOp> updateOps) {
+        return leaseChecking(() ->
+                delegate.findAndUpdate(collection, updateOps));
     }
 
     @Override
-    public final CacheInvalidationStats invalidateCache() {
-        performLeaseCheck();
-        return delegate.invalidateCache();
+    public CacheInvalidationStats invalidateCache() {
+        return leaseChecking(() ->
+                delegate.invalidateCache());
     }
 
     @Override
-    public final CacheInvalidationStats invalidateCache(Iterable<String> keys) {
-        performLeaseCheck();
-        return delegate.invalidateCache(keys);
+    public CacheInvalidationStats invalidateCache(Iterable<String> keys) {
+        return leaseChecking(() ->
+                delegate.invalidateCache(keys));
     }
 
     @Override
-    public final <T extends Document> void invalidateCache(Collection<T> collection,
-            String key) {
-        performLeaseCheck();
-        delegate.invalidateCache(collection, key);
+    public <T extends Document> void invalidateCache(Collection<T> collection,
+                                                     String key) {
+        leaseChecking(() ->
+            delegate.invalidateCache(collection, key));
     }
 
     @Override
-    public final void dispose() {
-        // this is debatable whether or not a lease check should be done on dispose.
+    public void dispose() {
+        // this is debatable whether a lease check should be done on dispose.
         // I'd say the lease must still be valid as on dispose there could be
         // stuff written to the document store which should only be done
         // when the lease is valid.
@@ -191,48 +200,43 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public final <T extends Document> T getIfCached(Collection<T> collection,
-            String key) {
-        performLeaseCheck();
-        return delegate.getIfCached(collection, key);
+    public <T extends Document> T getIfCached(Collection<T> collection,
+                                              String key) {
+        return leaseChecking(() ->
+                delegate.getIfCached(collection, key));
     }
 
     @Override
-    public final void setReadWriteMode(String readWriteMode) {
-        performLeaseCheck();
-        delegate.setReadWriteMode(readWriteMode);
+    public void setReadWriteMode(String readWriteMode) {
+        leaseChecking(() ->
+            delegate.setReadWriteMode(readWriteMode));
     }
 
     @Override
-    public final Iterable<CacheStats> getCacheStats() {
-        performLeaseCheck();
-        return delegate.getCacheStats();
+    public Iterable<CacheStats> getCacheStats() {
+        return leaseChecking(delegate::getCacheStats);
     }
 
     @Override
-    public final Map<String, String> getMetadata() {
-        performLeaseCheck();
-        return delegate.getMetadata();
+    public Map<String, String> getMetadata() {
+        return leaseChecking(delegate::getMetadata);
     }
 
-    @NotNull
     @Override
-    public Map<String, String> getStats() {
-        performLeaseCheck();
-        return delegate.getStats();
+    public @NotNull Map<String, String> getStats() {
+        return leaseChecking(delegate::getStats);
     }
 
     @Override
     public long determineServerTimeDifferenceMillis() {
-        performLeaseCheck();
-        return delegate.determineServerTimeDifferenceMillis();
+        return leaseChecking(delegate::determineServerTimeDifferenceMillis);
     }
 
     @Override
     public <T extends Document> void prefetch(Collection<T> collection,
-            Iterable<String> keys) {
-        performLeaseCheck();
-        delegate.prefetch(collection, keys);
+                                              Iterable<String> keys) {
+        leaseChecking(() ->
+                delegate.prefetch(collection, keys));
     }
 
     /**
@@ -254,5 +258,20 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
     @Override
     public Throttler throttler() {
         return delegate.throttler();
+    }
+
+    // invoke operation with lease check before/after
+    private <T> T leaseChecking(Supplier<T> operation) {
+        performLeaseCheck(false);
+        T result = operation.get();
+        performLeaseCheck(true);
+        return result;
+    }
+
+    // invoke operation with lease check before/after
+    private void leaseChecking(Runnable operation) {
+        performLeaseCheck(false);
+        operation.run();
+        performLeaseCheck(true);
     }
 }

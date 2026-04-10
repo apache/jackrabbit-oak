@@ -69,8 +69,8 @@ public class UnionQueryTest extends AbstractQueryTest {
     protected ContentRepository createRepository() {
         store = new MemoryNodeStore();
         qeSettings = new QueryEngineSettings();
-        Feature sortFeature = createFeature(true);
-        qeSettings.setSortUnionQueryByScoreFeature(sortFeature);
+        Feature sortFeature = createFeature(false);
+        qeSettings.setSortUnionQueryLegacyModeFeature(sortFeature);
 
         return new Oak(store)
                 .with(new OpenSecurityProvider())
@@ -439,10 +439,11 @@ public class UnionQueryTest extends AbstractQueryTest {
     }
 
     @Test
-    public void testSortUnionQueryScoreFlagDisabled() throws Exception {
-        QueryEngineSettings disabledSettings = new QueryEngineSettings();
-        Feature sortFeature = createFeature(false);
-        disabledSettings.setSortUnionQueryByScoreFeature(sortFeature);
+    public void testSortUnionQueryLegacyModeEnabled() throws Exception {
+        // When legacy mode is enabled, query results should be concatenated
+        QueryEngineSettings legacySettings = new QueryEngineSettings();
+        Feature legacyModeFeature = createFeature(true);
+        legacySettings.setSortUnionQueryLegacyModeFeature(legacyModeFeature);
         MockQueryBuilder leftQuery = new MockQueryBuilder(true)
                 .addResult("/left/doc1", 0.8)
                 .addResult("/left/doc2", 0.7);
@@ -450,15 +451,15 @@ public class UnionQueryTest extends AbstractQueryTest {
                 .addResult("/right/doc1", 0.9)
                 .addResult("/right/doc2", 0.6);
 
-        UnionQueryImpl unionQuery = new UnionQueryImpl(true, leftQuery.build(), rightQuery.build(), disabledSettings);
+        UnionQueryImpl unionQuery = new UnionQueryImpl(true, leftQuery.build(), rightQuery.build(), legacySettings);
         List<ScoredResult> results = executeUnionAndGetScoredResults(unionQuery);
         assertPathOrder(results, new String[]{"/left/doc1", "/left/doc2", "/right/doc1", "/right/doc2"});
     }
 
     @Test
-    public void testSortUnionQueryScoreFlagIsNull() throws Exception {
-        QueryEngineSettings disabledSettings = new QueryEngineSettings();
-        disabledSettings.setSortUnionQueryByScoreFeature(null);
+    public void testSortUnionQueryLegacyModeNotSet() throws Exception {
+        QueryEngineSettings defaultSettings = new QueryEngineSettings();
+        defaultSettings.setSortUnionQueryLegacyModeFeature(null);
         MockQueryBuilder leftQuery = new MockQueryBuilder(true)
                 .addResult("/left/doc1", 0.8)
                 .addResult("/left/doc2", 0.7);
@@ -466,9 +467,77 @@ public class UnionQueryTest extends AbstractQueryTest {
                 .addResult("/right/doc1", 0.9)
                 .addResult("/right/doc2", 0.6);
 
-        UnionQueryImpl unionQuery = new UnionQueryImpl(true, leftQuery.build(), rightQuery.build(), disabledSettings);
+        UnionQueryImpl unionQuery = new UnionQueryImpl(true, leftQuery.build(), rightQuery.build(), defaultSettings);
         List<ScoredResult> results = executeUnionAndGetScoredResults(unionQuery);
-        assertPathOrder(results, new String[]{"/left/doc1", "/left/doc2", "/right/doc1", "/right/doc2"});
+        assertPathOrder(results, new String[]{"/right/doc1", "/left/doc1", "/left/doc2", "/right/doc2"});
+    }
+
+    @Test
+    public void testUnionMergingWithNullScoreValue() throws Exception {
+        MockQueryBuilder leftQuery = new MockQueryBuilder(true)
+                .addResult("/left/doc1", 0.8)
+                .addResult("/left/docNull", (Double) null);
+        MockQueryBuilder rightQuery = new MockQueryBuilder(true)
+                .addResult("/right/doc1", 0.9)
+                .addResult("/right/doc2", 0.6);
+
+        UnionQueryImpl unionQuery = new UnionQueryImpl(true, leftQuery.build(), rightQuery.build(), qeSettings);
+        List<ScoredResult> results = executeUnionAndGetScoredResults(unionQuery);
+
+        assertPathOrder(results, new String[]{"/right/doc1", "/left/doc1", "/right/doc2", "/left/docNull"});
+    }
+
+    @Test
+    public void testUnionMergingWithStringScoreValue() throws Exception {
+        QueryImpl mockQuery = Mockito.mock(QueryImpl.class);
+        ColumnImpl[] columns = new ColumnImpl[] {
+                new ColumnImpl("a", "jcr:path", "jcr:path"),
+                new ColumnImpl("a", "jcr:score", "jcr:score")
+        };
+        Mockito.when(mockQuery.getColumnIndex("jcr:path")).thenReturn(0);
+        Mockito.when(mockQuery.getColumnIndex("jcr:score")).thenReturn(1);
+        Mockito.when(mockQuery.getColumns()).thenReturn(columns);
+        // Score stored as String instead of Double
+        PropertyValue[] valuesWithStringScore = new PropertyValue[] {
+                PropertyValues.newString("/left/doc1"),
+                PropertyValues.newString("not-a-number")
+        };
+        List<ResultRowImpl> leftResults = new ArrayList<>();
+        leftResults.add(new ResultRowImpl(mockQuery, null, valuesWithStringScore, null, null));
+        Mockito.when(mockQuery.getRows()).thenReturn(leftResults.iterator());
+
+        MockQueryBuilder rightQuery = new MockQueryBuilder(true)
+                .addResult("/right/doc1", 0.9);
+
+        UnionQueryImpl unionQuery = new UnionQueryImpl(true, mockQuery, rightQuery.build(), qeSettings);
+        List<ScoredResult> results = executeUnionAndGetScoredResults(unionQuery);
+
+        // String-typed score should default to 0.0, sorting it after the real score
+        assertPathOrder(results, new String[]{"/right/doc1", "/left/doc1"});
+    }
+
+    @Test
+    public void testNestedUnionWithMixedScores() throws Exception {
+        // Simulates scenario where score exists for some rows, and is null for others
+        MockQueryBuilder queryA = new MockQueryBuilder(true)
+                .addResult("/a/doc1", 0.9)
+                .addResult("/a/doc2", 0.5);
+        MockQueryBuilder queryB = new MockQueryBuilder(false)
+                .addResult("/b/doc1")
+                .addResult("/b/doc2");
+        MockQueryBuilder queryC = new MockQueryBuilder(true)
+                .addResult("/c/doc1", 0.8)
+                .addResult("/c/doc2", 0.3);
+
+        // Inner union: A (has score) UNION B (no score)
+        UnionQueryImpl innerUnion = new UnionQueryImpl(true, queryA.build(), queryB.build(), qeSettings);
+        // Outer union: innerUnion UNION C
+        UnionQueryImpl outerUnion = new UnionQueryImpl(true, innerUnion, queryC.build(), qeSettings);
+        List<ScoredResult> results = executeUnionAndGetScoredResults(outerUnion);
+
+        assertPathOrder(results, new String[]{
+                "/a/doc1", "/c/doc1", "/a/doc2", "/c/doc2", "/b/doc1", "/b/doc2"
+        });
     }
 
     private QueryImpl createQuery (String statement, ConstraintImpl c, SourceImpl sImpl) throws Exception {
@@ -515,9 +584,16 @@ public class UnionQueryTest extends AbstractQueryTest {
             if (!hasScore) {
                 throw new IllegalStateException("Cannot provide score");
             }
+            return addResult(path, Double.valueOf(score));
+        }
+
+        public MockQueryBuilder addResult(String path, Double score) {
+            if (!hasScore) {
+                throw new IllegalStateException("Cannot provide score");
+            }
             PropertyValue[] values = new PropertyValue[] {
                     PropertyValues.newString(path),
-                    PropertyValues.newDouble(score)
+                    score == null ? null : PropertyValues.newDouble(score)
             };
             results.add(new ResultRowImpl(mockQuery, null, values, null, null));
             return this;

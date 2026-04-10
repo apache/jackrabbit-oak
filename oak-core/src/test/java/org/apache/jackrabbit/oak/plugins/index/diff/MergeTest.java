@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.diff;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.charset.StandardCharsets;
@@ -90,7 +91,7 @@ public class MergeTest {
                     + "                }", true);
 
             HashMap<String, JsonObject> target = new HashMap<>();
-            DiffIndexMerger.tryExtractDiffIndex(repositoryDefinitions, "/oak:index/diff.index", target);
+            new DiffIndexMerger().tryExtractDiffIndex(repositoryDefinitions, "/oak:index/diff.index", target);
             assertEquals("{damAssetLucene={\n"
                     + "  \"indexRules\": {\n"
                     + "    \"dam:Asset\": {\n"
@@ -110,25 +111,25 @@ public class MergeTest {
         // A property might be indexed twice, by adding two children to the "properties" node
         // that both have the same "name" value.
         // Alternatively, they could have the same "function" value.
-        String merged = new DiffIndexMerger().processMerge(JsonObject.fromJson("{\n"
-                + "    \"jcr:primaryType\": \"nam:oak:QueryIndexDefinition\",\n"
-                + "    \"type\": \"lucene\",\n"
-                + "    \"indexRules\": {\n"
-                + "      \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
-                + "      \"acme:Test\": {\n"
-                + "        \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
-                + "        \"properties\": {\n"
-                + "          \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
-                + "          \"abc\": {\n"
-                + "            \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
-                + "            \"name\": \"test\",\n"
-                + "            \"boost\": 1.0\n"
-                + "          }\n"
-                + "        }\n"
-                + "      }\n"
-                + "    }\n"
-                + "  }"
-                + "", true), JsonObject.fromJson("{\n"
+        String merged = new DiffIndexMerger().processMerge(null, JsonObject.fromJson("{\n"
+                        + "    \"jcr:primaryType\": \"nam:oak:QueryIndexDefinition\",\n"
+                        + "    \"type\": \"lucene\",\n"
+                        + "    \"indexRules\": {\n"
+                        + "      \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                        + "      \"acme:Test\": {\n"
+                        + "        \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                        + "        \"properties\": {\n"
+                        + "          \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                        + "          \"abc\": {\n"
+                        + "            \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                        + "            \"name\": \"test\",\n"
+                        + "            \"boost\": 1.0\n"
+                        + "          }\n"
+                        + "        }\n"
+                        + "      }\n"
+                        + "    }\n"
+                        + "  }"
+                        + "", true), JsonObject.fromJson("{\n"
                         + "    \"indexRules\": {\n"
                         + "      \"acme:Test\": {\n"
                         + "        \"properties\": {\n"
@@ -161,28 +162,152 @@ public class MergeTest {
     }
 
     @Test
-    public void renamedFunction() {
-        // A function might be indexed twice, by adding two children to the "properties" node
-        // that both have the same "function" value.
-        String merged = new DiffIndexMerger().processMerge(JsonObject.fromJson("{\n"
-                + "    \"jcr:primaryType\": \"nam:oak:QueryIndexDefinition\",\n"
-                + "    \"type\": \"lucene\",\n"
-                + "    \"indexRules\": {\n"
+    public void ignoredNewPropertiesForExisting() {
+        // for existing indexes or properties,
+        // some additions are not allowed, as they could result in the index
+        // to be not usable for existing queries
+        // (eg. the selectionPolicy may not be set if the index already exists)
+        String merged = new DiffIndexMerger().processMerge(null, JsonObject.fromJson("{\n"
+                        + "        \"jcr:primaryType\": \"nam:oak:IndexDefinition\",\n"
+                        + "        \"type\": \"lucene\",\n"
+                        + "        \"async\": [\"async\", \"nrt\"],\n"
+                        + "        \"indexRules\": {\n"
+                        + "            \"dam:Asset\": {\n"
+                        + "                \"properties\": {\n"
+                        + "                    \"named\": {\n"
+                        + "                        \"name\": \"x\"\n"
+                        + "                    },\n"
+                        + "                    \"functionBased\": {\n"
+                        + "                        \"function\": \"upper(x)\"\n"
+                        + "                    }\n"
+                        + "                }\n"
+                        + "            }\n"
+                        + "        }\n"
+                        + "    }\n"
+                        + "", true), JsonObject.fromJson("{ \n"
+                + "        \"tags\": [\"newTag\"],\n"
+                + "        \"selectionPolicy\": \"tag\",\n"
+                + "        \"includedPaths\": \"/content\",\n"
+                + "        \"excludedPaths\": \"/libs\",\n"
+                + "        \"queryPaths\": \"/content/abc\",\n"
+                + "        \"tags\": \"myTag\",\n"
+                + "        \"indexRules\": {\n"
+                + "            \"dam:Asset\": {\n"
+                + "                \"properties\": {\n"
+                + "                    \"named\": {\n"
+                + "                        \"function\": \"upper(y)\",\n"
+                + "                        \"weight\": 10.0\n"
+                + "                    },\n"
+                + "                    \"functionBased\": {\n"
+                + "                        \"name\": \"y\",\n"
+                + "                        \"weight\": 20.0\n"
+                + "                    }\n"
+                + "                }\n"
+                + "            }\n"
+                + "        }\n"
+                + "  }", true)).toString();
+        assertEquals("{\n"
+                + "  \"jcr:primaryType\": \"nam:oak:IndexDefinition\",\n"
+                + "  \"type\": \"lucene\",\n"
+                + "  \"async\": [\"async\", \"nrt\"],\n"
+                + "  \"tags\": \"myTag\",\n"
+                + "  \"indexRules\": {\n"
+                + "    \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                + "    \"dam:Asset\": {\n"
                 + "      \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
-                + "      \"acme:Test\": {\n"
+                + "      \"properties\": {\n"
                 + "        \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
-                + "        \"properties\": {\n"
-                + "          \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
-                + "          \"abc\": {\n"
-                + "            \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
-                + "            \"function\": \"upper(test)\",\n"
-                + "            \"boost\": 1.0\n"
-                + "          }\n"
+                + "        \"named\": {\n"
+                + "          \"name\": \"x\",\n"
+                + "          \"weight\": 10.0,\n"
+                + "          \"jcr:primaryType\": \"nam:nt:unstructured\"\n"
+                + "        },\n"
+                + "        \"functionBased\": {\n"
+                + "          \"function\": \"upper(x)\",\n"
+                + "          \"weight\": 20.0,\n"
+                + "          \"jcr:primaryType\": \"nam:nt:unstructured\"\n"
                 + "        }\n"
                 + "      }\n"
                 + "    }\n"
-                + "  }"
-                + "", true), JsonObject.fromJson("{\n"
+                + "  }\n"
+                + "}", merged);
+    }
+
+    @Test
+    public void customizeIncludedPathsQueryPathsAndTags() {
+        // We can merge includedPaths because that will extend the list.
+        // Adding tags is fine as well.
+        // But we can not add queryPaths if that doesn't exist yet.
+        // Also, selectionPolicy may not be set.
+        String merged = new DiffIndexMerger().processMerge(null, JsonObject.fromJson("{\n"
+                        + "        \"jcr:primaryType\": \"nam:oak:IndexDefinition\",\n"
+                        + "        \"type\": \"lucene\",\n"
+                        + "        \"async\": [\"async\", \"nrt\"],\n"
+                        + "        \"tags\": [\"abc\", \"def\"],\n"
+                        + "        \"includedPaths\": \"/content/dam\",\n"
+                        + "        \"indexRules\": {\n"
+                        + "            \"dam:Asset\": {\n"
+                        + "                \"properties\": {\n"
+                        + "                    \"x\": {\n"
+                        + "                        \"name\": \"x\",\n"
+                        + "                        \"propertyIndex\": true\n"
+                        + "                    }\n"
+                        + "                }\n"
+                        + "            }\n"
+                        + "        }\n"
+                        + "    }\n"
+                        + "", true), JsonObject.fromJson("{ \n"
+                + "    \"includedPaths\": [\"/content/dam\", \"/content/additional\" ],\n"
+                + "    \"queryPaths\": [\"/content/dam\" ],\n"
+                + "    \"selectionPolicy\": \"tag\",\n"
+                + "    \"tags\": [\"def\", \"ghi\" ]\n"
+                + "  }", true)).toString();
+        assertEquals("{\n"
+                + "  \"jcr:primaryType\": \"nam:oak:IndexDefinition\",\n"
+                + "  \"type\": \"lucene\",\n"
+                + "  \"async\": [\"async\", \"nrt\"],\n"
+                + "  \"tags\": [\"abc\", \"def\", \"ghi\"],\n"
+                + "  \"includedPaths\": [\"/content/additional\", \"/content/dam\"],\n"
+                + "  \"indexRules\": {\n"
+                + "    \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                + "    \"dam:Asset\": {\n"
+                + "      \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                + "      \"properties\": {\n"
+                + "        \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                + "        \"x\": {\n"
+                + "          \"name\": \"x\",\n"
+                + "          \"propertyIndex\": true,\n"
+                + "          \"jcr:primaryType\": \"nam:nt:unstructured\"\n"
+                + "        }\n"
+                + "      }\n"
+                + "    }\n"
+                + "  }\n"
+                + "}", merged);
+    }
+
+    @Test
+    public void renamedFunction() {
+        // A function might be indexed twice, by adding two children to the "properties" node
+        // that both have the same "function" value.
+        String merged = new DiffIndexMerger().processMerge(null, JsonObject.fromJson("{\n"
+                        + "    \"jcr:primaryType\": \"nam:oak:QueryIndexDefinition\",\n"
+                        + "    \"type\": \"lucene\",\n"
+                        + "    \"indexRules\": {\n"
+                        + "      \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                        + "      \"acme:Test\": {\n"
+                        + "        \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                        + "        \"properties\": {\n"
+                        + "          \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                        + "          \"abc\": {\n"
+                        + "            \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                        + "            \"function\": \"upper(test)\",\n"
+                        + "            \"boost\": 1.0\n"
+                        + "          }\n"
+                        + "        }\n"
+                        + "      }\n"
+                        + "    }\n"
+                        + "  }"
+                        + "", true), JsonObject.fromJson("{\n"
                         + "    \"indexRules\": {\n"
                         + "      \"acme:Test\": {\n"
                         + "        \"properties\": {\n"
@@ -218,8 +343,8 @@ public class MergeTest {
     public void createDummy() {
         // when enabling "deleteCreatesDummyIndex", then a dummy index is created
         // (that indexes /dummy, which doesn't exist)
-        String merged = new DiffIndexMerger(new String[0], true, true, false).processMerge(JsonObject.fromJson("{}"
-                + "", true), JsonObject.fromJson("{}", true)).toString();
+        String merged = new DiffIndexMerger(new String[0], true, true, false).processMerge(null, JsonObject.fromJson("{}"
+                        + "", true), JsonObject.fromJson("{}", true)).toString();
         assertEquals("{\n"
                 + "  \"async\": \"async\",\n"
                 + "  \"includedPaths\": \"/dummy\",\n"
@@ -245,25 +370,25 @@ public class MergeTest {
         // - "analyzed" must not be overwritten
         // - "ordered" is added
         // - "boost" is overwritten
-        String merged = new DiffIndexMerger().processMerge(JsonObject.fromJson("{\n"
-                + "    \"jcr:primaryType\": \"nam:oak:QueryIndexDefinition\",\n"
-                + "    \"type\": \"lucene\",\n"
-                + "    \"indexRules\": {\n"
-                + "      \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
-                + "      \"acme:Test\": {\n"
-                + "        \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
-                + "        \"properties\": {\n"
-                + "          \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
-                + "          \"abc\": {\n"
-                + "            \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
-                + "            \"analyzed\": true,\n"
-                + "            \"boost\": 1.0\n"
-                + "          }\n"
-                + "        }\n"
-                + "      }\n"
-                + "    }\n"
-                + "  }"
-                + "", true), JsonObject.fromJson("{\n"
+        String merged = new DiffIndexMerger().processMerge(null, JsonObject.fromJson("{\n"
+                        + "    \"jcr:primaryType\": \"nam:oak:QueryIndexDefinition\",\n"
+                        + "    \"type\": \"lucene\",\n"
+                        + "    \"indexRules\": {\n"
+                        + "      \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                        + "      \"acme:Test\": {\n"
+                        + "        \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                        + "        \"properties\": {\n"
+                        + "          \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                        + "          \"abc\": {\n"
+                        + "            \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                        + "            \"analyzed\": true,\n"
+                        + "            \"boost\": 1.0\n"
+                        + "          }\n"
+                        + "        }\n"
+                        + "      }\n"
+                        + "    }\n"
+                        + "  }"
+                        + "", true), JsonObject.fromJson("{\n"
                         + "    \"indexRules\": {\n"
                         + "      \"acme:Test\": {\n"
                         + "        \"properties\": {\n"
@@ -402,6 +527,31 @@ public class MergeTest {
         assertEquals(true, merger.includesUnsupportedPaths(new String[]{"/content", "/apps"}));
         assertEquals(true, merger.includesUnsupportedPaths(new String[]{"/content", "/libs/test"}));
 
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"x"}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{""}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/content"}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/content/dam"}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/var"}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/etc"}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/content", "/var", "/etc"}));
+    }
+
+    @Test
+    public void includesUnsupportedPathsDisabledTest() {
+        DiffIndexMerger merger = new DiffIndexMerger().
+                setUnsupportedIncludedPaths(new String[]{""}).
+                setDeleteCopiesOutOfTheBoxIndex(false).
+                setDeleteCreatesDummyIndex(false);
+
+        assertEquals(false, merger.includesUnsupportedPaths(null));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{""}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/"}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/apps"}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/libs"}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/libs/foundation"}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/content", "/apps"}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/content", "/libs/test"}));
+        assertEquals(false, merger.includesUnsupportedPaths(new String[]{"x"}));
         assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/content"}));
         assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/content/dam"}));
         assertEquals(false, merger.includesUnsupportedPaths(new String[]{"/var"}));
@@ -436,5 +586,31 @@ public class MergeTest {
         assertEquals("\"async\"", indexDef.getProperties().get("async"));
         assertEquals("\"/content\"", indexDef.getProperties().get("includedPaths"));
         assertTrue(indexDef.getChildren().containsKey("indexRules"));
+
+        Map<String, JsonObject> result2 = new DiffIndexMerger().readDiffIndex(store, "diff.index.notThere");
+        assertTrue(result2.isEmpty());
+
+    }
+
+    @Test
+    public void getChildWithKeyValuePairTest() {
+        JsonObject parent = JsonObject.fromJson("{\n"
+                + "  \"child1\": { \"name\": \"str:jcr:title\", \"propertyIndex\": true },\n"
+                + "  \"child2\": { \"function\": \"upper(x)\", \"ordered\": true },\n"
+                + "  \"child3\": { \"propertyIndex\": true },\n"
+                + "  \"empty\": { }\n"
+                + "}", true);
+        assertEquals("child1", DiffIndexMerger.getChildWithKeyValuePair(parent, "name", "jcr:title"));
+        assertEquals("child2", DiffIndexMerger.getChildWithKeyValuePair(parent, "function", "upper(x)"));
+        assertNull(DiffIndexMerger.getChildWithKeyValuePair(parent, "name", "nonexistent"));
+        assertNull(DiffIndexMerger.getChildWithKeyValuePair(parent, "name", "upper(x)"));
+        assertNull(DiffIndexMerger.getChildWithKeyValuePair(parent, "function", "jcr:title"));
+        // v2 == null: child3 and empty have no "name" property, so they are skipped
+        assertNull(DiffIndexMerger.getChildWithKeyValuePair(parent, "name", "true"));
+        // key not present in any child
+        assertNull(DiffIndexMerger.getChildWithKeyValuePair(parent, "missing", "anything"));
+        // no children at all
+        JsonObject emptyParent = JsonObject.fromJson("{}", true);
+        assertNull(DiffIndexMerger.getChildWithKeyValuePair(emptyParent, "name", "x"));
     }
 }

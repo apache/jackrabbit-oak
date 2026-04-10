@@ -36,7 +36,10 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.URISyntaxException;
+import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
@@ -161,6 +164,77 @@ public class AzureBlobStoreBackendV8Test {
 
     azureBlobStoreBackend.init();
     assertReferenceSecret(azureBlobStoreBackend);
+  }
+
+  @Test
+  public void setHttpDownloadURIExpirySecondsUpdatesField() throws Exception {
+    // Setter coverage for the v8 direct-download expiry value used by presigned URIs.
+    AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+
+    backend.setHttpDownloadURIExpirySeconds(3600);
+
+    assertEquals(3600, getIntField(backend, "httpDownloadURIExpirySeconds"));
+  }
+
+  @Test
+  public void setHttpUploadURIExpirySecondsUpdatesField() throws Exception {
+    // Setter coverage for the v8 direct-upload expiry used during upload initiation.
+    AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+
+    backend.setHttpUploadURIExpirySeconds(1800);
+
+    assertEquals(1800, getIntField(backend, "httpUploadURIExpirySeconds"));
+  }
+
+  @Test
+  public void setHttpDownloadURICacheSizeCreatesAndDisablesCache() throws Exception {
+    // Verify the cache-size toggle actually creates and then removes the backing cache.
+    AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+    backend.setHttpDownloadURIExpirySeconds(3600);
+
+    backend.setHttpDownloadURICacheSize(100);
+    assertNotNull(getField(backend, "httpDownloadURICache"));
+
+    backend.setHttpDownloadURICacheSize(0);
+    assertNull(getField(backend, "httpDownloadURICache"));
+  }
+
+  @Test
+  public void createHttpDownloadURIReturnsNullWhenDisabled() throws DataStoreException {
+    // With no download expiry configured, direct download access should stay disabled.
+    AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+
+    assertNull(backend.createHttpDownloadURI(new org.apache.jackrabbit.core.data.DataIdentifier("test"),
+            org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions.DEFAULT));
+  }
+
+  @Test
+  public void initiateHttpUploadReturnsNullWhenDisabled() throws DataStoreException {
+    // Upload initiation follows the same disabled-by-default contract until configured.
+    AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+
+    assertNull(backend.initiateHttpUpload(1024, 1,
+            org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions.DEFAULT));
+  }
+
+  @Test
+  public void createHttpDownloadURIReturnsPreExistingCachedURI() throws Exception {
+    // Seed a cache entry directly, then verify the externally observable
+    // behavior that the same URI is returned for the same download request.
+    AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+    org.apache.jackrabbit.core.data.DataIdentifier identifier =
+            new org.apache.jackrabbit.core.data.DataIdentifier("cached");
+    URI cachedUri = URI.create("https://cached.example/download");
+
+    backend.setHttpDownloadURIExpirySeconds(300);
+    setField(backend, "downloadDomainOverride", "cached.example");
+    setField(backend, "presignedDownloadURIVerifyExists", false);
+    backend.setHttpDownloadURICacheSize(10);
+    putIntoCache(getField(backend, "httpDownloadURICache"),
+            identifier + "cached.example", cachedUri);
+
+    assertEquals(cachedUri, backend.createHttpDownloadURI(identifier,
+            org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions.DEFAULT));
   }
 
   /* make sure that blob1.txt and blob2.txt are uploaded to AZURE_ACCOUNT_NAME/blobstore container before
@@ -310,6 +384,30 @@ public class AzureBlobStoreBackendV8Test {
 
   private static String getConnectionString() {
     return UtilsV8.getConnectionString(AzuriteDockerRule.ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_KEY, azurite.getBlobEndpoint());
+  }
+
+  private static int getIntField(AzureBlobStoreBackendV8 backend, String fieldName) throws Exception {
+    Field field = AzureBlobStoreBackendV8.class.getDeclaredField(fieldName);
+    field.setAccessible(true);
+    return (int) field.get(backend);
+  }
+
+  private static Object getField(AzureBlobStoreBackendV8 backend, String fieldName) throws Exception {
+    Field field = AzureBlobStoreBackendV8.class.getDeclaredField(fieldName);
+    field.setAccessible(true);
+    return field.get(backend);
+  }
+
+  private static void setField(AzureBlobStoreBackendV8 backend, String fieldName, Object value) throws Exception {
+    Field field = AzureBlobStoreBackendV8.class.getDeclaredField(fieldName);
+    field.setAccessible(true);
+    field.set(backend, value);
+  }
+
+  private static void putIntoCache(Object cache, Object key, Object value) throws Exception {
+    Method put = cache.getClass().getMethod("put", Object.class, Object.class);
+    put.setAccessible(true);
+    put.invoke(cache, key, value);
   }
 
   private static void assertReferenceSecret(AzureBlobStoreBackendV8 azureBlobStoreBackend)

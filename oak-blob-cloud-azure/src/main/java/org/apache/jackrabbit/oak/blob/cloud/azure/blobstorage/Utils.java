@@ -23,6 +23,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
+import java.util.Objects;
 import java.util.Properties;
 
 import com.azure.core.http.HttpClient;
@@ -36,7 +37,6 @@ import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -77,7 +77,7 @@ public final class Utils {
         String proxyHost = properties.getProperty(AzureConstants.PROXY_HOST);
         String proxyPort = properties.getProperty(AzureConstants.PROXY_PORT);
 
-        if(!(Strings.isNullOrEmpty(proxyHost) || Strings.isNullOrEmpty(proxyPort))) {
+        if(!(Objects.toString(proxyHost, "").isEmpty() || Objects.toString(proxyPort, "").isEmpty())) {
             return new ProxyOptions(ProxyOptions.Type.HTTP,
                     new InetSocketAddress(proxyHost, Integer.parseInt(proxyPort)));
         }
@@ -133,7 +133,7 @@ public final class Utils {
         StringBuilder connString = new StringBuilder("DefaultEndpointsProtocol=https");
         connString.append(";AccountName=").append(accountName);
         connString.append(";AccountKey=").append(accountKey);
-        if (!Strings.isNullOrEmpty(blobEndpoint)) {
+        if (!Objects.toString(blobEndpoint, "").isEmpty()) {
             connString.append(";BlobEndpoint=").append(blobEndpoint);
         }
         return connString.toString();

@@ -71,6 +71,21 @@ public class SegmentCacheTest {
     }
 
     @Test
+    public void getSegmentWrapsCheckedLoaderFailureInExecutionException() {
+        Exception failure = new Exception("load failed");
+
+        try {
+            cache.getSegment(id1, () -> {
+                throw failure;
+            });
+            fail("expected ExecutionException");
+        } catch (ExecutionException e) {
+            assertEquals(failure, e.getCause());
+            assertEquals("load failed", e.getCause().getMessage());
+        }
+    }
+
+    @Test
     public void invalidateTests() throws ExecutionException {
         cache.putSegment(segment1);
         assertEquals(segment1, id1.getSegment());
