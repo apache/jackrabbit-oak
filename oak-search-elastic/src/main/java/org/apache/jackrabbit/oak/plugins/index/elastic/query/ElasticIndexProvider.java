@@ -21,7 +21,9 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -35,6 +37,12 @@ public class ElasticIndexProvider implements QueryIndexProvider {
     private final ElasticIndexTracker indexTracker;
     private final long asyncIteratorEnqueueTimeoutMs;
     private final long facetsEvaluationTimeoutMs;
+
+    @Nullable private Feature filterGloballySupersededFeature;
+
+    public void setFilterGloballySupersededFeature(@Nullable Feature feature) {
+        this.filterGloballySupersededFeature = feature;
+    }
 
     public ElasticIndexProvider(ElasticIndexTracker indexTracker,
                                 long asyncIteratorEnqueueTimeoutMs,
@@ -61,6 +69,8 @@ public class ElasticIndexProvider implements QueryIndexProvider {
 
     @Override
     public @NotNull List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
-        return List.of(new ElasticIndex(indexTracker, asyncIteratorEnqueueTimeoutMs, facetsEvaluationTimeoutMs));
+        ElasticIndex index = new ElasticIndex(indexTracker, asyncIteratorEnqueueTimeoutMs, facetsEvaluationTimeoutMs);
+        index.setFilterGloballySupersededFeature(filterGloballySupersededFeature);
+        return List.of(index);
     }
 }

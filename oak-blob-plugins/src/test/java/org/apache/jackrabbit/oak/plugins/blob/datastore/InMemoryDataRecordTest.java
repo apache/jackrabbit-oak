@@ -23,7 +23,7 @@ import java.io.ByteArrayInputStream;
 import java.util.Random;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.core.data.DataRecord;
+import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

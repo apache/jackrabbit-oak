@@ -30,13 +30,14 @@ import java.util.Random;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.core.data.DataIdentifier;
-import org.apache.jackrabbit.core.data.DataRecord;
-import org.apache.jackrabbit.core.data.DataStore;
-import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.core.data.MultiDataStoreAware;
+import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
+import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
+import org.apache.jackrabbit.oak.spi.blob.data.MultiDataStoreAware;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.testing.RandomInputStream;
+import org.apache.jackrabbit.oak.spi.blob.data.TestCaseBase;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -53,7 +54,7 @@ import static org.junit.Assert.fail;
 
 /**
  * Test base class for {@link DataStore} which covers all scenarios.
- * Copied from {@link org.apache.jackrabbit.core.data.TestCaseBase}.
+ * Copied from {@link TestCaseBase}.
  */
 public abstract class AbstractDataStoreTest {
 

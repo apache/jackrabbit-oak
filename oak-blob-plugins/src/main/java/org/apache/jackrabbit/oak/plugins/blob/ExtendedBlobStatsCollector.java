@@ -22,9 +22,10 @@ package org.apache.jackrabbit.oak.plugins.blob;
 import java.io.File;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.core.data.DataIdentifier;
+import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
+import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
 
 /**
@@ -214,7 +215,7 @@ public interface ExtendedBlobStatsCollector extends BlobStatsCollector {
 
 
     /**
-     * Called when a {@link org.apache.jackrabbit.core.data.DataRecord} is retrieved via
+     * Called when a {@link DataRecord} is retrieved via
      * a call to {@link SharedDataStore#getRecordForId(DataIdentifier)}.
      *
      * @param timeTaken time taken to perform the operation

@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.segment.standby.client;
 import java.io.File;
 
 import org.apache.commons.io.input.NullInputStream;
-import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.oak.spi.blob.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;

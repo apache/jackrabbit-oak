@@ -63,7 +63,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     public static final String FT_SORT_UNION_QUERY_LEGACY_MODE = "FT_OAK-12051";
 
-    public static final String FT_OPTIMIZE_XPATH_UNION = "FT_OAK-12007";
+    public static final String FT_OPTIMIZE_XPATH_UNION = "FT_OAK-12170";
 
     public static final int DEFAULT_PREFETCH_COUNT = Integer.getInteger(OAK_QUERY_PREFETCH_COUNT, -1);
 

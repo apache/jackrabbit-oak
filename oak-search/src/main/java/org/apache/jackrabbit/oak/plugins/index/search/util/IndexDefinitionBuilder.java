@@ -477,6 +477,16 @@ public class IndexDefinitionBuilder {
             return this;
         }
 
+        public PropertyRule weightNull(int weight) {
+            propTree.setProperty(FulltextIndexConstants.PROP_WEIGHT_NULL, weight);
+            return this;
+        }
+
+        public PropertyRule weightNotNull(int weight) {
+            propTree.setProperty(FulltextIndexConstants.PROP_WEIGHT_NOT_NULL, weight);
+            return this;
+        }
+
         public PropertyRule boost(float boost) {
             propTree.setProperty(FIELD_BOOST, (double) boost, Type.DOUBLE);
             return this;

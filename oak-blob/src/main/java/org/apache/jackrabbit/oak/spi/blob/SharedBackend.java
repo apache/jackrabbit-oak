@@ -23,9 +23,9 @@ import java.io.InputStream;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.jackrabbit.core.data.DataIdentifier;
-import org.apache.jackrabbit.core.data.DataRecord;
-import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
+import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
 
 /**
  */
@@ -111,7 +111,7 @@ public interface SharedBackend {
      *
      * @param input the record input stream
      * @param name the name
-     * @throws org.apache.jackrabbit.core.data.DataStoreException
+     * @throws DataStoreException
      */
     void addMetadataRecord(final InputStream input, final String name) throws DataStoreException;
 
@@ -120,7 +120,7 @@ public interface SharedBackend {
      *
      * @param input the record file
      * @param name the name
-     * @throws org.apache.jackrabbit.core.data.DataStoreException
+     * @throws DataStoreException
      */
     void addMetadataRecord(final File input, final String name) throws DataStoreException;
 

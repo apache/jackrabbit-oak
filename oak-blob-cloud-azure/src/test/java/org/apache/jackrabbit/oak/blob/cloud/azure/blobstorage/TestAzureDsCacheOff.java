@@ -16,10 +16,11 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
+import org.apache.jackrabbit.oak.spi.blob.data.CachingDataStore;
 import org.junit.Before;
 
 /**
- * Test {@link org.apache.jackrabbit.core.data.CachingDataStore} with AzureBlobStoreBackend
+ * Test {@link CachingDataStore} with AzureBlobStoreBackend
  * and local cache Off.
  * It requires to pass azure config file via system property or system properties by prefixing with 'ds.'.
  * See details @ {@link AzureDataStoreUtils}.

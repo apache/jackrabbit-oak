@@ -56,8 +56,11 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexCleaner;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.TextExtractionStatsMBean;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
+import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
@@ -68,6 +71,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -266,6 +270,7 @@ public class LuceneIndexProviderService {
     private static final int INDEX_COPIER_POOL_SIZE = 5;
 
     private LuceneIndexProvider indexProvider;
+    private Feature filterGloballySupersededFeature;
 
     private final List<ServiceRegistration> regs = new ArrayList<>();
     private final List<Registration> oakRegs = new ArrayList<>();
@@ -369,10 +374,16 @@ public class LuceneIndexProviderService {
         }
 
         whiteboard = new OsgiWhiteboard(bundleContext);
+        oakRegs.add(whiteboard.register(FeatureToggle.class,
+                new FeatureToggle(FulltextIndexPlanner.FT_OAK_12171, FulltextIndexPlanner.FT_OAK_12171_DISABLE),
+                emptyMap()));
         initializeIndexDir(bundleContext, config);
         initializeExtractedTextCache(bundleContext, config, statisticsProvider);
         tracker = createTracker(bundleContext, config);
         indexProvider = new LuceneIndexProvider(tracker, augmentorFactory);
+        filterGloballySupersededFeature = Feature.newFeature(
+                FulltextIndex.FT_FILTER_GLOBALLY_SUPERSEDED, whiteboard);
+        indexProvider.setFilterGloballySupersededFeature(filterGloballySupersededFeature);
         initializeActiveBlobCollector(whiteboard, config);
         initializeLogging(config);
         initialize();
@@ -411,6 +422,10 @@ public class LuceneIndexProviderService {
 
         for (Registration reg : oakRegs){
             reg.unregister();
+        }
+
+        if (filterGloballySupersededFeature != null) {
+            filterGloballySupersededFeature.close();
         }
 
         if (backgroundObserver != null){

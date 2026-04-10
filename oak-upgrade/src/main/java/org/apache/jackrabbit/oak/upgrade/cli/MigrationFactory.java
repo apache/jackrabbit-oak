@@ -26,7 +26,6 @@ import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -56,11 +55,10 @@ public class MigrationFactory {
 
     public RepositoryUpgrade createUpgrade() throws IOException, RepositoryException, CliArgumentException {
         RepositoryContext src = stores.getSrcStore().create(closer);
-        BlobStore srcBlobStore = new DataStoreBlobStore(src.getDataStore());
+        BlobStore srcBlobStore = new ToJackrabbitDataStoreDelegatingBlobStore(src.getDataStore());
         NodeStore dstStore = createTarget(closer, srcBlobStore);
         return createUpgrade(src, dstStore);
     }
-
     public RepositorySidegrade createSidegrade() throws IOException, CliArgumentException {
         BlobStore srcBlobStore = datastores.getSrcBlobStore().create(closer);
         NodeStore srcStore = stores.getSrcStore().create(srcBlobStore, closer);
@@ -124,5 +122,4 @@ public class MigrationFactory {
         ServiceLoader<CommitHook> loader = ServiceLoader.load(CommitHook.class);
         return Collections.unmodifiableList(ListUtils.toList(loader.iterator()));
     }
-
 }
