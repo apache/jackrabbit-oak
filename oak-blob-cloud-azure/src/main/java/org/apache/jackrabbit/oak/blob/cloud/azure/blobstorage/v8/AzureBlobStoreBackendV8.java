@@ -44,6 +44,7 @@ import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -62,8 +63,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
+import org.apache.jackrabbit.oak.cache.api.Cache;
+import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
 import org.apache.jackrabbit.oak.commons.collections.AbstractIterator;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 
@@ -731,9 +732,9 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
         // max size 0 or smaller is used to turn off the cache
         if (maxSize > 0) {
             LOG.info("presigned GET URI cache enabled, maxSize = {} items, expiry = {} seconds", maxSize, httpDownloadURIExpirySeconds / 2);
-            httpDownloadURICache = CacheBuilder.newBuilder()
+            httpDownloadURICache = CacheBuilder.<String, URI>newBuilder()
                     .maximumSize(maxSize)
-                    .expireAfterWrite(httpDownloadURIExpirySeconds / 2, TimeUnit.SECONDS)
+                    .expireAfterWrite(Duration.ofSeconds(httpDownloadURIExpirySeconds / 2))
                     .build();
         } else {
             LOG.info("presigned GET URI cache disabled");
