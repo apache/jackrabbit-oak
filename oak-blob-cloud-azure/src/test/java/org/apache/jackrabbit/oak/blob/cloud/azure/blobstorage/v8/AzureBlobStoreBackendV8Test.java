@@ -205,11 +205,7 @@ public class AzureBlobStoreBackendV8Test {
     // With no download expiry configured, direct download access should stay disabled.
     AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
 
-<<<<<<< HEAD
-    assertNull(backend.createHttpDownloadURI(new org.apache.jackrabbit.core.data.DataIdentifier("test"),
-=======
     assertNull(backend.createHttpDownloadURI(new DataIdentifier("test"),
->>>>>>> trunk
             org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions.DEFAULT));
   }
 
@@ -227,12 +223,7 @@ public class AzureBlobStoreBackendV8Test {
     // Seed a cache entry directly, then verify the externally observable
     // behavior that the same URI is returned for the same download request.
     AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
-<<<<<<< HEAD
-    org.apache.jackrabbit.core.data.DataIdentifier identifier =
-            new org.apache.jackrabbit.core.data.DataIdentifier("cached");
-=======
     DataIdentifier identifier = new DataIdentifier("cached");
->>>>>>> trunk
     URI cachedUri = URI.create("https://cached.example/download");
 
     backend.setHttpDownloadURIExpirySeconds(300);
