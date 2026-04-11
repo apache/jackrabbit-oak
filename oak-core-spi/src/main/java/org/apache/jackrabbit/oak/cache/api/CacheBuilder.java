@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.cache.api;
 
 import java.time.Duration;
+import java.util.function.Supplier;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 
@@ -49,6 +50,7 @@ public final class CacheBuilder<K, V> {
     private Duration expireAfterAccess;
     private Duration expireAfterWrite;
     private Duration refreshAfterWrite;
+    private Supplier<Long> ticker;
 
     private CacheBuilder() {
     }
@@ -172,6 +174,19 @@ public final class CacheBuilder<K, V> {
     }
 
     /**
+     * Sets the nanosecond ticker used to measure time for expiry and refresh.
+     * Intended for testing with a controllable clock.
+     *
+     * @param ticker a supplier returning the current time in nanoseconds (must not be null)
+     * @return this builder
+     */
+    @NotNull
+    public CacheBuilder<K, V> ticker(@NotNull Supplier<Long> ticker) {
+        this.ticker = ticker;
+        return this;
+    }
+
+    /**
      * Builds and returns a cache with no auto-loading behaviour.
      *
      * @return a new {@link Cache}
@@ -236,6 +251,10 @@ public final class CacheBuilder<K, V> {
         }
         if (refreshAfterWrite != null) {
             caffeineBuilder = caffeineBuilder.refreshAfterWrite(refreshAfterWrite);
+        }
+        if (ticker != null) {
+            Supplier<Long> t = ticker;
+            caffeineBuilder = caffeineBuilder.ticker(t::get);
         }
         return (Caffeine<K, V>) caffeineBuilder;
     }
