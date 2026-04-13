@@ -251,6 +251,45 @@ public class UserManagerImpl implements UserManager {
         return group;
     }
 
+    @NotNull
+    @Override
+    public User createUserWithAbsolutePath(@NotNull String userID, @Nullable String password,
+                                           @NotNull Principal principal, @NotNull String oakPath)
+            throws AuthorizableExistsException, UnsupportedRepositoryOperationException, RepositoryException {
+        checkValidId(userID);
+        checkValidPrincipal(principal, false);
+
+        Tree userTree = userProvider.createUser(userID, oakPath);
+        setPrincipal(userTree, principal);
+        if (password != null) {
+            setPassword(userTree, userID, password, false);
+        }
+
+        User user = new UserImpl(userID, userTree, this);
+        onCreate(user, password);
+
+        log.debug("User created: {}", userID);
+        return user;
+    }
+
+    @NotNull
+    @Override
+    public Group createGroupWithAbsolutePath(@NotNull String groupID, @NotNull Principal principal,
+                                             @NotNull String oakPath)
+            throws AuthorizableExistsException, UnsupportedRepositoryOperationException, RepositoryException {
+        checkValidId(groupID);
+        checkValidPrincipal(principal, true);
+
+        Tree groupTree = userProvider.createGroup(groupID, oakPath);
+        setPrincipal(groupTree, principal);
+
+        Group group = new GroupImpl(groupID, groupTree, this);
+        onCreate(group);
+
+        log.debug("Group created: {}", groupID);
+        return group;
+    }
+
     /**
      * Always returns {@code false}. Any modifications made to this user
      * manager instance require a subsequent call to {@link javax.jcr.Session#save()}

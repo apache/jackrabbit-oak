@@ -23,6 +23,9 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -30,6 +33,7 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
@@ -203,5 +207,75 @@ public class IntermediatePathTest extends AbstractSecurityTest {
     public void testCurrentRelativePath() throws Exception {
         Authorizable authorizable = createAuthorizable(false, ".");
         assertEquals(UserConstants.DEFAULT_USER_PATH, PathUtils.getAncestorPath(authorizable.getPath(), 1));
+    }
+
+    // --- createUserWithAbsolutePath ---
+
+    private User createUserWithAbsolutePath(@NotNull String oakPath) throws RepositoryException {
+        String id = UUID.randomUUID().toString();
+        return getUserManager(root).createUserWithAbsolutePath(id, null, new PrincipalImpl(id), oakPath);
+    }
+
+    private Group createGroupWithAbsolutePath(@NotNull String oakPath) throws RepositoryException {
+        String id = UUID.randomUUID().toString();
+        return getUserManager(root).createGroupWithAbsolutePath(id, new PrincipalImpl(id), oakPath);
+    }
+
+    @Test
+    public void testCreateUserWithAbsolutePath() throws Exception {
+        String oakPath = UserConstants.DEFAULT_USER_PATH + "/a/b/c";
+        User user = createUserWithAbsolutePath(oakPath);
+        assertNotNull(user);
+        assertTrue(user.getPath().startsWith(oakPath));
+    }
+
+    @Test
+    public void testCreateGroupWithAbsolutePath() throws Exception {
+        String oakPath = UserConstants.DEFAULT_GROUP_PATH + "/a/b/c";
+        Group group = createGroupWithAbsolutePath(oakPath);
+        assertNotNull(group);
+        assertTrue(group.getPath().startsWith(oakPath));
+    }
+
+    @Test
+    public void testCreateUserWithAbsolutePathRetrievableByPath() throws Exception {
+        String oakPath = UserConstants.DEFAULT_USER_PATH + "/retrieve/test";
+        User user = createUserWithAbsolutePath(oakPath);
+        root.commit();
+        assertNotNull(getUserManager(root).getAuthorizableByPath(user.getPath()));
+    }
+
+    @Test
+    public void testCreateGroupWithAbsolutePathRetrievableByPath() throws Exception {
+        String oakPath = UserConstants.DEFAULT_GROUP_PATH + "/retrieve/test";
+        Group group = createGroupWithAbsolutePath(oakPath);
+        root.commit();
+        assertNotNull(getUserManager(root).getAuthorizableByPath(group.getPath()));
+    }
+
+    @Test(expected = ConstraintViolationException.class)
+    public void testCreateUserWithAbsolutePathWrongRoot() throws Exception {
+        createUserWithAbsolutePath(UserConstants.DEFAULT_GROUP_PATH + "/wrong");
+    }
+
+    @Test(expected = ConstraintViolationException.class)
+    public void testCreateGroupWithAbsolutePathWrongRoot() throws Exception {
+        createGroupWithAbsolutePath(UserConstants.DEFAULT_USER_PATH + "/wrong");
+    }
+
+    @Test(expected = AuthorizableExistsException.class)
+    public void testCreateUserWithAbsolutePathDuplicateId() throws Exception {
+        String id = UUID.randomUUID().toString();
+        String oakPath = UserConstants.DEFAULT_USER_PATH + "/dup/test";
+        getUserManager(root).createUserWithAbsolutePath(id, null, new PrincipalImpl(id), oakPath);
+        getUserManager(root).createUserWithAbsolutePath(id, null, new PrincipalImpl(id + "_2"), oakPath);
+    }
+
+    @Test(expected = AuthorizableExistsException.class)
+    public void testCreateGroupWithAbsolutePathDuplicateId() throws Exception {
+        String id = UUID.randomUUID().toString();
+        String oakPath = UserConstants.DEFAULT_GROUP_PATH + "/dup/test";
+        getUserManager(root).createGroupWithAbsolutePath(id, new PrincipalImpl(id), oakPath);
+        getUserManager(root).createGroupWithAbsolutePath(id, new PrincipalImpl(id + "_2"), oakPath);
     }
 }

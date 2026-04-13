@@ -214,6 +214,34 @@ public interface UserManager {
 
 
     /**
+     * Creates a user for the given parameters at the specified absolute Oak path.
+     * Unlike {@link #createUser(String, String, Principal, String)} where the
+     * {@code intermediatePath} is a relative hint, this method accepts an absolute
+     * repository path that precisely determines the location of the new user node.
+     * <p>
+     * Implementations that do not support placement at an arbitrary absolute path
+     * should throw {@link UnsupportedRepositoryOperationException}.
+     *
+     * @param userID         The ID of the new user.
+     * @param password       The initial password of the new user, may be {@code null}.
+     * @param principal      The principal of the new user.
+     * @param absoluteOakPath The absolute Oak repository path at which the user node
+     *                        must be created. Must not be {@code null}.
+     * @return The new {@code User}.
+     * @throws AuthorizableExistsException              if an authorizable with the given
+     *                                                  userID or principal already exists.
+     * @throws UnsupportedRepositoryOperationException  if the implementation does not
+     *                                                  support creation at an absolute path.
+     * @throws RepositoryException                      If another error occurs.
+     */
+    @NotNull
+    default User createUserWithAbsolutePath(@NotNull String userID, @Nullable String password,
+                                            @NotNull Principal principal, @NotNull String absoluteOakPath)
+            throws AuthorizableExistsException, UnsupportedRepositoryOperationException, RepositoryException {
+        throw new UnsupportedRepositoryOperationException("createUserWithAbsolutePath is not supported by this implementation");
+    }
+
+    /**
      * Create a new system user for the specified {@code userID}. The new authorizable
      * is required to have the following characteristics:
      *
@@ -304,6 +332,36 @@ public interface UserManager {
      */
     @NotNull
     Group createGroup(@NotNull String groupID, @NotNull Principal principal, @Nullable String intermediatePath) throws AuthorizableExistsException, RepositoryException;
+
+    /**
+     * Creates a new {@code Group} at the specified absolute Oak repository path.
+     * <p>
+     * Unlike {@link #createGroup(String, Principal, String)} where the
+     * {@code intermediatePath} is a relative hint that implementations may ignore,
+     * this method requires the caller to supply the exact absolute path at which
+     * the group node must be created. The path must start with {@code /} and must
+     * not already exist.
+     * <p>
+     * Implementations that cannot honour an arbitrary absolute path must throw
+     * {@link UnsupportedRepositoryOperationException}.
+     *
+     * @param groupID   The ID of the new group.
+     * @param principal The principal of the new group.
+     * @param oakPath   The absolute Oak repository path at which the group node
+     *                  must be created. Must not be {@code null}.
+     * @return The new {@code Group}.
+     * @throws AuthorizableExistsException             if an authorizable with the given
+     *                                                 groupID or principal already exists.
+     * @throws UnsupportedRepositoryOperationException if the implementation does not
+     *                                                 support creation at an absolute path.
+     * @throws RepositoryException                     If another error occurs.
+     */
+    @NotNull
+    default Group createGroupWithAbsolutePath(@NotNull String groupID, @NotNull Principal principal,
+                                              @NotNull String oakPath)
+            throws AuthorizableExistsException, UnsupportedRepositoryOperationException, RepositoryException {
+        throw new UnsupportedRepositoryOperationException("createGroupWithAbsolutePath is not supported by this implementation");
+    }
 
     /**
      * If any write operations executed through the User API are automatically
