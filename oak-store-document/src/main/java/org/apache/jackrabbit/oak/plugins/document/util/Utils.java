@@ -22,10 +22,11 @@ import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -1046,7 +1047,9 @@ public class Utils {
             LOG.warn("Detected clock differences. Local time is '{}', " +
                             "while most recent external time is '{}'. " +
                             "Current _lastRev entries: {}",
-                    new Date(localTime), new Date(externalTime), lastRevMap.values());
+                    asISO8601(localTime),
+                    asISO8601(externalTime),
+                    lastRevMap.values());
             double delay = ((double) externalTime - localTime) / 1000d;
             String fmt = "Background read will be delayed by %.1f seconds. " +
                     "Please check system time on cluster nodes.";
@@ -1133,5 +1136,15 @@ public class Utils {
                     timestampToString(rev.getTimestamp()), timestampToString(now));
             throw new DocumentStoreException(msg);
         }
+    }
+
+    /**
+     * Formats the epoch time in milliseconds as ISO-8601 in UTC.
+     *
+     * @param ms the time in milliseconds.
+     * @return date format for the time in milliseconds.
+     */
+    public static String asISO8601(long ms) {
+        return DateTimeFormatter.ISO_INSTANT.format(Instant.ofEpochMilli(ms));
     }
 }
