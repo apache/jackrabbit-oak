@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
-import org.apache.jackrabbit.guava.common.cache.RemovalCause;
+import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 
 /**
  * A listener that gets notified of entries that were removed from the cache.
@@ -26,6 +26,6 @@ import org.apache.jackrabbit.guava.common.cache.RemovalCause;
  */
 public interface EvictionListener<K, V> {
 
-    void evicted(K key, V value, RemovalCause removalCause);
+    void evicted(K key, V value, EvictionCause removalCause);
 
 }

@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.cache.RemovalCause;
+import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
@@ -71,7 +72,7 @@ public class AsyncQueueTest {
             @Override
             public void evicted(@NotNull PathRev key, @Nullable StringValue value, @NotNull RemovalCause cause) {
                 if (nodeCacheRef.get() != null) {
-                    nodeCacheRef.get().evicted(key, value, cause);
+                    nodeCacheRef.get().evicted(key, value, EvictionCause.valueOf(cause.name()));
                 }
             }
         }).build();
