@@ -23,6 +23,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.time.Duration;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Map.Entry;
@@ -36,11 +37,12 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
-import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
+import org.apache.jackrabbit.oak.cache.api.Cache;
+import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
+import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorHelper;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
@@ -85,7 +87,7 @@ public class ExtractedTextCache {
 
     private final ConcurrentHashMap<String, String> timeoutMap;
     private final File indexDir;
-    private final CacheStats cacheStats;
+    private final AbstractCacheStats cacheStats;
     private final boolean alwaysUsePreExtractedCache;
     private volatile ExecutorService executorService;
     private volatile int timeoutCount;
@@ -103,13 +105,13 @@ public class ExtractedTextCache {
     public ExtractedTextCache(long maxWeight, long expiryTimeInSecs, boolean alwaysUsePreExtractedCache,
                               File indexDir, StatisticsProvider statisticsProvider) {
         if (maxWeight > 0) {
-            cache = CacheBuilder.newBuilder()
+            cache = CacheBuilder.<String, String>newBuilder()
                     .weigher(EmpiricalWeigher.INSTANCE)
                     .maximumWeight(maxWeight)
-                    .expireAfterAccess(expiryTimeInSecs, TimeUnit.SECONDS)
+                    .expireAfterAccess(Duration.ofSeconds(expiryTimeInSecs))
                     .recordStats()
                     .build();
-            cacheStats = new CacheStats(cache, "ExtractedTextCache",
+            cacheStats = new CacheStatsAdapter(cache, "ExtractedTextCache",
                     EmpiricalWeigher.INSTANCE, maxWeight);
         } else {
             cache = null;
@@ -248,7 +250,7 @@ public class ExtractedTextCache {
     }
 
     @Nullable
-    public CacheStats getCacheStats() {
+    public AbstractCacheStats getCacheStats() {
         return cacheStats;
     }
 
