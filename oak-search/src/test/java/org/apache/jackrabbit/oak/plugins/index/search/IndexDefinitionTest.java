@@ -527,6 +527,32 @@ public class IndexDefinitionTest {
     }
 
     @Test
+    public void maxSimilarityTagsCount() {
+        NodeBuilder defnb = newFTIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                "lucene", Set.of(TYPENAME_STRING));
+        IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
+        assertEquals(IndexDefinition.DEFAULT_MAX_SIMILARITY_TAGS_COUNT, defn.getMaxSimilarityTagsCount());
+
+        defnb.setProperty(FulltextIndexConstants.MAX_SIMILARITY_TAGS_COUNT, 100);
+
+        defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
+        assertEquals(100, defn.getMaxSimilarityTagsCount());
+    }
+
+    @Test
+    public void maxDynamicBoostCount() {
+        NodeBuilder defnb = newFTIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                "lucene", Set.of(TYPENAME_STRING));
+        IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
+        assertEquals(IndexDefinition.DEFAULT_MAX_DYNAMIC_BOOST_COUNT, defn.getMaxDynamicBoostCount());
+
+        defnb.setProperty(FulltextIndexConstants.MAX_DYNAMIC_BOOST_COUNT, 100);
+
+        defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
+        assertEquals(100, defn.getMaxDynamicBoostCount());
+    }
+
+    @Test
     public void maxExtractLength() {
         NodeBuilder defnb = newFTIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
                 "lucene", Set.of(TYPENAME_STRING));

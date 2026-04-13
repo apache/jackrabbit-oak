@@ -270,6 +270,18 @@ public interface FulltextIndexConstants {
     String MAX_TAG_LENGTH = "maxTagLength";
 
     /**
+     * Maximum number of similarity tags to index per document.
+     * Set to -1 to disable the limit
+     */
+    String MAX_SIMILARITY_TAGS_COUNT = "maxSimilarityTagsCount";
+
+    /**
+     * Maximum number of dynamic boost tags to index per document. The top N tags by confidence are indexed.
+     * Set to -1 to disable the limit
+     */
+    String MAX_DYNAMIC_BOOST_COUNT = "maxDynamicBoostCount";
+
+    /**
      * whether use this property values for suggestions
      */
     String PROP_USE_IN_SUGGEST = "useInSuggest";
