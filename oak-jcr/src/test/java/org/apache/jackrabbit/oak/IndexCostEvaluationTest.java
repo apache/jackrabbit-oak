@@ -21,6 +21,7 @@ import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.jcr.query.QueryImpl;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexPlan;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -36,7 +37,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.SimpleCredentials;
 import java.io.File;
@@ -49,20 +49,12 @@ public class IndexCostEvaluationTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
-    private static final String TEST_USER_NAME = "testUserName";
-
     private Repository repository = null;
     private JackrabbitSession session = null;
-    private Node root = null;
     private LogCustomizer custom;
 
     @Before
     public void before() throws Exception {
-        custom = LogCustomizer
-                .forLogger(
-                        "org.apache.jackrabbit.oak.query.QueryImpl")
-                .enable(Level.DEBUG).create();
-        custom.starting();
 
 
         TestIndexProvider testProvider = new TestIndexProvider();
@@ -75,8 +67,14 @@ public class IndexCostEvaluationTest {
                 .with((QueryIndexProvider) testProvider3);
 
         repository = jcr.createRepository();
+        custom = LogCustomizer
+                .forLogger(
+                        "org.apache.jackrabbit.oak.query.QueryImpl")
+                .enable(Level.DEBUG).create();
+        custom.starting();
+
         session = (JackrabbitSession) repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
-        root = session.getRootNode();
+        session.getRootNode();
     }
 
 
@@ -93,6 +91,11 @@ public class IndexCostEvaluationTest {
     // even of cost from previous index is less than min cost of new index.
     @Test
     public void costEvaluationTest() throws Exception {
+
+        // run some non-trival query so that all indexes get a chance to reply
+        session.getWorkspace().getQueryManager().
+            createQuery("select * from [nt:base] where [abc] = 1", QueryImpl.JCR_SQL2).execute();
+
         boolean evaluationContinueLogPresent = false;
         boolean evaluationSkipLogPresent = false;
         for (String log : custom.getLogs()) {
@@ -171,7 +174,7 @@ public class IndexCostEvaluationTest {
         public List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder, NodeState rootState) {
             IndexPlan.Builder b = new IndexPlan.Builder();
             Filter f = new FilterImpl(null, "SELECT * FROM [nt:file]", new QueryEngineSettings());
-            IndexPlan plan1 = b.setEstimatedEntryCount(10).setPlanName("testIndexPlan1").setFilter(f).build();
+            IndexPlan plan1 = b.setEstimatedEntryCount(1).setPlanName("testIndexPlan1").setFilter(f).build();
             List<IndexPlan> indexList = new ArrayList<IndexPlan>();
 
             indexList.add(plan1);

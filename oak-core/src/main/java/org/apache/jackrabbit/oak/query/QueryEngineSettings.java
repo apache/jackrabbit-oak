@@ -65,6 +65,8 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     public static final String FT_OPTIMIZE_XPATH_UNION = "FT_OAK-12170";
 
+    public static final String FT_IGNORE_LIMIT_IN_INDEX_SELECTION = "FT_OAK-12057";
+
     public static final int DEFAULT_PREFETCH_COUNT = Integer.getInteger(OAK_QUERY_PREFETCH_COUNT, -1);
 
     public static final String OAK_QUERY_FAIL_TRAVERSAL = "oak.queryFailTraversal";
@@ -122,6 +124,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     private Feature prefetchFeature;
     private Feature sortUnionQueryLegacyModeFeature;
     private Feature optimizeXPathUnion;
+    private Feature ignoreLimitInIndexSelectionFeature;
 
     private String autoOptionsMappingJson = "{}";
     private QueryOptions.AutomaticQueryOptionsMapping autoOptionsMapping = new QueryOptions.AutomaticQueryOptionsMapping(autoOptionsMappingJson);
@@ -242,6 +245,16 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     public boolean isOptimizeXPathUnionEnabled() {
         // disable if the feature toggle is not used
         return optimizeXPathUnion != null && optimizeXPathUnion.isEnabled();
+    }
+
+    public void setIgnoreLimitInIndexSelectionFeature(@Nullable Feature feature) {
+        this.ignoreLimitInIndexSelectionFeature = feature;
+    }
+
+    @Override
+    public boolean isIgnoreLimitInIndexSelection() {
+        // enabled if the feature toggle is not used
+        return ignoreLimitInIndexSelectionFeature == null || ignoreLimitInIndexSelectionFeature.isEnabled();
     }
 
     public String getStrictPathRestriction() {
