@@ -78,6 +78,7 @@ import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
@@ -1305,7 +1306,7 @@ public final class DocumentNodeStore
     }
 
     @NotNull
-    public Iterable<CacheStats> getDiffCacheStats() {
+    public Iterable<AbstractCacheStats> getDiffCacheStats() {
         return diffCache.getStats();
     }
 

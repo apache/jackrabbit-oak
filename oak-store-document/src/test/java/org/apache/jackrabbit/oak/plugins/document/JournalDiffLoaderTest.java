@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -217,7 +217,7 @@ public class JournalDiffLoaderTest {
         ns.runBackgroundOperations();
         DocumentNodeState after = (DocumentNodeState) ns.getRoot().getChildNode("foo");
 
-        CacheStats cs = getMemoryDiffStats(ns);
+        AbstractCacheStats cs = getMemoryDiffStats(ns);
         assertNotNull(cs);
         cs.resetStats();
         Set<String> changes = changeChildNodes(ns, before, after);
@@ -362,8 +362,8 @@ public class JournalDiffLoaderTest {
         assertEquals(0, store.getNumFindCalls(Collection.JOURNAL));
     }
 
-    private static CacheStats getMemoryDiffStats(DocumentNodeStore ns) {
-        for (CacheStats cs : ns.getDiffCache().getStats()) {
+    private static AbstractCacheStats getMemoryDiffStats(DocumentNodeStore ns) {
+        for (AbstractCacheStats cs : ns.getDiffCache().getStats()) {
             if (cs.getName().equals("Document-MemoryDiff")) {
                 return cs;
             }

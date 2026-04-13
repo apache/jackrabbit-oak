@@ -59,6 +59,7 @@ import org.apache.jackrabbit.oak.api.Descriptors;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.api.jmx.PersistentCacheStatsMBean;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
@@ -873,7 +874,7 @@ public class DocumentNodeStoreService {
             IOException {
         registerCacheStatsMBean(store.getNodeCacheStats());
         registerCacheStatsMBean(store.getNodeChildrenCacheStats());
-        for (CacheStats cs : store.getDiffCacheStats()) {
+        for (AbstractCacheStats cs : store.getDiffCacheStats()) {
             registerCacheStatsMBean(cs);
         }
         DocumentStore ds = store.getDocumentStore();
@@ -968,7 +969,7 @@ public class DocumentNodeStoreService {
         }
     }
 
-    private void registerCacheStatsMBean(CacheStats cacheStats) {
+    private void registerCacheStatsMBean(AbstractCacheStats cacheStats) {
         addRegistration(registerMBean(whiteboard, CacheStatsMBean.class,
                 cacheStats, CacheStatsMBean.TYPE, cacheStats.getName()));
     }

@@ -17,12 +17,11 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Collections;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.apache.jackrabbit.oak.cache.api.Cache;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -52,13 +51,13 @@ public class MemoryDiffCache extends DiffCache {
      * Key: PathRev, value: StringValue
      */
     protected final Cache<CacheValue, StringValue> diffCache;
-    protected final CacheStats diffCacheStats;
+    protected final AbstractCacheStats diffCacheStats;
 
 
     protected MemoryDiffCache(DocumentNodeStoreBuilder<?> builder) {
         diffCache = builder.buildMemoryDiffCache();
-        diffCacheStats = new CacheStats(diffCache, "Document-MemoryDiff",
-                builder.getWeigher(), builder.getMemoryDiffCacheSize());
+        diffCacheStats = new CacheStatsAdapter(diffCache, "Document-MemoryDiff",
+                (k, v) -> builder.getWeigher().weigh(k, v), builder.getMemoryDiffCacheSize());
     }
 
     @Nullable
@@ -75,20 +74,14 @@ public class MemoryDiffCache extends DiffCache {
                 diff = StringValue.EMPTY;
             }
         } else {
-            try {
-                diff = diffCache.get(key, new Callable<StringValue>() {
-                    @Override
-                    public StringValue call() throws Exception {
-                        if (isUnchanged(from, to, path)) {
-                            return StringValue.EMPTY;
-                        } else {
-                            return new StringValue(loader.call());
-                        }
-                    }
-                });
-            } catch (ExecutionException e) {
-                // try again with loader directly
-                diff = new StringValue(loader.call());
+            diff = diffCache.getIfPresent(key);
+            if (diff == null) {
+                // Caffeine's get(key, fn) holds a CHM compute lock for the entire
+                // mapping function. loader.call() can re-enter getChanges() on this
+                // same cache, which causes "Recursive update". Compute the value
+                // outside any lock and use putIfAbsent so the first writer wins.
+                diff = isUnchanged(from, to, path) ? StringValue.EMPTY : new StringValue(loader.call());
+                diffCache.asMap().putIfAbsent(key, diff);
             }
         }
         return diff != null ? diff.toString() : null;
@@ -104,7 +97,7 @@ public class MemoryDiffCache extends DiffCache {
 
     @NotNull
     @Override
-    public Iterable<CacheStats> getStats() {
+    public Iterable<AbstractCacheStats> getStats() {
         return Collections.singleton(diffCacheStats);
     }
 
