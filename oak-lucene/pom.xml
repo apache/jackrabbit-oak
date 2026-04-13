@@ -127,7 +127,7 @@
               oak-search;scope=compile|runtime;inline=true,
                 lucene-*;inline=true,
               <!-- TODO FIXME OAK-3598 -->
-              oak-core-spi;inline="org/apache/jackrabbit/oak/cache/AbstractCacheStats.class|org/apache/jackrabbit/oak/cache/CacheStats.class"
+              oak-core-spi;inline="org/apache/jackrabbit/oak/cache/AbstractCacheStats.class|org/apache/jackrabbit/oak/cache/CacheStats.class|org/apache/jackrabbit/oak/cache/api/CacheStatsAdapter.class"
               <!-- TODO FIXME OAK-3598 -->
             </Embed-Dependency>
           </instructions>
