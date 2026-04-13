@@ -17,9 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
 import static java.util.Collections.singleton;
-import static org.apache.jackrabbit.guava.common.cache.RemovalCause.COLLECTED;
-import static org.apache.jackrabbit.guava.common.cache.RemovalCause.EXPIRED;
-import static org.apache.jackrabbit.guava.common.cache.RemovalCause.SIZE;
 
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -32,8 +29,8 @@ import java.util.concurrent.ExecutionException;
 
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
-import org.apache.jackrabbit.guava.common.cache.RemovalCause;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -54,7 +51,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
 
     static final Logger LOG = LoggerFactory.getLogger(NodeCache.class);
 
-    private static final Set<RemovalCause> EVICTION_CAUSES = Set.of(COLLECTED, EXPIRED, SIZE);
+    private static final Set<EvictionCause> EVICTION_CAUSES = Set.of(EvictionCause.COLLECTED, EvictionCause.EXPIRED, EvictionCause.SIZE);
 
     private final PersistentCache cache;
     private final PersistentCacheStats stats;
@@ -343,7 +340,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
      * Invoked on the eviction from the {@link #memCache}
      */
     @Override
-    public void evicted(K key, V value, RemovalCause cause) {
+    public void evicted(K key, V value, EvictionCause cause) {
         if (async && Objects.nonNull(cause) && EVICTION_CAUSES.contains(cause) && value != null) {
             CacheMetadata.MetadataEntry metadata = memCacheMetadata.remove(key);
             boolean qualifiesToPersist = true;

@@ -42,6 +42,7 @@ import org.apache.jackrabbit.guava.common.cache.RemovalListener;
 import org.apache.jackrabbit.guava.common.cache.RemovalNotification;
 import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
+import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.cache.EmpiricalWeigher;
@@ -1145,7 +1146,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
                         @Override
                         public void evicted(K key, V value, RemovalCause cause) {
                             for (EvictionListener<K, V> l : listeners) {
-                                l.evicted(key, value, cause);
+                                l.evicted(key, value, toEvictionCause(cause));
                             }
                         }
                     }).
@@ -1160,11 +1161,21 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
                     @Override
                     public void onRemoval(RemovalNotification<K, V> notification) {
                         for (EvictionListener<K, V> l : listeners) {
-                            l.evicted(notification.getKey(), notification.getValue(), notification.getCause());
+                            l.evicted(notification.getKey(), notification.getValue(), toEvictionCause(notification.getCause()));
                         }
                     }
                 }).
                 build();
+    }
+
+    private static EvictionCause toEvictionCause(RemovalCause cause) {
+        return switch (cause) {
+            case EXPLICIT  -> EvictionCause.EXPLICIT;
+            case REPLACED  -> EvictionCause.REPLACED;
+            case SIZE      -> EvictionCause.SIZE;
+            case EXPIRED   -> EvictionCause.EXPIRED;
+            case COLLECTED -> EvictionCause.COLLECTED;
+        };
     }
 
     /**

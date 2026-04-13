@@ -29,7 +29,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Consumer;
 
-import org.apache.jackrabbit.guava.common.cache.RemovalCause;
+import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.json.JsopDiff;
@@ -94,12 +94,12 @@ public class NodeCacheTest {
         long count0 = counter.getCount();
 
         //Adding this should be rejected
-        nodeCache.evicted(prc, (DocumentNodeState) root.getChildNode("c"), RemovalCause.SIZE);
+        nodeCache.evicted(prc, (DocumentNodeState) root.getChildNode("c"), EvictionCause.SIZE);
         long count1 = counter.getCount();
         assertTrue(count1 > count0);
 
         //Adding this should NOT be rejected
-        nodeCache.evicted(pra, (DocumentNodeState) root.getChildNode("a"), RemovalCause.SIZE);
+        nodeCache.evicted(pra, (DocumentNodeState) root.getChildNode("a"), EvictionCause.SIZE);
         long count2 = counter.getCount();
         assertEquals(count1 , count2);
     }
