@@ -104,6 +104,7 @@
             <exclude>oak-doc*/target/**</exclude>
             <exclude>oak-segment-tar/target/**</exclude>
             <exclude>oak-segment-tar/*.iml</exclude>
+            <exclude>specs/**</exclude>
           </excludes>
         </configuration>
       </plugin>
