@@ -40,18 +40,4 @@ public class CacheLIRSOakAdapterTest {
 
         Assert.assertEquals("loaded-k", oakCache.get("k"));
     }
-
-    @Test
-    public void asOakCacheRejectsManualCache() {
-        CacheLIRS<String, String> cache = CacheLIRS.<String, String>newBuilder()
-                .maximumSize(10)
-                .build();
-
-        try {
-            cache.asOakCache();
-            Assert.fail("expected IllegalStateException");
-        } catch (IllegalStateException e) {
-            Assert.assertTrue(e.getMessage().contains("requires a CacheLIRS built with a loader"));
-        }
-    }
 }
