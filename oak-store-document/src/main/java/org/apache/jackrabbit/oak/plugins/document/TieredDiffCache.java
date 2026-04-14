@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
-
-import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
+import org.apache.jackrabbit.oak.cache.api.Cache;
+import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.RevisionsKey;
 import org.jetbrains.annotations.NotNull;
@@ -37,8 +36,8 @@ class TieredDiffCache extends DiffCache {
      * A small cache of local diff cache misses to prevent repeated calls with
      * the same revision vector range.
      */
-    private Cache<RevisionsKey, RevisionsKey> localDiffMisses
-            = CacheBuilder.newBuilder().maximumSize(128).build();
+    private final Cache<RevisionsKey, RevisionsKey> localDiffMisses
+            = CacheBuilder.<RevisionsKey, RevisionsKey>newBuilder().maximumSize(128).build();
 
     private final int clusterId;
     private final DiffCache localCache;
@@ -94,7 +93,7 @@ class TieredDiffCache extends DiffCache {
 
     @NotNull
     @Override
-    public Iterable<CacheStats> getStats() {
+    public Iterable<AbstractCacheStats> getStats() {
         return IterableUtils.chainedIterable(localCache.getStats(), memoryCache.getStats());
     }
 
