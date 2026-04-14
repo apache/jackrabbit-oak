@@ -24,12 +24,11 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
-import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.api.Cache;
+import org.apache.jackrabbit.oak.cache.impl.lirs.LirsCacheAdapter;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -100,7 +99,7 @@ public class CacheChangesTrackerTest {
     }
 
     @Test
-    public void testGetLoaderAffectsTracker() throws ExecutionException {
+    public void testGetLoaderAffectsTracker() {
         NodeDocumentCache cache = createCache();
         Path parent = Path.fromString("/parent");
         CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit(parent), getKeyUpperLimit(parent));
@@ -110,12 +109,7 @@ public class CacheChangesTrackerTest {
         cache.getIfPresent("2:/parent/xyz");
         assertFalse(tracker.mightBeenAffected("2:/parent/xyz"));
 
-        cache.get("2:/parent/xyz", new Callable<NodeDocument>() {
-            @Override
-            public NodeDocument call() throws Exception {
-                return createDoc("2:/parent/xyz");
-            }
-        });
+        cache.get("2:/parent/xyz", k -> createDoc("2:/parent/xyz"));
         assertTrue(tracker.mightBeenAffected("2:/parent/xyz"));
     }
 
@@ -158,10 +152,10 @@ public class CacheChangesTrackerTest {
     }
 
     private NodeDocumentCache createCache() {
-        Cache<CacheValue, NodeDocument> nodeDocumentsCache = new CacheLIRS<CacheValue, NodeDocument>(10);
-        Cache<StringValue, NodeDocument> prevDocumentsCache = new CacheLIRS<StringValue, NodeDocument>(10);
-        CacheStats nodeDocumentsCacheStats = Mockito.mock(CacheStats.class);
-        CacheStats prevDocumentsCacheStats = Mockito.mock(CacheStats.class);
+        Cache<CacheValue, NodeDocument> nodeDocumentsCache = new LirsCacheAdapter<>(new CacheLIRS<CacheValue, NodeDocument>(10));
+        Cache<StringValue, NodeDocument> prevDocumentsCache = new LirsCacheAdapter<>(new CacheLIRS<StringValue, NodeDocument>(10));
+        AbstractCacheStats nodeDocumentsCacheStats = Mockito.mock(AbstractCacheStats.class);
+        AbstractCacheStats prevDocumentsCacheStats = Mockito.mock(AbstractCacheStats.class);
         NodeDocumentLocks locks = new StripedNodeDocumentLocks();
         return new NodeDocumentCache(nodeDocumentsCache, nodeDocumentsCacheStats, prevDocumentsCache, prevDocumentsCacheStats, locks);
     }

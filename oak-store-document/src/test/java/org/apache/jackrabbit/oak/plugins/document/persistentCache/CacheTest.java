@@ -26,8 +26,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
+import org.apache.jackrabbit.oak.cache.api.Cache;
+import org.apache.jackrabbit.oak.cache.impl.lirs.LirsCacheAdapter;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.PathRev;
@@ -54,9 +55,9 @@ public class CacheTest {
             out.write("corrupt".getBytes());
             out.close();
             PersistentCache pCache = new PersistentCache("target/cacheTest");
-            CacheLIRS<PathRev, StringValue> cache = new CacheLIRS.Builder<PathRev, StringValue>().
-                    maximumSize(1).build();
-            Cache<PathRev, StringValue> map = pCache.wrap(null,  null,  cache, CacheType.DIFF);
+            Cache<PathRev, StringValue> map = pCache.wrap(null, null,
+                    new LirsCacheAdapter<>(new CacheLIRS.Builder<PathRev, StringValue>().maximumSize(1).build()),
+                    CacheType.DIFF);
             String largeString = new String(new char[1024 * 1024]);
             for (int counter = 0; counter < 10; counter++) {
                 long end = System.currentTimeMillis() + 100;

@@ -56,10 +56,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -74,12 +72,11 @@ import java.util.function.Supplier;
 import javax.jcr.PropertyType;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.guava.common.cache.Cache;
+import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
-import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
@@ -422,7 +419,7 @@ public final class DocumentNodeStore
      * Key: PathRev, value: DocumentNodeState
      */
     private final Cache<PathRev, DocumentNodeState> nodeCache;
-    private final CacheStats nodeCacheStats;
+    private final AbstractCacheStats nodeCacheStats;
 
     /**
      * Child node cache.
@@ -430,7 +427,7 @@ public final class DocumentNodeStore
      * Key: PathRev, value: Children
      */
     private final Cache<NamePathRev, DocumentNodeState.Children> nodeChildrenCache;
-    private final CacheStats nodeChildrenCacheStats;
+    private final AbstractCacheStats nodeChildrenCacheStats;
 
     /**
      * The change log to keep track of commits for diff operations.
@@ -680,12 +677,10 @@ public final class DocumentNodeStore
         //TODO Make stats collection configurable as it add slight overhead
 
         nodeCache = builder.buildNodeCache(this);
-        nodeCacheStats = new CacheStats(nodeCache, "Document-NodeState",
-                builder.getWeigher(), builder.getNodeCacheSize());
+        nodeCacheStats = builder.newCacheStatsAdapter(nodeCache, "Document-NodeState", builder.getNodeCacheSize());
 
         nodeChildrenCache = builder.buildChildrenCache(this);
-        nodeChildrenCacheStats = new CacheStats(nodeChildrenCache, "Document-NodeChildren",
-                builder.getWeigher(), builder.getChildrenCacheSize());
+        nodeChildrenCacheStats = builder.newCacheStatsAdapter(nodeChildrenCache, "Document-NodeChildren", builder.getChildrenCacheSize());
 
         diffCache = builder.getDiffCache(this.clusterId);
 
@@ -1297,11 +1292,11 @@ public final class DocumentNodeStore
         return clusterNodeInfo;
     }
 
-    public CacheStats getNodeCacheStats() {
+    public AbstractCacheStats getNodeCacheStats() {
         return nodeCacheStats;
     }
 
-    public CacheStats getNodeChildrenCacheStats() {
+    public AbstractCacheStats getNodeChildrenCacheStats() {
         return nodeChildrenCacheStats;
     }
 
@@ -1395,25 +1390,22 @@ public final class DocumentNodeStore
         final long start = PERFLOG.start();
         try {
             PathRev key = new PathRev(path, rev);
-            DocumentNodeState node = nodeCache.get(key, new Callable<DocumentNodeState>() {
-                @Override
-                public DocumentNodeState call() throws Exception {
-                    boolean nodeDoesNotExist = checkNodeNotExistsFromChildrenCache(path, rev);
-                    if (nodeDoesNotExist){
-                        return missing;
-                    }
-                    DocumentNodeState n = readNode(path, rev);
-                    if (n == null) {
-                        n = missing;
-                    }
-                    return n;
+            DocumentNodeState node = nodeCache.get(key, k -> {
+                boolean nodeDoesNotExist = checkNodeNotExistsFromChildrenCache(path, rev);
+                if (nodeDoesNotExist){
+                    return missing;
                 }
+                DocumentNodeState n = readNode(path, rev);
+                if (n == null) {
+                    n = missing;
+                }
+                return n;
             });
             final DocumentNodeState result = node == missing
                     || node.equals(missing) ? null : node;
             PERFLOG.end(start, 1, "getNode: path={}, rev={}", path, rev);
             return result;
-        } catch (RuntimeException | ExecutionException e) {
+        } catch (RuntimeException e) {
             throw DocumentStoreException.convert(e.getCause());
         }
     }
@@ -1457,12 +1449,7 @@ public final class DocumentNodeStore
         final RevisionVector readRevision = parent.getLastRevision();
         try {
             NamePathRev key = childNodeCacheKey(path, readRevision, name);
-            DocumentNodeState.Children children = nodeChildrenCache.get(key, new Callable<DocumentNodeState.Children>() {
-                @Override
-                public DocumentNodeState.Children call() throws Exception {
-                    return readChildren(parent, name, limit);
-                }
-            });
+            DocumentNodeState.Children children = nodeChildrenCache.get(key, k -> readChildren(parent, name, limit));
             if (children.children.size() < limit && children.hasMore) {
                 // not enough children loaded - load more,
                 // and put that in the cache
@@ -1472,7 +1459,7 @@ public final class DocumentNodeStore
                 nodeChildrenCache.put(key, children);
             }
             return children;
-        } catch (RuntimeException | ExecutionException e) {
+        } catch (RuntimeException e) {
             throw DocumentStoreException.convert(e.getCause(),
                     "Error occurred while fetching children for path "
                             + path);

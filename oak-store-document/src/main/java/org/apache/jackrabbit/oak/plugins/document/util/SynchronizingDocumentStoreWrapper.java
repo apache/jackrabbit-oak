@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -154,7 +154,7 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public synchronized Iterable<CacheStats> getCacheStats() {
+    public synchronized Iterable<AbstractCacheStats> getCacheStats() {
         return store.getCacheStats();
     }
 

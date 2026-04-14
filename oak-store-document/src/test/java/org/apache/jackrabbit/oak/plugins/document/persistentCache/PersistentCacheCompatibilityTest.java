@@ -17,9 +17,9 @@
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
 import java.io.File;
-import java.util.concurrent.ExecutionException;
 
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
+import org.apache.jackrabbit.oak.cache.impl.lirs.LirsCacheAdapter;
 import org.apache.jackrabbit.oak.plugins.document.MemoryDiffCache;
 import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
@@ -128,20 +128,17 @@ public class PersistentCacheCompatibilityTest {
     }
 
     @Test
-    public void getWrapsCheckedLoaderFailureInExecutionException() throws Exception {
-        // Use a checked loader failure here because NodeCache exposes the same
-        // checked get(key, loader) contract as the in-memory cache underneath it.
+    public void getWithFunctionPropagatesRuntimeException() throws Exception {
         CacheHandle handle = openDiffCache("loaderFailure");
-        Exception failure = new Exception("simulated persistent-cache load failure");
+        RuntimeException failure = new RuntimeException("simulated persistent-cache load failure");
 
         try {
-            handle.cache.get(key(7), () -> {
+            handle.cache.get(key(7), k -> {
                 throw failure;
             });
-            fail("expected ExecutionException");
-        } catch (ExecutionException e) {
-            assertSame(failure, e.getCause());
-            assertEquals("simulated persistent-cache load failure", e.getCause().getMessage());
+            fail("expected RuntimeException");
+        } catch (RuntimeException e) {
+            assertSame(failure, e);
         } finally {
             handle.close();
         }
@@ -156,7 +153,7 @@ public class PersistentCacheCompatibilityTest {
                 .build();
         @SuppressWarnings("unchecked")
         NodeCache<MemoryDiffCache.Key, StringValue> wrapped = (NodeCache<MemoryDiffCache.Key, StringValue>) persistentCache.wrap(
-                null, null, base, CacheType.DIFF);
+                null, null, new LirsCacheAdapter<>(base), CacheType.DIFF);
         return new CacheHandle(persistentCache, wrapped);
     }
 

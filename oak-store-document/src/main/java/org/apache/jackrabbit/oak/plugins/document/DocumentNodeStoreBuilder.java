@@ -35,15 +35,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
-import org.apache.jackrabbit.guava.common.cache.RemovalCause;
-import org.apache.jackrabbit.guava.common.cache.RemovalListener;
-import org.apache.jackrabbit.guava.common.cache.RemovalNotification;
-import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
+import org.apache.jackrabbit.oak.cache.api.Cache;
+import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
 import org.apache.jackrabbit.oak.cache.api.EvictionCause;
-import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.api.Weigher;
+import org.apache.jackrabbit.oak.cache.impl.lirs.LirsCacheAdapter;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.cache.EmpiricalWeigher;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -159,7 +158,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private LeaseFailureHandler leaseFailureHandler;
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
     private BlobStoreStats blobStoreStats;
-    private CacheStats blobStoreCacheStats;
+    private AbstractCacheStats blobStoreCacheStats;
     private DocumentStoreStatsCollector documentStoreStatsCollector;
     private ThrottlingStatsCollector throttlingStatsCollector;
     private DocumentNodeStoreStatsCollector nodeStoreStatsCollector;
@@ -817,7 +816,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     @Nullable
-    public CacheStats getBlobStoreCacheStats() {
+    public AbstractCacheStats getBlobStoreCacheStats() {
         return blobStoreCacheStats;
     }
 
@@ -1015,12 +1014,17 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public NodeDocumentCache buildNodeDocumentCache(DocumentStore docStore, NodeDocumentLocks locks) {
         Cache<CacheValue, NodeDocument> nodeDocumentsCache = buildDocumentCache(docStore);
-        CacheStats nodeDocumentsCacheStats = new CacheStats(nodeDocumentsCache, "Document-Documents", getWeigher(), getDocumentCacheSize());
+        AbstractCacheStats nodeDocumentsCacheStats = newCacheStatsAdapter(nodeDocumentsCache, "Document-Documents", getDocumentCacheSize());
 
         Cache<StringValue, NodeDocument> prevDocumentsCache = buildPrevDocumentsCache(docStore);
-        CacheStats prevDocumentsCacheStats = new CacheStats(prevDocumentsCache, "Document-PrevDocuments", getWeigher(), getPrevDocumentCacheSize());
+        AbstractCacheStats prevDocumentsCacheStats = newCacheStatsAdapter(prevDocumentsCache, "Document-PrevDocuments", getPrevDocumentCacheSize());
 
         return new NodeDocumentCache(nodeDocumentsCache, nodeDocumentsCacheStats, prevDocumentsCache, prevDocumentsCacheStats, locks);
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    AbstractCacheStats newCacheStatsAdapter(Cache<?, ?> cache, String name, long maxWeight) {
+        return new CacheStatsAdapter((Cache) cache, name, (Weigher) weigher, maxWeight);
     }
 
     /**
@@ -1139,53 +1143,34 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
             final Set<EvictionListener<K, V>> listeners) {
         // do not use LIRS cache when maxWeight is zero (OAK-6953)
         if (LIRS_CACHE && maxWeight > 0) {
-            return CacheLIRS.<K, V>newBuilder().
-                    module(module).
-                    weigher(new Weigher<K, V>() {
-                        @Override
-                        public int weigh(K key, V value) {
-                            return weigher.weigh(key, value);
-                        }
-                    }).
-                    averageWeight(2000).
-                    maximumWeight(maxWeight).
-                    segmentCount(cacheSegmentCount).
-                    stackMoveDistance(cacheStackMoveDistance).
-                    recordStats().
-                    evictionCallback(new CacheLIRS.EvictionCallback<K, V>() {
-                        @Override
-                        public void evicted(K key, V value, RemovalCause cause) {
-                            for (EvictionListener<K, V> l : listeners) {
-                                l.evicted(key, value, toEvictionCause(cause));
-                            }
-                        }
-                    }).
-                    build();
-        }
-        return CacheBuilder.newBuilder().
-                concurrencyLevel(cacheSegmentCount).
-                weigher(weigher).
-                maximumWeight(maxWeight).
-                recordStats().
-                removalListener(new RemovalListener<K, V>() {
-                    @Override
-                    public void onRemoval(RemovalNotification<K, V> notification) {
+            CacheLIRS<K, V> lirs = CacheLIRS.<K, V>newBuilder()
+                    .module(module)
+                    .weigher((key, value) -> weigher.weigh(key, value))
+                    .averageWeight(2000)
+                    .maximumWeight(maxWeight)
+                    .segmentCount(cacheSegmentCount)
+                    .stackMoveDistance(cacheStackMoveDistance)
+                    .recordStats()
+                    .evictionCallback((key, value, cause) -> {
                         for (EvictionListener<K, V> l : listeners) {
-                            l.evicted(notification.getKey(), notification.getValue(), toEvictionCause(notification.getCause()));
+                            l.evicted(key, value, LirsCacheAdapter.toOakCause(cause));
                         }
-                    }
-                }).
-                build();
-    }
-
-    private static EvictionCause toEvictionCause(RemovalCause cause) {
-        return switch (cause) {
-            case EXPLICIT  -> EvictionCause.EXPLICIT;
-            case REPLACED  -> EvictionCause.REPLACED;
-            case SIZE      -> EvictionCause.SIZE;
-            case EXPIRED   -> EvictionCause.EXPIRED;
-            case COLLECTED -> EvictionCause.COLLECTED;
-        };
+                    })
+                    .build();
+            return new LirsCacheAdapter<>(lirs);
+        }
+        CacheBuilder<K, V> builder = CacheBuilder.<K, V>newBuilder()
+                .maximumWeight(maxWeight)
+                .weigher(weigher::weigh)
+                .recordStats();
+        if (!listeners.isEmpty()) {
+            builder = builder.evictionListener((k, v, cause) -> {
+                for (EvictionListener<K, V> l : listeners) {
+                    l.evicted(k, v, cause);
+                }
+            });
+        }
+        return builder.build();
     }
 
     /**
