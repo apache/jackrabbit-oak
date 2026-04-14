@@ -24,3 +24,4 @@ This is part of the broader Guava removal effort tracked in [OAK-10685](https://
 - Before declaring a PR done, grep the entire module (`src/main/java` and `src/test/java`) for `org.apache.jackrabbit.guava.common.cache`; test code must be migrated in the same PR as production code.
 - After migration, inspect the generated bundle manifests — consumer bundles must not import Caffeine packages.
 - Preserve behavioral equivalence: same eviction timing, same toggles, same observable cache semantics.
+- **`e.getCause()` in migrated catch blocks:** Guava wrapped loader exceptions in `ExecutionException`; the new API throws them directly. Any leftover `e.getCause()` silently returns `null`. Before closing a task, run `grep -rn "getCause()"` on touched files and replace `e.getCause()` with `e`.

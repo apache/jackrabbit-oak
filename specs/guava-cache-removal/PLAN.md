@@ -407,6 +407,29 @@ obtain stats from the new `Cache` and convert them to Guava `CacheStats` inside
   Its Guava dependency is fully hidden behind the Oak `LoadingCache` view returned by
   `asOakCache()`.
 
+#### Migration pitfall — `e.getCause()` in catch blocks
+
+Old Guava / CacheLIRS code that called `cache.get(key, callable)` wrapped **all** thrown
+exceptions — including `RuntimeException` — inside `ExecutionException`. Callers therefore
+wrote `catch (ExecutionException e)` and unwrapped the real cause with `e.getCause()`.
+
+After migration, `cache.get(key, k -> ...)` (Oak Cache API) propagates `RuntimeException`
+**directly** through both the Caffeine and LIRS paths (the latter via
+`LirsCacheAdapter.toCaffeineException()`, which unwraps the `RuntimeException` from the
+`ExecutionException` before re-throwing). The catch block changes to
+`catch (RuntimeException e)`, where `e` IS the original exception — `e.getCause()` returns
+`null`.
+
+Any `e.getCause()` left inside a `catch (RuntimeException` block after migration silently
+nullifies the cause of the wrapping exception. The symptom is a `DocumentStoreException`
+(or similar wrapper) with a non-null message but a `null` cause, causing assertions like
+`assertTrue(e.getCause() instanceof SomeException)` to fail.
+
+**Fix:** replace `e.getCause()` with `e` everywhere inside the migrated catch block.
+Also search for the `@NotNull Throwable` overloads of conversion helpers — passing `null`
+(from `e.getCause()`) to a `@NotNull` parameter causes NPE at the `t.getMessage()` call
+inside the helper.
+
 #### `CaffeineCacheAdapter<K, V>` + `CaffeineLoadingCacheAdapter<K, V>`
 
 - `CaffeineCacheAdapter` wraps a `com.github.benmanes.caffeine.cache.Cache<K, V>` for manual caches.

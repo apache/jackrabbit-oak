@@ -69,6 +69,39 @@ return type (e.g. `DocumentNodeStoreHelper.getNodesCache()` wraps `getNodeCache(
 callers of B are **also** cascaded. After fixing each level, re-run the grep above for
 the helper's method name to find the next level of callers.
 
+**3. `e.getCause()` trap after catch-block migration** — Old code that called
+`cache.get(key, callable)` (Guava / CacheLIRS) wrapped **all** exceptions
+— including `RuntimeException` — in `ExecutionException`. The catch block was therefore
+`catch (ExecutionException e)` and the real exception was recovered with `e.getCause()`.
+
+After migration to the Oak Cache API, `cache.get(key, k -> ...)` propagates
+`RuntimeException` **directly** (both Caffeine and LIRS paths via
+`LirsCacheAdapter.toCaffeineException()`). The catch block becomes
+`catch (RuntimeException e)`, and `e` IS the real exception — calling `e.getCause()`
+returns `null` and silently swallows the cause.
+
+**Rule:** whenever a catch block is changed from `ExecutionException` to
+`RuntimeException`, every `e.getCause()` reference inside that block must be
+changed to `e`.
+
+```java
+// ❌ before (Guava) — e is UncheckedExecutionException; getCause() is the real exception
+} catch (ExecutionException e) {
+    throw DocumentStoreException.convert(e.getCause(), "...");
+}
+
+// ✅ after (Oak Cache API) — e IS the real exception; getCause() returns null
+} catch (RuntimeException e) {
+    throw DocumentStoreException.convert(e, "...");
+}
+```
+
+Before closing any task, grep for this pattern in every file touched:
+```bash
+grep -n "getCause()" <file>
+```
+Any `getCause()` inside a `catch (RuntimeException` block is almost certainly a bug.
+
 ---
 
 ## TASK-1 — Oak Cache API interfaces [oak-core-spi] — [OAK-12147](https://issues.apache.org/jira/browse/OAK-12147)
