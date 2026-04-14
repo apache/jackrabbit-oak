@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.cache.api;
 
+import java.time.Clock;
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -184,6 +186,18 @@ public final class CacheBuilder<K, V> {
     public CacheBuilder<K, V> ticker(@NotNull Supplier<Long> ticker) {
         this.ticker = ticker;
         return this;
+    }
+
+    /**
+     * Sets the clock used to measure time for expiry and refresh.
+     * Convenience overload for {@link #ticker(Supplier)}; converts milliseconds to nanoseconds internally.
+     *
+     * @param clock the clock to use (must not be null)
+     * @return this builder
+     */
+    @NotNull
+    public CacheBuilder<K, V> ticker(@NotNull Clock clock) {
+        return ticker(() -> TimeUnit.MILLISECONDS.toNanos(clock.millis()));
     }
 
     /**

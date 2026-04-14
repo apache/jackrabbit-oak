@@ -95,6 +95,12 @@
         </dependency>
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-core-spi</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-store-spi</artifactId>
             <version>${project.version}</version>
             <scope>provided</scope>
