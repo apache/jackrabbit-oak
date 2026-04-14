@@ -1406,7 +1406,7 @@ public final class DocumentNodeStore
             PERFLOG.end(start, 1, "getNode: path={}, rev={}", path, rev);
             return result;
         } catch (RuntimeException e) {
-            throw DocumentStoreException.convert(e.getCause());
+            throw DocumentStoreException.convert(e);
         }
     }
 
@@ -1460,7 +1460,7 @@ public final class DocumentNodeStore
             }
             return children;
         } catch (RuntimeException e) {
-            throw DocumentStoreException.convert(e.getCause(),
+            throw DocumentStoreException.convert(e,
                     "Error occurred while fetching children for path "
                             + path);
         }

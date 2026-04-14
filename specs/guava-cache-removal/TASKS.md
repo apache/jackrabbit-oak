@@ -64,6 +64,11 @@ A caller in an unrelated module that still expects the old return type will comp
 locally (if that module is not rebuilt) but will fail in CI's full build. The list of
 known callers must be explicitly enumerated in the task's "What changes" section.
 
+**Cascade is transitive** — if caller B is a helper that re-exposes the changed method's
+return type (e.g. `DocumentNodeStoreHelper.getNodesCache()` wraps `getNodeCache()`), then
+callers of B are **also** cascaded. After fixing each level, re-run the grep above for
+the helper's method name to find the next level of callers.
+
 ---
 
 ## TASK-1 — Oak Cache API interfaces [oak-core-spi] — [OAK-12147](https://issues.apache.org/jira/browse/OAK-12147)
@@ -368,6 +373,8 @@ Run `grep -rn "getCacheStats()"` at the repo root before closing to confirm no c
 - `MemoryDocumentStore.java` — update if it references cache types
 - `JournalDiffLoader.java` — update if it references cache types
 - Various test classes — update to use `Cache` types
+- **`oak-run-commons/.../DocumentNodeStoreHelper.java`** — cross-module return-type cascade: `DocumentNodeStore.getNodeCache()` return type changed in this task, so this caller must be updated in the same PR (per migration rule 2). Change `import org.apache.jackrabbit.guava.common.cache.Cache` → `import org.apache.jackrabbit.oak.cache.api.Cache`.
+- **`oak-benchmarks/.../PersistentCacheTest.java`** — second-level cascade: calls `DocumentNodeStoreHelper.getNodesCache()`, whose return type also changed (see above). Same import fix required.
 
 ### Exception handling migration
 - Callers of `cache.get(key, callable)` must switch to `cache.get(key, k -> ...)`
@@ -457,7 +464,7 @@ Run `grep -rn "getCacheStats()"` at the repo root before closing to confirm no c
 **Independent of:** OAK-12149, OAK-12150, OAK-12151, OAK-12152, OAK-12153, OAK-12154, OAK-12155, OAK-12156, OAK-12157, OAK-12158, OAK-12159
 
 ### What changes
-- `oak-run-commons/.../DocumentNodeStoreHelper.java` — `CacheLIRS` to `Cache`
+- `oak-run-commons/.../DocumentNodeStoreHelper.java` — **already migrated in OAK-12156** (cross-module return-type cascade from `DocumentNodeStore.getNodeCache()`)
 - `oak-run-commons/.../DocumentStoreIndexerBase.java` — update if it references cache types
 - Scan for any other modules with residual Caffeine/Guava cache imports and migrate them
 

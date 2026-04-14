@@ -40,7 +40,7 @@ public class LirsCacheAdapter<K, V> implements Cache<K, V> {
 
     private final CacheLIRS<K, V> cache;
 
-    public LirsCacheAdapter(CacheLIRS<K, V> cache) {
+    LirsCacheAdapter(CacheLIRS<K, V> cache) {
         this.cache = cache;
     }
 

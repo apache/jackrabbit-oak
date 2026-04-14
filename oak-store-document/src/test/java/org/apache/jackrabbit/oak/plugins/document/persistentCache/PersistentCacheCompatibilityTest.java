@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 import java.io.File;
 
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
-import org.apache.jackrabbit.oak.cache.impl.lirs.LirsCacheAdapter;
 import org.apache.jackrabbit.oak.plugins.document.MemoryDiffCache;
 import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
@@ -151,9 +150,8 @@ public class PersistentCacheCompatibilityTest {
         CacheLIRS<MemoryDiffCache.Key, StringValue> base = CacheLIRS.<MemoryDiffCache.Key, StringValue>newBuilder()
                 .maximumSize(16)
                 .build();
-        @SuppressWarnings("unchecked")
         NodeCache<MemoryDiffCache.Key, StringValue> wrapped = (NodeCache<MemoryDiffCache.Key, StringValue>) persistentCache.wrap(
-                null, null, new LirsCacheAdapter<>(base), CacheType.DIFF);
+                null, null, base.asOakCache(), CacheType.DIFF);
         return new CacheHandle(persistentCache, wrapped);
     }
 

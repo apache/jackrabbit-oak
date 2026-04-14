@@ -1783,10 +1783,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
      */
     @NotNull
     public org.apache.jackrabbit.oak.cache.api.LoadingCache<K, V> asOakCache() {
-        if (loader != null) {
-            return new LirsLoadingCacheAdapter<>(this);
-        }
-        throw new IllegalStateException("asOakCache() requires a CacheLIRS built with a loader");
+        return new LirsLoadingCacheAdapter<>(this);
     }
 
 }

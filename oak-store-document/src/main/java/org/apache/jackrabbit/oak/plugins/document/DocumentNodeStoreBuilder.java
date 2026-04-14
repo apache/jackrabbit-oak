@@ -1143,7 +1143,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
             final Set<EvictionListener<K, V>> listeners) {
         // do not use LIRS cache when maxWeight is zero (OAK-6953)
         if (LIRS_CACHE && maxWeight > 0) {
-            CacheLIRS<K, V> lirs = CacheLIRS.<K, V>newBuilder()
+            return CacheLIRS.<K, V>newBuilder()
                     .module(module)
                     .weigher((key, value) -> weigher.weigh(key, value))
                     .averageWeight(2000)
@@ -1156,8 +1156,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
                             l.evicted(key, value, LirsCacheAdapter.toOakCause(cause));
                         }
                     })
-                    .build();
-            return new LirsCacheAdapter<>(lirs);
+                    .build().asOakCache();
         }
         CacheBuilder<K, V> builder = CacheBuilder.<K, V>newBuilder()
                 .maximumWeight(maxWeight)

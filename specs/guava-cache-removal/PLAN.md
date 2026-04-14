@@ -676,6 +676,8 @@ cache types. The key changes:
 | Various `util/` classes | Update `CacheValue` usage (no change needed if they only reference the interface). |
 | `BranchTest.java` | `Cache` import: Guava shim → Oak API. |
 | Various test classes | Update to use `Cache` types. |
+| **`oak-run-commons/.../DocumentNodeStoreHelper.java`** | Cross-module cascade: `getNodeCache()` return type changed here, so this caller must be updated in the same PR. |
+| **`oak-benchmarks/.../PersistentCacheTest.java`** | Second-level cascade: calls `getNodesCache()`, whose return type also changed. |
 
 ### Acceptance criteria
 
@@ -780,7 +782,7 @@ Batch 0 merged.
 
 ### Scope
 
-- `DocumentNodeStoreHelper` — update any `CacheLIRS` or Caffeine references to `Cache`.
+- `DocumentNodeStoreHelper` — **already migrated in Batch 6 (OAK-12156)** as a cross-module return-type cascade from `DocumentNodeStore.getNodeCache()`.
 - `DocumentStoreIndexerBase` — update if it references cache types.
 - Scan for any other modules with residual Caffeine/Guava cache imports and migrate them.
 
@@ -788,7 +790,7 @@ Batch 0 merged.
 
 | File | Change |
 |------|--------|
-| `oak-run-commons/.../DocumentNodeStoreHelper.java` | `CacheLIRS` → `Cache`. |
+| `oak-run-commons/.../DocumentNodeStoreHelper.java` | Migrated in Batch 6 (OAK-12156) — cross-module cascade. |
 | `oak-run-commons/.../DocumentStoreIndexerBase.java` | Update if needed. |
 
 ### Acceptance criteria

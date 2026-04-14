@@ -27,7 +27,6 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.api.Cache;
-import org.apache.jackrabbit.oak.cache.impl.lirs.LirsCacheAdapter;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -152,8 +151,8 @@ public class CacheChangesTrackerTest {
     }
 
     private NodeDocumentCache createCache() {
-        Cache<CacheValue, NodeDocument> nodeDocumentsCache = new LirsCacheAdapter<>(new CacheLIRS<CacheValue, NodeDocument>(10));
-        Cache<StringValue, NodeDocument> prevDocumentsCache = new LirsCacheAdapter<>(new CacheLIRS<StringValue, NodeDocument>(10));
+        Cache<CacheValue, NodeDocument> nodeDocumentsCache = (new CacheLIRS<CacheValue, NodeDocument>(10)).asOakCache();
+        Cache<StringValue, NodeDocument> prevDocumentsCache = (new CacheLIRS<StringValue, NodeDocument>(10)).asOakCache();
         AbstractCacheStats nodeDocumentsCacheStats = Mockito.mock(AbstractCacheStats.class);
         AbstractCacheStats prevDocumentsCacheStats = Mockito.mock(AbstractCacheStats.class);
         NodeDocumentLocks locks = new StripedNodeDocumentLocks();

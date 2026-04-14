@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.jackrabbit.guava.common.cache.CacheLoader;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
+import org.jspecify.annotations.NonNull;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -31,9 +32,9 @@ public class LirsLoadingCacheAdapterTest {
     public void getLoadsMissingValue() {
         CacheLIRS<String, String> cache = CacheLIRS.<String, String>newBuilder()
                 .maximumSize(10)
-                .build(new CacheLoader<String, String>() {
+                .build(new CacheLoader<>() {
                     @Override
-                    public String load(String key) {
+                    public @NonNull String load(@NonNull String key) {
                         return "loaded-" + key;
                     }
                 });
@@ -47,9 +48,9 @@ public class LirsLoadingCacheAdapterTest {
         Exception failure = new Exception("checked");
         CacheLIRS<String, String> cache = CacheLIRS.<String, String>newBuilder()
                 .maximumSize(10)
-                .build(new CacheLoader<String, String>() {
+                .build(new CacheLoader<>() {
                     @Override
-                    public String load(String key) throws Exception {
+                    public @NonNull String load(@NonNull String key) throws Exception {
                         throw failure;
                     }
                 });
@@ -68,9 +69,9 @@ public class LirsLoadingCacheAdapterTest {
         RuntimeException failure = new RuntimeException("runtime");
         CacheLIRS<String, String> cache = CacheLIRS.<String, String>newBuilder()
                 .maximumSize(10)
-                .build(new CacheLoader<String, String>() {
+                .build(new CacheLoader<>() {
                     @Override
-                    public String load(String key) {
+                    public @NonNull String load(@NonNull String key) {
                         throw failure;
                     }
                 });
@@ -89,15 +90,15 @@ public class LirsLoadingCacheAdapterTest {
         AtomicInteger loads = new AtomicInteger();
         CacheLIRS<String, String> cache = CacheLIRS.<String, String>newBuilder()
                 .maximumSize(10)
-                .build(new CacheLoader<String, String>() {
+                .build(new CacheLoader<>() {
                     @Override
-                    public String load(String key) {
+                    public @NonNull String load(@NonNull String key) {
                         return "value-" + loads.incrementAndGet();
                     }
 
                     @Override
-                    public org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture<String> reload(
-                            String key, String oldValue) {
+                    public org.apache.jackrabbit.guava.common.util.concurrent.@NonNull ListenableFuture<String> reload(
+                            @NonNull String key, @NonNull String oldValue) {
                         return Futures.immediateFuture("value-" + loads.incrementAndGet());
                     }
                 });
