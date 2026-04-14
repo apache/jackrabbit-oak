@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
+import org.jetbrains.annotations.Nullable;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
@@ -49,6 +50,9 @@ public class AzurePersistenceV8 implements SegmentNodeStorePersistence {
     private static final Logger log = LoggerFactory.getLogger(AzurePersistenceV8.class);
 
     protected final CloudBlobDirectory segmentstoreDirectory;
+
+    @Nullable
+    private volatile RemoteStoreMonitor remoteStoreMonitor;
 
     protected WriteAccessController writeAccessController = new WriteAccessController();
 
@@ -101,8 +105,10 @@ public class AzurePersistenceV8 implements SegmentNodeStorePersistence {
     @Override
     public RepositoryLock lockRepository() throws IOException {
         return new AzureRepositoryLockV8(getBlockBlob("repo.lock"), () -> {
-            log.warn("Lost connection to the Azure. The client will be closed.");
-            // TODO close the connection
+            log.error("Lost connection to Azure. The repository lock lease could not be renewed.");
+            if (remoteStoreMonitor != null) {
+                remoteStoreMonitor.repositoryLockLost();
+            }
         }, writeAccessController).lock();
     }
 
@@ -122,7 +128,8 @@ public class AzurePersistenceV8 implements SegmentNodeStorePersistence {
         }
     }
 
-    private static void attachRemoteStoreMonitor(RemoteStoreMonitor remoteStoreMonitor) {
+    private void attachRemoteStoreMonitor(RemoteStoreMonitor remoteStoreMonitor) {
+        this.remoteStoreMonitor = remoteStoreMonitor;
         OperationContext.getGlobalRequestCompletedEventHandler().addListener(new StorageEvent<RequestCompletedEvent>() {
 
             @Override

@@ -28,8 +28,13 @@ import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
+import org.apache.jackrabbit.oak.segment.file.MetricsRemoteStoreMonitor;
 import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
+import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -42,6 +47,9 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
+import java.time.Duration;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -264,6 +272,36 @@ public class AzureRepositoryLockV8Test {
             lock.unlock();
         } finally {
             wireMockServer.stop();
+        }
+    }
+
+    @Test
+    public void testRepositoryLockLostMetricOnNonTransientError() throws Exception {
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        try {
+            DefaultStatisticsProvider statisticsProvider = new DefaultStatisticsProvider(executor);
+            MetricsRemoteStoreMonitor monitor = new MetricsRemoteStoreMonitor(statisticsProvider);
+            CounterStats lockLostCounter = statisticsProvider.getCounterStats(
+                    MetricsRemoteStoreMonitor.REPOSITORY_LOCK_LOST, StatsOptions.DEFAULT);
+
+            CloudBlockBlob blob = container.getBlockBlobReference("oak/repo.lock");
+            CloudBlockBlob blobMocked = Mockito.spy(blob);
+
+            // Throw a non-transient, non-StorageException error on renewal to trigger the shutdown hook
+            Mockito.doThrow(new SecurityException("simulated non-transient error"))
+                    .when(blobMocked).renewLease(Mockito.any(), Mockito.any(), Mockito.any());
+
+            assertEquals("Counter should be zero before test", 0, lockLostCounter.getCount());
+
+            AzureRepositoryLockV8 lock = new AzureRepositoryLockV8(blobMocked, monitor::repositoryLockLost, new WriteAccessController());
+            lock.lock();
+
+            await().atMost(Duration.ofSeconds(10))
+                    .untilAsserted(() -> assertEquals(
+                            "REPOSITORY_LOCK_LOST counter should be incremented after non-transient error",
+                            1, lockLostCounter.getCount()));
+        } finally {
+            new ExecutorCloser(executor).close();
         }
     }
 }

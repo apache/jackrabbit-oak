@@ -31,8 +31,13 @@ import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.specialized.BlobLeaseClient;
 import com.azure.storage.blob.specialized.BlobLeaseClientBuilder;
 import com.azure.storage.blob.specialized.BlockBlobClient;
+import org.apache.jackrabbit.oak.segment.file.MetricsRemoteStoreMonitor;
 import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
+import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -48,12 +53,15 @@ import java.net.URISyntaxException;
 import java.nio.channels.UnresolvedAddressException;
 import java.security.InvalidKeyException;
 import java.time.Duration;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
+import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.*;
 
@@ -369,6 +377,42 @@ public class AzureRepositoryLockTest {
             assertFalse("Shutdown hook should not be called for UnresolvedAddressException", shutdownCalled.get());
         } finally {
             lock.unlock();
+        }
+    }
+
+    @Test
+    public void testRepositoryLockLostMetricOnNonTransientError() throws Exception {
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        try {
+            DefaultStatisticsProvider statisticsProvider = new DefaultStatisticsProvider(executor);
+            MetricsRemoteStoreMonitor monitor = new MetricsRemoteStoreMonitor(statisticsProvider);
+            CounterStats lockLostCounter = statisticsProvider.getCounterStats(
+                    MetricsRemoteStoreMonitor.REPOSITORY_LOCK_LOST, StatsOptions.DEFAULT);
+
+            BlockBlobClient blockBlobClient = readBlobContainerClient.getBlobClient("oak/repo.lock").getBlockBlobClient();
+            BlockBlobClient noRetryBlockBlobClient = noRetryBlobContainerClient.getBlobClient("oak/repo.lock").getBlockBlobClient();
+            BlobLeaseClient blobLeaseClient = new BlobLeaseClientBuilder().blobClient(noRetryBlockBlobClient).buildClient();
+
+            BlobLeaseClient blobLeaseMocked = Mockito.spy(blobLeaseClient);
+
+            // Throw a non-transient, non-BlobStorageException error on renewal to trigger the shutdown hook
+            Mockito.doThrow(new SecurityException("simulated non-transient error"))
+                    .when(blobLeaseMocked).renewLeaseWithResponse((RequestConditions) any(), any(), any());
+
+            assertEquals("Counter should be zero before test", 0, lockLostCounter.getCount());
+
+            AzureRepositoryLock lock = new AzureRepositoryLock(blockBlobClient, blobLeaseMocked, () -> {
+                monitor.repositoryLockLost();
+            }, new WriteAccessController());
+
+            lock.lock();
+
+            await().atMost(Duration.ofSeconds(10))
+                    .untilAsserted(() -> assertEquals(
+                            "REPOSITORY_LOCK_LOST counter should be incremented after non-transient error",
+                            1, lockLostCounter.getCount()));
+        } finally {
+            new ExecutorCloser(executor).close();
         }
     }
 

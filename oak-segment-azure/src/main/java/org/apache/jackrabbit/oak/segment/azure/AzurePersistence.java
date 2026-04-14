@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
+import org.jetbrains.annotations.Nullable;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
@@ -50,6 +51,9 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
     protected final String rootPrefix;
 
     protected AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy;
+
+    @Nullable
+    private volatile RemoteStoreMonitor remoteStoreMonitor;
 
     protected WriteAccessController writeAccessController = new WriteAccessController();
 
@@ -111,8 +115,10 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
         BlockBlobClient noRetryBlockBlobClient = getNoRetryBlockBlob("repo.lock");
         BlobLeaseClient blobLeaseClient = new BlobLeaseClientBuilder().blobClient(noRetryBlockBlobClient).buildClient();
         return new AzureRepositoryLock(blockBlobClient, blobLeaseClient, () -> {
-            log.warn("Lost connection to the Azure. The client will be closed.");
-            // TODO close the connection
+            log.error("Lost connection to Azure. The repository lock lease could not be renewed.");
+            if (remoteStoreMonitor != null) {
+                remoteStoreMonitor.repositoryLockLost();
+            }
         }, writeAccessController).lock();
     }
 
@@ -141,6 +147,7 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
     }
 
     private void attachRemoteStoreMonitor(RemoteStoreMonitor remoteStoreMonitor) {
+        this.remoteStoreMonitor = remoteStoreMonitor;
         if (azureHttpRequestLoggingPolicy != null) {azureHttpRequestLoggingPolicy.setRemoteStoreMonitor(remoteStoreMonitor);}
     }
 
