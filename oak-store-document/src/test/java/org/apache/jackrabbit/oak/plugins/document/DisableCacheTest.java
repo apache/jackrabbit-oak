@@ -24,7 +24,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
+import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -50,6 +50,7 @@ public class DisableCacheTest {
                 DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE);
         DocumentNodeStore nodeStore = builder.getNodeStore();
         Cache<PathRev, DocumentNodeState> cache = nodeStore.getNodeCache();
-        assertEquals(0, cache.size());
+        cache.cleanUp();
+        assertEquals(0, cache.estimatedSize());
     }
 }

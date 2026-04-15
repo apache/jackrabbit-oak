@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.PriorityQueue;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.guava.common.cache.Cache;
+import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;

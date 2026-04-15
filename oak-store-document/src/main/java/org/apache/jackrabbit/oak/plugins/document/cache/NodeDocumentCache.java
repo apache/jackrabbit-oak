@@ -27,14 +27,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
+import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -51,7 +50,7 @@ public class NodeDocumentCache implements Closeable {
 
     private final Cache<CacheValue, NodeDocument> nodeDocumentsCache;
 
-    private final CacheStats nodeDocumentsCacheStats;
+    private final AbstractCacheStats nodeDocumentsCacheStats;
 
     /**
      * The previous documents cache
@@ -59,16 +58,16 @@ public class NodeDocumentCache implements Closeable {
      * Key: StringValue, value: NodeDocument
      */
     private final Cache<StringValue, NodeDocument> prevDocumentsCache;
-    private final CacheStats prevDocumentsCacheStats;
+    private final AbstractCacheStats prevDocumentsCacheStats;
 
     private final NodeDocumentLocks locks;
 
     private final List<CacheChangesTracker> changeTrackers;
 
     public NodeDocumentCache(@NotNull Cache<CacheValue, NodeDocument> nodeDocumentsCache,
-                             @NotNull CacheStats nodeDocumentsCacheStats,
+                             @NotNull AbstractCacheStats nodeDocumentsCacheStats,
                              @NotNull Cache<StringValue, NodeDocument> prevDocumentsCache,
-                             @NotNull CacheStats prevDocumentsCacheStats,
+                             @NotNull AbstractCacheStats prevDocumentsCacheStats,
                              @NotNull NodeDocumentLocks locks) {
         this.nodeDocumentsCache = nodeDocumentsCache;
         this.nodeDocumentsCacheStats = nodeDocumentsCacheStats;
@@ -161,22 +160,18 @@ public class NodeDocumentCache implements Closeable {
      * is not synchronized and will be faster if you need to get the cached value
      * outside the critical section.
      *
-     * @see Cache#get(Object, Callable)
+     * @see Cache#get(Object, Function)
      * @param key document key
-     * @param valueLoader object used to retrieve the document
+     * @param valueLoader function used to retrieve the document when absent from cache
      * @return document matching given key
      */
     @NotNull
-    public NodeDocument get(@NotNull final String key, @NotNull final Callable<NodeDocument> valueLoader)
-            throws ExecutionException {
-        Callable<NodeDocument> wrappedLoader = new Callable<NodeDocument>() {
-            @Override
-            public NodeDocument call() throws Exception {
-                for (CacheChangesTracker tracker : changeTrackers) {
-                    tracker.invalidateDocument(key);
-                }
-                return valueLoader.call();
+    public NodeDocument get(@NotNull final String key, @NotNull final Function<String, NodeDocument> valueLoader) {
+        Function<CacheValue, NodeDocument> wrappedLoader = k -> {
+            for (CacheChangesTracker tracker : changeTrackers) {
+                tracker.invalidateDocument(key);
             }
+            return valueLoader.apply(key);
         };
         Lock lock = locks.acquire(key);
         try {
@@ -258,27 +253,18 @@ public class NodeDocumentCache implements Closeable {
 
         // make sure we only cache the document if it wasn't
         // changed and cached by some other thread in the
-        // meantime. That is, use get() with a Callable,
+        // meantime. That is, use get() with a Function,
         // which is only used when the document isn't there
         Lock lock = locks.acquire(id);
         try {
             for (;;) {
-                NodeDocument cached = get(id, new Callable<NodeDocument>() {
-                    @Override
-                    public NodeDocument call() {
-                        return doc;
-                    }
-                });
+                NodeDocument cached = get(id, k -> doc);
                 if (cached != NodeDocument.NULL) {
                     return cached;
                 } else {
                     invalidate(id);
                 }
             }
-        } catch (ExecutionException e) {
-            // will never happen because call() just returns
-            // the already available doc
-            throw new IllegalStateException(e);
         } finally {
             lock.unlock();
         }
@@ -333,7 +319,7 @@ public class NodeDocumentCache implements Closeable {
         return IterableUtils.chainedIterable(nodeDocumentsCache.asMap().values(), prevDocumentsCache.asMap().values());
     }
 
-    public Iterable<CacheStats> getCacheStats() {
+    public Iterable<AbstractCacheStats> getCacheStats() {
         return Arrays.asList(nodeDocumentsCacheStats, prevDocumentsCacheStats);
     }
 

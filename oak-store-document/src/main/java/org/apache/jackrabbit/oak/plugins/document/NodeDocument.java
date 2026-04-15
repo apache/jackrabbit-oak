@@ -49,7 +49,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
+import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.commons.collections.AbstractIterator;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;

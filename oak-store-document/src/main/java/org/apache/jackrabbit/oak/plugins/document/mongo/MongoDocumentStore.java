@@ -32,8 +32,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -44,7 +42,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
@@ -628,12 +626,7 @@ public class MongoDocumentStore implements DocumentStore {
                         collection, key,
                         getReadPreference(maxCacheAge));
                 invalidateCache(collection, key);
-                doc = nodesCache.get(key, new Callable<NodeDocument>() {
-                    @Override
-                    public NodeDocument call() throws Exception {
-                        return d == null ? NodeDocument.NULL : d;
-                    }
-                });
+                doc = nodesCache.get(key, k -> d == null ? NodeDocument.NULL : d);
             } finally {
                 lock.unlock();
             }
@@ -642,8 +635,6 @@ public class MongoDocumentStore implements DocumentStore {
             } else {
                 return (T) doc;
             }
-        } catch (ExecutionException e) {
-            t = e.getCause();
         } catch (RuntimeException e) {
             t = e;
         }
@@ -1829,7 +1820,7 @@ public class MongoDocumentStore implements DocumentStore {
                         // load NULL document into cache unless it may have
                         // been affected by another concurrent operation
                         if (!tracker.mightBeenAffected(id)) {
-                            nodesCache.get(id, () -> NULL);
+                            nodesCache.get(id, k -> NULL);
                         }
                     } finally {
                         lock.unlock();
@@ -1837,8 +1828,6 @@ public class MongoDocumentStore implements DocumentStore {
                 }
             }
             return;
-        } catch (ExecutionException e) {
-            t = e.getCause();
         } catch (RuntimeException e) {
             t = e;
         } finally {
@@ -2092,7 +2081,7 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     @Override
-    public Iterable<CacheStats> getCacheStats() {
+    public Iterable<AbstractCacheStats> getCacheStats() {
         return nodesCache.getCacheStats();
     }
 

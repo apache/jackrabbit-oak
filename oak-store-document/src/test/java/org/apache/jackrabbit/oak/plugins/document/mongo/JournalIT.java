@@ -21,7 +21,7 @@ import java.util.Set;
 
 import com.mongodb.ReadPreference;
 
-import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.plugins.document.AbstractJournalTest;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -229,7 +229,7 @@ public class JournalIT extends AbstractJournalTest {
         }
 
         long count = 0;
-        for (CacheStats cacheStats : ds.getCacheStats()) {
+        for (AbstractCacheStats cacheStats : ds.getCacheStats()) {
             count += cacheStats.getElementCount();
         }
 

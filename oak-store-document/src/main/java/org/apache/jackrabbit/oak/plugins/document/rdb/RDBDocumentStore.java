@@ -50,9 +50,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.stream.Collectors;
@@ -61,7 +59,7 @@ import java.util.zip.GZIPOutputStream;
 
 import javax.sql.DataSource;
 
-import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
@@ -838,7 +836,7 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     @Override
-    public Iterable<CacheStats> getCacheStats() {
+    public Iterable<AbstractCacheStats> getCacheStats() {
         return nodesCache.getCacheStats();
     }
 
@@ -1513,45 +1511,38 @@ public class RDBDocumentStore implements DocumentStore {
                     }
                 }
             }
-            try {
-                try (CacheLock lock = acquireLockFor(id)) {
-                    // caller really wants the cache to be cleared
-                    if (maxCacheAge == 0) {
-                        invalidateNodesCache(id, true);
-                        doc = null;
-                    }
-                    final NodeDocument cachedDoc = doc;
-                    doc = nodesCache.get(id, new Callable<NodeDocument>() {
-                        @Override
-                        public NodeDocument call() throws Exception {
-                            NodeDocument doc = (NodeDocument) readDocumentUncached(collection, id, cachedDoc);
-                            if (doc != null) {
-                                doc.seal();
-                            }
-                            return wrap(doc);
-                        }
-                    });
-                    // inspect the doc whether it can be used
-                    long lastCheckTime = doc.getLastCheckTime();
-                    if (lastCheckTime != 0 && (maxCacheAge == 0 || maxCacheAge == Integer.MAX_VALUE)) {
-                        // we either just cleared the cache or the caller does
-                        // not care;
-                    } else if (lastCheckTime != 0 && (System.currentTimeMillis() - lastCheckTime < maxCacheAge)) {
-                        // is new enough
-                    } else {
-                        // need to at least revalidate
-                        NodeDocument ndoc = (NodeDocument) readDocumentUncached(collection, id, cachedDoc);
-                        if (ndoc != null) {
-                            ndoc.seal();
-                        }
-                        doc = wrap(ndoc);
-                        nodesCache.put(doc);
-                    }
+            try (CacheLock lock = acquireLockFor(id)) {
+                // caller really wants the cache to be cleared
+                if (maxCacheAge == 0) {
+                    invalidateNodesCache(id, true);
+                    doc = null;
                 }
-                return castAsT(unwrap(doc));
-            } catch (ExecutionException e) {
-                throw new IllegalStateException("Failed to load document with " + id, e);
+                final NodeDocument cachedDoc = doc;
+                doc = nodesCache.get(id, k -> {
+                    NodeDocument loadedDoc = (NodeDocument) readDocumentUncached(collection, id, cachedDoc);
+                    if (loadedDoc != null) {
+                        loadedDoc.seal();
+                    }
+                    return wrap(loadedDoc);
+                });
+                // inspect the doc whether it can be used
+                long lastCheckTime = doc.getLastCheckTime();
+                if (lastCheckTime != 0 && (maxCacheAge == 0 || maxCacheAge == Integer.MAX_VALUE)) {
+                    // we either just cleared the cache or the caller does
+                    // not care;
+                } else if (lastCheckTime != 0 && (System.currentTimeMillis() - lastCheckTime < maxCacheAge)) {
+                    // is new enough
+                } else {
+                    // need to at least revalidate
+                    NodeDocument ndoc = (NodeDocument) readDocumentUncached(collection, id, cachedDoc);
+                    if (ndoc != null) {
+                        ndoc.seal();
+                    }
+                    doc = wrap(ndoc);
+                    nodesCache.put(doc);
+                }
             }
+            return castAsT(unwrap(doc));
         }
     }
 

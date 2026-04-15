@@ -64,6 +64,74 @@ A caller in an unrelated module that still expects the old return type will comp
 locally (if that module is not rebuilt) but will fail in CI's full build. The list of
 known callers must be explicitly enumerated in the task's "What changes" section.
 
+**Cascade is transitive** — if caller B is a helper that re-exposes the changed method's
+return type (e.g. `DocumentNodeStoreHelper.getNodesCache()` wraps `getNodeCache()`), then
+callers of B are **also** cascaded. After fixing each level, re-run the grep above for
+the helper's method name to find the next level of callers.
+
+**3. `e.getCause()` trap after catch-block migration** — Old code that called
+`cache.get(key, callable)` (Guava / CacheLIRS) wrapped **all** exceptions
+— including `RuntimeException` — in `ExecutionException`. The catch block was therefore
+`catch (ExecutionException e)` and the real exception was recovered with `e.getCause()`.
+
+After migration to the Oak Cache API, `cache.get(key, k -> ...)` propagates
+`RuntimeException` **directly** (both Caffeine and LIRS paths via
+`LirsCacheAdapter.toCaffeineException()`). The catch block becomes
+`catch (RuntimeException e)`, and `e` IS the real exception — calling `e.getCause()`
+returns `null` and silently swallows the cause.
+
+**Rule:** whenever a catch block is changed from `ExecutionException` to
+`RuntimeException`, every `e.getCause()` reference inside that block must be
+changed to `e`.
+
+```java
+// ❌ before (Guava) — e is UncheckedExecutionException; getCause() is the real exception
+} catch (ExecutionException e) {
+    throw DocumentStoreException.convert(e.getCause(), "...");
+}
+
+// ✅ after (Oak Cache API) — e IS the real exception; getCause() returns null
+} catch (RuntimeException e) {
+    throw DocumentStoreException.convert(e, "...");
+}
+```
+
+Before closing any task, grep for this pattern in every file touched:
+```bash
+grep -n "getCause()" <file>
+```
+Any `getCause()` inside a `catch (RuntimeException` block is almost certainly a bug.
+
+**4. OSGi impl package visibility** — Consumer modules must **never** import from
+`org.apache.jackrabbit.oak.cache.impl.lirs` or `org.apache.jackrabbit.oak.cache.impl.caffeine`.
+These packages are not exported by `oak-core-spi`. A reference to any class in them (e.g.
+`LirsCacheAdapter.toOakCause()`) causes the consumer bundle to fail OSGi resolution —
+the bundle stays in `INSTALLED` (state 2) and never reaches `ACTIVE` (state 32).
+
+The symptom surfaces in `OSGiIT.bundleStates` as:
+```
+Bundle org.apache.jackrabbit.oak-store-document not active. expected:<32> but was:<2>
+```
+
+For `RemovalCause` → `EvictionCause` conversion in consumer modules, use
+`CacheLIRS.toOakCause(cause)` (in `org.apache.jackrabbit.oak.cache`, which IS exported),
+not `LirsCacheAdapter.toOakCause(cause)`.
+
+Before closing any task that uses the LIRS path, grep for impl references in consumer modules:
+```bash
+grep -rn "cache.impl" <module>/src/main/java
+```
+This must return zero results.
+
+**5. OSGi baseline on new public methods** — Adding a new public method to an exported
+package triggers the `maven-bundle-plugin` baseline goal, which requires a minor version bump
+in the package's `package-info.java` (`@Version("1.0.0")` → `@Version("1.1.0")`). The
+baseline check runs during `mvn install` and fails the build with:
+```
+<package>: Version increase required; detected 1.0.0, suggested 1.1.0
+```
+The version bump must be included in the same PR as the new method.
+
 ---
 
 ## TASK-1 — Oak Cache API interfaces [oak-core-spi] — [OAK-12147](https://issues.apache.org/jira/browse/OAK-12147)
@@ -368,15 +436,33 @@ Run `grep -rn "getCacheStats()"` at the repo root before closing to confirm no c
 - `MemoryDocumentStore.java` — update if it references cache types
 - `JournalDiffLoader.java` — update if it references cache types
 - Various test classes — update to use `Cache` types
+- **`oak-run-commons/.../DocumentNodeStoreHelper.java`** — cross-module return-type cascade: `DocumentNodeStore.getNodeCache()` return type changed in this task, so this caller must be updated in the same PR (per migration rule 2). Change `import org.apache.jackrabbit.guava.common.cache.Cache` → `import org.apache.jackrabbit.oak.cache.api.Cache`.
+- **`oak-benchmarks/.../PersistentCacheTest.java`** — second-level cascade: calls `DocumentNodeStoreHelper.getNodesCache()`, whose return type also changed (see above). Same import fix required.
 
 ### Exception handling migration
 - Callers of `cache.get(key, callable)` must switch to `cache.get(key, k -> ...)`
 - Callers of `loadingCache.get(key)` must stop catching checked `ExecutionException`; runtime failures propagate directly and checked loader failures surface as `CompletionException`
 
+### OSGi wiring fix (discovered during Task 10)
+`DocumentNodeStoreBuilder.buildCache()` originally called `LirsCacheAdapter.toOakCause(cause)`
+inside the LIRS eviction callback. `LirsCacheAdapter` is in `org.apache.jackrabbit.oak.cache.impl.lirs`,
+which is **not exported** by `oak-core-spi`. This caused `oak-store-document` to fail OSGi
+bundle resolution (state INSTALLED, not ACTIVE), which in turn caused `OSGiIT.bundleStates`
+and `OSGiIT.testLeaseFailureHandlerIsExported` to fail.
+
+**Fix:** `toOakCause(RemovalCause)` was moved to `CacheLIRS` (package `org.apache.jackrabbit.oak.cache`,
+which IS exported). `LirsCacheAdapter.toOakCause()` now delegates to `CacheLIRS.toOakCause()`.
+`DocumentNodeStoreBuilder` calls `CacheLIRS.toOakCause(cause)` — no `impl.lirs` import.
+
+Adding `toOakCause()` to `CacheLIRS` triggered the OSGi baseline check (migration rule 5):
+the `org.apache.jackrabbit.oak.cache` package version must be bumped in `package-info.java`.
+
 ### Acceptance criteria
 - No `org.apache.jackrabbit.guava.common.cache` imports in `oak-store-document/src/` (main and test)
+- No `org.apache.jackrabbit.oak.cache.impl` imports in `oak-store-document/src/main/java` (migration rule 4)
 - Persistent cache eviction behavior unchanged
 - `persistentCache.CacheTest`, `persistentCache.NodeCacheTest` pass
+- `OSGiIT.bundleStates` passes: `oak-store-document` bundle reaches ACTIVE state
 
 ---
 
@@ -457,7 +543,7 @@ Run `grep -rn "getCacheStats()"` at the repo root before closing to confirm no c
 **Independent of:** OAK-12149, OAK-12150, OAK-12151, OAK-12152, OAK-12153, OAK-12154, OAK-12155, OAK-12156, OAK-12157, OAK-12158, OAK-12159
 
 ### What changes
-- `oak-run-commons/.../DocumentNodeStoreHelper.java` — `CacheLIRS` to `Cache`
+- `oak-run-commons/.../DocumentNodeStoreHelper.java` — **already migrated in OAK-12156** (cross-module return-type cascade from `DocumentNodeStore.getNodeCache()`)
 - `oak-run-commons/.../DocumentStoreIndexerBase.java` — update if it references cache types
 - Scan for any other modules with residual Caffeine/Guava cache imports and migrate them
 
