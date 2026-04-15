@@ -51,17 +51,34 @@ public class AzureSegmentStoreService {
 
     private ServiceRegistration registration;
 
+    public static final String SEGMENT_AZURE_V_12_ENABLED = "segment.azure.v12.enabled";
+
+    private final boolean useAzureSdkV12 = Boolean.getBoolean(SEGMENT_AZURE_V_12_ENABLED);
+
+
     @Activate
     public void activate(ComponentContext context, Configuration config) throws IOException {
-        log.info("Starting node store using Azure SDK 8");
-        AzurePersistenceV8 persistence = AzureSegmentStoreV8.createAzurePersistenceFrom(config);
-        registration = context.getBundleContext()
-                .registerService(SegmentNodeStorePersistence.class, persistence, new Hashtable<String, Object>() {{
-                    put(SERVICE_PID, String.format("%s(%s, %s)", AzurePersistenceV8.class.getName(), config.accountName(), config.rootPath()));
-                    if (!Objects.equals(config.role(), "")) {
-                        put("role", config.role());
-                    }
-                }});
+        if (useAzureSdkV12) {
+            log.info("Starting node store using Azure SDK 12");
+            AzurePersistence persistence = AzurePersistenceManager.createAzurePersistenceFrom(config);
+            registration = context.getBundleContext()
+                    .registerService(SegmentNodeStorePersistence.class, persistence, new Hashtable<String, Object>() {{
+                        put(SERVICE_PID, String.format("%s(%s, %s)", AzurePersistence.class.getName(), config.accountName(), config.rootPath()));
+                        if (!Objects.equals(config.role(), "")) {
+                            put("role", config.role());
+                        }
+                    }});
+        } else {
+            log.info("Starting node store using Azure SDK 8");
+            AzurePersistenceV8 persistence = AzureSegmentStoreV8.createAzurePersistenceFrom(config);
+            registration = context.getBundleContext()
+                    .registerService(SegmentNodeStorePersistence.class, persistence, new Hashtable<String, Object>() {{
+                        put(SERVICE_PID, String.format("%s(%s, %s)", AzurePersistenceV8.class.getName(), config.accountName(), config.rootPath()));
+                        if (!Objects.equals(config.role(), "")) {
+                            put("role", config.role());
+                        }
+                    }});
+        }
     }
 
     @Deactivate
