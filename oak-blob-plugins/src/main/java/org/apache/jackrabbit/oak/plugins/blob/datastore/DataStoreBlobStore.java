@@ -34,28 +34,29 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 
 import javax.jcr.RepositoryException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
 import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
 import org.apache.jackrabbit.oak.spi.blob.data.MultiDataStoreAware;
-import org.apache.jackrabbit.guava.common.cache.LoadingCache;
-import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.apache.jackrabbit.oak.api.blob.BlobUpload;
 import org.apache.jackrabbit.oak.api.blob.BlobUploadOptions;
-import org.apache.jackrabbit.oak.cache.CacheLIRS;
-import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
+import org.apache.jackrabbit.oak.cache.api.Cache;
+import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
+import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
@@ -111,7 +112,7 @@ public class DataStoreBlobStore
      */
     private final boolean encodeLengthInId;
 
-    protected final LoadingCache<String, byte[]> cache;
+    protected final Cache<String, byte[]> cache;
 
     public static final int DEFAULT_CACHE_SIZE = 16;
 
@@ -133,7 +134,7 @@ public class DataStoreBlobStore
         }
     };
 
-    private final CacheStats cacheStats;
+    private final AbstractCacheStats cacheStats;
 
     public static final String MEM_CACHE_NAME = "BlobStore-MemCache";
 
@@ -156,9 +157,9 @@ public class DataStoreBlobStore
                 .module(MEM_CACHE_NAME)
                 .recordStats()
                 .maximumWeight(cacheSize)
-                .weigher(weigher)
-                .build();
-        this.cacheStats = new CacheStats(cache, MEM_CACHE_NAME, weigher, cacheSize);
+                .weigher(weigher::weigh)
+                .build().asOakCache();
+        this.cacheStats = new CacheStatsAdapter(cache, MEM_CACHE_NAME, weigher, cacheSize);
     }
 
     //~----------------------------------< DataStore >
@@ -420,19 +421,16 @@ public class DataStoreBlobStore
                 && blobId.hasLengthInfo()
                 && blobId.length <= maxCachedBinarySize) {
             try {
-                byte[] content = cache.get(blobId.blobId, new Callable<byte[]>() {
-                    @Override
-                    public byte[] call() throws Exception {
-                        boolean threw = true;
-                        try (InputStream stream = getStream(blobId.blobId)) {
-                            byte[] result = IOUtils.toByteArray(stream);
-                            return result;
-                        }
+                byte[] content = cache.get(blobId.blobId, k -> {
+                    try (InputStream stream = getStream(blobId.blobId)) {
+                        return IOUtils.toByteArray(stream);
+                    } catch (IOException e) {
+                        throw new CompletionException(e);
                     }
                 });
 
                 return new ByteArrayInputStream(content);
-            } catch (ExecutionException e) {
+            } catch (RuntimeException e) {
                 log.warn("Error occurred while loading bytes from steam while fetching for id {}", encodedBlobId, e);
             }
         }
@@ -830,7 +828,7 @@ public class DataStoreBlobStore
         return delegate;
     }
 
-    public CacheStats getCacheStats() {
+    public AbstractCacheStats getCacheStats() {
         return cacheStats;
     }
 

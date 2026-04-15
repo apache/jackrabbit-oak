@@ -16,12 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import org.apache.jackrabbit.guava.common.cache.Weigher;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
-import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.api.Cache;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
+import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,23 +35,20 @@ public abstract class CachingBlobStore extends AbstractBlobStore {
 
     protected static final long DEFAULT_CACHE_SIZE = 16 * 1024 * 1024;
 
-    protected final CacheLIRS<String, byte[]> cache;
+    protected final Cache<String, byte[]> cache;
 
     protected final long blobCacheSize;
 
-    private final Weigher<String, byte[]> weigher = new Weigher<String, byte[]>() {
-        @Override
-        public int weigh(@NotNull String key, @NotNull byte[] value) {
-            long weight = (long)StringUtils.estimateMemoryUsage(key) + value.length;
-            if (weight > Integer.MAX_VALUE) {
-                LOG.debug("Calculated weight larger than Integer.MAX_VALUE: {}.", weight);
-                weight = Integer.MAX_VALUE;
-            }
-            return (int) weight;
+    private final Weigher<String, byte[]> weigher = (key, value) -> {
+        long weight = (long)StringUtils.estimateMemoryUsage(key) + value.length;
+        if (weight > Integer.MAX_VALUE) {
+            LOG.debug("Calculated weight larger than Integer.MAX_VALUE: {}.", weight);
+            weight = Integer.MAX_VALUE;
         }
+        return (int) weight;
     };
 
-    private final CacheStats cacheStats;
+    private final AbstractCacheStats cacheStats;
 
     public static final String MEM_CACHE_NAME = "BlobStore-MemCache";
 
@@ -61,10 +59,10 @@ public abstract class CachingBlobStore extends AbstractBlobStore {
                 module(MEM_CACHE_NAME).
                 maximumWeight(cacheSize).
                 averageWeight(getBlockSize() / 2).
-                weigher(weigher).
-                build();
+                weigher(weigher::weigh).
+                build().asOakCache();
 
-        cacheStats = new CacheStats(cache, MEM_CACHE_NAME, weigher, cacheSize);
+        cacheStats = new CacheStatsAdapter(cache, MEM_CACHE_NAME, weigher, cacheSize);
     }
 
     public CachingBlobStore() {
@@ -81,7 +79,7 @@ public abstract class CachingBlobStore extends AbstractBlobStore {
         return blobCacheSize;
     }
 
-    public CacheStats getCacheStats() {
+    public AbstractCacheStats getCacheStats() {
         return cacheStats;
     }
 }

@@ -306,6 +306,16 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
     }
 
     @Override
+    public long getUsedWeight() {
+        return memCache.getUsedWeight();
+    }
+
+    @Override
+    public void setMaximumWeight(long maximumWeight) {
+        memCache.setMaximumWeight(maximumWeight);
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
     public void receive(ByteBuffer buff) {
         K key = (K) keyType.read(buff);
