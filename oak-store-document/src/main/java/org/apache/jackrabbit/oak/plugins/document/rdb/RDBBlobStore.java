@@ -438,7 +438,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
     protected byte[] readBlockFromBackend(BlockId blockId) throws Exception {
 
         String id = StringUtils.convertBytesToHex(blockId.getDigest());
-        byte[] data = cache.getIfPresent(id);
+        byte[] data = cache.get(id);
 
         if (data == null) {
             long start = System.nanoTime();

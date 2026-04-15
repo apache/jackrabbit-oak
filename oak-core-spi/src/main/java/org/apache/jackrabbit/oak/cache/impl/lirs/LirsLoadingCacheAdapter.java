@@ -20,6 +20,7 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.api.LoadingCache;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.ExecutionException;
 
@@ -36,7 +37,8 @@ public class LirsLoadingCacheAdapter<K, V> extends LirsCacheAdapter<K, V> implem
     }
 
     @Override
-    public @NotNull V get(@NotNull K key) {
+    @Nullable
+    public V get(@NotNull K key) {
         try {
             return cache.get(key);
         } catch (ExecutionException e) {

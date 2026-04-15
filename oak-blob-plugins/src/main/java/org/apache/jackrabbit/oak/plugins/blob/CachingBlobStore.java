@@ -18,8 +18,8 @@ package org.apache.jackrabbit.oak.plugins.blob;
 
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
-import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
+import org.apache.jackrabbit.oak.cache.api.LoadingCache;
 import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore;
@@ -35,7 +35,7 @@ public abstract class CachingBlobStore extends AbstractBlobStore {
 
     protected static final long DEFAULT_CACHE_SIZE = 16 * 1024 * 1024;
 
-    protected final Cache<String, byte[]> cache;
+    protected final LoadingCache<String, byte[]> cache;
 
     protected final long blobCacheSize;
 

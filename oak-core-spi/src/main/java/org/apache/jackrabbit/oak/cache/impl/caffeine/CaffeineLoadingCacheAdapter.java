@@ -20,6 +20,7 @@ import java.util.concurrent.CompletableFuture;
 
 import org.apache.jackrabbit.oak.cache.api.LoadingCache;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * {@link LoadingCache} adapter wrapping a Caffeine {@link com.github.benmanes.caffeine.cache.LoadingCache}.
@@ -34,7 +35,7 @@ public class CaffeineLoadingCacheAdapter<K, V> extends CaffeineCacheAdapter<K, V
     }
 
     @Override
-    @NotNull
+    @Nullable
     public V get(@NotNull K key) {
         return loadingCache.get(key);
     }

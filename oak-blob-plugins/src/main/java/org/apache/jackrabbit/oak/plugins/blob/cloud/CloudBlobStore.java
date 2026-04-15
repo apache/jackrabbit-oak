@@ -148,7 +148,7 @@ public class CloudBlobStore extends CachingBlobStore {
         Objects.requireNonNull(context);
 
         String id = StringUtils.convertBytesToHex(blockId.getDigest());
-        byte[] data = cache.getIfPresent(id);
+        byte[] data = cache.get(id);
         if (data == null) {
             Blob cloudBlob = context.getBlobStore().getBlob(cloudContainer, id);
             if (cloudBlob == null) {
