@@ -139,17 +139,31 @@ public class UserManagerDelegatorTest extends AbstractDelegatorTest {
     public void testCreateUser() throws Exception {
         doReturn(user).when(um).createUser(anyString(), anyString());
         doReturn(user).when(um).createUser(anyString(), anyString(), any(Principal.class), anyString());
-        
+
         Principal p = mock(Principal.class);
         User u1 = delegator.createUser("uid", "pw");
         User u2 = delegator.createUser("uid", "pw", p, "rel/path");
         assertTrue(u1 instanceof UserDelegator);
         assertTrue(u2 instanceof UserDelegator);
-        
+
         verify(um).createUser("uid", "pw");
         verify(um).createUser("uid", "pw", p, "rel/path");
 
         verifySessionDelegatePerform(sessionDelegate, 2);
+        verifyNoMoreInteractions(um, sessionDelegate);
+        verifyNoInteractions(user);
+    }
+
+    @Test
+    public void testCreateUserWithAbsolutePath() throws Exception {
+        doReturn(user).when(um).createUserWithAbsolutePath(anyString(), anyString(), any(Principal.class), anyString());
+
+        Principal p = mock(Principal.class);
+        User u = delegator.createUserWithAbsolutePath("uid", "pw", p, "/home/users/a/b");
+        assertTrue(u instanceof UserDelegator);
+
+        verify(um).createUserWithAbsolutePath("uid", "pw", p, "/home/users/a/b");
+        verifySessionDelegatePerform(sessionDelegate, 1);
         verifyNoMoreInteractions(um, sessionDelegate);
         verifyNoInteractions(user);
     }
@@ -179,13 +193,26 @@ public class UserManagerDelegatorTest extends AbstractDelegatorTest {
         assertTrue(delegator.createGroup("groupId", p, "rel/path") instanceof GroupDelegator);
         assertTrue(delegator.createGroup(p) instanceof GroupDelegator);
         assertTrue(delegator.createGroup(p, "rel/path") instanceof GroupDelegator);
-        
+
         verify(um).createGroup("groupId");
         verify(um).createGroup("groupId", p, "rel/path");
         verify(um).createGroup(p);
         verify(um).createGroup(p, "rel/path");
-        
+
         verifySessionDelegatePerform(sessionDelegate, 4);
+        verifyNoMoreInteractions(um, sessionDelegate);
+        verifyNoInteractions(group);
+    }
+
+    @Test
+    public void testCreateGroupWithAbsolutePath() throws Exception {
+        doReturn(group).when(um).createGroupWithAbsolutePath(anyString(), any(Principal.class), anyString());
+
+        Principal p = mock(Principal.class);
+        assertTrue(delegator.createGroupWithAbsolutePath("groupId", p, "/home/groups/a/b") instanceof GroupDelegator);
+
+        verify(um).createGroupWithAbsolutePath("groupId", p, "/home/groups/a/b");
+        verifySessionDelegatePerform(sessionDelegate, 1);
         verifyNoMoreInteractions(um, sessionDelegate);
         verifyNoInteractions(group);
     }
