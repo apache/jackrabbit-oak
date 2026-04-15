@@ -18,33 +18,49 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
+import com.azure.core.credential.AccessToken;
+import com.azure.core.credential.TokenRequestContext;
 import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
-import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.BlobContainerClientBuilder;
-import com.azure.storage.blob.BlobServiceClient;
-import com.azure.storage.blob.BlobServiceClientBuilder;
-import com.azure.storage.blob.models.UserDelegationKey;
-import com.azure.storage.blob.sas.BlobSasPermission;
-import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
-import com.azure.storage.blob.specialized.BlockBlobClient;
-import com.azure.storage.common.policy.RequestRetryOptions;
+import com.microsoft.azure.storage.CloudStorageAccount;
+import com.microsoft.azure.storage.StorageCredentialsToken;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.UserDelegationKey;
+import com.microsoft.azure.storage.blob.BlobRequestOptions;
+import com.microsoft.azure.storage.blob.CloudBlobClient;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.microsoft.azure.storage.blob.CloudBlockBlob;
+import com.microsoft.azure.storage.blob.SharedAccessBlobHeaders;
+import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
+import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
+import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.Date;
+import java.util.EnumSet;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
-public class AzureBlobContainerProvider {
+public class AzureBlobContainerProvider implements Closeable {
     private static final Logger log = LoggerFactory.getLogger(AzureBlobContainerProvider.class);
     private static final String DEFAULT_ENDPOINT_SUFFIX = "core.windows.net";
+    private static final String AZURE_DEFAULT_SCOPE = "https://storage.azure.com/.default";
     private final String azureConnectionString;
     private final String accountName;
     private final String containerName;
@@ -54,6 +70,12 @@ public class AzureBlobContainerProvider {
     private final String tenantId;
     private final String clientId;
     private final String clientSecret;
+    private ClientSecretCredential clientSecretCredential;
+    private AccessToken accessToken;
+    private StorageCredentialsToken storageCredentialsToken;
+    private static final long TOKEN_REFRESHER_INITIAL_DELAY = 45L;
+    private static final long TOKEN_REFRESHER_DELAY = 1L;
+    private final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
 
     private AzureBlobContainerProvider(Builder builder) {
         this.azureConnectionString = builder.azureConnectionString;
@@ -66,6 +88,7 @@ public class AzureBlobContainerProvider {
         this.clientId = builder.clientId;
         this.clientSecret = builder.clientSecret;
     }
+
 
     public static class Builder {
         private final String containerName;
@@ -148,98 +171,141 @@ public class AzureBlobContainerProvider {
         return containerName;
     }
 
-    public String getAzureConnectionString() {
-        return azureConnectionString;
+    @NotNull
+    public CloudBlobContainer getBlobContainer() throws DataStoreException {
+        return this.getBlobContainer(null);
     }
 
     @NotNull
-    public BlobContainerClient getBlobContainer() throws DataStoreException {
-        return this.getBlobContainer(null, new Properties());
-    }
-
-    @NotNull
-    public BlobContainerClient getBlobContainer(@Nullable RequestRetryOptions retryOptions, Properties properties) throws DataStoreException {
+    public CloudBlobContainer getBlobContainer(@Nullable BlobRequestOptions blobRequestOptions) throws DataStoreException {
         // connection string will be given preference over service principals / sas / account key
         if (StringUtils.isNotBlank(azureConnectionString)) {
             log.debug("connecting to azure blob storage via azureConnectionString");
-            return Utils.getBlobContainerFromConnectionString(getAzureConnectionString(), containerName);
+            return Utils.getBlobContainer(azureConnectionString, containerName, blobRequestOptions);
         } else if (authenticateViaServicePrincipal()) {
             log.debug("connecting to azure blob storage via service principal credentials");
-            return getBlobContainerFromServicePrincipals(accountName, retryOptions);
+            return getBlobContainerFromServicePrincipals(blobRequestOptions);
         } else if (StringUtils.isNotBlank(sasToken)) {
             log.debug("connecting to azure blob storage via sas token");
             final String connectionStringWithSasToken = Utils.getConnectionStringForSas(sasToken, blobEndpoint, accountName);
-            return Utils.getBlobContainer(connectionStringWithSasToken, containerName, retryOptions, properties);
+            return Utils.getBlobContainer(connectionStringWithSasToken, containerName, blobRequestOptions);
         }
         log.debug("connecting to azure blob storage via access key");
         final String connectionStringWithAccountKey = Utils.getConnectionString(accountName, accountKey, blobEndpoint);
-        return Utils.getBlobContainer(connectionStringWithAccountKey, containerName, retryOptions, properties);
+        return Utils.getBlobContainer(connectionStringWithAccountKey, containerName, blobRequestOptions);
     }
 
     @NotNull
-    public String generateSharedAccessSignature(RequestRetryOptions retryOptions,
-                                                String key,
-                                                BlobSasPermission blobSasPermissions,
-                                                int expirySeconds,
-                                                Properties properties) throws DataStoreException, URISyntaxException, InvalidKeyException {
-        return generateSharedAccessSignature(retryOptions, key, blobSasPermissions, expirySeconds, properties, null);
+    private CloudBlobContainer getBlobContainerFromServicePrincipals(@Nullable BlobRequestOptions blobRequestOptions) throws DataStoreException {
+        StorageCredentialsToken storageCredentialsToken = getStorageCredentials();
+        try {
+            CloudStorageAccount cloud = new CloudStorageAccount(storageCredentialsToken, true, DEFAULT_ENDPOINT_SUFFIX, accountName);
+            CloudBlobClient cloudBlobClient = cloud.createCloudBlobClient();
+            if (blobRequestOptions != null) {
+                cloudBlobClient.setDefaultRequestOptions(blobRequestOptions);
+            }
+            return cloudBlobClient.getContainerReference(containerName);
+        } catch (URISyntaxException | StorageException e) {
+            throw new DataStoreException(e);
+        }
     }
 
-    /**
-     * Generates a shared access signature (SAS) for the specified blob with optional headers.
-     * This is the Azure SDK 12 equivalent of the V8 method that accepted {@code SharedAccessBlobHeaders}.
-     *
-     * @param retryOptions retry options for the request
-     * @param key the blob key
-     * @param blobSasPermissions the permissions for the SAS
-     * @param expirySeconds the number of seconds until the SAS expires
-     * @param properties additional properties
-     * @param optionalHeaders optional headers to include in the SAS (can be null)
-     * @return the SAS query string
-     * @throws DataStoreException if an error occurs
-     * @throws URISyntaxException if the URI is invalid
-     * @throws InvalidKeyException if the key is invalid
-     */
     @NotNull
-    public String generateSharedAccessSignature(RequestRetryOptions retryOptions,
-                                                String key,
-                                                BlobSasPermission blobSasPermissions,
-                                                int expirySeconds,
-                                                Properties properties,
-                                                @Nullable BlobSasHeaders optionalHeaders) throws DataStoreException, URISyntaxException, InvalidKeyException {
-
-        OffsetDateTime expiry = OffsetDateTime.now().plusSeconds(expirySeconds);
-        BlobServiceSasSignatureValues serviceSasSignatureValues = new BlobServiceSasSignatureValues(expiry, blobSasPermissions);
-
-        // Apply headers if provided
-        if (optionalHeaders != null) {
-            optionalHeaders.applyTo(serviceSasSignatureValues);
+    private StorageCredentialsToken getStorageCredentials() {
+        boolean isAccessTokenGenerated = false;
+        /* generate access token, the same token will be used for subsequent access
+         * generated token is valid for 1 hour only and will be refreshed in background
+         * */
+        if (accessToken == null) {
+            clientSecretCredential = new ClientSecretCredentialBuilder()
+                    .clientId(clientId)
+                    .clientSecret(clientSecret)
+                    .tenantId(tenantId)
+                    .build();
+            accessToken = clientSecretCredential.getTokenSync(new TokenRequestContext().addScopes(AZURE_DEFAULT_SCOPE));
+            if (accessToken == null || StringUtils.isBlank(accessToken.getToken())) {
+                log.error("Access token is null or empty");
+                throw new IllegalArgumentException("Could not connect to azure storage, access token is null or empty");
+            }
+            storageCredentialsToken = new StorageCredentialsToken(accountName, accessToken.getToken());
+            isAccessTokenGenerated = true;
         }
 
-        BlockBlobClient blob = getBlobContainer(retryOptions, properties).getBlobClient(key).getBlockBlobClient();
+        Objects.requireNonNull(storageCredentialsToken, "storage credentials token cannot be null");
+
+        // start refresh token executor only when the access token is first generated
+        if (isAccessTokenGenerated) {
+            log.info("starting refresh token task at: {}", OffsetDateTime.now());
+            TokenRefresher tokenRefresher = new TokenRefresher();
+            executorService.scheduleWithFixedDelay(tokenRefresher, TOKEN_REFRESHER_INITIAL_DELAY, TOKEN_REFRESHER_DELAY, TimeUnit.MINUTES);
+        }
+        return storageCredentialsToken;
+    }
+
+    @NotNull
+    public String generateSharedAccessSignature(BlobRequestOptions requestOptions,
+                                                String key,
+                                                EnumSet<SharedAccessBlobPermissions> permissions,
+                                                int expirySeconds,
+                                                SharedAccessBlobHeaders optionalHeaders) throws DataStoreException, URISyntaxException, StorageException, InvalidKeyException {
+        SharedAccessBlobPolicy policy = new SharedAccessBlobPolicy();
+        Date expiry = Date.from(Instant.now().plusSeconds(expirySeconds));
+        policy.setSharedAccessExpiryTime(expiry);
+        policy.setPermissions(permissions);
+
+        CloudBlockBlob blob = getBlobContainer(requestOptions).getBlockBlobReference(key);
 
         if (authenticateViaServicePrincipal()) {
-            return generateUserDelegationKeySignedSas(blob, serviceSasSignatureValues, expiry);
+            return generateUserDelegationKeySignedSas(blob, policy, optionalHeaders, expiry);
         }
-        return generateSas(blob, serviceSasSignatureValues);
+        return generateSas(blob, policy, optionalHeaders);
     }
 
     @NotNull
-    public String generateUserDelegationKeySignedSas(BlockBlobClient blobClient,
-                                                     BlobServiceSasSignatureValues serviceSasSignatureValues,
-                                                     OffsetDateTime expiryTime) {
+    private String generateUserDelegationKeySignedSas(CloudBlockBlob blob,
+                                                      SharedAccessBlobPolicy policy,
+                                                      SharedAccessBlobHeaders optionalHeaders,
+                                                      Date expiry) throws StorageException {
+        fillEmptyHeaders(optionalHeaders);
+        UserDelegationKey userDelegationKey = blob.getServiceClient().getUserDelegationKey(Date.from(Instant.now().minusSeconds(900)),
+                expiry);
+        return optionalHeaders == null ? blob.generateUserDelegationSharedAccessSignature(userDelegationKey, policy) :
+                blob.generateUserDelegationSharedAccessSignature(userDelegationKey, policy, optionalHeaders, null, null);
+    }
 
-        AzureHttpRequestLoggingPolicy loggingPolicy = new AzureHttpRequestLoggingPolicy();
+    /* set empty headers as blank string due to a bug in Azure SDK
+     * Azure SDK considers null headers as 'null' string which corrupts the string to sign and generates an invalid
+     * sas token
+     * */
+    private void fillEmptyHeaders(SharedAccessBlobHeaders sharedAccessBlobHeaders) {
+        final String EMPTY_STRING = "";
+        Optional.ofNullable(sharedAccessBlobHeaders)
+                .ifPresent(headers -> {
+                    if (StringUtils.isBlank(headers.getCacheControl())) {
+                        headers.setCacheControl(EMPTY_STRING);
+                    }
+                    if (StringUtils.isBlank(headers.getContentDisposition())) {
+                        headers.setContentDisposition(EMPTY_STRING);
+                    }
+                    if (StringUtils.isBlank(headers.getContentEncoding())) {
+                        headers.setContentEncoding(EMPTY_STRING);
+                    }
+                    if (StringUtils.isBlank(headers.getContentLanguage())) {
+                        headers.setContentLanguage(EMPTY_STRING);
+                    }
+                    if (StringUtils.isBlank(headers.getContentType())) {
+                        headers.setContentType(EMPTY_STRING);
+                    }
+                });
+    }
 
-        String endpoint = getEndpointUrl(accountName, blobEndpoint);
-        BlobServiceClient blobServiceClient = new BlobServiceClientBuilder()
-                .endpoint(endpoint)
-                .credential(getClientSecretCredential())
-                .addPolicy(loggingPolicy)
-                .buildClient();
-        OffsetDateTime startTime = OffsetDateTime.now(ZoneOffset.UTC);
-        UserDelegationKey userDelegationKey = blobServiceClient.getUserDelegationKey(startTime, expiryTime);
-        return blobClient.generateUserDelegationSas(serviceSasSignatureValues, userDelegationKey);
+    @NotNull
+    private String generateSas(CloudBlockBlob blob,
+                               SharedAccessBlobPolicy policy,
+                               SharedAccessBlobHeaders optionalHeaders) throws InvalidKeyException, StorageException {
+        return optionalHeaders == null ? blob.generateSharedAccessSignature(policy, null) :
+                blob.generateSharedAccessSignature(policy,
+                        optionalHeaders, null, null, null, true);
     }
 
     private boolean authenticateViaServicePrincipal() {
@@ -247,55 +313,34 @@ public class AzureBlobContainerProvider {
                 StringUtils.isNoneBlank(accountName, tenantId, clientId, clientSecret);
     }
 
-    private ClientSecretCredential getClientSecretCredential() {
-        return new ClientSecretCredentialBuilder()
-                .clientId(clientId)
-                .clientSecret(clientSecret)
-                .tenantId(tenantId)
-                .build();
-    }
-
-    @NotNull
-    private BlobContainerClient getBlobContainerFromServicePrincipals(String accountName, RequestRetryOptions retryOptions) {
-        ClientSecretCredential clientSecretCredential = getClientSecretCredential();
-        AzureHttpRequestLoggingPolicy loggingPolicy = new AzureHttpRequestLoggingPolicy();
-
-        String endpoint = getEndpointUrl(accountName, blobEndpoint);
-        return new BlobContainerClientBuilder()
-                .endpoint(endpoint)
-                .containerName(containerName)
-                .credential(clientSecretCredential)
-                .retryOptions(retryOptions)
-                .addPolicy(loggingPolicy)
-                .buildClient();
-    }
-
-    @NotNull
-    private String generateSas(BlockBlobClient blob,
-                               BlobServiceSasSignatureValues blobServiceSasSignatureValues) {
-        return blob.generateSas(blobServiceSasSignatureValues, null);
-    }
-
-    /**
-     * Constructs the Azure Storage endpoint URL.
-     * If a custom blobEndpoint is configured, it will be used.
-     * Otherwise, constructs the default endpoint using the account name.
-     *
-     * @param accountName the storage account name
-     * @param customBlobEndpoint optional custom blob endpoint (can be null or empty)
-     * @return the endpoint URL to use
-     */
-    @NotNull
-    private static String getEndpointUrl(String accountName, String customBlobEndpoint) {
-        if (StringUtils.isNotBlank(customBlobEndpoint)) {
-            // Use custom endpoint (e.g., for private endpoints)
-            // Ensure it starts with https:// if not already present
-            if (!customBlobEndpoint.startsWith("http://") && !customBlobEndpoint.startsWith("https://")) {
-                return "https://" + customBlobEndpoint;
+    private class TokenRefresher implements Runnable {
+        @Override
+        public void run() {
+            try {
+                log.debug("Checking for azure access token expiry at: {}", LocalDateTime.now());
+                OffsetDateTime tokenExpiryThreshold = OffsetDateTime.now().plusMinutes(5);
+                if (accessToken.getExpiresAt() != null && accessToken.getExpiresAt().isBefore(tokenExpiryThreshold)) {
+                    log.info("Access token is about to expire (5 minutes or less) at: {}. New access token will be generated",
+                            accessToken.getExpiresAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                    AccessToken newToken = clientSecretCredential.getTokenSync(new TokenRequestContext().addScopes(AZURE_DEFAULT_SCOPE));
+                    log.info("New azure access token generated at: {}", LocalDateTime.now());
+                    if (newToken == null || StringUtils.isBlank(newToken.getToken())) {
+                        log.error("New access token is null or empty");
+                        return;
+                    }
+                    // update access token with newly generated token
+                    accessToken = newToken;
+                    storageCredentialsToken.updateToken(accessToken.getToken());
+                }
+            } catch (Exception e) {
+                log.error("Error while acquiring new access token: ", e);
             }
-            return customBlobEndpoint;
         }
-        // Default public endpoint
-        return String.format("https://%s.blob.%s", accountName, DEFAULT_ENDPOINT_SUFFIX);
+    }
+
+    @Override
+    public void close() {
+        new ExecutorCloser(executorService).close();
+        log.info("Refresh token executor service shutdown completed");
     }
 }

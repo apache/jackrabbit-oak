@@ -20,16 +20,20 @@ package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
 import static org.junit.Assume.assumeTrue;
 
-import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
+import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractDataStoreTest;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
 import java.util.Properties;
+
+import javax.jcr.RepositoryException;
 
 /**
  * Test {@link AzureDataStore} with AzureDataStore and local cache on.
@@ -40,6 +44,7 @@ import java.util.Properties;
  */
 public class TestAzureDS extends AbstractDataStoreTest {
 
+  protected static final Logger LOG = LoggerFactory.getLogger(TestAzureDS.class);
   protected Properties props = new Properties();
   protected String container;
 
@@ -52,7 +57,7 @@ public class TestAzureDS extends AbstractDataStoreTest {
   @Before
   public void setUp() throws Exception {
     props.putAll(AzureDataStoreUtils.getAzureConfig());
-    container = randomGen.nextInt(9999) + "-" + randomGen.nextInt(9999)
+    container = String.valueOf(randomGen.nextInt(9999)) + "-" + String.valueOf(randomGen.nextInt(9999))
                 + "-test";
     props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, container);
     props.setProperty("secret", "123456");
@@ -78,7 +83,7 @@ public class TestAzureDS extends AbstractDataStoreTest {
   }
 
   @Override
-  protected DataStore createDataStore() {
+  protected DataStore createDataStore() throws RepositoryException {
     DataStore azureds = null;
     try {
       azureds = AzureDataStoreUtils.getAzureDataStore(props, dataStoreDir);

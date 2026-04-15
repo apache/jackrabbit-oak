@@ -33,7 +33,7 @@ import java.net.URI;
 import java.util.Properties;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
+import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.apache.jackrabbit.oak.api.blob.BlobUploadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;

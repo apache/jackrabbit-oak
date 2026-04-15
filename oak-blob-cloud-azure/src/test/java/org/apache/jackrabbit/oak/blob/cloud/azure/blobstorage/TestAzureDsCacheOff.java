@@ -16,11 +16,12 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
-import org.apache.jackrabbit.oak.spi.blob.data.CachingDataStore;
 import org.junit.Before;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Test {@link CachingDataStore} with AzureBlobStoreBackend
+ * Test {@link org.apache.jackrabbit.core.data.CachingDataStore} with AzureBlobStoreBackend
  * and local cache Off.
  * It requires to pass azure config file via system property or system properties by prefixing with 'ds.'.
  * See details @ {@link AzureDataStoreUtils}.
@@ -30,7 +31,9 @@ import org.junit.Before;
  */
 public class TestAzureDsCacheOff extends TestAzureDS {
 
-  @Override
+    protected static final Logger LOG = LoggerFactory.getLogger(TestAzureDsCacheOff.class);
+
+    @Override
     @Before
     public void setUp() throws Exception {
         props.setProperty("cacheSize", "0");

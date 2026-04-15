@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,10 +32,10 @@ import java.util.Properties;
 
 import javax.net.ssl.HttpsURLConnection;
 
-import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
-import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
-import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
-import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
+import org.apache.jackrabbit.core.data.DataIdentifier;
+import org.apache.jackrabbit.core.data.DataRecord;
+import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.AbstractDataRecordAccessProviderTest;
@@ -46,6 +45,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordU
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.jetbrains.annotations.NotNull;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -93,19 +93,19 @@ public class AzureDataRecordAccessProviderTest extends AbstractDataRecordAccessP
 
     @Override
     protected long getProviderMinPartSize() {
-        return Math.max(0L, AzureConstants.AZURE_BLOB_MIN_MULTIPART_UPLOAD_PART_SIZE);
+        return Math.max(0L, AzureBlobStoreBackend.MIN_MULTIPART_UPLOAD_PART_SIZE);
     }
 
     @Override
     protected long getProviderMaxPartSize() {
-        return AzureConstants.AZURE_BLOB_MAX_MULTIPART_UPLOAD_PART_SIZE;
+        return AzureBlobStoreBackend.MAX_MULTIPART_UPLOAD_PART_SIZE;
     }
 
     @Override
-    protected long getProviderMaxSinglePutSize() { return AzureConstants.AZURE_BLOB_MAX_SINGLE_PUT_UPLOAD_SIZE; }
+    protected long getProviderMaxSinglePutSize() { return AzureBlobStoreBackend.MAX_SINGLE_PUT_UPLOAD_SIZE; }
 
     @Override
-    protected long getProviderMaxBinaryUploadSize() { return AzureConstants.AZURE_BLOB_MAX_BINARY_UPLOAD_SIZE; }
+    protected long getProviderMaxBinaryUploadSize() { return AzureBlobStoreBackend.MAX_BINARY_UPLOAD_SIZE; }
 
     @Override
     protected boolean isSinglePutURI(URI uri) {
@@ -127,7 +127,6 @@ public class AzureDataRecordAccessProviderTest extends AbstractDataRecordAccessP
             Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
             ds.setDirectUploadURIExpirySeconds(60);
             DataRecordUpload uploadContext = ds.initiateDataRecordUpload(ONE_MB, 1);
-            assertNotNull("The upload context should not be null", uploadContext);
             URI uploadURI = uploadContext.getUploadURIs().iterator().next();
             Map<String, String> params = parseQueryString(uploadURI);
             String expiryDateStr = params.get("se");
@@ -145,19 +144,16 @@ public class AzureDataRecordAccessProviderTest extends AbstractDataRecordAccessP
         long uploadSize = ONE_GB * 100;
         int expectedNumURIs = 10000;
         DataRecordUpload upload = ds.initiateDataRecordUpload(uploadSize, -1);
-        assertNotNull("The upload context should not be null", upload);
         assertEquals(expectedNumURIs, upload.getUploadURIs().size());
 
         uploadSize = ONE_GB * 500;
         expectedNumURIs = 50000;
         upload = ds.initiateDataRecordUpload(uploadSize, -1);
-        assertNotNull("The upload context should not be null", upload);
         assertEquals(expectedNumURIs, upload.getUploadURIs().size());
 
         uploadSize = ONE_GB * 1000;
         // expectedNumURIs still 50000, Azure limit
         upload = ds.initiateDataRecordUpload(uploadSize, -1);
-        assertNotNull("The upload context should not be null", upload);
         assertEquals(expectedNumURIs, upload.getUploadURIs().size());
     }
 
@@ -174,14 +170,14 @@ public class AzureDataRecordAccessProviderTest extends AbstractDataRecordAccessP
             record = this.doSynchronousAddRecord((DataStore) dataStore, testStream);
             DataIdentifier id = record.getIdentifier();
             URI uri = dataStore.getDownloadURI(id, downloadOptionsWithMimeType(null));
-            assertNotNull(uri);
+            Assert.assertNotNull(uri);
             URI uriWithContentType = dataStore.getDownloadURI(id, downloadOptionsWithMimeType("application/octet-stream"));
-            assertNotNull(uriWithContentType);
+            Assert.assertNotNull(uriWithContentType);
             // must generate different download URIs
             assertNotEquals(uri.toString(), uriWithContentType.toString());
         } finally {
             dataStore.setDirectDownloadURICacheSize(0);
-            if (record != null) {
+            if (null != record) {
                 this.doDeleteRecord((DataStore) dataStore, record.getIdentifier());
             }
         }
