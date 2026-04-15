@@ -20,9 +20,9 @@ package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
 import static org.junit.Assume.assumeTrue;
 
-import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractDataStoreTest;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;

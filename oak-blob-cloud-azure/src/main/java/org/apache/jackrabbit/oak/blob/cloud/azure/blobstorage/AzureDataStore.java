@@ -22,9 +22,9 @@ package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 import java.net.URI;
 import java.util.Properties;
 
-import org.apache.jackrabbit.core.data.DataIdentifier;
-import org.apache.jackrabbit.core.data.DataRecord;
-import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
+import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;

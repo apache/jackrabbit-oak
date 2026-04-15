@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
-import org.apache.jackrabbit.core.data.CachingDataStore;
-import org.apache.jackrabbit.core.data.LocalCache;
 import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

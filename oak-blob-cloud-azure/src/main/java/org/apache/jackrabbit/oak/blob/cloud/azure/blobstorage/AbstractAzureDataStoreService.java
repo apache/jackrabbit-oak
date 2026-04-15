@@ -24,10 +24,10 @@ import java.util.Hashtable;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.jackrabbit.core.data.DataStore;
-import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractDataStoreService;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
