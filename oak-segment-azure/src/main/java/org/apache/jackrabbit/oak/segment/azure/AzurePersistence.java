@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
-import org.jetbrains.annotations.Nullable;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
@@ -38,6 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class AzurePersistence implements SegmentNodeStorePersistence {
     private static final Logger log = LoggerFactory.getLogger(AzurePersistence.class);
@@ -52,8 +52,7 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
 
     protected AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy;
 
-    @Nullable
-    private volatile RemoteStoreMonitor remoteStoreMonitor;
+    private final AtomicReference<RemoteStoreMonitor> remoteStoreMonitor = new AtomicReference<>();
 
     protected WriteAccessController writeAccessController = new WriteAccessController();
 
@@ -116,8 +115,9 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
         BlobLeaseClient blobLeaseClient = new BlobLeaseClientBuilder().blobClient(noRetryBlockBlobClient).buildClient();
         return new AzureRepositoryLock(blockBlobClient, blobLeaseClient, () -> {
             log.error("Lost connection to Azure. The repository lock lease could not be renewed.");
-            if (remoteStoreMonitor != null) {
-                remoteStoreMonitor.repositoryLockLost();
+            RemoteStoreMonitor monitor = remoteStoreMonitor.get();
+            if (monitor != null) {
+                monitor.repositoryLockLost();
             }
         }, writeAccessController).lock();
     }
@@ -147,7 +147,7 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
     }
 
     private void attachRemoteStoreMonitor(RemoteStoreMonitor remoteStoreMonitor) {
-        this.remoteStoreMonitor = remoteStoreMonitor;
+        this.remoteStoreMonitor.set(remoteStoreMonitor);
         if (azureHttpRequestLoggingPolicy != null) {azureHttpRequestLoggingPolicy.setRemoteStoreMonitor(remoteStoreMonitor);}
     }
 

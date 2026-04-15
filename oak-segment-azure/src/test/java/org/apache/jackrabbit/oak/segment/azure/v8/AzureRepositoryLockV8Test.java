@@ -278,8 +278,8 @@ public class AzureRepositoryLockV8Test {
     @Test
     public void testRepositoryLockLostMetricOnNonTransientError() throws Exception {
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        try {
-            DefaultStatisticsProvider statisticsProvider = new DefaultStatisticsProvider(executor);
+        DefaultStatisticsProvider statisticsProvider = new DefaultStatisticsProvider(executor);
+        try (ExecutorCloser ignored = new ExecutorCloser(executor)) {
             MetricsRemoteStoreMonitor monitor = new MetricsRemoteStoreMonitor(statisticsProvider);
             CounterStats lockLostCounter = statisticsProvider.getCounterStats(
                     MetricsRemoteStoreMonitor.REPOSITORY_LOCK_LOST, StatsOptions.DEFAULT);
@@ -300,8 +300,6 @@ public class AzureRepositoryLockV8Test {
                     .untilAsserted(() -> assertEquals(
                             "REPOSITORY_LOCK_LOST counter should be incremented after non-transient error",
                             1, lockLostCounter.getCount()));
-        } finally {
-            new ExecutorCloser(executor).close();
         }
     }
 }

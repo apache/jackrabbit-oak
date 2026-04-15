@@ -21,6 +21,7 @@ import java.net.URISyntaxException;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.RequestCompletedEvent;
@@ -37,7 +38,6 @@ import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
-import org.jetbrains.annotations.Nullable;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
@@ -51,8 +51,7 @@ public class AzurePersistenceV8 implements SegmentNodeStorePersistence {
 
     protected final CloudBlobDirectory segmentstoreDirectory;
 
-    @Nullable
-    private volatile RemoteStoreMonitor remoteStoreMonitor;
+    private final AtomicReference<RemoteStoreMonitor> remoteStoreMonitor = new AtomicReference<>();
 
     protected WriteAccessController writeAccessController = new WriteAccessController();
 
@@ -106,8 +105,9 @@ public class AzurePersistenceV8 implements SegmentNodeStorePersistence {
     public RepositoryLock lockRepository() throws IOException {
         return new AzureRepositoryLockV8(getBlockBlob("repo.lock"), () -> {
             log.error("Lost connection to Azure. The repository lock lease could not be renewed.");
-            if (remoteStoreMonitor != null) {
-                remoteStoreMonitor.repositoryLockLost();
+            RemoteStoreMonitor monitor = remoteStoreMonitor.get();
+            if (monitor != null) {
+                monitor.repositoryLockLost();
             }
         }, writeAccessController).lock();
     }
@@ -129,7 +129,7 @@ public class AzurePersistenceV8 implements SegmentNodeStorePersistence {
     }
 
     private void attachRemoteStoreMonitor(RemoteStoreMonitor remoteStoreMonitor) {
-        this.remoteStoreMonitor = remoteStoreMonitor;
+        this.remoteStoreMonitor.set(remoteStoreMonitor);
         OperationContext.getGlobalRequestCompletedEventHandler().addListener(new StorageEvent<RequestCompletedEvent>() {
 
             @Override
