@@ -27,7 +27,7 @@ import static org.junit.Assume.assumeTrue;
 
 import java.util.Random;
 
-import org.apache.jackrabbit.guava.common.cache.Weigher;
+import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights;
 import org.junit.Test;
 

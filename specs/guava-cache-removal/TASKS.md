@@ -181,7 +181,7 @@ The version bump must be included in the same PR as the new method.
 ### What changes
 - `oak-core-spi/.../cache/api/CacheBuilder.java` — **new** public final class for creating Caffeine-backed Oak caches only.
 
-  Builder fields: `maximumWeight`, `maximumSize`, `weigher(Weigher)`, `evictionListener(EvictionListener)`, `recordStats`, `expireAfterAccess`, `expireAfterWrite`, `refreshAfterWrite`.
+  Builder fields: `maximumWeight`, `maximumSize`, `initialCapacity`, `weigher(Weigher)`, `evictionListener(EvictionListener)`, `recordStats`, `expireAfterAccess`, `expireAfterWrite`, `refreshAfterWrite`.
   Methods: `build()` → `Cache`, `build(CacheLoader)` → `LoadingCache`.
   `build()` must always return a manual-cache adapter that does not implement `LoadingCache`; `build(CacheLoader)` must always return a loading-cache adapter.
   Validation rules are enforced in the builder before cache construction:
@@ -249,6 +249,8 @@ Remove all `<!-- TODO OAK-TASK2: ... -->` HTML comments after restoring the link
   - runtime loader failures propagate directly
   - `Cache.get(key, mappingFunction)` uses Caffeine's `Function` contract and propagates runtime failures directly
   - `LoadingCache.refresh(key)` returns a non-null `CompletableFuture`
+  - `initialCapacity` is accepted and wired through to Caffeine without error
+  - negative `initialCapacity` is rejected before cache construction
   - invalid builder combinations are rejected consistently before cache construction
   - `CacheStatsAdapter` bridges `CacheStatsSnapshot` back to Guava shim `CacheStats`
   - `stats()` returns non-null `CacheStatsSnapshot` with correct counts
@@ -476,6 +478,7 @@ the `org.apache.jackrabbit.oak.cache` package version must be bumped in `package
 - `RecordCache.java` — `CacheBuilder.newBuilder()` (Guava shim) to `CacheBuilder`; `Cache` to `Cache`; Guava `Weigher` to `Weigher`
 - `CacheWeights.java` — `Weigher` to `Weigher`
 - `CachingSegmentReader.java` — update cache type references
+- `PriorityCacheTest.java` — `Weigher` import changed from Guava shim to Oak API (cascade from `CacheWeights.java`; full `PriorityCache` migration deferred to OAK-12158)
 
 ### Exception handling migration
 - Callers of `cache.get(key, callable)` must switch to `cache.get(key, k -> ...)`

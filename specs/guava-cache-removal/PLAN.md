@@ -304,6 +304,7 @@ public final class CacheBuilder<K, V> {
     private String module;
     private long maximumWeight = -1;
     private long maximumSize = -1;
+    private int initialCapacity = -1;
     private Weigher<K, V> weigher;
     private EvictionListener<K, V> removalListener;
     private boolean recordStats;
@@ -315,6 +316,7 @@ public final class CacheBuilder<K, V> {
 
     public CacheBuilder<K, V> maximumWeight(long maximumWeight) { ... }
     public CacheBuilder<K, V> maximumSize(long maximumSize) { ... }
+    public CacheBuilder<K, V> initialCapacity(int initialCapacity) { ... }
     public CacheBuilder<K, V> weigher(Weigher<K, V> weigher) { ... }
     public CacheBuilder<K, V> removalListener(EvictionListener<K, V> listener) { ... }
     public CacheBuilder<K, V> recordStats() { ... }
