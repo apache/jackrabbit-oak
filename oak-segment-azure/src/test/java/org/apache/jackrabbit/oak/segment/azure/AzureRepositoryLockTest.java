@@ -441,7 +441,7 @@ public class AzureRepositoryLockTest {
     }
 
     @Test
-    public void testAzurePersistenceShutdownHookWithoutMonitor() throws Exception {
+    public void testAzurePersistenceShutdownHookWithoutMonitor() {
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         DefaultStatisticsProvider statisticsProvider = new DefaultStatisticsProvider(executor);
         try (ExecutorCloser ignored = new ExecutorCloser(executor)) {
