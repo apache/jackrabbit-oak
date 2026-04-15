@@ -102,6 +102,36 @@ grep -n "getCause()" <file>
 ```
 Any `getCause()` inside a `catch (RuntimeException` block is almost certainly a bug.
 
+**4. OSGi impl package visibility** — Consumer modules must **never** import from
+`org.apache.jackrabbit.oak.cache.impl.lirs` or `org.apache.jackrabbit.oak.cache.impl.caffeine`.
+These packages are not exported by `oak-core-spi`. A reference to any class in them (e.g.
+`LirsCacheAdapter.toOakCause()`) causes the consumer bundle to fail OSGi resolution —
+the bundle stays in `INSTALLED` (state 2) and never reaches `ACTIVE` (state 32).
+
+The symptom surfaces in `OSGiIT.bundleStates` as:
+```
+Bundle org.apache.jackrabbit.oak-store-document not active. expected:<32> but was:<2>
+```
+
+For `RemovalCause` → `EvictionCause` conversion in consumer modules, use
+`CacheLIRS.toOakCause(cause)` (in `org.apache.jackrabbit.oak.cache`, which IS exported),
+not `LirsCacheAdapter.toOakCause(cause)`.
+
+Before closing any task that uses the LIRS path, grep for impl references in consumer modules:
+```bash
+grep -rn "cache.impl" <module>/src/main/java
+```
+This must return zero results.
+
+**5. OSGi baseline on new public methods** — Adding a new public method to an exported
+package triggers the `maven-bundle-plugin` baseline goal, which requires a minor version bump
+in the package's `package-info.java` (`@Version("1.0.0")` → `@Version("1.1.0")`). The
+baseline check runs during `mvn install` and fails the build with:
+```
+<package>: Version increase required; detected 1.0.0, suggested 1.1.0
+```
+The version bump must be included in the same PR as the new method.
+
 ---
 
 ## TASK-1 — Oak Cache API interfaces [oak-core-spi] — [OAK-12147](https://issues.apache.org/jira/browse/OAK-12147)
@@ -413,10 +443,26 @@ Run `grep -rn "getCacheStats()"` at the repo root before closing to confirm no c
 - Callers of `cache.get(key, callable)` must switch to `cache.get(key, k -> ...)`
 - Callers of `loadingCache.get(key)` must stop catching checked `ExecutionException`; runtime failures propagate directly and checked loader failures surface as `CompletionException`
 
+### OSGi wiring fix (discovered during Task 10)
+`DocumentNodeStoreBuilder.buildCache()` originally called `LirsCacheAdapter.toOakCause(cause)`
+inside the LIRS eviction callback. `LirsCacheAdapter` is in `org.apache.jackrabbit.oak.cache.impl.lirs`,
+which is **not exported** by `oak-core-spi`. This caused `oak-store-document` to fail OSGi
+bundle resolution (state INSTALLED, not ACTIVE), which in turn caused `OSGiIT.bundleStates`
+and `OSGiIT.testLeaseFailureHandlerIsExported` to fail.
+
+**Fix:** `toOakCause(RemovalCause)` was moved to `CacheLIRS` (package `org.apache.jackrabbit.oak.cache`,
+which IS exported). `LirsCacheAdapter.toOakCause()` now delegates to `CacheLIRS.toOakCause()`.
+`DocumentNodeStoreBuilder` calls `CacheLIRS.toOakCause(cause)` — no `impl.lirs` import.
+
+Adding `toOakCause()` to `CacheLIRS` triggered the OSGi baseline check (migration rule 5):
+the `org.apache.jackrabbit.oak.cache` package version must be bumped in `package-info.java`.
+
 ### Acceptance criteria
 - No `org.apache.jackrabbit.guava.common.cache` imports in `oak-store-document/src/` (main and test)
+- No `org.apache.jackrabbit.oak.cache.impl` imports in `oak-store-document/src/main/java` (migration rule 4)
 - Persistent cache eviction behavior unchanged
 - `persistentCache.CacheTest`, `persistentCache.NodeCacheTest` pass
+- `OSGiIT.bundleStates` passes: `oak-store-document` bundle reaches ACTIVE state
 
 ---
 

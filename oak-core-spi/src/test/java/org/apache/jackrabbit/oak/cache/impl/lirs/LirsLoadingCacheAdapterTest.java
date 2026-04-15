@@ -21,8 +21,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.guava.common.cache.CacheLoader;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
+import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
-import org.jspecify.annotations.NonNull;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -34,7 +34,7 @@ public class LirsLoadingCacheAdapterTest {
                 .maximumSize(10)
                 .build(new CacheLoader<>() {
                     @Override
-                    public @NonNull String load(@NonNull String key) {
+                    public String load(String key) {
                         return "loaded-" + key;
                     }
                 });
@@ -50,7 +50,7 @@ public class LirsLoadingCacheAdapterTest {
                 .maximumSize(10)
                 .build(new CacheLoader<>() {
                     @Override
-                    public @NonNull String load(@NonNull String key) throws Exception {
+                    public String load(String key) throws Exception {
                         throw failure;
                     }
                 });
@@ -71,7 +71,7 @@ public class LirsLoadingCacheAdapterTest {
                 .maximumSize(10)
                 .build(new CacheLoader<>() {
                     @Override
-                    public @NonNull String load(@NonNull String key) {
+                    public String load(String key) {
                         throw failure;
                     }
                 });
@@ -92,13 +92,12 @@ public class LirsLoadingCacheAdapterTest {
                 .maximumSize(10)
                 .build(new CacheLoader<>() {
                     @Override
-                    public @NonNull String load(@NonNull String key) {
+                    public String load(String key) {
                         return "value-" + loads.incrementAndGet();
                     }
 
                     @Override
-                    public org.apache.jackrabbit.guava.common.util.concurrent.@NonNull ListenableFuture<String> reload(
-                            @NonNull String key, @NonNull String oldValue) {
+                    public ListenableFuture<String> reload(String key, String oldValue) {
                         return Futures.immediateFuture("value-" + loads.incrementAndGet());
                     }
                 });

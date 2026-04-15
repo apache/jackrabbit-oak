@@ -25,3 +25,5 @@ This is part of the broader Guava removal effort tracked in [OAK-10685](https://
 - After migration, inspect the generated bundle manifests — consumer bundles must not import Caffeine packages.
 - Preserve behavioral equivalence: same eviction timing, same toggles, same observable cache semantics.
 - **`e.getCause()` in migrated catch blocks:** Guava wrapped loader exceptions in `ExecutionException`; the new API throws them directly. Any leftover `e.getCause()` silently returns `null`. Before closing a task, run `grep -rn "getCause()"` on touched files and replace `e.getCause()` with `e`.
+- **Use exported APIs in consumer modules:** Consumer modules should depend only on exported APIs and helpers. Avoid implementation-only packages, because they are not part of the public OSGi surface and can prevent bundles from resolving or activating.
+- **Check OSGi baseline impact for public API changes:** Any change to public API in an exported package should be reviewed for OSGi baseline impact. If a package version update is needed, handle the exact change in the implementation task or plan, not in this spec.

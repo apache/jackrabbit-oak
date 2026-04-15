@@ -38,6 +38,7 @@ import org.apache.jackrabbit.guava.common.cache.RemovalCause;
 import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
+import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.apache.jackrabbit.oak.cache.impl.lirs.LirsLoadingCacheAdapter;
 import org.apache.jackrabbit.oak.commons.annotations.Internal;
 import org.jetbrains.annotations.NotNull;
@@ -1784,6 +1785,23 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     @NotNull
     public org.apache.jackrabbit.oak.cache.api.LoadingCache<K, V> asOakCache() {
         return new LirsLoadingCacheAdapter<>(this);
+    }
+
+    /**
+     * Maps a {@link RemovalCause} to the Oak-neutral {@link EvictionCause}.
+     *
+     * @param cause the Guava-shim removal cause reported by this cache
+     * @return the corresponding Oak eviction cause
+     */
+    @NotNull
+    public static EvictionCause toOakCause(@NotNull RemovalCause cause) {
+        return switch (cause) {
+            case EXPLICIT  -> EvictionCause.EXPLICIT;
+            case REPLACED  -> EvictionCause.REPLACED;
+            case SIZE      -> EvictionCause.SIZE;
+            case EXPIRED   -> EvictionCause.EXPIRED;
+            case COLLECTED -> EvictionCause.COLLECTED;
+        };
     }
 
 }

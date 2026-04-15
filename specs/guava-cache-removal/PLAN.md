@@ -430,6 +430,39 @@ Also search for the `@NotNull Throwable` overloads of conversion helpers — pas
 (from `e.getCause()`) to a `@NotNull` parameter causes NPE at the `t.getMessage()` call
 inside the helper.
 
+#### Migration pitfall — OSGi impl package visibility
+
+The `impl.lirs` and `impl.caffeine` sub-packages are **not exported** by `oak-core-spi`.
+Any consumer module that directly references a class from these packages (e.g.
+`LirsCacheAdapter.toOakCause()`) will fail OSGi bundle resolution: the consumer bundle stays
+in state `INSTALLED` (state 2) and never reaches `ACTIVE` (state 32).
+
+The symptom in `OSGiIT`:
+```
+AssertionError: Bundle org.apache.jackrabbit.oak-store-document not active. expected:<32> but was:<2>
+ClassNotFoundException: org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler
+```
+
+The second error (class not found) is a downstream effect: because the bundle never activated,
+none of its exported packages are available either.
+
+**The `RemovalCause` → `EvictionCause` conversion** was initially placed in
+`LirsCacheAdapter.toOakCause()` (impl package). When `DocumentNodeStoreBuilder` referenced it,
+the bundle failed. Fix: move `toOakCause(RemovalCause)` to `CacheLIRS` (package
+`org.apache.jackrabbit.oak.cache`, which IS exported). `LirsCacheAdapter.toOakCause()` now
+delegates to `CacheLIRS.toOakCause()`, keeping backward compat inside `oak-core-spi`'s own code.
+Consumer modules call `CacheLIRS.toOakCause(cause)` directly.
+
+Adding this new public method to `CacheLIRS` also triggers the **OSGi baseline check**: the
+`org.apache.jackrabbit.oak.cache` package version must be bumped in `package-info.java`.
+
+**Rule for all subsequent batches:** before closing any task that wires up a LIRS eviction
+callback in a consumer module, grep for `impl` references:
+```bash
+grep -rn "cache.impl" <module>/src/main/java
+```
+This must return zero results.
+
 #### `CaffeineCacheAdapter<K, V>` + `CaffeineLoadingCacheAdapter<K, V>`
 
 - `CaffeineCacheAdapter` wraps a `com.github.benmanes.caffeine.cache.Cache<K, V>` for manual caches.
@@ -484,7 +517,7 @@ inside the helper.
 | `oak-core-spi/.../cache/EmpiricalWeigher.java` | Modify: implement `Weigher<CacheValue, CacheValue>` (Oak API) with temporary Guava-shim compatibility bridge |
 | `oak-core-spi/.../cache/AbstractCacheStats.java` | **No change** (deferred to Final Cleanup) |
 | `oak-core-spi/.../cache/CacheStats.java` | **No change** (existing Guava-wrapping JMX class; deferred to Final Cleanup) |
-| `oak-core-spi/.../cache/CacheLIRS.java` | **No change** (remains `@Internal`) |
+| `oak-core-spi/.../cache/CacheLIRS.java` | Modified: add `asOakCache()` (returns `LirsLoadingCacheAdapter`) and `toOakCause(RemovalCause)` (static; converts to `EvictionCause`; moved here from `LirsCacheAdapter` so the exported `cache` package is the call site for consumer modules) |
 
 ### Acceptance criteria
 
@@ -702,15 +735,38 @@ cache types. The key changes:
 | **`oak-run-commons/.../DocumentNodeStoreHelper.java`** | Cross-module cascade: `getNodeCache()` return type changed here, so this caller must be updated in the same PR. |
 | **`oak-benchmarks/.../PersistentCacheTest.java`** | Second-level cascade: calls `getNodesCache()`, whose return type also changed. |
 
+### OSGi wiring fix — eviction callback in `buildCache()` (discovered in Batch 6)
+
+`DocumentNodeStoreBuilder.buildCache()` wires up a LIRS eviction callback that originally
+called `LirsCacheAdapter.toOakCause(cause)`. `LirsCacheAdapter` is in the unexported
+`impl.lirs` package, so `oak-store-document` failed OSGi bundle resolution (never reached
+ACTIVE state). Symptoms in `OSGiIT`:
+
+```
+AssertionError: Bundle oak-store-document not active. expected:<32> but was:<2>
+ClassNotFoundException: LeaseFailureHandler not found
+```
+
+**Fix:** call `CacheLIRS.toOakCause(cause)` instead (`org.apache.jackrabbit.oak.cache`,
+exported). Adding `toOakCause()` to `CacheLIRS` required a minor version bump on
+`org.apache.jackrabbit.oak.cache` in `package-info.java` (OSGi baseline check).
+
+**Rule for future batches:** before closing, grep consumer modules for impl references:
+```bash
+grep -rn "cache.impl" <module>/src/main/java   # must return zero results
+```
+
 ### Acceptance criteria
 
 - No `org.apache.jackrabbit.guava.common.cache` imports in `oak-store-document/src/` (main and test).
+- No `org.apache.jackrabbit.oak.cache.impl` imports in `oak-store-document/src/main/java`.
 - Persistent cache eviction behavior unchanged.
 - Checked loader failures surface as `CompletionException` on the Oak-visible API.
 - Synchronous eviction callback timing preserved where persistent cache depends on it.
 - All existing tests pass: `NodeDocumentCacheTest`, `CacheChangesTrackerTest`,
   `AsyncCacheTest`, `DisableCacheTest`, `BranchTest`, `MemoryDiffCacheTest`, `LocalDiffCacheTest`,
   `persistentCache.CacheTest`, `persistentCache.NodeCacheTest`.
+- `OSGiIT.bundleStates` passes (`oak-store-document` bundle reaches ACTIVE state).
 
 ---
 

@@ -41,7 +41,6 @@ import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
 import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
 import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.apache.jackrabbit.oak.cache.api.Weigher;
-import org.apache.jackrabbit.oak.cache.impl.lirs.LirsCacheAdapter;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.cache.EmpiricalWeigher;
@@ -1153,7 +1152,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
                     .recordStats()
                     .evictionCallback((key, value, cause) -> {
                         for (EvictionListener<K, V> l : listeners) {
-                            l.evicted(key, value, LirsCacheAdapter.toOakCause(cause));
+                            l.evicted(key, value, CacheLIRS.toOakCause(cause));
                         }
                     })
                     .build().asOakCache();
