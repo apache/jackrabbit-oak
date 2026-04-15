@@ -30,6 +30,8 @@ import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.file.MetricsRemoteStoreMonitor;
 import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
+import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
@@ -272,6 +274,47 @@ public class AzureRepositoryLockV8Test {
             lock.unlock();
         } finally {
             wireMockServer.stop();
+        }
+    }
+
+    @Test
+    public void testAzurePersistenceV8ShutdownHookFiresMetric() throws Exception {
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        DefaultStatisticsProvider statisticsProvider = new DefaultStatisticsProvider(executor);
+        try (ExecutorCloser ignored = new ExecutorCloser(executor)) {
+            MetricsRemoteStoreMonitor monitor = new MetricsRemoteStoreMonitor(statisticsProvider);
+            CounterStats lockLostCounter = statisticsProvider.getCounterStats(
+                    MetricsRemoteStoreMonitor.REPOSITORY_LOCK_LOST, StatsOptions.DEFAULT);
+
+            AzurePersistenceV8 persistence = new AzurePersistenceV8(container.getDirectoryReference("oak"));
+
+            // Wire the monitor via createArchiveManager
+            persistence.createArchiveManager(false, false,
+                    Mockito.mock(IOMonitor.class), Mockito.mock(FileStoreMonitor.class), monitor);
+
+            assertEquals(0, lockLostCounter.getCount());
+
+            // Simulate the shutdown hook firing
+            persistence.onRepositoryLockLost();
+
+            assertEquals("REPOSITORY_LOCK_LOST counter should be incremented", 1, lockLostCounter.getCount());
+        }
+    }
+
+    @Test
+    public void testAzurePersistenceV8ShutdownHookWithoutMonitor() throws Exception {
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        DefaultStatisticsProvider statisticsProvider = new DefaultStatisticsProvider(executor);
+        try (ExecutorCloser ignored = new ExecutorCloser(executor)) {
+            CounterStats lockLostCounter = statisticsProvider.getCounterStats(
+                    MetricsRemoteStoreMonitor.REPOSITORY_LOCK_LOST, StatsOptions.DEFAULT);
+
+            AzurePersistenceV8 persistence = new AzurePersistenceV8(container.getDirectoryReference("oak"));
+
+            // Should not throw and counter should remain zero when no monitor is wired
+            persistence.onRepositoryLockLost();
+
+            assertEquals(0, lockLostCounter.getCount());
         }
     }
 

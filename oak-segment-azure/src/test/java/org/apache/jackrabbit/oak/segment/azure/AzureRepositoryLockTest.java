@@ -33,6 +33,8 @@ import com.azure.storage.blob.specialized.BlobLeaseClientBuilder;
 import com.azure.storage.blob.specialized.BlockBlobClient;
 import org.apache.jackrabbit.oak.segment.file.MetricsRemoteStoreMonitor;
 import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
+import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
@@ -410,6 +412,48 @@ public class AzureRepositoryLockTest {
                     .untilAsserted(() -> assertEquals(
                             "REPOSITORY_LOCK_LOST counter should be incremented after non-transient error",
                             1, lockLostCounter.getCount()));
+        }
+    }
+
+    @Test
+    public void testAzurePersistenceShutdownHookFiresMetric() {
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        DefaultStatisticsProvider statisticsProvider = new DefaultStatisticsProvider(executor);
+        try (ExecutorCloser ignored = new ExecutorCloser(executor)) {
+            MetricsRemoteStoreMonitor monitor = new MetricsRemoteStoreMonitor(statisticsProvider);
+            CounterStats lockLostCounter = statisticsProvider.getCounterStats(
+                    MetricsRemoteStoreMonitor.REPOSITORY_LOCK_LOST, StatsOptions.DEFAULT);
+
+            AzurePersistence persistence = new AzurePersistence(readBlobContainerClient, "oak");
+
+            // Wire the monitor via createArchiveManager
+            persistence.createArchiveManager(false, false,
+                    Mockito.mock(IOMonitor.class), Mockito.mock(FileStoreMonitor.class), monitor);
+
+            // Before the hook fires, counter should be zero
+            assertEquals(0, lockLostCounter.getCount());
+
+            // Simulate the shutdown hook firing (as would happen on non-transient lease error)
+            persistence.onRepositoryLockLost();
+
+            assertEquals("REPOSITORY_LOCK_LOST counter should be incremented", 1, lockLostCounter.getCount());
+        }
+    }
+
+    @Test
+    public void testAzurePersistenceShutdownHookWithoutMonitor() throws Exception {
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        DefaultStatisticsProvider statisticsProvider = new DefaultStatisticsProvider(executor);
+        try (ExecutorCloser ignored = new ExecutorCloser(executor)) {
+            CounterStats lockLostCounter = statisticsProvider.getCounterStats(
+                    MetricsRemoteStoreMonitor.REPOSITORY_LOCK_LOST, StatsOptions.DEFAULT);
+
+            AzurePersistence persistence = new AzurePersistence(readBlobContainerClient, "oak");
+
+            // Should not throw and counter should remain zero when no monitor is wired
+            persistence.onRepositoryLockLost();
+
+            assertEquals(0, lockLostCounter.getCount());
         }
     }
 

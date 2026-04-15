@@ -103,13 +103,16 @@ public class AzurePersistenceV8 implements SegmentNodeStorePersistence {
 
     @Override
     public RepositoryLock lockRepository() throws IOException {
-        return new AzureRepositoryLockV8(getBlockBlob("repo.lock"), () -> {
-            log.error("Lost connection to Azure. The repository lock lease could not be renewed.");
-            RemoteStoreMonitor monitor = remoteStoreMonitor.get();
-            if (monitor != null) {
-                monitor.repositoryLockLost();
-            }
-        }, writeAccessController).lock();
+        return new AzureRepositoryLockV8(getBlockBlob("repo.lock"),
+                this::onRepositoryLockLost, writeAccessController).lock();
+    }
+
+    void onRepositoryLockLost() {
+        log.error("Lost connection to Azure. The repository lock lease could not be renewed.");
+        RemoteStoreMonitor monitor = remoteStoreMonitor.get();
+        if (monitor != null) {
+            monitor.repositoryLockLost();
+        }
     }
 
     private CloudBlockBlob getBlockBlob(String path) throws IOException {
