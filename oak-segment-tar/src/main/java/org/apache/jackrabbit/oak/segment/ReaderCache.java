@@ -25,11 +25,8 @@ import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 import java.util.Arrays;
 import java.util.function.Function;
 
-<<<<<<< HEAD
 import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
-=======
->>>>>>> 0bc29e1386 (OAK-12158 : used cachestatsadaptor while creating cachestats)
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.api.Cache;

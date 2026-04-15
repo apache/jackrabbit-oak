@@ -593,10 +593,10 @@ the `org.apache.jackrabbit.oak.cache` package version must be bumped in `package
 **Independent of:** none
 
 > **This task is a cleanup gate.** `CacheBuilder` already produces only Caffeine-backed
-> caches. What remains is removing the transitional LIRS adapter code and the `CacheLIRS`
-> class itself once every consumer has migrated away from `CacheLIRS.asOakCache()`.
-> Execute this task only after OAK-12149 through OAK-12160 are all merged and no module
-> outside `oak-core-spi` references `CacheLIRS` or its adapters.
+> caches. `CacheLIRS` is **not removed** — it stays as-is; callers that still need it
+> continue to use `CacheLIRS.newBuilder()` and expose the result via `CacheLIRS.asOakCache()`.
+> What changes here is removing transitional shims and decoupling `AbstractCacheStats` from Guava.
+> Execute this task only after OAK-12149 through OAK-12160 are all merged.
 
 ### What changes
 - `AbstractCacheStats.java` — change `getCurrentStats()` return type from Guava shim `CacheStats` to `CacheStatsSnapshot`; rewrite internal `lastSnapshot` field and `stats()` method to use `CacheStatsSnapshot` arithmetic
@@ -605,9 +605,8 @@ the `org.apache.jackrabbit.oak.cache` package version must be bumped in `package
 - `GuavaCompatibleEmpiricalWeigher` — remove the temporary Guava-compatibility bridge introduced during the migration
 - `RecordCacheStats.java`, `SegmentCache.Stats`, `SegmentCacheStats.java` — update `getCurrentStats()` to return `CacheStatsSnapshot` directly (drop Guava conversion shims added in OAK-12157/OAK-12158)
 - Mark old `CacheStats` constructor (`Cache<?,?>` Guava shim) as `@Deprecated(forRemoval = true)`
-- **Remove `LirsCacheAdapter` and `LirsLoadingCacheAdapter`** — no longer needed once no consumer calls `CacheLIRS.asOakCache()`
-- **Remove `CacheLIRS`** (or mark `@Deprecated(forRemoval = true)` — since it was already `@Internal`, outright removal is acceptable)
-- Verify no module outside `oak-core-spi` references `CacheLIRS` or its `asOakCache()` bridge
+- **`CacheLIRS` is NOT removed.** It stays as-is; callers that need LIRS continue using `CacheLIRS.newBuilder()` and `CacheLIRS.asOakCache()`.
+- **`LirsCacheAdapter` and `LirsLoadingCacheAdapter`** — remove only if a full-repo grep confirms no module outside `oak-core-spi` calls `CacheLIRS.asOakCache()`. If callers remain, keep the adapters.
 - Grep: confirm no module outside `oak-core-spi` imports `com.github.benmanes.caffeine.cache` or `org.apache.jackrabbit.guava.common.cache`
 - Remove any Guava cache shim re-exports if they still exist
 
@@ -633,6 +632,6 @@ to `CacheStatsSnapshot`.
 - `mvn clean install` succeeds (full test suite)
 - `AbstractCacheStats.getCurrentStats()` returns `CacheStatsSnapshot`; no Guava types in `AbstractCacheStats` or its subclasses
 - No Caffeine or Guava cache types in any public API surface outside `oak-core-spi`
-- No `CacheLIRS` or `LirsCacheAdapter` classes remain (or `CacheLIRS` is `@Deprecated(forRemoval = true)`)
-- `CacheBuilder` has no `lirs` code path — Caffeine is the sole implementation
+- `CacheLIRS` remains intact; `LirsCacheAdapter`/`LirsLoadingCacheAdapter` removed only if no consumer calls `asOakCache()` (verify before deleting)
+- `CacheBuilder` has no `lirs` code path — Caffeine is the sole implementation created by the builder
 - OSGi integration tests pass
