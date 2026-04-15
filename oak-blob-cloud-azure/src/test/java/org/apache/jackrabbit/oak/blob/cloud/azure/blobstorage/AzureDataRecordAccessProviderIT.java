@@ -76,7 +76,7 @@ public class AzureDataRecordAccessProviderIT extends AbstractDataRecordAccessPro
 
     @Override
     protected long getProviderMaxPartSize() {
-        return AzureConstants.AZURE_BLOB_MAX_MULTIPART_UPLOAD_PART_SIZE;
+        return AzureBlobStoreBackend.MAX_MULTIPART_UPLOAD_PART_SIZE;
     }
 
     @Override
