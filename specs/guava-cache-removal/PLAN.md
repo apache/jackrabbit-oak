@@ -788,8 +788,12 @@ Batch 0 merged.
 2. **`RecordCache`** — uses Guava-shim `CacheBuilder.newBuilder()` with a `Weigher`.
    Migrate to `CacheBuilder`.
 
-3. **`ReaderCache`** — uses `CacheLIRS.newBuilder()` directly. Migrate to
-   `CacheBuilder` (which creates a Caffeine-backed `Cache`).
+3. **`ReaderCache`** — uses `CacheLIRS.newBuilder()` directly. Expose as `Cache<K,V>`
+   by calling `CacheLIRS.asOakCache()` on the existing instance; retain the `CacheLIRS`
+   reference for stats (which still uses the CacheLIRS-specific `CacheStats` constructor
+   until OAK-12162). The field type changes from `CacheLIRS<CacheKey, T>` to
+   `org.apache.jackrabbit.oak.cache.api.Cache<CacheKey, T>`; all call sites switch to
+   the Oak API methods (`getIfPresent`, `put`, `invalidateAll`).
 
 4. **`PriorityCache`** — check trunk; update if it references Guava shim cache types directly.
 
@@ -807,7 +811,7 @@ Batch 0 merged.
 |------|--------|
 | `SegmentCache.java` | `CacheBuilder.newBuilder()` (Guava shim) → `CacheBuilder`. `Cache` → `Cache`. Guava `RemovalCause` → `EvictionCause`. |
 | `RecordCache.java` | `CacheBuilder.newBuilder()` (Guava shim) → `CacheBuilder`. `Cache` → `Cache`. Guava `Weigher` → `Weigher`. |
-| `ReaderCache.java` | `CacheLIRS.newBuilder()` → `CacheBuilder`. `CacheLIRS<K,V>` → `Cache<K,V>`. |
+| `ReaderCache.java` | Keep `CacheLIRS` instance; expose as `Cache<K,V>` via `CacheLIRS.asOakCache()`. Field type `CacheLIRS<CacheKey,T>` → `Cache<CacheKey,T>`. |
 | `PriorityCache.java` | Update if it references Caffeine types directly. |
 | `WriterCacheManager.java` | Update cache type references. |
 | `RecordCacheStats.java` | Update to use `CacheStatsSnapshot`. |

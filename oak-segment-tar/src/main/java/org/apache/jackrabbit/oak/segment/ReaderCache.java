@@ -26,8 +26,12 @@ import java.util.Arrays;
 import java.util.function.Function;
 
 import org.apache.jackrabbit.oak.cache.api.Weigher;
+import org.apache.jackrabbit.guava.common.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
-import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.api.Cache;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
+import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -52,10 +56,13 @@ public abstract class ReaderCache<T> {
     private final FastCache<T> fastCache;
 
     /**
-     * The slower (LIRS) cache.
+     * The slower (LIRS) cache, exposed through the Oak Cache API.
      */
     @NotNull
-    private final CacheLIRS<CacheKey, T> cache;
+    private final Cache<CacheKey, T> cache;
+
+    @NotNull
+    private final AbstractCacheStats cacheStats;
 
     /**
      * Create a new string cache.
@@ -75,13 +82,13 @@ public abstract class ReaderCache<T> {
                 .maximumWeight(maxWeight)
                 .averageWeight(averageWeight)
                 .weigher(weigher::weigh)
-                .build();
+                .build()
+                .asOakCache();
     }
 
     @NotNull
-    public CacheStats getStats() {
-        org.apache.jackrabbit.guava.common.cache.Weigher<CacheKey, T> guavaWeigher = weigher::weigh;
-        return new CacheStats(cache, name, guavaWeigher, cache.getMaxMemory());
+    public AbstractCacheStats getStats() {
+        return cacheStats;
     }
 
     private static int getEntryHash(long lsb, long msb, int offset) {

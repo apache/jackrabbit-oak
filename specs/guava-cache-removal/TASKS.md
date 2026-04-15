@@ -512,22 +512,14 @@ the `org.apache.jackrabbit.oak.cache` package version must be bumped in `package
 **Independent of:** OAK-12149, OAK-12150, OAK-12151, OAK-12152, OAK-12153, OAK-12154, OAK-12155, OAK-12156, OAK-12157, OAK-12159, OAK-12160
 
 ### What changes
-- `ReaderCache.java` — `CacheLIRS.newBuilder()` to `CacheBuilder`; `CacheLIRS<K,V>` to `Cache<K,V>`
-- `WriterCacheManager.java` — update cache type references
+- `ReaderCache.java` — keep the `CacheLIRS<CacheKey, T>` instance; call `CacheLIRS.asOakCache()` to obtain a `Cache<CacheKey, T>` view; retain the `CacheLIRS` reference for `getStats()` (unchanged — still uses the CacheLIRS-specific `CacheStats(cache, name, weigher, maxMemory)` constructor); all call sites switch to Oak API methods (`getIfPresent`, `put`, `invalidateAll`)
+- `WriterCacheManager.java` — update cache type references if any reference Guava shim cache builder types directly
 - `PriorityCache.java` — update if it references Guava shim cache types directly
-- `RecordCacheStats.java` — update to obtain stats from the migrated `Cache`; convert `CacheStatsSnapshot` → Guava shim `CacheStats` in `getCurrentStats()` (Guava return type kept until OAK-12162)
-- `spi/persistence/persistentcache/SegmentCacheStats.java` — same: convert `CacheStatsSnapshot` → Guava shim `CacheStats` in `getCurrentStats()` until OAK-12162
-- `SegmentNodeStoreRegistrar.java` — update if it references cache builder types
-- **`DefaultSegmentWriter.java`** — `nodeCache.put(key, value, memoryCost)` must be replaced with `nodeCache.put(key, value)`. Add an `Weigher` to the `CacheBuilder` configuration that computes the same memory cost from the key/value, so Caffeine can use it at insertion time. The CacheLIRS-specific 3-arg `put` is not on `Cache`.
-
-### Exception handling migration
-- Callers of `cache.get(key, callable)` must switch to `cache.get(key, k -> ...)`
-- Callers of `loadingCache.get(key)` must stop catching checked `ExecutionException`; runtime failures propagate directly and checked loader failures surface as `CompletionException`
 
 ### Acceptance criteria
-- No `org.apache.jackrabbit.guava.common.cache` imports in `oak-segment-tar/src/` (main and test)
+- No `org.apache.jackrabbit.guava.common.cache.CacheBuilder` / `Cache` / `Weigher` / `RemovalListener` imports in `oak-segment-tar/src/` (main and test); Guava `CacheStats` shim import allowed in `getStats()` implementations until OAK-12162
 - `PriorityCacheTest`, `ConcurrentPriorityCacheTest`, `ReaderCacheTest` pass
-- Memoization behavior unchanged
+- Memoization and eviction behavior unchanged (CacheLIRS remains the backing implementation)
 
 ---
 
