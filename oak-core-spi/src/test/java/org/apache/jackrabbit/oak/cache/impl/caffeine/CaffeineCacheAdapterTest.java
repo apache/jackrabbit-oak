@@ -20,7 +20,7 @@ import java.util.Arrays;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.RemovalCause;
-import org.apache.jackrabbit.oak.cache.CacheStatsSnapshot;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
 import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.junit.Assert;
 import org.junit.Test;

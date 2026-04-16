@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.cache;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.cache.api.Cache;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
 import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
