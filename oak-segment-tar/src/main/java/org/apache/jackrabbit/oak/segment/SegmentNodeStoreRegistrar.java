@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.api.jmx.FileStoreBackupRestoreMBean;
 import org.apache.jackrabbit.oak.backup.impl.FileStoreBackupRestoreImpl;
-import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
+import org.apache.jackrabbit.oak.cache.api.CacheStats;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGC;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGCMBean;
@@ -287,7 +287,7 @@ class SegmentNodeStoreRegistrar {
         registerCloseable(registerMBean(
             CacheStatsMBean.class,
             segmentCacheStats,
-            CacheStatsAdapter.TYPE,
+            CacheStats.TYPE,
             segmentCacheStats.getName()
         ));
 
@@ -297,7 +297,7 @@ class SegmentNodeStoreRegistrar {
         registerCloseable(registerMBean(
             CacheStatsMBean.class,
             stringCacheStats,
-            CacheStatsAdapter.TYPE,
+            CacheStats.TYPE,
             stringCacheStats.getName()
         ));
 
@@ -305,7 +305,7 @@ class SegmentNodeStoreRegistrar {
         registerCloseable(registerMBean(
             CacheStatsMBean.class,
             templateCacheStats,
-            CacheStatsAdapter.TYPE,
+            CacheStats.TYPE,
             templateCacheStats.getName()
         ));
 
@@ -315,7 +315,7 @@ class SegmentNodeStoreRegistrar {
             registerCloseable(registerMBean(
                 CacheStatsMBean.class,
                 stringDeduplicationCacheStats,
-                CacheStatsAdapter.TYPE,
+                CacheStats.TYPE,
                 stringDeduplicationCacheStats.getName()
             ));
         }
@@ -325,7 +325,7 @@ class SegmentNodeStoreRegistrar {
             registerCloseable(registerMBean(
                 CacheStatsMBean.class,
                 templateDeduplicationCacheStats,
-                CacheStatsAdapter.TYPE,
+                CacheStats.TYPE,
                 templateDeduplicationCacheStats.getName()
             ));
         }
@@ -335,7 +335,7 @@ class SegmentNodeStoreRegistrar {
             registerCloseable(registerMBean(
                 CacheStatsMBean.class,
                 nodeDeduplicationCacheStats,
-                CacheStatsAdapter.TYPE,
+                CacheStats.TYPE,
                 nodeDeduplicationCacheStats.getName()
             ));
         }
