@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document;
 import com.codahale.metrics.MetricRegistry;
 import com.mongodb.ConnectionString;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.cache.api.CacheStats;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.pio.Closer;

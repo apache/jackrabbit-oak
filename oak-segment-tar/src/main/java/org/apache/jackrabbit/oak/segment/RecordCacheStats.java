@@ -23,7 +23,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.function.Supplier;
 
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
-import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
+import org.apache.jackrabbit.oak.cache.CacheStatsSnapshot;
 import org.jetbrains.annotations.NotNull;
 
 /**
