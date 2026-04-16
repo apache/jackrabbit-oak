@@ -29,10 +29,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
+import org.apache.jackrabbit.oak.cache.api.CacheCounters;
 import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.apache.jackrabbit.oak.segment.CacheWeights.SegmentCacheWeigher;
 import org.jetbrains.annotations.NotNull;
@@ -344,8 +344,8 @@ public abstract class SegmentCache {
         }
 
         @Override
-        protected CacheStats getCurrentStats() {
-            return new CacheStats(
+        protected CacheCounters getCurrentStats() {
+            return new CacheCounters(
                     hitCount.get(),
                     missCount.get(),
                     loadSuccessCount.get(),

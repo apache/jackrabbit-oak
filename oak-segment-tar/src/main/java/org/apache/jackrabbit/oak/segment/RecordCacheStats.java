@@ -22,8 +22,8 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
+import org.apache.jackrabbit.oak.cache.api.CacheCounters;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -32,7 +32,7 @@ import org.jetbrains.annotations.NotNull;
 public class RecordCacheStats extends AbstractCacheStats {
 
     @NotNull
-    private final Supplier<CacheStats> stats;
+    private final Supplier<CacheCounters> stats;
 
     @NotNull
     private final Supplier<Long> elementCount;
@@ -42,7 +42,7 @@ public class RecordCacheStats extends AbstractCacheStats {
 
     public RecordCacheStats(
             @NotNull String name,
-            @NotNull Supplier<CacheStats> stats,
+            @NotNull Supplier<CacheCounters> stats,
             @NotNull Supplier<Long> elementCount,
             @NotNull Supplier<Long> weight) {
         super(name);
@@ -52,7 +52,7 @@ public class RecordCacheStats extends AbstractCacheStats {
     }
 
     @Override
-    protected CacheStats getCurrentStats() {
+    protected CacheCounters getCurrentStats() {
         return stats.get();
     }
 

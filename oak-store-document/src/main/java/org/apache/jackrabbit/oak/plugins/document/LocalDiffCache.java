@@ -20,10 +20,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.cache.api.Cache;
-import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
+import org.apache.jackrabbit.oak.cache.api.CacheStats;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
@@ -46,11 +45,11 @@ public class LocalDiffCache extends DiffCache {
     private static int MAX_ENTRY_SIZE = 16 * 1024 * 1024;
 
     private final Cache<RevisionsKey, Diff> diffCache;
-    private final AbstractCacheStats diffCacheStats;
+    private final CacheStats diffCacheStats;
 
     LocalDiffCache(DocumentNodeStoreBuilder<?> builder) {
         this.diffCache = builder.buildLocalDiffCache();
-        this.diffCacheStats = new CacheStatsAdapter(diffCache,
+        this.diffCacheStats = new CacheStats(diffCache,
                 "Document-LocalDiff",
                 (k, v) -> builder.getWeigher().weigh(k, v), builder.getLocalDiffCacheSize());
     }
@@ -108,7 +107,7 @@ public class LocalDiffCache extends DiffCache {
 
     @NotNull
     @Override
-    public Iterable<AbstractCacheStats> getStats() {
+    public Iterable<CacheStats> getStats() {
         return Collections.singleton(diffCacheStats);
     }
 
