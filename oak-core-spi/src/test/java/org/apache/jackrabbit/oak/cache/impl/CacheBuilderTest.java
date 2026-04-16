@@ -22,7 +22,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.oak.cache.api.Cache;
-import org.apache.jackrabbit.oak.cache.api.CacheCounters;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
 import org.apache.jackrabbit.oak.cache.api.LoadingCache;
 import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
@@ -172,7 +172,7 @@ public class CacheBuilderTest {
         cache.getIfPresent("k");
         cache.getIfPresent("missing");
 
-        CacheCounters stats = cache.stats();
+        CacheStatsSnapshot stats = cache.stats();
         Assert.assertNotNull(stats);
         Assert.assertEquals(1, stats.hitCount());
         Assert.assertEquals(1, stats.missCount());

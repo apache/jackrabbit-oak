@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 
 import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
-import org.apache.jackrabbit.oak.cache.api.CacheCounters;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
 import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.jetbrains.annotations.NotNull;
 
@@ -51,7 +51,7 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
      * @return  access statistics for this cache
      */
     @NotNull
-    public abstract CacheCounters getStats();
+    public abstract CacheStatsSnapshot getStats();
 
     /**
      * Factory method for creating {@code RecordCache} instances. The returned
@@ -110,8 +110,8 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
         }
 
         @Override
-        public @NotNull CacheCounters getStats() {
-            return new CacheCounters(0, missCount.sum(), 0, 0, 0, 0);
+        public @NotNull CacheStatsSnapshot getStats() {
+            return new CacheStatsSnapshot(0, missCount.sum(), 0, 0, 0, 0);
         }
 
         @Override
@@ -146,10 +146,10 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
         private final LongAdder loadCount = new LongAdder();
 
         @Override
-        public @NotNull CacheCounters getStats() {
-            CacheCounters snapshot = cache.stats();
+        public @NotNull CacheStatsSnapshot getStats() {
+            CacheStatsSnapshot snapshot = cache.stats();
             // any addition to the cache counts as load by our definition
-            return new CacheCounters(snapshot.hitCount(), snapshot.missCount(),
+            return new CacheStatsSnapshot(snapshot.hitCount(), snapshot.missCount(),
                     loadCount.sum(), 0, 0, snapshot.evictionCount());
         }
 
