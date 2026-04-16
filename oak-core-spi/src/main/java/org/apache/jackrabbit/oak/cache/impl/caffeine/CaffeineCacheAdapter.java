@@ -20,9 +20,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
-import com.github.benmanes.caffeine.cache.Policy;
 import com.github.benmanes.caffeine.cache.RemovalCause;
-import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
+import org.apache.jackrabbit.oak.cache.api.CacheCounters;
 import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.jetbrains.annotations.NotNull;
@@ -75,9 +74,9 @@ public class CaffeineCacheAdapter<K, V> implements Cache<K, V> {
 
     @Override
     @NotNull
-    public CacheStatsSnapshot stats() {
+    public CacheCounters stats() {
         com.github.benmanes.caffeine.cache.stats.CacheStats s = cache.stats();
-        return new CacheStatsSnapshot(
+        return new CacheCounters(
                 s.hitCount(), s.missCount(),
                 s.loadSuccessCount(), s.loadFailureCount(),
                 s.totalLoadTime(), s.evictionCount());

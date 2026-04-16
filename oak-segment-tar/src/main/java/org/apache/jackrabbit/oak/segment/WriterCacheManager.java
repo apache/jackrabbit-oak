@@ -29,8 +29,8 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
+import org.apache.jackrabbit.oak.cache.api.CacheCounters;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.segment.file.PriorityCache;
 import org.apache.jackrabbit.oak.stats.CounterStats;
@@ -353,14 +353,20 @@ public abstract class WriterCacheManager {
         }
 
         @NotNull
-        private static <T> Supplier<CacheStats> accumulateRecordCacheStats(
+        private static <T> Supplier<CacheCounters> accumulateRecordCacheStats(
                 final Iterable<RecordCache<T>> caches) {
             return () -> {
-                CacheStats stats = new CacheStats(0, 0, 0, 0, 0, 0);
+                long hits = 0, misses = 0, loads = 0, failures = 0, loadTime = 0, evictions = 0;
                 for (RecordCache<?> cache : caches) {
-                    stats = stats.plus(cache.getStats());
+                    CacheCounters s = cache.getStats();
+                    hits += s.hitCount();
+                    misses += s.missCount();
+                    loads += s.loadSuccessCount();
+                    failures += s.loadFailureCount();
+                    loadTime += s.totalLoadTime();
+                    evictions += s.evictionCount();
                 }
-                return stats;
+                return new CacheCounters(hits, misses, loads, failures, loadTime, evictions);
             };
         }
 

@@ -1,0 +1,1985 @@
+{
+  "schema_version": 2,
+  "total_downstream": 32,
+  "generated_at": "2026-08-23T08:46:07.558Z",
+  "downstream": {
+    "https://github.com/Adobe-AEM-CPSS/oak-repository-service": {
+      "skipped": false,
+      "reason": null,
+      "entries": [
+        {
+          "importing_bundle": "org.apache.jackrabbit.oak-repository-service-client-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache",
+          "changed_files": [
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/AbstractCacheStats.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/CacheStats.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/EmpiricalWeigher.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/package-info.java",
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/AbstractCacheStatsTest.java",
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/CacheStatsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oakrs-online-migration-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache",
+          "changed_files": [
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/AbstractCacheStats.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/CacheStats.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/EmpiricalWeigher.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/package-info.java",
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/AbstractCacheStatsTest.java",
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/CacheStatsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oak-repository-service-client-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.api",
+          "changed_files": [
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/api/CacheStatsAdapter.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/api/CacheStatsSnapshot.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/api/package-info.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oakrs-online-migration-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.api",
+          "changed_files": [
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/api/CacheStatsAdapter.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/api/CacheStatsSnapshot.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/api/package-info.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oak-repository-service-client-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oak-repository-service-client-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oakrs-online-migration-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oakrs-online-migration-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oak-repository-service-client-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl.caffeine",
+          "changed_files": [
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/impl/caffeine/CaffeineCacheAdapter.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oakrs-online-migration-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl.caffeine",
+          "changed_files": [
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/impl/caffeine/CaffeineCacheAdapter.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oak-repository-service-client-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-blob-plugins",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.blob",
+          "changed_files": [
+            "oak-blob-plugins/src/main/java/org/apache/jackrabbit/oak/plugins/blob/CachingBlobStore.java",
+            "oak-blob-plugins/src/main/java/org/apache/jackrabbit/oak/plugins/blob/FileCache.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oakrs-online-migration-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-blob-plugins",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.blob",
+          "changed_files": [
+            "oak-blob-plugins/src/main/java/org/apache/jackrabbit/oak/plugins/blob/CachingBlobStore.java",
+            "oak-blob-plugins/src/main/java/org/apache/jackrabbit/oak/plugins/blob/FileCache.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oak-repository-service-client-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-blob-plugins",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.blob.datastore",
+          "changed_files": [
+            "oak-blob-plugins/src/main/java/org/apache/jackrabbit/oak/plugins/blob/datastore/DataStoreBlobStore.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oakrs-online-migration-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-blob-plugins",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.blob.datastore",
+          "changed_files": [
+            "oak-blob-plugins/src/main/java/org/apache/jackrabbit/oak/plugins/blob/datastore/DataStoreBlobStore.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oakrs-online-migration-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-store-document",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.document",
+          "changed_files": [
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/DiffCache.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStore.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStoreBuilder.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStoreService.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/DocumentStore.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/JournalDiffLoader.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/LocalDiffCache.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/MemoryDiffCache.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/TieredDiffCache.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/AmnesiaDiffCache.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/CountingDocumentStore.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/DocumentMKBuilderTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStoreBuilderTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStoreDiffTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/DocumentStoreWrapper.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/LocalDiffCacheTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/MemoryDiffCacheTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/NodeStoreDiffTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/TieredDiffCacheTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oakrs-online-migration-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-store-document",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.document.cache",
+          "changed_files": [
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/cache/NodeDocumentCache.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/cache/CacheChangesTrackerTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/cache/NodeDocumentCacheTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oakrs-online-migration-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-store-document",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.document.memory",
+          "changed_files": [
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/memory/MemoryDocumentStore.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oakrs-online-migration-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-store-document",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.document.mongo",
+          "changed_files": [
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/mongo/MongoDocumentStore.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oakrs-online-migration-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-store-document",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.document.rdb",
+          "changed_files": [
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/rdb/RDBDocumentStore.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oakrs-online-migration-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-store-document",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.document.util",
+          "changed_files": [
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/util/LeaseCheckDocumentStoreWrapper.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/util/LoggingDocumentStoreWrapper.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/util/SynchronizingDocumentStoreWrapper.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/util/ThrottlingDocumentStoreWrapper.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/util/TimingDocumentStoreWrapper.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oak-repository-service-client-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-remote",
+          "exported_package": "org.apache.jackrabbit.oak.segment",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/CachingSegmentReader.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/ReaderCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCacheStats.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/SegmentCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/WriterCacheManager.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oak-repository-service-client-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-tar",
+          "exported_package": "org.apache.jackrabbit.oak.segment",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/CachingSegmentReader.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/ReaderCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCacheStats.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/SegmentCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/WriterCacheManager.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oakrs-online-migration-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-remote",
+          "exported_package": "org.apache.jackrabbit.oak.segment",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/CachingSegmentReader.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/ReaderCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCacheStats.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/SegmentCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/WriterCacheManager.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oakrs-online-migration-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-tar",
+          "exported_package": "org.apache.jackrabbit.oak.segment",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/CachingSegmentReader.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/ReaderCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCacheStats.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/SegmentCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/WriterCacheManager.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oak-repository-service-client-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-tar",
+          "exported_package": "org.apache.jackrabbit.oak.segment.file",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/file/PriorityCache.java",
+            "oak-segment-tar/src/test/java/org/apache/jackrabbit/oak/segment/file/PriorityCacheTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oakrs-online-migration-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-tar",
+          "exported_package": "org.apache.jackrabbit.oak.segment.file",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/file/PriorityCache.java",
+            "oak-segment-tar/src/test/java/org/apache/jackrabbit/oak/segment/file/PriorityCacheTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oak-repository-service-client-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-tar",
+          "exported_package": "org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/spi/persistence/persistentcache/SegmentCacheStats.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "org.apache.jackrabbit.oakrs-online-migration-bundle",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-tar",
+          "exported_package": "org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/spi/persistence/persistentcache/SegmentCacheStats.java"
+          ],
+          "dependency_type": "compile"
+        }
+      ]
+    },
+    "https://git.corp.adobe.com/CQ/dam": {
+      "skipped": true,
+      "reason": "Command failed: git clone --bare --depth 1 https://git.corp.adobe.com/CQ/dam /Users/diam/workspace/jackrabbit-oak-workspace/jackrabbit-oak/.blast-radius-checkouts/.server-repo-cache/git.corp.adobe.com/CQ/dam.git\nCloning into bare repository '/Users/diam/workspace/jackrabbit-oak-workspace/jackrabbit-oak/.blast-radius-checkouts/.server-repo-cache/git.corp.adobe.com/CQ/dam.git'...\nerror: RPC failed; curl 56 Recv failure: Connection reset by peer\nerror: 28 bytes of body are still expected\nfatal: expected flush after ref listing\n",
+      "entries": [
+        {
+          "importing_bundle": "com.adobe.cq.dam.cq-dam-processor-nui",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "test"
+        },
+        {
+          "importing_bundle": "com.adobe.cq.dam.cq-dam-processor-nui",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "test"
+        },
+        {
+          "importing_bundle": "cq-dam-repository-insights-agent",
+          "exporting_bundle": "org.apache.jackrabbit.oak-blob-plugins",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.blob",
+          "changed_files": [
+            "oak-blob-plugins/src/main/java/org/apache/jackrabbit/oak/plugins/blob/CachingBlobStore.java",
+            "oak-blob-plugins/src/main/java/org/apache/jackrabbit/oak/plugins/blob/FileCache.java"
+          ],
+          "dependency_type": "test"
+        },
+        {
+          "importing_bundle": "cq-dam-repository-insights-agent",
+          "exporting_bundle": "org.apache.jackrabbit.oak-blob-plugins",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.blob.datastore",
+          "changed_files": [
+            "oak-blob-plugins/src/main/java/org/apache/jackrabbit/oak/plugins/blob/datastore/DataStoreBlobStore.java"
+          ],
+          "dependency_type": "test"
+        },
+        {
+          "importing_bundle": "com.day.cq.dam.cq-dam-similaritysearch",
+          "exporting_bundle": "org.apache.jackrabbit.oak-lucene",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.index.lucene",
+          "changed_files": [
+            "oak-lucene/src/main/java/org/apache/jackrabbit/oak/plugins/index/lucene/LuceneIndexProviderService.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "cq-dam-repository-insights-agent",
+          "exporting_bundle": "org.apache.jackrabbit.oak-lucene",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.index.lucene",
+          "changed_files": [
+            "oak-lucene/src/main/java/org/apache/jackrabbit/oak/plugins/index/lucene/LuceneIndexProviderService.java"
+          ],
+          "dependency_type": "test"
+        },
+        {
+          "importing_bundle": "cq-dam-repository-insights-agent",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-remote",
+          "exported_package": "org.apache.jackrabbit.oak.segment",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/CachingSegmentReader.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/ReaderCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCacheStats.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/SegmentCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/WriterCacheManager.java"
+          ],
+          "dependency_type": "test"
+        },
+        {
+          "importing_bundle": "cq-dam-repository-insights-agent",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-tar",
+          "exported_package": "org.apache.jackrabbit.oak.segment",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/CachingSegmentReader.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/ReaderCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCacheStats.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/SegmentCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/WriterCacheManager.java"
+          ],
+          "dependency_type": "test"
+        },
+        {
+          "importing_bundle": "cq-dam-repository-insights-agent",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-tar",
+          "exported_package": "org.apache.jackrabbit.oak.segment.file",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/file/PriorityCache.java",
+            "oak-segment-tar/src/test/java/org/apache/jackrabbit/oak/segment/file/PriorityCacheTest.java"
+          ],
+          "dependency_type": "test"
+        },
+        {
+          "importing_bundle": "cq-dam-repository-insights-agent",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-tar",
+          "exported_package": "org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/spi/persistence/persistentcache/SegmentCacheStats.java"
+          ],
+          "dependency_type": "test"
+        }
+      ]
+    },
+    "https://git.corp.adobe.com/CQ/asset-metadata-restriction-provider": {
+      "skipped": false,
+      "reason": null,
+      "entries": [
+        {
+          "importing_bundle": "com.adobe.cq.dam.asset-metadata-restriction-provider",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache",
+          "changed_files": [
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/AbstractCacheStats.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/CacheStats.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/EmpiricalWeigher.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/package-info.java",
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/AbstractCacheStatsTest.java",
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/CacheStatsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.cq.dam.asset-metadata-restriction-provider",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.api",
+          "changed_files": [
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/api/CacheStatsAdapter.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/api/CacheStatsSnapshot.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/api/package-info.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.cq.dam.asset-metadata-restriction-provider",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.cq.dam.asset-metadata-restriction-provider",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.cq.dam.asset-metadata-restriction-provider",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl.caffeine",
+          "changed_files": [
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/impl/caffeine/CaffeineCacheAdapter.java"
+          ],
+          "dependency_type": "compile"
+        }
+      ]
+    },
+    "https://git.corp.adobe.com/Granite/com.adobe.granite.maintenance.oak": {
+      "skipped": false,
+      "reason": null,
+      "entries": [
+        {
+          "importing_bundle": "com.adobe.granite.maintenance.oak",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache",
+          "changed_files": [
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/AbstractCacheStats.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/CacheStats.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/EmpiricalWeigher.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/package-info.java",
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/AbstractCacheStatsTest.java",
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/CacheStatsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.maintenance.oak",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.api",
+          "changed_files": [
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/api/CacheStatsAdapter.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/api/CacheStatsSnapshot.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/api/package-info.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.maintenance.oak",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.maintenance.oak",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.maintenance.oak",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl.caffeine",
+          "changed_files": [
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/impl/caffeine/CaffeineCacheAdapter.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.maintenance.oak",
+          "exporting_bundle": "org.apache.jackrabbit.oak-store-document",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.document",
+          "changed_files": [
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/DiffCache.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStore.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStoreBuilder.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStoreService.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/DocumentStore.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/JournalDiffLoader.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/LocalDiffCache.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/MemoryDiffCache.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/TieredDiffCache.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/AmnesiaDiffCache.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/CountingDocumentStore.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/DocumentMKBuilderTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStoreBuilderTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStoreDiffTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/DocumentStoreWrapper.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/LocalDiffCacheTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/MemoryDiffCacheTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/NodeStoreDiffTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/TieredDiffCacheTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.maintenance.oak",
+          "exporting_bundle": "org.apache.jackrabbit.oak-store-document",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.document.cache",
+          "changed_files": [
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/cache/NodeDocumentCache.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/cache/CacheChangesTrackerTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/cache/NodeDocumentCacheTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.maintenance.oak",
+          "exporting_bundle": "org.apache.jackrabbit.oak-store-document",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.document.memory",
+          "changed_files": [
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/memory/MemoryDocumentStore.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.maintenance.oak",
+          "exporting_bundle": "org.apache.jackrabbit.oak-store-document",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.document.mongo",
+          "changed_files": [
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/mongo/MongoDocumentStore.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.maintenance.oak",
+          "exporting_bundle": "org.apache.jackrabbit.oak-store-document",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.document.rdb",
+          "changed_files": [
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/rdb/RDBDocumentStore.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.maintenance.oak",
+          "exporting_bundle": "org.apache.jackrabbit.oak-store-document",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.document.util",
+          "changed_files": [
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/util/LeaseCheckDocumentStoreWrapper.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/util/LoggingDocumentStoreWrapper.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/util/SynchronizingDocumentStoreWrapper.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/util/ThrottlingDocumentStoreWrapper.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/util/TimingDocumentStoreWrapper.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.maintenance.oak",
+          "exporting_bundle": "org.apache.jackrabbit.oak-lucene",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.index.lucene",
+          "changed_files": [
+            "oak-lucene/src/main/java/org/apache/jackrabbit/oak/plugins/index/lucene/LuceneIndexProviderService.java"
+          ],
+          "dependency_type": "compile"
+        }
+      ]
+    },
+    "https://git.corp.adobe.com/Granite/com.adobe.granite.repository": {
+      "skipped": false,
+      "reason": null,
+      "entries": [
+        {
+          "importing_bundle": "com.adobe.granite.repository",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache",
+          "changed_files": [
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/AbstractCacheStats.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/CacheStats.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/EmpiricalWeigher.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/package-info.java",
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/AbstractCacheStatsTest.java",
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/CacheStatsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.repository",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.api",
+          "changed_files": [
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/api/CacheStatsAdapter.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/api/CacheStatsSnapshot.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/api/package-info.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.repository",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.repository",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.repository",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl.caffeine",
+          "changed_files": [
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/impl/caffeine/CaffeineCacheAdapter.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.repository",
+          "exporting_bundle": "org.apache.jackrabbit.oak-store-document",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.document",
+          "changed_files": [
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/DiffCache.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStore.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStoreBuilder.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStoreService.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/DocumentStore.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/JournalDiffLoader.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/LocalDiffCache.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/MemoryDiffCache.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/TieredDiffCache.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/AmnesiaDiffCache.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/CountingDocumentStore.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/DocumentMKBuilderTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStoreBuilderTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStoreDiffTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/DocumentStoreWrapper.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/LocalDiffCacheTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/MemoryDiffCacheTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/NodeStoreDiffTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/TieredDiffCacheTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.repository",
+          "exporting_bundle": "org.apache.jackrabbit.oak-store-document",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.document.cache",
+          "changed_files": [
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/cache/NodeDocumentCache.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/cache/CacheChangesTrackerTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/cache/NodeDocumentCacheTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.repository",
+          "exporting_bundle": "org.apache.jackrabbit.oak-store-document",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.document.memory",
+          "changed_files": [
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/memory/MemoryDocumentStore.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.repository",
+          "exporting_bundle": "org.apache.jackrabbit.oak-store-document",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.document.mongo",
+          "changed_files": [
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/mongo/MongoDocumentStore.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.repository",
+          "exporting_bundle": "org.apache.jackrabbit.oak-store-document",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.document.rdb",
+          "changed_files": [
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/rdb/RDBDocumentStore.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.repository",
+          "exporting_bundle": "org.apache.jackrabbit.oak-store-document",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.document.util",
+          "changed_files": [
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/util/LeaseCheckDocumentStoreWrapper.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/util/LoggingDocumentStoreWrapper.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/util/SynchronizingDocumentStoreWrapper.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/util/ThrottlingDocumentStoreWrapper.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/util/TimingDocumentStoreWrapper.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.repository",
+          "exporting_bundle": "org.apache.jackrabbit.oak-lucene",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.index.lucene",
+          "changed_files": [
+            "oak-lucene/src/main/java/org/apache/jackrabbit/oak/plugins/index/lucene/LuceneIndexProviderService.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.repository",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-remote",
+          "exported_package": "org.apache.jackrabbit.oak.segment",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/CachingSegmentReader.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/ReaderCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCacheStats.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/SegmentCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/WriterCacheManager.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.repository",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-tar",
+          "exported_package": "org.apache.jackrabbit.oak.segment",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/CachingSegmentReader.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/ReaderCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCacheStats.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/SegmentCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/WriterCacheManager.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.repository",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-tar",
+          "exported_package": "org.apache.jackrabbit.oak.segment.file",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/file/PriorityCache.java",
+            "oak-segment-tar/src/test/java/org/apache/jackrabbit/oak/segment/file/PriorityCacheTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.repository",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-tar",
+          "exported_package": "org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/spi/persistence/persistentcache/SegmentCacheStats.java"
+          ],
+          "dependency_type": "compile"
+        }
+      ]
+    },
+    "https://git.corp.adobe.com/Granite/com.adobe.granite.security.user": {
+      "skipped": false,
+      "reason": null,
+      "entries": [
+        {
+          "importing_bundle": "com.adobe.granite.security.user",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache",
+          "changed_files": [
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/AbstractCacheStats.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/CacheStats.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/EmpiricalWeigher.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/package-info.java",
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/AbstractCacheStatsTest.java",
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/CacheStatsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.security.user",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.api",
+          "changed_files": [
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/api/CacheStatsAdapter.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/api/CacheStatsSnapshot.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/api/package-info.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.security.user",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.security.user",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.security.user",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl.caffeine",
+          "changed_files": [
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/impl/caffeine/CaffeineCacheAdapter.java"
+          ],
+          "dependency_type": "compile"
+        }
+      ]
+    },
+    "https://git.corp.adobe.com/Granite/com.adobe.granite.auth.authhandler": {
+      "skipped": true,
+      "reason": "Command failed: git --git-dir /Users/diam/workspace/jackrabbit-oak-workspace/jackrabbit-oak/.blast-radius-checkouts/.server-repo-cache/git.corp.adobe.com/Granite/com.adobe.granite.auth.authhandler.git fetch --prune --depth 1 origin\nerror: RPC failed; curl 56 Recv failure: Connection reset by peer\nerror: 57 bytes of body are still expected\nfatal: expected flush after ref listing\n",
+      "entries": [
+        {
+          "importing_bundle": "com.day.cq.cq-authhandler",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache",
+          "changed_files": [
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/AbstractCacheStats.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/CacheStats.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/EmpiricalWeigher.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/package-info.java",
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/AbstractCacheStatsTest.java",
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/CacheStatsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.day.cq.cq-authhandler",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.api",
+          "changed_files": [
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/api/CacheStatsAdapter.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/api/CacheStatsSnapshot.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/api/package-info.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.day.cq.cq-authhandler",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.day.cq.cq-authhandler",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.day.cq.cq-authhandler",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl.caffeine",
+          "changed_files": [
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/impl/caffeine/CaffeineCacheAdapter.java"
+          ],
+          "dependency_type": "compile"
+        }
+      ]
+    },
+    "https://github.com/apache/sling-org-apache-sling-discovery-commons": {
+      "skipped": false,
+      "reason": null,
+      "entries": [
+        {
+          "importing_bundle": "org.apache.sling.discovery.commons",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache",
+          "changed_files": [
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/AbstractCacheStats.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/CacheStats.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/EmpiricalWeigher.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/package-info.java",
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/AbstractCacheStatsTest.java",
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/CacheStatsTest.java"
+          ],
+          "dependency_type": "provided"
+        },
+        {
+          "importing_bundle": "org.apache.sling.discovery.commons",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.api",
+          "changed_files": [
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/api/CacheStatsAdapter.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/api/CacheStatsSnapshot.java",
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/api/package-info.java"
+          ],
+          "dependency_type": "provided"
+        },
+        {
+          "importing_bundle": "org.apache.sling.discovery.commons",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "provided"
+        },
+        {
+          "importing_bundle": "org.apache.sling.discovery.commons",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "provided"
+        },
+        {
+          "importing_bundle": "org.apache.sling.discovery.commons",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl.caffeine",
+          "changed_files": [
+            "oak-core-spi/src/main/java/org/apache/jackrabbit/oak/cache/impl/caffeine/CaffeineCacheAdapter.java"
+          ],
+          "dependency_type": "provided"
+        }
+      ]
+    },
+    "https://github.com/Adobe-AEM-Foundation/com.adobe.granite.workflow.console": {
+      "skipped": false,
+      "reason": null,
+      "entries": [
+        {
+          "importing_bundle": "com.adobe.granite.workflow.console",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.workflow.console",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.workflow.console",
+          "exporting_bundle": "org.apache.jackrabbit.oak-lucene",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.index.lucene",
+          "changed_files": [
+            "oak-lucene/src/main/java/org/apache/jackrabbit/oak/plugins/index/lucene/LuceneIndexProviderService.java"
+          ],
+          "dependency_type": "compile"
+        }
+      ]
+    },
+    "https://git.corp.adobe.com/CQ/integration-analytics": {
+      "skipped": true,
+      "reason": "Command failed: git clone --bare --depth 1 https://git.corp.adobe.com/CQ/integration-analytics /Users/diam/workspace/jackrabbit-oak-workspace/jackrabbit-oak/.blast-radius-checkouts/.server-repo-cache/git.corp.adobe.com/CQ/integration-analytics.git\nCloning into bare repository '/Users/diam/workspace/jackrabbit-oak-workspace/jackrabbit-oak/.blast-radius-checkouts/.server-repo-cache/git.corp.adobe.com/CQ/integration-analytics.git'...\nerror: RPC failed; curl 56 Recv failure: Connection reset by peer\nerror: 13658 bytes of body are still expected\nfetch-pack: unexpected disconnect while reading sideband packet\nfatal: early EOF\nfatal: fetch-pack: invalid index-pack output\n",
+      "entries": [
+        {
+          "importing_bundle": "com.adobe.cq.cq-analytics-integration",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "provided"
+        },
+        {
+          "importing_bundle": "com.adobe.cq.cq-analytics-integration",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "provided"
+        },
+        {
+          "importing_bundle": "com.adobe.cq.cq-analytics-integration",
+          "exporting_bundle": "org.apache.jackrabbit.oak-lucene",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.index.lucene",
+          "changed_files": [
+            "oak-lucene/src/main/java/org/apache/jackrabbit/oak/plugins/index/lucene/LuceneIndexProviderService.java"
+          ],
+          "dependency_type": "provided"
+        }
+      ]
+    },
+    "https://git.corp.adobe.com/CQ/integration-target": {
+      "skipped": true,
+      "reason": "Command failed: git --git-dir /Users/diam/workspace/jackrabbit-oak-workspace/jackrabbit-oak/.blast-radius-checkouts/.server-repo-cache/git.corp.adobe.com/CQ/integration-target.git fetch --prune --depth 1 origin\nfatal: unable to access 'https://git.corp.adobe.com/CQ/integration-target/': Recv failure: Connection reset by peer\n",
+      "entries": [
+        {
+          "importing_bundle": "com.adobe.cq.cq-target-integration",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "provided"
+        },
+        {
+          "importing_bundle": "com.adobe.cq.cq-target-integration",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "provided"
+        },
+        {
+          "importing_bundle": "com.adobe.cq.cq-target-integration",
+          "exporting_bundle": "org.apache.jackrabbit.oak-lucene",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.index.lucene",
+          "changed_files": [
+            "oak-lucene/src/main/java/org/apache/jackrabbit/oak/plugins/index/lucene/LuceneIndexProviderService.java"
+          ],
+          "dependency_type": "provided"
+        }
+      ]
+    },
+    "https://git.corp.adobe.com/Granite/com.adobe.granite.crypto.keystore": {
+      "skipped": false,
+      "reason": null,
+      "entries": [
+        {
+          "importing_bundle": "com.adobe.granite.crypto.keystore",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "test"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.crypto.keystore",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "test"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.crypto.keystore",
+          "exporting_bundle": "org.apache.jackrabbit.oak-lucene",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.index.lucene",
+          "changed_files": [
+            "oak-lucene/src/main/java/org/apache/jackrabbit/oak/plugins/index/lucene/LuceneIndexProviderService.java"
+          ],
+          "dependency_type": "test"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.crypto.keystore",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-remote",
+          "exported_package": "org.apache.jackrabbit.oak.segment",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/CachingSegmentReader.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/ReaderCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCacheStats.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/SegmentCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/WriterCacheManager.java"
+          ],
+          "dependency_type": "test"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.crypto.keystore",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-tar",
+          "exported_package": "org.apache.jackrabbit.oak.segment",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/CachingSegmentReader.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/ReaderCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCacheStats.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/SegmentCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/WriterCacheManager.java"
+          ],
+          "dependency_type": "test"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.crypto.keystore",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-tar",
+          "exported_package": "org.apache.jackrabbit.oak.segment.file",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/file/PriorityCache.java",
+            "oak-segment-tar/src/test/java/org/apache/jackrabbit/oak/segment/file/PriorityCacheTest.java"
+          ],
+          "dependency_type": "test"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.crypto.keystore",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-tar",
+          "exported_package": "org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/spi/persistence/persistentcache/SegmentCacheStats.java"
+          ],
+          "dependency_type": "test"
+        }
+      ]
+    },
+    "https://github.com/Adobe-AEM-Foundation/com.adobe.granite.repository.indexdefs": {
+      "skipped": false,
+      "reason": null,
+      "entries": [
+        {
+          "importing_bundle": "com.adobe.granite.repository.indexdefs",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.repository.indexdefs",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.repository.indexdefs",
+          "exporting_bundle": "org.apache.jackrabbit.oak-lucene",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.index.lucene",
+          "changed_files": [
+            "oak-lucene/src/main/java/org/apache/jackrabbit/oak/plugins/index/lucene/LuceneIndexProviderService.java"
+          ],
+          "dependency_type": "compile"
+        }
+      ]
+    },
+    "https://github.com/Adobe-AEM-Sites/msm": {
+      "skipped": false,
+      "reason": null,
+      "entries": [
+        {
+          "importing_bundle": "com.day.cq.wcm.cq-msm-core",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "test"
+        },
+        {
+          "importing_bundle": "com.day.cq.wcm.cq-msm-core",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "test"
+        },
+        {
+          "importing_bundle": "com.day.cq.wcm.cq-msm-core",
+          "exporting_bundle": "org.apache.jackrabbit.oak-lucene",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.index.lucene",
+          "changed_files": [
+            "oak-lucene/src/main/java/org/apache/jackrabbit/oak/plugins/index/lucene/LuceneIndexProviderService.java"
+          ],
+          "dependency_type": "test"
+        },
+        {
+          "importing_bundle": "com.day.cq.wcm.cq-msm-core",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-remote",
+          "exported_package": "org.apache.jackrabbit.oak.segment",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/CachingSegmentReader.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/ReaderCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCacheStats.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/SegmentCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/WriterCacheManager.java"
+          ],
+          "dependency_type": "test"
+        },
+        {
+          "importing_bundle": "com.day.cq.wcm.cq-msm-core",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-tar",
+          "exported_package": "org.apache.jackrabbit.oak.segment",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/CachingSegmentReader.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/ReaderCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCacheStats.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/SegmentCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/WriterCacheManager.java"
+          ],
+          "dependency_type": "test"
+        },
+        {
+          "importing_bundle": "com.day.cq.wcm.cq-msm-core",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-tar",
+          "exported_package": "org.apache.jackrabbit.oak.segment.file",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/file/PriorityCache.java",
+            "oak-segment-tar/src/test/java/org/apache/jackrabbit/oak/segment/file/PriorityCacheTest.java"
+          ],
+          "dependency_type": "test"
+        },
+        {
+          "importing_bundle": "com.day.cq.wcm.cq-msm-core",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-tar",
+          "exported_package": "org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/spi/persistence/persistentcache/SegmentCacheStats.java"
+          ],
+          "dependency_type": "test"
+        }
+      ]
+    },
+    "https://git.corp.adobe.com/CQ/wcm": {
+      "skipped": true,
+      "reason": "Command failed: git clone --bare --depth 1 https://git.corp.adobe.com/CQ/wcm /Users/diam/workspace/jackrabbit-oak-workspace/jackrabbit-oak/.blast-radius-checkouts/.server-repo-cache/git.corp.adobe.com/CQ/wcm.git\nCloning into bare repository '/Users/diam/workspace/jackrabbit-oak-workspace/jackrabbit-oak/.blast-radius-checkouts/.server-repo-cache/git.corp.adobe.com/CQ/wcm.git'...\nerror: RPC failed; curl 56 Recv failure: Connection reset by peer\nerror: 84 bytes of body are still expected\nfatal: expected flush after ref listing\n",
+      "entries": [
+        {
+          "importing_bundle": "com.day.cq.wcm.cq-wcm-core",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.day.cq.wcm.cq-wcm-core",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.day.cq.wcm.cq-wcm-core",
+          "exporting_bundle": "org.apache.jackrabbit.oak-store-document",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.document",
+          "changed_files": [
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/DiffCache.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStore.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStoreBuilder.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStoreService.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/DocumentStore.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/JournalDiffLoader.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/LocalDiffCache.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/MemoryDiffCache.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/TieredDiffCache.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/AmnesiaDiffCache.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/CountingDocumentStore.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/DocumentMKBuilderTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStoreBuilderTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStoreDiffTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/DocumentStoreWrapper.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/LocalDiffCacheTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/MemoryDiffCacheTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/NodeStoreDiffTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/TieredDiffCacheTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.day.cq.wcm.cq-wcm-core",
+          "exporting_bundle": "org.apache.jackrabbit.oak-store-document",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.document.cache",
+          "changed_files": [
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/cache/NodeDocumentCache.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/cache/CacheChangesTrackerTest.java",
+            "oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/cache/NodeDocumentCacheTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.day.cq.wcm.cq-wcm-core",
+          "exporting_bundle": "org.apache.jackrabbit.oak-store-document",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.document.memory",
+          "changed_files": [
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/memory/MemoryDocumentStore.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.day.cq.wcm.cq-wcm-core",
+          "exporting_bundle": "org.apache.jackrabbit.oak-store-document",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.document.mongo",
+          "changed_files": [
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/mongo/MongoDocumentStore.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.day.cq.wcm.cq-wcm-core",
+          "exporting_bundle": "org.apache.jackrabbit.oak-store-document",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.document.rdb",
+          "changed_files": [
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/rdb/RDBDocumentStore.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.day.cq.wcm.cq-wcm-core",
+          "exporting_bundle": "org.apache.jackrabbit.oak-store-document",
+          "exported_package": "org.apache.jackrabbit.oak.plugins.document.util",
+          "changed_files": [
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/util/LeaseCheckDocumentStoreWrapper.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/util/LoggingDocumentStoreWrapper.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/util/SynchronizingDocumentStoreWrapper.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/util/ThrottlingDocumentStoreWrapper.java",
+            "oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/util/TimingDocumentStoreWrapper.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.day.cq.wcm.cq-wcm-core",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-remote",
+          "exported_package": "org.apache.jackrabbit.oak.segment",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/CachingSegmentReader.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/ReaderCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCacheStats.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/SegmentCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/WriterCacheManager.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.day.cq.wcm.cq-wcm-core",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-tar",
+          "exported_package": "org.apache.jackrabbit.oak.segment",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/CachingSegmentReader.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/ReaderCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/RecordCacheStats.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/SegmentCache.java",
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/WriterCacheManager.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.day.cq.wcm.cq-wcm-core",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-tar",
+          "exported_package": "org.apache.jackrabbit.oak.segment.file",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/file/PriorityCache.java",
+            "oak-segment-tar/src/test/java/org/apache/jackrabbit/oak/segment/file/PriorityCacheTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.day.cq.wcm.cq-wcm-core",
+          "exporting_bundle": "org.apache.jackrabbit.oak-segment-tar",
+          "exported_package": "org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache",
+          "changed_files": [
+            "oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/spi/persistence/persistentcache/SegmentCacheStats.java"
+          ],
+          "dependency_type": "compile"
+        }
+      ]
+    },
+    "https://github.com/OneAdobe/aem-sites-dataplane": {
+      "skipped": false,
+      "reason": null,
+      "entries": [
+        {
+          "importing_bundle": "com.adobe.aem.sites-dataplane",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "provided"
+        },
+        {
+          "importing_bundle": "com.adobe.aem.sites-dataplane",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "provided"
+        }
+      ]
+    },
+    "https://github.com/Adobe-AEM-Sites/aem-sites-eventing": {
+      "skipped": false,
+      "reason": null,
+      "entries": [
+        {
+          "importing_bundle": "com.adobe.aem.sites-eventing",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "test"
+        },
+        {
+          "importing_bundle": "com.adobe.aem.sites-eventing",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "test"
+        }
+      ]
+    },
+    "https://git.corp.adobe.com/CQ/dam-delivery": {
+      "skipped": false,
+      "reason": null,
+      "entries": [
+        {
+          "importing_bundle": "com.adobe.cq.dam.cq-scene7-imaging",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.cq.dam.cq-scene7-imaging",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "compile"
+        }
+      ]
+    },
+    "https://git.corp.adobe.com/CQ/unified-shell-integration": {
+      "skipped": false,
+      "reason": null,
+      "entries": [
+        {
+          "importing_bundle": "com.adobe.cq.unifiedshell.unified-shell-integration",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.cq.unifiedshell.unified-shell-integration",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "compile"
+        }
+      ]
+    },
+    "https://git.corp.adobe.com/Granite/com.adobe.granite.auth.saml": {
+      "skipped": false,
+      "reason": null,
+      "entries": [
+        {
+          "importing_bundle": "com.adobe.granite.auth.saml",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "provided"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.auth.saml",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "provided"
+        }
+      ]
+    },
+    "https://git.corp.adobe.com/Granite/com.adobe.granite.auth.saml.hooks.migration": {
+      "skipped": false,
+      "reason": null,
+      "entries": [
+        {
+          "importing_bundle": "com.adobe.granite.auth.saml.migration",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "provided"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.auth.saml.migration",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "provided"
+        }
+      ]
+    },
+    "https://git.corp.adobe.com/Granite/com.adobe.granite.auth.sso": {
+      "skipped": false,
+      "reason": null,
+      "entries": [
+        {
+          "importing_bundle": "com.adobe.granite.auth.sso",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "provided"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.auth.sso",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "provided"
+        }
+      ]
+    },
+    "https://git.corp.adobe.com/Granite/com.adobe.granite.oauth.server": {
+      "skipped": false,
+      "reason": null,
+      "entries": [
+        {
+          "importing_bundle": "com.adobe.granite.oauth.server",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "provided"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.oauth.server",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "provided"
+        }
+      ]
+    },
+    "https://git.corp.adobe.com/Granite/com.adobe.granite.operations.ui.core": {
+      "skipped": false,
+      "reason": null,
+      "entries": [
+        {
+          "importing_bundle": "com.adobe.granite.operations.ui.core",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "compile"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.operations.ui.core",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "compile"
+        }
+      ]
+    },
+    "https://git.corp.adobe.com/Granite/com.adobe.granite.repository.hc.impl": {
+      "skipped": true,
+      "reason": "Command failed: git clone --bare --depth 1 https://git.corp.adobe.com/Granite/com.adobe.granite.repository.hc.impl /Users/diam/workspace/jackrabbit-oak-workspace/jackrabbit-oak/.blast-radius-checkouts/.server-repo-cache/git.corp.adobe.com/Granite/com.adobe.granite.repository.hc.impl.git\nCloning into bare repository '/Users/diam/workspace/jackrabbit-oak-workspace/jackrabbit-oak/.blast-radius-checkouts/.server-repo-cache/git.corp.adobe.com/Granite/com.adobe.granite.repository.hc.impl.git'...\nerror: RPC failed; curl 56 Recv failure: Connection reset by peer\nfatal: expected flush after ref listing\n",
+      "entries": [
+        {
+          "importing_bundle": "com.adobe.granite.repository.hc.impl",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "provided"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.repository.hc.impl",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "provided"
+        }
+      ]
+    },
+    "https://git.corp.adobe.com/Granite/com.adobe.granite.security.ui": {
+      "skipped": false,
+      "reason": null,
+      "entries": [
+        {
+          "importing_bundle": "com.adobe.granite.security.ui",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "provided"
+        },
+        {
+          "importing_bundle": "com.adobe.granite.security.ui",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "provided"
+        }
+      ]
+    },
+    "https://git.corp.adobe.com/Granite/com.adobe.granite.replication.core": {
+      "skipped": false,
+      "reason": null,
+      "entries": [
+        {
+          "importing_bundle": "com.day.cq.cq-replication",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "test"
+        },
+        {
+          "importing_bundle": "com.day.cq.cq-replication",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "test"
+        }
+      ]
+    },
+    "https://git.corp.adobe.com/CQ/reporting": {
+      "skipped": false,
+      "reason": null,
+      "entries": [
+        {
+          "importing_bundle": "com.day.cq.cq-reporting",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "test"
+        },
+        {
+          "importing_bundle": "com.day.cq.cq-reporting",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "test"
+        }
+      ]
+    },
+    "https://git.corp.adobe.com/Granite/com.adobe.granite.crx-auth-token": {
+      "skipped": false,
+      "reason": null,
+      "entries": [
+        {
+          "importing_bundle": "com.day.crx.sling.crx-auth-token",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "provided"
+        },
+        {
+          "importing_bundle": "com.day.crx.sling.crx-auth-token",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "provided"
+        }
+      ]
+    },
+    "https://github.com/apache/sling-org-apache-sling-discovery-oak": {
+      "skipped": false,
+      "reason": null,
+      "entries": [
+        {
+          "importing_bundle": "org.apache.sling.discovery.oak",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "test"
+        },
+        {
+          "importing_bundle": "org.apache.sling.discovery.oak",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "test"
+        }
+      ]
+    },
+    "https://github.com/apache/sling-org-apache-sling-jcr-repoinit": {
+      "skipped": false,
+      "reason": null,
+      "entries": [
+        {
+          "importing_bundle": "org.apache.sling.jcr.repoinit",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "provided"
+        },
+        {
+          "importing_bundle": "org.apache.sling.jcr.repoinit",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "provided"
+        }
+      ]
+    },
+    "https://github.com/apache/sling-org-apache-sling-jcr-resource": {
+      "skipped": false,
+      "reason": null,
+      "entries": [
+        {
+          "importing_bundle": "org.apache.sling.jcr.resource",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "test"
+        },
+        {
+          "importing_bundle": "org.apache.sling.jcr.resource",
+          "exporting_bundle": "org.apache.jackrabbit.oak-core-spi",
+          "exported_package": "org.apache.jackrabbit.oak.cache.impl",
+          "changed_files": [
+            "oak-core-spi/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheBuilderTest.java",
+            "oak-core/src/main/java/org/apache/jackrabbit/oak/cache/impl/ConsolidatedCacheStats.java",
+            "oak-core/src/test/java/org/apache/jackrabbit/oak/cache/impl/CacheStatsMetricsTest.java"
+          ],
+          "dependency_type": "test"
+        }
+      ]
+    }
+  }
+}
