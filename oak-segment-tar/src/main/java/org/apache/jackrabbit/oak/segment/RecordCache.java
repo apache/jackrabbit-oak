@@ -23,10 +23,10 @@ import static java.util.Objects.requireNonNull;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
-import org.apache.jackrabbit.guava.common.cache.RemovalListener;
-import org.apache.jackrabbit.guava.common.cache.Weigher;
+import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
+import org.apache.jackrabbit.oak.cache.api.EvictionListener;
+import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -137,7 +137,7 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
 
     private static class Default<K> extends RecordCache<K> {
         @NotNull
-        private final org.apache.jackrabbit.guava.common.cache.Cache<K, RecordId> cache;
+        private final org.apache.jackrabbit.oak.cache.api.Cache<K, RecordId> cache;
 
         @NotNull
         private final Weigher<K, RecordId> weigher;
@@ -148,10 +148,10 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
 
         @Override
         public @NotNull CacheStats getStats() {
-            CacheStats internalStats = cache.stats();
+            org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot snapshot = cache.stats();
             // any addition to the cache counts as load by our definition
-            return new CacheStats(internalStats.hitCount(), internalStats.missCount(),
-                    loadCount.sum(), 0, 0,  internalStats.evictionCount());
+            return new CacheStats(snapshot.hitCount(), snapshot.missCount(),
+                    loadCount.sum(), 0, 0, snapshot.evictionCount());
         }
 
         static <K> Supplier<RecordCache<K>> defaultFactory(final int size, @NotNull final Weigher<K, RecordId> weigher) {
@@ -159,17 +159,17 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
         }
 
         Default(final int size, @NotNull final Weigher<K, RecordId> weigher) {
-            this.cache = CacheBuilder.newBuilder()
+            this.weigher = weigher;
+            this.cache = CacheBuilder.<K, RecordId>newBuilder()
                     .maximumSize(size * 4L / 3)
                     .initialCapacity(size)
-                    .concurrencyLevel(4)
                     .recordStats()
-                    .removalListener((RemovalListener<K, RecordId>) removal -> {
-                        int removedWeight = weigher.weigh(removal.getKey(), removal.getValue());
-                        weight.add(-removedWeight);
+                    .evictionListener((k, v, cause) -> {
+                        if (v != null) {
+                            weight.add(-weigher.weigh(k, v));
+                        }
                     })
                     .build();
-            this.weigher = weigher;
         }
 
         @Override
@@ -186,7 +186,7 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
 
         @Override
         public long size() {
-            return cache.size();
+            return cache.estimatedSize();
         }
 
         @Override

@@ -25,7 +25,7 @@ import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 import java.util.Arrays;
 import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.cache.Weigher;
+import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.jetbrains.annotations.NotNull;
@@ -74,13 +74,14 @@ public abstract class ReaderCache<T> {
                 .module(name)
                 .maximumWeight(maxWeight)
                 .averageWeight(averageWeight)
-                .weigher(weigher)
+                .weigher(weigher::weigh)
                 .build();
     }
 
     @NotNull
     public CacheStats getStats() {
-        return new CacheStats(cache, name, weigher, cache.getMaxMemory());
+        org.apache.jackrabbit.guava.common.cache.Weigher<CacheKey, T> guavaWeigher = weigher::weigh;
+        return new CacheStats(cache, name, guavaWeigher, cache.getMaxMemory());
     }
 
     private static int getEntryHash(long lsb, long msb, int offset) {
