@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.oak.cache.api.CacheStats;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
 import org.apache.jackrabbit.oak.commons.sort.StringSort;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
@@ -298,7 +298,7 @@ class JournalDiffLoader implements DiffCache.Loader {
 
         @NotNull
         @Override
-        Iterable<CacheStats> getStats() {
+        Iterable<CacheStatsAdapter> getStats() {
             return cache.getStats();
         }
 

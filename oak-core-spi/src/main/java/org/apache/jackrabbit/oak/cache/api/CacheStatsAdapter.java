@@ -26,7 +26,7 @@ import org.jetbrains.annotations.Nullable;
  * Exposes a {@link Cache}'s statistics via the {@link org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean}
  * interface.
  */
-public class CacheStats extends AbstractCacheStats {
+public class CacheStatsAdapter extends AbstractCacheStats {
 
     private final Cache<Object, Object> cache;
     private final Weigher<Object, Object> weigher;
@@ -41,7 +41,7 @@ public class CacheStats extends AbstractCacheStats {
      * @param maxWeight configured maximum weight for the cache; {@code -1} if unbounded
      */
     @SuppressWarnings("unchecked")
-    public <K, V> CacheStats(
+    public <K, V> CacheStatsAdapter(
             @NotNull Cache<K, V> cache,
             @NotNull String name,
             @Nullable Weigher<K, V> weigher,
