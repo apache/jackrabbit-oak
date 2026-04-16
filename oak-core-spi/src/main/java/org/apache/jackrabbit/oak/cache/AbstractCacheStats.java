@@ -56,7 +56,11 @@ public abstract class AbstractCacheStats extends AnnotatedStandardMBean implemen
     protected abstract CacheStatsSnapshot getCurrentStats();
 
     private CacheStatsSnapshot stats() {
-        return getCurrentStats().minus(lastSnapshot);
+        CacheStatsSnapshot baseline;
+        synchronized (this) {
+            baseline = lastSnapshot;
+        }
+        return getCurrentStats().minus(baseline);
     }
 
     @Override
