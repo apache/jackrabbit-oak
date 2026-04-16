@@ -14,8 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.cache.api;
+package org.apache.jackrabbit.oak.cache;
 
+import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -128,6 +129,25 @@ public record CacheStatsSnapshot(
                 Math.max(0, loadFailureCount - other.loadFailureCount),
                 Math.max(0, totalLoadTime - other.totalLoadTime),
                 Math.max(0, evictionCount - other.evictionCount)
+        );
+    }
+
+    /**
+     * Returns the sum of this snapshot and an earlier {@code other}
+     * snapshot, useful for computing total deltas.
+     *
+     * @param other the earlier snapshot to add (must not be null)
+     * @return a new snapshot representing the total
+     */
+    @NotNull
+    public CacheStatsSnapshot plus(@NotNull CacheStatsSnapshot other) {
+        return new CacheStatsSnapshot(
+                Long.sum(hitCount, other.hitCount),
+                Long.sum(missCount, other.missCount),
+                Long.sum(loadSuccessCount, other.loadSuccessCount),
+                Long.sum(loadFailureCount, other.loadFailureCount),
+                Long.sum(totalLoadTime, other.totalLoadTime),
+                Long.sum(evictionCount, other.evictionCount)
         );
     }
 }

@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.segment.CacheWeights;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
+import org.apache.jackrabbit.oak.cache.CacheStatsSnapshot;
 import org.apache.jackrabbit.oak.cache.api.Weigher;
 
 /**

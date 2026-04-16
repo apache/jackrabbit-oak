@@ -16,11 +16,12 @@
  */
 package org.apache.jackrabbit.oak.cache.api;
 
+import org.apache.jackrabbit.oak.cache.CacheStatsSnapshot;
 import org.junit.Assert;
 import org.junit.Test;
 
 /** Tests for {@link CacheStatsSnapshot}. */
-public class CacheStatsTest {
+public class CacheStatsSnapshotTest {
 
     private CacheStatsSnapshot stats(long hits, long misses, long loadSuccess, long loadFail,
                                      long loadTime, long evictions) {

@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.cache;
 
 import java.util.concurrent.ExecutionException;
 
-import org.apache.jackrabbit.oak.cache.api.CacheStats;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
