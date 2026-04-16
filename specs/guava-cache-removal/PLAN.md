@@ -36,8 +36,9 @@ Batch 0 is implemented locally through the end of OAK-12148:
    Oak-visible cache API follows Caffeine's retrieval contract, so downstream callers migrate
    toward the end-state API instead of a temporary Guava-shaped compatibility layer.
 8. **Migration end-game.** Once all modules that should move to the Oak cache API are
-   migrated and validated, final cleanup can remove temporary compatibility shims and
-   decide whether `CacheLIRS` remains only for legacy/internal use or is removed entirely.
+   migrated and validated, final cleanup removes temporary compatibility shims.
+   `CacheLIRS` is **not removed** — it stays as-is; callers that need it continue to use
+   `CacheLIRS.newBuilder()` and expose it via `CacheLIRS.asOakCache()`.
 9. **Cross-module return type cascades.** Whenever a method's return type changes (e.g.
    `getCacheStats()` from `CacheStats` → `AbstractCacheStats`), every caller across
    **all modules** must be updated in the same PR — including modules not otherwise in
@@ -788,8 +789,12 @@ Batch 0 merged.
 2. **`RecordCache`** — uses Guava-shim `CacheBuilder.newBuilder()` with a `Weigher`.
    Migrate to `CacheBuilder`.
 
-3. **`ReaderCache`** — uses `CacheLIRS.newBuilder()` directly. Migrate to
-   `CacheBuilder` (which creates a Caffeine-backed `Cache`).
+3. **`ReaderCache`** — uses `CacheLIRS.newBuilder()` directly. Expose as `Cache<K,V>`
+   by calling `CacheLIRS.asOakCache()` on the existing instance; retain the `CacheLIRS`
+   reference for stats (which still uses the CacheLIRS-specific `CacheStats` constructor
+   until OAK-12162). The field type changes from `CacheLIRS<CacheKey, T>` to
+   `org.apache.jackrabbit.oak.cache.api.Cache<CacheKey, T>`; all call sites switch to
+   the Oak API methods (`getIfPresent`, `put`, `invalidateAll`).
 
 4. **`PriorityCache`** — check trunk; update if it references Guava shim cache types directly.
 
@@ -807,7 +812,7 @@ Batch 0 merged.
 |------|--------|
 | `SegmentCache.java` | `CacheBuilder.newBuilder()` (Guava shim) → `CacheBuilder`. `Cache` → `Cache`. Guava `RemovalCause` → `EvictionCause`. |
 | `RecordCache.java` | `CacheBuilder.newBuilder()` (Guava shim) → `CacheBuilder`. `Cache` → `Cache`. Guava `Weigher` → `Weigher`. |
-| `ReaderCache.java` | `CacheLIRS.newBuilder()` → `CacheBuilder`. `CacheLIRS<K,V>` → `Cache<K,V>`. |
+| `ReaderCache.java` | Keep `CacheLIRS` instance; expose as `Cache<K,V>` via `CacheLIRS.asOakCache()`. Field type `CacheLIRS<CacheKey,T>` → `Cache<CacheKey,T>`. |
 | `PriorityCache.java` | Update if it references Caffeine types directly. |
 | `WriterCacheManager.java` | Update cache type references. |
 | `RecordCacheStats.java` | Update to use `CacheStatsSnapshot`. |
@@ -906,12 +911,12 @@ All previous batches merged.
 2. **Verify isolation.** Grep the entire codebase: no module outside `oak-core-spi`
    imports `com.github.benmanes.caffeine.cache` or `org.apache.jackrabbit.guava.common.cache`.
 
-3. **Remove CacheLIRS and the LIRS fallback.** With all modules on `Cache` API and
-   Caffeine validated as the production backend:
-   - Remove `LirsCacheAdapter` entirely
-   - Remove `CacheLIRS` (or mark it `@Deprecated(forRemoval = true)` if a deprecation
-     cycle is preferred — but since it was already `@Internal`, outright removal is acceptable)
-   - Remove any remaining `CacheLIRS.asOakCache()` bridge usage from migrated modules
+3. **Remove transitional LIRS adapter code.** `CacheLIRS` itself is **not removed** — it
+   stays as-is for any consumer that still needs it directly. Only the internal adapter
+   scaffolding introduced in Batch 0 can be cleaned up once all consumers have migrated:
+   - Remove `LirsCacheAdapter` and `LirsLoadingCacheAdapter` only if no module outside
+     `oak-core-spi` calls `CacheLIRS.asOakCache()` directly — verify with a full-repo grep
+     before deleting. If callers remain, keep the adapters.
 
 4. **Mark the old `CacheStats` class** (the one accepting a Guava shim `Cache<?,?>` in its
    constructor) as `@Deprecated(forRemoval = true)`. Consumers should use
@@ -927,8 +932,8 @@ All previous batches merged.
 - `mvn clean install -DskipTests` succeeds.
 - `mvn clean install` succeeds (full test suite).
 - No Caffeine or Guava cache types in any public API surface outside `oak-core-spi`.
-- No `CacheLIRS` or `LirsCacheAdapter` classes remain (or `CacheLIRS` is `@Deprecated(forRemoval = true)`).
-- `CacheBuilder` has no `lirs` code path — Caffeine is the sole implementation.
+- `CacheLIRS` remains intact; `LirsCacheAdapter`/`LirsLoadingCacheAdapter` removed only if no consumer calls `asOakCache()` (verify before deleting).
+- `CacheBuilder` has no `lirs` code path — Caffeine is the sole implementation created by the builder.
 - OSGi integration tests pass (`oak-it-osgi`).
 
 ---
