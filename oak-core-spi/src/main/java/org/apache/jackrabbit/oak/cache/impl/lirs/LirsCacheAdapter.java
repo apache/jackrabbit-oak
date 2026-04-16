@@ -110,6 +110,16 @@ class LirsCacheAdapter<K, V> implements Cache<K, V> {
         cache.cleanUp();
     }
 
+    @Override
+    public long getUsedWeight() {
+        return cache.getUsedMemory();
+    }
+
+    @Override
+    public void setMaximumWeight(long maximumWeight) {
+        cache.setMaxMemory(maximumWeight);
+    }
+
     /**
      * Maps a Guava shim {@code RemovalCause} to the Oak-neutral {@link EvictionCause}.
      */

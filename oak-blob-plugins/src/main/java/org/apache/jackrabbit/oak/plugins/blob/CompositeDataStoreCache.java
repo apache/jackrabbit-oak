@@ -27,8 +27,7 @@ import java.io.InputStream;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 
-import org.apache.jackrabbit.guava.common.cache.AbstractCache;
-import org.apache.jackrabbit.guava.common.cache.CacheLoader;
+import org.apache.jackrabbit.oak.cache.api.CacheLoader;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.Nullable;
@@ -37,7 +36,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  */
-public class CompositeDataStoreCache extends AbstractCache<String, File> implements Closeable {
+public class CompositeDataStoreCache implements Closeable {
     /**
      * Logger instance.
      */
@@ -96,7 +95,6 @@ public class CompositeDataStoreCache extends AbstractCache<String, File> impleme
     }
 
     @Nullable
-    @Override
     public File getIfPresent(Object key) {
         return getIfPresent((String) key);
     }
@@ -116,7 +114,6 @@ public class CompositeDataStoreCache extends AbstractCache<String, File> impleme
         }
     }
 
-    @Override
     public void invalidate(Object key) {
         stagingCache.invalidate((String) key);
         downloadCache.invalidate(key);

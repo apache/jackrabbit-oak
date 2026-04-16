@@ -27,7 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -35,12 +35,12 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.guava.common.cache.CacheLoader;
 import org.apache.jackrabbit.guava.common.cache.RemovalCause;
-import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
-import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.api.Cache;
+import org.apache.jackrabbit.oak.cache.api.CacheLoader;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
+import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.io.FileTreeTraverser;
@@ -49,11 +49,9 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.cache.AbstractCache;
-
 /**
  */
-public class FileCache extends AbstractCache<String, File> implements Closeable {
+public class FileCache implements Closeable {
     /**
      * Logger instance.
      */
@@ -80,7 +78,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
      */
     private File cacheRoot;
 
-    private CacheLIRS<String, String> cache;
+    private Cache<String, String> cache;
 
     private FileCacheStats cacheStats;
 
@@ -126,33 +124,30 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
         //Rough estimate of the in-memory key, value pair
         memWeigher = (key, value) -> (StringUtils.estimateMemoryUsage(key) + 128);
 
-        cacheLoader = new CacheLoader<>() {
-            @Override
-            public String load(String key) throws Exception {
-                // Fetch from local cache directory and if not found load from backend
-                File cachedFile = getFile(key);
-                if (cachedFile.exists()) {
-                    return key;
-                } else {
-                    long startNanos = System.nanoTime();
-                    try (InputStream is = loader.load(key))  {
-                        copyInputStreamToFile(is, cachedFile);
-                    } catch (Exception e) {
-                        LOG.warn("Error reading object for id [{}] from backend", key, e);
-                        throw e;
-                    }
-                    if (LOG.isDebugEnabled()) {
-                        LOG.debug("Loaded file: {} in {}", key, (System.nanoTime() - startNanos) / 1_000_000);
-                    }
-                    return key;
+        cacheLoader = key -> {
+            // Fetch from local cache directory and if not found load from backend
+            File cachedFile = getFile(key);
+            if (cachedFile.exists()) {
+                return key;
+            } else {
+                long startNanos = System.nanoTime();
+                try (InputStream is = loader.load(key))  {
+                    copyInputStreamToFile(is, cachedFile);
+                } catch (Exception e) {
+                    LOG.warn("Error reading object for id [{}] from backend", key, e);
+                    throw e;
                 }
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Loaded file: {} in {}", key, (System.nanoTime() - startNanos) / 1_000_000);
+                }
+                return key;
             }
         };
 
         cache = new CacheLIRS.Builder<String, String>()
             .maximumWeight(maxBlocks)
             .recordStats()
-            .weigher(weigher)
+            .weigher(weigher::weigh)
             .segmentCount(SEGMENT_COUNT)
             .evictionCallback((key, value, cause) -> {
                 try {
@@ -175,7 +170,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
                     LOG.info("Cached file deletion failed after eviction", e);
                 }
             })
-            .build();
+            .build().asOakCache();
 
         this.cacheStats =
             new FileCacheStats(cache, weigher, memWeigher, maxSize);
@@ -201,7 +196,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
      * Get the current entry count (number of files).
      */
     public long getEntryCount() {
-        return cache.size();
+        return cache.estimatedSize();
     }
 
     private FileCache() {
@@ -219,7 +214,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
         }
         return new FileCache() {
 
-            private final Cache<?, ?> cache = new CacheLIRS<>(0);
+            private final Cache<?, ?> cache = new CacheLIRS<>(0).asOakCache();
 
             @Override public void put(String key, File file) {
             }
@@ -257,7 +252,6 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
      * @param key of the file
      * @param file to put into cache
      */
-    @Override
     public void put(String key, File file) {
         adjustSize();
         put(key, file, true);
@@ -281,7 +275,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
     }
 
     public boolean containsKey(String key) {
-        return cache.containsKey(key);
+        return cache.asMap().containsKey(key);
     }
 
     /**
@@ -302,7 +296,6 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
     }
 
     @Nullable
-    @Override
     public File getIfPresent(Object key) {
         return getIfPresent((String) key);
     }
@@ -311,16 +304,24 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
         adjustSize();
         try {
             // get from cache and download if not available
-            cache.get(key, () -> cacheLoader.load(key));
+            cache.get(key, k -> {
+                try {
+                    return cacheLoader.load(k);
+                } catch (RuntimeException e) {
+                    throw e;
+                } catch (Exception e) {
+                    throw new CompletionException(e);
+                }
+            });
             return getFile(key);
-        } catch (ExecutionException e) {
+        } catch (RuntimeException e) {
             LOG.error("Error loading [{}] from cache", key);
             throw new IOException(e);
         }
     }
 
     private void adjustSize() {
-        long currentSize = cache.size();
+        long currentSize = cache.estimatedSize();
         if (currentSize > highWaterMark) {
             highWaterMark = currentSize;
             // low for each additional 50'000 entries
@@ -347,28 +348,27 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
                 // starting at the current size
                 currentBlockLimit = Math.max(
                         currentBlockLimit + 10,
-                        cache.getUsedMemory() + 10);
+                        cache.getUsedWeight() + 10);
                 // never grow larger than the configured size
                 currentBlockLimit = Math.min(currentBlockLimit, maxBlocks);
                 LOG.debug("Grow the cache size to {}", currentBlockLimit);
-                cache.setMaxMemory(currentBlockLimit);
+                cache.setMaximumWeight(currentBlockLimit);
             }
             return;
         }
         // shrink the cache, 2 percent at the time, starting at the current size
         currentBlockLimit = Math.min(
                 (int) (currentBlockLimit * 0.98 - 1),
-                (int) (cache.getUsedMemory() * 0.98 - 1));
+                (int) (cache.getUsedWeight() * 0.98 - 1));
         // never grow larger than the configured size
         currentBlockLimit = Math.min(currentBlockLimit, maxBlocks);
         LOG.info("Shrinking the file cache size to {} because there are {} files (limit: {})",
-                currentBlockLimit, cache.size(), maxEntryCount);
-        cache.setMaxMemory(currentBlockLimit);
+                currentBlockLimit, cache.estimatedSize(), maxEntryCount);
+        cache.setMaximumWeight(currentBlockLimit);
     }
 
-    @Override
     public void invalidate(Object key) {
-        cache.invalidate(key);
+        cache.invalidate((String) key);
     }
 
     public DataStoreCacheStatsMBean getStats() {
@@ -423,9 +423,8 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
     }
 }
 
-class FileCacheStats extends CacheStats implements DataStoreCacheStatsMBean {
+class FileCacheStats extends CacheStatsAdapter implements DataStoreCacheStatsMBean {
     private static final long BLOCK_SIZE = 4 * 1024;
-    private final Weigher<Object, Object> memWeigher;
     private final Weigher<Object, Object> weigher;
     private final Cache<Object, Object> cache;
 
@@ -435,30 +434,17 @@ class FileCacheStats extends CacheStats implements DataStoreCacheStatsMBean {
      * @param weigher   the weigher used to estimate the current weight
      * @param maxWeight the maximum weight
      */
+    @SuppressWarnings("unchecked")
     public FileCacheStats(Cache<?, ?> cache, Weigher<?, ?> weigher, Weigher<?, ?> memWeigher,
         long maxWeight) {
-        super(cache, "DataStore-DownloadCache", weigher, maxWeight);
-        this.memWeigher = (Weigher<Object, Object>) memWeigher;
-        this.weigher = (Weigher<Object, Object>) weigher;
+        super((Cache<Object, Object>) cache, "DataStore-DownloadCache",
+                (Weigher<Object, Object>) weigher, maxWeight);
+        this.weigher = (Weigher<Object, Object>) memWeigher;
         this.cache = (Cache<Object, Object>) cache;
     }
 
     @Override
     public long estimateCurrentMemoryWeight() {
-        if (memWeigher == null) {
-            return -1;
-        }
-        long size = 0;
-        for (Map.Entry<?, ?> e : cache.asMap().entrySet()) {
-            Object k = e.getKey();
-            Object v = e.getValue();
-            size += memWeigher.weigh(k, v);
-        }
-        return size;
-    }
-
-    @Override
-    public long estimateCurrentWeight() {
         if (weigher == null) {
             return -1;
         }
@@ -466,9 +452,15 @@ class FileCacheStats extends CacheStats implements DataStoreCacheStatsMBean {
         for (Map.Entry<?, ?> e : cache.asMap().entrySet()) {
             Object k = e.getKey();
             Object v = e.getValue();
-            size += weigher.weigh(k, v) * BLOCK_SIZE;
+            size += weigher.weigh(k, v);
         }
         return size;
+    }
+
+    @Override
+    public long estimateCurrentWeight() {
+        long rawWeight = super.estimateCurrentWeight();
+        return rawWeight < 0 ? rawWeight : rawWeight * BLOCK_SIZE;
     }
 
 }

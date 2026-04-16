@@ -149,4 +149,23 @@ public interface Cache<K, V> {
      * future release if it remains unused.</em></p>
      */
     void cleanUp();
+
+    /**
+     * Returns the approximate total weight of all currently cached entries,
+     * in the same units as the weigher passed to {@link CacheBuilder#weigher(Weigher)}.
+     * Returns {@code -1} if the cache was not configured with a weigher or
+     * if the implementation does not track weight.
+     *
+     * @return approximate total weight, or {@code -1} if unsupported
+     */
+    long getUsedWeight();
+
+    /**
+     * Dynamically changes the maximum weight (or size) the cache may hold.
+     * The cache will evict entries until it satisfies the new limit.
+     * This is a no-op if the implementation does not support dynamic resizing.
+     *
+     * @param maximumWeight the new maximum weight; must be non-negative
+     */
+    void setMaximumWeight(long maximumWeight);
 }
