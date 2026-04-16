@@ -26,7 +26,7 @@ import com.codahale.metrics.MetricRegistry;
 
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
-import org.apache.jackrabbit.oak.cache.CacheStatsSnapshot;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
