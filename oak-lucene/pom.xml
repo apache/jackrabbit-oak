@@ -120,6 +120,7 @@
                 !org.apache.jackrabbit.oak.cache,
                 !org.apache.jackrabbit.oak.cache.api,
                 !org.apache.jackrabbit.oak.cache.impl.caffeine,
+                !com.github.benmanes.caffeine.*,
                 !com.sun.management.*,
                 !sun.management.*,
                 !sun.misc.*,
