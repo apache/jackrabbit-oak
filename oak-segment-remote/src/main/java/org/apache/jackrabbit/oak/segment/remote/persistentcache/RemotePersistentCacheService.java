@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
-import org.apache.jackrabbit.oak.cache.api.CacheStats;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RoleStatisticsProvider;
