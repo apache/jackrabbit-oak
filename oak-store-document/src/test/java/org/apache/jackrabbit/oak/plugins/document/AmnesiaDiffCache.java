@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Collections;
 
-import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
+import org.apache.jackrabbit.oak.cache.api.CacheStats;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -61,7 +61,7 @@ class AmnesiaDiffCache extends DiffCache {
 
     @NotNull
     @Override
-    public Iterable<CacheStatsAdapter> getStats() {
+    public Iterable<CacheStats> getStats() {
         return Collections.emptyList();
     }
 

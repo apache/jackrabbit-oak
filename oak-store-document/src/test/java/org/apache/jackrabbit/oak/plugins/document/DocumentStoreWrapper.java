@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
+import org.apache.jackrabbit.oak.cache.api.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.jetbrains.annotations.NotNull;
 
@@ -150,7 +150,7 @@ public class DocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public Iterable<CacheStatsAdapter> getCacheStats() {
+    public Iterable<CacheStats> getCacheStats() {
         return store.getCacheStats();
     }
 

@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
+import org.apache.jackrabbit.oak.cache.api.CacheStats;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
@@ -228,7 +228,7 @@ public class NodeStoreDiffTest {
 
     private long diffCacheRequests(DocumentNodeStore ns) {
         long num = 0;
-        for (CacheStatsAdapter stats : ns.getDiffCacheStats()) {
+        for (CacheStats stats : ns.getDiffCacheStats()) {
             num += stats.getRequestCount();
         }
         return num;

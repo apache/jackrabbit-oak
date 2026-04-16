@@ -60,7 +60,7 @@ import java.util.zip.GZIPOutputStream;
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.cache.CacheValue;
-import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
+import org.apache.jackrabbit.oak.cache.api.CacheStats;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
@@ -836,7 +836,7 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     @Override
-    public Iterable<CacheStatsAdapter> getCacheStats() {
+    public Iterable<CacheStats> getCacheStats() {
         return nodesCache.getCacheStats();
     }
 

@@ -64,7 +64,7 @@ public class DocumentNodeStoreBuilderTest {
         DocumentStore store = new MemoryDocumentStore();
         NodeDocumentCache cache = DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder()
                 .buildNodeDocumentCache(store, new StripedNodeDocumentLocks());
-        Iterable<CacheStatsAdapter> stats = cache.getCacheStats();
+        Iterable<CacheStats> stats = cache.getCacheStats();
         Assert.assertNotNull(stats);
         Assert.assertTrue(stats.iterator().hasNext());
     }
