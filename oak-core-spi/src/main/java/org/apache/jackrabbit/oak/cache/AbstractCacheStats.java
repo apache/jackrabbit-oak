@@ -26,7 +26,7 @@ import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
-import org.apache.jackrabbit.oak.cache.api.CacheCounters;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.jetbrains.annotations.NotNull;
 
@@ -38,8 +38,8 @@ public abstract class AbstractCacheStats extends AnnotatedStandardMBean implemen
     @NotNull
     private final String name;
 
-    private CacheCounters lastSnapshot =
-            new CacheCounters(0, 0, 0, 0, 0, 0);
+    private CacheStatsSnapshot lastSnapshot =
+            new CacheStatsSnapshot(0, 0, 0, 0, 0, 0);
 
     /**
      * Create a new {@code CacheStatsMBean} for a cache with the given {@code name}.
@@ -51,12 +51,12 @@ public abstract class AbstractCacheStats extends AnnotatedStandardMBean implemen
     }
 
     /**
-     * Call back invoked to retrieve the most recent {@link CacheCounters} of the
+     * Call back invoked to retrieve the most recent {@link CacheStatsSnapshot} of the
      * underlying cache.
      */
-    protected abstract CacheCounters getCurrentStats();
+    protected abstract CacheStatsSnapshot getCurrentStats();
 
-    private CacheCounters stats() {
+    private CacheStatsSnapshot stats() {
         return getCurrentStats().minus(lastSnapshot);
     }
 
