@@ -141,12 +141,12 @@ public record CacheStatsSnapshot(
     @NotNull
     public CacheStatsSnapshot plus(@NotNull CacheStatsSnapshot other) {
         return new CacheStatsSnapshot(
-                Long.sum(hitCount, other.hitCount),
-                Long.sum(missCount, other.missCount),
-                Long.sum(loadSuccessCount, other.loadSuccessCount),
-                Long.sum(loadFailureCount, other.loadFailureCount),
-                Long.sum(totalLoadTime, other.totalLoadTime),
-                Long.sum(evictionCount, other.evictionCount)
+                Math.addExact(hitCount, other.hitCount),
+                Math.addExact(missCount, other.missCount),
+                Math.addExact(loadSuccessCount, other.loadSuccessCount),
+                Math.addExact(loadFailureCount, other.loadFailureCount),
+                Math.addExact(totalLoadTime, other.totalLoadTime),
+                Math.addExact(evictionCount, other.evictionCount)
         );
     }
 }
