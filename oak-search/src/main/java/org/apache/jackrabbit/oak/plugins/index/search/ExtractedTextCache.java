@@ -40,7 +40,7 @@ import java.util.concurrent.TimeoutException;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
-import org.apache.jackrabbit.oak.cache.api.CacheStats;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorHelper;

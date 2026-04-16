@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 
 import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
-import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
+import org.apache.jackrabbit.oak.cache.CacheStatsSnapshot;
 import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.jetbrains.annotations.NotNull;
 
