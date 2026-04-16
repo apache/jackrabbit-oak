@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.segment.CacheWeights;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.oak.cache.api.CacheCounters;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
 import org.apache.jackrabbit.oak.cache.api.Weigher;
 
 /**
@@ -400,8 +400,8 @@ public class PriorityCache<K, V> {
      * @return  access statistics for this cache
      */
     @NotNull
-    public CacheCounters getStats() {
-        return new CacheCounters(hitCount.sum(), missCount.sum(), loadCount.sum(),
+    public CacheStatsSnapshot getStats() {
+        return new CacheStatsSnapshot(hitCount.sum(), missCount.sum(), loadCount.sum(),
                 loadExceptionCount.sum(), 0, evictionCount.sum());
     }
 

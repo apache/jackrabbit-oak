@@ -24,7 +24,7 @@ import java.util.function.Function;
 
 import org.apache.jackrabbit.guava.common.cache.RemovalCause;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
-import org.apache.jackrabbit.oak.cache.api.CacheCounters;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
 import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.jetbrains.annotations.NotNull;
@@ -85,9 +85,9 @@ class LirsCacheAdapter<K, V> implements Cache<K, V> {
 
     @Override
     @NotNull
-    public CacheCounters stats() {
+    public CacheStatsSnapshot stats() {
         org.apache.jackrabbit.guava.common.cache.CacheStats s = cache.stats();
-        return new CacheCounters(
+        return new CacheStatsSnapshot(
                 s.hitCount(), s.missCount(),
                 s.loadSuccessCount(), s.loadExceptionCount(),
                 s.totalLoadTime(), s.evictionCount());

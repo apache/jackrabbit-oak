@@ -30,7 +30,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
-import org.apache.jackrabbit.oak.cache.api.CacheCounters;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.segment.file.PriorityCache;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -351,12 +351,12 @@ public abstract class WriterCacheManager {
         }
 
         @NotNull
-        private static <T> Supplier<CacheCounters> accumulateRecordCacheStats(
+        private static <T> Supplier<CacheStatsSnapshot> accumulateRecordCacheStats(
                 final Iterable<RecordCache<T>> caches) {
             return () -> {
                 long hits = 0, misses = 0, loads = 0, failures = 0, loadTime = 0, evictions = 0;
                 for (RecordCache<?> cache : caches) {
-                    CacheCounters s = cache.getStats();
+                    CacheStatsSnapshot s = cache.getStats();
                     hits += s.hitCount();
                     misses += s.missCount();
                     loads += s.loadSuccessCount();
@@ -364,7 +364,7 @@ public abstract class WriterCacheManager {
                     loadTime += s.totalLoadTime();
                     evictions += s.evictionCount();
                 }
-                return new CacheCounters(hits, misses, loads, failures, loadTime, evictions);
+                return new CacheStatsSnapshot(hits, misses, loads, failures, loadTime, evictions);
             };
         }
 

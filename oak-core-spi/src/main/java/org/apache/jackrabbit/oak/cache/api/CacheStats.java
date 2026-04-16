@@ -53,7 +53,7 @@ public class CacheStats extends AbstractCacheStats {
     }
 
     @Override
-    protected CacheCounters getCurrentStats() {
+    protected CacheStatsSnapshot getCurrentStats() {
         return cache.stats();
     }
 
