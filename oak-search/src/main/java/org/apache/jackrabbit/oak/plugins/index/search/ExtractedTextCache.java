@@ -40,7 +40,7 @@ import java.util.concurrent.TimeoutException;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
-import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
+import org.apache.jackrabbit.oak.cache.api.CacheStats;
 import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorHelper;
@@ -86,7 +86,7 @@ public class ExtractedTextCache {
 
     private final ConcurrentHashMap<String, String> timeoutMap;
     private final File indexDir;
-    private final CacheStatsAdapter cacheStats;
+    private final CacheStats cacheStats;
     private final boolean alwaysUsePreExtractedCache;
     private volatile ExecutorService executorService;
     private volatile int timeoutCount;
@@ -110,7 +110,7 @@ public class ExtractedTextCache {
                     .expireAfterAccess(Duration.ofSeconds(expiryTimeInSecs))
                     .recordStats()
                     .build();
-            cacheStats = new CacheStatsAdapter(cache, "ExtractedTextCache",
+            cacheStats = new CacheStats(cache, "ExtractedTextCache",
                     EmpiricalWeigher.INSTANCE, maxWeight);
         } else {
             cache = null;
@@ -249,7 +249,7 @@ public class ExtractedTextCache {
     }
 
     @Nullable
-    public CacheStatsAdapter getCacheStats() {
+    public CacheStats getCacheStats() {
         return cacheStats;
     }
 

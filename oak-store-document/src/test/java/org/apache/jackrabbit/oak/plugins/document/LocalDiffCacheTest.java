@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
+import org.apache.jackrabbit.oak.cache.api.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.LocalDiffCache.Diff;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -56,7 +56,7 @@ public class LocalDiffCacheTest {
         o.reset();
 
         DiffCache cache = store.getDiffCache();
-        Iterable<CacheStatsAdapter> stats = cache.getStats();
+        Iterable<CacheStats> stats = cache.getStats();
 
         NodeBuilder builder = store.getRoot().builder();
         builder.child("a").child("a2").setProperty("foo", "bar");
@@ -118,24 +118,24 @@ public class LocalDiffCacheTest {
                 .open();
     }
 
-    private static long getHitCount(Iterable<CacheStatsAdapter> stats) {
+    private static long getHitCount(Iterable<CacheStats> stats) {
         long hitCount = 0;
-        for (CacheStatsAdapter cs : stats) {
+        for (CacheStats cs : stats) {
             hitCount += cs.getHitCount();
         }
         return hitCount;
     }
 
-    private static long getMissCount(Iterable<CacheStatsAdapter> stats) {
+    private static long getMissCount(Iterable<CacheStats> stats) {
         long missCount = 0;
-        for (CacheStatsAdapter cs : stats) {
+        for (CacheStats cs : stats) {
             missCount += cs.getMissCount();
         }
         return missCount;
     }
 
-    private static void resetStats(Iterable<CacheStatsAdapter> stats) {
-        for (CacheStatsAdapter cs : stats) {
+    private static void resetStats(Iterable<CacheStats> stats) {
+        for (CacheStats cs : stats) {
             cs.resetStats();
         }
     }

@@ -27,7 +27,7 @@ import java.util.function.Supplier;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
+import org.apache.jackrabbit.oak.cache.api.CacheStats;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.segment.util.SafeEncode;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -227,12 +227,12 @@ public class CachingSegmentReader implements SegmentReader {
     }
 
     @NotNull
-    public CacheStatsAdapter getStringCacheStats() {
+    public CacheStats getStringCacheStats() {
         return stringCache.getStats();
     }
 
     @NotNull
-    public CacheStatsAdapter getTemplateCacheStats() {
+    public CacheStats getTemplateCacheStats() {
         return templateCache.getStats();
     }
 }

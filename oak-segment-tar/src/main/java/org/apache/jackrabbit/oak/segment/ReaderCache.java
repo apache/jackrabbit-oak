@@ -27,7 +27,7 @@ import java.util.function.Function;
 
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.api.Cache;
-import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
+import org.apache.jackrabbit.oak.cache.api.CacheStats;
 import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -57,7 +57,7 @@ public abstract class ReaderCache<T> {
     private final Cache<CacheKey, T> cache;
 
     @NotNull
-    private final CacheStatsAdapter cacheStats;
+    private final CacheStats cacheStats;
 
     /**
      * Create a new string cache.
@@ -79,11 +79,11 @@ public abstract class ReaderCache<T> {
                 .weigher(weigher::weigh)
                 .build()
                 .asOakCache();
-        cacheStats = new CacheStatsAdapter(cache, name, weigher, maxWeight);
+        cacheStats = new CacheStats(cache, name, weigher, maxWeight);
     }
 
     @NotNull
-    public CacheStatsAdapter getStats() {
+    public CacheStats getStats() {
         return cacheStats;
     }
 
