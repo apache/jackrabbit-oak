@@ -22,7 +22,7 @@ import org.jetbrains.annotations.NotNull;
  * An immutable snapshot of cache statistics at a point in time.
  *
  * <p>Returned by {@link Cache#stats()}. All counters are cumulative since
- * the cache was created. Use {@link #minus(CacheStatsSnapshot)} to compute a delta
+ * the cache was created. Use {@link #minus(CacheCounters)} to compute a delta
  * between two snapshots.</p>
  *
  * @param hitCount         number of times a requested key was found in the cache
@@ -32,7 +32,7 @@ import org.jetbrains.annotations.NotNull;
  * @param totalLoadTime    total time spent loading new values, in nanoseconds
  * @param evictionCount    number of entries evicted from the cache
  */
-public record CacheStatsSnapshot(
+public record CacheCounters(
         long hitCount,
         long missCount,
         long loadSuccessCount,
@@ -72,6 +72,47 @@ public record CacheStatsSnapshot(
     }
 
     /**
+     * Returns the total number of load attempts (successes + failures).
+     *
+     * @return load count
+     */
+    public long loadCount() {
+        return loadSuccessCount + loadFailureCount;
+    }
+
+    /**
+     * Returns the number of load attempts that threw an exception.
+     * Alias for {@link #loadFailureCount()}, matching the JMX interface naming.
+     *
+     * @return load exception count
+     */
+    public long loadExceptionCount() {
+        return loadFailureCount;
+    }
+
+    /**
+     * Returns the ratio of load attempts that threw an exception, or {@code 0.0}
+     * if no loads have been attempted.
+     *
+     * @return load exception rate between 0.0 and 1.0
+     */
+    public double loadExceptionRate() {
+        long loads = loadCount();
+        return loads == 0 ? 0.0 : (double) loadFailureCount / loads;
+    }
+
+    /**
+     * Returns the average time spent loading a new value, in nanoseconds, or
+     * {@code 0.0} if no loads have been attempted.
+     *
+     * @return average load penalty in nanoseconds
+     */
+    public double averageLoadPenalty() {
+        long loads = loadCount();
+        return loads == 0 ? 0.0 : (double) totalLoadTime / loads;
+    }
+
+    /**
      * Returns the difference between this snapshot and an earlier {@code other}
      * snapshot, useful for computing per-interval deltas.
      *
@@ -79,8 +120,8 @@ public record CacheStatsSnapshot(
      * @return a new snapshot representing the delta
      */
     @NotNull
-    public CacheStatsSnapshot minus(@NotNull CacheStatsSnapshot other) {
-        return new CacheStatsSnapshot(
+    public CacheCounters minus(@NotNull CacheCounters other) {
+        return new CacheCounters(
                 Math.max(0, hitCount - other.hitCount),
                 Math.max(0, missCount - other.missCount),
                 Math.max(0, loadSuccessCount - other.loadSuccessCount),

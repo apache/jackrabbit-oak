@@ -20,7 +20,7 @@ import java.util.Arrays;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.RemovalCause;
-import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
+import org.apache.jackrabbit.oak.cache.api.CacheCounters;
 import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.junit.Assert;
 import org.junit.Test;
@@ -45,7 +45,7 @@ public class CaffeineCacheAdapterTest {
         adapter.getIfPresent("hit");
         adapter.getIfPresent("miss");
 
-        CacheStatsSnapshot stats = adapter.stats();
+        CacheCounters stats = adapter.stats();
         Assert.assertEquals(1, stats.hitCount());
         Assert.assertEquals(1, stats.missCount());
     }

@@ -54,8 +54,7 @@ import org.apache.jackrabbit.oak.api.blob.BlobUpload;
 import org.apache.jackrabbit.oak.api.blob.BlobUploadOptions;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.api.Cache;
-import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
-import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
+import org.apache.jackrabbit.oak.cache.api.CacheStats;
 import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
@@ -134,7 +133,7 @@ public class DataStoreBlobStore
         }
     };
 
-    private final AbstractCacheStats cacheStats;
+    private final CacheStats cacheStats;
 
     public static final String MEM_CACHE_NAME = "BlobStore-MemCache";
 
@@ -159,7 +158,7 @@ public class DataStoreBlobStore
                 .maximumWeight(cacheSize)
                 .weigher(weigher::weigh)
                 .build().asOakCache();
-        this.cacheStats = new CacheStatsAdapter(cache, MEM_CACHE_NAME, weigher, cacheSize);
+        this.cacheStats = new CacheStats(cache, MEM_CACHE_NAME, weigher, cacheSize);
     }
 
     //~----------------------------------< DataStore >
@@ -828,7 +827,7 @@ public class DataStoreBlobStore
         return delegate;
     }
 
-    public AbstractCacheStats getCacheStats() {
+    public CacheStats getCacheStats() {
         return cacheStats;
     }
 

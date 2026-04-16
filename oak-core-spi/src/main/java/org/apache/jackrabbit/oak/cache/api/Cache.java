@@ -115,7 +115,7 @@ public interface Cache<K, V> {
      * @return a stats snapshot (never null)
      */
     @NotNull
-    CacheStatsSnapshot stats();
+    CacheCounters stats();
 
     /**
      * Returns a view of the entries stored in this cache as a thread-safe map.

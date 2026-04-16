@@ -33,7 +33,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
+import org.apache.jackrabbit.oak.cache.api.CacheStats;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -444,7 +444,7 @@ public class MemoryDocumentStore implements DocumentStore {
     }
 
     @Override
-    public Iterable<AbstractCacheStats> getCacheStats() {
+    public Iterable<CacheStats> getCacheStats() {
         return null;
     }
 
