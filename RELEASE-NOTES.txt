@@ -20,9 +20,6 @@ Apache Jackrabbit is a project of the Apache Software Foundation.
 Changes in Oak 2.0.0
 --------------------
 
-
-Release Notes - Jackrabbit Oak - Version 2.0.0
-
 ** Sub-task
     * [OAK-12147] - Introduce Oak Cache API interfaces in oak-core-spi
     * [OAK-12148] - Add hidden cache implementations and OakCacheBuilder in oak-core-spi
@@ -33,6 +30,12 @@ Release Notes - Jackrabbit Oak - Version 2.0.0
     * [OAK-12153] - Migrate oak-search to Oak Cache API
     * [OAK-12154] - Migrate oak-store-document cache infrastructure to Oak Cache API
     * [OAK-12155] - Migrate oak-store-document diff caches to Oak Cache API
+    * [OAK-12156] - Migrate oak-store-document persistent cache and document stores to Oak Cache API
+    * [OAK-12157] - Migrate oak-segment-tar Guava-shim caches to Oak Cache API
+    * [OAK-12158] - Migrate oak-segment-tar CacheLIRS-based caches to Oak Cache API
+    * [OAK-12159] - Migrate oak-blob-plugins to Oak Cache API
+    * [OAK-12160] - Migrate oak-run-commons and any remaining modules to Oak Cache API
+    * [OAK-12161] - Verify OSGi bundle isolation — no consumer imports Caffeine or Guava cache packages
 
 ** Technical task
     * [OAK-12108] - Remove usage of Guava's Monitor from SegmentBufferWriterPool
@@ -94,7 +97,7 @@ Release Notes - Jackrabbit Oak - Version 2.0.0
     * [OAK-12178] - bump netty version to 4.1.132.Final
     * [OAK-12179] - update Tomcat dependency to 9.0.117
     * [OAK-12182] - Create SPEC/PLAN/TASKS for guava removal
-
+    * [OAK-12184] - revert oak-blob-cloud-azure to version as of 1.90.0
 
 In addition to the above-mentioned changes, this release contains all
 changes up to the previous release.
