@@ -16,8 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
-import org.apache.jackrabbit.oak.cache.api.CacheStats;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.jetbrains.annotations.NotNull;
@@ -70,7 +69,7 @@ abstract class DiffCache {
      * @return the statistics for this cache.
      */
     @NotNull
-    abstract Iterable<CacheStats> getStats();
+    abstract Iterable<CacheStatsAdapter> getStats();
 
     /**
      * Invalidates all the entries in the cache.

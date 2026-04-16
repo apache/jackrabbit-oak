@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.oak.cache.api.CacheStats;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -431,7 +431,7 @@ public interface DocumentStore {
      * @return status information about the cache
      */
     @Nullable
-    Iterable<CacheStats> getCacheStats();
+    Iterable<CacheStatsAdapter> getCacheStats();
 
     /**
      * @return description of the underlying storage.

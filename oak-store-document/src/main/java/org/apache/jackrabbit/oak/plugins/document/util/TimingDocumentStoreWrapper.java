@@ -25,7 +25,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.jackrabbit.oak.cache.api.CacheStats;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -423,10 +423,10 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
 
 
     @Override
-    public Iterable<CacheStats> getCacheStats() {
+    public Iterable<CacheStatsAdapter> getCacheStats() {
         try {
             long start = now();
-            Iterable<CacheStats> result = base.getCacheStats();
+            Iterable<CacheStatsAdapter> result = base.getCacheStats();
             updateAndLogTimes("getCacheStats", start, 0, 0);
             return result;
         } catch (Exception e) {

@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import com.mongodb.client.MongoClient;
 
-import org.apache.jackrabbit.oak.cache.api.CacheStats;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -74,11 +74,11 @@ public class DocumentMKBuilderTest extends AbstractMongoConnectionTest {
 
     @Test
     public void lazyInit() throws Exception {
-        Iterable<CacheStats> cacheStats = mk.getDocumentStore().getCacheStats();
+        Iterable<CacheStatsAdapter> cacheStats = mk.getDocumentStore().getCacheStats();
         assertNotNull(cacheStats);
         assertEquals(2, IterableUtils.size(cacheStats));
-        CacheStats docCacheStats = IterableUtils.get(cacheStats, 0);
-        CacheStats prevDocCacheStats = IterableUtils.get(cacheStats, 1);
+        CacheStatsAdapter docCacheStats = IterableUtils.get(cacheStats, 0);
+        CacheStatsAdapter prevDocCacheStats = IterableUtils.get(cacheStats, 1);
         assertEquals("Document-Documents", docCacheStats.getName());
         assertEquals("Document-PrevDocuments", prevDocCacheStats.getName());
         assertEquals(expectedDocCacheSize, docCacheStats.getMaxTotalWeight());
