@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.cache.api;
 
-import org.apache.jackrabbit.oak.cache.CacheStatsSnapshot;
 import org.junit.Assert;
 import org.junit.Test;
 

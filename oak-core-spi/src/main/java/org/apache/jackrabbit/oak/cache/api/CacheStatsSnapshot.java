@@ -14,9 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.cache;
+package org.apache.jackrabbit.oak.cache.api;
 
-import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.jetbrains.annotations.NotNull;
 
 /**
