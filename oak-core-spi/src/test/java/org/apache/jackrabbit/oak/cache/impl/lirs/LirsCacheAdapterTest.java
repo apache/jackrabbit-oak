@@ -21,7 +21,7 @@ import java.util.concurrent.ExecutionException;
 
 import org.apache.jackrabbit.guava.common.cache.RemovalCause;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
-import org.apache.jackrabbit.oak.cache.api.CacheCounters;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
 import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.junit.Assert;
 import org.junit.Test;
@@ -51,7 +51,7 @@ public class LirsCacheAdapterTest {
         adapter.getIfPresent("hit");
         adapter.getIfPresent("miss");
 
-        CacheCounters stats = adapter.stats();
+        CacheStatsSnapshot stats = adapter.stats();
         Assert.assertEquals(1, stats.hitCount());
         Assert.assertEquals(1, stats.missCount());
     }

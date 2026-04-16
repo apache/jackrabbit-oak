@@ -22,7 +22,7 @@ import org.jetbrains.annotations.NotNull;
  * An immutable snapshot of cache statistics at a point in time.
  *
  * <p>Returned by {@link Cache#stats()}. All counters are cumulative since
- * the cache was created. Use {@link #minus(CacheCounters)} to compute a delta
+ * the cache was created. Use {@link #minus(CacheStatsSnapshot)} to compute a delta
  * between two snapshots.</p>
  *
  * @param hitCount         number of times a requested key was found in the cache
@@ -32,7 +32,7 @@ import org.jetbrains.annotations.NotNull;
  * @param totalLoadTime    total time spent loading new values, in nanoseconds
  * @param evictionCount    number of entries evicted from the cache
  */
-public record CacheCounters(
+public record CacheStatsSnapshot(
         long hitCount,
         long missCount,
         long loadSuccessCount,
@@ -120,8 +120,8 @@ public record CacheCounters(
      * @return a new snapshot representing the delta
      */
     @NotNull
-    public CacheCounters minus(@NotNull CacheCounters other) {
-        return new CacheCounters(
+    public CacheStatsSnapshot minus(@NotNull CacheStatsSnapshot other) {
+        return new CacheStatsSnapshot(
                 Math.max(0, hitCount - other.hitCount),
                 Math.max(0, missCount - other.missCount),
                 Math.max(0, loadSuccessCount - other.loadSuccessCount),
