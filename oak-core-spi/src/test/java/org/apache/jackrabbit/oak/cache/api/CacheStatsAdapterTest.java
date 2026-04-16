@@ -20,7 +20,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /** Tests for {@link CacheStatsSnapshot}. */
-public class CacheStatsTest {
+public class CacheStatsAdapterTest {
 
     private CacheStatsSnapshot stats(long hits, long misses, long loadSuccess, long loadFail,
                                      long loadTime, long evictions) {
