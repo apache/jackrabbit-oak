@@ -35,7 +35,6 @@ Changes in Oak 2.0.0
     * [OAK-12158] - Migrate oak-segment-tar CacheLIRS-based caches to Oak Cache API
     * [OAK-12159] - Migrate oak-blob-plugins to Oak Cache API
     * [OAK-12160] - Migrate oak-run-commons and any remaining modules to Oak Cache API
-    * [OAK-12161] - Verify OSGi bundle isolation — no consumer imports Caffeine or Guava cache packages
 
 ** Technical task
     * [OAK-12108] - Remove usage of Guava's Monitor from SegmentBufferWriterPool
