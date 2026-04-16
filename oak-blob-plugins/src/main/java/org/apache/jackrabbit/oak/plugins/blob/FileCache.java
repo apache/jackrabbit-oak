@@ -39,7 +39,7 @@ import org.apache.jackrabbit.guava.common.cache.RemovalCause;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.cache.api.CacheLoader;
-import org.apache.jackrabbit.oak.cache.api.CacheStats;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
 import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
@@ -423,7 +423,7 @@ public class FileCache implements Closeable {
     }
 }
 
-class FileCacheStats extends CacheStats implements DataStoreCacheStatsMBean {
+class FileCacheStats extends CacheStatsAdapter implements DataStoreCacheStatsMBean {
     private static final long BLOCK_SIZE = 4 * 1024;
     private final Weigher<Object, Object> weigher;
     private final Cache<Object, Object> cache;

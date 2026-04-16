@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.cache;
 
 import java.util.concurrent.ExecutionException;
 
-import org.apache.jackrabbit.oak.cache.api.CacheStats;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,12 +34,12 @@ public class AbstractCacheStatsTest {
     private static final long MAX_WEIGHT = 1000;
 
     private CacheLIRS<String, String> cache;
-    private CacheStats stats;
+    private CacheStatsAdapter stats;
 
     @Before
     public void setUp() {
         cache = new CacheLIRS<>(null, MAX_WEIGHT, 1, 1, 0, null, null, null);
-        stats = new CacheStats(cache.asOakCache(), CACHE_NAME, null, MAX_WEIGHT);
+        stats = new CacheStatsAdapter(cache.asOakCache(), CACHE_NAME, null, MAX_WEIGHT);
     }
 
     @Test
@@ -96,7 +96,7 @@ public class AbstractCacheStatsTest {
         CacheLIRS<String, String> smallCache = CacheLIRS.<String, String>newBuilder()
                 .maximumSize(5)
                 .build();
-        CacheStats smallStats = new CacheStats(smallCache.asOakCache(), "small", null, 5);
+        CacheStatsAdapter smallStats = new CacheStatsAdapter(smallCache.asOakCache(), "small", null, 5);
         for (int i = 0; i < 30; i++) {
             smallCache.put("k" + i, "v" + i);
         }

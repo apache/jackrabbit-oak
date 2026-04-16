@@ -43,7 +43,7 @@ import java.util.stream.StreamSupport;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.cache.CacheValue;
-import org.apache.jackrabbit.oak.cache.api.CacheStats;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
@@ -2081,7 +2081,7 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     @Override
-    public Iterable<CacheStats> getCacheStats() {
+    public Iterable<CacheStatsAdapter> getCacheStats() {
         return nodesCache.getCacheStats();
     }
 
