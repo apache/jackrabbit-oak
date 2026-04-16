@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.lang.reflect.Field;
 
-import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
+import org.apache.jackrabbit.oak.cache.api.CacheStats;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -88,7 +88,7 @@ public class TieredDiffCacheTest {
     @Test
     public void getStatsReturnsNonEmptyIterable() {
         TieredDiffCache cache = buildCache();
-        Iterable<CacheStatsAdapter> stats = cache.getStats();
+        Iterable<CacheStats> stats = cache.getStats();
         assertNotNull(stats);
         assertTrue(stats.iterator().hasNext());
     }

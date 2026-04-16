@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
+import org.apache.jackrabbit.oak.cache.api.CacheStats;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
@@ -63,14 +63,14 @@ public class DocumentNodeStoreDiffTest extends AbstractMongoConnectionTest {
             merge(store, builder);
         }
 
-        Iterable<CacheStatsAdapter> stats = store.getDiffCacheStats();
-        for (CacheStatsAdapter cs : stats) {
+        Iterable<CacheStats> stats = store.getDiffCacheStats();
+        for (CacheStats cs : stats) {
             cs.resetStats();
         }
 
         // must not cause cache misses
         Diff.perform(before, after);
-        for (CacheStatsAdapter cs : stats) {
+        for (CacheStats cs : stats) {
             assertEquals(0, cs.getMissCount());
         }
     }
