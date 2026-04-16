@@ -4,9 +4,25 @@ This document decomposes the Oak Cache API migration plan (PLAN.md) into indepen
 
 ## Current local status
 
-- OAK-12147 API interfaces are implemented locally.
-- OAK-12148 hidden implementations and builder are implemented locally: `CacheBuilder` creates Caffeine-backed caches only; `CacheLIRS` instances are exposed via `CacheLIRS.asOakCache()`. Separate manual/loading adapters per backend, builder-side validation, and Javadocs are all in place.
-- OAK-12149 through OAK-12162 remain planning tasks in this document.
+**Merged to trunk:**
+
+- OAK-12147 merged via PR #2814
+- OAK-12148 merged via PR #2819: `CacheBuilder` creates Caffeine-backed caches only; `CacheLIRS` instances are exposed via `CacheLIRS.asOakCache()`. Separate manual/loading adapters per backend, builder-side validation, and Javadocs are all in place.
+- OAK-12149 merged via PR #2834 (oak-blob-cloud S3Backend)
+- OAK-12150 merged via PR #2838 (oak-blob-cloud-azure) — note: reverted in PR #2858 and re-done separately
+- OAK-12151 merged via PR #2839 (oak-blob)
+- OAK-12152 merged via PR #2842 (oak-search-elastic)
+- OAK-12153 merged via PR #2843 (oak-search; cascade covered `LuceneIndexProviderService` and `DocumentStoreIndexerBase`)
+- OAK-12154 merged via PR #2844 (oak-store-document cache infrastructure)
+- OAK-12155 merged via PR #2848 (oak-store-document diff caches)
+- OAK-12156 merged via PR #2854 (oak-store-document persistent cache and stores; cascade covered `DocumentNodeStoreHelper` and `PersistentCacheTest` in oak-run-commons / oak-benchmarks)
+- OAK-12160 completed via OAK-12156 cascade: `DocumentNodeStoreHelper.java` and `PersistentCacheTest.java` were migrated as cross-module return-type cascade items in PR #2854. No additional changes required; oak-run-commons and oak-benchmarks are fully clean.
+
+**Remaining:**
+
+- OAK-12157, OAK-12158 (oak-segment-tar) — not yet started
+- OAK-12159 (oak-blob-plugins) — not yet started
+- OAK-12161, OAK-12162 — blocked on OAK-12157, OAK-12158, OAK-12159
 
 ## Dependency Graph
 
@@ -543,8 +559,8 @@ the `org.apache.jackrabbit.oak.cache` package version must be bumped in `package
 **Independent of:** OAK-12149, OAK-12150, OAK-12151, OAK-12152, OAK-12153, OAK-12154, OAK-12155, OAK-12156, OAK-12157, OAK-12158, OAK-12159
 
 ### What changes
-- `oak-run-commons/.../DocumentNodeStoreHelper.java` — **already migrated in OAK-12156** (cross-module return-type cascade from `DocumentNodeStore.getNodeCache()`)
-- `oak-run-commons/.../DocumentStoreIndexerBase.java` — update if it references cache types
+- `oak-run-commons/.../DocumentNodeStoreHelper.java` — **migrated in OAK-12156** (cross-module return-type cascade from `DocumentNodeStore.getNodeCache()`)
+- `oak-run-commons/.../DocumentStoreIndexerBase.java` — **migrated in OAK-12153** (cross-module return-type cascade from `ExtractedTextCache.getCacheStats()`)
 - Scan for any other modules with residual Caffeine/Guava cache imports and migrate them
 
 ### Exception handling migration
