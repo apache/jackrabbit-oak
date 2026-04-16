@@ -26,6 +26,7 @@ import com.codahale.metrics.MetricRegistry;
 
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
+import org.apache.jackrabbit.oak.cache.api.CacheCounters;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
@@ -94,9 +95,8 @@ public class CacheStatsMetricsTest {
         }
 
         @Override
-        protected org.apache.jackrabbit.guava.common.cache.CacheStats getCurrentStats() {
-            return new org.apache.jackrabbit.guava.common.cache.CacheStats(
-                    HIT_COUNT, MISS_COUNT, MISS_COUNT, 0, LOAD_TIME, EVICTION_COUNT);
+        protected CacheCounters getCurrentStats() {
+            return new CacheCounters(HIT_COUNT, MISS_COUNT, MISS_COUNT, 0, LOAD_TIME, EVICTION_COUNT);
         }
 
         @Override

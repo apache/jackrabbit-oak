@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
-import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RoleStatisticsProvider;
@@ -94,7 +93,7 @@ public class RemotePersistentCacheService {
             closer.register(persistentDiskCache);
 
             CacheStatsMBean diskCacheStatsMBean = persistentDiskCache.getCacheStats();
-            registerCloseable(registerMBean(CacheStatsMBean.class, diskCacheStatsMBean, CacheStats.TYPE, diskCacheStatsMBean.getName()));
+            registerCloseable(registerMBean(CacheStatsMBean.class, diskCacheStatsMBean, CacheStatsMBean.TYPE, diskCacheStatsMBean.getName()));
 
             if (configuration.redisCacheEnabled()) {
                 PersistentRedisCache redisCache = new PersistentRedisCache(configuration.redisCacheHost(), configuration.redisCachePort(), configuration.redisCacheExpireSeconds(), configuration.redisSocketTimeout(), configuration.redisConnectionTimeout(),
@@ -103,7 +102,7 @@ public class RemotePersistentCacheService {
                 closer.register(redisCache);
 
                 CacheStatsMBean redisCacheStatsMBean = redisCache.getCacheStats();
-                registerCloseable(registerMBean(CacheStatsMBean.class, redisCacheStatsMBean, CacheStats.TYPE, redisCacheStatsMBean.getName()));
+                registerCloseable(registerMBean(CacheStatsMBean.class, redisCacheStatsMBean, CacheStatsMBean.TYPE, redisCacheStatsMBean.getName()));
             }
 
             return persistentDiskCache;
@@ -113,7 +112,7 @@ public class RemotePersistentCacheService {
             closer.register(redisCache);
 
             CacheStatsMBean redisCacheStatsMBean = redisCache.getCacheStats();
-            registerCloseable(registerMBean(CacheStatsMBean.class, redisCacheStatsMBean, CacheStats.TYPE, redisCacheStatsMBean.getName()));
+            registerCloseable(registerMBean(CacheStatsMBean.class, redisCacheStatsMBean, CacheStatsMBean.TYPE, redisCacheStatsMBean.getName()));
 
             return redisCache;
         }
