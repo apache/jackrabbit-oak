@@ -35,6 +35,7 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProviderService;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -176,5 +177,11 @@ public class OSGiIT {
         };
         context.registerService("org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler",
                 handler, null);
+    }
+
+    @Test
+    public void testLuceneIndexProviderService() {
+        context.registerService("org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProviderService",
+                new LuceneIndexProviderService(), null);
     }
 }
