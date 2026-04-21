@@ -254,11 +254,15 @@ public class UserManagerImpl implements UserManager {
     @NotNull
     @Override
     public User createUserWithAbsolutePath(@NotNull String userID, @Nullable String password,
-                                           @NotNull Principal principal, @NotNull String oakPath)
+                                           @NotNull Principal principal, @NotNull String absolutePath)
             throws AuthorizableExistsException, UnsupportedRepositoryOperationException, RepositoryException {
         checkValidId(userID);
         checkValidPrincipal(principal, false);
 
+        String oakPath = namePathMapper.getOakPath(absolutePath);
+        if (oakPath == null) {
+            throw new RepositoryException("Invalid path: " + absolutePath);
+        }
         Tree userTree = userProvider.createUser(userID, oakPath);
         setPrincipal(userTree, principal);
         if (password != null) {
@@ -275,11 +279,15 @@ public class UserManagerImpl implements UserManager {
     @NotNull
     @Override
     public Group createGroupWithAbsolutePath(@NotNull String groupID, @NotNull Principal principal,
-                                             @NotNull String oakPath)
+                                             @NotNull String absolutePath)
             throws AuthorizableExistsException, UnsupportedRepositoryOperationException, RepositoryException {
         checkValidId(groupID);
         checkValidPrincipal(principal, true);
 
+        String oakPath = namePathMapper.getOakPath(absolutePath);
+        if (oakPath == null) {
+            throw new RepositoryException("Invalid path: " + absolutePath);
+        }
         Tree groupTree = userProvider.createGroup(groupID, oakPath);
         setPrincipal(groupTree, principal);
 
