@@ -256,24 +256,7 @@ public class UserManagerImpl implements UserManager {
     public User createUserWithAbsolutePath(@NotNull String userID, @Nullable String password,
                                            @NotNull Principal principal, @NotNull String absolutePath)
             throws AuthorizableExistsException, UnsupportedRepositoryOperationException, RepositoryException {
-        checkValidId(userID);
-        checkValidPrincipal(principal, false);
-
-        String oakPath = namePathMapper.getOakPath(absolutePath);
-        if (oakPath == null) {
-            throw new RepositoryException("Invalid path: " + absolutePath);
-        }
-        Tree userTree = userProvider.createUser(userID, oakPath);
-        setPrincipal(userTree, principal);
-        if (password != null) {
-            setPassword(userTree, userID, password, false);
-        }
-
-        User user = new UserImpl(userID, userTree, this);
-        onCreate(user, password);
-
-        log.debug("User created: {}", userID);
-        return user;
+        return createUser(userID, password, principal, getOakPath(absolutePath));
     }
 
     @NotNull
@@ -281,21 +264,7 @@ public class UserManagerImpl implements UserManager {
     public Group createGroupWithAbsolutePath(@NotNull String groupID, @NotNull Principal principal,
                                              @NotNull String absolutePath)
             throws AuthorizableExistsException, UnsupportedRepositoryOperationException, RepositoryException {
-        checkValidId(groupID);
-        checkValidPrincipal(principal, true);
-
-        String oakPath = namePathMapper.getOakPath(absolutePath);
-        if (oakPath == null) {
-            throw new RepositoryException("Invalid path: " + absolutePath);
-        }
-        Tree groupTree = userProvider.createGroup(groupID, oakPath);
-        setPrincipal(groupTree, principal);
-
-        Group group = new GroupImpl(groupID, groupTree, this);
-        onCreate(group);
-
-        log.debug("Group created: {}", groupID);
-        return group;
+        return createGroup(groupID, principal, getOakPath(absolutePath));
     }
 
     /**
@@ -522,6 +491,15 @@ public class UserManagerImpl implements UserManager {
     @NotNull
     ConfigurationParameters getConfig() {
         return config;
+    }
+
+    @NotNull
+    private String getOakPath(@NotNull String jcrPath) throws RepositoryException {
+        String oakPath = namePathMapper.getOakPath(jcrPath);
+        if (oakPath == null) {
+            throw new RepositoryException("Invalid path: " + jcrPath);
+        }
+        return oakPath;
     }
 
     private void checkValidId(@Nullable String id) throws RepositoryException {
