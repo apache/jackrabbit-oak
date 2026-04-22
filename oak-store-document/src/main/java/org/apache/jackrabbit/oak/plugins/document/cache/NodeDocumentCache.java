@@ -32,9 +32,9 @@ import java.util.concurrent.locks.Lock;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.cache.CacheValue;
-import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -50,7 +50,7 @@ public class NodeDocumentCache implements Closeable {
 
     private final Cache<CacheValue, NodeDocument> nodeDocumentsCache;
 
-    private final CacheStats nodeDocumentsCacheStats;
+    private final AbstractCacheStats nodeDocumentsCacheStats;
 
     /**
      * The previous documents cache
@@ -58,16 +58,16 @@ public class NodeDocumentCache implements Closeable {
      * Key: StringValue, value: NodeDocument
      */
     private final Cache<StringValue, NodeDocument> prevDocumentsCache;
-    private final CacheStats prevDocumentsCacheStats;
+    private final AbstractCacheStats prevDocumentsCacheStats;
 
     private final NodeDocumentLocks locks;
 
     private final List<CacheChangesTracker> changeTrackers;
 
     public NodeDocumentCache(@NotNull Cache<CacheValue, NodeDocument> nodeDocumentsCache,
-                             @NotNull CacheStats nodeDocumentsCacheStats,
+                             @NotNull AbstractCacheStats nodeDocumentsCacheStats,
                              @NotNull Cache<StringValue, NodeDocument> prevDocumentsCache,
-                             @NotNull CacheStats prevDocumentsCacheStats,
+                             @NotNull AbstractCacheStats prevDocumentsCacheStats,
                              @NotNull NodeDocumentLocks locks) {
         this.nodeDocumentsCache = nodeDocumentsCache;
         this.nodeDocumentsCacheStats = nodeDocumentsCacheStats;
@@ -319,7 +319,7 @@ public class NodeDocumentCache implements Closeable {
         return IterableUtils.chainedIterable(nodeDocumentsCache.asMap().values(), prevDocumentsCache.asMap().values());
     }
 
-    public Iterable<CacheStats> getCacheStats() {
+    public Iterable<AbstractCacheStats> getCacheStats() {
         return Arrays.asList(nodeDocumentsCacheStats, prevDocumentsCacheStats);
     }
 

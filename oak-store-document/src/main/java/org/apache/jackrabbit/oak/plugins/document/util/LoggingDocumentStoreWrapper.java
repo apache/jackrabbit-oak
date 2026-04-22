@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
-import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -366,10 +366,15 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public Iterable<CacheStats> getCacheStats() {
+    public Iterable<AbstractCacheStats> getCacheStats() {
         try {
             logMethod("getCacheStats");
-            return logResult(store::getCacheStats);
+            return logResult(new Callable<Iterable<AbstractCacheStats>>() {
+                @Override
+                public Iterable<AbstractCacheStats> call() throws Exception {
+                    return store.getCacheStats();
+                }
+            });
         } catch (Exception e) {
             logException(e);
             throw convert(e);

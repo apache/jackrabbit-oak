@@ -25,8 +25,8 @@ import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
-import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.jetbrains.annotations.NotNull;
 
@@ -38,8 +38,8 @@ public abstract class AbstractCacheStats extends AnnotatedStandardMBean implemen
     @NotNull
     private final String name;
 
-    private CacheStatsSnapshot lastSnapshot =
-            new CacheStatsSnapshot(0, 0, 0, 0, 0, 0);
+    private CacheStats lastSnapshot =
+            new CacheStats(0, 0, 0, 0, 0, 0);
 
     /**
      * Create a new {@code CacheStatsMBean} for a cache with the given {@code name}.
@@ -51,21 +51,19 @@ public abstract class AbstractCacheStats extends AnnotatedStandardMBean implemen
     }
 
     /**
-     * Call back invoked to retrieve the most recent {@link CacheStatsSnapshot} of the
+     * Call back invoked to retrieve the most recent {@code CacheStats} instance of the
      * underlying cache.
      */
-    protected abstract CacheStatsSnapshot getCurrentStats();
+    protected abstract CacheStats getCurrentStats();
 
-    private CacheStatsSnapshot stats() {
-        CacheStatsSnapshot baseline;
-        synchronized (this) {
-            baseline = lastSnapshot;
-        }
-        return getCurrentStats().minus(baseline);
+    private CacheStats stats() {
+        return getCurrentStats().minus(lastSnapshot);
     }
 
     @Override
     public synchronized void resetStats() {
+        // Cache stats cannot be rest at Guava level. Instead we
+        // take a snapshot and then subtract it from future stats calls
         lastSnapshot = getCurrentStats();
     }
 

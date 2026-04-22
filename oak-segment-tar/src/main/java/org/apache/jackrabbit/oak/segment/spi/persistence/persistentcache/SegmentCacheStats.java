@@ -23,8 +23,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
+import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
-import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
 import org.jetbrains.annotations.NotNull;
 
 public class SegmentCacheStats extends AbstractCacheStats {
@@ -67,8 +67,8 @@ public class SegmentCacheStats extends AbstractCacheStats {
     }
 
     @Override
-    protected CacheStatsSnapshot getCurrentStats() {
-        return new CacheStatsSnapshot(
+    protected CacheStats getCurrentStats() {
+        return new CacheStats(
                 hitCount.get(),
                 missCount.get(),
                 loadSuccessCount.get(),

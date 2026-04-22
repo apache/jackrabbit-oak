@@ -72,47 +72,6 @@ public record CacheStatsSnapshot(
     }
 
     /**
-     * Returns the total number of load attempts (successes + failures).
-     *
-     * @return load count
-     */
-    public long loadCount() {
-        return loadSuccessCount + loadFailureCount;
-    }
-
-    /**
-     * Returns the number of load attempts that threw an exception.
-     * Alias for {@link #loadFailureCount()}, matching the JMX interface naming.
-     *
-     * @return load exception count
-     */
-    public long loadExceptionCount() {
-        return loadFailureCount;
-    }
-
-    /**
-     * Returns the ratio of load attempts that threw an exception, or {@code 0.0}
-     * if no loads have been attempted.
-     *
-     * @return load exception rate between 0.0 and 1.0
-     */
-    public double loadExceptionRate() {
-        long loads = loadCount();
-        return loads == 0 ? 0.0 : (double) loadFailureCount / loads;
-    }
-
-    /**
-     * Returns the average time spent loading a new value, in nanoseconds, or
-     * {@code 0.0} if no loads have been attempted.
-     *
-     * @return average load penalty in nanoseconds
-     */
-    public double averageLoadPenalty() {
-        long loads = loadCount();
-        return loads == 0 ? 0.0 : (double) totalLoadTime / loads;
-    }
-
-    /**
      * Returns the difference between this snapshot and an earlier {@code other}
      * snapshot, useful for computing per-interval deltas.
      *
@@ -128,25 +87,6 @@ public record CacheStatsSnapshot(
                 Math.max(0, loadFailureCount - other.loadFailureCount),
                 Math.max(0, totalLoadTime - other.totalLoadTime),
                 Math.max(0, evictionCount - other.evictionCount)
-        );
-    }
-
-    /**
-     * Returns the sum of this snapshot and an earlier {@code other}
-     * snapshot, useful for computing total deltas.
-     *
-     * @param other the earlier snapshot to add (must not be null)
-     * @return a new snapshot representing the total
-     */
-    @NotNull
-    public CacheStatsSnapshot plus(@NotNull CacheStatsSnapshot other) {
-        return new CacheStatsSnapshot(
-                Math.addExact(hitCount, other.hitCount),
-                Math.addExact(missCount, other.missCount),
-                Math.addExact(loadSuccessCount, other.loadSuccessCount),
-                Math.addExact(loadFailureCount, other.loadFailureCount),
-                Math.addExact(totalLoadTime, other.totalLoadTime),
-                Math.addExact(evictionCount, other.evictionCount)
         );
     }
 }

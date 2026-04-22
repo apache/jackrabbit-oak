@@ -29,8 +29,8 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
-import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.segment.file.PriorityCache;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -351,14 +351,17 @@ public abstract class WriterCacheManager {
         }
 
         @NotNull
-        private static <T> Supplier<CacheStatsSnapshot> accumulateRecordCacheStats(
+        private static <T> Supplier<CacheStats> accumulateRecordCacheStats(
                 final Iterable<RecordCache<T>> caches) {
-            return () -> {
-                CacheStatsSnapshot stats = new CacheStatsSnapshot(0, 0, 0, 0, 0, 0);
-                for (RecordCache<?> cache : caches) {
-                    stats = stats.plus(cache.getStats());
+            return new Supplier<CacheStats>() {
+                @Override
+                public CacheStats get() {
+                    CacheStats stats = new CacheStats(0, 0, 0, 0, 0, 0);
+                    for (RecordCache<?> cache : caches) {
+                        stats = stats.plus(cache.getStats());
+                    }
+                    return stats;
                 }
-                return stats;
             };
         }
 
@@ -396,7 +399,12 @@ public abstract class WriterCacheManager {
         @Override
         public CacheStatsMBean getNodeCacheStats() {
             return new RecordCacheStats("Node deduplication cache stats",
-                    () -> nodeCache().getStats(),
+                    new Supplier<CacheStats>() {
+                        @Override
+                        public CacheStats get() {
+                            return nodeCache().getStats();
+                        }
+                    },
                     new Supplier<Long>() {
                         @Override
                         public Long get() {

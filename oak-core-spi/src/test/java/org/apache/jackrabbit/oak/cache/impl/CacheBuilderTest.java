@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
 import org.apache.jackrabbit.oak.cache.api.LoadingCache;
 import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
-import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
 import org.apache.jackrabbit.oak.cache.impl.caffeine.CaffeineCacheAdapter;
 import org.apache.jackrabbit.oak.cache.impl.caffeine.CaffeineLoadingCacheAdapter;
 import org.junit.Assert;
@@ -212,7 +212,7 @@ public class CacheBuilderTest {
                 .weigher((k, v) -> k.length() + v.length())
                 .recordStats()
                 .build();
-        CacheStats stats = new CacheStats(
+        CacheStatsAdapter stats = new CacheStatsAdapter(
                 cache, "testCache", (k, v) -> k.length() + v.length(), 100);
 
         cache.put("aa", "bbb");

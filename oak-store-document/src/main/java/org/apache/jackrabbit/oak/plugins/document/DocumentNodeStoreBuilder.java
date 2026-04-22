@@ -38,7 +38,8 @@ import java.util.function.Supplier;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
-import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
+import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
@@ -984,8 +985,8 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return buildCache(CacheType.CHILDREN, getChildrenCacheSize(), store, null);
     }
 
-    public Cache<CacheValue, StringValue> buildMemoryDiffCache() {
-        return CacheBuilder
+    public org.apache.jackrabbit.oak.cache.api.Cache<CacheValue, StringValue> buildMemoryDiffCache() {
+        return org.apache.jackrabbit.oak.cache.api.CacheBuilder
                 .<CacheValue, StringValue>newBuilder()
                 .maximumWeight(getMemoryDiffCacheSize())
                 .weigher((k, v) -> weigher.weigh(k, v))
@@ -993,8 +994,8 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
                 .build();
     }
 
-    public Cache<RevisionsKey, LocalDiffCache.Diff> buildLocalDiffCache() {
-        return CacheBuilder
+    public org.apache.jackrabbit.oak.cache.api.Cache<RevisionsKey, LocalDiffCache.Diff> buildLocalDiffCache() {
+        return org.apache.jackrabbit.oak.cache.api.CacheBuilder
                 .<RevisionsKey, LocalDiffCache.Diff>newBuilder()
                 .maximumWeight(getLocalDiffCacheSize())
                 .weigher((k, v) -> weigher.weigh(k, v))
@@ -1012,17 +1013,17 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public NodeDocumentCache buildNodeDocumentCache(DocumentStore docStore, NodeDocumentLocks locks) {
         Cache<CacheValue, NodeDocument> nodeDocumentsCache = buildDocumentCache(docStore);
-        CacheStats nodeDocumentsCacheStats = newCacheStatsAdapter(nodeDocumentsCache, "Document-Documents", getDocumentCacheSize());
+        AbstractCacheStats nodeDocumentsCacheStats = newCacheStatsAdapter(nodeDocumentsCache, "Document-Documents", getDocumentCacheSize());
 
         Cache<StringValue, NodeDocument> prevDocumentsCache = buildPrevDocumentsCache(docStore);
-        CacheStats prevDocumentsCacheStats = newCacheStatsAdapter(prevDocumentsCache, "Document-PrevDocuments", getPrevDocumentCacheSize());
+        AbstractCacheStats prevDocumentsCacheStats = newCacheStatsAdapter(prevDocumentsCache, "Document-PrevDocuments", getPrevDocumentCacheSize());
 
         return new NodeDocumentCache(nodeDocumentsCache, nodeDocumentsCacheStats, prevDocumentsCache, prevDocumentsCacheStats, locks);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    CacheStats newCacheStatsAdapter(Cache<?, ?> cache, String name, long maxWeight) {
-        return new CacheStats((Cache) cache, name, (Weigher) weigher, maxWeight);
+    AbstractCacheStats newCacheStatsAdapter(Cache<?, ?> cache, String name, long maxWeight) {
+        return new CacheStatsAdapter((Cache) cache, name, (Weigher) weigher, maxWeight);
     }
 
     /**

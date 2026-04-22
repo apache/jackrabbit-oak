@@ -18,9 +18,10 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Collections;
 
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.cache.api.Cache;
-import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -50,12 +51,12 @@ public class MemoryDiffCache extends DiffCache {
      * Key: PathRev, value: StringValue
      */
     protected final Cache<CacheValue, StringValue> diffCache;
-    protected final CacheStats diffCacheStats;
+    protected final AbstractCacheStats diffCacheStats;
 
 
     protected MemoryDiffCache(DocumentNodeStoreBuilder<?> builder) {
         diffCache = builder.buildMemoryDiffCache();
-        diffCacheStats = new CacheStats(diffCache, "Document-MemoryDiff",
+        diffCacheStats = new CacheStatsAdapter(diffCache, "Document-MemoryDiff",
                 (k, v) -> builder.getWeigher().weigh(k, v), builder.getMemoryDiffCacheSize());
     }
 
@@ -96,7 +97,7 @@ public class MemoryDiffCache extends DiffCache {
 
     @NotNull
     @Override
-    public Iterable<CacheStats> getStats() {
+    public Iterable<AbstractCacheStats> getStats() {
         return Collections.singleton(diffCacheStats);
     }
 
