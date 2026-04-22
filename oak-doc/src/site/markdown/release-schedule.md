@@ -22,8 +22,8 @@
 We *aim* at keeping this frequency for releases. However dates may slip 
 according to needs
 
-- trunk: every 8 weeks (~6 / year)
-- 1.22: every 13 weeks (~4 / year)
+- trunk: every 6 weeks (~8 / year)
+- 1.22: only when needed due to high priority issues
 
 ## Strategies
 
@@ -40,10 +40,10 @@ but not limited to:
 
 - incompatible API changes
 - incompatible JVM changes
-- updates to dependencies that breaks backward compatibility
+- updates to dependencies that break backward compatibility
 
 In short: most probably it will always be around non-backward-compatible
-changes
+changes.
 
 Anyhow in such cases the branching is not automatic and will be
 discussed between PMCs a best course of actions. Alternatives may be a
@@ -51,22 +51,12 @@ different way to implement something breaking.
 
 ## Version Numbers
 
-- Released versions will be in the format of `Major.Minor.Patch` where,
-as rule of thumb we will increase
-
-
-    MAJOR for incompatible API changes    
-    MINOR for new backwards-compatible functionality
-    PATCH for backwards-compatible bug fixes.
-
-- We'll keep the even/odd schema
+- Released versions will be in the format of `Major.Minor.Patch`.
+- Note that these project version numbers are mostly irrelevant for OSGi,
+  in which case only the *package* version numbers are important.
 - Any new official release will be always even: 1.12.0, 1.14.0, 1.16.0,
-..., 1.124.0
+..., 2.0.0, 2.2.0 etc.
 - A release will always be with a patch number (the last part) of `.0`.
 This ease OSGi deployments.
-- Diagnostic builds will be cut with the odd version and `-Rxxx` such as
-`1.15-R12345`.
 - In case of branching the increased part will always be the PATCH so:
 `1.16.0`, `1.16.1`, `1.16.2`, etc.
-- In case of branching the diagnostic build will follow the current
-pattern: `1.16.5-R12345`
