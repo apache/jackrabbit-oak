@@ -183,17 +183,7 @@ public class UserManagerImpl implements UserManager {
         if (intermediatePath != null) {
             intermediatePath = namePathMapper.getOakPath(intermediatePath);
         }
-        Tree userTree = userProvider.createUser(userID, intermediatePath);
-        setPrincipal(userTree, principal);
-        if (password != null) {
-            setPassword(userTree, userID, password, false);
-        }
-
-        User user = new UserImpl(userID, userTree, this);
-        onCreate(user, password);
-
-        log.debug("User created: {}", userID);
-        return user;
+        return buildUser(userID, password, principal, userProvider.createUser(userID, intermediatePath));
     }
 
     @NotNull
@@ -241,14 +231,7 @@ public class UserManagerImpl implements UserManager {
         if (intermediatePath != null) {
             intermediatePath = namePathMapper.getOakPath(intermediatePath);
         }
-        Tree groupTree = userProvider.createGroup(groupID, intermediatePath);
-        setPrincipal(groupTree, principal);
-
-        Group group = new GroupImpl(groupID, groupTree, this);
-        onCreate(group);
-
-        log.debug("Group created: {}", groupID);
-        return group;
+        return buildGroup(groupID, principal, userProvider.createGroup(groupID, intermediatePath));
     }
 
     @NotNull
@@ -256,7 +239,9 @@ public class UserManagerImpl implements UserManager {
     public User createUserWithAbsolutePath(@NotNull String userID, @Nullable String password,
                                            @NotNull Principal principal, @NotNull String absolutePath)
             throws AuthorizableExistsException, UnsupportedRepositoryOperationException, RepositoryException {
-        return createUser(userID, password, principal, getOakPath(absolutePath));
+        checkValidId(userID);
+        checkValidPrincipal(principal, false);
+        return buildUser(userID, password, principal, userProvider.createUserAtAbsolutePath(userID, getOakPath(absolutePath)));
     }
 
     @NotNull
@@ -264,7 +249,9 @@ public class UserManagerImpl implements UserManager {
     public Group createGroupWithAbsolutePath(@NotNull String groupID, @NotNull Principal principal,
                                              @NotNull String absolutePath)
             throws AuthorizableExistsException, UnsupportedRepositoryOperationException, RepositoryException {
-        return createGroup(groupID, principal, getOakPath(absolutePath));
+        checkValidId(groupID);
+        checkValidPrincipal(principal, true);
+        return buildGroup(groupID, principal, userProvider.createGroupAtAbsolutePath(groupID, getOakPath(absolutePath)));
     }
 
     /**
@@ -491,6 +478,29 @@ public class UserManagerImpl implements UserManager {
     @NotNull
     ConfigurationParameters getConfig() {
         return config;
+    }
+
+    @NotNull
+    private User buildUser(@NotNull String userID, @Nullable String password,
+                           @NotNull Principal principal, @NotNull Tree userTree) throws RepositoryException {
+        setPrincipal(userTree, principal);
+        if (password != null) {
+            setPassword(userTree, userID, password, false);
+        }
+        User user = new UserImpl(userID, userTree, this);
+        onCreate(user, password);
+        log.debug("User created: {}", userID);
+        return user;
+    }
+
+    @NotNull
+    private Group buildGroup(@NotNull String groupID, @NotNull Principal principal,
+                             @NotNull Tree groupTree) throws RepositoryException {
+        setPrincipal(groupTree, principal);
+        Group group = new GroupImpl(groupID, groupTree, this);
+        onCreate(group);
+        log.debug("Group created: {}", groupID);
+        return group;
     }
 
     @NotNull

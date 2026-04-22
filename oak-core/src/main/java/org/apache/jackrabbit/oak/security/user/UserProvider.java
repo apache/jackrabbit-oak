@@ -188,6 +188,16 @@ class UserProvider extends AuthorizableBaseProvider {
     }
 
     @NotNull
+    Tree createUserAtAbsolutePath(@NotNull String userID, @NotNull String absoluteOakPath) throws RepositoryException {
+        return createAuthorizableNodeAtAbsolutePath(userID, NT_REP_USER, absoluteOakPath);
+    }
+
+    @NotNull
+    Tree createGroupAtAbsolutePath(@NotNull String groupID, @NotNull String absoluteOakPath) throws RepositoryException {
+        return createAuthorizableNodeAtAbsolutePath(groupID, NT_REP_GROUP, absoluteOakPath);
+    }
+
+    @NotNull
     Tree createSystemUser(@NotNull String userID, @Nullable String intermediateJcrPath) throws RepositoryException {
         String relSysPath = config.getConfigValue(PARAM_SYSTEM_RELATIVE_PATH, DEFAULT_SYSTEM_RELATIVE_PATH);
         String relPath;
@@ -360,5 +370,40 @@ class UserProvider extends AuthorizableBaseProvider {
     private String getNodeName(@NotNull String authorizableId) {
         AuthorizableNodeName generator = requireNonNull(config.getConfigValue(PARAM_AUTHORIZABLE_NODE_NAME, AuthorizableNodeName.DEFAULT, AuthorizableNodeName.class));
         return generator.generateNodeName(authorizableId);
+    }
+
+    private Tree createAuthorizableNodeAtAbsolutePath(@NotNull String authorizableId,
+                                                      @NotNull String ntName,
+                                                      @NotNull String absoluteOakPath) throws RepositoryException {
+        String nodeName = PathUtils.getName(absoluteOakPath);
+        String parentPath = PathUtils.getParentPath(absoluteOakPath);
+        String authRoot = NT_REP_GROUP.equals(ntName) ? groupPath : userPath;
+
+        if (!parentPath.startsWith(authRoot)) {
+            throw new ConstraintViolationException("Attempt to create authorizable at '" + absoluteOakPath
+                    + "' outside of the configured root '" + authRoot + "'");
+        }
+
+        Tree tree = root.getTree(parentPath);
+        while (!tree.isRoot() && !tree.exists()) {
+            tree = tree.getParent();
+        }
+        if (!tree.exists()) {
+            throw new AccessDeniedException("Missing permission to create intermediate authorizable folders.");
+        }
+        String relativePath = PathUtils.relativize(tree.getPath(), parentPath);
+        Tree folder = relativePath.isEmpty() ? tree : Utils.getOrAddTree(tree, relativePath, NT_REP_AUTHORIZABLE_FOLDER);
+
+        if (folder.hasChild(nodeName)) {
+            throw new ConstraintViolationException("Node already exists at: " + absoluteOakPath);
+        }
+
+        Tree typeRoot = root.getTree(NODE_TYPES_PATH);
+        String userId = Objects.toString(root.getContentSession().getAuthInfo().getUserID(), "");
+        Tree authorizableNode = TreeUtil.addChild(folder, nodeName, ntName, typeRoot, userId);
+        authorizableNode.setProperty(REP_AUTHORIZABLE_ID, authorizableId);
+        authorizableNode.setProperty(JcrConstants.JCR_UUID, getContentID(authorizableId));
+
+        return authorizableNode;
     }
 }
