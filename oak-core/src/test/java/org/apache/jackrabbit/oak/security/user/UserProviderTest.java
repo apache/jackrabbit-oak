@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
@@ -470,6 +471,94 @@ public class UserProviderTest {
     public void testAutoCreatedItemsUponGroupCreation() throws Exception {
         UserProvider up = createUserProvider();
         assertAutoCreatedItems(up.createGroup("g", null), UserConstants.NT_REP_GROUP, root);
+    }
+
+    // ---- createUserAtAbsolutePath / createGroupAtAbsolutePath ----
+
+    @Test
+    public void testCreateUserAtAbsolutePath() throws Exception {
+        UserProvider up = createUserProvider();
+        String absolutePath = defaultUserPath + "/a/b/myuser";
+        Tree userTree = up.createUserAtAbsolutePath("myuser", absolutePath);
+        assertNotNull(userTree);
+        assertEquals(absolutePath, userTree.getPath());
+    }
+
+    @Test
+    public void testCreateGroupAtAbsolutePath() throws Exception {
+        UserProvider up = createUserProvider();
+        String absolutePath = defaultGroupPath + "/a/b/mygroup";
+        Tree groupTree = up.createGroupAtAbsolutePath("mygroup", absolutePath);
+        assertNotNull(groupTree);
+        assertEquals(absolutePath, groupTree.getPath());
+    }
+
+    @Test
+    public void testCreateUserAtAbsolutePathDirectlyUnderUserRoot() throws Exception {
+        // parentPath equals authRoot: the relativePath.isEmpty() branch is taken
+        UserProvider up = createUserProvider();
+        String absolutePath = defaultUserPath + "/myuser";
+        Tree userTree = up.createUserAtAbsolutePath("myuser", absolutePath);
+        assertEquals(absolutePath, userTree.getPath());
+    }
+
+    @Test
+    public void testCreateGroupAtAbsolutePathDirectlyUnderGroupRoot() throws Exception {
+        UserProvider up = createUserProvider();
+        String absolutePath = defaultGroupPath + "/mygroup";
+        Tree groupTree = up.createGroupAtAbsolutePath("mygroup", absolutePath);
+        assertEquals(absolutePath, groupTree.getPath());
+    }
+
+    @Test
+    public void testCreateUserAtAbsolutePathIntermediateFolderType() throws Exception {
+        UserProvider up = createUserProvider();
+        String absolutePath = defaultUserPath + "/folder/myuser";
+        up.createUserAtAbsolutePath("myuser", absolutePath);
+        String parentPath = PathUtils.getParentPath(absolutePath);
+        Tree folder = root.getTree(parentPath);
+        assertTrue(folder.exists());
+        assertEquals(NT_REP_AUTHORIZABLE_FOLDER, folder.getProperty(JCR_PRIMARYTYPE).getValue(Type.NAME));
+    }
+
+    @Test(expected = javax.jcr.nodetype.ConstraintViolationException.class)
+    public void testCreateUserAtAbsolutePathOutsideUserRoot() throws Exception {
+        UserProvider up = createUserProvider();
+        up.createUserAtAbsolutePath("uid", defaultGroupPath + "/wrong/uid");
+    }
+
+    @Test(expected = javax.jcr.nodetype.ConstraintViolationException.class)
+    public void testCreateGroupAtAbsolutePathOutsideGroupRoot() throws Exception {
+        UserProvider up = createUserProvider();
+        up.createGroupAtAbsolutePath("gid", defaultUserPath + "/wrong/gid");
+    }
+
+    @Test(expected = javax.jcr.nodetype.ConstraintViolationException.class)
+    public void testCreateUserAtAbsolutePathCollision() throws Exception {
+        UserProvider up = createUserProvider();
+        String absolutePath = defaultUserPath + "/collision/myuser";
+        up.createUserAtAbsolutePath("user1", absolutePath);
+        up.createUserAtAbsolutePath("user2", absolutePath);
+    }
+
+    @Test(expected = javax.jcr.nodetype.ConstraintViolationException.class)
+    public void testCreateGroupAtAbsolutePathCollision() throws Exception {
+        UserProvider up = createUserProvider();
+        String absolutePath = defaultGroupPath + "/collision/mygroup";
+        up.createGroupAtAbsolutePath("group1", absolutePath);
+        up.createGroupAtAbsolutePath("group2", absolutePath);
+    }
+
+    @Test(expected = AccessDeniedException.class)
+    public void testCreateUserAtAbsolutePathMissingAccess() throws RepositoryException {
+        Tree t = mock(Tree.class);
+        when(t.getParent()).thenReturn(t);
+        when(t.exists()).thenReturn(false);
+        when(t.isRoot()).thenReturn(false, false, true);
+        Root r = when(mock(Root.class).getTree(anyString())).thenReturn(t).getMock();
+
+        UserProvider up = new UserProvider(r, ConfigurationParameters.EMPTY);
+        up.createUserAtAbsolutePath("uid", UserConstants.DEFAULT_USER_PATH + "/parent/uid");
     }
 
     private static void assertAutoCreatedItems(@NotNull Tree authorizableTree, @NotNull String ntName, @NotNull Root root) throws Exception {

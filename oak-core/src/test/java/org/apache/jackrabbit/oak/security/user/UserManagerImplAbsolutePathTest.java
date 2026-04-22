@@ -170,6 +170,13 @@ public class UserManagerImplAbsolutePathTest extends AbstractUserTest {
         assertEquals(principal.getName(), group.getPrincipal().getName());
     }
 
+    @Test
+    public void testUserCreatedDirectlyUnderUserRoot() throws Exception {
+        String path = UserConstants.DEFAULT_USER_PATH + "/myuser";
+        User user = createUser(path);
+        assertEquals(path, user.getPath());
+    }
+
     // ---- group: error cases ----
 
     @Test(expected = ConstraintViolationException.class)
@@ -184,6 +191,13 @@ public class UserManagerImplAbsolutePathTest extends AbstractUserTest {
         createGroup(GROUP_PATH);
     }
 
+    @Test
+    public void testGroupCreatedDirectlyUnderGroupRoot() throws Exception {
+        String path = UserConstants.DEFAULT_GROUP_PATH + "/mygroup";
+        Group group = createGroup(path);
+        assertEquals(path, group.getPath());
+    }
+
     @Test(expected = AuthorizableExistsException.class)
     public void testGroupDuplicateId() throws Exception {
         String id = UUID.randomUUID().toString();
@@ -191,5 +205,25 @@ public class UserManagerImplAbsolutePathTest extends AbstractUserTest {
         String path2 = UserConstants.DEFAULT_GROUP_PATH + "/dup/second";
         getUserManager(root).createGroupWithAbsolutePath(id, new PrincipalImpl(id), path1);
         getUserManager(root).createGroupWithAbsolutePath(id, new PrincipalImpl(id + "_2"), path2);
+    }
+
+    // ---- buildUser / buildGroup via regular create paths ----
+
+    @Test
+    public void testRegularCreateUserPrincipalAndPathSet() throws Exception {
+        String id = UUID.randomUUID().toString();
+        Principal principal = new PrincipalImpl("regular-" + id);
+        User user = getUserManager(root).createUser(id, null, principal, null);
+        assertEquals(principal.getName(), user.getPrincipal().getName());
+        assertNotNull(user.getPath());
+    }
+
+    @Test
+    public void testRegularCreateGroupPrincipalAndPathSet() throws Exception {
+        String id = UUID.randomUUID().toString();
+        Principal principal = new PrincipalImpl("regular-group-" + id);
+        Group group = getUserManager(root).createGroup(id, principal, null);
+        assertEquals(principal.getName(), group.getPrincipal().getName());
+        assertNotNull(group.getPath());
     }
 }
