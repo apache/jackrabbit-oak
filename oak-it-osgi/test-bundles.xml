@@ -67,6 +67,9 @@
         <include>org.apache.jackrabbit:oak-auth-ldap</include>
         <include>io.dropwizard.metrics:metrics-core</include>
       </includes>
+      <excludes>
+        <exclude>*:*:test-jar:*</exclude>
+      </excludes>
     </dependencySet>
   </dependencySets>
 </assembly>
