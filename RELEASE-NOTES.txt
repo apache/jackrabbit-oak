@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.22.23
+Release Notes -- Apache Jackrabbit Oak -- Version 1.22.24
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.22.23 is a patch release that contains fixes and
+Jackrabbit Oak 1.22.24 is a patch release that contains fixes and
 improvements over Oak 1.22. Jackrabbit Oak 1.22.x releases are
 considered stable and targeted for production use.
 
@@ -15,19 +15,32 @@ The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
 
-Changes in Oak 1.22.23
+Changes in Oak 1.22.24
 ----------------------
 
-Task
+** Bug
+    * [OAK-10856] - oak-run: TextPopulatorTest uses transitive dependency com.beust.jcommander.internal.Maps
+    * [OAK-12062] - Fix NPE while uploading metadata on AWS
+    * [OAK-12067] - Utils.alignWithExternalRevisions logs timestamps with second resolution
+    * [OAK-12113] - MongoDocumentStore: BsonException should be wrapped as DocumentStoreException
 
-    [OAK-11456] - oak-solr-osgi embeds vulnerable Zookeeper 3.9.2
-    [OAK-11745] - examples: update commons-beanutils to version 1.11.0
-    [OAK-11803] - Update commons-lang3 dependency to 3.18.0
-    [OAK-11805] - Update Oak 1.22 to Jackrabbit 2.20.17
-    [OAK-11819] - Update commons-codec dependency to 1.19.0
-    [OAK-11820] - Update commons-io dependency to 2.20.0
-    [OAK-11947] - oak-solr-osgi embeds vulnerable Zookeeper 3.9.2 (branch 1.22)
-    [OAK-11961] - Update commons-fileupload in oak-solr-*
+** Improvement
+    * [OAK-10643] - MongoDocumentStore: improve diagnostics for too large docs
+    * [OAK-12001] - run CI on branch 1.22 as well
+
+** Task
+    * [OAK-10127] - Log warn message when MongoDB document is big
+    * [OAK-10940] - oak-jcr: improve error message when mongo test fixture fails
+    * [OAK-11935] - Upgrade oak-blob-cloud aws java sdk from 1.x to 2.x
+    * [OAK-11943] - Upgrade netty version to 4.1.127.Final
+    * [OAK-11970] - Update MongoDockerRule to use Mongo 8 docker image
+    * [OAK-12008] - Embed Aws Sdk 2.x dependencies in oak-blob-cloud
+    * [OAK-12041] - bump testcontainers to v1.21.4
+    * [OAK-12087] - bump netty version to 4.1.131.Final
+    * [OAK-12088] - Fix timeout issue while uploading multiple files on AWS
+    * [OAK-12102] - Oak 1.22 CI with MongoDB (Docker) fails with NPE
+    * [OAK-12103] - MongoDocumentStore: improve diagnostics for too large docs in request payloads
+    * [OAK-12109] - MongoDocumentStore: improve diagnostics for too large docs in bulk request payloads
 
 
 In addition to the above-mentioned changes, this release contains
