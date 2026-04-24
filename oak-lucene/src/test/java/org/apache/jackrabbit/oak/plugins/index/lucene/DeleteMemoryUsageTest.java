@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -52,34 +53,34 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Reproduces OAK-12193: async-indexing cycle with many deletes can exhaust heap because
- * every Lucene index writer receives the deleteDocuments call regardless of whether the
- * deleted node's nodetype matches the index's declaringNodeTypes.
+ * Reference-only reproducer for OAK-12193. DISABLED in CI because it allocates
+ * several GB, produces a multi-hundred-MB heap dump, and takes about a minute even
+ * with SegmentNodeStore. Intended for manual before/after comparison when tuning
+ * the filtered-delete logic in {@link FulltextIndexEditor#childNodeDeleted}; the
+ * fast, CI-friendly behavioral coverage lives in {@link FilteredDeleteTest}.
  *
- * 10 Lucene indexes are registered with declaringNodeTypes=nt:file, then a /content tree
- * of 2 levels x FAN_OUT children of type nt:unstructured is populated. None of the nodes
- * matches any index's nodetype, so the indexes are initialized but empty. /content is
- * then deleted and one more async cycle is triggered. On current trunk the editor issues
- * a deleteDocuments call to every index writer for every deleted node; the buffered
- * deletes accumulate in Lucene's DocumentsWriterDeleteQueue and grow the heap during
- * the delete-heavy cycle.
+ * <p>How to run manually (remove the {@code @Ignore} or pass {@code -Dtest=DeleteMemoryUsageTest
+ * -DexcludedGroups=}, then):
+ * <pre>
+ *   mvn test -pl oak-lucene -Dtest=DeleteMemoryUsageTest -Dtest.opts.memory="-Xmx2g"
+ * </pre>
  *
- * Uses a SegmentNodeStore on a temporary folder so that populate does not hold content
- * in RAM; that leaves headroom to observe the delete-heavy cycle's heap contribution.
+ * <p>Setup: 10 Lucene indexes declaring {@code nt:file} are registered; a /content
+ * tree with 2 levels x FAN_OUT children of type {@code nt:unstructured} is populated
+ * (none of the content matches any index's declaringNodeTypes, so the indexes are
+ * initialized but empty). Every grandchild is then deleted individually so the
+ * editor sees each as its own top-level {@code childNodeDeleted}, and a final async
+ * cycle is run. A peak-memory sampler triggers a heap dump at 70% of max heap.
  *
- * This test is NOT committed to the branch; run locally to verify the bug exists before
- * the fix and that the fix resolves it. No assertions are made; the test logs memory
- * usage, delete-heavy cycle peak, and async stats so the observed behavior can be
- * compared before and after the fix. Default surefire heap is -Xmx512m.
+ * <p>Uses SegmentNodeStore on a temporary folder so populate does not hold content
+ * in RAM; this leaves headroom to observe the delete-heavy cycle's contribution.
  *
- * Expected current-trunk behavior: the delete-heavy async cycle takes real time
- * (seconds), processes many updates, and peak heap grows by tens to low hundreds of MB
- * above the pre-cycle baseline. After the OAK-12193 fix, the delete-heavy cycle should
- * be near-instant and contribute no meaningful heap growth (since the editor will skip
- * routing deletes to indexes whose declaringNodeTypes cannot match the deleted content).
- * To force an actual OutOfMemoryError instead of just observing growth, bump FAN_OUT or
- * lower -Xmx.
+ * <p>Expected on current trunk (bug present): delete-heavy cycle ~52 s, peak heap
+ * ~1500 MB at {@code -Xmx2g}, {@code updates} counter ~64 M. With the OAK-12193 fix
+ * enabled (default): ~7 s, peak heap ~950 MB, {@code updates} ~1500. No assertions;
+ * the test logs the observed numbers for comparison.
  */
+@Ignore("OAK-12193 reference-only reproducer; run manually. Uses several GB and writes a heap dump.")
 public class DeleteMemoryUsageTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(DeleteMemoryUsageTest.class);
