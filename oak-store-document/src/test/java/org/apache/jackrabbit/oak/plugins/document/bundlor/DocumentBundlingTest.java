@@ -418,10 +418,17 @@ public class DocumentBundlingTest {
     public void hasChildren_BundledRoot_NonBundledChild() throws Exception{
         createTestNode("/test/book.jpg", createChild(newNode("app:Asset"), "fooContent").getNodeState());
 
+        // reset node cache so that query is needed
+        store.getNodeCache().invalidateAll();
+        // reset counters
         ds.reset();
 
-        assertEquals(1, IterableUtils.size(getLatestNode("test/book.jpg").getChildNodeNames()));
-        assertEquals(1, ds.queryPaths.size());
+        List<String> childNodeNames = ListUtils.toList(getLatestNode("test/book.jpg").getChildNodeNames());
+        assertTrue("expected that list contains 'fooContent', got: " + childNodeNames, childNodeNames.contains("fooContent"));
+        assertEquals("expected no other names in child name list: " + childNodeNames, 1, childNodeNames.size());
+
+        assertTrue("expected that list contains '/test/book.jpg', got: " + ds.queryPaths, ds.queryPaths.contains("/test/book.jpg"));
+        assertEquals("expected no other paths in query path list:  " + ds.queryPaths, 1, ds.queryPaths.size());
 
         assertFalse(hasNodeProperty("/test/book.jpg", META_PROP_BUNDLED_CHILD));
         assertTrue(hasNodeProperty("/test/book.jpg", "_children"));
