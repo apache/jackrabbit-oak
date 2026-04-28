@@ -986,21 +986,11 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     public org.apache.jackrabbit.oak.cache.api.Cache<CacheValue, StringValue> buildMemoryDiffCache() {
-        return org.apache.jackrabbit.oak.cache.api.CacheBuilder
-                .<CacheValue, StringValue>newBuilder()
-                .maximumWeight(getMemoryDiffCacheSize())
-                .weigher((k, v) -> weigher.weigh(k, v))
-                .recordStats()
-                .build();
+        return buildCache(CacheType.DIFF, getMemoryDiffCacheSize(), null, null);
     }
 
     public org.apache.jackrabbit.oak.cache.api.Cache<RevisionsKey, LocalDiffCache.Diff> buildLocalDiffCache() {
-        return org.apache.jackrabbit.oak.cache.api.CacheBuilder
-                .<RevisionsKey, LocalDiffCache.Diff>newBuilder()
-                .maximumWeight(getLocalDiffCacheSize())
-                .weigher((k, v) -> weigher.weigh(k, v))
-                .recordStats()
-                .build();
+        return buildCache(CacheType.LOCAL_DIFF, getLocalDiffCacheSize(), null, null);
     }
 
     public Cache<CacheValue, NodeDocument> buildDocumentCache(DocumentStore docStore) {
