@@ -254,8 +254,12 @@ public final class CacheBuilder<K, V> {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private Caffeine<K, V> configureCaffeineBuilder() {
-        Caffeine caffeineBuilder = Caffeine.newBuilder()
-                .executor(Runnable::run);
+        Caffeine caffeineBuilder = Caffeine.newBuilder();
+        if (refreshAfterWrite == null) {
+            // Caffeine uses one executor for both maintenance and refresh work.
+            // Run maintenance on the caller thread unless refresh must stay asynchronous.
+            caffeineBuilder = caffeineBuilder.executor(Runnable::run);
+        }
         if (initialCapacity >= 0) {
             caffeineBuilder = caffeineBuilder.initialCapacity(initialCapacity);
         }
