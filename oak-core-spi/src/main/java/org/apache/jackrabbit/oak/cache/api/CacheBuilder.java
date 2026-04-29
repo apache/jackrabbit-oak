@@ -254,7 +254,8 @@ public final class CacheBuilder<K, V> {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private Caffeine<K, V> configureCaffeineBuilder() {
-        Caffeine caffeineBuilder = Caffeine.newBuilder();
+        Caffeine caffeineBuilder = Caffeine.newBuilder()
+                .executor(Runnable::run);
         if (initialCapacity >= 0) {
             caffeineBuilder = caffeineBuilder.initialCapacity(initialCapacity);
         }
@@ -271,9 +272,6 @@ public final class CacheBuilder<K, V> {
             caffeineBuilder = caffeineBuilder.recordStats();
         }
         if (evictionListener != null) {
-            // Run maintenance (including removal callbacks) on the calling thread
-            // so the listener is invoked synchronously, matching the Cache contract.
-            caffeineBuilder = caffeineBuilder.executor(Runnable::run);
             EvictionListener<? super K, ? super V> listener = evictionListener;
             caffeineBuilder = caffeineBuilder.removalListener(
                     (k, v, cause) -> listener.onEviction((K) k, (V) v, CaffeineCacheAdapter.toOakCause(cause)));
