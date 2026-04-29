@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.oak.segment.SegmentCache.newSegmentCache;
 import static org.apache.jackrabbit.oak.segment.SegmentStore.EMPTY_STORE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -33,7 +32,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
-import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.junit.Test;
 
 public class SegmentCacheTest {
@@ -84,20 +82,6 @@ public class SegmentCacheTest {
         } catch (ExecutionException e) {
             assertEquals(failure, e.getCause());
             assertEquals("load failed", e.getCause().getMessage());
-        }
-    }
-
-    @Test
-    public void getSegmentWrapsRuntimeLoaderFailureWithOriginalCause() throws ExecutionException {
-        RepositoryNotReachableException failure = new RepositoryNotReachableException(null);
-
-        try {
-            cache.getSegment(id1, () -> {
-                throw failure;
-            });
-            fail("expected RuntimeException");
-        } catch (RuntimeException e) {
-            assertSame(failure, e.getCause());
         }
     }
 

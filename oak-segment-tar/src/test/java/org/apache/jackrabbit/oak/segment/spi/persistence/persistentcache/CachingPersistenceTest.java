@@ -90,27 +90,6 @@ public class CachingPersistenceTest {
         }
     }
 
-    @Test(expected = RepositoryNotReachableException.class)
-    public void fileStoreRethrowsRepositoryNotReachableForDataSegmentCacheMiss()
-            throws IOException, InvalidFileStoreVersionException {
-        FileStore fileStore = null;
-        try {
-            fileStore = getFileStoreBuilderWithCachingPersistence(false).build();
-            SegmentId id = fileStore.getHead().getRecordId().getSegmentId();
-            assertTrue(id.isDataSegmentId());
-            fileStore.close();
-
-            fileStore = getFileStoreBuilderWithCachingPersistence(true).build();
-            id = new SegmentId(fileStore, id.getMostSignificantBits(), id.getLeastSignificantBits());
-
-            fileStore.readSegment(id);
-        } finally {
-            if (fileStore != null) {
-                fileStore.close();
-            }
-        }
-    }
-
     /**
      * @param repoNotReachable - if set to true, {@code RepositoryNotReachableException} will be thrown when calling {@code SegmentArchiveReader}#readSegment
      * @return

@@ -167,9 +167,10 @@ public abstract class SegmentCache {
                             return segment;
                         } catch (Exception e) {
                             stats.loadExceptionCount.incrementAndGet();
-                            // Preserve the former Guava cache exception shape. Letting Caffeine
-                            // expose runtime loader failures directly broke FileStore RNE handling.
-                            throw new SegmentCacheLoaderException(e);
+                            if (e instanceof RuntimeException) {
+                                throw (RuntimeException) e;
+                            }
+                            throw new RuntimeException(e);
                         }
                     });
                 } catch (RuntimeException e) {
@@ -219,15 +220,6 @@ public abstract class SegmentCache {
         @Override
         public void recordHit() {
             stats.hitCount.incrementAndGet();
-        }
-    }
-
-    private static final class SegmentCacheLoaderException extends RuntimeException {
-
-        private static final long serialVersionUID = 1L;
-
-        private SegmentCacheLoaderException(@NotNull Exception cause) {
-            super(cause);
         }
     }
 
