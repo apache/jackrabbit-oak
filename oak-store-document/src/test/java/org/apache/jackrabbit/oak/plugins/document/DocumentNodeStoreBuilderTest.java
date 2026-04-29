@@ -16,15 +16,26 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.io.File;
+import java.util.HashMap;
 import java.lang.reflect.Method;
+import java.util.Map;
 
+import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
+import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.persistentCache.CacheType;
+import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
+import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCacheStats;
+import org.apache.jackrabbit.oak.plugins.document.util.RevisionsKey;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 /**
  * Tests for {@link DocumentNodeStoreBuilder} cache configuration.
@@ -32,6 +43,9 @@ import org.junit.Test;
  * tests can run across cache implementation changes.
  */
 public class DocumentNodeStoreBuilderTest {
+
+    @Rule
+    public final TemporaryFolder temp = new TemporaryFolder(new File("target"));
 
     @Test
     public void buildNodeDocumentCacheReturnsNonNull() {
@@ -107,6 +121,89 @@ public class DocumentNodeStoreBuilderTest {
         Assert.assertNotNull(cached);
         Assert.assertTrue(cached instanceof NodeDocument);
         Assert.assertEquals(document.getModCount(), ((NodeDocument) cached).getModCount());
+    }
+
+    @Test
+    public void buildMemoryDiffCacheCreatesPersistentCacheStats() throws Exception {
+        String cacheDir = temp.newFolder().getAbsolutePath() + ",-async";
+        MemoryDiffCache.Key key = new MemoryDiffCache.Key(
+                Path.fromString("/diff-memory"),
+                new RevisionVector(new Revision(1, 0, 1)),
+                new RevisionVector(new Revision(2, 0, 1)));
+
+        DocumentNodeStoreBuilder<?> builder = DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder()
+                .setPersistentCache(cacheDir);
+        try {
+            Cache<CacheValue, StringValue> cache = builder.buildMemoryDiffCache();
+            PersistentCacheStats persistentStats = PersistentCache.getPersistentCacheStats(cache);
+
+            Assert.assertNotNull("Expected persistent wrapper for " + CacheType.DIFF, persistentStats);
+            Assert.assertTrue("Expected persistent cache stats map entry for " + CacheType.DIFF,
+                    builder.getPersistenceCacheStats().containsKey(CacheType.DIFF.name()));
+
+            cache.put(key, StringValue.fromString("memory-diff-value"));
+        } finally {
+            closeCaches(builder);
+        }
+
+        DocumentNodeStoreBuilder<?> reopenedBuilder = DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder()
+                .setPersistentCache(cacheDir);
+        try {
+            Cache<CacheValue, StringValue> reopened = reopenedBuilder.buildMemoryDiffCache();
+            StringValue value = reopened.getIfPresent(key);
+            Assert.assertNotNull("Expected persisted DIFF entry to be readable after reopen", value);
+            Assert.assertEquals("memory-diff-value", value.asString());
+        } finally {
+            closeCaches(reopenedBuilder);
+        }
+    }
+
+    @Test
+    public void buildLocalDiffCacheCreatesPersistentCacheStats() throws Exception {
+        String cacheDir = temp.newFolder().getAbsolutePath() + ",-async";
+        RevisionsKey key = new RevisionsKey(
+                new RevisionVector(new Revision(3, 0, 1)),
+                new RevisionVector(new Revision(4, 0, 1)));
+        Map<Path, String> changes = new HashMap<>();
+        changes.put(Path.fromString("/diff-local"), "+\"child\":{}");
+        LocalDiffCache.Diff expected = new LocalDiffCache.Diff(changes, 0);
+
+        DocumentNodeStoreBuilder<?> builder = DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder()
+                .setPersistentCache(cacheDir);
+        try {
+            Cache<RevisionsKey, LocalDiffCache.Diff> cache = builder.buildLocalDiffCache();
+            PersistentCacheStats persistentStats = PersistentCache.getPersistentCacheStats(cache);
+
+            Assert.assertNotNull("Expected persistent wrapper for " + CacheType.LOCAL_DIFF, persistentStats);
+            Assert.assertTrue("Expected persistent cache stats map entry for " + CacheType.LOCAL_DIFF,
+                    builder.getPersistenceCacheStats().containsKey(CacheType.LOCAL_DIFF.name()));
+
+            cache.put(key, expected);
+        } finally {
+            closeCaches(builder);
+        }
+
+        DocumentNodeStoreBuilder<?> reopenedBuilder = DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder()
+                .setPersistentCache(cacheDir);
+        try {
+            Cache<RevisionsKey, LocalDiffCache.Diff> reopened = reopenedBuilder.buildLocalDiffCache();
+            LocalDiffCache.Diff value = reopened.getIfPresent(key);
+            Assert.assertNotNull("Expected persisted LOCAL_DIFF entry to be readable after reopen", value);
+            Assert.assertEquals(expected, value);
+        } finally {
+            closeCaches(reopenedBuilder);
+        }
+    }
+
+    private static void closeCaches(DocumentNodeStoreBuilder<?> builder) {
+        PersistentCache cache = builder.getPersistentCache();
+        if (cache != null) {
+            cache.close();
+        }
+        PersistentCache journalCache = builder.getJournalCache();
+        if (journalCache != null) {
+            journalCache.close();
+        }
     }
 
     private static Object invoke(Object target, String methodName, Class<?> parameterType, Object argument)
