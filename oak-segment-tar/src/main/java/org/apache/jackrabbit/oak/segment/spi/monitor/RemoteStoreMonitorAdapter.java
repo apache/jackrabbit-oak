@@ -37,9 +37,4 @@ public class RemoteStoreMonitorAdapter implements RemoteStoreMonitor {
     public void requestDuration(long duration, TimeUnit timeUnit) {
         // Intentionally left blank
     }
-
-    @Override
-    public void repositoryLockLost() {
-        // Intentionally left blank
-    }
 }

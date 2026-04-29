@@ -21,7 +21,6 @@ import java.net.URISyntaxException;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.RequestCompletedEvent;
@@ -50,8 +49,6 @@ public class AzurePersistenceV8 implements SegmentNodeStorePersistence {
     private static final Logger log = LoggerFactory.getLogger(AzurePersistenceV8.class);
 
     protected final CloudBlobDirectory segmentstoreDirectory;
-
-    private final AtomicReference<RemoteStoreMonitor> remoteStoreMonitor = new AtomicReference<>();
 
     protected WriteAccessController writeAccessController = new WriteAccessController();
 
@@ -103,16 +100,10 @@ public class AzurePersistenceV8 implements SegmentNodeStorePersistence {
 
     @Override
     public RepositoryLock lockRepository() throws IOException {
-        return new AzureRepositoryLockV8(getBlockBlob("repo.lock"),
-                this::onRepositoryLockLost, writeAccessController).lock();
-    }
-
-    void onRepositoryLockLost() {
-        log.error("Lost connection to Azure. The repository lock lease could not be renewed.");
-        RemoteStoreMonitor monitor = remoteStoreMonitor.get();
-        if (monitor != null) {
-            monitor.repositoryLockLost();
-        }
+        return new AzureRepositoryLockV8(getBlockBlob("repo.lock"), () -> {
+            log.warn("Lost connection to the Azure. The client will be closed.");
+            // TODO close the connection
+        }, writeAccessController).lock();
     }
 
     private CloudBlockBlob getBlockBlob(String path) throws IOException {
@@ -131,8 +122,7 @@ public class AzurePersistenceV8 implements SegmentNodeStorePersistence {
         }
     }
 
-    private void attachRemoteStoreMonitor(RemoteStoreMonitor remoteStoreMonitor) {
-        this.remoteStoreMonitor.set(remoteStoreMonitor);
+    private static void attachRemoteStoreMonitor(RemoteStoreMonitor remoteStoreMonitor) {
         OperationContext.getGlobalRequestCompletedEventHandler().addListener(new StorageEvent<RequestCompletedEvent>() {
 
             @Override

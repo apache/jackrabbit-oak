@@ -28,6 +28,4 @@ public interface RemoteStoreMonitor {
 
     public void requestDuration(long duration, TimeUnit timeUnit);
 
-    default void repositoryLockLost() {}
-
 }
