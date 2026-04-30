@@ -214,13 +214,14 @@ public interface UserManager {
 
 
     /**
-     * Creates a user for the given parameters at the specified absolute JCR path.
+     * Creates a new {@code User} for the given parameters at the specified absolute JCR path.
      * Unlike {@link #createUser(String, String, Principal, String)} where the
      * {@code intermediatePath} is a relative hint, this method accepts an absolute
      * JCR repository path that precisely determines the location of the new user node.
+     * The path must be withing the configured group root.
      * <p>
-     * Implementations that do not support placement at an arbitrary absolute path
-     * should throw {@link UnsupportedRepositoryOperationException}.
+     * Implementations that do not support creation with at an absolute path
+     * must throw {@link UnsupportedRepositoryOperationException}.
      *
      * @param userID       The ID of the new user.
      * @param password     The initial password of the new user, may be {@code null}.
@@ -238,7 +239,7 @@ public interface UserManager {
     default User createUserWithAbsolutePath(@NotNull String userID, @Nullable String password,
                                             @NotNull Principal principal, @NotNull String absolutePath)
             throws AuthorizableExistsException, UnsupportedRepositoryOperationException, RepositoryException {
-        return createUser(userID, password, principal, absolutePath);
+        throw new UnsupportedRepositoryOperationException("Creating user with absolutePath not supported");
     }
 
     /**
@@ -337,20 +338,12 @@ public interface UserManager {
      * Creates a new {@code Group} at the specified absolute JCR repository path.
      * <p>
      * Unlike {@link #createGroup(String, Principal, String)} where the
-     * {@code intermediatePath} is a relative hint that implementations may ignore,
-     * this method requires the caller to supply the exact absolute JCR path at which
-     * the group node must be created. The path must start with {@code /} and must
-     * be within the configured group root.
+     * {@code intermediatePath} is a relative hint, this method accepts an absolute
+     * JCR repository path that precisely determines the location of the new group node.
+     * The path must be withing the configured group root.
      * <p>
-     * If a node already exists at the resolved location, the implementation may
-     * append a numeric suffix to the node name to avoid the collision.
-     * <p>
-     * If the last segment of the resolved node name violates the contract of the
-     * configured {@code AuthorizableNodeName}, a {@link javax.jcr.nodetype.ConstraintViolationException}
-     * is thrown.
-     * <p>
-     * Implementations that cannot honour an arbitrary absolute path must throw
-     * {@link UnsupportedRepositoryOperationException}.
+     * Implementations that do not support creation with at an absolute path
+     * must throw {@link UnsupportedRepositoryOperationException}.
      *
      * @param groupID      The ID of the new group.
      * @param principal    The principal of the new group.
@@ -367,7 +360,7 @@ public interface UserManager {
     default Group createGroupWithAbsolutePath(@NotNull String groupID, @NotNull Principal principal,
                                               @NotNull String absolutePath)
             throws AuthorizableExistsException, UnsupportedRepositoryOperationException, RepositoryException {
-        return createGroup(groupID, principal, absolutePath);
+        throw new UnsupportedRepositoryOperationException("Creating group with absolutePath not supported");
     }
 
     /**
