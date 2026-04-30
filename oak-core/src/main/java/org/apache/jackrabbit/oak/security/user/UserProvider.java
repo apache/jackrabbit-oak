@@ -389,7 +389,7 @@ class UserProvider extends AuthorizableBaseProvider {
             tree = tree.getParent();
         }
         if (!tree.exists()) {
-            throw new AccessDeniedException("Missing permission to create intermediate authorizable folders.");
+            throw new AccessDeniedException("Unable to retrieve authorizable parent folder.");
         }
         String relativePath = PathUtils.relativize(tree.getPath(), parentPath);
         Tree folder = relativePath.isEmpty() ? tree : Utils.getOrAddTree(tree, relativePath, NT_REP_AUTHORIZABLE_FOLDER);
