@@ -105,13 +105,22 @@ public class DistinctBinarySize implements StatsCollector {
         }
         referenceCount += list.size();
         for(BinaryId id : list) {
-            referenceSize += id.getLength();
-            if (largeBinariesCountMax > 0 && id.getLength() > largeBinarySizeThreshold) {
-                largeBinaries.add(id);
-                truncateLargeBinariesSet();
-            } else {
-                addToBloomFilter(id);
-            }
+            addBinaryId(id);
+        }
+    }
+
+    public void add(String blobId) {
+        referenceCount++;
+        addBinaryId(new BinaryId(blobId));
+    }
+
+    private void addBinaryId(BinaryId id) {
+        referenceSize += id.getLength();
+        if (largeBinariesCountMax > 0 && id.getLength() > largeBinarySizeThreshold) {
+            largeBinaries.add(id);
+            truncateLargeBinariesSet();
+        } else {
+            addToBloomFilter(id);
         }
     }
 
