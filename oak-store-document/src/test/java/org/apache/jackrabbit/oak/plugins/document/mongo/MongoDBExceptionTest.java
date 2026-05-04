@@ -240,6 +240,43 @@ public class MongoDBExceptionTest {
     }
 
     @Test
+    public void findAndModifyLarge() {
+        // check that exceptions for large request payloads get logged
+
+        LogCustomizer customizer = LogCustomizer.forLogger(MongoDocumentStore.class.getName()).create();
+        customizer.starting();
+
+        String docName = "/foogrowingdoc";
+        int i = 0;
+
+        StringBuilder pvalue = new StringBuilder();
+
+        store.createOrUpdate(Collection.NODES, new UpdateOp(docName,true));
+        UpdateOp setprop = new UpdateOp(docName, true);
+        setprop.set("long", pvalue.toString());
+        store.findAndUpdate(Collection.NODES, setprop);
+
+        try {
+            for (i = 0; i < 32; i++) {
+                pvalue.append(create1MBContentLotsNonASCII());
+            }
+            UpdateOp updateOp = new UpdateOp(docName, true);
+            updateOp.set("long", pvalue.toString());
+            store.findAndUpdate(Collection.NODES, updateOp);
+            fail("should not get here");
+        } catch (DocumentStoreException dseExpected) {
+            assertTrue("exception cause should be instance of " + BSONException.class.getName(),
+                    dseExpected.getCause() instanceof BSONException);
+            String log = customizer.getLogs().toString();
+            assertTrue("Should contain id /foogrowingdoc, got: " + log, log.contains("/foogrowingdoc"));
+            assertEquals("", log);
+        } finally {
+            customizer.finished();
+        }
+
+    }
+
+    @Test
     public void multiCreateOrUpdate16MBDoc() {
 
         List<UpdateOp> updateOps = new ArrayList<>();
