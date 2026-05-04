@@ -75,6 +75,8 @@ public class DistinctBinarySize implements StatsCollector {
     private long bloomFilterIgnoredSize;
     private long referenceCount;
     private long referenceSize;
+    private long totalDistinctCount;
+    private long totalDistinctSize;
 
     public DistinctBinarySize(long largeBinariesMB, long bloomFilterMB) {
         this.largeBinariesMB = largeBinariesMB;
@@ -110,8 +112,9 @@ public class DistinctBinarySize implements StatsCollector {
     }
 
     public void add(String blobId) {
+        BinaryId id = new BinaryId(blobId);
         referenceCount++;
-        addBinaryId(new BinaryId(blobId));
+        addBinaryId(id);
     }
 
     private void addBinaryId(BinaryId id) {
@@ -188,12 +191,32 @@ public class DistinctBinarySize implements StatsCollector {
         storage.add("small binaries HLL count", smallBinariesEstimatedCountHLL);
         storage.add("small binaries size", bloomFilterEstimatedSize);
 
-        long estimatedCount = largeBinaries.size() + smallBinariesEstimatedCount;
-        storage.add("total distinct count", estimatedCount);
-        long estimatedSize = largeBinariesSize + bloomFilterEstimatedSize;
-        storage.add("total distinct size", estimatedSize);
+        totalDistinctCount = largeBinaries.size() + smallBinariesEstimatedCount;
+        storage.add("total distinct count", totalDistinctCount);
+        totalDistinctSize = largeBinariesSize + bloomFilterEstimatedSize;
+        storage.add("total distinct size", totalDistinctSize);
         storage.add("total reference count", referenceCount);
         storage.add("total reference size", referenceSize);
+    }
+
+    public long getTotalReferenceCount() {
+        return referenceCount;
+    }
+
+    public long getTotalReferenceSize() {
+        return referenceSize;
+    }
+
+    public long getTotalDistinctCount() {
+        return totalDistinctCount;
+    }
+
+    public long getTotalDistinctSize() {
+        return totalDistinctSize;
+    }
+
+    public Storage getStorage() {
+        return storage;
     }
 
     public List<String> getRecords() {
