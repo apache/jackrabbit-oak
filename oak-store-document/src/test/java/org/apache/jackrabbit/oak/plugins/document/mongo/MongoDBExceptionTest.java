@@ -269,7 +269,6 @@ public class MongoDBExceptionTest {
                     dseExpected.getCause() instanceof BSONException);
             String log = customizer.getLogs().toString();
             assertTrue("Should contain id /foogrowingdoc, got: " + log, log.contains("/foogrowingdoc"));
-            assertEquals("", log);
         } finally {
             customizer.finished();
         }
