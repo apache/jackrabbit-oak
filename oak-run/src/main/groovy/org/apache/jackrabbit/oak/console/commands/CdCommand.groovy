@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.console.commands
 
 import jline.console.completer.Completer
 import org.apache.jackrabbit.oak.commons.PathUtils
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils
 import org.apache.jackrabbit.oak.console.ConsoleSession
 import org.codehaus.groovy.tools.shell.CommandSupport
 import org.codehaus.groovy.tools.shell.Groovysh
