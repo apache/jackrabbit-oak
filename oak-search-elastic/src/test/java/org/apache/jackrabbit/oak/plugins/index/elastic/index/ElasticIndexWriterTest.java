@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
@@ -29,6 +30,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.Arrays;
 
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticTestUtils.randomString;
@@ -36,6 +38,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.number.OrderingComparison.lessThan;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -51,6 +54,9 @@ public class ElasticIndexWriterTest {
 
     @Mock
     private ElasticConnection elasticConnectionMock;
+
+    @Mock
+    private ElasticsearchClient elasticsearchClientMock;
 
     @Mock
     private ElasticIndexDefinition indexDefinitionMock;
@@ -69,6 +75,7 @@ public class ElasticIndexWriterTest {
         closeable = MockitoAnnotations.openMocks(this);
         when(indexDefinitionMock.getIndexAlias()).thenReturn("test-index");
         when(indexDefinitionMock.getIndexName()).thenReturn("test-index-name");
+        when(elasticConnectionMock.getClient()).thenReturn(elasticsearchClientMock);
         // In this test we are explicitly disabling inference as bulkprocessor
         // is called with update document if inference is enabled.
         InferenceConfig.reInitialize(new MemoryNodeStore(), "/oak:index/:inferenceConfig", false);
@@ -155,6 +162,14 @@ public class ElasticIndexWriterTest {
         assertEquals("[he, ll, o , wo, rl, d]",
                 Arrays.toString(ElasticIndexWriter.splitLargeString(
                         "hello world", 2)));
+    }
+
+    @Test
+    public void ft_oak_12206_toggleShouldBeRemoved() {
+        // Time-bombed: if this test fails, the feature toggle FT_OAK-12206 and its guard in
+        // ElasticIndexWriter#deleteDocuments should be removed — the fix has been in production long enough.
+        assertTrue("Feature toggle " + ElasticIndexEditorProvider.FT_OAK_12206 + " is overdue for removal",
+                LocalDate.now().isBefore(LocalDate.of(2027, 5, 6)));
     }
 
 }

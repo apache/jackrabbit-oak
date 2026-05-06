@@ -34,6 +34,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.TYPE_ELASTICSEARCH;
@@ -47,6 +48,14 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
     private final ElasticRetryPolicy retryPolicy;
 
     public final static String OAK_INDEX_ELASTIC_WRITER_DISABLE_KEY = "oak.index.elastic.writer.disable";
+
+    public static final String FT_OAK_12206 = "FT_OAK-12206";
+    /**
+     * When {@code true}, the subtree deleteByQuery in {@code deleteDocuments} is skipped,
+     * reverting to the pre-fix behaviour of deleting only the exact-path document.
+     * The fix is active by default; set to {@code true} via the feature toggle to disable it.
+     */
+    public static final AtomicBoolean FT_OAK_12206_DISABLE = new AtomicBoolean(false);
 
     private final boolean OAK_INDEX_ELASTIC_WRITER_DISABLE = Boolean.getBoolean(OAK_INDEX_ELASTIC_WRITER_DISABLE_KEY);
 
