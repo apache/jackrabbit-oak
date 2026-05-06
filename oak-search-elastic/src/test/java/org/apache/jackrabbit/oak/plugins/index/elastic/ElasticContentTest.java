@@ -373,6 +373,30 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
     }
 
     @Test
+    public void subtreeDeletion() throws Exception {
+        IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        builder.includedPaths("/content");
+        builder.indexRule("nt:base").property("a").propertyIndex();
+        Tree index = setIndex(UUID.randomUUID().toString(), builder);
+        root.commit();
+
+        Tree content = root.getTree("/").addChild("content");
+        Tree parent = content.addChild("parent");
+        parent.setProperty("a", "foo");
+        parent.addChild("child1").setProperty("a", "foo");
+        parent.addChild("child2").setProperty("a", "foo");
+        parent.addChild("child3").setProperty("a", "foo");
+        root.commit();
+
+        assertEventually(() -> assertThat(countDocuments(index), equalTo(4L)));
+
+        content.getChild("parent").remove();
+        root.commit();
+
+        assertEventually(() -> assertThat(countDocuments(index), equalTo(0L)));
+    }
+
+    @Test
     public void propertyRemoval() throws Exception {
         IndexDefinitionBuilder builder = createIndex("a", "b", "c").noAsync();
         builder.includedPaths("/content");

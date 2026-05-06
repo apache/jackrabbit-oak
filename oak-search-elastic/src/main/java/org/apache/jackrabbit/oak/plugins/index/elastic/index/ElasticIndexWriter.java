@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.Inference
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceIndexConfig;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.importer.AsyncLaneSwitcher;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -167,6 +168,15 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     @Override
     public void deleteDocuments(String path) throws IOException {
         retryPolicy.withRetries(() -> bulkProcessorHandler.delete(indexName, ElasticIndexUtils.idFromPath(path)));
+        // Also delete all descendants: mirrors Lucene's PrefixQuery on the path term.
+        // The :ancestors field is indexed with path_hierarchy, so a term query on `path`
+        // matches every document whose ancestor chain includes that path.
+        // The ES Bulk API does not support delete by query, so we need to issue a separate request.
+        // This is not ideal but should be ok since deletes are expected to be less frequent than updates.
+        // The alternative would be to get the list of affected documents and issue a bulk delete by id,
+        // but that would be more complex and potentially more expensive (if there are many descendants).
+        retryPolicy.withRetries(() -> elasticConnection.getClient().deleteByQuery(
+                d -> d.index(indexName).query(q -> q.term(t -> t.field(FieldNames.ANCESTORS).value(path)))));
     }
 
     @Override
