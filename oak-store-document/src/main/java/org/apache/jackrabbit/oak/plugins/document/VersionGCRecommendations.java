@@ -309,8 +309,9 @@ public class VersionGCRecommendations {
             stats.needRepeat = !scopeIsComplete;
         }
 
-        // save data for full GC
-        if (fullGCEnabled && !stats.canceled && !stats.ignoredFullGCDueToCheckPoint) {
+        // save data for full GC but only if you don't have limitExceeded exception,
+        // since in that case the fullGC code hasn't run for this cycle.
+        if (fullGCEnabled && !stats.limitExceeded && !stats.canceled && !stats.ignoredFullGCDueToCheckPoint) {
             // success, we would not expect to encounter revisions older than this in the future
             if (isFullGCDryRun) {
                 setVGCSetting(of(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp,
