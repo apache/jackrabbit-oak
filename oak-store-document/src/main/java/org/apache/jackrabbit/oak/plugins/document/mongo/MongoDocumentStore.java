@@ -1159,6 +1159,10 @@ public class MongoDocumentStore implements DocumentStore {
             LOG.error("Failed to update the document with id={} with MongoCommandException message = '{}'.",
                     updateOp.getId(), e.getMessage());
             throw handleException(e, collection, updateOp.getId());
+        } catch (BSONException e) {
+            LOG.error("Failed to update the document with id={} with BSONException message = '{}'.",
+                    updateOp.getId(), e.getMessage());
+            throw handleException(e, collection, updateOp.getId());
         } catch (Exception e) {
             throw handleException(e, collection, updateOp.getId());
         } finally {
