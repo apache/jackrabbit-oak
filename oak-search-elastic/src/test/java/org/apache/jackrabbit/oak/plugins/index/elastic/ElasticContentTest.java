@@ -386,14 +386,18 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
         parent.addChild("child1").setProperty("a", "foo");
         parent.addChild("child2").setProperty("a", "foo");
         parent.addChild("child3").setProperty("a", "foo");
+        // this node is added to check that only the subtree of the removed node gets deleted from the index
+        Tree otherParent = content.addChild("otherParent");
+        otherParent.setProperty("a", "foo");
+        otherParent.addChild("child4").setProperty("a", "foo");
         root.commit();
 
-        assertEventually(() -> assertThat(countDocuments(index), equalTo(4L)));
+        assertEventually(() -> assertThat(countDocuments(index), equalTo(6L)));
 
         content.getChild("parent").remove();
         root.commit();
 
-        assertEventually(() -> assertThat(countDocuments(index), equalTo(0L)));
+        assertEventually(() -> assertThat(countDocuments(index), equalTo(2L)));
     }
 
     @Test
