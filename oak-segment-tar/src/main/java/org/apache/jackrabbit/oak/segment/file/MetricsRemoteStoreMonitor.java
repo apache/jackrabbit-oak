@@ -31,18 +31,15 @@ public class MetricsRemoteStoreMonitor extends RemoteStoreMonitorAdapter {
     public static final String REQUEST_COUNT = "REQUEST_COUNT";
     public static final String REQUEST_ERROR = "REQUEST_ERROR";
     public static final String REQUEST_DURATION = "REQUEST_DURATION";
-    public static final String REPOSITORY_LOCK_LOST = "REPOSITORY_LOCK_LOST";
 
     private final CounterStats requestCountStats;
     private final CounterStats requestErrorStats;
     private final TimerStats requestDurationStats;
-    private final CounterStats repositoryLockLostStats;
 
     public MetricsRemoteStoreMonitor(@NotNull StatisticsProvider statisticsProvider) {
         requestCountStats = statisticsProvider.getCounterStats(REQUEST_COUNT, StatsOptions.DEFAULT);
         requestErrorStats = statisticsProvider.getCounterStats(REQUEST_ERROR, StatsOptions.DEFAULT);
         requestDurationStats = statisticsProvider.getTimer(REQUEST_DURATION, StatsOptions.METRICS_ONLY);
-        repositoryLockLostStats = statisticsProvider.getCounterStats(REPOSITORY_LOCK_LOST, StatsOptions.DEFAULT);
     }
 
     @Override
@@ -57,10 +54,5 @@ public class MetricsRemoteStoreMonitor extends RemoteStoreMonitorAdapter {
     @Override
     public void requestDuration(long duration, TimeUnit timeUnit) {
         requestDurationStats.update(duration, timeUnit);
-    }
-
-    @Override
-    public void repositoryLockLost() {
-        repositoryLockLostStats.inc();
     }
 }

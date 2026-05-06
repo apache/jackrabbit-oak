@@ -37,7 +37,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class AzurePersistence implements SegmentNodeStorePersistence {
     private static final Logger log = LoggerFactory.getLogger(AzurePersistence.class);
@@ -51,8 +50,6 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
     protected final String rootPrefix;
 
     protected AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy;
-
-    private final AtomicReference<RemoteStoreMonitor> remoteStoreMonitor = new AtomicReference<>();
 
     protected WriteAccessController writeAccessController = new WriteAccessController();
 
@@ -113,16 +110,10 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
         BlockBlobClient blockBlobClient = getBlockBlob("repo.lock");
         BlockBlobClient noRetryBlockBlobClient = getNoRetryBlockBlob("repo.lock");
         BlobLeaseClient blobLeaseClient = new BlobLeaseClientBuilder().blobClient(noRetryBlockBlobClient).buildClient();
-        return new AzureRepositoryLock(blockBlobClient, blobLeaseClient,
-                this::onRepositoryLockLost, writeAccessController).lock();
-    }
-
-    void onRepositoryLockLost() {
-        log.error("Lost connection to Azure. The repository lock lease could not be renewed.");
-        RemoteStoreMonitor monitor = remoteStoreMonitor.get();
-        if (monitor != null) {
-            monitor.repositoryLockLost();
-        }
+        return new AzureRepositoryLock(blockBlobClient, blobLeaseClient, () -> {
+            log.warn("Lost connection to the Azure. The client will be closed.");
+            // TODO close the connection
+        }, writeAccessController).lock();
     }
 
     private BlockBlobClient getBlockBlob(String path) throws IOException {
@@ -150,7 +141,6 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
     }
 
     private void attachRemoteStoreMonitor(RemoteStoreMonitor remoteStoreMonitor) {
-        this.remoteStoreMonitor.set(remoteStoreMonitor);
         if (azureHttpRequestLoggingPolicy != null) {azureHttpRequestLoggingPolicy.setRemoteStoreMonitor(remoteStoreMonitor);}
     }
 

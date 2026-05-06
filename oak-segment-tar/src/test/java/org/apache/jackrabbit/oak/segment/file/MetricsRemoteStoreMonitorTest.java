@@ -36,8 +36,6 @@ import java.util.concurrent.TimeUnit;
 
 public class MetricsRemoteStoreMonitorTest {
     private ScheduledExecutorService executor;
-    private DefaultStatisticsProvider statisticsProvider;
-    private MetricsRemoteStoreMonitor remoteStoreMonitor;
 
     private CounterStats requestCount;
     private CounterStats requestErrorCount;
@@ -49,8 +47,8 @@ public class MetricsRemoteStoreMonitorTest {
     @Before
     public void setup(){
         executor = Executors.newSingleThreadScheduledExecutor();
-        statisticsProvider = new DefaultStatisticsProvider(executor);
-        remoteStoreMonitor = new MetricsRemoteStoreMonitor(statisticsProvider);
+        DefaultStatisticsProvider statisticsProvider = new DefaultStatisticsProvider(executor);
+        MetricsRemoteStoreMonitor remoteStoreMonitor = new MetricsRemoteStoreMonitor(statisticsProvider);
         requestCount = statisticsProvider.getCounterStats(REQUEST_COUNT, StatsOptions.DEFAULT);
         requestErrorCount = statisticsProvider.getCounterStats(REQUEST_ERROR, StatsOptions.DEFAULT);
         requestDuration =  statisticsProvider.getTimer(REQUEST_DURATION, StatsOptions.METRICS_ONLY);
@@ -75,17 +73,5 @@ public class MetricsRemoteStoreMonitorTest {
         assertEquals(requestCountExpected, requestCount.getCount());
         assertEquals(requestErrorCountExpected, requestErrorCount.getCount());
         assertEquals(1, requestDuration.getCount());
-    }
-
-    @Test
-    public void testRepositoryLockLost() {
-        CounterStats lockLostCount = statisticsProvider.getCounterStats(REPOSITORY_LOCK_LOST, StatsOptions.DEFAULT);
-        assertEquals(0, lockLostCount.getCount());
-
-        remoteStoreMonitor.repositoryLockLost();
-        assertEquals(1, lockLostCount.getCount());
-
-        remoteStoreMonitor.repositoryLockLost();
-        assertEquals(2, lockLostCount.getCount());
     }
 }
