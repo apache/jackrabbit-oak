@@ -176,8 +176,14 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
             // This is not ideal but should be ok since deletes are expected to be less frequent than updates.
             // The alternative would be to get the list of affected documents and issue a bulk delete by id,
             // but that would be more complex and potentially more expensive (if there are many descendants).
-            retryPolicy.withRetries(() -> elasticConnection.getClient().deleteByQuery(
-                    d -> d.index(indexName).query(q -> q.term(t -> t.field(FieldNames.ANCESTORS).value(path)))));
+            retryPolicy.withRetries(() -> {
+                var response = elasticConnection.getClient().deleteByQuery(
+                        d -> d.index(indexName).query(q -> q.term(t -> t.field(FieldNames.ANCESTORS).value(path))));
+                response.failures().forEach(f -> LOG.warn("Failed to delete descendants of {}: shard {} reason {}", path, f.id(), f.cause()));
+                if (response.deleted() != null && response.deleted() > 0) {
+                    LOG.info("Deleted {} descendants of {} in {} ms", response.deleted(), path, response.took());
+                }
+            });
         }
     }
 
