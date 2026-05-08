@@ -17,6 +17,9 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch.core.DeleteByQueryRequest;
+import co.elastic.clients.elasticsearch.core.DeleteByQueryResponse;
+import co.elastic.clients.util.ObjectBuilder;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
@@ -26,12 +29,15 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.function.Function;
 
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticTestUtils.randomString;
 import static org.hamcrest.CoreMatchers.not;
@@ -71,11 +77,14 @@ public class ElasticIndexWriterTest {
     private AutoCloseable closeable;
 
     @Before
-    public void setUp() {
+    public void setUp() throws IOException {
         closeable = MockitoAnnotations.openMocks(this);
         when(indexDefinitionMock.getIndexAlias()).thenReturn("test-index");
         when(indexDefinitionMock.getIndexName()).thenReturn("test-index-name");
         when(elasticConnectionMock.getClient()).thenReturn(elasticsearchClientMock);
+        when(elasticConnectionMock.getClient()
+                .deleteByQuery(ArgumentMatchers.<Function<DeleteByQueryRequest.Builder, ObjectBuilder<DeleteByQueryRequest>>>any()))
+                .thenReturn(DeleteByQueryResponse.of(d -> d.deleted(1L).failures(Collections.emptyList())));
         // In this test we are explicitly disabling inference as bulkprocessor
         // is called with update document if inference is enabled.
         InferenceConfig.reInitialize(new MemoryNodeStore(), "/oak:index/:inferenceConfig", false);
