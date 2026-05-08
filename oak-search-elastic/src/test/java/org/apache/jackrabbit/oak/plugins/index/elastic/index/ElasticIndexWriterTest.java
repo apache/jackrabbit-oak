@@ -115,6 +115,9 @@ public class ElasticIndexWriterTest {
 
         ArgumentCaptor<String> idCaptor = ArgumentCaptor.forClass(String.class);
         verify(bulkProcessorHandlerMock).delete(eq(indexAlias), idCaptor.capture());
+        verify(elasticsearchClientMock).deleteByQuery(
+                ArgumentMatchers.<Function<DeleteByQueryRequest.Builder, ObjectBuilder<DeleteByQueryRequest>>>any()
+        );
 
         String id = idCaptor.getValue();
         assertEquals("/bar", id);
@@ -129,6 +132,9 @@ public class ElasticIndexWriterTest {
 
         verify(bulkProcessorHandlerMock, times(2)).index(eq(indexAlias), anyString(), any(ElasticDocument.class));
         verify(bulkProcessorHandlerMock, times(2)).delete(eq(indexAlias), anyString());
+        verify(elasticsearchClientMock, times(2)).deleteByQuery(
+                ArgumentMatchers.<Function<DeleteByQueryRequest.Builder, ObjectBuilder<DeleteByQueryRequest>>>any()
+        );
     }
 
     @Test
