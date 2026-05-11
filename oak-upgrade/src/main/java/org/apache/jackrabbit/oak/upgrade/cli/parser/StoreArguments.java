@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.upgrade.cli.node.StoreFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_DIR;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_DIR_XML;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_XML;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.SEGMENT;
@@ -127,16 +126,9 @@ public class StoreArguments {
 
     private static List<StoreDescriptor> mapToStoreDescriptors(List<String> arguments) throws CliArgumentException {
         List<StoreDescriptor> descriptors = new ArrayList<StoreDescriptor>();
-        boolean jcr2Dir = false;
         boolean jcr2Xml = false;
         for (String argument : arguments) {
             StoreType type = getMatchingType(argument);
-            if (type == JCR2_DIR) {
-                if (jcr2Dir) {
-                    type = SEGMENT_TAR;
-                }
-                jcr2Dir = true;
-            }
             if (type == JCR2_DIR_XML) {
                 if (jcr2Xml) {
                     throw new CliArgumentException("Too many repository.xml files passed as arguments", 1);
@@ -149,25 +141,17 @@ public class StoreArguments {
     }
 
     private static void mergeCrx2Descriptors(List<StoreDescriptor> descriptors) {
-        int crx2DirIndex = -1;
         int crx2XmlIndex = -1;
         for (int i = 0; i < descriptors.size(); i++) {
             StoreType type = descriptors.get(i).getType();
-            if (type == JCR2_DIR) {
-                crx2DirIndex = i;
-            } else if (type == JCR2_XML) {
+            if (type == JCR2_XML) {
                 crx2XmlIndex = i;
             }
         }
 
-        if (crx2DirIndex > -1 || crx2XmlIndex > -1) {
-            String repoDir;
-            if (crx2DirIndex > -1) {
-                repoDir = descriptors.get(crx2DirIndex).getPath();
-                descriptors.set(crx2DirIndex, null);
-            } else {
-                repoDir = DEFAULT_CRX2_REPO;
-            }
+        if (crx2XmlIndex > -1) {
+            String repoDir = DEFAULT_CRX2_REPO;
+
             String repoXml;
             if (crx2XmlIndex > -1) {
                 repoXml = descriptors.get(crx2XmlIndex).getPath();

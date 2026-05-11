@@ -26,7 +26,6 @@ import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationPar
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.isCustomAzureConnectionString;
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.parseAzureConfigurationFromCustomConnection;
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.parseAzureConfigurationFromUri;
-import static org.apache.jackrabbit.oak.upgrade.cli.node.Jackrabbit2Factory.isJcr2Repository;
 import static org.apache.jackrabbit.oak.upgrade.cli.node.Jackrabbit2Factory.isRepositoryXml;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments.SEGMENT_AZURE_PREFIX;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments.SEGMENT_OLD_PREFIX;
@@ -47,22 +46,6 @@ public enum StoreType {
         @Override
         public boolean matches(String argument) {
             return isRepositoryXml(argument);
-        }
-
-        @Override
-        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean isSupportLongNames() {
-            return true;
-        }
-    },
-    JCR2_DIR {
-        @Override
-        public boolean matches(String argument) {
-            return isJcr2Repository(argument);
         }
 
         @Override
