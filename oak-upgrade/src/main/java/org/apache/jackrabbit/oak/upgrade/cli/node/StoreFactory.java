@@ -27,25 +27,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 public class StoreFactory {
 
-    private final Jackrabbit2Factory jcr2Factory;
-
     private final NodeStoreFactory nodeStoreFactory;
 
-    public StoreFactory(Jackrabbit2Factory crx2Factory) {
-        this.jcr2Factory = crx2Factory;
-        this.nodeStoreFactory = null;
-    }
-
     public StoreFactory(NodeStoreFactory nodeStoreFactory) {
-        this.jcr2Factory = null;
         this.nodeStoreFactory = nodeStoreFactory;
     }
 
     public RepositoryContext create(Closer closer) throws IOException, RepositoryException {
-        if (jcr2Factory == null) {
-            throw new UnsupportedOperationException();
-        }
-        return jcr2Factory.create(closer);
+        throw new UnsupportedOperationException();
     }
 
     public NodeStore create(BlobStore blobStore, Closer closer) throws IOException {
@@ -56,7 +45,7 @@ public class StoreFactory {
     }
 
     public boolean isJcr2() {
-        return jcr2Factory != null;
+        return false;
     }
 
     public boolean hasExternalBlobReferences() throws IOException {
