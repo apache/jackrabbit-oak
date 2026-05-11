@@ -27,10 +27,8 @@ import org.apache.jackrabbit.oak.upgrade.cli.node.StoreFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_DIR_XML;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_XML;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.SEGMENT;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.SEGMENT_TAR;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.getMatchingType;
 
 public class StoreArguments {
@@ -98,17 +96,6 @@ public class StoreArguments {
         return dst.toString();
     }
 
-    public boolean isInPlaceUpgrade() {
-        if (src.getType() == JCR2_DIR_XML && dst.getType() == SEGMENT_TAR) {
-            return src.getPath().equals(dst.getPath());
-        }
-        return false;
-    }
-
-    public String[] getSrcPaths() {
-        return src.getPaths();
-    }
-
     public boolean srcUsesEmbeddedDatastore() throws IOException {
         if (srcHasExternalBlobRefs == null) {
             srcHasExternalBlobRefs = src.getFactory(StoreArguments.MigrationDirection.SRC, options).hasExternalBlobReferences();
@@ -126,15 +113,8 @@ public class StoreArguments {
 
     private static List<StoreDescriptor> mapToStoreDescriptors(List<String> arguments) throws CliArgumentException {
         List<StoreDescriptor> descriptors = new ArrayList<StoreDescriptor>();
-        boolean jcr2Xml = false;
         for (String argument : arguments) {
             StoreType type = getMatchingType(argument);
-            if (type == JCR2_DIR_XML) {
-                if (jcr2Xml) {
-                    throw new CliArgumentException("Too many repository.xml files passed as arguments", 1);
-                }
-                jcr2Xml = true;
-            }
             descriptors.add(new StoreDescriptor(type, argument));
         }
         return descriptors;
@@ -159,7 +139,7 @@ public class StoreArguments {
             } else {
                 repoXml = repoDir + "/" + REPOSITORY_XML;
             }
-            descriptors.add(0, new StoreDescriptor(JCR2_DIR_XML, repoDir, repoXml));
+            descriptors.add(0, new StoreDescriptor(JCR2_XML, repoDir, repoXml));
 
             Iterator<StoreDescriptor> it = descriptors.iterator();
             while (it.hasNext()) {
@@ -171,14 +151,6 @@ public class StoreArguments {
     }
 
     private static void addSegmentAsDestination(List<StoreDescriptor> descriptors) {
-        if (descriptors.size() == 1) {
-            StoreType type = descriptors.get(0).getType();
-            if (type == JCR2_DIR_XML) {
-                String crx2Dir = descriptors.get(0).getPath();
-                descriptors.add(new StoreDescriptor(SEGMENT_TAR, crx2Dir));
-                log.info("In place migration between JCR2 and SegmentNodeStore in {}", crx2Dir);
-            }
-        }
     }
 
     private static void validateDescriptors(List<StoreDescriptor> descriptors, MigrationOptions options) throws CliArgumentException {
@@ -186,16 +158,11 @@ public class StoreArguments {
             throw new CliArgumentException("Not enough node store arguments: " + descriptors.toString(), 1);
         } else if (descriptors.size() > 2) {
             throw new CliArgumentException("Too much node store arguments: " + descriptors.toString(), 1);
-        } else if (descriptors.get(1).getType() == JCR2_DIR_XML) {
-            throw new CliArgumentException("Can't use CRX2 as a destination", 1);
         }
         StoreDescriptor src = descriptors.get(0);
         StoreDescriptor dst = descriptors.get(1);
         if (src.getType() == dst.getType() && src.getPath().equals(dst.getPath())) {
             throw new CliArgumentException("The source and the destination is the same repository.", 1);
-        }
-        if (src.getType() == StoreType.JCR2_DIR_XML && options.isSrcBlobStoreDefined()) {
-            throw new CliArgumentException("The --src-datastore can't be used for the repository upgrade. Source datastore configuration is placed in the repository.xml file.", 1);
         }
     }
 

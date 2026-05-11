@@ -32,7 +32,6 @@ import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments.SEGMEN
 
 import java.util.Map;
 
-import org.apache.jackrabbit.oak.upgrade.cli.node.Jackrabbit2Factory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.JdbcFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.MongoFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.SegmentAzureFactory;
@@ -51,22 +50,6 @@ public enum StoreType {
         @Override
         public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
             throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean isSupportLongNames() {
-            return true;
-        }
-    },
-    JCR2_DIR_XML {
-        @Override
-        public boolean matches(String argument) {
-            return false;
-        }
-
-        @Override
-        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
-            return new StoreFactory(new Jackrabbit2Factory(paths[0], paths[1]));
         }
 
         @Override
