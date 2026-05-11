@@ -28,10 +28,8 @@ import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstant
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -75,7 +73,6 @@ import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
@@ -186,8 +183,6 @@ public class RepositoryUpgrade {
 
     private List<CommitHook> customCommitHooks = null;
 
-    private boolean checkLongNames = false;
-
     private boolean filterLongNames = true;
 
     private boolean skipInitialization = false;
@@ -238,72 +233,12 @@ public class RepositoryUpgrade {
         this.target = target;
     }
 
-    public boolean isCopyBinariesByReference() {
-        return copyBinariesByReference;
-    }
-
-    public void setCopyBinariesByReference(boolean copyBinariesByReference) {
-        this.copyBinariesByReference = copyBinariesByReference;
-    }
-
-    public boolean isSkipOnError() {
-        return skipOnError;
-    }
-
-    public void setSkipOnError(boolean skipOnError) {
-        this.skipOnError = skipOnError;
-    }
-
-    public boolean isEarlyShutdown() {
-        return earlyShutdown;
-    }
-
     public void setEarlyShutdown(boolean earlyShutdown) {
         this.earlyShutdown = earlyShutdown;
     }
 
-    public boolean isCheckLongNames() {
-        return checkLongNames;
-    }
-
-    public void setCheckLongNames(boolean checkLongNames) {
-        this.checkLongNames = checkLongNames;
-    }
-
-    public boolean isFilterLongNames() {
-        return filterLongNames;
-    }
-
-    public void setFilterLongNames(boolean filterLongNames) {
-        this.filterLongNames = filterLongNames;
-    }
-
-    public boolean isSkipInitialization() {
-        return skipInitialization;
-    }
-
     public void setSkipInitialization(boolean skipInitialization) {
         this.skipInitialization = skipInitialization;
-    }
-
-    /**
-     * Returns the list of custom CommitHooks to be applied before the final
-     * type validation, reference and indexing hooks.
-     *
-     * @return the list of custom CommitHooks
-     */
-    public List<CommitHook> getCustomCommitHooks() {
-        return customCommitHooks;
-    }
-
-    /**
-     * Sets the list of custom CommitHooks to be applied before the final
-     * type validation, reference and indexing hooks.
-     *
-     * @param customCommitHooks the list of custom CommitHooks
-     */
-    public void setCustomCommitHooks(List<CommitHook> customCommitHooks) {
-        this.customCommitHooks = customCommitHooks;
     }
 
     /**
@@ -324,51 +259,6 @@ public class RepositoryUpgrade {
      */
     public void setExcludes(@NotNull String... excludes) {
         this.excludePaths = Collections.unmodifiableSet(SetUtils.toLinkedSet(requireNonNull(excludes)));
-    }
-
-    /**
-     * Sets the paths that should be merged when the source repository
-     * is copied to the target repository.
-     *
-     * @param merges Paths to be merged during copy.
-     */
-    public void setMerges(@NotNull String... merges) {
-        this.mergePaths = Collections.unmodifiableSet(SetUtils.toLinkedSet(requireNonNull(merges)));
-    }
-
-    /**
-     * Configures the version storage copy. Be default all versions are copied.
-     * One may disable it completely by setting {@code null} here or limit it to
-     * a selected date range: {@code <minDate, now()>}.
-     * 
-     * @param minDate
-     *            minimum date of the versions to copy or {@code null} to
-     *            disable the storage version copying completely. Default value:
-     *            {@code 1970-01-01 00:00:00}.
-     */
-    public void setCopyVersions(Calendar minDate) {
-        versionCopyConfiguration.setCopyVersions(minDate);
-    }
-
-    /**
-     * Configures copying of the orphaned version histories (eg. ones that are
-     * not referenced by the existing nodes). By default all orphaned version
-     * histories are copied. One may disable it completely by setting
-     * {@code null} here or limit it to a selected date range:
-     * {@code <minDate, now()>}. <br>
-     * <br>
-     * Please notice, that this option is overriden by the
-     * {@link #setCopyVersions(Calendar)}. You can't copy orphaned versions
-     * older than set in {@link #setCopyVersions(Calendar)} and if you set
-     * {@code null} there, this option will be ignored.
-     * 
-     * @param minDate
-     *            minimum date of the orphaned versions to copy or {@code null}
-     *            to not copy them at all. Default value:
-     *            {@code 1970-01-01 00:00:00}.
-     */
-    public void setCopyOrphanedVersions(Calendar minDate) {
-        versionCopyConfiguration.setCopyOrphanedVersions(minDate);
     }
 
     /**
@@ -960,29 +850,6 @@ public class RepositoryUpgrade {
             includes.add("/" + childNodeName);
         }
         return includes;
-    }
-
-    private boolean nameMayBeTooLong(String name) {
-        if (name.length() <= Utils.NODE_NAME_LIMIT / 3) {
-            return false;
-        }
-        if (name.getBytes(StandardCharsets.UTF_8).length <= Utils.NODE_NAME_LIMIT) {
-            return false;
-        }
-        return true;
-    }
-
-    private boolean isNameTooLong(String name, String parentPath) {
-        if (!nameMayBeTooLong(name)) {
-            return false;
-        }
-        if (parentPath.length() < Utils.PATH_SHORT) {
-            return false;
-        }
-        if (parentPath.getBytes(StandardCharsets.UTF_8).length < Utils.PATH_LONG) {
-            return false;
-        }
-        return true;
     }
 
     static class LoggingCompositeHook implements CommitHook {
