@@ -24,7 +24,6 @@ import static org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier.copyPr
 import static org.apache.jackrabbit.oak.plugins.name.Namespaces.addCustomMapping;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ALL;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.SKIP_NAME_CHECK;
 
 import java.io.File;
 import java.io.IOException;
@@ -46,9 +45,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.jcr.NamespaceException;
-import javax.jcr.Node;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
@@ -68,7 +65,6 @@ import org.apache.jackrabbit.core.config.SecurityConfig;
 import org.apache.jackrabbit.core.fs.FileSystem;
 import org.apache.jackrabbit.core.fs.FileSystemException;
 import org.apache.jackrabbit.core.nodetype.NodeTypeRegistry;
-import org.apache.jackrabbit.core.query.lucene.FieldNames;
 import org.apache.jackrabbit.core.security.authorization.PrivilegeRegistry;
 import org.apache.jackrabbit.core.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -135,10 +131,6 @@ import org.apache.jackrabbit.spi.QValueConstraint;
 import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
 import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
 import org.apache.jackrabbit.spi.commons.value.ValueFormat;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.index.TermDocs;
-import org.apache.lucene.index.TermEnum;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -393,10 +385,6 @@ public class RepositoryUpgrade {
      * @throws RepositoryException if the copy operation fails
      */
     public void copy(RepositoryInitializer initializer) throws RepositoryException {
-        if (checkLongNames) {
-            assertNoLongNames();
-        }
-
         RepositoryConfig config = source.getRepositoryConfig();
         logger.info("Copying repository content from {} to Oak", config.getHomeDir());
         try {
@@ -972,45 +960,6 @@ public class RepositoryUpgrade {
             includes.add("/" + childNodeName);
         }
         return includes;
-    }
-
-    void assertNoLongNames() throws RepositoryException {
-        Session session = source.getRepository().login(null, null);
-        boolean longNameFound = false;
-        try {
-            IndexReader reader = IndexAccessor.getReader(source);
-            if (reader == null) {
-                return;
-            }
-            TermEnum terms = reader.terms(new Term(FieldNames.LOCAL_NAME));
-            while (terms.next()) {
-                Term t = terms.term();
-                if (!FieldNames.LOCAL_NAME.equals(t.field())) {
-                    continue;
-                }
-                String name = t.text();
-                if (nameMayBeTooLong(name)) {
-                    TermDocs docs = reader.termDocs(t);
-                    if (docs.next()) {
-                        int docId = docs.doc();
-                        String uuid = reader.document(docId).get(FieldNames.UUID);
-                        Node n = session.getNodeByIdentifier(uuid);
-                        if (isNameTooLong(n.getName(), n.getParent().getPath())) {
-                            logger.warn("Name too long: {}", n.getPath());
-                            longNameFound = true;
-                        }
-                    }
-                }
-            }
-        } catch (IOException e) {
-            throw new RepositoryException(e);
-        } finally {
-            session.logout();
-        }
-        if (longNameFound) {
-            logger.error("Node with a long name has been found. Please fix the content or rerun the migration with {} option.", SKIP_NAME_CHECK);
-            throw new RepositoryException("Node with a long name has been found.");
-        }
     }
 
     private boolean nameMayBeTooLong(String name) {
