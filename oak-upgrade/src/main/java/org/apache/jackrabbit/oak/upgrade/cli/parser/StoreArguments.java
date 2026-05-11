@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.upgrade.cli.parser;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.plugins.segment.SegmentVersion;
@@ -27,7 +26,6 @@ import org.apache.jackrabbit.oak.upgrade.cli.node.StoreFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_XML;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.SEGMENT;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.getMatchingType;
 
@@ -121,33 +119,6 @@ public class StoreArguments {
     }
 
     private static void mergeCrx2Descriptors(List<StoreDescriptor> descriptors) {
-        int crx2XmlIndex = -1;
-        for (int i = 0; i < descriptors.size(); i++) {
-            StoreType type = descriptors.get(i).getType();
-            if (type == JCR2_XML) {
-                crx2XmlIndex = i;
-            }
-        }
-
-        if (crx2XmlIndex > -1) {
-            String repoDir = DEFAULT_CRX2_REPO;
-
-            String repoXml;
-            if (crx2XmlIndex > -1) {
-                repoXml = descriptors.get(crx2XmlIndex).getPath();
-                descriptors.set(crx2XmlIndex, null);
-            } else {
-                repoXml = repoDir + "/" + REPOSITORY_XML;
-            }
-            descriptors.add(0, new StoreDescriptor(JCR2_XML, repoDir, repoXml));
-
-            Iterator<StoreDescriptor> it = descriptors.iterator();
-            while (it.hasNext()) {
-                if (it.next() == null) {
-                    it.remove();
-                }
-            }
-        }
     }
 
     private static void addSegmentAsDestination(List<StoreDescriptor> descriptors) {
