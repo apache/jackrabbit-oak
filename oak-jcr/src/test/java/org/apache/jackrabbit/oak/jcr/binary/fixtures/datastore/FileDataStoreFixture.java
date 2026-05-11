@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.binary.fixtures.datastore;
 
-import org.apache.jackrabbit.core.data.DataStore;
-import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
+import org.apache.jackrabbit.oak.spi.blob.data.FileDataStore;
 import org.jetbrains.annotations.NotNull;
 
 public class FileDataStoreFixture implements DataStoreFixture {

@@ -21,7 +21,7 @@
   <parent>
     <artifactId>oak-parent</artifactId>
     <groupId>org.apache.jackrabbit</groupId>
-    <version>1.93-SNAPSHOT</version>
+    <version>2.1-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
@@ -39,8 +39,9 @@
           <instructions>
             <Export-Package>
               org.apache.jackrabbit.oak.spi.blob,
-              org.apache.jackrabbit.oak.spi.blob.stats,
-              org.apache.jackrabbit.oak.spi.blob.split
+              org.apache.jackrabbit.oak.spi.blob.data,
+              org.apache.jackrabbit.oak.spi.blob.split,
+              org.apache.jackrabbit.oak.spi.blob.stats
             </Export-Package>
           </instructions>
         </configuration>
@@ -81,24 +82,25 @@
       <artifactId>jcr</artifactId>
       <version>2.0</version>
     </dependency>
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>jackrabbit-data</artifactId>
-      <version>${jackrabbit.version}</version>
-    </dependency>
+
     <!-- Dependencies to other Oak components -->
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-commons</artifactId>
       <version>${project.version}</version>
     </dependency>
-
-    <!-- General utility libraries -->
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-shaded-guava</artifactId>
+      <artifactId>oak-core-spi</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-jackrabbit-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <!-- General utility libraries -->
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>

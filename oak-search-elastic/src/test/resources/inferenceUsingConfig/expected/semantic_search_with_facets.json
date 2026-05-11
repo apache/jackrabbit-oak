@@ -1,0 +1,102 @@
+{
+  "_source": {
+    "includes": [":path"]
+  },
+  "aggregations": {
+    "jcr:content/metadata/dc:format": {
+      "terms": {
+        "field": "jcr:content/metadata/dc:format.keyword",
+        "size": 10
+      }
+    },
+    "jcr:content/metadata/status": {
+      "terms": {
+        "field": "jcr:content/metadata/status.keyword",
+        "size": 10
+      }
+    }
+  },
+  "query": {
+    "bool": {
+      "filter": [
+        {
+          "term": {
+            ":ancestors": {
+              "value": "/content/assets"
+            }
+          }
+        }
+      ],
+      "must": [
+        {
+          "bool": {
+            "must": [
+              {
+                "bool": {
+                  "should": [
+                    {
+                      "nested": {
+                        "path": ":vectorSpaces.inferenceConfig1",
+                        "query": {
+                          "knn": {
+                            "field": ":vectorSpaces.inferenceConfig1.vector",
+                            "query_vector": [
+                              0.1,
+                              0.2,
+                              0.3
+                            ],
+                            "num_candidates": 100,
+                            "k": 100,
+                            "filter": [
+                              {
+                                "term": {
+                                  ":ancestors": {
+                                    "value": "/content/assets"
+                                  }
+                                }
+                              }
+                            ],
+                            "similarity": 0.5
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "query_string": {
+                        "boost": 0.066666667,
+                        "default_operator": "and",
+                        "fields": [
+                          "jcr:content/metadata/dc:format^1.0",
+                          "jcr:content/metadata/status^1.0",
+                          ":fulltext"
+                        ],
+                        "lenient": true,
+                        "query": "find similar images",
+                        "tie_breaker": 0.5,
+                        "type": "cross_fields"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "size": 10,
+  "sort": [
+    {
+      "_score": {
+        "order": "desc"
+      }
+    },
+    {
+      ":path": {
+        "order": "asc"
+      }
+    }
+  ],
+  "track_total_hits": 10000
+}

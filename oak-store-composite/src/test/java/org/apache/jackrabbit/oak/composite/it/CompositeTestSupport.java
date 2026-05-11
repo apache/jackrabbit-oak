@@ -90,7 +90,6 @@ public abstract class CompositeTestSupport extends TestSupport {
 
     public static Option jackrabbit() {
         return composite(
-            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("jackrabbit-data").versionAsInProject(),
             mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("jackrabbit-jcr-commons").versionAsInProject(),
             mavenBundle().groupId("javax.jcr").artifactId("jcr").versionAsInProject(),
             mavenBundle().groupId("commons-codec").artifactId("commons-codec").versionAsInProject(),
@@ -98,6 +97,7 @@ public abstract class CompositeTestSupport extends TestSupport {
             mavenBundle().groupId("org.apache.commons").artifactId("commons-collections4").versionAsInProject(),
             mavenBundle().groupId("org.apache.commons").artifactId("commons-lang3").versionAsInProject(),
             mavenBundle().groupId("org.apache.commons").artifactId("commons-text").versionAsInProject(),
+            mavenBundle().groupId("com.github.ben-manes.caffeine").artifactId("caffeine").versionAsInProject(),
             mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-core").versionAsInProject(),
             mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-annotations").versionAsInProject(),
             mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-databind").versionAsInProject()

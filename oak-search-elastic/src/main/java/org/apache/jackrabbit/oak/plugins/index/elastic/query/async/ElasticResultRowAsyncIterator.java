@@ -44,7 +44,6 @@ import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.core.search.SourceConfig;
 import co.elastic.clients.elasticsearch.core.search.TotalHitsRelation;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashSet;
@@ -292,7 +291,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
 
         ElasticQueryScanner(List<ElasticResponseListener> listeners) {
             this.query = elasticRequestHandler.baseQuery();
-            this.sessionId = "oak-" + ElasticIndexUtils.sha256Hash(this.query.toString().getBytes(StandardCharsets.UTF_8));
+            this.sessionId = "oak-" + ElasticIndexUtils.fastHash(this.query.toString());
             this.sorts = elasticRequestHandler.baseSorts();
             this.highlight = elasticRequestHandler.highlight();
 
@@ -344,7 +343,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
 
             ongoingRequest = indexNode.getConnection().getAsyncClient()
                     .search(searchRequest, ObjectNode.class)
-                    .whenComplete((this::handleResponse));
+                    .whenCompleteAsync(this::handleResponse);
             metricHandler.markQuery(indexNode.getDefinition().getIndexPath(), true);
         }
 
@@ -463,7 +462,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
                 searchStartTime = System.currentTimeMillis();
                 ongoingRequest = indexNode.getConnection().getAsyncClient()
                         .search(searchReq, ObjectNode.class)
-                        .whenComplete(this::handleResponse);
+                        .whenCompleteAsync(this::handleResponse);
                 metricHandler.markQuery(indexNode.getDefinition().getIndexPath(), false);
             } else {
                 LOG.trace("Scanner is closing or still processing data from the previous scan");

@@ -324,8 +324,8 @@ public class UnionQueryImpl implements Query {
             rightIter = ((MeasuringIterator) rightRows).getDelegate();
         }
         if (orderBy == null) {
-            if(!settings.isSortUnionQueryByScoreEnabled()) {
-                // Default old behavior
+            if(settings.isSortUnionQueryLegacyModeEnabled()) {
+                // Legacy mode: concatenate results without score-based merging
                 it = IteratorUtils.chainedIterator(leftIter, rightIter);
             } else {
                 boolean leftHasScore = isScorePresent(left);
@@ -568,16 +568,22 @@ public class UnionQueryImpl implements Query {
 
     /**
      * @param row the result row
-     * @return the jcr:score as a double
-     * Precondition: {@link #isScorePresent(Query)} must be true. If the row lacks a jcr:score, 0.0 is returned and
-     * the issue is logged.
+     * @return the jcr:score as a double, or 0.0 if the row lacks a score value
      */
     private double getScoreFromRow(ResultRowImpl row) {
         try {
             PropertyValue scoreValue = row.getValue(QueryConstants.JCR_SCORE);
+            if (scoreValue == null) {
+                return 0.0;
+            }
+            Type<?> type = scoreValue.getType();
+            if (type != Type.DOUBLE && type != Type.LONG && type != Type.DECIMAL) {
+                LOG.warn("Unexpected jcr:score type: {}, defaulting to 0.0", type);
+                return 0.0;
+            }
             return scoreValue.getValue(Type.DOUBLE);
-        } catch (IllegalArgumentException e) {
-            LOG.warn("Failed to get jcr:score for path={}", row.getPath(), e);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            LOG.warn("Could not retrieve jcr:score value, defaulting to 0.0: {}", e.getMessage());
             return 0.0;
         }
     }

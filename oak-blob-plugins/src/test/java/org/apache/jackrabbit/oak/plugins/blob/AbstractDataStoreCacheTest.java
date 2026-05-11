@@ -52,10 +52,10 @@ import java.util.function.BiConsumer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
-import org.apache.jackrabbit.core.data.DataIdentifier;
-import org.apache.jackrabbit.core.data.DataRecord;
-import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.guava.common.cache.CacheLoader;
+import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
+import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
+import org.apache.jackrabbit.oak.cache.api.CacheLoader;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
@@ -112,7 +112,7 @@ public class AbstractDataStoreCacheTest {
     }
 
 
-    static class TestCacheLoader extends CacheLoader<String, InputStream> {
+    static class TestCacheLoader implements CacheLoader<String, InputStream> {
         protected File root;
 
         public TestCacheLoader(File dir) {

@@ -41,12 +41,12 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
-import org.apache.jackrabbit.core.data.AbstractDataStore;
-import org.apache.jackrabbit.core.data.DataIdentifier;
-import org.apache.jackrabbit.core.data.DataRecord;
-import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.core.data.MultiDataStoreAware;
-import org.apache.jackrabbit.guava.common.cache.CacheLoader;
+import org.apache.jackrabbit.oak.spi.blob.data.AbstractDataStore;
+import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
+import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
+import org.apache.jackrabbit.oak.spi.blob.data.MultiDataStoreAware;
+import org.apache.jackrabbit.oak.cache.api.CacheLoader;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TypedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
@@ -160,11 +160,8 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
         this.cache =
             new CompositeDataStoreCache(path, new File(home), cacheSize, stagingSplitPercentage,
                 uploadThreads,
-                new CacheLoader<String, InputStream>() {
-                    @Override public InputStream load(String key) throws Exception {
-                        return backend.read(new DataIdentifier(key));
-                    }
-                }, new StagingUploader() {
+                key -> backend.read(new DataIdentifier(key)),
+                new StagingUploader() {
                     @Override public void write(String id, File file) throws DataStoreException {
                         backend.write(new DataIdentifier(id), file);
                     }

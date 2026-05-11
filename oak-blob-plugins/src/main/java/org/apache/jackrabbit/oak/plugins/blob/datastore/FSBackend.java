@@ -33,10 +33,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
-import org.apache.jackrabbit.core.data.DataIdentifier;
-import org.apache.jackrabbit.core.data.DataRecord;
-import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.core.data.LazyFileInputStream;
+import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
+import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
+import org.apache.jackrabbit.oak.spi.blob.data.AutoClosingLazyFileInputStream;
 import org.apache.jackrabbit.oak.commons.io.FileTreeTraverser;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
@@ -92,7 +92,7 @@ public class FSBackend extends AbstractSharedBackend {
     public InputStream read(DataIdentifier identifier) throws DataStoreException {
         File file = getFile(identifier, fsPathDir);
         try {
-            return new LazyFileInputStream(file);
+            return new AutoClosingLazyFileInputStream(file);
         } catch (IOException e) {
             throw new DataStoreException("Error opening input stream of " + file.getAbsolutePath(),
                 e);
@@ -454,7 +454,7 @@ public class FSBackend extends AbstractSharedBackend {
 
         @Override public InputStream getStream() throws DataStoreException {
             try {
-                return new LazyFileInputStream(file);
+                return new AutoClosingLazyFileInputStream(file);
             } catch (FileNotFoundException e) {
                 LOG.error("Error in returning stream", e);
                 throw new DataStoreException(e);

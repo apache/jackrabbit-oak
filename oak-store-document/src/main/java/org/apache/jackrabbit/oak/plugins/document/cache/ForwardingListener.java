@@ -19,33 +19,32 @@
 
 package org.apache.jackrabbit.oak.plugins.document.cache;
 
-import org.apache.jackrabbit.guava.common.cache.RemovalListener;
-import org.apache.jackrabbit.guava.common.cache.RemovalNotification;
+import org.apache.jackrabbit.oak.cache.api.EvictionCause;
+import org.apache.jackrabbit.oak.cache.api.EvictionListener;
 
 /**
  * Listener which forwards the notifications to a delegate. It is used to bridge
  * multiple instances.
  *
  */
-public class ForwardingListener<K, V>
-        implements RemovalListener<K, V> {
-    private RemovalListener<K, V> delegate;
+public class ForwardingListener<K, V> implements EvictionListener<K, V> {
+    private EvictionListener<K, V> delegate;
 
     public ForwardingListener() {
     }
 
-    public ForwardingListener(RemovalListener<K, V> delegate) {
+    public ForwardingListener(EvictionListener<K, V> delegate) {
         this.delegate = delegate;
     }
 
     @Override
-    public void onRemoval(RemovalNotification<K, V> notification) {
+    public void onEviction(K key, V value, EvictionCause cause) {
         if (delegate != null) {
-            delegate.onRemoval(notification);
+            delegate.onEviction(key, value, cause);
         }
     }
 
-    public void setDelegate(RemovalListener<K, V> delegate) {
+    public void setDelegate(EvictionListener<K, V> delegate) {
         this.delegate = delegate;
     }
 
@@ -53,7 +52,7 @@ public class ForwardingListener<K, V>
         return new ForwardingListener<K, V>();
     }
 
-    public static <K, V> ForwardingListener<K, V> newInstance(RemovalListener<K, V> delegate) {
+    public static <K, V> ForwardingListener<K, V> newInstance(EvictionListener<K, V> delegate) {
         return new ForwardingListener<K, V>(delegate);
     }
 }

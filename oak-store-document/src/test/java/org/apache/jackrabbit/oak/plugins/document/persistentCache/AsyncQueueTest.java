@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.guava.common.cache.RemovalCause;
+import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
@@ -29,8 +29,6 @@ import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.async.CacheWriteQueue;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -67,16 +65,13 @@ public class AsyncQueueTest {
         FileUtils.deleteDirectory(new File("target/cacheTest"));
         pCache = new PersistentCache("target/cacheTest");
         final AtomicReference<NodeCache<PathRev, StringValue>> nodeCacheRef = new AtomicReference<NodeCache<PathRev, StringValue>>();
-        CacheLIRS<PathRev, StringValue> cache = new CacheLIRS.Builder<PathRev, StringValue>().maximumSize(1).evictionCallback(new CacheLIRS.EvictionCallback<PathRev, StringValue>() {
-            @Override
-            public void evicted(@NotNull PathRev key, @Nullable StringValue value, @NotNull RemovalCause cause) {
-                if (nodeCacheRef.get() != null) {
-                    nodeCacheRef.get().evicted(key, value, cause);
-                }
+        CacheLIRS<PathRev, StringValue> lirs = new CacheLIRS.Builder<PathRev, StringValue>().maximumSize(1).evictionCallback((key, value, cause) -> {
+            if (nodeCacheRef.get() != null) {
+                nodeCacheRef.get().evicted(key, value, EvictionCause.valueOf(cause.name()));
             }
         }).build();
         nodeCache = (NodeCache<PathRev, StringValue>) pCache.wrap(builderProvider.newBuilder().getNodeStore(),
-                null, cache,  CacheType.NODE);
+                null, lirs.asOakCache(), CacheType.NODE);
         nodeCacheRef.set(nodeCache);
 
         CacheWriteQueueWrapper writeQueue = new CacheWriteQueueWrapper(nodeCache.writeQueue);

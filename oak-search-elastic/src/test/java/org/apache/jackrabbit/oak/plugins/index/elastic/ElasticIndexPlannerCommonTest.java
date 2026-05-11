@@ -18,29 +18,33 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.index.IndexPlannerCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexPlanner;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
-import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextParser;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -53,18 +57,11 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
-import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -77,7 +74,7 @@ public class ElasticIndexPlannerCommonTest extends IndexPlannerCommonTest {
     // before it can get the estimated doc count from the remote ES index
     @Rule
     public final ProvideSystemProperty updateSystemProperties
-            = new ProvideSystemProperty("oak.elastic.statsRefreshSeconds", "5");
+            = new ProvideSystemProperty("oak.elastic.statsRefreshSeconds", "1");
 
     @Rule
     public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties();
@@ -158,6 +155,35 @@ public class ElasticIndexPlannerCommonTest extends IndexPlannerCommonTest {
     }
 
     @Override
+    protected ContentRepository createContentRepository(MemoryNodeStore store) {
+        ElasticIndexTracker tracker = new ElasticIndexTracker(esConnection, new ElasticMetricHandler(StatisticsProvider.NOOP));
+        ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(tracker, esConnection, null);
+        return new Oak(store)
+                .with(new InitialContent())
+                .with(new OpenSecurityProvider())
+                .with(editorProvider)
+                .with(tracker)
+                .with(new ElasticIndexProvider(tracker))
+                .createContentRepository();
+    }
+
+    @Override
+    protected IndexNode getIndexNodeFromStore(String indexPath, NodeState root) {
+        return new ElasticIndexNodeManager(indexPath, root, esConnection).getIndexNode();
+    }
+
+    @Override
+    protected Map<String, Object> getCommitAttributes() {
+        return Map.of("sync-mode", "rt");
+    }
+
+    @Override
+    protected void awaitIndexing() {
+        // wait for ES stats to refresh (oak.elastic.statsRefreshSeconds=1 in test rule)
+        try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
+    }
+
+    @Override
     protected IndexNode createIndexNode(IndexDefinition defn) throws IOException {
         try {
             createSampleDirectory();
@@ -181,38 +207,6 @@ public class ElasticIndexPlannerCommonTest extends IndexPlannerCommonTest {
     @Override
     protected IndexDefinition getIndexDefinition(NodeState root, NodeState defn, String indexPath) {
         return new ElasticIndexDefinition(root, defn, indexPath, esConnection.getIndexPrefix());
-    }
-
-    @Override
-    protected NodeBuilder getPropertyIndexDefinitionNodeBuilder(@NotNull NodeBuilder builder, @NotNull String name, @NotNull Set<String> includes, @NotNull String async) {
-        checkArgument(!includes.isEmpty(), "Lucene property index " +
-                "requires explicit list of property names to be indexed");
-        NodeBuilder defBuilder = builder.child("oak:index");
-        defBuilder = defBuilder.child(name);
-        defBuilder.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
-                .setProperty(TYPE_PROPERTY_NAME, indexOptions.getIndexType())
-                .setProperty(REINDEX_PROPERTY_NAME, true);
-        defBuilder.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
-        defBuilder.setProperty(createProperty(FulltextIndexConstants.INCLUDE_PROPERTY_NAMES, includes, STRINGS));
-
-        return defBuilder;
-    }
-
-    @Override
-    protected NodeBuilder getIndexDefinitionNodeBuilder(@NotNull NodeBuilder index, @NotNull String name, @Nullable Set<String> propertyTypes) {
-        if (index.hasChildNode(name)) {
-            return index.child(name);
-        }
-        NodeBuilder indexDefBuilder = index.child(name);
-        indexDefBuilder.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
-                .setProperty(TYPE_PROPERTY_NAME, indexOptions.getIndexType())
-                .setProperty(REINDEX_PROPERTY_NAME, true);
-
-        if (propertyTypes != null && !propertyTypes.isEmpty()) {
-            indexDefBuilder.setProperty(createProperty(FulltextIndexConstants.INCLUDE_PROPERTY_TYPES,
-                    propertyTypes, STRINGS));
-        }
-        return indexDefBuilder;
     }
 
     @Override

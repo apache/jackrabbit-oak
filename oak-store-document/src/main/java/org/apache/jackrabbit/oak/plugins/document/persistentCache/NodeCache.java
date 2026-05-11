@@ -17,23 +17,18 @@
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
 import static java.util.Collections.singleton;
-import static org.apache.jackrabbit.guava.common.cache.RemovalCause.COLLECTED;
-import static org.apache.jackrabbit.guava.common.cache.RemovalCause.EXPIRED;
-import static org.apache.jackrabbit.guava.common.cache.RemovalCause.SIZE;
 
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.guava.common.cache.CacheStats;
-import org.apache.jackrabbit.guava.common.cache.RemovalCause;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.cache.api.Cache;
+import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
+import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -54,7 +49,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
 
     static final Logger LOG = LoggerFactory.getLogger(NodeCache.class);
 
-    private static final Set<RemovalCause> EVICTION_CAUSES = Set.of(COLLECTED, EXPIRED, SIZE);
+    private static final Set<EvictionCause> EVICTION_CAUSES = Set.of(EvictionCause.COLLECTED, EvictionCause.EXPIRED, EvictionCause.SIZE);
 
     private final PersistentCache cache;
     private final PersistentCacheStats stats;
@@ -71,7 +66,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
     NodeCache(
             PersistentCache cache,
             Cache<K, V> memCache,
-            DocumentNodeStore docNodeStore, 
+            DocumentNodeStore docNodeStore,
             DocumentStore docStore,
             CacheType type,
             CacheActionDispatcher dispatcher,
@@ -187,11 +182,10 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
         }
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     @Nullable
-    public V getIfPresent(Object key) {
-        memCacheMetadata.increment((K) key);
+    public V getIfPresent(K key) {
+        memCacheMetadata.increment(key);
         V value = memCache.getIfPresent(key);
         if (value == null) {
             memCacheMetadata.remove(key);
@@ -208,9 +202,9 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
         stats.markRequest();
 
         // it takes care of updating memCacheMetadata
-        value = readIfPresent((K) key);
+        value = readIfPresent(key);
         if (value != null) {
-            memCache.put((K) key, value);
+            memCache.put(key, value);
             stats.markHit();
         }
         return value;
@@ -218,8 +212,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
 
     @Override
     public V get(K key,
-            Callable<? extends V> valueLoader)
-            throws ExecutionException {
+            Function<? super K, ? extends V> mappingFunction) {
 
         // Get stats covered in getIfPresent
         V value = getIfPresent(key);
@@ -231,25 +224,25 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
         TimerStats.Context ctx = stats.startLoaderTimer();
         try {
             memCacheMetadata.increment(key);
-            value = memCache.get(key, valueLoader);
+            value = memCache.get(key, mappingFunction);
             ctx.stop();
             if (!async) {
                 write((K) key, value);
             }
             broadcast(key, value);
             return value;
-        } catch (ExecutionException e) {
+        } catch (RuntimeException e) {
             stats.markException();
             throw e;
-         }
+        }
     }
 
     @Override
-    public ImmutableMap<K, V> getAllPresent(
-            Iterable<?> keys) {
+    public Map<K, V> getAllPresent(
+            Iterable<? extends K> keys) {
         Iterable<K> typedKeys = (Iterable<K>) keys;
         memCacheMetadata.incrementAll(keys);
-        ImmutableMap<K, V> result = memCache.getAllPresent(keys);
+        Map<K, V> result = memCache.getAllPresent(keys);
         memCacheMetadata.removeAll(IterableUtils.filter(typedKeys, x -> !result.keySet().contains(x)));
         return result;
     }
@@ -264,28 +257,21 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
         broadcast(key, value);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public void invalidate(Object key) {
+    public void invalidate(K key) {
         memCache.invalidate(key);
         memCacheMetadata.remove(key);
         if (async) {
-            writeQueue.addInvalidate(singleton((K) key));
+            writeQueue.addInvalidate(singleton(key));
         } else {
-            write((K) key, null);
+            write(key, null);
         }
-        broadcast((K) key, null);
+        broadcast(key, null);
         stats.markInvalidateOne();
     }
 
     @Override
-    public void putAll(Map<? extends K, ? extends V> m) {
-        memCacheMetadata.putAll(m.keySet());
-        memCache.putAll(m);
-    }
-
-    @Override
-    public void invalidateAll(Iterable<?> keys) {
+    public void invalidateAll(Iterable<? extends K> keys) {
         memCache.invalidateAll(keys);
         memCacheMetadata.removeAll(keys);
     }
@@ -299,12 +285,12 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
     }
 
     @Override
-    public long size() {
-        return memCache.size();
+    public long estimatedSize() {
+        return memCache.estimatedSize();
     }
 
     @Override
-    public CacheStats stats() {
+    public CacheStatsSnapshot stats() {
         return memCache.stats();
     }
 
@@ -317,6 +303,16 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
     public void cleanUp() {
         memCache.cleanUp();
         memCacheMetadata.clear();
+    }
+
+    @Override
+    public long getUsedWeight() {
+        return memCache.getUsedWeight();
+    }
+
+    @Override
+    public void setMaximumWeight(long maximumWeight) {
+        memCache.setMaximumWeight(maximumWeight);
     }
 
     @Override
@@ -343,7 +339,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
      * Invoked on the eviction from the {@link #memCache}
      */
     @Override
-    public void evicted(K key, V value, RemovalCause cause) {
+    public void evicted(K key, V value, EvictionCause cause) {
         if (async && Objects.nonNull(cause) && EVICTION_CAUSES.contains(cause) && value != null) {
             CacheMetadata.MetadataEntry metadata = memCacheMetadata.remove(key);
             boolean qualifiesToPersist = true;

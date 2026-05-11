@@ -47,7 +47,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import ch.qos.logback.classic.Level;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.testing.CIHelper;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorUtils;

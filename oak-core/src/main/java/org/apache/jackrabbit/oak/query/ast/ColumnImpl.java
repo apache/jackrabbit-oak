@@ -35,13 +35,17 @@ public class ColumnImpl extends AstElement {
         this.propertyName = requireNonNull(propertyName);
         this.columnName = requireNonNull(columnName);
     }
-    
+
     public String getColumnName() {
         return columnName;
     }
-    
+
     public String getPropertyName() {
         return propertyName;
+    }
+
+    public String getSelectorName() {
+        return selectorName;
     }
 
     @Override
@@ -62,7 +66,7 @@ public class ColumnImpl extends AstElement {
     public void bindSelector(SourceImpl source) {
         selector = source.getExistingSelector(selectorName);
     }
-    
+
     public SelectorImpl getSelector() {
         return selector;
     }

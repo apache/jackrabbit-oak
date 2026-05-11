@@ -1329,6 +1329,33 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         assertNull(ds.getIfCached(Collection.NODES, id));
     }
 
+    @Test
+    public void correctVersionOfDocumentAfterWritingThroughCache() {
+        String id = Utils.getIdFromPath("/cacheMeCorrectly");
+
+        String prop1 = "foo", prop2 = "bar";
+
+        // create test document
+        UpdateOp up = new UpdateOp(id, true);
+        up.set(prop1, "17");
+        ds.create(Collection.NODES, List.of(up));
+
+        // read back
+        NodeDocument testDoc = ds.find(Collection.NODES, id);
+        assertNotNull("test doc not found", testDoc);
+        assertNull("test prop " + prop2 + " should not be present", testDoc.get(prop2));
+
+        // add test prop
+        UpdateOp up2 = new UpdateOp(id, true);
+        up2.set(prop2, "42");
+        ds.findAndUpdate(Collection.NODES, up2);
+
+        // verify
+        NodeDocument testDoc2 = ds.find(Collection.NODES, id);
+        assertNotNull("test doc not found", testDoc2);
+        assertNotNull("test prop " + prop1 + " should be present", testDoc2.get(prop2));
+    }
+
     private UpdateOp newDocument(String path, long modified) {
         String id = Utils.getIdFromPath(path);
         UpdateOp op = new UpdateOp(id, true);

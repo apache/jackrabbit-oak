@@ -19,9 +19,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;

@@ -89,5 +89,4 @@ public class MigrationFactory {
         ServiceLoader<CommitHook> loader = ServiceLoader.load(CommitHook.class);
         return Collections.unmodifiableList(ListUtils.toList(loader.iterator()));
     }
-
 }

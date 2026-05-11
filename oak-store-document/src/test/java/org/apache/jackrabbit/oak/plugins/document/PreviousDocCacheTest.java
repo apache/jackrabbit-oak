@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -55,9 +55,9 @@ public class PreviousDocCacheTest extends AbstractMongoConnectionTest {
             splitDocs(ns, SPLIT_THRESHOLD);
         }
 
-        CacheStats nodesCache = null;
-        CacheStats prevDocsCache = null;
-        for (CacheStats cacheStats : docStore.getCacheStats()) {
+        AbstractCacheStats nodesCache = null;
+        AbstractCacheStats prevDocsCache = null;
+        for (AbstractCacheStats cacheStats : docStore.getCacheStats()) {
             if ("Document-Documents".equals(cacheStats.getName())) {
                 nodesCache = cacheStats;
             } else if ("Document-PrevDocuments".equals(cacheStats.getName())) {
@@ -81,7 +81,7 @@ public class PreviousDocCacheTest extends AbstractMongoConnectionTest {
         validateFullyLoadedCache(docStore, SPLIT_THRESHOLD, nodesCache, prevDocsCache);
     }
 
-    private void validateFullyLoadedCache(DocumentStore docStore, int splitThreshold, CacheStats nodesCache, CacheStats prevDocsCache) {
+    private void validateFullyLoadedCache(DocumentStore docStore, int splitThreshold, AbstractCacheStats nodesCache, AbstractCacheStats prevDocsCache) {
         assertEquals("Nodes cache must have 2 elements - '/' and intermediate split doc",
                 2, nodesCache.getElementCount());
         assertEquals("Unexpected number of leaf prev docs", splitThreshold + 1, prevDocsCache.getElementCount());
@@ -96,8 +96,8 @@ public class PreviousDocCacheTest extends AbstractMongoConnectionTest {
         assertEquals("Prev docs cache should not have a miss", 0, prevDocsCache.getMissCount());
     }
 
-    private void resetStats(CacheStats ... cacheStatses) {
-        for (CacheStats cacheStats : cacheStatses) {
+    private void resetStats(AbstractCacheStats ... cacheStatses) {
+        for (AbstractCacheStats cacheStats : cacheStatses) {
             cacheStats.resetStats();
         }
     }

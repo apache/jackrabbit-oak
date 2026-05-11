@@ -40,6 +40,36 @@ public class BinarySizeTest {
     }
 
     @Test
+    public void addBlobIdString() {
+        DistinctBinarySize size = new DistinctBinarySize(1, 1);
+        String id1 = "0102030405060708090a0b0c0d0e0f1011121314#1000";
+        String id2 = "1112131415161718191a1b1c1d1e1f2021222324#2000";
+        size.add(id1);
+        size.add(id2);
+        size.add(id1); // duplicate: should not increase distinct count or size
+        size.end();
+        assertEquals(
+                "DistinctBinarySize\n"
+                + "config Bloom filter memory MB: 1\n"
+                + "config large binaries set memory MB: 1\n"
+                + "large binaries count: 2\n"
+                + "large binaries count million: 0\n"
+                + "large binaries count max: 31250\n"
+                + "large binaries size: 3000\n"
+                + "large binaries size GiB: 0\n"
+                + "total distinct count: 2\n"
+                + "total distinct count million: 0\n"
+                + "total distinct size: 3000\n"
+                + "total distinct size GiB: 0\n"
+                + "total reference count: 3\n"
+                + "total reference count million: 0\n"
+                + "total reference size: 4000\n"
+                + "total reference size GiB: 0\n"
+                + "storage size: 0 MB; 16 entries\n"
+                + "", size.toString());
+    }
+
+    @Test
     public void nodeNameFilter() {
         BinarySizeHistogram histogram = new BinarySizeHistogram(1);
         NodeNameFilter filtered = new NodeNameFilter("filtered", new BinarySizeHistogram(1));

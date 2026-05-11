@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.93-SNAPSHOT</version>
+    <version>2.1-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -118,6 +118,8 @@
                 org.apache.lucene.sandbox.*;resolution:=optional,
                 !org.apache.lucene.*,
                 !org.apache.jackrabbit.oak.cache,
+                !org.apache.jackrabbit.oak.cache.api,
+                !org.apache.jackrabbit.oak.cache.impl.caffeine,
                 !com.sun.management.*,
                 !sun.management.*,
                 !sun.misc.*,
@@ -127,7 +129,7 @@
               oak-search;scope=compile|runtime;inline=true,
                 lucene-*;inline=true,
               <!-- TODO FIXME OAK-3598 -->
-              oak-core-spi;inline="org/apache/jackrabbit/oak/cache/AbstractCacheStats.class|org/apache/jackrabbit/oak/cache/CacheStats.class"
+              oak-core-spi;inline="org/apache/jackrabbit/oak/cache/AbstractCacheStats.class|org/apache/jackrabbit/oak/cache/CacheStats.class|org/apache/jackrabbit/oak/cache/api/Cache.class|org/apache/jackrabbit/oak/cache/api/CacheBuilder.class|org/apache/jackrabbit/oak/cache/api/CacheLoader.class|org/apache/jackrabbit/oak/cache/api/CacheStatsAdapter.class|org/apache/jackrabbit/oak/cache/api/CacheStatsSnapshot.class|org/apache/jackrabbit/oak/cache/api/EvictionCause.class|org/apache/jackrabbit/oak/cache/api/EvictionListener.class|org/apache/jackrabbit/oak/cache/api/LoadingCache.class|org/apache/jackrabbit/oak/cache/api/Weigher.class|org/apache/jackrabbit/oak/cache/impl/caffeine/CaffeineCacheAdapter.class|org/apache/jackrabbit/oak/cache/impl/caffeine/CaffeineCacheAdapter$1.class|org/apache/jackrabbit/oak/cache/impl/caffeine/CaffeineLoadingCacheAdapter.class"
               <!-- TODO FIXME OAK-3598 -->
             </Embed-Dependency>
           </instructions>

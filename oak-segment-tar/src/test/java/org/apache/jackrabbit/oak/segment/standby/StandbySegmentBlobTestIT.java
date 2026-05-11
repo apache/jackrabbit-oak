@@ -25,7 +25,7 @@ import static org.junit.Assert.assertNotNull;
 import java.io.File;
 
 import org.apache.commons.io.input.NullInputStream;
-import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.oak.spi.blob.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;

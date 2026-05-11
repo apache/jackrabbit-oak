@@ -39,6 +39,7 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class VersionGarbageCollectorLogTest {
 
@@ -86,7 +87,7 @@ public class VersionGarbageCollectorLogTest {
 
     @Test
     public void gc() throws Exception {
-        createGarbage();
+        createGarbage(clock);
 
         clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(1));
 
@@ -102,7 +103,7 @@ public class VersionGarbageCollectorLogTest {
     @Test
     public void gcWithCheckpoint() throws Exception {
         ClusterNodeInfo.setClock(clock);
-        createGarbage();
+        createGarbage(clock);
         for( int i = 0; i < 60; i++ ) {
             clock.waitUntil(clock.getTime() + TimeUnit.MINUTES.toMillis(1));
             ns.renewClusterIdLease();
@@ -122,17 +123,26 @@ public class VersionGarbageCollectorLogTest {
         return Integer.parseInt(msg.substring(idx + 1, msg.indexOf(']')));
     }
 
-    private void createGarbage() throws Exception {
+    private void createGarbage(Clock clock) throws Exception {
         Random r = new Random(42);
         String path = "/";
+        long now = clock.getTime();
+
         for (int i = 0; i < 1000; i++) {
-            int v = r.nextInt(10);
-            if (v == 0 || path.equals("/")) {
-                // create new top level node
-                path = "/node-" + i;
-                addNode(path);
-            } else {
-                addNode(path + "/node-" + i);
+            try {
+                int v = r.nextInt(10);
+                if (v == 0 || path.equals("/")) {
+                    // create new top level node
+                    path = "/node-" + i;
+                    addNode(path);
+                } else {
+                    addNode(path + "/node-" + i);
+                }
+            } catch (DocumentStoreException dse) {
+                long elapsed = clock.getTime() - now;
+                fail("document store exception, likely because of lease updated failure after " + elapsed + " clock ticks of "
+                        + clock + ", store: " + ns.getDocumentStore() + ", " +
+                        "added " + i + " nodes so far, exception was: " + dse.getMessage());
             }
         }
         for (String name : ns.getRoot().getChildNodeNames()) {

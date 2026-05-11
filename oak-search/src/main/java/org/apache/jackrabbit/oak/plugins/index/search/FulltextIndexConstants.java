@@ -139,6 +139,18 @@ public interface FulltextIndexConstants {
 
     String PROP_WEIGHT = "weight";
 
+    /**
+     * Weight used for cost estimation of "is null" property restrictions.
+     * Falls back to {@link #PROP_WEIGHT} if not set.
+     */
+    String PROP_WEIGHT_NULL = "weightNull";
+
+    /**
+     * Weight used for cost estimation of "is not null" property restrictions.
+     * Falls back to {@link #PROP_WEIGHT} if not set.
+     */
+    String PROP_WEIGHT_NOT_NULL = "weightNotNull";
+
     String PROP_DYNAMIC_BOOST = "dynamicBoost";
 
     float DYNAMIC_BOOST_WEIGHT = 0.0001f;
@@ -256,6 +268,18 @@ public interface FulltextIndexConstants {
      * Set to -1 to disable the length check entirely
      */
     String MAX_TAG_LENGTH = "maxTagLength";
+
+    /**
+     * Maximum number of similarity tags to index per document.
+     * Set to -1 to disable the limit
+     */
+    String MAX_SIMILARITY_TAGS_COUNT = "maxSimilarityTagsCount";
+
+    /**
+     * Maximum number of dynamic boost tags to index per document. The top N tags by confidence are indexed.
+     * Set to -1 to disable the limit
+     */
+    String MAX_DYNAMIC_BOOST_COUNT = "maxDynamicBoostCount";
 
     /**
      * whether use this property values for suggestions

@@ -25,7 +25,7 @@ import java.util.Map;
 import javax.jcr.RepositoryException;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.binary.fixtures.datastore.DataStoreFixture;
 import org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessDSGCFixture;
