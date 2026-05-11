@@ -67,11 +67,7 @@ public class OakUpgrade {
         CliUtils.handleSigInt(closer);
         MigrationFactory factory = new MigrationFactory(options, stores, datastores, closer);
         try {
-            if (stores.getSrcStore().isJcr2()) {
-                throw new CliArgumentException("Upgrade from Jackrabbit 'Classic' repositoty not supported anymore", 2);
-            } else {
-                sidegrade(factory);
-            }
+            sidegrade(factory);
         } catch (Throwable t) {
             throw closer.rethrow(t);
         } finally {

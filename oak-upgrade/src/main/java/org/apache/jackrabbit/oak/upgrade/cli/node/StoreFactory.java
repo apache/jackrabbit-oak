@@ -18,10 +18,7 @@ package org.apache.jackrabbit.oak.upgrade.cli.node;
 
 import java.io.IOException;
 
-import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.oak.commons.pio.Closer;
-import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -33,10 +30,6 @@ public class StoreFactory {
         this.nodeStoreFactory = nodeStoreFactory;
     }
 
-    public RepositoryContext create(Closer closer) throws IOException, RepositoryException {
-        throw new UnsupportedOperationException();
-    }
-
     public NodeStore create(BlobStore blobStore, Closer closer) throws IOException {
         if (nodeStoreFactory == null) {
             throw new UnsupportedOperationException();
@@ -44,15 +37,7 @@ public class StoreFactory {
         return nodeStoreFactory.create(blobStore, closer);
     }
 
-    public boolean isJcr2() {
-        return false;
-    }
-
     public boolean hasExternalBlobReferences() throws IOException {
-        if (isJcr2()) {
-            return true;
-        } else {
-            return nodeStoreFactory.hasExternalBlobReferences();
-        }
+        return nodeStoreFactory.hasExternalBlobReferences();
     }
 }
