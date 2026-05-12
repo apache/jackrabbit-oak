@@ -119,8 +119,6 @@ class JackrabbitNodeState extends AbstractNodeState {
      */
     private final Map<String, String> uriToPrefix;
 
-    private final boolean useBinaryReferences;
-
     private final Map<String, NodeId> nodes;
 
     private final Map<String, PropertyState> properties;
@@ -183,7 +181,6 @@ class JackrabbitNodeState extends AbstractNodeState {
         this.isVersionHistory = parent.isVersionHistory;
         this.isFrozenNode = parent.isFrozenNode;
         this.uriToPrefix = parent.uriToPrefix;
-        this.useBinaryReferences = parent.useBinaryReferences;
         this.properties = createProperties(bundle);
         this.nodes = createNodes(bundle);
         this.skipOnError = parent.skipOnError;
@@ -217,7 +214,6 @@ class JackrabbitNodeState extends AbstractNodeState {
                 return size() >= cacheSize;
             }
         };
-        this.useBinaryReferences = useBinaryReferences;
         this.skipOnError = skipOnError;
         try {
             NodePropBundle bundle = loader.loadBundle(id);
@@ -604,24 +600,7 @@ class JackrabbitNodeState extends AbstractNodeState {
 
             @Override
             public String getReference() {
-                if (!useBinaryReferences) {
-                    return null;
-                }
-                try {
-                    Binary binary = value.getBinary();
-                    try {
-                        if (binary instanceof ReferenceBinary) {
-                            return ((ReferenceBinary) binary).getReference();
-                        } else {
-                            return null;
-                        }
-                    } finally {
-                        binary.dispose();
-                    }
-                } catch (RepositoryException e) {
-                    warn("Unable to get blob reference", e);
-                    return null;
-                }
+                return null;
             }
 
             @Override
