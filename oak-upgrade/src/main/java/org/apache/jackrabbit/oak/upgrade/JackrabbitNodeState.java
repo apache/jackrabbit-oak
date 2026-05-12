@@ -102,12 +102,6 @@ class JackrabbitNodeState extends AbstractNodeState {
      */
     private final BundleLoader loader;
 
-    /**
-     * Workspace name used for versionable paths. This is null
-     * for the jcr:versionStorage and jcr:activities nodes.
-     */
-    private final String workspaceName;
-
     private final TypePredicate isReferenceable;
 
     private final TypePredicate isOrderable;
@@ -183,7 +177,6 @@ class JackrabbitNodeState extends AbstractNodeState {
         this.name = name;
         this.path = null;
         this.loader = parent.loader;
-        this.workspaceName = parent.workspaceName;
         this.isReferenceable = parent.isReferenceable;
         this.isOrderable = parent.isOrderable;
         this.isVersionable = parent.isVersionable;
@@ -210,7 +203,6 @@ class JackrabbitNodeState extends AbstractNodeState {
         this.name = PathUtils.getName(path);
         this.path = path;
         this.loader = new BundleLoader(source);
-        this.workspaceName = workspaceName;
         this.isReferenceable = new TypePredicate(root, MIX_REFERENCEABLE);
         this.isOrderable = TypePredicate.isOrderable(root);
         this.isVersionable = new TypePredicate(root, MIX_VERSIONABLE);
