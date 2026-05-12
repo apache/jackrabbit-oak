@@ -218,7 +218,7 @@ public interface UserManager {
      * Unlike {@link #createUser(String, String, Principal, String)} where the
      * {@code intermediatePath} is a relative hint, this method accepts an absolute
      * JCR repository path that precisely determines the location of the new user node.
-     * The path must be withing the configured group root.
+     * The path must be within the configured user root.
      * <p>
      * Implementations that do not support creation with at an absolute path
      * must throw {@link UnsupportedRepositoryOperationException}.
@@ -340,7 +340,7 @@ public interface UserManager {
      * Unlike {@link #createGroup(String, Principal, String)} where the
      * {@code intermediatePath} is a relative hint, this method accepts an absolute
      * JCR repository path that precisely determines the location of the new group node.
-     * The path must be withing the configured group root.
+     * The path must be within the configured group root.
      * <p>
      * Implementations that do not support creation with at an absolute path
      * must throw {@link UnsupportedRepositoryOperationException}.

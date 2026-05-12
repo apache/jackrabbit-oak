@@ -379,7 +379,7 @@ class UserProvider extends AuthorizableBaseProvider {
         String parentPath = PathUtils.getParentPath(absoluteOakPath);
         String authRoot = NT_REP_GROUP.equals(ntName) ? groupPath : userPath;
 
-        if (!parentPath.startsWith(authRoot)) {
+        if (!parentPath.equals(authRoot) && !PathUtils.isAncestor(authRoot, parentPath)) {
             throw new ConstraintViolationException("Attempt to create authorizable at '" + absoluteOakPath
                     + "' outside of the configured root '" + authRoot + "'");
         }

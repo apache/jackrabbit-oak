@@ -561,6 +561,19 @@ public class UserProviderTest {
         up.createUserAtAbsolutePath("uid", UserConstants.DEFAULT_USER_PATH + "/parent/uid");
     }
 
+    @Test(expected = javax.jcr.nodetype.ConstraintViolationException.class)
+    public void testCreateUserAtAbsolutePathSiblingOfUserRoot() throws Exception {
+        // path shares a string prefix with userPath but is a sibling, not a descendant
+        UserProvider up = createUserProvider();
+        up.createUserAtAbsolutePath("uid", defaultUserPath + "-sibling/uid");
+    }
+
+    @Test(expected = javax.jcr.nodetype.ConstraintViolationException.class)
+    public void testCreateGroupAtAbsolutePathSiblingOfGroupRoot() throws Exception {
+        UserProvider up = createUserProvider();
+        up.createGroupAtAbsolutePath("gid", defaultGroupPath + "-sibling/gid");
+    }
+
     private static void assertAutoCreatedItems(@NotNull Tree authorizableTree, @NotNull String ntName, @NotNull Root root) throws Exception {
         NodeType repUser = ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT).getNodeType(ntName);
         for (NodeDefinition cnd : repUser.getChildNodeDefinitions()) {
