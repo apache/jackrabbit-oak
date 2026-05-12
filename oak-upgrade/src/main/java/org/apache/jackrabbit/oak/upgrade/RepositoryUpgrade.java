@@ -400,7 +400,6 @@ public class RepositoryUpgrade {
                     new GroupEditorProvider(groupsPath),
                     // copy referenced version histories
                     new VersionableEditor.Provider(sourceRoot, workspaceName, versionCopyConfiguration),
-                    new SameNameSiblingsEditor.Provider(),
                     AuthorizableFolderEditor.provider(groupsPath, usersPath)
             )));
 
