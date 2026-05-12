@@ -57,7 +57,6 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.BeanConfig;
-import org.apache.jackrabbit.core.config.LoginModuleConfig;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.core.config.SecurityConfig;
 import org.apache.jackrabbit.core.fs.FileSystem;
@@ -519,9 +518,7 @@ public class RepositoryUpgrade {
 
     protected ConfigurationParameters mapSecurityConfig(SecurityConfig config) {
         ConfigurationParameters loginConfig = mapConfigurationParameters(
-                config.getLoginModuleConfig(),
-                LoginModuleConfig.PARAM_ADMIN_ID, UserConstants.PARAM_ADMIN_ID,
-                LoginModuleConfig.PARAM_ANONYMOUS_ID, UserConstants.PARAM_ANONYMOUS_ID);
+                config.getLoginModuleConfig());
         ConfigurationParameters userConfig;
         if (config.getSecurityManagerConfig() == null) {
             userConfig = ConfigurationParameters.EMPTY;
