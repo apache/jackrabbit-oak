@@ -77,6 +77,14 @@ public final class CacheWeights {
         }
     }
 
+    public static class SegmentCacheWeigherGuava implements
+            org.apache.jackrabbit.guava.common.cache.Weigher<SegmentId, Segment> {
+        @Override
+        public int weigh(@NotNull SegmentId id, @NotNull Segment segment) {
+            return segmentWeight(segment);
+        }
+    }
+
     public static class NodeCacheWeigher implements Weigher<String, RecordId> {
 
         @Override

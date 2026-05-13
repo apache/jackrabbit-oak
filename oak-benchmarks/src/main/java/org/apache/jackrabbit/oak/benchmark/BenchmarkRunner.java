@@ -469,6 +469,7 @@ public class BenchmarkRunner {
                                 benchmarkOptions.getDynamicMembership().value(options), benchmarkOptions.getAutoMembership().values(options)),
                         new BundlingNodeTest(),
                         new PersistentCacheTest(statsProvider),
+                        new SegmentCachePolicyBenchmark(),
                         new StringWriteTest(),
                         new BasicWriteTest(),
                         new CanReadNonExisting(),

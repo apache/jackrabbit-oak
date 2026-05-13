@@ -456,7 +456,7 @@ public class Segment {
      * Estimate of how much memory this instance would occupy in the segment
      * cache.
      */
-    int estimateMemoryUsage() {
+    public int estimateMemoryUsage() {
         int size = OBJECT_HEADER_SIZE + 76;
         size += 56; // 7 refs x 8 bytes
 
