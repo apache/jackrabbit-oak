@@ -136,6 +136,13 @@ public abstract class SegmentCache {
     public abstract void clear();
 
     /**
+     * Performs any pending cache maintenance operations, including flushing
+     * deferred eviction processing.  Call before reading eviction statistics
+     * to ensure all pending evictions are counted.
+     */
+    public abstract void cleanUp();
+
+    /**
      * @return Statistics for this cache.
      */
     @NotNull
@@ -307,6 +314,11 @@ public abstract class SegmentCache {
         }
 
         @Override
+        public void cleanUp() {
+            cache.cleanUp();
+        }
+
+        @Override
         @NotNull
         public AbstractCacheStats getCacheStats() {
             return stats;
@@ -448,6 +460,9 @@ public abstract class SegmentCache {
 
         @Override
         public void clear() {}
+
+        @Override
+        public void cleanUp() {}
 
         @NotNull
         @Override

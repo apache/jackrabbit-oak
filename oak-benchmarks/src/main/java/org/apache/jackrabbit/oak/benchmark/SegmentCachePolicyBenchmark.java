@@ -55,6 +55,34 @@ import org.mockito.Mockito;
  * Working-set entries start at freq=0 and must beat the scan baseline to enter
  * main space.  Demonstrates the admission penalty in W-TinyLFU vs LRU.
  *
+ * <h3>Scenario D — uniform random / cache thrash (afterSuite)</h3>
+ * Pool is 25x cache capacity; uniform access means no hot data and ~95% miss rate.
+ * Establishes the random-access floor where no policy has a frequency or recency advantage.
+ *
+ * <h3>Scenario E — burst new content (afterSuite)</h3>
+ * A warm cache (Zipfian steady-state) is hit by a burst of new segments, each accessed
+ * {@code BURST_ACCESSES_E} times in quick succession, then abandoned.  Tests whether
+ * W-TinyLFU retains the burst items (elevated frequency) and penalises re-admission of
+ * the true working set, vs LRU which evicts burst items by recency once traffic subsides.
+ *
+ * <h3>Scenario F — periodic GC/diff alternation (afterSuite)</h3>
+ * Interleaves short sequential scans (simulating Oak diff/GC/checkpoint traversals)
+ * with Zipfian traffic over {@code CYCLES_F} cycles.  Unlike Scenario B's single large
+ * scan, repeated small scans accumulate incremental sketch pollution whose cumulative
+ * effect on Caffeine miss rate is measured vs LRU aging.
+ *
+ * <h3>Scenario G — write-heavy import then read-back (afterSuite)</h3>
+ * A large sequential import touches each segment exactly once.  Afterwards only the
+ * most recently imported segments are re-read at random.  Tests whether post-import
+ * recency (Guava LRU) or post-import frequency counts (Caffeine) better predicts
+ * what will be needed next.
+ *
+ * <h3>Scenario H — sliding window / temporal locality (afterSuite)</h3>
+ * A hot window of {@code WINDOW_SIZE_H} segments slides forward through a large pool.
+ * Each item is accessed {@code WINDOW_HITS_H} times before the window advances.
+ * Window is sized at ~1.2× cache capacity so eviction decisions are required on every
+ * slide; pure recency (LRU) is theoretically optimal for this access pattern.
+ *
  * <p>Configurable via system properties:
  * <ul>
  *   <li>{@code -Dsegment.batch.size=1000} — accesses per {@code runTest()} call</li>
@@ -87,10 +115,37 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
     private static final int WORKING_SET_C = 3_000;
     private static final int MEASURE_C = 100_000;
 
-    // ----- Scenario D (uniform random / cache thrash) -----
+    // ----- Scenario D: uniform random / cache thrash -----
     // Pool is 25x cache capacity; uniform access means no hot data and ~95% miss rate.
     private static final int UNIFORM_POOL_D = 25_000;
     private static final int MEASURE_D = 200_000;
+
+    // ----- Scenario E: burst new content -----
+    // Warm Zipfian cache + burst of BURST_SIZE_E new segments × BURST_ACCESSES_E hits each,
+    // then measure Zipfian over original working set.  Pool = TOTAL_SEGMENTS + BURST_SIZE_E.
+    private static final int BURST_SIZE_E = 500;
+    private static final int BURST_ACCESSES_E = 20;
+    private static final int WARMUP_E = 50_000;
+    private static final int MEASURE_E = 100_000;
+
+    // ----- Scenario F: periodic background (GC / diff) alternation -----
+    private static final int CYCLES_F = 10;
+    private static final int CYCLE_ZIPF_OPS_F = 10_000;
+    private static final int CYCLE_SCAN_OPS_F = 2_000;
+    private static final int MEASURE_F = 100_000;
+
+    // ----- Scenario G: write-heavy import then recent read-back -----
+    private static final int IMPORT_SIZE_G = 50_000;
+    private static final int RECENT_WINDOW_G = 2_000;
+    private static final int MEASURE_G = 100_000;
+
+    // ----- Scenario H: sliding window / temporal locality -----
+    // Window slightly > cache capacity to force eviction decisions on every slide.
+    private static final int WINDOW_SIZE_H = 1_200;
+    private static final int SLIDE_STEP_H = 200;
+    private static final int TOTAL_POOL_H = 20_000;
+    private static final int WINDOW_HITS_H = 2;
+    private static final int MEASURE_H = 150_000;
 
     private static final long DATA_SEG_LSB_MASK = 0xa000000000000000L;
 
@@ -228,6 +283,60 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             long[] r = runUniformRandom(setup);
             printResult(POLICY_NAMES[p], r[0], r[1], r[2]);
         }
+
+        System.out.printf(
+                "%n--- Scenario E: burst new content"
+                        + " (burst=%,d segs × %d hits  warmup=%,d  measure=%,d ops) ---%n",
+                BURST_SIZE_E, BURST_ACCESSES_E, WARMUP_E, MEASURE_E);
+        System.out.println(
+                "  warm Zipfian cache hit by burst of new segments;"
+                        + " measures working-set miss rate after burst subsides");
+        for (int p = 0; p < NUM_POLICIES; p++) {
+            PolicySetup setup = freshSetup(p, POLICIES[p], TOTAL_SEGMENTS + BURST_SIZE_E);
+            long[] r = runBurstNewContent(setup);
+            printResult(POLICY_NAMES[p], r[0], r[1], r[2]);
+        }
+
+        System.out.printf(
+                "%n--- Scenario F: periodic GC/diff alternation"
+                        + " (cycles=%d  zipf/cycle=%,d  scan/cycle=%,d  measure=%,d ops) ---%n",
+                CYCLES_F, CYCLE_ZIPF_OPS_F, CYCLE_SCAN_OPS_F, MEASURE_F);
+        System.out.println(
+                "  repeated small scans interleaved with Zipfian;"
+                        + " cumulative sketch pollution vs LRU recency aging");
+        for (int p = 0; p < NUM_POLICIES; p++) {
+            PolicySetup setup = freshSetup(p, POLICIES[p], TOTAL_SEGMENTS);
+            long[] r = runPeriodicGC(setup);
+            printResult(POLICY_NAMES[p], r[0], r[1], r[2]);
+        }
+
+        System.out.printf(
+                "%n--- Scenario G: write-heavy import then read-back"
+                        + " (import=%,d  recent-window=%,d  measure=%,d ops) ---%n",
+                IMPORT_SIZE_G, RECENT_WINDOW_G, MEASURE_G);
+        System.out.println(
+                "  large sequential import followed by random reads of recently-imported segments;"
+                        + " recency (LRU) vs frequency (Caffeine) post-import");
+        for (int p = 0; p < NUM_POLICIES; p++) {
+            PolicySetup setup = freshSetup(p, POLICIES[p], IMPORT_SIZE_G);
+            long[] r = runImportThenRead(setup);
+            printResult(POLICY_NAMES[p], r[0], r[1], r[2]);
+        }
+
+        System.out.printf(
+                "%n--- Scenario H: sliding window / temporal locality"
+                        + " (window=%,d ~%.0f%% of cache  slide=%,d  pool=%,d"
+                        + "  hits/item=%d  measure=%,d ops) ---%n",
+                WINDOW_SIZE_H, 100.0 * WINDOW_SIZE_H / cacheCapacity,
+                SLIDE_STEP_H, TOTAL_POOL_H, WINDOW_HITS_H, MEASURE_H);
+        System.out.println(
+                "  hot window slides forward; pure recency (LRU) is optimal;"
+                        + " window > cache forces evictions on every slide");
+        for (int p = 0; p < NUM_POLICIES; p++) {
+            PolicySetup setup = freshSetup(p, POLICIES[p], TOTAL_POOL_H);
+            long[] r = runSlidingWindow(setup);
+            printResult(POLICY_NAMES[p], r[0], r[1], r[2]);
+        }
     }
 
     /** Miss-rate column headers for the AbstractTest output row. */
@@ -330,6 +439,7 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             setup.access(zipfSample(cdf, r.nextDouble()));
         }
 
+        setup.cache.cleanUp();
         long missesBase = setup.cache.getCacheStats().getMissCount();
         long evictBase = setup.cache.getCacheStats().getEvictionCount();
 
@@ -337,6 +447,7 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             setup.access(zipfSample(cdf, r.nextDouble()));
         }
 
+        setup.cache.cleanUp();
         long misses = setup.cache.getCacheStats().getMissCount() - missesBase;
         long evictions = setup.cache.getCacheStats().getEvictionCount() - evictBase;
         return new long[]{POST_SCAN_MEASURE - misses, misses, evictions};
@@ -355,6 +466,7 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             setup.access(i);
         }
 
+        setup.cache.cleanUp();
         long missesBase = setup.cache.getCacheStats().getMissCount();
         long evictBase = setup.cache.getCacheStats().getEvictionCount();
 
@@ -362,6 +474,7 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             setup.access(SCAN_C + r.nextInt(WORKING_SET_C));
         }
 
+        setup.cache.cleanUp();
         long misses = setup.cache.getCacheStats().getMissCount() - missesBase;
         long evictions = setup.cache.getCacheStats().getEvictionCount() - evictBase;
         return new long[]{MEASURE_C - misses, misses, evictions};
@@ -383,6 +496,7 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             setup.access(r.nextInt(n));
         }
 
+        setup.cache.cleanUp();
         long missesBase = setup.cache.getCacheStats().getMissCount();
         long evictBase  = setup.cache.getCacheStats().getEvictionCount();
 
@@ -390,9 +504,155 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             setup.access(r.nextInt(n));
         }
 
+        setup.cache.cleanUp();
         long misses    = setup.cache.getCacheStats().getMissCount()     - missesBase;
         long evictions = setup.cache.getCacheStats().getEvictionCount() - evictBase;
         return new long[]{MEASURE_D - misses, misses, evictions};
+    }
+
+    /**
+     * Scenario E: warms caches with Zipfian over the original working set, injects a
+     * concentrated burst of new segments, then measures working-set miss rate after the
+     * burst subsides.  Elevated frequency counts retained by W-TinyLFU for burst items
+     * may delay re-admission of hot working-set entries.
+     *
+     * @return [hits, misses, evictions] measured only during the post-burst Zipfian phase
+     */
+    private static long[] runBurstNewContent(PolicySetup setup) {
+        double[] cdf = buildZipfCdf(TOTAL_SEGMENTS, ZIPF_EXPONENT);
+        Random r = new Random(RANDOM_SEED);
+
+        for (int i = 0; i < WARMUP_E; i++) {
+            setup.access(zipfSample(cdf, r.nextDouble()));
+        }
+        // burst: access new segments (indices TOTAL_SEGMENTS .. +BURST_SIZE_E) repeatedly
+        for (int b = 0; b < BURST_ACCESSES_E; b++) {
+            for (int i = 0; i < BURST_SIZE_E; i++) {
+                setup.access(TOTAL_SEGMENTS + i);
+            }
+        }
+
+        setup.cache.cleanUp();
+        long missesBase = setup.cache.getCacheStats().getMissCount();
+        long evictBase = setup.cache.getCacheStats().getEvictionCount();
+
+        for (int i = 0; i < MEASURE_E; i++) {
+            setup.access(zipfSample(cdf, r.nextDouble()));
+        }
+
+        setup.cache.cleanUp();
+        long misses = setup.cache.getCacheStats().getMissCount() - missesBase;
+        long evictions = setup.cache.getCacheStats().getEvictionCount() - evictBase;
+        return new long[]{MEASURE_E - misses, misses, evictions};
+    }
+
+    /**
+     * Scenario F: alternates short sequential scans with Zipfian traffic for
+     * {@code CYCLES_F} cycles, then measures steady-state Zipfian miss rate.
+     * Each scan is below one TinyLFU decay period, so sketch pollution accumulates
+     * across cycles rather than being cleared by a single halving event.
+     *
+     * @return [hits, misses, evictions] measured during the final Zipfian phase
+     */
+    private static long[] runPeriodicGC(PolicySetup setup) {
+        double[] cdf = buildZipfCdf(TOTAL_SEGMENTS, ZIPF_EXPONENT);
+        Random r = new Random(RANDOM_SEED);
+
+        for (int c = 0; c < CYCLES_F; c++) {
+            for (int i = 0; i < CYCLE_ZIPF_OPS_F; i++) {
+                setup.access(zipfSample(cdf, r.nextDouble()));
+            }
+            int scanOffset = (c * CYCLE_SCAN_OPS_F) % (TOTAL_SEGMENTS - CYCLE_SCAN_OPS_F);
+            for (int i = 0; i < CYCLE_SCAN_OPS_F; i++) {
+                setup.access(scanOffset + i);
+            }
+        }
+
+        setup.cache.cleanUp();
+        long missesBase = setup.cache.getCacheStats().getMissCount();
+        long evictBase = setup.cache.getCacheStats().getEvictionCount();
+
+        for (int i = 0; i < MEASURE_F; i++) {
+            setup.access(zipfSample(cdf, r.nextDouble()));
+        }
+
+        setup.cache.cleanUp();
+        long misses = setup.cache.getCacheStats().getMissCount() - missesBase;
+        long evictions = setup.cache.getCacheStats().getEvictionCount() - evictBase;
+        return new long[]{MEASURE_F - misses, misses, evictions};
+    }
+
+    /**
+     * Scenario G: simulates a large sequential import (each segment accessed exactly
+     * once), then measures random read-back of only the most recently imported segments.
+     * LRU retains the tail of the import by recency; Caffeine must rely on frequency
+     * counts of 1 to keep them against higher-frequency incumbents.
+     *
+     * @return [hits, misses, evictions] measured during the read-back phase
+     */
+    private static long[] runImportThenRead(PolicySetup setup) {
+        Random r = new Random(RANDOM_SEED);
+
+        for (int i = 0; i < IMPORT_SIZE_G; i++) {
+            setup.access(i);
+        }
+
+        setup.cache.cleanUp();
+        long missesBase = setup.cache.getCacheStats().getMissCount();
+        long evictBase = setup.cache.getCacheStats().getEvictionCount();
+
+        int base = IMPORT_SIZE_G - RECENT_WINDOW_G;
+        for (int i = 0; i < MEASURE_G; i++) {
+            setup.access(base + r.nextInt(RECENT_WINDOW_G));
+        }
+
+        setup.cache.cleanUp();
+        long misses = setup.cache.getCacheStats().getMissCount() - missesBase;
+        long evictions = setup.cache.getCacheStats().getEvictionCount() - evictBase;
+        return new long[]{MEASURE_G - misses, misses, evictions};
+    }
+
+    /**
+     * Scenario H: advances a hot window across a large pool.  Each item is accessed
+     * {@code WINDOW_HITS_H} times per window pass before the window moves on.  With
+     * window slightly larger than cache capacity, every slide must evict some in-window
+     * items; pure recency (LRU) is the theoretically optimal policy here.
+     *
+     * @return [hits, misses, evictions] measured after one warmup pass across half the pool
+     */
+    private static long[] runSlidingWindow(PolicySetup setup) {
+        // warmup: advance window across the first half of the pool
+        int windowStart = 0;
+        while (windowStart + WINDOW_SIZE_H <= TOTAL_POOL_H / 2) {
+            for (int hit = 0; hit < WINDOW_HITS_H; hit++) {
+                for (int i = windowStart; i < windowStart + WINDOW_SIZE_H; i++) {
+                    setup.access(i);
+                }
+            }
+            windowStart += SLIDE_STEP_H;
+        }
+
+        setup.cache.cleanUp();
+        long missesBase = setup.cache.getCacheStats().getMissCount();
+        long evictBase = setup.cache.getCacheStats().getEvictionCount();
+
+        int measured = 0;
+        while (measured < MEASURE_H) {
+            for (int hit = 0; hit < WINDOW_HITS_H; hit++) {
+                for (int i = windowStart; i < windowStart + WINDOW_SIZE_H; i++) {
+                    setup.access(i % TOTAL_POOL_H);
+                    measured++;
+                    if (measured >= MEASURE_H) break;
+                }
+                if (measured >= MEASURE_H) break;
+            }
+            windowStart = (windowStart + SLIDE_STEP_H) % TOTAL_POOL_H;
+        }
+
+        setup.cache.cleanUp();
+        long misses = setup.cache.getCacheStats().getMissCount() - missesBase;
+        long evictions = setup.cache.getCacheStats().getEvictionCount() - evictBase;
+        return new long[]{MEASURE_H - misses, misses, evictions};
     }
 
     // -----------------------------------------------------------------------
