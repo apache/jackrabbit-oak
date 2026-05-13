@@ -64,9 +64,10 @@ import org.mockito.Mockito;
  */
 public class SegmentCachePolicyBenchmark extends AbstractTest {
 
-    // ----- cache sizing: 1 MB with MOCK_MEM_USAGE=1016 gives ~1000 entries -----
-    private static final int CACHE_SIZE_MB = 1;
-    private static final int MOCK_MEM_USAGE = 1016;   // weight = 32 + 1016 = 1048 bytes
+    // ----- cache sizing: segments vary 4–256 KB; avg ~130 KB; 130 MB gives ~1000 entries -----
+    private static final int CACHE_SIZE_MB = 130;
+    private static final int MIN_SEG_KB = 4;
+    private static final int MAX_SEG_KB = 256;
 
     // ----- Scenario A pool -----
     private static final int TOTAL_SEGMENTS = 10_000;
@@ -144,9 +145,10 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
                 liveIds[p][i] = new SegmentId(
                         SegmentStore.EMPTY_STORE, msb, lsb,
                         liveCaches[p]::recordHit);
+                int memUsage = MIN_SEG_KB * 1024 + rng.nextInt((MAX_SEG_KB - MIN_SEG_KB) * 1024);
                 liveSegs[p][i] = Mockito.mock(Segment.class);
                 Mockito.when(liveSegs[p][i].getSegmentId()).thenReturn(liveIds[p][i]);
-                Mockito.when(liveSegs[p][i].estimateMemoryUsage()).thenReturn(MOCK_MEM_USAGE);
+                Mockito.when(liveSegs[p][i].estimateMemoryUsage()).thenReturn(memUsage);
             }
         }
     }
@@ -178,7 +180,8 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
      */
     @Override
     protected void afterSuite() {
-        int cacheCapacity = (int) ((long) CACHE_SIZE_MB * 1024 * 1024 / (32 + MOCK_MEM_USAGE));
+        int avgWeight = 32 + (MIN_SEG_KB + MAX_SEG_KB) / 2 * 1024;
+        int cacheCapacity = (int) ((long) CACHE_SIZE_MB * 1024 * 1024 / avgWeight);
         System.out.printf(
                 "%nSegmentCachePolicyBenchmark  cacheCapacity~=%d  pool=%d  zipf=%.1f%n%n",
                 cacheCapacity, TOTAL_SEGMENTS, ZIPF_EXPONENT);
@@ -283,7 +286,7 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
     /**
      * Builds a fresh {@link PolicySetup} with {@code n} mock segments.
      *
-     * @param policyIndex unique MSB so IDs don't collide across policies
+     * @param policyIndex unused — kept for call-site readability
      * @param policy      the cache eviction policy to use
      * @param n           number of distinct segments to create
      */
@@ -291,6 +294,7 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
         SegmentCache cache = SegmentCache.newSegmentCache(CACHE_SIZE_MB, policy);
         SegmentId[] ids = new SegmentId[n];
         Segment[] segs = new Segment[n];
+        Random r = new Random(RANDOM_SEED);
         for (int i = 0; i < n; i++) {
             UUID uuid = UUID.randomUUID();
             long msb = uuid.getMostSignificantBits();
@@ -298,9 +302,10 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             ids[i] = new SegmentId(
                     SegmentStore.EMPTY_STORE, msb, lsb,
                     cache::recordHit);
+            int memUsage = MIN_SEG_KB * 1024 + r.nextInt((MAX_SEG_KB - MIN_SEG_KB) * 1024);
             segs[i] = Mockito.mock(Segment.class);
             Mockito.when(segs[i].getSegmentId()).thenReturn(ids[i]);
-            Mockito.when(segs[i].estimateMemoryUsage()).thenReturn(MOCK_MEM_USAGE);
+            Mockito.when(segs[i].estimateMemoryUsage()).thenReturn(memUsage);
         }
         return new PolicySetup(cache, ids, segs);
     }
