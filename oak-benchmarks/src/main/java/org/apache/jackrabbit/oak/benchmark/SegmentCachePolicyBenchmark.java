@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -51,9 +53,13 @@ import org.mockito.Mockito;
  * slowing post-scan re-admission of the true working set.
  *
  * <h3>Scenario C — cold-start regression (afterSuite)</h3>
- * A short scan below one TinyLFU decay period leaves scan entries at freq=1.
- * Working-set entries start at freq=0 and must beat the scan baseline to enter
- * main space.  Demonstrates the admission penalty in W-TinyLFU vs LRU.
+ * A multi-pass scan fills sketch incumbents at freq={@code SCAN_PASSES_C}.
+ * During measurement, {@code 1/BG_SCAN_INTERVAL_C} of all operations re-access
+ * random scan entries (simulating search-crawler / bot traffic on historical content).
+ * This continuous re-contamination prevents the Count-Min sketch from decaying, so
+ * W-TinyLFU's admission freeze is sustained throughout the measurement window rather
+ * than self-correcting.  LIRS and Guava are largely unaffected.  Per-epoch miss rates
+ * show the divergence growing over time.
  *
  * <h3>Scenario D — uniform random / cache thrash (afterSuite)</h3>
  * Pool is 25x cache capacity; uniform access means no hot data and ~95% miss rate.
@@ -83,6 +89,21 @@ import org.mockito.Mockito;
  * Window is sized at ~1.2× cache capacity so eviction decisions are required on every
  * slide; pure recency (LRU) is theoretically optimal for this access pattern.
  *
+ * <h3>Scenario I — drifting active set with per-epoch reporting (afterSuite)</h3>
+ * A window of {@code WIDTH_I} entries moves through a pool of {@code POOL_I} with
+ * mild Zipfian distribution (exponent 0.5) within the window.  The cursor advances
+ * by 1 every {@code DRIFT_I} operations so older entries continuously leave the hot set.
+ * Per-epoch miss rates reveal how quickly each policy adapts; exposes the W-TinyLFU
+ * sketch-decay freeze where new entries cannot beat incumbent frequency counts for
+ * several decay periods after the window shifts.
+ *
+ * <h3>Scenario J — drift-rate sweep (afterSuite)</h3>
+ * Runs the same drifting-window generator across four cursor-advance speeds:
+ * drift=1 (cursor moves every op), 5, 20, and {@code Integer.MAX_VALUE} (stationary
+ * working set as a control).  Produces a cross-policy miss-rate table indexed by
+ * drift rate, quantifying where Caffeine's frequency advantage disappears under
+ * increasing working-set churn.
+ *
  * <p>Configurable via system properties:
  * <ul>
  *   <li>{@code -Dsegment.batch.size=1000} — accesses per {@code runTest()} call</li>
@@ -109,11 +130,18 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
     private static final int POST_SCAN_WARMUP = 20_000;
     private static final int POST_SCAN_MEASURE = 200_000;
 
-    // ----- Scenario C (cold-start regression), scaled for ~1000-entry cache -----
-    // Ratios match the original scenario: cache:scan:working-set = 1:9:3
+    // ----- Scenario C (cold-start regression) — TMG-realistic variant -----
+    // SCAN_PASSES_C passes raise incumbent freq to ~10, making new entries hard to admit.
+    // BG_SCAN_INTERVAL_C simulates background bot/crawler traffic that continuously
+    // re-accesses old content during measurement, preventing sketch decay and sustaining
+    // the freeze.  Larger WORKING_SET_C reduces per-entry revisit rate (more unique URLs).
+    // Pool = SCAN_C + WORKING_SET_C.
     private static final int SCAN_C = 9_000;
-    private static final int WORKING_SET_C = 3_000;
-    private static final int MEASURE_C = 100_000;
+    private static final int WORKING_SET_C = 5_000;
+    private static final int SCAN_PASSES_C = 10;
+    private static final int BG_SCAN_INTERVAL_C = 10;
+    private static final int MEASURE_C = 300_000;
+    private static final int EPOCH_OPS_C = 10_000;
 
     // ----- Scenario D: uniform random / cache thrash -----
     // Pool is 25x cache capacity; uniform access means no hot data and ~95% miss rate.
@@ -146,6 +174,27 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
     private static final int TOTAL_POOL_H = 20_000;
     private static final int WINDOW_HITS_H = 2;
     private static final int MEASURE_H = 150_000;
+
+    // ----- Scenario I: drifting active set with per-epoch reporting -----
+    // Cursor advances 1 position every DRIFT_I ops; within the window, access follows
+    // a mild Zipfian distribution (exponent 0.5, so less skewed than ZIPF_EXPONENT).
+    private static final int POOL_I = 20_000;
+    private static final int WIDTH_I = 1_500;
+    private static final int DRIFT_I = 5;
+    private static final int WARMUP_I = 50_000;
+    private static final int MEASURE_I = 400_000;
+    private static final double ZIPF_I_EXP = 0.5;
+    private static final int EPOCH_OPS_I = 10_000;
+
+    // ----- Scenario J: drift-rate sweep -----
+    // Same drifting-window generator as I, swept across multiple drift speeds.
+    // Large pool ensures the window does not wrap-alias across drift variants.
+    private static final int POOL_J = 260_000;
+    private static final int WIDTH_J = 1_500;
+    private static final double ZIPF_J_EXP = 0.5;
+    private static final int WARMUP_J = 50_000;
+    private static final int MEASURE_J = 200_000;
+    private static final int[] DRIFT_VARIANTS_J = {1, 5, 20, Integer.MAX_VALUE};
 
     private static final long DATA_SEG_LSB_MASK = 0xa000000000000000L;
 
@@ -260,16 +309,38 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
         }
 
         System.out.printf(
-                "%n--- Scenario C: cold-start regression"
-                        + " (scan=%,d  working-set=%,d  measure=%,d ops) ---%n",
-                SCAN_C, WORKING_SET_C, MEASURE_C);
-        System.out.println(
-                "  scan fills TinyLFU sketch at freq=1;"
-                        + " working-set entries start at freq=0");
+                "%n--- Scenario C: cold-start regression / TMG crawler simulation"
+                        + " (scan=%,d × %d passes  working-set=%,d  bg-scan=1/%d"
+                        + "  measure=%,d  epoch=%,d ops) ---%n",
+                SCAN_C, SCAN_PASSES_C, WORKING_SET_C, BG_SCAN_INTERVAL_C, MEASURE_C, EPOCH_OPS_C);
+        System.out.printf(
+                "  incumbents at freq=%d; %.0f%% of ops re-access old content"
+                        + " (bot/crawler) — prevents sketch decay%n",
+                SCAN_PASSES_C, 100.0 / BG_SCAN_INTERVAL_C);
+        long[][][] epochsC = new long[NUM_POLICIES][][];
+        long[][] totalsC = new long[NUM_POLICIES][];
         for (int p = 0; p < NUM_POLICIES; p++) {
+            List<long[]> epochs = new ArrayList<>();
             PolicySetup setup = freshSetup(p, POLICIES[p], SCAN_C + WORKING_SET_C);
-            long[] r = runColdStart(setup);
-            printResult(POLICY_NAMES[p], r[0], r[1], r[2]);
+            totalsC[p] = runColdStart(setup, epochs);
+            epochsC[p] = epochs.toArray(new long[0][]);
+        }
+        System.out.printf("  %8s", "epoch");
+        for (int p = 0; p < NUM_POLICIES; p++) {
+            System.out.printf("  %14s", POLICY_NAMES[p] + "_miss%");
+        }
+        System.out.println();
+        for (int e = 0; e < epochsC[0].length; e++) {
+            System.out.printf("  %8d", (long) (e + 1) * EPOCH_OPS_C);
+            for (int p = 0; p < NUM_POLICIES; p++) {
+                long[] ep = epochsC[p][e];
+                long epTotal = ep[0] + ep[1];
+                System.out.printf("  %14.1f", epTotal == 0 ? 0.0 : 100.0 * ep[1] / epTotal);
+            }
+            System.out.println();
+        }
+        for (int p = 0; p < NUM_POLICIES; p++) {
+            printResult(POLICY_NAMES[p], totalsC[p][0], totalsC[p][1], totalsC[p][2]);
         }
 
         System.out.printf(
@@ -336,6 +407,63 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             PolicySetup setup = freshSetup(p, POLICIES[p], TOTAL_POOL_H);
             long[] r = runSlidingWindow(setup);
             printResult(POLICY_NAMES[p], r[0], r[1], r[2]);
+        }
+
+        System.out.printf(
+                "%n--- Scenario I: drifting active set"
+                        + " (pool=%,d  width=%,d  drift=%d  warmup=%,d"
+                        + "  measure=%,d  epoch=%,d  zipf=%.1f) ---%n",
+                POOL_I, WIDTH_I, DRIFT_I, WARMUP_I, MEASURE_I, EPOCH_OPS_I, ZIPF_I_EXP);
+        System.out.println(
+                "  window slides continuously; per-epoch miss% reveals"
+                        + " W-TinyLFU sketch-decay freeze on new-entry admission");
+        long[][][] epochsI = new long[NUM_POLICIES][][];
+        long[][] totalsI = new long[NUM_POLICIES][];
+        for (int p = 0; p < NUM_POLICIES; p++) {
+            List<long[]> epochs = new ArrayList<>();
+            PolicySetup setup = freshSetup(p, POLICIES[p], POOL_I);
+            totalsI[p] = runDriftingWindow(setup, epochs);
+            epochsI[p] = epochs.toArray(new long[0][]);
+        }
+        System.out.printf("  %8s", "epoch");
+        for (int p = 0; p < NUM_POLICIES; p++) {
+            System.out.printf("  %14s", POLICY_NAMES[p] + "_miss%");
+        }
+        System.out.println();
+        for (int e = 0; e < epochsI[0].length; e++) {
+            System.out.printf("  %8d", (long) (e + 1) * EPOCH_OPS_I);
+            for (int p = 0; p < NUM_POLICIES; p++) {
+                long[] ep = epochsI[p][e];
+                long epTotal = ep[0] + ep[1];
+                System.out.printf("  %14.1f", epTotal == 0 ? 0.0 : 100.0 * ep[1] / epTotal);
+            }
+            System.out.println();
+        }
+        for (int p = 0; p < NUM_POLICIES; p++) {
+            printResult(POLICY_NAMES[p], totalsI[p][0], totalsI[p][1], totalsI[p][2]);
+        }
+
+        System.out.printf(
+                "%n--- Scenario J: drift-rate sweep"
+                        + " (pool=%,d  width=%,d  warmup=%,d  measure=%,d  zipf=%.1f) ---%n",
+                POOL_J, WIDTH_J, WARMUP_J, MEASURE_J, ZIPF_J_EXP);
+        System.out.println(
+                "  drift=1 → cursor every op; Integer.MAX_VALUE → stationary working set");
+        System.out.printf("  %-12s", "drift");
+        for (int p = 0; p < NUM_POLICIES; p++) {
+            System.out.printf("  %14s", POLICY_NAMES[p] + "_miss%");
+        }
+        System.out.println();
+        for (int drift : DRIFT_VARIANTS_J) {
+            String label = drift == Integer.MAX_VALUE ? "static" : String.valueOf(drift);
+            System.out.printf("  %-12s", label);
+            for (int p = 0; p < NUM_POLICIES; p++) {
+                PolicySetup setup = freshSetup(p, POLICIES[p], POOL_J);
+                long[] r = runDriftVariant(setup, drift);
+                long total = r[0] + r[1];
+                System.out.printf("  %14.1f", total == 0 ? 0.0 : 100.0 * r[1] / total);
+            }
+            System.out.println();
         }
     }
 
@@ -454,30 +582,57 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
     }
 
     /**
-     * Scenario C: short scan below one TinyLFU decay period, then access the
-     * working set with no warmup.
+     * Scenario C: multi-pass scan raises incumbent sketch frequency to
+     * {@code SCAN_PASSES_C}.  During measurement, every {@code BG_SCAN_INTERVAL_C}-th
+     * operation re-accesses a random scan entry (simulating search-crawler or bot
+     * traffic on historical content).  This continuous re-contamination prevents the
+     * Count-Min sketch from decaying, sustaining W-TinyLFU's admission freeze for the
+     * entire measurement window.  Measurement is split into epochs for per-epoch
+     * tracking of the divergence.
      *
-     * @return [hits, misses, evictions]
+     * @param epochStats collector populated with per-epoch [hits, misses, evictions]
+     * @return [totalHits, totalMisses, totalEvictions] over all measurement epochs
      */
-    private static long[] runColdStart(PolicySetup setup) {
+    private static long[] runColdStart(PolicySetup setup, List<long[]> epochStats) {
         Random r = new Random(RANDOM_SEED);
 
-        for (int i = 0; i < SCAN_C; i++) {
-            setup.access(i);
+        for (int pass = 0; pass < SCAN_PASSES_C; pass++) {
+            for (int i = 0; i < SCAN_C; i++) {
+                setup.access(i);
+            }
         }
 
-        setup.cache.cleanUp();
-        long missesBase = setup.cache.getCacheStats().getMissCount();
-        long evictBase = setup.cache.getCacheStats().getEvictionCount();
+        long totalHits = 0;
+        long totalMisses = 0;
+        long totalEvictions = 0;
+        int numEpochs = MEASURE_C / EPOCH_OPS_C;
 
-        for (int i = 0; i < MEASURE_C; i++) {
-            setup.access(SCAN_C + r.nextInt(WORKING_SET_C));
+        for (int epoch = 0; epoch < numEpochs; epoch++) {
+            setup.cache.cleanUp();
+            long missBase = setup.cache.getCacheStats().getMissCount();
+            long evictBase = setup.cache.getCacheStats().getEvictionCount();
+
+            for (int i = 0; i < EPOCH_OPS_C; i++) {
+                if (i % BG_SCAN_INTERVAL_C == 0) {
+                    // bot/crawler re-accesses old content — keeps sketch counts elevated
+                    setup.access(r.nextInt(SCAN_C));
+                } else {
+                    setup.access(SCAN_C + r.nextInt(WORKING_SET_C));
+                }
+            }
+
+            setup.cache.cleanUp();
+            long epochMisses = setup.cache.getCacheStats().getMissCount() - missBase;
+            long epochEvictions = setup.cache.getCacheStats().getEvictionCount() - evictBase;
+            long epochHits = EPOCH_OPS_C - epochMisses;
+
+            epochStats.add(new long[]{epochHits, epochMisses, epochEvictions});
+            totalHits += epochHits;
+            totalMisses += epochMisses;
+            totalEvictions += epochEvictions;
         }
 
-        setup.cache.cleanUp();
-        long misses = setup.cache.getCacheStats().getMissCount() - missesBase;
-        long evictions = setup.cache.getCacheStats().getEvictionCount() - evictBase;
-        return new long[]{MEASURE_C - misses, misses, evictions};
+        return new long[]{totalHits, totalMisses, totalEvictions};
     }
 
     /**
@@ -653,6 +808,101 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
         long misses = setup.cache.getCacheStats().getMissCount() - missesBase;
         long evictions = setup.cache.getCacheStats().getEvictionCount() - evictBase;
         return new long[]{MEASURE_H - misses, misses, evictions};
+    }
+
+    /**
+     * Scenario I: slides a Zipfian-distributed (exponent {@code ZIPF_I_EXP}) window
+     * through the pool.  The cursor advances by 1 every {@code DRIFT_I} operations so
+     * older entries continuously leave the hot set.  Measurement is split into epochs
+     * of {@code EPOCH_OPS_I} ops each; per-epoch [hits, misses, evictions] are appended
+     * to {@code epochStats}.
+     *
+     * @param epochStats collector populated with per-epoch [hits, misses, evictions] arrays
+     * @return [totalHits, totalMisses, totalEvictions] over all measurement epochs
+     */
+    private static long[] runDriftingWindow(PolicySetup setup, List<long[]> epochStats) {
+        double[] cdf = buildZipfCdf(WIDTH_I, ZIPF_I_EXP);
+        Random r = new Random(RANDOM_SEED);
+        int cursor = 0;
+        int opCount = 0;
+
+        for (int i = 0; i < WARMUP_I; i++) {
+            if (opCount % DRIFT_I == 0) {
+                cursor = (cursor + 1) % POOL_I;
+            }
+            setup.access((cursor + zipfSample(cdf, r.nextDouble())) % POOL_I);
+            opCount++;
+        }
+
+        long totalHits = 0;
+        long totalMisses = 0;
+        long totalEvictions = 0;
+        int numEpochs = MEASURE_I / EPOCH_OPS_I;
+
+        for (int epoch = 0; epoch < numEpochs; epoch++) {
+            setup.cache.cleanUp();
+            long missBase = setup.cache.getCacheStats().getMissCount();
+            long evictBase = setup.cache.getCacheStats().getEvictionCount();
+
+            for (int i = 0; i < EPOCH_OPS_I; i++) {
+                if (opCount % DRIFT_I == 0) {
+                    cursor = (cursor + 1) % POOL_I;
+                }
+                setup.access((cursor + zipfSample(cdf, r.nextDouble())) % POOL_I);
+                opCount++;
+            }
+
+            setup.cache.cleanUp();
+            long epochMisses = setup.cache.getCacheStats().getMissCount() - missBase;
+            long epochEvictions = setup.cache.getCacheStats().getEvictionCount() - evictBase;
+            long epochHits = EPOCH_OPS_I - epochMisses;
+
+            epochStats.add(new long[]{epochHits, epochMisses, epochEvictions});
+            totalHits += epochHits;
+            totalMisses += epochMisses;
+            totalEvictions += epochEvictions;
+        }
+
+        return new long[]{totalHits, totalMisses, totalEvictions};
+    }
+
+    /**
+     * Scenario J: runs the drifting-window generator with a configurable cursor-advance
+     * speed.  Warmup is discarded; only the measurement phase is reported.
+     *
+     * @param drift ops between each cursor advance; {@code Integer.MAX_VALUE} for stationary
+     * @return [hits, misses, evictions] over the measurement phase
+     */
+    private static long[] runDriftVariant(PolicySetup setup, int drift) {
+        double[] cdf = buildZipfCdf(WIDTH_J, ZIPF_J_EXP);
+        Random r = new Random(RANDOM_SEED);
+        int cursor = 0;
+        int opCount = 0;
+
+        for (int i = 0; i < WARMUP_J; i++) {
+            if (drift != Integer.MAX_VALUE && opCount % drift == 0) {
+                cursor = (cursor + 1) % POOL_J;
+            }
+            setup.access((cursor + zipfSample(cdf, r.nextDouble())) % POOL_J);
+            opCount++;
+        }
+
+        setup.cache.cleanUp();
+        long missesBase = setup.cache.getCacheStats().getMissCount();
+        long evictBase = setup.cache.getCacheStats().getEvictionCount();
+
+        for (int i = 0; i < MEASURE_J; i++) {
+            if (drift != Integer.MAX_VALUE && opCount % drift == 0) {
+                cursor = (cursor + 1) % POOL_J;
+            }
+            setup.access((cursor + zipfSample(cdf, r.nextDouble())) % POOL_J);
+            opCount++;
+        }
+
+        setup.cache.cleanUp();
+        long misses = setup.cache.getCacheStats().getMissCount() - missesBase;
+        long evictions = setup.cache.getCacheStats().getEvictionCount() - evictBase;
+        return new long[]{MEASURE_J - misses, misses, evictions};
     }
 
     // -----------------------------------------------------------------------
