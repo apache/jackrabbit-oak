@@ -21,13 +21,13 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.AbstractPersistentCache;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.lang.reflect.Field;
+import java.time.LocalDate;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.atLeastOnce;
@@ -44,28 +45,30 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 /**
- * Regression tests demonstrating that the in-memory {@code cacheSize} counter
- * maintained by {@link PersistentDiskCache} can drift well above the actual
- * size of the cache directory. See OAK-12212 for details.
+ * Regression tests for OAK-12212.
  *
- * <p>Inspection of
+ * <p>Before the OAK-12212 fix, the in-memory {@code cacheSize} counter
+ * maintained by {@link PersistentDiskCache} could drift well above the actual
+ * size of the cache directory: the {@code writesPending} guard in
  * {@link PersistentDiskCache#writeSegment(long, long, org.apache.jackrabbit.oak.commons.Buffer)}
- * shows that the {@code writesPending} guard only prevents <em>simultaneously
- * running</em> write tasks for the same segment id, not <em>sequentially
- * running</em> ones. Every {@code writeSegment} invocation that reaches the
- * body still adds {@code fileSize} to {@code cacheSize}, yet on POSIX file
- * systems {@code Files.move} with {@code ATOMIC_MOVE} maps to {@code rename(2)}
- * and silently replaces an existing destination — so repeated writes of the
- * same segment id produce a single file on disk but multiple increments of
- * the in-memory counter. The cleanup path can only subtract the
- * <em>actual</em> length of the (one) file it deletes, so the over-counted
- * bytes are never repaid.
+ * only prevents <em>simultaneously running</em> write tasks for the same
+ * segment id, not <em>sequentially running</em> ones. Every {@code writeSegment}
+ * invocation that reached the body still added {@code fileSize} to
+ * {@code cacheSize}, yet on POSIX file systems {@code Files.move} with
+ * {@code ATOMIC_MOVE} maps to {@code rename(2)} and silently replaces an
+ * existing destination — so repeated writes of the same segment id produced
+ * a single file on disk but multiple increments of the in-memory counter.
+ * The cleanup path could only subtract the actual length of the (one) file
+ * it deleted, so the over-counted bytes were never repaid.
  *
- * <p>To make the test deterministic, the cache's internal worker executor is
- * replaced with a single-threaded one and explicitly drained after every
- * {@code writeSegment} call using a marker task. With the default 10-thread
- * executor the bug still manifests, but the magnitude of the drift depends on
- * timing (when several tasks race on {@code writesPending} only one wins).
+ * <p>The fix is gated by {@link PersistentDiskCache#FT_OAK_12212_DISABLE}.
+ * With the toggle in its default state (fix enabled), {@code writeSegment}
+ * short-circuits when the segment is already on disk; flipping the toggle
+ * restores the original behaviour for emergency rollback.
+ *
+ * <p>To make the tests deterministic, the cache's internal worker executor
+ * is replaced with a single-threaded one and explicitly drained after every
+ * {@code writeSegment} call using a marker task.
  */
 public class PersistentDiskCacheSizeAccountingTest {
 
@@ -94,6 +97,10 @@ public class PersistentDiskCacheSizeAccountingTest {
             lastReportedCacheSize.set(inv.getArgument(0, Long.class));
             return null;
         }).when(ioMonitor).updateCacheSize(anyLong(), anyLong());
+        // The OAK-12212 kill switch is a process-wide AtomicBoolean. Reset
+        // it before each test so previous tests cannot leak their toggle
+        // state into the next one.
+        PersistentDiskCache.FT_OAK_12212_DISABLE.set(false);
     }
 
     @After
@@ -102,19 +109,18 @@ public class PersistentDiskCacheSizeAccountingTest {
             persistentCache.close();
             persistentCache = null;
         }
+        PersistentDiskCache.FT_OAK_12212_DISABLE.set(false);
     }
 
     /**
      * Writes the same segment id repeatedly with a maximum cache size big
-     * enough that the cleanup path never runs. On a POSIX file system every
-     * write but the first silently replaces the previously written file, so
-     * the cache directory always holds exactly one segment-sized file. The
-     * in-memory counter, however, is incremented once per call.
+     * enough that the cleanup path never runs.
      *
-     * <p>Expected (correct) behaviour: counter equals on-disk size.<br>
-     * Actual (current, buggy) behaviour: counter equals
-     * {@code writes * segmentSize}, i.e. drifts upward by
-     * {@code (writes - 1) * segmentSize}.
+     * <p>With the OAK-12212 fix enabled (default), only the first write
+     * actually touches disk and the counter stays at one segment size.
+     * Without the fix the cache directory still holds exactly one
+     * segment-sized file (POSIX rename silently replaces), but the
+     * in-memory counter is incremented {@code writes} times.
      */
     @Test
     public void cacheSizeCounterMustMatchDirectorySizeAfterRepeatedWritesOfSameSegment()
@@ -151,31 +157,25 @@ public class PersistentDiskCacheSizeAccountingTest {
 
         long reportedCacheSize = lastReportedCacheSize.get();
 
-        // Core invariant being violated by the current implementation:
-        // the in-memory counter must reflect the actual size on disk.
+        // Core invariant established by the OAK-12212 fix: the in-memory
+        // counter must reflect the actual size on disk.
         assertEquals(
                 "In-memory cacheSize counter has drifted above the actual cache"
                         + " directory size. counter=" + reportedCacheSize
                         + ", directorySize=" + actualDirectorySize
                         + ", writes=" + writes
-                        + ", segmentSize=" + SEGMENT_LEN
-                        + ". Each writeSegment call unconditionally increments"
-                        + " cacheSize by fileSize even though Files.move silently"
-                        + " replaces the previously written file on POSIX systems,"
-                        + " so the counter equals writes * segmentSize rather than"
-                        + " a single segmentSize.",
+                        + ", segmentSize=" + SEGMENT_LEN + ".",
                 (long) actualDirectorySize, reportedCacheSize);
     }
 
     /**
-     * Same workload but with a tight {@code maxCacheSizeBytes} so the cleanup
-     * path does run between writes. After cleanup deletes the file, the
-     * counter is decremented by the actual length on disk, but the
-     * <em>extra</em> increments contributed by previous redundant writes are
-     * never repaid. The end state therefore has a counter that no longer
-     * matches the directory size — this is the long-running version of the
-     * heap dump observation, where {@code cacheSize} grows monotonically
-     * above what the disk holds.
+     * Same workload but with a tight {@code maxCacheSizeBytes} so the
+     * cleanup path would run between writes. Without the OAK-12212 fix, the
+     * cleanup decrements the counter by the actual length on disk but the
+     * extra increments contributed by previous redundant writes are never
+     * repaid; the end state has a counter that no longer matches the
+     * directory size. With the fix enabled, redundant writes never happen
+     * in the first place, so the counter and the directory stay in sync.
      */
     @Test
     public void cacheSizeCounterMustMatchDirectorySizeAcrossWriteAndCleanupCycles()
@@ -200,19 +200,72 @@ public class PersistentDiskCacheSizeAccountingTest {
         long actualDirectorySize = FileUtils.sizeOfDirectory(cacheFolder);
         long reportedCacheSize = lastReportedCacheSize.get();
 
-        // The in-memory counter must reflect the actual directory size, no
-        // matter how many redundant writes/cleanups have happened.
         assertEquals(
                 "In-memory cacheSize counter has drifted out of sync with the"
                         + " cache directory size after repeated write+cleanup cycles."
                         + " counter=" + reportedCacheSize
                         + ", directorySize=" + actualDirectorySize
                         + ", writes=" + writes
-                        + ", segmentSize=" + SEGMENT_LEN
-                        + ". The over-counted bytes from every redundant write are"
-                        + " never repaid because cleanUp only subtracts the actual"
-                        + " size of the file it deletes.",
+                        + ", segmentSize=" + SEGMENT_LEN + ".",
                 actualDirectorySize, reportedCacheSize);
+    }
+
+    /**
+     * Activates the kill switch ({@code FT_OAK_12212_DISABLE = true}) and
+     * verifies that the legacy buggy behaviour is restored: after writing
+     * the same segment id N times the in-memory counter is
+     * {@code N * segmentSize} while the directory holds a single
+     * segment-sized file.
+     *
+     * <p>This pins down what the toggle actually controls and ensures the
+     * rollback path is wired correctly, so we can flip the toggle in
+     * production with confidence if the fix ever needs to be disabled.
+     */
+    @Test
+    public void killSwitchRestoresLegacyDoubleCountingBehaviour() throws Exception {
+        PersistentDiskCache.FT_OAK_12212_DISABLE.set(true);
+
+        persistentCache = new PersistentDiskCache(cacheFolder, /* maxCacheSizeMB */ 1024, ioMonitor);
+        replaceExecutorWithSingleThreaded(persistentCache);
+
+        final byte[] segmentBytes = randomBytes(SEGMENT_LEN);
+        final UUID segmentId = UUID.randomUUID();
+        final long msb = segmentId.getMostSignificantBits();
+        final long lsb = segmentId.getLeastSignificantBits();
+        final int writes = 4;
+
+        for (int i = 0; i < writes; i++) {
+            persistentCache.writeSegment(msb, lsb, org.apache.jackrabbit.oak.commons.Buffer.wrap(segmentBytes));
+            drainExecutor(persistentCache);
+        }
+
+        long actualDirectorySize = FileUtils.sizeOfDirectory(cacheFolder);
+        long reportedCacheSize = lastReportedCacheSize.get();
+
+        assertEquals(
+                "With the kill switch active the directory still holds exactly"
+                        + " one segment file (POSIX rename replaces silently).",
+                SEGMENT_LEN, actualDirectorySize);
+        assertEquals(
+                "Kill switch must restore the legacy behaviour: cacheSize is"
+                        + " incremented by segmentSize on every write call.",
+                (long) writes * SEGMENT_LEN, reportedCacheSize);
+        assertNotEquals(
+                "Sanity: with the kill switch active the in-memory counter"
+                        + " must diverge from the directory size.",
+                (long) actualDirectorySize, reportedCacheSize);
+    }
+
+    /**
+     * Time-bombed removal reminder. If this test fails, the feature toggle
+     * {@code FT_OAK-12212} and its guard in
+     * {@link PersistentDiskCache#writeSegment} should be removed — the fix
+     * has been in production long enough.
+     */
+    @Test
+    public void ft_oak_12212_toggleShouldBeRemoved() {
+        assertTrue("Feature toggle " + PersistentDiskCache.FT_OAK_12212 + " is overdue for removal",
+                LocalDate.now().isBefore(LocalDate.of(2027, 5, 14)));
     }
 
     // --- Helpers ----------------------------------------------------------

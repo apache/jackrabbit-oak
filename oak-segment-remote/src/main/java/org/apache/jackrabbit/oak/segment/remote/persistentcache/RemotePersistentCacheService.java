@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RoleStatisticsProvider;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.PersistentCache;
+import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -38,6 +39,7 @@ import org.osgi.service.component.annotations.Reference;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Hashtable;
 
 @Component(
@@ -92,6 +94,12 @@ public class RemotePersistentCacheService {
         if (configuration.diskCacheEnabled()) {
             PersistentDiskCache persistentDiskCache = new PersistentDiskCache(new File(configuration.diskCacheDirectory()), configuration.diskCacheMaxSizeMB(), diskCacheIOMonitor);
             closer.register(persistentDiskCache);
+
+            // OAK-12212: expose the kill switch for the cacheSize-accounting
+            // fix so it can be flipped at runtime via the Whiteboard.
+            registerCloseable(osgiWhiteboard.register(FeatureToggle.class,
+                    new FeatureToggle(PersistentDiskCache.FT_OAK_12212, PersistentDiskCache.FT_OAK_12212_DISABLE),
+                    Collections.emptyMap()));
 
             CacheStatsMBean diskCacheStatsMBean = persistentDiskCache.getCacheStats();
             registerCloseable(registerMBean(CacheStatsMBean.class, diskCacheStatsMBean, CacheStats.TYPE, diskCacheStatsMBean.getName()));
