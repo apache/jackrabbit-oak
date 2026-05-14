@@ -470,6 +470,8 @@ public class BenchmarkRunner {
                         new BundlingNodeTest(),
                         new PersistentCacheTest(statsProvider),
                         new SegmentCachePolicyBenchmark(),
+                        new SegmentCacheMemoizationBenchmark(),
+                        new SegmentCacheTarBenchmark(),
                         new StringWriteTest(),
                         new BasicWriteTest(),
                         new CanReadNonExisting(),

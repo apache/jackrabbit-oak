@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.segment.CacheWeights.StringCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.TemplateCacheWeigher;
 import org.apache.jackrabbit.oak.segment.RecordCache;
 import org.apache.jackrabbit.oak.segment.Segment;
+import org.apache.jackrabbit.oak.segment.SegmentCache.SegmentCachePolicy;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
@@ -82,6 +83,9 @@ public class FileStoreBuilder {
     private int maxFileSize = DEFAULT_MAX_FILE_SIZE;
 
     private int segmentCacheSize = DEFAULT_SEGMENT_CACHE_MB;
+
+    @NotNull
+    private SegmentCachePolicy segmentCachePolicy = SegmentCachePolicy.CAFFEINE;
 
     private int stringCacheSize = DEFAULT_STRING_CACHE_MB;
 
@@ -201,6 +205,18 @@ public class FileStoreBuilder {
     @NotNull
     public FileStoreBuilder withSegmentCacheSize(int segmentCacheSize) {
         this.segmentCacheSize = segmentCacheSize;
+        return this;
+    }
+
+    /**
+     * Eviction policy for the segment cache.
+     *
+     * @param segmentCachePolicy the policy to use (must not be null)
+     * @return this instance
+     */
+    @NotNull
+    public FileStoreBuilder withSegmentCachePolicy(@NotNull SegmentCachePolicy segmentCachePolicy) {
+        this.segmentCachePolicy = segmentCachePolicy;
         return this;
     }
 
@@ -543,6 +559,11 @@ public class FileStoreBuilder {
 
     int getSegmentCacheSize() {
         return segmentCacheSize;
+    }
+
+    @NotNull
+    SegmentCachePolicy getSegmentCachePolicy() {
+        return segmentCachePolicy;
     }
 
     int getStringCacheSize() {

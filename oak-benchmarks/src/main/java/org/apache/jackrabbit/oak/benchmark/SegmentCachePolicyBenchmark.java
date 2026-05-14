@@ -102,7 +102,18 @@ import org.mockito.Mockito;
  * drift=1 (cursor moves every op), 5, 20, and {@code Integer.MAX_VALUE} (stationary
  * working set as a control).  Produces a cross-policy miss-rate table indexed by
  * drift rate, quantifying where Caffeine's frequency advantage disappears under
- * increasing working-set churn.
+ * increasing working-set churn.  Sweep values: 1, 2, 5, 10, 20, static.
+ *
+ * <h3>Scenario K — post-compaction cold-start (afterSuite)</h3>
+ * Simulates an Oak online compaction event.  Phase 1 warms the cache with
+ * {@code OLD_GEN_K} "old-generation" segments using a Zipfian distribution, building
+ * up frequency counts in Caffeine's Count-Min sketch.  Phase 2 switches all traffic
+ * to {@code NEW_GEN_K} "new-generation" segment IDs (fresh UUIDs, freq=0 in the sketch),
+ * exactly as happens when Oak compaction produces a new generation of segments.
+ * Caffeine's W-TinyLFU admission gate rejects new-gen candidates (freq=0) against
+ * old-gen incumbents (freq>0) still occupying the main cache; Guava LRU and CacheLIRS
+ * immediately evict by recency.  Per-epoch miss rates reveal how long the admission
+ * freeze persists and when Caffeine's miss rate converges back to the others.
  *
  * <p>Configurable via system properties:
  * <ul>
@@ -194,16 +205,28 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
     private static final double ZIPF_J_EXP = 0.5;
     private static final int WARMUP_J = 50_000;
     private static final int MEASURE_J = 200_000;
-    private static final int[] DRIFT_VARIANTS_J = {1, 5, 20, Integer.MAX_VALUE};
+    private static final int[] DRIFT_VARIANTS_J = {1, 2, 5, 10, 20, Integer.MAX_VALUE};
+
+    // ----- Scenario K: post-compaction cold-start -----
+    // OLD_GEN_K old-gen segments are warmed with Zipfian (builds sketch frequency).
+    // Then measurement accesses only NEW_GEN_K new-gen segments (freq=0 in sketch).
+    // sampleSize = 10 * cacheCapacity ≈ 10,000 for 130 MB cache; WARMUP_K = 10,000
+    // means exactly one halving before compaction, leaving top entries at freq ~7.
+    private static final int OLD_GEN_K = 5_000;
+    private static final int NEW_GEN_K = 5_000;
+    private static final int WARMUP_K = 10_000;
+    private static final int MEASURE_K = 300_000;
+    private static final int EPOCH_OPS_K = 10_000;
 
     private static final long DATA_SEG_LSB_MASK = 0xa000000000000000L;
 
     private static final SegmentCachePolicy[] POLICIES = {
         SegmentCachePolicy.CAFFEINE,
+        SegmentCachePolicy.CAFFEINE_WITH_EXPIRY,
         SegmentCachePolicy.LIRS,
         SegmentCachePolicy.GUAVA
     };
-    private static final String[] POLICY_NAMES = {"CAFFEINE", "LIRS", "GUAVA"};
+    private static final String[] POLICY_NAMES = {"CAFFEINE", "CAFFEINE_WITH_EXPIRY", "LIRS", "GUAVA"};
     private static final int NUM_POLICIES = POLICIES.length;
 
     // ----- live Scenario A state -----
@@ -465,18 +488,52 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             }
             System.out.println();
         }
+
+        System.out.printf(
+                "%n--- Scenario K: post-compaction cold-start"
+                        + " (old-gen=%,d  new-gen=%,d  warmup=%,d  measure=%,d  epoch=%,d ops) ---%n",
+                OLD_GEN_K, NEW_GEN_K, WARMUP_K, MEASURE_K, EPOCH_OPS_K);
+        System.out.println(
+                "  cache warm with old-gen segments (freq>0 in sketch); compaction"
+                        + " replaces ALL IDs with new-gen (freq=0). W-TinyLFU admission gate"
+                        + " blocks new entries; Guava/LIRS admit immediately by recency.");
+        long[][][] epochsK = new long[NUM_POLICIES][][];
+        long[][] totalsK = new long[NUM_POLICIES][];
+        for (int p = 0; p < NUM_POLICIES; p++) {
+            List<long[]> epochs = new ArrayList<>();
+            PolicySetup setup = freshSetup(p, POLICIES[p], OLD_GEN_K + NEW_GEN_K);
+            totalsK[p] = runCompactionColdStart(setup, epochs);
+            epochsK[p] = epochs.toArray(new long[0][]);
+        }
+        System.out.printf("  %8s", "epoch");
+        for (int p = 0; p < NUM_POLICIES; p++) {
+            System.out.printf("  %14s", POLICY_NAMES[p] + "_miss%");
+        }
+        System.out.println();
+        for (int e = 0; e < epochsK[0].length; e++) {
+            System.out.printf("  %8d", (long) (e + 1) * EPOCH_OPS_K);
+            for (int p = 0; p < NUM_POLICIES; p++) {
+                long[] ep = epochsK[p][e];
+                long epTotal = ep[0] + ep[1];
+                System.out.printf("  %14.1f", epTotal == 0 ? 0.0 : 100.0 * ep[1] / epTotal);
+            }
+            System.out.println();
+        }
+        for (int p = 0; p < NUM_POLICIES; p++) {
+            printResult(POLICY_NAMES[p], totalsK[p][0], totalsK[p][1], totalsK[p][2]);
+        }
     }
 
     /** Miss-rate column headers for the AbstractTest output row. */
     @Override
     protected String[] statsNames() {
-        return new String[]{"  Caff_miss%", "  LIRS_miss%", "  Guav_miss%"};
+        return new String[]{"  Caff_miss%", "  CaffEx_miss%", "  LIRS_miss%", "  Guav_miss%"};
     }
 
-    /** Format strings for the three miss-rate columns. */
+    /** Format strings for the four miss-rate columns. */
     @Override
     protected String[] statsFormats() {
-        return new String[]{"  %10.1f", "  %10.1f", "  %10.1f"};
+        return new String[]{"  %10.1f", "  %10.1f", "  %10.1f", "  %10.1f"};
     }
 
     /** Current running miss-rate (%) for each policy from the live Scenario A run. */
@@ -903,6 +960,60 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
         long misses = setup.cache.getCacheStats().getMissCount() - missesBase;
         long evictions = setup.cache.getCacheStats().getEvictionCount() - evictBase;
         return new long[]{MEASURE_J - misses, misses, evictions};
+    }
+
+    /**
+     * Scenario K: warms the cache with old-generation segments, then switches all
+     * traffic to new-generation segment IDs (simulating Oak online compaction).
+     *
+     * <p>The warmup phase builds frequency counts in Caffeine's Count-Min sketch for
+     * {@code OLD_GEN_K} segments.  After warmup the cache is full of old-gen entries.
+     * The measurement phase accesses only the {@code NEW_GEN_K} new-gen segments
+     * (indices {@code OLD_GEN_K .. OLD_GEN_K + NEW_GEN_K - 1} in the setup arrays).
+     * New-gen entries start at freq=0 in the sketch; Caffeine's TinyLFU admission gate
+     * rejects them until their frequency exceeds the old-gen victims in the probationary
+     * queue.  Guava LRU and CacheLIRS admit new entries immediately by recency.</p>
+     *
+     * @param epochStats collector populated with per-epoch [hits, misses, evictions]
+     * @return [totalHits, totalMisses, totalEvictions] over all measurement epochs
+     */
+    private static long[] runCompactionColdStart(PolicySetup setup, List<long[]> epochStats) {
+        double[] oldCdf = buildZipfCdf(OLD_GEN_K, ZIPF_EXPONENT);
+        double[] newCdf = buildZipfCdf(NEW_GEN_K, ZIPF_EXPONENT);
+        Random r = new Random(RANDOM_SEED);
+
+        // Phase 1: warm cache with old-gen segments; builds sketch frequency counts
+        for (int i = 0; i < WARMUP_K; i++) {
+            setup.access(zipfSample(oldCdf, r.nextDouble()));
+        }
+
+        // Phase 2: compaction — all traffic switches to new-gen (freq=0 in sketch)
+        long totalHits = 0;
+        long totalMisses = 0;
+        long totalEvictions = 0;
+        int numEpochs = MEASURE_K / EPOCH_OPS_K;
+
+        for (int epoch = 0; epoch < numEpochs; epoch++) {
+            setup.cache.cleanUp();
+            long missBase = setup.cache.getCacheStats().getMissCount();
+            long evictBase = setup.cache.getCacheStats().getEvictionCount();
+
+            for (int i = 0; i < EPOCH_OPS_K; i++) {
+                setup.access(OLD_GEN_K + zipfSample(newCdf, r.nextDouble()));
+            }
+
+            setup.cache.cleanUp();
+            long epochMisses = setup.cache.getCacheStats().getMissCount() - missBase;
+            long epochEvictions = setup.cache.getCacheStats().getEvictionCount() - evictBase;
+            long epochHits = EPOCH_OPS_K - epochMisses;
+
+            epochStats.add(new long[]{epochHits, epochMisses, epochEvictions});
+            totalHits += epochHits;
+            totalMisses += epochMisses;
+            totalEvictions += epochEvictions;
+        }
+
+        return new long[]{totalHits, totalMisses, totalEvictions};
     }
 
     // -----------------------------------------------------------------------

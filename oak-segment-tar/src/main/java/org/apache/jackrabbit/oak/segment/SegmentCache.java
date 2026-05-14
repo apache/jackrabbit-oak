@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.segment;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.CacheWeights.segmentWeight;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionException;
@@ -75,6 +76,8 @@ public abstract class SegmentCache {
     public enum SegmentCachePolicy {
         /** Caffeine W-TinyLFU — current default. */
         CAFFEINE,
+        /** Caffeine W-TinyLFU with 30-second expiry-after-access — for benchmarking TTL impact. */
+        CAFFEINE_WITH_EXPIRY,
         /** Oak CacheLIRS — pre-migration baseline. */
         LIRS,
         /** Guava LRU — original SegmentCache backend, before the LIRS migration. */
@@ -220,10 +223,17 @@ public abstract class SegmentCache {
                 case GUAVA:
                     return buildGuavaCache(maximumWeight);
                 case CAFFEINE:
+                    return CacheBuilder.<SegmentId, Segment>newBuilder()
+                            .maximumWeight(maximumWeight)
+                            .weigher(new SegmentCacheWeigher())
+                            .evictionListener(this::onRemove)
+                            .build();
+                case CAFFEINE_WITH_EXPIRY:
                 default:
                     return CacheBuilder.<SegmentId, Segment>newBuilder()
                             .maximumWeight(maximumWeight)
                             .weigher(new SegmentCacheWeigher())
+                            .expireAfterAccess(Duration.ofSeconds(30))
                             .evictionListener(this::onRemove)
                             .build();
             }
