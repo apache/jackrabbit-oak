@@ -46,7 +46,6 @@ public final class CacheBuilder<K, V> {
 
     private long maximumWeight = -1;
     private long maximumSize = -1;
-    private int initialCapacity = -1;
     private Weigher<? super K, ? super V> weigher;
     private EvictionListener<? super K, ? super V> evictionListener;
     private boolean recordStats;
@@ -84,23 +83,6 @@ public final class CacheBuilder<K, V> {
             throw new IllegalArgumentException("maximumWeight must be non-negative, got: " + maximumWeight);
         }
         this.maximumWeight = maximumWeight;
-        return this;
-    }
-
-    /**
-     * Sets the minimum number of entries the cache's internal hash table should be
-     * pre-sized to hold. Passing this hint avoids rehashing when the cache fills
-     * gradually from an empty state.
-     *
-     * @param initialCapacity the minimum initial capacity (must be non-negative)
-     * @return this builder
-     */
-    @NotNull
-    public CacheBuilder<K, V> initialCapacity(int initialCapacity) {
-        if (initialCapacity < 0) {
-            throw new IllegalArgumentException("initialCapacity must be non-negative, got: " + initialCapacity);
-        }
-        this.initialCapacity = initialCapacity;
         return this;
     }
 
@@ -255,9 +237,6 @@ public final class CacheBuilder<K, V> {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private Caffeine<K, V> configureCaffeineBuilder() {
         Caffeine caffeineBuilder = Caffeine.newBuilder();
-        if (initialCapacity >= 0) {
-            caffeineBuilder = caffeineBuilder.initialCapacity(initialCapacity);
-        }
         if (weigher != null) {
             // validateConfiguration() guarantees maximumWeight >= 0 when weigher is set
             Weigher<? super K, ? super V> w = weigher;
