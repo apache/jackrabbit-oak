@@ -26,14 +26,14 @@ import org.mockito.Mockito;
  * Tests for {@link AbstractCompactionStrategy#notifyCompactionSucceeded}.
  *
  * <p>Verifies that the segment cache is cleared after a successful compaction when
- * {@link AbstractCompactionStrategy#FT_CLEAR_CACHE_ON_COMPACTION} is enabled (default),
+ * {@link AbstractCompactionStrategy#FT_OAK_12216_ENABLE} is enabled (default),
  * and that no clear occurs when the toggle is disabled.</p>
  */
 public class CompactionSegmentCacheClearTest {
 
     @After
     public void restoreToggle() {
-        AbstractCompactionStrategy.FT_CLEAR_CACHE_ON_COMPACTION.setEnabled(true);
+        AbstractCompactionStrategy.FT_OAK_12216_ENABLE.set(true);
     }
 
     @Test
@@ -52,7 +52,7 @@ public class CompactionSegmentCacheClearTest {
 
     @Test
     public void skipsClearWhenToggleDisabled() {
-        AbstractCompactionStrategy.FT_CLEAR_CACHE_ON_COMPACTION.setEnabled(false);
+        AbstractCompactionStrategy.FT_OAK_12216_ENABLE.set(false);
 
         SegmentCache cache = Mockito.mock(SegmentCache.class);
         GCListener gcListener = Mockito.mock(GCListener.class);

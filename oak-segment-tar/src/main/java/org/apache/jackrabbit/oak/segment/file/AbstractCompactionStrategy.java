@@ -47,18 +47,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 
-import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
+public abstract class AbstractCompactionStrategy implements CompactionStrategy {
 
-abstract class AbstractCompactionStrategy implements CompactionStrategy {
+    /** OSGi Whiteboard toggle name — used by {@link org.apache.jackrabbit.oak.segment.SegmentNodeStoreRegistrar}. */
+    public static final String FT_CLEAR_CACHE_OAK_12216 = "FT_CLEAR_CACHE_OAK-12216";
 
     /**
-     * Controls whether {@link org.apache.jackrabbit.oak.segment.SegmentCache#clear()} is called
-     * immediately after compaction succeeds.  Enabled by default (bug-fix behaviour): clears
-     * old-generation entries so their W-TinyLFU sketch counts do not block admission of
-     * new-generation segments.  Disable at runtime via JMX/whiteboard toggle if needed.
+     * Backing state for the feature toggle registered on the Whiteboard.  When the toggle is
+     * enabled (default), {@link org.apache.jackrabbit.oak.segment.SegmentCache#clear()} is called
+     * immediately after compaction succeeds so old-generation W-TinyLFU counts do not block
+     * new-generation admission.  Disable at runtime via JMX/Whiteboard if needed.
      */
-    static final FeatureToggle FT_CLEAR_CACHE_ON_COMPACTION =
-            new FeatureToggle("FT_CLEAR_CACHE_OAK-12216", new AtomicBoolean(true));
+    public static final AtomicBoolean FT_OAK_12216_ENABLE = new AtomicBoolean(true);
 
     abstract GCType getCompactionType();
 
@@ -85,11 +85,11 @@ abstract class AbstractCompactionStrategy implements CompactionStrategy {
     }
 
     /**
-     * Clears the segment cache when {@link #FT_CLEAR_CACHE_ON_COMPACTION} is enabled, then
+     * Clears the segment cache when {@link #FT_OAK_12216_ENABLE} is enabled, then
      * notifies the GC listener.  Package-private so unit tests can invoke it directly.
      */
     static void notifyCompactionSucceeded(Context context, GCGeneration generation) {
-        if (FT_CLEAR_CACHE_ON_COMPACTION.isEnabled()) {
+        if (FT_OAK_12216_ENABLE.get()) {
             context.getSegmentCache().clear();
         }
         context.getGCListener().compactionSucceeded(generation);

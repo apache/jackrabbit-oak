@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGC;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGCMBean;
+import org.apache.jackrabbit.oak.segment.file.AbstractCompactionStrategy;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
@@ -64,6 +65,7 @@ import org.apache.jackrabbit.oak.spi.gc.GCMonitorTracker;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.RevisionGC;
 import org.apache.jackrabbit.oak.spi.state.RevisionGCMBean;
+import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
 import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -79,6 +81,7 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -274,6 +277,11 @@ class SegmentNodeStoreRegistrar {
             return null;
         }
         registerCloseable(store);
+
+        // FT for clearing segment cache on compaction
+        registerCloseable(cfg.getWhiteboard().register(FeatureToggle.class,
+                new FeatureToggle(AbstractCompactionStrategy.FT_CLEAR_CACHE_OAK_12216, AbstractCompactionStrategy.FT_OAK_12216_ENABLE),
+                Collections.emptyMap()));
 
         // Listen for Executor services on the whiteboard
 
