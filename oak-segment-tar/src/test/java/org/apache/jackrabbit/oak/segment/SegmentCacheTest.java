@@ -166,47 +166,46 @@ public class SegmentCacheTest {
      * Verifies that repeated L1 hits keep a segment alive in L2 under eviction pressure.
      *
      * <p>Each L1 hit calls {@link SegmentCache#recordHit}, which calls
-     * {@code cache.getIfPresent(id)} to register an L2 read. This saturates hotId's frequency
-     * in W-TinyLFU's sketch at 15 (the 4-bit counter maximum). Fillers are re-accessed 5× each
-     * (freq = 6, strictly below the cap), so hotId (freq 15) always beats fillers (freq 6) in
-     * TinyLFU's admission comparison — no coin flip, strictly deterministic.
-     *
-     * <p>20 × 64 KB fillers (1.25 MB) overflow the 1 MB cache. Whenever a filler tries to
-     * evict hotId (the LRU victim in probationary), TinyLFU rejects the filler (freq 6 &lt; 15)
-     * and hotId survives. This is the same filler setup as the negative test — toggle state
-     * is the only difference.
+     * {@code cache.getIfPresent(id)}. When the cache is already at capacity, this promotes
+     * hotId from Caffeine's probationary SLRU segment into the protected segment, where it
+     * cannot be directly evicted. A subsequent trigger entry forces one eviction — a filler
+     * in probationary is evicted instead of hotId.
      */
     @Test
-    @Ignore
     public void recordAccessKeepsHotSegmentInL2UnderPressure() throws ExecutionException {
-        // 1 MB cache — small enough that 20 × 64 KB fillers create real eviction pressure.
+        // 1 MB cache; 15 × 64 KB = 983 KB fits, 16th entry forces an eviction.
         SegmentCache smallCache = newSegmentCache(1);
         SegmentId hotId = new SegmentId(EMPTY_STORE, 0xdeadL, 0xa000000000000001L, smallCache::recordHit);
         Segment hotSeg = mock(Segment.class);
         when(hotSeg.getSegmentId()).thenReturn(hotId);
         when(hotSeg.estimateMemoryUsage()).thenReturn(64 * 1024);
 
-        // Initial L2 load — hotId enters the sketch at freq 1.
+        // Load hotId first — it becomes the probationary LRU (oldest, eviction candidate).
         smallCache.getSegment(hotId, () -> hotSeg);
 
-        // 20 L1 hits: each triggers recordHit → cache.getIfPresent(hotId) → sketch freq → 15 (saturated).
-        for (int i = 0; i < 200; i++) {
-            assertEquals(hotSeg, hotId.getSegment());
-        }
-
-        // 20 × 64 KB fillers, each re-accessed 5× via L2 → freq 6 (strictly below the 15 cap).
-        // Total weight 1.25 MB > 1 MB forces eviction. hotId (freq 15) beats every filler (freq 6)
-        // in TinyLFU's admission gate — filler candidates are always rejected, hotId survives.
-        for (int i = 0; i < 20; i++) {
+        // Fill the rest of the cache with 14 fillers (no re-accesses), all in probationary.
+        for (int i = 0; i < 14; i++) {
             SegmentId filler = new SegmentId(EMPTY_STORE, i + 10L, 0xa000000000000010L + i);
             Segment fillerSeg = mock(Segment.class);
             when(fillerSeg.getSegmentId()).thenReturn(filler);
             when(fillerSeg.estimateMemoryUsage()).thenReturn(64 * 1024);
             smallCache.getSegment(filler, () -> fillerSeg);
-            for (int j = 0; j < 2; j++) {
-                smallCache.getSegment(filler, () -> fillerSeg);
-            }
         }
+
+        // 20 L1 hits after the cache is full: each calls recordHit → cache.getIfPresent(hotId).
+        // getIfPresent promotes hotId from probationary into Caffeine's protected segment —
+        // protected entries are immune to direct eviction.
+        for (int i = 0; i < 20; i++) {
+            assertEquals(hotSeg, hotId.getSegment());
+        }
+
+        // Add a 16th entry to force exactly one eviction. hotId is protected, so a filler
+        // in probationary is evicted regardless of any TinyLFU coin-flip outcome.
+        SegmentId trigger = new SegmentId(EMPTY_STORE, 999L, 0xa000000000000999L);
+        Segment triggerSeg = mock(Segment.class);
+        when(triggerSeg.getSegmentId()).thenReturn(trigger);
+        when(triggerSeg.estimateMemoryUsage()).thenReturn(64 * 1024);
+        smallCache.getSegment(trigger, () -> triggerSeg);
 
         // hotId must still be in L2 — loader must not be called.
         assertEquals(hotSeg, smallCache.getSegment(hotId, () -> failToLoad(hotId)));
@@ -216,13 +215,10 @@ public class SegmentCacheTest {
 
     /**
      * Negative counterpart: with {@link SegmentCache#FT_OAK_12214_ENABLE} disabled,
-     * L1 hits skip {@code cache.getIfPresent}, so hotId's L2 frequency stays at 1.
-     * Fillers re-accessed 5× via L2 each reach freq 6, which is strictly greater than
-     * hotId's freq 1. TinyLFU admits each filler over hotId, evicting hotId.
-     *
-     * <p>Determinism guarantee: filler freq (6) &gt; hotId freq (1) is a strict inequality —
-     * no coin flip. The 1.25 MB of fillers overflows the 1 MB cache, so at least one
-     * eviction is guaranteed, and hotId is always the lowest-frequency victim.
+     * L1 hits skip {@code cache.getIfPresent}, so hotId is never promoted to Caffeine's
+     * protected segment. It stays as the probationary LRU. Loading the trigger entry twice
+     * raises trigger's frequency sketch to 2 (strictly above hotId's frequency of 1),
+     * so TinyLFU deterministically evicts hotId rather than the trigger.
      *
      * <p>The {@code finally} block restores the toggle so other tests are unaffected.
      */
@@ -230,35 +226,42 @@ public class SegmentCacheTest {
     public void hotSegmentEvictedWithoutL2Notification() throws ExecutionException {
         SegmentCache.FT_OAK_12214_ENABLE.set(false);
         try {
-            // 1 MB cache — same size as the positive test so the two are directly comparable.
+            // 1 MB cache — same size as the positive test.
             SegmentCache smallCache = newSegmentCache(1);
             SegmentId hotId = new SegmentId(EMPTY_STORE, 0xdeadL, 0xa000000000000001L, smallCache::recordHit);
             Segment hotSeg = mock(Segment.class);
             when(hotSeg.getSegmentId()).thenReturn(hotId);
             when(hotSeg.estimateMemoryUsage()).thenReturn(64 * 1024);
 
-            // Initial L2 load — hotId enters the sketch at freq 1.
+            // Load hotId first — probationary LRU, never promoted (toggle is off).
             smallCache.getSegment(hotId, () -> hotSeg);
 
-            // 20 L1 hits — with toggle disabled, recordHit skips cache.getIfPresent,
-            // so hotId's sketch frequency stays at 1 despite the repeated L1 hits.
-            for (int i = 0; i < 20; i++) {
-                assertEquals(hotSeg, hotId.getSegment());
-            }
-
-            // Same filler setup as the positive test: 20 × 64 KB fillers, 5 L2 re-accesses
-            // each → freq 6. hotId (freq 1) loses the TinyLFU admission battle against
-            // every filler (freq 6 > 1) and is evicted.
-            for (int i = 0; i < 20; i++) {
+            // Fill to capacity with 14 fillers.
+            for (int i = 0; i < 14; i++) {
                 SegmentId filler = new SegmentId(EMPTY_STORE, i + 10L, 0xa000000000000010L + i);
                 Segment fillerSeg = mock(Segment.class);
                 when(fillerSeg.getSegmentId()).thenReturn(filler);
                 when(fillerSeg.estimateMemoryUsage()).thenReturn(64 * 1024);
                 smallCache.getSegment(filler, () -> fillerSeg);
-                for (int j = 0; j < 5; j++) {
-                    smallCache.getSegment(filler, () -> fillerSeg);
-                }
             }
+
+            // 20 L1 hits — toggle OFF: recordHit skips cache.getIfPresent, so hotId remains
+            // in probationary as the LRU victim.
+            for (int i = 0; i < 20; i++) {
+                assertEquals(hotSeg, hotId.getSegment());
+            }
+
+            // Load the trigger entry twice:
+            // 1st load: cache full → eviction round; trigger freq=1 vs hotId freq=1 → coin flip
+            //           (hotId may or may not be evicted here).
+            // 2nd load: trigger freq rises to 2 > hotId freq 1 → TinyLFU deterministically
+            //           evicts hotId.
+            SegmentId trigger = new SegmentId(EMPTY_STORE, 999L, 0xa000000000000999L);
+            Segment triggerSeg = mock(Segment.class);
+            when(triggerSeg.getSegmentId()).thenReturn(trigger);
+            when(triggerSeg.estimateMemoryUsage()).thenReturn(64 * 1024);
+            smallCache.getSegment(trigger, () -> triggerSeg);
+            smallCache.getSegment(trigger, () -> triggerSeg);
 
             // hotId must have been evicted — loader must be called.
             AtomicBoolean reloaded = new AtomicBoolean(false);
