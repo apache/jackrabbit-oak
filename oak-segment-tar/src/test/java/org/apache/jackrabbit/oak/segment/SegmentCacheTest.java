@@ -338,6 +338,43 @@ public class SegmentCacheTest {
         }
     }
 
+    /**
+     * When {@link SegmentCache#FT_NOTIFY_L2_ON_L1_HIT} is disabled, L1 hits must still
+     * be counted in {@link AbstractCacheStats#getHitCount()} even though {@code getIfPresent}
+     * is skipped — the stats branch runs regardless of the L2-notify branch.
+     */
+    @Test
+    public void recordHitSkipsL2NotifyWhenToggleDisabled() throws ExecutionException {
+        SegmentCache.FT_NOTIFY_L2_ON_L1_HIT.setEnabled(false);
+        try {
+            cache.getSegment(id1, () -> segment1);
+            assertEquals(segment1, id1.getSegment());
+            assertEquals(1, cache.getCacheStats().getHitCount());
+        } finally {
+            SegmentCache.FT_NOTIFY_L2_ON_L1_HIT.setEnabled(true);
+        }
+    }
+
+    /**
+     * Smoke test for the {@link SegmentCache.SegmentCachePolicy#GUAVA} backend: put, L1 hit,
+     * L2 get, and clear all work correctly with the Guava-backed {@code NonEmptyCache}.
+     */
+    @Test
+    public void guavaPolicyCachesAndClearsLikeDefault() throws ExecutionException {
+        SegmentCache guava = newSegmentCache(DEFAULT_SEGMENT_CACHE_MB, SegmentCache.SegmentCachePolicy.GUAVA);
+        SegmentId gId = new SegmentId(EMPTY_STORE, 0x000000000000000aL, 0xa00000000000000aL, guava::recordHit);
+        Segment gSeg = mock(Segment.class);
+        when(gSeg.getSegmentId()).thenReturn(gId);
+        when(gSeg.estimateMemoryUsage()).thenReturn(1);
+
+        guava.getSegment(gId, () -> gSeg);
+        assertEquals(gSeg, gId.getSegment());
+        assertEquals(gSeg, guava.getSegment(gId, () -> failToLoad(gId)));
+
+        guava.clear();
+        expect(SegmentNotFoundException.class, gId::getSegment);
+    }
+
     @Test
     public void nonEmptyCacheStatsTest() throws Exception {
         AbstractCacheStats stats = cache.getCacheStats();
