@@ -24,14 +24,11 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.Iterator;
 
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -71,53 +68,6 @@ public class TreeStoreIterateTest {
             assertFalse(it.hasNext());
         } finally {
             store.close();
-        }
-    }
-
-    @Test
-    public void test() throws IOException {
-        TreeStore store = new TreeStore("test",
-                new File("test.lz4"),
-                new NodeStateEntryReader(new MemoryBlobStore()), 1);
-        Iterator<String> itPath = store.iteratorOverPaths();
-
-        while(itPath.hasNext()) {
-            String path = itPath.next();
-            System.out.println(path);
-        }
-
-        itPath = store.iteratorOverPaths();
-        while(itPath.hasNext()) {
-            String path = itPath.next();
-            log(path);
-            NodeState nodeState = store.getNodeState(path);
-            HashSet<String> seen = new HashSet<>();
-            recurseAllChildren(seen, path, nodeState, 10);
-        }
-        store.close();
-    }
-
-    static long lastLog = System.currentTimeMillis();
-    private static void log(String msg) {
-        long now = System.currentTimeMillis();
-        if (now - lastLog > 2000) {
-            lastLog = now;
-            System.out.println(msg);
-        }
-    }
-
-    private static void recurseAllChildren(HashSet<String> seen, String path, NodeState ns, int depth) {
-        log("  " + path);
-        if (depth == 0) {
-            return;
-        }
-        for (ChildNodeEntry cne : ns.getChildNodeEntries()) {
-            String cp = path;
-            if (!cp.endsWith("/")) {
-                cp += "/";
-            }
-            cp += cne.getName();
-            recurseAllChildren(seen, cp, cne.getNodeState(), depth - 1);
         }
     }
 
