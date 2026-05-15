@@ -260,6 +260,11 @@ abstract class AbstractGarbageCollectionStrategy implements GarbageCollectionStr
                 return context.getFlusher();
             }
 
+            @Override
+            public SegmentCache getSegmentCache() {
+                return context.getSegmentCache();
+            }
+
         };
     }
 

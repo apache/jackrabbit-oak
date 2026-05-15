@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.segment.file;
 import org.apache.jackrabbit.oak.segment.CompactorTestUtils;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentBufferWriterPool;
+import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.SegmentWriterFactory;
@@ -92,6 +93,7 @@ public class FullCompactionStrategyTest {
                 .withWriterPool(SegmentBufferWriterPool.PoolType.THREAD_SPECIFIC)
                 .build(store);
         when(mockedContext.getSegmentWriterFactory()).thenReturn(writerFactory);
+        when(mockedContext.getSegmentCache()).thenReturn(Mockito.mock(SegmentCache.class));
 
         return mockedContext;
     }

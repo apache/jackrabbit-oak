@@ -43,10 +43,22 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 
+import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
+
 abstract class AbstractCompactionStrategy implements CompactionStrategy {
+
+    /**
+     * Controls whether {@link org.apache.jackrabbit.oak.segment.SegmentCache#clear()} is called
+     * immediately after compaction succeeds.  Enabled by default (bug-fix behaviour): clears
+     * old-generation entries so their W-TinyLFU sketch counts do not block admission of
+     * new-generation segments.  Disable at runtime via JMX/whiteboard toggle if needed.
+     */
+    static final FeatureToggle FT_CLEAR_CACHE_ON_COMPACTION =
+            new FeatureToggle("FT_CLEAR_CACHE_OAK-12216", new AtomicBoolean(true));
 
     abstract GCType getCompactionType();
 
@@ -59,7 +71,7 @@ abstract class AbstractCompactionStrategy implements CompactionStrategy {
         GCGeneration generation,
         RecordId compactedRootId
     ) {
-        context.getGCListener().compactionSucceeded(generation);
+        notifyCompactionSucceeded(context, generation);
         return CompactionResult.succeeded(getCompactionType(), generation, context.getGCOptions(), compactedRootId, context.getGCCount());
     }
 
@@ -68,8 +80,19 @@ abstract class AbstractCompactionStrategy implements CompactionStrategy {
             GCGeneration generation,
             RecordId compactedRootId
     ) {
-        context.getGCListener().compactionSucceeded(generation);
+        notifyCompactionSucceeded(context, generation);
         return CompactionResult.partiallySucceeded(generation, compactedRootId, context.getGCCount());
+    }
+
+    /**
+     * Clears the segment cache when {@link #FT_CLEAR_CACHE_ON_COMPACTION} is enabled, then
+     * notifies the GC listener.  Package-private so unit tests can invoke it directly.
+     */
+    static void notifyCompactionSucceeded(Context context, GCGeneration generation) {
+        if (FT_CLEAR_CACHE_ON_COMPACTION.isEnabled()) {
+            context.getSegmentCache().clear();
+        }
+        context.getGCListener().compactionSucceeded(generation);
     }
 
     private static CompactionResult compactionAborted(Context context, GCGeneration generation) {
