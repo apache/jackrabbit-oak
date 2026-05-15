@@ -34,6 +34,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A node state of an Oak node that is stored in a tree store.
@@ -42,6 +44,8 @@ import org.jetbrains.annotations.Nullable;
  * children directly.
  */
 public class TreeStoreNodeState implements NodeState, MemoryObject {
+
+    private static final Logger LOG = LoggerFactory.getLogger(TreeStoreNodeState.class);
 
     private final NodeState delegate;
     private final String path;
@@ -201,7 +205,15 @@ public class TreeStoreNodeState implements NodeState, MemoryObject {
                         if (index < 0) {
                             throw new IllegalArgumentException(key);
                         }
-                        current = key.substring(index + 1);
+                        if (!key.startsWith(path + "\t")) {
+                            // this is the child of a _different_ node:
+                            // that means this node doesn't have a child
+                            String missingChild = key.substring(0, index);
+                            LOG.warn("Missing node {} when listing children of {}", missingChild, path);
+                            current = null;
+                        } else {
+                            current = key.substring(index + 1);
+                        }
                     }
                 }
             }
