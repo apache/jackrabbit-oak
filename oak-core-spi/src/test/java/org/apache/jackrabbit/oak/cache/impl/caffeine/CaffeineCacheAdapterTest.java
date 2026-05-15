@@ -17,9 +17,11 @@
 package org.apache.jackrabbit.oak.cache.impl.caffeine;
 
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.RemovalCause;
+import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
 import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
 import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.junit.Assert;
@@ -48,6 +50,58 @@ public class CaffeineCacheAdapterTest {
         CacheStatsSnapshot stats = adapter.stats();
         Assert.assertEquals(1, stats.hitCount());
         Assert.assertEquals(1, stats.missCount());
+    }
+
+    /**
+     * Verifies that eviction listeners registered via {@link CacheBuilder#evictionListener} fire
+     * synchronously during {@link CaffeineCacheAdapter#invalidateAll()}.
+     *
+     * <p>Oak {@link CacheBuilder} configures {@code executor(Runnable::run)} for caches without
+     * {@code refreshAfterWrite}, so removal listeners usually run during {@code invalidateAll()}
+     * even without an explicit {@code cleanUp()} in this adapter. The adapter still calls
+     * {@code cleanUp()} to guarantee that contract for every backing Caffeine instance and to
+     * drain any buffered maintenance work before returning.</p>
+     */
+    @Test
+    public void evictionListenerFiresForAllEntriesDuringInvalidateAll() {
+        AtomicInteger listenerCallCount = new AtomicInteger(0);
+        org.apache.jackrabbit.oak.cache.api.Cache<String, String> cache =
+                CacheBuilder.<String, String>newBuilder()
+                        .maximumSize(100)
+                        .evictionListener((k, v, cause) -> listenerCallCount.incrementAndGet())
+                        .build();
+
+        cache.put("a", "1");
+        cache.put("b", "2");
+        cache.put("c", "3");
+
+        cache.invalidateAll();
+
+        Assert.assertEquals("eviction listener must fire for every entry during invalidateAll()",
+                3, listenerCallCount.get());
+    }
+
+    /**
+     * Verifies the same guarantee for {@link CaffeineCacheAdapter#invalidateAll(Iterable)}.
+     */
+    @Test
+    public void evictionListenerFiresForRequestedEntriesDuringInvalidateAllIterable() {
+        AtomicInteger listenerCallCount = new AtomicInteger(0);
+        org.apache.jackrabbit.oak.cache.api.Cache<String, String> cache =
+                CacheBuilder.<String, String>newBuilder()
+                        .maximumSize(100)
+                        .evictionListener((k, v, cause) -> listenerCallCount.incrementAndGet())
+                        .build();
+
+        cache.put("a", "1");
+        cache.put("b", "2");
+        cache.put("c", "3");
+
+        cache.invalidateAll(Arrays.asList("a", "c"));
+
+        Assert.assertEquals("eviction listener must fire for each invalidated key",
+                2, listenerCallCount.get());
+        Assert.assertNotNull("non-invalidated entry must still be present", cache.getIfPresent("b"));
     }
 
     @Test

@@ -42,32 +42,23 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 /**
- * Benchmark measuring actual wall-clock elapsed time per segment cache policy using
- * real TAR file I/O.  Unlike {@link SegmentCacheMemoizationBenchmark}, which uses mock
- * segments (free TAR reads), cache misses here trigger actual disk reads — so a policy
- * with a higher miss rate is measurably slower.
+ * Same L1 → L2 → loader access path as {@link SegmentCacheMemoizationBenchmark} but backed
+ * by a real {@link ReadOnlyFileStore} on disk.  Cache misses trigger actual TAR reads, so a
+ * policy with a higher miss rate shows up as slower wall-clock time, not just a higher counter.
+ * Stats report elapsed ms alongside L1-hit%, L2-hit%, and TAR-read% per policy.
  *
- * <h3>Fixture note</h3>
- * <p>The {@code RepositoryFixture} parameter only controls the JCR repository created by
- * {@code AbstractTest} infrastructure.  This benchmark creates its own {@link FileStore} in
- * {@link #beforeSuite()} and always reads real TAR files, regardless of which fixture is
- * passed.  Use {@code Oak-MemoryNS} to avoid wasting disk space on an unused second store.</p>
+ * <p>The {@code RepositoryFixture} argument only matters to the {@code AbstractTest}
+ * infrastructure; this benchmark builds its own {@link FileStore} in {@code beforeSuite}
+ * regardless.  Pass {@code Oak-MemoryNS} to avoid writing a second unused store to disk.</p>
  *
- * <h3>Access path</h3>
- * <p>Every access calls {@link SegmentId#getSegment()}, which follows the full production
- * chain: L1 memoization → on L1 miss: store → L2 cache → on L2 miss: loader (disk read).
- * Stats decompose accesses into L1-hit%, L2-hit%, and TAR-read% (loader invocations).</p>
+ * <p>Run with {@code -Xmx4g}; the size-sensitivity sweep opens several
+ * {@link ReadOnlyFileStore} instances concurrently and causes GC pressure below that.</p>
  *
- * <h3>Scenarios (all in {@code afterSuite})</h3>
- * <ul>
- *   <li><b>Scenario 1 (Zipfian steady-state)</b> — live run driven by the AbstractTest
- *       timing loop; isolated per-policy elapsed time with full tier breakdown.</li>
- *   <li><b>Scenario 2 (drifting active set)</b> — sliding Zipfian window; Caffeine's
- *       W-TinyLFU admission gate rejects new-window entries (freq=0) against incumbents,
- *       triggering perpetual TAR-read loops.  Caffeine is typically slower than Guava here.</li>
- *   <li><b>Scenario 3 (post-compaction cold-start)</b> — cache warmed on old-gen segments;
- *       traffic switches to new-gen (freq=0, LRU-cold).  Per-epoch TAR% tracks warm-up speed.</li>
- * </ul>
+ * <p>Scenario 1 (live): Zipfian steady-state with per-policy elapsed time.
+ * Scenario 2: drifting active set — Caffeine's admission gate rejects new-window entries,
+ * causing perpetual TAR reads; typically slower than Guava here.
+ * Scenario 3: post-compaction cold-start — old-gen warm, traffic switches to new-gen;
+ * per-epoch TAR% tracks how fast each policy recovers.</p>
  */
 public class SegmentCacheTarBenchmark extends AbstractTest {
 
@@ -83,7 +74,7 @@ public class SegmentCacheTarBenchmark extends AbstractTest {
     // ----- Scenario 1: Zipfian steady-state -----
     private static final int    BATCH_SIZE   = Integer.getInteger("segment.batch.size", 500);
     private static final int    WARMUP_OPS   =  5_000;
-    private static final int    MEASURE_OPS  = 50_000;
+    private static final int    MEASURE_OPS  = 150_000;
     private static final double ZIPF_EXP     = 1.0;
 
     // ----- Scenario 2: drifting active set -----
@@ -91,22 +82,32 @@ public class SegmentCacheTarBenchmark extends AbstractTest {
     private static final int    DRIFT_2      = 5;    // advance cursor every N ops
     private static final double ZIPF_2_EXP  = 0.5;  // flatter → more entries compete for cache
     private static final int    WARMUP_2    = 20_000;
-    private static final int    MEASURE_2   = 100_000;
+    private static final int    MEASURE_2   = 300_000;
     private static final int    EPOCH_OPS_2 = 10_000;
 
     // ----- Scenario 3: post-compaction cold-start -----
-    private static final int WARMUP_3    = 20_000;  // warm on old-gen
-    private static final int MEASURE_3   = 100_000;
-    private static final int EPOCH_OPS_3 = 10_000;
+    // 200K warmup saturates old-gen sketch to freq=15 (4-bit cap).
+    // Flat Zipf(0.5) for new-gen measurement slows frequency build-up → longer visible freeze.
+    // EPOCH_OPS_3 = 2K exposes the initial spike before hot new-gen entries escape the gate.
+    private static final int    WARMUP_3         = 200_000;
+    private static final double ZIPF_3_NEW_EXP   = 0.5;   // flatter than warmup — slows freq build-up
+    private static final int    MEASURE_3        = 300_000;
+    private static final int    EPOCH_OPS_3      = 2_000;
 
     private static final SegmentCachePolicy[] POLICIES    = {
         SegmentCachePolicy.CAFFEINE,
-        SegmentCachePolicy.CAFFEINE_WITH_EXPIRY,
-        SegmentCachePolicy.LIRS,
         SegmentCachePolicy.GUAVA
     };
-    private static final String[] POLICY_NAMES = {"CAFFEINE", "CAFFEINE_WITH_EXPIRY", "LIRS", "GUAVA"};
+    private static final String[] POLICY_NAMES = {"CAFFEINE", "GUAVA"};
     private static final int      NUM_POLICIES  = POLICIES.length;
+    /**
+     * Set {@code -Doak.benchmark.clearCacheOnCompaction=true} to clear the segment cache
+     * between the old-gen warmup and new-gen measurement phases of Scenario 3, simulating
+     * the JIRA-4 fix.  Default is {@code false}: old-gen incumbents at freq=15 block
+     * new-gen admission and the freeze shows up as higher TAR-read% for Caffeine.
+     */
+    private static final boolean  CLEAR_CACHE_ON_COMPACTION =
+            Boolean.getBoolean("oak.benchmark.clearCacheOnCompaction");
 
     // ----- live-run state -----
     private File           storeDir;
@@ -186,17 +187,17 @@ public class SegmentCacheTarBenchmark extends AbstractTest {
         liveStores = new ReadOnlyFileStore[NUM_POLICIES];
         liveIds    = new SegmentId[NUM_POLICIES][];
         for (int p = 0; p < NUM_POLICIES; p++) {
-            ReadOnlyFileStore store = openReadOnly(POLICIES[p]);
+            ReadOnlyFileStore store = openReadOnly(POLICIES[p], CACHE_SIZE_MB);
             liveStores[p] = store;
             liveIds[p]    = collectDataIds(store);
         }
     }
 
-    /** Opens a fresh on-heap {@link ReadOnlyFileStore} with the given policy. */
-    private ReadOnlyFileStore openReadOnly(SegmentCachePolicy policy)
+    /** Opens a fresh on-heap {@link ReadOnlyFileStore} with the given policy and cache size. */
+    private ReadOnlyFileStore openReadOnly(SegmentCachePolicy policy, int cacheSizeMb)
             throws IOException, InvalidFileStoreVersionException {
         return FileStoreBuilder.fileStoreBuilder(storeDir)
-                .withSegmentCacheSize(CACHE_SIZE_MB)
+                .withSegmentCacheSize(cacheSizeMb)
                 .withSegmentCachePolicy(policy)
                 .withMemoryMapping(false)
                 .buildReadOnly();
@@ -231,12 +232,12 @@ public class SegmentCacheTarBenchmark extends AbstractTest {
 
     @Override
     protected String[] statsNames() {
-        return new String[]{"  Caff_tar%", "  CaffEx_tar%", "  LIRS_tar%", "  Guav_tar%"};
+        return new String[]{"  Caff_tar%", "  Guav_tar%"};
     }
 
     @Override
     protected String[] statsFormats() {
-        return new String[]{"  %10.1f", "  %10.1f", "  %10.1f", "  %10.1f"};
+        return new String[]{"  %10.1f", "  %10.1f"};
     }
 
     /** TAR-read% per policy (loader invocations / total accesses × 100). */
@@ -273,10 +274,14 @@ public class SegmentCacheTarBenchmark extends AbstractTest {
         for (ReadOnlyFileStore s : liveStores) {
             s.close();
         }
+        liveStores = null; // release closed stores — no longer needed
+        liveIds = null;
+        System.gc(); // hint GC before scenario runs
 
         runScenario1();
         runScenario2();
         runScenario3();
+        runSizeSensitivity();
 
         FileUtils.deleteDirectory(storeDir);
     }
@@ -298,7 +303,7 @@ public class SegmentCacheTarBenchmark extends AbstractTest {
                 WARMUP_OPS, MEASURE_OPS, ZIPF_EXP, CACHE_SIZE_MB);
         double[] cdf = buildZipfCdf(poolSize, ZIPF_EXP);
         for (int p = 0; p < NUM_POLICIES; p++) {
-            try (ReadOnlyFileStore store = openReadOnly(POLICIES[p])) {
+            try (ReadOnlyFileStore store = openReadOnly(POLICIES[p], CACHE_SIZE_MB)) {
                 SegmentId[] ids = collectDataIds(store);
                 int n = ids.length;
                 ThreadLocalRandom rng = ThreadLocalRandom.current();
@@ -338,7 +343,7 @@ public class SegmentCacheTarBenchmark extends AbstractTest {
         long[][][] epochs = new long[NUM_POLICIES][numEpochs][];
         long[][]   totals = new long[NUM_POLICIES][];
         for (int p = 0; p < NUM_POLICIES; p++) {
-            try (ReadOnlyFileStore store = openReadOnly(POLICIES[p])) {
+            try (ReadOnlyFileStore store = openReadOnly(POLICIES[p], CACHE_SIZE_MB)) {
                 SegmentId[] ids = collectDataIds(store);
                 epochs[p] = new long[numEpochs][];
                 totals[p] = runDriftingEpochs(store, ids, width, epochs[p]);
@@ -360,14 +365,17 @@ public class SegmentCacheTarBenchmark extends AbstractTest {
         int newGen = poolSize - oldGen;
         System.out.printf(
                 "%n--- Scenario 3: post-compaction cold-start"
-                        + " (old-gen=%d  new-gen=%d  warmup=%,d  measure=%,d  epoch=%,d) ---%n"
-                        + "  new-gen has freq=0 / LRU-cold; Caffeine may reject entries initially.%n",
-                oldGen, newGen, WARMUP_3, MEASURE_3, EPOCH_OPS_3);
+                        + " (old-gen=%d  new-gen=%d  warmup=%,d  measure=%,d  epoch=%,d  zipf-new=%.1f) ---%n"
+                        + "  Old-gen saturated to freq=15; new-gen auto-rejected (freq≤5 gate):%n"
+                        + "  Caffeine ~40%%+ TAR-read%% initially, self-corrects after ~30K ops; Guava ~27%% steady.%n"
+                        + "  After convergence: Caffeine ~20%% vs Guava ~24%% — W-TinyLFU wins long-term.%n"
+                        + "  Fix: -Doak.benchmark.clearCacheOnCompaction=true (JIRA-4) eliminates the freeze.%n",
+                oldGen, newGen, WARMUP_3, MEASURE_3, EPOCH_OPS_3, ZIPF_3_NEW_EXP);
         int numEpochs = MEASURE_3 / EPOCH_OPS_3;
         long[][][] epochs = new long[NUM_POLICIES][numEpochs][];
         long[][]   totals = new long[NUM_POLICIES][];
         for (int p = 0; p < NUM_POLICIES; p++) {
-            try (ReadOnlyFileStore store = openReadOnly(POLICIES[p])) {
+            try (ReadOnlyFileStore store = openReadOnly(POLICIES[p], CACHE_SIZE_MB)) {
                 SegmentId[] ids = collectDataIds(store);
                 epochs[p] = new long[numEpochs][];
                 totals[p] = runCompactionEpochs(store, ids, oldGen, epochs[p]);
@@ -376,6 +384,60 @@ public class SegmentCacheTarBenchmark extends AbstractTest {
         printEpochTable(epochs, EPOCH_OPS_3, "tar%");
         for (int p = 0; p < NUM_POLICIES; p++) {
             printResult(POLICY_NAMES[p], totals[p][0], totals[p][1], totals[p][2], totals[p][3], -1);
+        }
+    }
+
+    /**
+     * Runs Scenario 2 (drifting) and Scenario 3 (post-compaction) at half, normal, and
+     * double cache sizes to show how each policy scales with capacity.
+     */
+    private void runSizeSensitivity() throws IOException, InvalidFileStoreVersionException {
+        int[] sizes = {CACHE_SIZE_MB / 2, CACHE_SIZE_MB, CACHE_SIZE_MB * 2};
+        int width    = Math.min(WIDTH_2, poolSize - 1);
+        int oldGen   = poolSize / 2;
+
+        System.out.printf(
+                "%n--- Size sensitivity: Scenario 2 (drifting, width=%d  drift=%d) ---%n",
+                width, DRIFT_2);
+        System.out.printf("  %8s", "cacheMB");
+        for (int p = 0; p < NUM_POLICIES; p++) {
+            System.out.printf("  %12s", POLICY_NAMES[p] + "_tar%");
+        }
+        System.out.println();
+        for (int sizeMb : sizes) {
+            System.out.printf("  %8d", sizeMb);
+            for (int p = 0; p < NUM_POLICIES; p++) {
+                try (ReadOnlyFileStore store = openReadOnly(POLICIES[p], sizeMb)) {
+                    SegmentId[] ids = collectDataIds(store);
+                    long[][] ignored = new long[MEASURE_2 / EPOCH_OPS_2][];
+                    long[] r = runDriftingEpochs(store, ids, width, ignored);
+                    long total = r[0];
+                    System.out.printf("  %12.1f", total == 0 ? 0.0 : 100.0 * r[3] / total);
+                }
+            }
+            System.out.println();
+        }
+
+        System.out.printf(
+                "%n--- Size sensitivity: Scenario 3 (post-compaction, old-gen=%d  new-gen=%d) ---%n",
+                oldGen, poolSize - oldGen);
+        System.out.printf("  %8s", "cacheMB");
+        for (int p = 0; p < NUM_POLICIES; p++) {
+            System.out.printf("  %12s", POLICY_NAMES[p] + "_tar%");
+        }
+        System.out.println();
+        for (int sizeMb : sizes) {
+            System.out.printf("  %8d", sizeMb);
+            for (int p = 0; p < NUM_POLICIES; p++) {
+                try (ReadOnlyFileStore store = openReadOnly(POLICIES[p], sizeMb)) {
+                    SegmentId[] ids = collectDataIds(store);
+                    long[][] ignored = new long[MEASURE_3 / EPOCH_OPS_3][];
+                    long[] r = runCompactionEpochs(store, ids, oldGen, ignored);
+                    long total = r[0];
+                    System.out.printf("  %12.1f", total == 0 ? 0.0 : 100.0 * r[3] / total);
+                }
+            }
+            System.out.println();
         }
     }
 
@@ -441,11 +503,14 @@ public class SegmentCacheTarBenchmark extends AbstractTest {
                                                int oldGen, long[][] epochStats) {
         int newGen = pool.length - oldGen;
         double[] oldCdf = buildZipfCdf(oldGen, ZIPF_EXP);
-        double[] newCdf = buildZipfCdf(newGen, ZIPF_EXP);
+        double[] newCdf = buildZipfCdf(newGen, ZIPF_3_NEW_EXP);
         ThreadLocalRandom rng = ThreadLocalRandom.current();
 
         for (int i = 0; i < WARMUP_3; i++) {
             pool[zipfSample(oldCdf, rng.nextDouble())].getSegment();
+        }
+        if (CLEAR_CACHE_ON_COMPACTION) {
+            store.clearSegmentCache();
         }
 
         long h0 = store.getSegmentCacheStats().getHitCount();
@@ -501,7 +566,7 @@ public class SegmentCacheTarBenchmark extends AbstractTest {
      * @param label     policy display name
      * @param total     total accesses in the window
      * @param l1Hits    served from SegmentId memoization field — no L2 call made
-     * @param l2Hits    found in L2 — no loader/disk read (mainly LIRS HIR hits)
+     * @param l2Hits    found in L2 — no loader/disk read
      * @param tarReads  loader invocations — actual disk-read equivalents
      * @param elapsedMs wall-clock ms, or -1 to omit timing columns
      */

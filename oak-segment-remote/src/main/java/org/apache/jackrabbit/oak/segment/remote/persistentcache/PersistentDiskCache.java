@@ -105,6 +105,9 @@ public class PersistentDiskCache extends AbstractPersistentCache {
         if (!directory.exists()) {
             directory.mkdirs();
         }
+        // Seed the counter from actual disk state so restarts don't reset it to 0
+        // while old segments are still on disk, which would prevent cleanup from running.
+        cacheSize.set(FileUtils.sizeOfDirectory(directory));
 
         segmentCacheStats = new SegmentCacheStats(
                 NAME,
@@ -210,6 +213,11 @@ public class PersistentDiskCache extends AbstractPersistentCache {
         executor.execute(task);
     }
 
+    /** Returns the in-memory cacheSize counter. Package-private for testing. */
+    long getCacheSizeForTesting() {
+        return cacheSize.get();
+    }
+
     private boolean isCacheFull() {
         return cacheSize.get() >= maxCacheSizeBytes;
     }
@@ -246,10 +254,19 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                             }
                             return;
                         }
-                        long cacheSizeAfter = cacheSize.addAndGet(-length);
-                        diskCacheIOMonitor.updateCacheSize(cacheSizeAfter, -length);
-                        segment.delete();
-                        evictionCount.incrementAndGet();
+                        // Delete before decrementing: if another thread races to re-write
+                        // this file between a decrement and the delete, the write increments
+                        // the counter while our decrement already fired, inflating cacheSize.
+                        // Temp files are never counted in cacheSize (the counter is only
+                        // incremented after the atomic rename to the final segment path), so
+                        // deleting a stale temp file must not decrement the counter.
+                        if (segment.delete()) {
+                            if (!segmentCacheEntry.isTempFile()) {
+                                long cacheSizeAfter = cacheSize.addAndGet(-length);
+                                diskCacheIOMonitor.updateCacheSize(cacheSizeAfter, -length);
+                            }
+                            evictionCount.incrementAndGet();
+                        }
                     } else {
                         breaker.stop();
                     }

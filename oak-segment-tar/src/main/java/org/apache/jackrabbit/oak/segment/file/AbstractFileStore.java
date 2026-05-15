@@ -192,6 +192,15 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         return segmentCache.getCacheStats();
     }
 
+    /**
+     * Evicts all entries from the in-memory segment cache without affecting the
+     * Count-Min sketch frequency counts.  Called after successful compaction so that
+     * old-generation incumbents no longer block new-generation admission.
+     */
+    public void clearSegmentCache() {
+        segmentCache.clear();
+    }
+
     @Nullable
     public CacheStatsMBean getPersistentCacheStats() {
         return persistentCache == null ? null : persistentCache.getCacheStats();

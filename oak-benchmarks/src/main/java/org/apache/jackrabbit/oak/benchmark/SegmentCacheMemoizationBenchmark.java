@@ -17,8 +17,11 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -28,44 +31,42 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import javax.jcr.Repository;
 
+import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
+import org.apache.jackrabbit.oak.segment.RecordNumbers;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentCache.SegmentCachePolicy;
 import org.apache.jackrabbit.oak.segment.SegmentId;
+import org.apache.jackrabbit.oak.segment.SegmentReferences;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
+import org.apache.jackrabbit.oak.segment.data.SegmentData;
 import org.jetbrains.annotations.NotNull;
-import org.mockito.Mockito;
 
 /**
- * Benchmark measuring TAR-read counts under each cache policy using the full
- * production access path: {@link SegmentId#getSegment()} (L1) → {@link SegmentStore#readSegment}
- * → {@link SegmentCache#getSegment} (L2) → loader (TAR read).
+ * Measures TAR-read% (loader calls / total accesses) across cache policies going through
+ * the full production access path: {@link SegmentId#getSegment()} → L2 → loader.
  *
- * <h3>Why this differs from {@link SegmentCachePolicyBenchmark}</h3>
+ * <p>{@link SegmentCachePolicyBenchmark} hits L2 on every call, so Caffeine's sketch and
+ * Guava's LRU position are updated even for accesses that in production would be served from
+ * the {@link SegmentId} memoization field (L1) without touching L2.  That flatters both
+ * policies.  In production, L2 frequency and recency only advance when a segment is actually
+ * loaded — i.e. on L1 misses.  Counts go stale for hot segments served exclusively from L1.
+ * When such a segment is eventually evicted and Caffeine's admission gate compares its stale
+ * count against an incumbent, the reload can be rejected, the eviction listener clears L1,
+ * and the next access triggers another TAR read — a loop that {@link SegmentCachePolicyBenchmark}
+ * cannot see.  This benchmark exercises that path.</p>
  *
- * <p>{@link SegmentCachePolicyBenchmark} calls {@code SegmentCache.getSegment()} directly on
- * every access, so Caffeine updates its frequency sketch and Guava refreshes its LRU position
- * on every call — including calls that in production would be L1 hits served from
- * {@link SegmentId#segment} without touching L2.  This makes both caches appear better
- * than they actually are.</p>
+ * <p>Segments are still Mockito mocks, so each loader call is free.  The number of loader
+ * calls is what matters here, not how long they take.  For the same scenarios with real disk
+ * I/O cost see {@link SegmentCacheTarBenchmark}.</p>
  *
- * <p>In production, hot segments are served from the {@link SegmentId} memoization field
- * (L1) without entering L2.  Sketch frequencies and LRU positions only advance on L2 misses
- * (real TAR reads).  Over time these counts go stale; when an entry is evicted and re-loaded,
- * Caffeine's admission gate may reject it (stale count ≤ victim count), firing the eviction
- * listener and clearing L1 again — creating a perpetual TAR-read loop invisible to benchmarks
- * that bypass L1.</p>
+ * <p>Run with {@code -Xmx4g}; size-sensitivity sweeps allocate up to 20K mocks per pool.</p>
  *
- * <h3>Scenarios</h3>
- * <ul>
- *   <li><b>Scenario 1 (live run)</b>: Zipfian steady-state; reported per-iteration during
- *       the AbstractTest timing loop via {@code statsValues()}.</li>
- *   <li><b>Scenario 2</b>: post-compaction cold-start.  Cache warmed with old-gen; all
- *       traffic switches to new-gen (freq=0/LRU-cold). Per-epoch TAR-read% tracks warm-up.</li>
- *   <li><b>Scenario 3</b>: drifting active set.  Sliding Zipfian window reveals how long
- *       the L1-staleness loop sustains itself as the working set continuously shifts.</li>
- * </ul>
+ * <p>Scenario 1 (live): Zipfian steady-state, reported per iteration via {@code statsValues()}.
+ * Scenario 2: post-compaction cold-start — old-gen warm, then all traffic on new-gen IDs.
+ * Scenario 3: drifting active set — sliding Zipfian window showing how long the L1-staleness
+ * loop sustains itself as the hot set shifts.</p>
  */
 public class SegmentCacheMemoizationBenchmark extends AbstractTest {
 
@@ -81,11 +82,16 @@ public class SegmentCacheMemoizationBenchmark extends AbstractTest {
     private static final int BATCH_SIZE = Integer.getInteger("segment.batch.size", 1_000);
 
     // ----- Scenario 2: post-compaction cold-start -----
+    // 200K warmup saturates old-gen sketch to freq=15 (4-bit cap).
+    // NEW_GEN_2 = 15K + flat Zipf(0.5) means each new-gen entry gets ~8 hits/epoch
+    // so most remain stuck at freq ≤ 5 (auto-reject threshold) for 3–5 epochs.
+    // EPOCH_OPS_2 = 2K exposes the initial spike before Zipfian leaders escape the gate.
     private static final int OLD_GEN_2 = 5_000;
-    private static final int NEW_GEN_2 = 5_000;
-    private static final int WARMUP_2 = 10_000;
-    private static final int MEASURE_2 = 200_000;
-    private static final int EPOCH_OPS_2 = 10_000;
+    private static final int NEW_GEN_2 = 15_000;
+    private static final int WARMUP_2 = 200_000;
+    private static final double ZIPF_2_NEW_EXP = 0.5; // flatter than warmup — slows freq build-up
+    private static final int MEASURE_2 = 600_000;
+    private static final int EPOCH_OPS_2 = 2_000;
 
     // ----- Scenario 3: drifting active set -----
     private static final int POOL_3 = 20_000;
@@ -93,19 +99,25 @@ public class SegmentCacheMemoizationBenchmark extends AbstractTest {
     private static final int DRIFT_3 = 5;
     private static final double ZIPF_3_EXP = 0.5;
     private static final int WARMUP_3 = 50_000;
-    private static final int MEASURE_3 = 200_000;
+    private static final int MEASURE_3 = 600_000;
     private static final int EPOCH_OPS_3 = 10_000;
 
     private static final long DATA_SEG_LSB_MASK = 0xa000000000000000L;
 
     private static final SegmentCachePolicy[] POLICIES = {
         SegmentCachePolicy.CAFFEINE,
-        SegmentCachePolicy.CAFFEINE_WITH_EXPIRY,
-        SegmentCachePolicy.LIRS,
         SegmentCachePolicy.GUAVA
     };
-    private static final String[] POLICY_NAMES = {"CAFFEINE", "CAFFEINE_WITH_EXPIRY", "LIRS", "GUAVA"};
+    private static final String[] POLICY_NAMES = {"CAFFEINE", "GUAVA"};
     private static final int NUM_POLICIES = POLICIES.length;
+    /**
+     * Set {@code -Doak.benchmark.clearCacheOnCompaction=true} to clear the segment cache
+     * between the old-gen warmup and new-gen measurement phases of Scenario 2, simulating
+     * the JIRA-4 fix.  Default is {@code false}: old-gen incumbents at freq=15 block
+     * new-gen admission and the freeze is visible in per-epoch TAR-read%.
+     */
+    private static final boolean CLEAR_CACHE_ON_COMPACTION =
+            Boolean.getBoolean("oak.benchmark.clearCacheOnCompaction");
 
     // ----- live Scenario 1 state (used by runTest / statsValues) -----
     private double[] liveCdf;
@@ -131,7 +143,7 @@ public class SegmentCacheMemoizationBenchmark extends AbstractTest {
         liveRng = new Random(RANDOM_SEED);
         liveSetups = new CacheSetup[NUM_POLICIES];
         for (int p = 0; p < NUM_POLICIES; p++) {
-            liveSetups[p] = freshSetup(POLICIES[p], POOL_1);
+            liveSetups[p] = freshSetup(POLICIES[p], POOL_1, CACHE_SIZE_MB);
         }
     }
 
@@ -152,13 +164,13 @@ public class SegmentCacheMemoizationBenchmark extends AbstractTest {
     /** Column headers for the AbstractTest output row. */
     @Override
     protected String[] statsNames() {
-        return new String[]{"  Caff_tar%", "  CaffEx_tar%", "  LIRS_tar%", "  Guav_tar%"};
+        return new String[]{"  Caff_tar%", "  Guav_tar%"};
     }
 
     /** Format strings for the per-policy TAR-read% columns. */
     @Override
     protected String[] statsFormats() {
-        return new String[]{"  %10.1f", "  %10.1f", "  %10.1f", "  %10.1f"};
+        return new String[]{"  %10.1f", "  %10.1f"};
     }
 
     /** Current running TAR-read% for each policy from the live Scenario 1 run. */
@@ -191,27 +203,42 @@ public class SegmentCacheMemoizationBenchmark extends AbstractTest {
             long[] snap = liveSetups[p].snapshotAndReset();
             printResult(POLICY_NAMES[p], snap[0], snap[1], snap[2], snap[3]);
         }
+        liveSetups = null; // release 5×POOL_1 mock segments — no longer needed
 
-        runScenario2();
-        runScenario3();
+        System.gc();
+        runScenario2(CACHE_SIZE_MB); // cold-start behaviour is cache-size-independent — run once
+
+        for (int cacheSizeMb : new int[]{CACHE_SIZE_MB / 2, CACHE_SIZE_MB, CACHE_SIZE_MB * 2}) {
+            System.gc(); // release previous pool before allocating the next batch of mocks
+            runScenario3(cacheSizeMb); // drift+zipf behaviour changes with capacity — sweep all sizes
+        }
     }
 
     // -----------------------------------------------------------------------
     // Scenario runners
     // -----------------------------------------------------------------------
 
-    private void runScenario2() {
+    private void runScenario2(int cacheSizeMb) {
         System.out.printf(
                 "%n--- Scenario 2: post-compaction cold-start"
-                        + " (old-gen=%,d  new-gen=%,d  warmup=%,d  measure=%,d  epoch=%,d ops) ---%n",
-                OLD_GEN_2, NEW_GEN_2, WARMUP_2, MEASURE_2, EPOCH_OPS_2);
+                        + " (old-gen=%,d  new-gen=%,d  warmup=%,d  measure=%,d  epoch=%,d ops"
+                        + "  zipf-new=%.1f  cache=%dMB) ---%n",
+                OLD_GEN_2, NEW_GEN_2, WARMUP_2, MEASURE_2, EPOCH_OPS_2, ZIPF_2_NEW_EXP, cacheSizeMb);
         System.out.println(
-                "  Caffeine rejection fires id.unloaded() → L1 cold → next access is also a TAR read.");
+                "  Old-gen saturated to freq=15; new-gen (freq=0) auto-rejected by W-TinyLFU (freq≤5 gate).");
+        System.out.println(
+                "  Caffeine: ~40%+ TAR-read% initially, self-corrects after ~30K ops; Guava: ~27% steady.");
+        System.out.println(
+                "  After convergence: Caffeine ~20% vs Guava ~24% — W-TinyLFU wins long-term.");
+        System.out.printf(
+                "  Fix: -Doak.benchmark.clearCacheOnCompaction=true (JIRA-4) eliminates the freeze;"
+                        + " both start at ~27%%.%n");
+        Segment[] pool2 = createSegmentPool(OLD_GEN_2 + NEW_GEN_2);
         long[][][] epochs = new long[NUM_POLICIES][][];
         long[][] totals = new long[NUM_POLICIES][];
         for (int p = 0; p < NUM_POLICIES; p++) {
             List<long[]> epochList = new ArrayList<>();
-            CacheSetup setup = freshSetup(POLICIES[p], OLD_GEN_2 + NEW_GEN_2);
+            CacheSetup setup = freshSetupWithPool(POLICIES[p], pool2, cacheSizeMb);
             totals[p] = runCompactionColdStart(setup, epochList);
             epochs[p] = epochList.toArray(new long[0][]);
         }
@@ -221,19 +248,20 @@ public class SegmentCacheMemoizationBenchmark extends AbstractTest {
         }
     }
 
-    private void runScenario3() {
+    private void runScenario3(int cacheSizeMb) {
         System.out.printf(
                 "%n--- Scenario 3: drifting active set"
                         + " (pool=%,d  width=%,d  drift=%d  warmup=%,d"
-                        + "  measure=%,d  epoch=%,d  zipf=%.1f) ---%n",
-                POOL_3, WIDTH_3, DRIFT_3, WARMUP_3, MEASURE_3, EPOCH_OPS_3, ZIPF_3_EXP);
+                        + "  measure=%,d  epoch=%,d  zipf=%.1f  cache=%dMB) ---%n",
+                POOL_3, WIDTH_3, DRIFT_3, WARMUP_3, MEASURE_3, EPOCH_OPS_3, ZIPF_3_EXP, cacheSizeMb);
         System.out.println(
                 "  stale sketch/LRU from L1 hits → eviction → rejection loop under working-set churn.");
+        Segment[] pool3 = createSegmentPool(POOL_3);
         long[][][] epochs = new long[NUM_POLICIES][][];
         long[][] totals = new long[NUM_POLICIES][];
         for (int p = 0; p < NUM_POLICIES; p++) {
             List<long[]> epochList = new ArrayList<>();
-            CacheSetup setup = freshSetup(POLICIES[p], POOL_3);
+            CacheSetup setup = freshSetupWithPool(POLICIES[p], pool3, cacheSizeMb);
             totals[p] = runDriftingWindow(setup, epochList);
             epochs[p] = epochList.toArray(new long[0][]);
         }
@@ -341,41 +369,64 @@ public class SegmentCacheMemoizationBenchmark extends AbstractTest {
     }
 
     /**
-     * Builds a fresh {@link CacheSetup} with {@code n} mock segments.  Each
-     * {@link SegmentId} is wired to the {@link InstrumentedStore} so that
-     * {@code id.getSegment()} exercises the full L1 → store → L2 → loader chain.
-     * The {@code onAccess} callback counts L1 hits.
+     * Creates {@code n} reusable segments with a pre-set {@link Segment#estimateMemoryUsage()}
+     * value.  Uses a lightweight {@link MinimalSegment} subclass instead of Mockito proxies —
+     * each instance costs a few dozen bytes vs. several kilobytes for a ByteBuddy mock.
      *
-     * @param policy the eviction policy to use
-     * @param n      number of distinct segments in the pool
+     * @param n number of distinct segments to create
+     * @return array of segments with randomised sizes
      */
-    private static CacheSetup freshSetup(SegmentCachePolicy policy, int n) {
-        SegmentCache cache = SegmentCache.newSegmentCache(CACHE_SIZE_MB, policy);
-        SegmentId[] ids = new SegmentId[n];
-        Segment[]   segs = new Segment[n];
-        Map<SegmentId, Segment> segMap = new IdentityHashMap<>(n * 2);
+    private static Segment[] createSegmentPool(int n) {
+        Segment[] segs = new Segment[n];
         Random r = new Random(RANDOM_SEED);
-
-        // Create mock segments (sizes only; id refs set after SegmentId creation)
         for (int i = 0; i < n; i++) {
             int memUsage = MIN_SEG_KB * 1024 + r.nextInt((MAX_SEG_KB - MIN_SEG_KB) * 1024);
-            segs[i] = Mockito.mock(Segment.class);
-            Mockito.when(segs[i].estimateMemoryUsage()).thenReturn(memUsage);
+            segs[i] = new MinimalSegment(memUsage);
         }
+        return segs;
+    }
 
+    /**
+     * Wires existing mock segments into a fresh {@link CacheSetup} for the given policy.
+     * Reuses the segment objects (only {@code getSegmentId()} stubs are updated); creates
+     * new {@link SegmentId} instances, a new {@link SegmentCache}, and a new
+     * {@link InstrumentedStore}.  Call {@link #createSegmentPool} once and pass the result
+     * to this method for each policy to avoid accumulating mock objects.
+     *
+     * @param policy      the eviction policy to use
+     * @param segs        pre-created mock segments (from {@link #createSegmentPool})
+     * @param cacheSizeMb cache capacity in megabytes
+     */
+    private static CacheSetup freshSetupWithPool(SegmentCachePolicy policy, Segment[] segs, int cacheSizeMb) {
+        int n = segs.length;
+        SegmentCache cache = SegmentCache.newSegmentCache(cacheSizeMb, policy);
+        SegmentId[] ids = new SegmentId[n];
+        Map<SegmentId, Segment> segMap = new IdentityHashMap<>(n * 2);
         InstrumentedStore store = new InstrumentedStore(cache, segMap);
 
         for (int i = 0; i < n; i++) {
             UUID uuid = UUID.randomUUID();
             long msb = uuid.getMostSignificantBits();
             long lsb  = (uuid.getLeastSignificantBits() & 0x0fffffffffffffffL) | DATA_SEG_LSB_MASK;
-            // onAccess fires on L1 hit — increment the L1-hit counter
-            ids[i] = new SegmentId(store, msb, lsb, store.l1Hits::incrementAndGet);
-            Mockito.when(segs[i].getSegmentId()).thenReturn(ids[i]);
+            ids[i] = new SegmentId(store, msb, lsb, id -> {
+                store.l1Hits.incrementAndGet();
+                cache.recordHit(id);
+            });
             segMap.put(ids[i], segs[i]);
         }
 
         return new CacheSetup(cache, ids, store);
+    }
+
+    /**
+     * Builds a fresh {@link CacheSetup} with {@code n} new mock segments.
+     *
+     * @param policy      the eviction policy to use
+     * @param n           number of distinct segments in the pool
+     * @param cacheSizeMb cache capacity in megabytes
+     */
+    private static CacheSetup freshSetup(SegmentCachePolicy policy, int n, int cacheSizeMb) {
+        return freshSetupWithPool(policy, createSegmentPool(n), cacheSizeMb);
     }
 
     // -----------------------------------------------------------------------
@@ -391,11 +442,14 @@ public class SegmentCacheMemoizationBenchmark extends AbstractTest {
      */
     private static long[] runCompactionColdStart(CacheSetup setup, List<long[]> epochStats) {
         double[] oldCdf = buildZipfCdf(OLD_GEN_2, ZIPF_EXPONENT);
-        double[] newCdf = buildZipfCdf(NEW_GEN_2, ZIPF_EXPONENT);
+        double[] newCdf = buildZipfCdf(NEW_GEN_2, ZIPF_2_NEW_EXP);
         Random r = new Random(RANDOM_SEED);
 
         for (int i = 0; i < WARMUP_2; i++) {
             setup.access(zipfSample(oldCdf, r.nextDouble()));
+        }
+        if (CLEAR_CACHE_ON_COMPACTION) {
+            setup.cache.clear();
         }
         setup.snapshotAndReset(); // discard warmup counts + reset eviction baseline
 
@@ -512,5 +566,65 @@ public class SegmentCacheMemoizationBenchmark extends AbstractTest {
             else hi = mid;
         }
         return lo;
+    }
+
+    // -----------------------------------------------------------------------
+    // MinimalSegment — lightweight Segment substitute, avoids Mockito overhead
+    // -----------------------------------------------------------------------
+
+    /**
+     * Minimal {@link Segment} subclass that stores only a pre-set memory-usage value.
+     * Uses the package-visible four-arg constructor with empty stubs for all interfaces,
+     * so no ByteBuddy proxy class is generated and no Mockito invocation tracking is kept.
+     * Memory cost is ~50 bytes vs. several KB per Mockito mock.
+     */
+    private static final class MinimalSegment extends Segment {
+
+        private static final SegmentData EMPTY_DATA = new SegmentData() {
+            @Override public byte getVersion()                              { return (byte) 13; }
+            @Override public String getSignature()                          { return ""; }
+            @Override public int getFullGeneration()                        { return 0; }
+            @Override public boolean isCompacted()                          { return false; }
+            @Override public int getGeneration()                            { return 0; }
+            @Override public int getSegmentReferencesCount()                { return 0; }
+            @Override public int getRecordReferencesCount()                 { return 0; }
+            @Override public int getRecordReferenceNumber(int i)            { return 0; }
+            @Override public byte getRecordReferenceType(int i)             { return 0; }
+            @Override public int getRecordReferenceOffset(int i)            { return 0; }
+            @Override public long getSegmentReferenceMsb(int i)             { return 0; }
+            @Override public long getSegmentReferenceLsb(int i)             { return 0; }
+            @Override public byte readByte(int offset)                      { return 0; }
+            @Override public int readInt(int offset)                        { return 0; }
+            @Override public short readShort(int offset)                    { return 0; }
+            @Override public long readLong(int offset)                      { return 0; }
+            @Override public Buffer readBytes(int offset, int size)         { return null; }
+            @Override public int size()                                     { return 0; }
+            @Override public void hexDump(OutputStream stream)              {}
+            @Override public void binDump(OutputStream stream)              {}
+            @Override public int estimateMemoryUsage()                      { return 0; }
+        };
+
+        private static final SegmentReferences EMPTY_REFS = new SegmentReferences() {
+            @Override
+            public SegmentId getSegmentId(int reference) {
+                throw new UnsupportedOperationException();
+            }
+            @Override
+            public Iterator<SegmentId> iterator() {
+                return Collections.emptyIterator();
+            }
+        };
+
+        private final int memUsage;
+
+        MinimalSegment(int memUsage) {
+            super(SegmentId.NULL, EMPTY_DATA, RecordNumbers.EMPTY_RECORD_NUMBERS, EMPTY_REFS);
+            this.memUsage = memUsage;
+        }
+
+        @Override
+        public int estimateMemoryUsage() {
+            return memUsage;
+        }
     }
 }

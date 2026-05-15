@@ -86,6 +86,18 @@ public class SegmentCacheTest {
     }
 
     @Test
+    public void putSegmentDoesNotInflateWeightOrElementCount() throws ExecutionException {
+        AbstractCacheStats stats = cache.getCacheStats();
+        cache.putSegment(segment1);
+        cache.cleanUp();
+        assertEquals(33, stats.estimateCurrentWeight());
+        assertEquals(1, stats.getElementCount());
+        // Entry must still be accessible via L1 and L2
+        assertEquals(segment1, id1.getSegment());
+        assertEquals(segment1, cache.getSegment(id1, () -> failToLoad(id1)));
+    }
+
+    @Test
     public void getSegmentWrapsCheckedLoaderFailureInExecutionException() {
         Exception failure = new Exception("load failed");
 
@@ -137,6 +149,52 @@ public class SegmentCacheTest {
         // Assert that segment1 was loaded again
         assertEquals(segment1, id1.getSegment());
         assertEquals(segment1, cache.getSegment(id1, () -> failToLoad(id1)));
+    }
+
+    /**
+     * Reproduces the Caffeine-specific clear() bug: Caffeine's evictionListener fires only for
+     * size/time evictions, not for explicit invalidateAll(). The old clear() implementation
+     * delegated entirely to cache.invalidateAll(), so entries not in Caffeine's pending-eviction
+     * queue kept their L1 (SegmentId.segment) references after the call. Subsequent reads then
+     * returned stale segment data from L1 instead of going through the loader, bypassing the
+     * post-compaction reload path that ensures correct segment data.
+     */
+    @Test
+    public void clearUnloadsAllSegmentIdsFromL1() throws ExecutionException {
+        cache.getSegment(id1, () -> segment1);
+        cache.getSegment(id2, () -> segment2);
+
+        // Verify both are memoised in L1
+        assertEquals(segment1, id1.getSegment());
+        assertEquals(segment2, id2.getSegment());
+
+        cache.clear();
+
+        // L1 must be null for ALL entries — not only those Caffeine's evictionListener
+        // happened to fire for during invalidateAll().
+        expect(SegmentNotFoundException.class, id1::getSegment);
+        expect(SegmentNotFoundException.class, id2::getSegment);
+    }
+
+    /**
+     * Reproduces the stats.currentWeight inflation caused by the same Caffeine clear() bug:
+     * because evictionListener was not called for explicitly-invalidated entries, the weight
+     * decrements in onRemove() never ran, leaving currentWeight stuck at the pre-clear value.
+     * Subsequent putSegment() calls added to an already-inflated counter, eventually causing
+     * spurious size-based evictions and incorrect occupancy metrics.
+     */
+    @Test
+    public void clearResetsCurrentWeightToZeroForAllEntries() throws ExecutionException {
+        cache.getSegment(id1, () -> segment1);  // contributes weight 33 (32 overhead + 1)
+        cache.getSegment(id2, () -> segment2);  // contributes weight 34 (32 overhead + 2)
+        assertEquals(67, cache.getCacheStats().estimateCurrentWeight());
+
+        cache.clear();
+
+        // currentWeight must be 0: without the explicit stats.currentWeight.set(0) at the
+        // end of clear(), entries whose evictionListener was skipped kept their weight in
+        // the counter and inflated it across compaction cycles.
+        assertEquals(0, cache.getCacheStats().estimateCurrentWeight());
     }
 
     @Test

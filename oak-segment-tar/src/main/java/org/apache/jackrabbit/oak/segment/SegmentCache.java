@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.segment;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.CacheWeights.segmentWeight;
 
-import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionException;
@@ -42,6 +41,7 @@ import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
 import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
 import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.apache.jackrabbit.oak.segment.CacheWeights.SegmentCacheWeigher;
+import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -53,8 +53,12 @@ import org.jetbrains.annotations.NotNull;
  * level cache is implemented by memoising the segment in its id (see {@code
  * SegmentId#segment}. Every time an segment is evicted from this cache the
  * memoised segment is discarded (see {@code SegmentId#onAccess}). On an L1 hit,
+<<<<<<< HEAD
  * {@link #recordHit(SegmentId)} records L1 hits in {@link #getCacheStats()} and, when enabled,
  * touches L2 so eviction policies see the access.
+=======
+ * {@link #recordHit(SegmentId)} notifies L2 so eviction policies see the access.
+>>>>>>> 3fcfdaa256 (OAK-12210 : benchmark cleanup and cache bug fixes)
  */
 public abstract class SegmentCache {
 
@@ -68,18 +72,13 @@ public abstract class SegmentCache {
     /**
      * Eviction policy used by {@link NonEmptyCache}.
      *
-     * <p>The default is {@link #CAFFEINE}. {@link #LIRS} selects the
-     * {@link org.apache.jackrabbit.oak.cache.CacheLIRS} implementation,
-     * which was the segment-cache backend before the Caffeine migration
-     * (see OAK-XXXXX). Useful for A/B testing or benchmarking.</p>
+     * <p>The default is {@link #CAFFEINE}. {@link #GUAVA} selects the original
+     * Guava LRU implementation. Useful for A/B testing or benchmarking.</p>
      */
     public enum SegmentCachePolicy {
         /** Caffeine W-TinyLFU — current default. */
         CAFFEINE,
-        /** Caffeine W-TinyLFU with 30-second expiry-after-access — for benchmarking TTL impact. */
-        CAFFEINE_WITH_EXPIRY,
-        /** Oak CacheLIRS — pre-migration baseline. */
-        LIRS,
+        // TODO : remove me after next release (only added for benchmark tests)
         /** Guava LRU — original SegmentCache backend, before the LIRS migration. */
         GUAVA
     }
@@ -134,7 +133,10 @@ public abstract class SegmentCache {
     public abstract void putSegment(@NotNull Segment segment);
 
     /**
-     * Clear all segment from the cache
+     * Clear all segments from the cache and drop L1 memoization on every cached id
+     * ({@link SegmentId#unloaded()}). Invoked after successful compaction (before tar
+     * cleanup) and during {@code DefaultCleanupStrategy} cleanup so W-TinyLFU / LRU state
+     * does not retain stale frequency for reclaimed generations.
      */
     public abstract void clear();
 
@@ -208,38 +210,18 @@ public abstract class SegmentCache {
 
         private Cache<SegmentId, Segment> buildCache(long maximumWeight, SegmentCachePolicy policy) {
             switch (policy) {
-                case LIRS:
-                    org.apache.jackrabbit.oak.cache.CacheLIRS.EvictionCallback<SegmentId, Segment> lirsCallback =
-                            (key, value, cause) -> this.onRemove(key, value,
-                                    org.apache.jackrabbit.oak.cache.CacheLIRS.toOakCause(cause));
-                    org.apache.jackrabbit.oak.cache.CacheLIRS<SegmentId, Segment> lirs =
-                            org.apache.jackrabbit.oak.cache.CacheLIRS
-                                    .<SegmentId, Segment>newBuilder()
-                                    .maximumWeight(maximumWeight)
-                                    .weigher((key, value) -> segmentWeight(value))
-                                    .evictionCallback(lirsCallback)
-                                    .build();
-                    return lirs.asManualCache();
                 case GUAVA:
                     return buildGuavaCache(maximumWeight);
                 case CAFFEINE:
-                    return CacheBuilder.<SegmentId, Segment>newBuilder()
-                            .maximumWeight(maximumWeight)
-                            .weigher(new SegmentCacheWeigher())
-                            .evictionListener(this::onRemove)
-                            .build();
-                case CAFFEINE_WITH_EXPIRY:
                 default:
                     return CacheBuilder.<SegmentId, Segment>newBuilder()
                             .maximumWeight(maximumWeight)
                             .weigher(new SegmentCacheWeigher())
-                            .expireAfterAccess(Duration.ofSeconds(30))
                             .evictionListener(this::onRemove)
                             .build();
             }
         }
 
-        @SuppressWarnings("unchecked")
         private Cache<SegmentId, Segment> buildGuavaCache(long maximumWeight) {
             org.apache.jackrabbit.guava.common.cache.Cache<SegmentId, Segment> guava =
                     org.apache.jackrabbit.guava.common.cache.CacheBuilder.newBuilder()
@@ -320,7 +302,15 @@ public abstract class SegmentCache {
 
         @Override
         public void clear() {
+            // CaffeineCacheAdapter.invalidateAll() calls cleanUp() internally so
+            // onRemove() fires for every entry before this returns, clearing L1
+            // (key.unloaded()) and decrementing currentWeight for each entry.
+            // The set(0) below is a safety net: any SIZE-eviction that was already
+            // pending in Caffeine's write buffer before this call will also fire
+            // during cleanUp() and could double-decrement a weight that was already
+            // subtracted by the EXPLICIT removal notification.
             cache.invalidateAll();
+            stats.currentWeight.set(0);
         }
 
         @Override
