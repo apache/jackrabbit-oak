@@ -46,7 +46,8 @@ import org.jetbrains.annotations.NotNull;
  * level cache is implemented by memoising the segment in its id (see {@code
  * SegmentId#segment}. Every time an segment is evicted from this cache the
  * memoised segment is discarded (see {@code SegmentId#onAccess}). On an L1 hit,
- * {@link #recordHit(SegmentId)} notifies L2 so eviction policies see the access.
+ * {@link #recordHit(SegmentId)} records L1 hits in {@link #getCacheStats()} and, when enabled,
+ * touches L2 so eviction policies see the access.
  */
 public abstract class SegmentCache {
 
@@ -105,23 +106,30 @@ public abstract class SegmentCache {
     public abstract AbstractCacheStats getCacheStats();
 
     /**
-     * Notifies L2 that {@code id} was accessed via L1 memoisation ({@link SegmentId#getSegment()}).
-     * Updates the backing cache's recency/frequency when the segment is still cached, and records
-     * a hit in {@link #getCacheStats()}.
+     * Called on L1 memoised access ({@link SegmentId#getSegment()}): increments {@link #getCacheStats()}
+     * hit counts and, for data segments with {@link #FT_OAK_12214_ENABLE} {@code true}, touches L2
+     * (e.g. {@code getIfPresent}) so eviction policy matches real reads. Name is historical
+     * ({@code hit} = stats); the L2 side is access notification, not only accounting.
+     * <p>
+     * When the toggle is {@code true} and {@code id} is a data segment, this performs one extra map
+     * lookup on the hottest read path whenever the segment is still in L2.
      *
      * @param id the segment id that was served from L1
      */
     public abstract void recordHit(@NotNull SegmentId id);
 
     /**
-     * Feature toggle name to enable embedded verification for full GC mode for Mongo Document Store
+     * Feature toggle name for {@link #FT_OAK_12214_ENABLE}: propagate L1 memoisation hits to the
+     * segment L2 cache so frequency/recency used for eviction stay aligned with actual access.
+     * Disable at runtime via the OSGi Whiteboard when diagnosing behaviour.
      */
     public static final String FT_OAK_12214 = "FT_OAK-12214";
 
     /**
-     * Feature toggle that controls whether L1 hits are propagated to L2 to keep
-     * W-TinyLFU frequency counts and LRU recency accurate. Enabled by default.
-     * Can be disabled at runtime via the OSGi Whiteboard.
+     * Whether L1 memoised hits are propagated to L2 so W-TinyLFU / LRU state matches actual access.
+     * Defaults to {@code true} as a <strong>bug-fix</strong> toggle (L2 was blind to L1); flip via
+     * the OSGi Whiteboard {@link org.apache.jackrabbit.oak.spi.toggle.FeatureToggle FeatureToggle}
+     * registered under {@link #FT_OAK_12214} for diagnosis or A/B runs.
      */
     public static final AtomicBoolean FT_OAK_12214_ENABLE = new AtomicBoolean(true);
 
@@ -234,11 +242,9 @@ public abstract class SegmentCache {
 
         @Override
         public void recordHit(@NotNull SegmentId id) {
-            if (id.isDataSegmentId()) {
-                if (FT_OAK_12214_ENABLE.get()) {
-                    cache.getIfPresent(id);
-                }
-                stats.hitCount.incrementAndGet();
+            stats.hitCount.incrementAndGet();
+            if (id.isDataSegmentId() && FT_OAK_12214_ENABLE.get()) {
+                cache.getIfPresent(id);
             }
         }
     }
@@ -290,9 +296,7 @@ public abstract class SegmentCache {
 
         @Override
         public void recordHit(@NotNull SegmentId id) {
-            if (id.isDataSegmentId()) {
-                stats.hitCount.incrementAndGet();
-            }
+            stats.hitCount.incrementAndGet();
         }
     }
 

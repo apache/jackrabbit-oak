@@ -88,10 +88,15 @@ public class SegmentId implements Comparable<SegmentId> {
 
     /**
      * Create a new segment id with access tracking.
-     * @param store  store this is belongs to
-     * @param msb    most significant bits of this id
-     * @param lsb    least significant bits of this id
-     * @param onAccess  callback called whenever an underlying and locally memoised segment is accessed.
+     *
+     * @param store    store this id belongs to
+     * @param msb      most significant bits of this id
+     * @param lsb      least significant bits of this id
+     * @param onAccess callback invoked whenever the locally memoised segment is accessed
+     *                 ({@link #getSegment()}); receives {@code this} (e.g. to notify {@link SegmentCache}).
+     *                 <p><strong>API note (Oak 2.1, OAK-12214):</strong> this parameter type changed from
+     *                 {@link Runnable} to {@link java.util.function.Consumer Consumer}{@code <SegmentId>} for
+     *                 L1-to-L2 propagation; downstream code that constructed ids with a {@code Runnable} must be updated.
      */
     public SegmentId(@NotNull SegmentStore store, long msb, long lsb, @NotNull Consumer<SegmentId> onAccess) {
         this.store = store;

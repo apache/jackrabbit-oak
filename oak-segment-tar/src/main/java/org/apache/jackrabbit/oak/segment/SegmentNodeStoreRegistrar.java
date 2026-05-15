@@ -277,7 +277,7 @@ class SegmentNodeStoreRegistrar {
         }
         registerCloseable(store);
 
-        // register FT for notifying L2 cache on L1 hit
+        // OAK-12214: bug-fix toggle (default on) so L2 eviction policy sees L1 memoised hits
         registerCloseable(cfg.getWhiteboard().register(FeatureToggle.class,
                 new FeatureToggle(SegmentCache.FT_OAK_12214, SegmentCache.FT_OAK_12214_ENABLE),
                 Collections.emptyMap()));
