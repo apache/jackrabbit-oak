@@ -29,8 +29,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
-import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
-
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.api.Cache;
@@ -101,13 +99,6 @@ public abstract class SegmentCache {
     public abstract void clear();
 
     /**
-     * Performs any pending cache maintenance operations, including flushing
-     * deferred eviction processing.  Call before reading eviction statistics
-     * to ensure all pending evictions are counted.
-     */
-    public abstract void cleanUp();
-
-    /**
      * @return Statistics for this cache.
      */
     @NotNull
@@ -123,12 +114,16 @@ public abstract class SegmentCache {
     public abstract void recordHit(@NotNull SegmentId id);
 
     /**
+     * Feature toggle name to enable embedded verification for full GC mode for Mongo Document Store
+     */
+    public static final String FT_OAK_12214 = "FT_OAK-12214";
+
+    /**
      * Feature toggle that controls whether L1 hits are propagated to L2 to keep
      * W-TinyLFU frequency counts and LRU recency accurate. Enabled by default.
      * Can be disabled at runtime via the OSGi Whiteboard.
      */
-    public static final FeatureToggle FT_NOTIFY_L2_ON_L1_HIT =
-            new FeatureToggle("FT_NOTIFY_L2_OAK-12214", new AtomicBoolean(true));
+    public static final AtomicBoolean FT_OAK_12214_ENABLE = new AtomicBoolean(true);
 
     private static class NonEmptyCache extends SegmentCache {
 
@@ -232,11 +227,6 @@ public abstract class SegmentCache {
         }
 
         @Override
-        public void cleanUp() {
-            cache.cleanUp();
-        }
-
-        @Override
         @NotNull
         public AbstractCacheStats getCacheStats() {
             return stats;
@@ -245,7 +235,7 @@ public abstract class SegmentCache {
         @Override
         public void recordHit(@NotNull SegmentId id) {
             if (id.isDataSegmentId()) {
-                if (FT_NOTIFY_L2_ON_L1_HIT.isEnabled()) {
+                if (FT_OAK_12214_ENABLE.get()) {
                     cache.getIfPresent(id);
                 }
                 stats.hitCount.incrementAndGet();
@@ -291,9 +281,6 @@ public abstract class SegmentCache {
 
         @Override
         public void clear() {}
-
-        @Override
-        public void cleanUp() {}
 
         @NotNull
         @Override

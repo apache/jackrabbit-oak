@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.oak.segment.SegmentStore.EMPTY_STORE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -161,29 +162,114 @@ public class SegmentCacheTest {
     }
 
     /**
-     * Repeated L1 hits must notify L2 ({@link SegmentCache#recordHit}) so eviction
-     * policies retain hot segments. Without this, only {@code getSegment} on L2
-     * would update recency/frequency while production serves most hits from L1.
+     * Verifies that repeated L1 hits keep a segment alive in L2 under eviction pressure.
+     *
+     * <p>Each L1 hit calls {@link SegmentCache#recordHit}, which calls
+     * {@code cache.getIfPresent(id)} to register an L2 read. This raises hotId's frequency
+     * in W-TinyLFU's sketch to ~100. Fillers are re-accessed 20× each (freq ~20), and
+     * 20 × 64 KB fillers (1.25 MB) overflow the 1 MB cache. hotId (freq ~100) beats fillers
+     * (freq ~20) and is retained. This is the same filler setup as the negative test — the
+     * only difference is that the toggle is enabled here.
+     *
+     * <p>The test is deterministic: the 100:20 frequency ratio gives W-TinyLFU no
+     * reason to ever prefer hotId over a filler as the eviction victim.
      */
     @Test
     public void recordAccessKeepsHotSegmentInL2UnderPressure() throws ExecutionException {
-        cache.getSegment(id1, () -> segment1);
+        // 1 MB cache — small enough that 20 × 64 KB fillers create real eviction pressure.
+        SegmentCache smallCache = newSegmentCache(1);
+        SegmentId hotId = new SegmentId(EMPTY_STORE, 0xdeadL, 0xa000000000000001L, smallCache::recordHit);
+        Segment hotSeg = mock(Segment.class);
+        when(hotSeg.getSegmentId()).thenReturn(hotId);
+        when(hotSeg.estimateMemoryUsage()).thenReturn(1);
+
+        // Initial L2 load — hotId gets frequency ~1 in the sketch.
+        smallCache.getSegment(hotId, () -> hotSeg);
+
+        // 100 L1 hits: each triggers recordHit → cache.getIfPresent(hotId) → sketch freq ~100.
         for (int i = 0; i < 100; i++) {
-            assertEquals(segment1, id1.getSegment());
+            assertEquals(hotSeg, hotId.getSegment());
         }
 
-        // Fill the cache with other entries until id1 would be evicted without L1→L2 feedback.
-        for (int i = 0; i < 500; i++) {
+        // 20 × 64 KB fillers, each re-accessed 20× via L2 (freq ~20). Total = 1.25 MB > 1 MB
+        // cache, so evictions must happen. hotId (freq ~100) still beats fillers (freq ~20)
+        // and survives. Same filler setup as the negative test — only the toggle differs.
+        for (int i = 0; i < 20; i++) {
             SegmentId filler = new SegmentId(EMPTY_STORE, i + 10L, 0xa000000000000010L + i);
             Segment fillerSeg = mock(Segment.class);
             when(fillerSeg.getSegmentId()).thenReturn(filler);
             when(fillerSeg.estimateMemoryUsage()).thenReturn(64 * 1024);
-            cache.getSegment(filler, () -> fillerSeg);
+            smallCache.getSegment(filler, () -> fillerSeg);
+            for (int j = 0; j < 20; j++) {
+                smallCache.getSegment(filler, () -> fillerSeg);
+            }
         }
-        cache.cleanUp();
 
-        assertEquals(segment1, cache.getSegment(id1, () -> failToLoad(id1)));
-        assertEquals(segment1, id1.getSegment());
+        // hotId must still be in L2 — loader must not be called.
+        assertEquals(hotSeg, smallCache.getSegment(hotId, () -> failToLoad(hotId)));
+        // L1 memoisation must also be intact.
+        assertEquals(hotSeg, hotId.getSegment());
+    }
+
+    /**
+     * Negative counterpart: with {@link SegmentCache#FT_OAK_12214_ENABLE} disabled,
+     * L1 hits skip {@code cache.getIfPresent}, so hotId's L2 frequency stays at ~1.
+     * Fillers re-accessed 20× via L2 each build frequency ~20, making hotId the clear
+     * eviction victim when the cache overflows.
+     *
+     * <p>Determinism guarantee: the 20:1 filler-to-hotId frequency ratio ensures W-TinyLFU
+     * always picks hotId as the eviction victim. Total filler weight (20 × 64 KB = 1.25 MB)
+     * exceeds the 1 MB cache, so at least one eviction is guaranteed; hotId, with the
+     * lowest frequency of any resident, is always chosen first.
+     *
+     * <p>The {@code finally} block restores the toggle so other tests are unaffected.
+     */
+    @Test
+    public void hotSegmentEvictedWithoutL2Notification() throws ExecutionException {
+        SegmentCache.FT_OAK_12214_ENABLE.set(false);
+        try {
+            // 1 MB cache — same size as the positive test so the two are directly comparable.
+            SegmentCache smallCache = newSegmentCache(1);
+            SegmentId hotId = new SegmentId(EMPTY_STORE, 0xdeadL, 0xa000000000000001L, smallCache::recordHit);
+            Segment hotSeg = mock(Segment.class);
+            when(hotSeg.getSegmentId()).thenReturn(hotId);
+            when(hotSeg.estimateMemoryUsage()).thenReturn(1);
+
+            // Initial L2 load — hotId gets frequency ~1.
+            smallCache.getSegment(hotId, () -> hotSeg);
+
+            // 100 L1 hits — with toggle disabled, recordHit skips cache.getIfPresent,
+            // so hotId's L2 frequency remains ~1 despite being "hot" from the app's perspective.
+            for (int i = 0; i < 100; i++) {
+                assertEquals(hotSeg, hotId.getSegment());
+            }
+
+            // Each filler is re-accessed 20× via L2 (getSegment on a cached entry is an L2 hit
+            // that updates the frequency sketch). This gives every filler freq ~20 >> hotId's ~1,
+            // making hotId the unambiguous eviction victim when the cache overflows.
+            for (int i = 0; i < 20; i++) {
+                SegmentId filler = new SegmentId(EMPTY_STORE, i + 10L, 0xa000000000000010L + i);
+                Segment fillerSeg = mock(Segment.class);
+                when(fillerSeg.getSegmentId()).thenReturn(filler);
+                when(fillerSeg.estimateMemoryUsage()).thenReturn(64 * 1024);
+                smallCache.getSegment(filler, () -> fillerSeg);
+                // Re-access via L2 to raise filler frequency above hotId's.
+                for (int j = 0; j < 20; j++) {
+                    smallCache.getSegment(filler, () -> fillerSeg);
+                }
+            }
+
+            // hotId must have been evicted — loader must be called.
+            AtomicBoolean reloaded = new AtomicBoolean(false);
+            smallCache.getSegment(hotId, () -> {
+                reloaded.set(true);
+                return hotSeg;
+            });
+            assertTrue("hotId should have been evicted when L2 notification is disabled", reloaded.get());
+        } finally {
+            // Always restore the toggle so subsequent tests run with the default behaviour.
+            SegmentCache.FT_OAK_12214_ENABLE.set(true);
+        }
     }
 
     @Test

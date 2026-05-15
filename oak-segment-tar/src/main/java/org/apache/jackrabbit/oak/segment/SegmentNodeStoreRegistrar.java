@@ -64,6 +64,7 @@ import org.apache.jackrabbit.oak.spi.gc.GCMonitorTracker;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.RevisionGC;
 import org.apache.jackrabbit.oak.spi.state.RevisionGCMBean;
+import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
 import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -79,6 +80,7 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -274,6 +276,11 @@ class SegmentNodeStoreRegistrar {
             return null;
         }
         registerCloseable(store);
+
+        // register FT for notifying L2 cache on L1 hit
+        registerCloseable(cfg.getWhiteboard().register(FeatureToggle.class,
+                new FeatureToggle(SegmentCache.FT_OAK_12214, SegmentCache.FT_OAK_12214_ENABLE),
+                Collections.emptyMap()));
 
         // Listen for Executor services on the whiteboard
 
