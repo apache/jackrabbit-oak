@@ -42,7 +42,6 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGC;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGCMBean;
-import org.apache.jackrabbit.oak.segment.file.AbstractCompactionStrategy;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
@@ -278,9 +277,9 @@ class SegmentNodeStoreRegistrar {
         }
         registerCloseable(store);
 
-        // FT for clearing segment cache on compaction
+        // OAK-12216: bug-fix toggle (default on) — clear segment L2 after successful compaction
         registerCloseable(cfg.getWhiteboard().register(FeatureToggle.class,
-                new FeatureToggle(AbstractCompactionStrategy.FT_CLEAR_CACHE_OAK_12216, AbstractCompactionStrategy.FT_OAK_12216_ENABLE),
+                new FeatureToggle(SegmentCache.FT_CLEAR_CACHE_OAK_12216, SegmentCache.FT_OAK_12216_ENABLE),
                 Collections.emptyMap()));
 
         // Listen for Executor services on the whiteboard

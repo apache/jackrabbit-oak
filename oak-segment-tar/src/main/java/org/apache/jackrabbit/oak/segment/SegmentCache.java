@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.oak.segment.CacheWeights.segmentWeight;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
@@ -52,6 +53,19 @@ public abstract class SegmentCache {
      * Default maximum weight of this cache in MB
      */
     public static final int DEFAULT_SEGMENT_CACHE_MB = 256;
+
+    /**
+     * Whiteboard toggle name for {@link #FT_OAK_12216_ENABLE} (clear segment L2 after successful
+     * compaction). Registered from {@link SegmentNodeStoreRegistrar}.
+     */
+    public static final String FT_CLEAR_CACHE_OAK_12216 = "FT_CLEAR_CACHE_OAK-12216";
+
+    /**
+     * When {@code true} (default), compaction calls {@link #clear()} so a new GC generation is not
+     * competing with a full window of prior-generation entries in the L2 map. Treat as a
+     * <em>bug-fix</em> toggle per root {@code AGENTS.md}; disable via the Whiteboard for diagnosis.
+     */
+    public static final AtomicBoolean FT_OAK_12216_ENABLE = new AtomicBoolean(true);
 
     private static final String NAME = "Segment Cache";
 
@@ -92,7 +106,11 @@ public abstract class SegmentCache {
     public abstract void putSegment(@NotNull Segment segment);
 
     /**
-     * Clear all segment from the cache
+     * Evicts every cached segment (L2 invalidation and {@link SegmentId#unloaded()} on eviction).
+     * After compaction, clearing drops old-generation incumbents from the map so new segments are
+     * not admitted only after contending with a full cache of stale ids; effects on any approximate
+     * admission metadata inside the configured cache implementation (Caffeine vs Guava) are defined
+     * by that vendor.
      */
     public abstract void clear();
 

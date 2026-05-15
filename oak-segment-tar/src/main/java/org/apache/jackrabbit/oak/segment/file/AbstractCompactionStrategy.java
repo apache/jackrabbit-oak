@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.segment.Compactor;
 import org.apache.jackrabbit.oak.segment.LegacyCheckpointCompactor;
 import org.apache.jackrabbit.oak.segment.ParallelCompactor;
 import org.apache.jackrabbit.oak.segment.RecordId;
+import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
@@ -43,22 +44,10 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 
-public abstract class AbstractCompactionStrategy implements CompactionStrategy {
-
-    /** OSGi Whiteboard toggle name — used by {@link org.apache.jackrabbit.oak.segment.SegmentNodeStoreRegistrar}. */
-    public static final String FT_CLEAR_CACHE_OAK_12216 = "FT_CLEAR_CACHE_OAK-12216";
-
-    /**
-     * Backing state for the feature toggle registered on the Whiteboard.  When the toggle is
-     * enabled (default), {@link org.apache.jackrabbit.oak.segment.SegmentCache#clear()} is called
-     * immediately after compaction succeeds so old-generation W-TinyLFU counts do not block
-     * new-generation admission.  Disable at runtime via JMX/Whiteboard if needed.
-     */
-    public static final AtomicBoolean FT_OAK_12216_ENABLE = new AtomicBoolean(true);
+abstract class AbstractCompactionStrategy implements CompactionStrategy {
 
     abstract GCType getCompactionType();
 
@@ -85,11 +74,11 @@ public abstract class AbstractCompactionStrategy implements CompactionStrategy {
     }
 
     /**
-     * Clears the segment cache when {@link #FT_OAK_12216_ENABLE} is enabled, then
-     * notifies the GC listener.  Package-private so unit tests can invoke it directly.
+     * Clears the segment cache when {@link SegmentCache#FT_OAK_12216_ENABLE} is enabled, then
+     * notifies the GC listener. Package-private so unit tests can invoke it directly.
      */
     static void notifyCompactionSucceeded(Context context, GCGeneration generation) {
-        if (FT_OAK_12216_ENABLE.get()) {
+        if (SegmentCache.FT_OAK_12216_ENABLE.get()) {
             context.getSegmentCache().clear();
         }
         context.getGCListener().compactionSucceeded(generation);
