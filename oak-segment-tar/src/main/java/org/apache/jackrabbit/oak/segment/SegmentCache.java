@@ -24,9 +24,12 @@ import static org.apache.jackrabbit.oak.segment.CacheWeights.segmentWeight;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
+
+import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
 
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
@@ -44,7 +47,8 @@ import org.jetbrains.annotations.NotNull;
  * Conceptually this cache serves as a 2nd level cache for segments. The 1st
  * level cache is implemented by memoising the segment in its id (see {@code
  * SegmentId#segment}. Every time an segment is evicted from this cache the
- * memoised segment is discarded (see {@code SegmentId#onAccess}.
+ * memoised segment is discarded (see {@code SegmentId#onAccess}). On an L1 hit,
+ * {@link #recordHit(SegmentId)} notifies L2 so eviction policies see the access.
  */
 public abstract class SegmentCache {
 
@@ -97,17 +101,34 @@ public abstract class SegmentCache {
     public abstract void clear();
 
     /**
+     * Performs any pending cache maintenance operations, including flushing
+     * deferred eviction processing.  Call before reading eviction statistics
+     * to ensure all pending evictions are counted.
+     */
+    public abstract void cleanUp();
+
+    /**
      * @return Statistics for this cache.
      */
     @NotNull
     public abstract AbstractCacheStats getCacheStats();
 
     /**
-     * Record a hit in this cache's underlying statistics.
+     * Notifies L2 that {@code id} was accessed via L1 memoisation ({@link SegmentId#getSegment()}).
+     * Updates the backing cache's recency/frequency when the segment is still cached, and records
+     * a hit in {@link #getCacheStats()}.
      *
-     * See {@code SegmentId#onAccess}
+     * @param id the segment id that was served from L1
      */
-    public abstract void recordHit();
+    public abstract void recordHit(@NotNull SegmentId id);
+
+    /**
+     * Feature toggle that controls whether L1 hits are propagated to L2 to keep
+     * W-TinyLFU frequency counts and LRU recency accurate. Enabled by default.
+     * Can be disabled at runtime via the OSGi Whiteboard.
+     */
+    public static final FeatureToggle FT_NOTIFY_L2_ON_L1_HIT =
+            new FeatureToggle("FT_NOTIFY_L2_OAK-12214", new AtomicBoolean(true));
 
     private static class NonEmptyCache extends SegmentCache {
 
@@ -211,14 +232,24 @@ public abstract class SegmentCache {
         }
 
         @Override
+        public void cleanUp() {
+            cache.cleanUp();
+        }
+
+        @Override
         @NotNull
         public AbstractCacheStats getCacheStats() {
             return stats;
         }
 
         @Override
-        public void recordHit() {
-            stats.hitCount.incrementAndGet();
+        public void recordHit(@NotNull SegmentId id) {
+            if (id.isDataSegmentId()) {
+                if (FT_NOTIFY_L2_ON_L1_HIT.isEnabled()) {
+                    cache.getIfPresent(id);
+                }
+                stats.hitCount.incrementAndGet();
+            }
         }
     }
 
@@ -261,6 +292,9 @@ public abstract class SegmentCache {
         @Override
         public void clear() {}
 
+        @Override
+        public void cleanUp() {}
+
         @NotNull
         @Override
         public AbstractCacheStats getCacheStats() {
@@ -268,8 +302,10 @@ public abstract class SegmentCache {
         }
 
         @Override
-        public void recordHit() {
-            stats.hitCount.incrementAndGet();
+        public void recordHit(@NotNull SegmentId id) {
+            if (id.isDataSegmentId()) {
+                stats.hitCount.incrementAndGet();
+            }
         }
     }
 

@@ -160,6 +160,32 @@ public class SegmentCacheTest {
         assertFalse(cached.get());
     }
 
+    /**
+     * Repeated L1 hits must notify L2 ({@link SegmentCache#recordHit}) so eviction
+     * policies retain hot segments. Without this, only {@code getSegment} on L2
+     * would update recency/frequency while production serves most hits from L1.
+     */
+    @Test
+    public void recordAccessKeepsHotSegmentInL2UnderPressure() throws ExecutionException {
+        cache.getSegment(id1, () -> segment1);
+        for (int i = 0; i < 100; i++) {
+            assertEquals(segment1, id1.getSegment());
+        }
+
+        // Fill the cache with other entries until id1 would be evicted without L1→L2 feedback.
+        for (int i = 0; i < 500; i++) {
+            SegmentId filler = new SegmentId(EMPTY_STORE, i + 10L, 0xa000000000000010L + i);
+            Segment fillerSeg = mock(Segment.class);
+            when(fillerSeg.getSegmentId()).thenReturn(filler);
+            when(fillerSeg.estimateMemoryUsage()).thenReturn(64 * 1024);
+            cache.getSegment(filler, () -> fillerSeg);
+        }
+        cache.cleanUp();
+
+        assertEquals(segment1, cache.getSegment(id1, () -> failToLoad(id1)));
+        assertEquals(segment1, id1.getSegment());
+    }
+
     @Test
     public void nonEmptyCacheStatsTest() throws Exception {
         AbstractCacheStats stats = cache.getCacheStats();
