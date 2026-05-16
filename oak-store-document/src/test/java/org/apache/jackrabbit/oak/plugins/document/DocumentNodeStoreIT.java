@@ -73,6 +73,7 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
     @After
     public void tearDown() {
         Revision.resetClockToDefault();
+        ClusterNodeInfo.resetClockToDefault();
         markDocumentsForCleanup();
     }
 
