@@ -187,17 +187,17 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
 
             for (Map.Entry<String, Integer> facet : actualAclLabelCount.entrySet()) {
                 String facetLabel = facet.getKey();
-                assertEventually(() -> {
-                    int facetCount = facets.get(facetLabel);
-                    float ratio = ((float) facetCount) / facet.getValue();
-                    assertTrue("Facet count for label: " + facetLabel + " is outside of 10% margin of error. " +
-                                    "Expected: " + facet.getValue() + "; Got: " + facetCount + "; Ratio: " + ratio,
-                            Math.abs(ratio - 1) < 0.1);
-                });
+                int facetCount = facets.get(facetLabel);
+                float ratio = ((float) facetCount) / facet.getValue();
+                assertTrue("Facet count for label: " + facetLabel + " is outside of 10% margin of error. " +
+                                "Expected: " + facet.getValue() + "; Got: " + facetCount + "; Ratio: " + ratio,
+                        Math.abs(ratio - 1) < 0.1);
             }
+        });
 
+        // Verify that the query result is not affected by the facet sampling
+        assertEventually(() -> {
             try {
-                // Verify that the query result is not affected by the facet sampling
                 int rowCounter = 0;
                 RowIterator rows = getQueryResult(null).getRows();
                 while (rows.hasNext()) {
