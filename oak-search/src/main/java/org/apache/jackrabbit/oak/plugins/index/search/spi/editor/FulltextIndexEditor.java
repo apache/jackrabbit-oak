@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.PropertyUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +39,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Generic implementation of an {@link IndexEditor} which supports index time aggregation.
@@ -47,6 +49,25 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
     private static final Logger log = LoggerFactory.getLogger(FulltextIndexEditor.class);
 
     public static final String TEXT_EXTRACTION_ERROR = "TextExtractionError";
+
+    /**
+     * Feature toggle name for OAK-12193.
+     * When this toggle is active (default), deleteDocuments calls are skipped for
+     * removed subtrees that do not contain any node matching the index definition's
+     * indexing rules. This avoids accumulating large numbers of buffered deletes in
+     * the Lucene writer's DocumentsWriterDeleteQueue during delete-heavy async
+     * indexing cycles.
+     */
+    public static final String FT_OAK_12193 = "FT_OAK-12193";
+
+    /**
+     * Kill switch for the OAK-12193 filtered delete behavior. Set to {@code true} to
+     * revert to the legacy behavior of always issuing a deleteDocuments call for every
+     * removed subtree regardless of whether the index could have indexed its nodes.
+     * Default is {@code false} (filtered behavior active). Wired to the
+     * {@link #FT_OAK_12193} feature toggle at runtime.
+     */
+    public static final AtomicBoolean FT_OAK_12193_DISABLE = new AtomicBoolean(false);
 
     private static final List<Aggregate.Matcher> EMPTY_AGGREGATE_MATCHER_LIST = List.of();
 
@@ -221,7 +242,25 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
             return null;
         }
 
-        if (!isDeleted) {
+        if (!FT_OAK_12193_DISABLE.get()) {
+            // OAK-12193: skip the deleteDocuments call when no node in the removed subtree
+            // could have been indexed. Legacy behavior would route a deleteDocuments call
+            // for every removed subtree regardless, accumulating buffered deletes in the
+            // Lucene writer during delete-heavy async cycles.
+            if (!isDeleted && subtreeHasIndexableNode(context.getDefinition(), before)) {
+                try {
+                    FulltextIndexWriter<D> writer = context.getWriter();
+                    writer.deleteDocuments(childPath);
+                    this.context.indexUpdate();
+                } catch (IOException e) {
+                    CommitFailedException ce = new CommitFailedException("Fulltext", 5, "Failed to remove the index entries of"
+                            + " the removed subtree " + path + " for index " + context.getIndexingContext().getIndexPath(), e);
+                    context.getIndexingContext().indexUpdateFailed(ce);
+                    throw ce;
+                }
+            }
+        } else if (!isDeleted) {
+            // Legacy code (will be removed once FT_OAK_12193_DISABLE is removed)
             // tree deletion is handled on the parent node
             try {
                 FulltextIndexWriter<D> writer = context.getWriter();
@@ -230,7 +269,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
                 this.context.indexUpdate();
             } catch (IOException e) {
                 CommitFailedException ce = new CommitFailedException("Fulltext", 5, "Failed to remove the index entries of"
-                        + " the removed subtree " + path + "for index " + context.getIndexingContext().getIndexPath(), e);
+                        + " the removed subtree " + path + " for index " + context.getIndexingContext().getIndexPath(), e);
                 context.getIndexingContext().indexUpdateFailed(ce);
                 throw ce;
             }
@@ -242,6 +281,24 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
         } else {
             return new FulltextIndexEditor<>(this, childPath, ms, pathFilter, filterResult, true);
         }
+    }
+
+    /**
+     * Returns {@code true} if any node in the given subtree has a primary type (or mixin)
+     * that matches an indexing rule in the given definition, i.e. would have been indexed.
+     * Short-circuits on the first match. Used by OAK-12193 to avoid routing deletes to
+     * index writers that could not possibly hold any document for the removed subtree.
+     */
+    private static boolean subtreeHasIndexableNode(IndexDefinition definition, NodeState state) {
+        if (definition.getApplicableIndexingRule(state) != null) {
+            return true;
+        }
+        for (ChildNodeEntry child : state.getChildNodeEntries()) {
+            if (subtreeHasIndexableNode(definition, child.getNodeState())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public FulltextIndexEditorContext<D> getContext() {
