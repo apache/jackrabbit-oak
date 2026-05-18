@@ -61,7 +61,7 @@ public class PersistentDiskCache extends AbstractPersistentCache {
 
     /**
      * Name of the feature toggle that controls the OAK-12212 fix, see
-     * {@link #FT_OAK_12212_DISABLE}.
+     * {@link #FT_OAK_12212_SKIP_MISSING_FILE_CHECK}.
      */
     public static final String FT_OAK_12212 = "FT_OAK-12212";
 
@@ -79,7 +79,7 @@ public class PersistentDiskCache extends AbstractPersistentCache {
      * Set to {@code true} via the {@link FeatureToggle} registered with the
      * Whiteboard to revert to the pre-fix behaviour.
      */
-    public static final AtomicBoolean FT_OAK_12212_DISABLE = new AtomicBoolean(false);
+    public static final AtomicBoolean FT_OAK_12212_SKIP_MISSING_FILE_CHECK = new AtomicBoolean(false);
 
     private final File directory;
     private final long maxCacheSizeBytes;
@@ -179,7 +179,7 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                     // replaced the file on POSIX systems, leaking phantom
                     // bytes into the in-memory counter on every redundant
                     // write. Guarded by FT_OAK-12212 (disabled = active fix).
-                    if (FT_OAK_12212_DISABLE.get() || !segmentFile.exists()) {
+                    if (FT_OAK_12212_SKIP_MISSING_FILE_CHECK.get() || !segmentFile.exists()) {
                         int fileSize;
                         try (FileChannel channel = new FileOutputStream(tempSegmentFile).getChannel()) {
                             fileSize = bufferCopy.write(channel);

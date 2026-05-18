@@ -98,7 +98,7 @@ public class RemotePersistentCacheService {
             // OAK-12212: expose the kill switch for the cacheSize-accounting
             // fix so it can be flipped at runtime via the Whiteboard.
             registerCloseable(osgiWhiteboard.register(FeatureToggle.class,
-                    new FeatureToggle(PersistentDiskCache.FT_OAK_12212, PersistentDiskCache.FT_OAK_12212_DISABLE),
+                    new FeatureToggle(PersistentDiskCache.FT_OAK_12212, PersistentDiskCache.FT_OAK_12212_SKIP_MISSING_FILE_CHECK),
                     Collections.emptyMap()));
 
             CacheStatsMBean diskCacheStatsMBean = persistentDiskCache.getCacheStats();

@@ -61,7 +61,7 @@ import static org.mockito.Mockito.verify;
  * The cleanup path could only subtract the actual length of the (one) file
  * it deleted, so the over-counted bytes were never repaid.
  *
- * <p>The fix is gated by {@link PersistentDiskCache#FT_OAK_12212_DISABLE}.
+ * <p>The fix is gated by {@link PersistentDiskCache#FT_OAK_12212_SKIP_MISSING_FILE_CHECK}.
  * With the toggle in its default state (fix enabled), {@code writeSegment}
  * short-circuits when the segment is already on disk; flipping the toggle
  * restores the original behaviour for emergency rollback.
@@ -100,7 +100,7 @@ public class PersistentDiskCacheSizeAccountingTest {
         // The OAK-12212 kill switch is a process-wide AtomicBoolean. Reset
         // it before each test so previous tests cannot leak their toggle
         // state into the next one.
-        PersistentDiskCache.FT_OAK_12212_DISABLE.set(false);
+        PersistentDiskCache.FT_OAK_12212_SKIP_MISSING_FILE_CHECK.set(false);
     }
 
     @After
@@ -109,7 +109,7 @@ public class PersistentDiskCacheSizeAccountingTest {
             persistentCache.close();
             persistentCache = null;
         }
-        PersistentDiskCache.FT_OAK_12212_DISABLE.set(false);
+        PersistentDiskCache.FT_OAK_12212_SKIP_MISSING_FILE_CHECK.set(false);
     }
 
     /**
@@ -223,7 +223,7 @@ public class PersistentDiskCacheSizeAccountingTest {
      */
     @Test
     public void killSwitchRestoresLegacyDoubleCountingBehaviour() throws Exception {
-        PersistentDiskCache.FT_OAK_12212_DISABLE.set(true);
+        PersistentDiskCache.FT_OAK_12212_SKIP_MISSING_FILE_CHECK.set(true);
 
         persistentCache = new PersistentDiskCache(cacheFolder, /* maxCacheSizeMB */ 1024, ioMonitor);
         replaceExecutorWithSingleThreaded(persistentCache);
