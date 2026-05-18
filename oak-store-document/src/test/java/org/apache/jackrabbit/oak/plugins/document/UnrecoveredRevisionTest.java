@@ -310,6 +310,7 @@ public class UnrecoveredRevisionTest {
     public void tearDown() throws Exception {
         store.getRemainingOps().set(Integer.MAX_VALUE);
         System.clearProperty("oak.documentMK.createOrUpdateBatchSize");
+        ClusterNodeInfo.resetClockToDefault();
     }
     
     private void assertChildren(DocumentNodeStore ns, String... childPaths) {
