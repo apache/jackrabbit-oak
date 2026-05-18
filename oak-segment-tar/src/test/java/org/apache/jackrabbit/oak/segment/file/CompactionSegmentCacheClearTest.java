@@ -28,8 +28,8 @@ import org.mockito.Mockito;
 /**
  * Tests for {@link AbstractCompactionStrategy#notifyCompactionSucceeded}.
  *
- * <p>Full compaction success and partial success both call this hook, so behaviour is identical
- * for {@link SegmentCache#clear()} and {@link GCListener#compactionSucceeded}.
+ * <p>Only full compaction success calls this hook. Partial success skips the cache clear to avoid
+ * evicting newly committed segments.
  *
  * <p>Verifies that the segment cache is cleared when {@link SegmentCache#FT_OAK_12216_ENABLE} is
  * enabled (default), and that no clear occurs when the toggle is disabled.

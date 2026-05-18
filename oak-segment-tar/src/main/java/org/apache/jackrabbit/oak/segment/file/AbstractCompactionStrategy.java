@@ -69,13 +69,17 @@ abstract class AbstractCompactionStrategy implements CompactionStrategy {
             GCGeneration generation,
             RecordId compactedRootId
     ) {
-        notifyCompactionSucceeded(context, generation);
+        // Do not clear the segment cache: partial compaction committed new-generation segments
+        // that are about to be read. Clearing them here would cause unnecessary cache misses.
+        context.getGCListener().compactionSucceeded(generation);
         return CompactionResult.partiallySucceeded(generation, compactedRootId, context.getGCCount());
     }
 
     /**
      * Clears the segment cache when {@link SegmentCache#FT_OAK_12216_ENABLE} is enabled, then
-     * notifies the GC listener. Package-private so unit tests can invoke it directly.
+     * notifies the GC listener. Only called on full compaction success — partial success skips
+     * the cache clear to avoid evicting newly committed segments. Package-private so unit tests
+     * can invoke it directly.
      */
     static void notifyCompactionSucceeded(Context context, GCGeneration generation) {
         if (SegmentCache.FT_OAK_12216_ENABLE.get()) {
