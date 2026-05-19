@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.oak.segment.SegmentStore.EMPTY_STORE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -34,9 +35,21 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
+import org.junit.Before;
 import org.junit.Test;
 
+/**
+ * {@link SegmentCache} unit tests. L1/L2 behaviour assertions that depend on admission/eviction
+ * policy assume the default Oak build (Caffeine-backed {@code oak.cache} segment cache); the Guava
+ * cache implementation is not covered here.
+ */
 public class SegmentCacheTest {
+
+    @Before
+    public void resetOak12214Toggle() {
+        SegmentCache.FT_OAK_12214_PROPAGATE_L1_HITS_TO_L2_ENABLED.set(true);
+    }
+
     private final SegmentCache cache = newSegmentCache(DEFAULT_SEGMENT_CACHE_MB);
 
     private final SegmentId id1 = new SegmentId(EMPTY_STORE, 0x0000000000000001L, 0xa000000000000001L, cache::recordHit);
@@ -158,6 +171,113 @@ public class SegmentCacheTest {
             return segment3;
         }));
         assertFalse(cached.get());
+    }
+
+    /**
+     * Verifies that repeated L1 hits keep a hot segment in L2 under eviction pressure.
+     *
+     * <p><strong>Contract asserted:</strong> after filling a 1&nbsp;MB cache and many L1 hits on
+     * {@code hotId}, {@link SegmentCache#getSegment(SegmentId, Callable)} must still return the
+     * memoised segment without calling the loader (no {@link SegmentNotFoundException} on L1).
+     *
+     * <p><strong>Implementation note:</strong> Oak's default segment cache uses Caffeine; this
+     * workload relies on feeding L2 on each L1 hit so the hot entry is not chosen for eviction
+     * when a sixteenth entry is added. Caffeine's internal SLRU/TinyLFU details may change across
+     * versions; if this test becomes unstable, prefer tightening the scenario or asserting via
+     * {@link AbstractCacheStats} rather than internal queue names.
+     */
+    @Test
+    public void recordAccessKeepsHotSegmentInL2UnderPressure() throws ExecutionException {
+        // 1 MB cache; 15 × 64 KB = 983 KB fits, 16th entry forces an eviction.
+        SegmentCache smallCache = newSegmentCache(1);
+        SegmentId hotId = new SegmentId(EMPTY_STORE, 0xdeadL, 0xa000000000000001L, smallCache::recordHit);
+        Segment hotSeg = mock(Segment.class);
+        when(hotSeg.getSegmentId()).thenReturn(hotId);
+        when(hotSeg.estimateMemoryUsage()).thenReturn(64 * 1024);
+
+        // Load hotId first — it becomes the probationary LRU (oldest, eviction candidate).
+        smallCache.getSegment(hotId, () -> hotSeg);
+
+        // Fill the rest of the cache with 14 fillers (no re-accesses), all in probationary.
+        for (int i = 0; i < 14; i++) {
+            SegmentId filler = new SegmentId(EMPTY_STORE, i + 10L, 0xa000000000000010L + i);
+            Segment fillerSeg = mock(Segment.class);
+            when(fillerSeg.getSegmentId()).thenReturn(filler);
+            when(fillerSeg.estimateMemoryUsage()).thenReturn(64 * 1024);
+            smallCache.getSegment(filler, () -> fillerSeg);
+        }
+
+        long hitCountBeforeL1 = smallCache.getCacheStats().getHitCount();
+        // 20 L1 hits after the cache is full: each calls recordHit (and getIfPresent when toggle on).
+        for (int i = 0; i < 20; i++) {
+            assertEquals(hotSeg, hotId.getSegment());
+        }
+        assertEquals("each L1 hit should increment segment cache hit stats", 20,
+                smallCache.getCacheStats().getHitCount() - hitCountBeforeL1);
+
+        // Add a 16th entry to force eviction pressure; hotId must still be served from cache + L1.
+        SegmentId trigger = new SegmentId(EMPTY_STORE, 999L, 0xa000000000000999L);
+        Segment triggerSeg = mock(Segment.class);
+        when(triggerSeg.getSegmentId()).thenReturn(trigger);
+        when(triggerSeg.estimateMemoryUsage()).thenReturn(64 * 1024);
+        smallCache.getSegment(trigger, () -> triggerSeg);
+
+        // hotId must still be in L2 — loader must not be called.
+        assertEquals(hotSeg, smallCache.getSegment(hotId, () -> failToLoad(hotId)));
+        // L1 memoisation must also be intact.
+        assertEquals(hotSeg, hotId.getSegment());
+    }
+
+    /**
+     * With {@link SegmentCache#FT_OAK_12214_PROPAGATE_L1_HITS_TO_L2_ENABLED} disabled, L1 hits do not touch L2, so repeated
+     * L1 reads do not refresh eviction policy for {@code hotId}. Under churn (each iteration loads a
+     * new 64&nbsp;KB segment while the cache stays at capacity), {@code hotId} is eventually evicted
+     * from L2 and must be reloaded via the loader.
+     *
+     * <p>The {@code finally} block restores the toggle so other tests are unaffected.
+     */
+    @Test
+    public void hotSegmentEvictedWithoutL2Notification() throws ExecutionException {
+        SegmentCache.FT_OAK_12214_PROPAGATE_L1_HITS_TO_L2_ENABLED.set(false);
+        try {
+            // 1 MB cache — same size as the positive test.
+            SegmentCache smallCache = newSegmentCache(1);
+            SegmentId hotId = new SegmentId(EMPTY_STORE, 0xdeadL, 0xa000000000000001L, smallCache::recordHit);
+            Segment hotSeg = mock(Segment.class);
+            when(hotSeg.getSegmentId()).thenReturn(hotId);
+            when(hotSeg.estimateMemoryUsage()).thenReturn(64 * 1024);
+
+            smallCache.getSegment(hotId, () -> hotSeg);
+
+            for (int i = 0; i < 14; i++) {
+                SegmentId filler = new SegmentId(EMPTY_STORE, i + 10L, 0xa000000000000010L + i);
+                Segment fillerSeg = mock(Segment.class);
+                when(fillerSeg.getSegmentId()).thenReturn(filler);
+                when(fillerSeg.estimateMemoryUsage()).thenReturn(64 * 1024);
+                smallCache.getSegment(filler, () -> fillerSeg);
+            }
+
+            for (int i = 0; i < 20; i++) {
+                assertEquals(hotSeg, hotId.getSegment());
+            }
+
+            AtomicBoolean reloaded = new AtomicBoolean(false);
+            final int maxChurnRounds = 48;
+            for (int round = 0; round < maxChurnRounds && !reloaded.get(); round++) {
+                SegmentId probe = new SegmentId(EMPTY_STORE, 4000L + round, 0xa0000000000e0000L + round);
+                Segment probeSeg = mock(Segment.class);
+                when(probeSeg.getSegmentId()).thenReturn(probe);
+                when(probeSeg.estimateMemoryUsage()).thenReturn(64 * 1024);
+                smallCache.getSegment(probe, () -> probeSeg);
+                smallCache.getSegment(hotId, () -> {
+                    reloaded.set(true);
+                    return hotSeg;
+                });
+            }
+            assertTrue("hotId should have been evicted from L2 when notification is disabled", reloaded.get());
+        } finally {
+            SegmentCache.FT_OAK_12214_PROPAGATE_L1_HITS_TO_L2_ENABLED.set(true);
+        }
     }
 
     @Test

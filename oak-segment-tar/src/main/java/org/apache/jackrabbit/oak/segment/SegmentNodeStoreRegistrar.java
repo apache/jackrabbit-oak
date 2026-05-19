@@ -64,6 +64,7 @@ import org.apache.jackrabbit.oak.spi.gc.GCMonitorTracker;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.RevisionGC;
 import org.apache.jackrabbit.oak.spi.state.RevisionGCMBean;
+import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
 import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -79,6 +80,7 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -274,6 +276,11 @@ class SegmentNodeStoreRegistrar {
             return null;
         }
         registerCloseable(store);
+
+        // OAK-12214: bug-fix toggle (default on) so L2 eviction policy sees L1 memoised hits
+        registerCloseable(cfg.getWhiteboard().register(FeatureToggle.class,
+                new FeatureToggle(SegmentCache.FT_OAK_12214, SegmentCache.FT_OAK_12214_PROPAGATE_L1_HITS_TO_L2_ENABLED),
+                Collections.emptyMap()));
 
         // Listen for Executor services on the whiteboard
 

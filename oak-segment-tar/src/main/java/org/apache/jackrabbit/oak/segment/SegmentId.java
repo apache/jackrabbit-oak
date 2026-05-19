@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 import static org.apache.jackrabbit.oak.segment.SegmentStore.EMPTY_STORE;
 
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
@@ -64,7 +65,8 @@ public class SegmentId implements Comparable<SegmentId> {
     private final long creationTime;
 
     /** Callback called whenever an underlying and locally memoised segment is accessed */
-    private final Runnable onAccess;
+    @NotNull
+    private final Consumer<SegmentId> onAccess;
 
     /**
      * The gc generation of this segment or -1 if unknown.
@@ -86,12 +88,17 @@ public class SegmentId implements Comparable<SegmentId> {
 
     /**
      * Create a new segment id with access tracking.
-     * @param store  store this is belongs to
-     * @param msb    most significant bits of this id
-     * @param lsb    least significant bits of this id
-     * @param onAccess  callback called whenever an underlying and locally memoised segment is accessed.
+     *
+     * @param store    store this id belongs to
+     * @param msb      most significant bits of this id
+     * @param lsb      least significant bits of this id
+     * @param onAccess callback invoked whenever the locally memoised segment is accessed
+     *                 ({@link #getSegment()}); receives {@code this} (e.g. to notify {@link SegmentCache}).
+     *                 <p><strong>API note (Oak 2.2.0, OAK-12214):</strong> this parameter type changed from
+     *                 {@link Runnable} to {@link java.util.function.Consumer Consumer}{@code <SegmentId>} for
+     *                 L1-to-L2 propagation; downstream code that constructed ids with a {@code Runnable} must be updated.
      */
-    public SegmentId(@NotNull SegmentStore store, long msb, long lsb, @NotNull Runnable onAccess) {
+    public SegmentId(@NotNull SegmentStore store, long msb, long lsb, @NotNull Consumer<SegmentId> onAccess) {
         this.store = store;
         this.msb = msb;
         this.lsb = lsb;
@@ -106,7 +113,7 @@ public class SegmentId implements Comparable<SegmentId> {
      * @param lsb    least significant bits of this id
      */
     public SegmentId(@NotNull SegmentStore store, long msb, long lsb) {
-        this(store, msb, lsb, () -> {});
+        this(store, msb, lsb, id -> {});
     }
 
     /**
@@ -154,7 +161,7 @@ public class SegmentId implements Comparable<SegmentId> {
                 }
             }
         }
-        onAccess.run();
+        onAccess.accept(this);
         return segment;
     }
 
