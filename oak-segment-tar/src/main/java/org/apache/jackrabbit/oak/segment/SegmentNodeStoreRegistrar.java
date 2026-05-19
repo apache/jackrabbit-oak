@@ -279,7 +279,7 @@ class SegmentNodeStoreRegistrar {
 
         // OAK-12214: bug-fix toggle (default on) so L2 eviction policy sees L1 memoised hits
         registerCloseable(cfg.getWhiteboard().register(FeatureToggle.class,
-                new FeatureToggle(SegmentCache.FT_OAK_12214, SegmentCache.FT_OAK_12214_ENABLE),
+                new FeatureToggle(SegmentCache.FT_OAK_12214, SegmentCache.FT_OAK_12214_PROPAGATE_L1_HITS_TO_L2_ENABLED),
                 Collections.emptyMap()));
 
         // Listen for Executor services on the whiteboard

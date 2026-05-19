@@ -47,7 +47,7 @@ public class SegmentCacheTest {
 
     @Before
     public void resetOak12214Toggle() {
-        SegmentCache.FT_OAK_12214_ENABLE.set(true);
+        SegmentCache.FT_OAK_12214_PROPAGATE_L1_HITS_TO_L2_ENABLED.set(true);
     }
 
     private final SegmentCache cache = newSegmentCache(DEFAULT_SEGMENT_CACHE_MB);
@@ -229,7 +229,7 @@ public class SegmentCacheTest {
     }
 
     /**
-     * With {@link SegmentCache#FT_OAK_12214_ENABLE} disabled, L1 hits do not touch L2, so repeated
+     * With {@link SegmentCache#FT_OAK_12214_PROPAGATE_L1_HITS_TO_L2_ENABLED} disabled, L1 hits do not touch L2, so repeated
      * L1 reads do not refresh eviction policy for {@code hotId}. Under churn (each iteration loads a
      * new 64&nbsp;KB segment while the cache stays at capacity), {@code hotId} is eventually evicted
      * from L2 and must be reloaded via the loader.
@@ -238,7 +238,7 @@ public class SegmentCacheTest {
      */
     @Test
     public void hotSegmentEvictedWithoutL2Notification() throws ExecutionException {
-        SegmentCache.FT_OAK_12214_ENABLE.set(false);
+        SegmentCache.FT_OAK_12214_PROPAGATE_L1_HITS_TO_L2_ENABLED.set(false);
         try {
             // 1 MB cache — same size as the positive test.
             SegmentCache smallCache = newSegmentCache(1);
@@ -276,7 +276,7 @@ public class SegmentCacheTest {
             }
             assertTrue("hotId should have been evicted from L2 when notification is disabled", reloaded.get());
         } finally {
-            SegmentCache.FT_OAK_12214_ENABLE.set(true);
+            SegmentCache.FT_OAK_12214_PROPAGATE_L1_HITS_TO_L2_ENABLED.set(true);
         }
     }
 

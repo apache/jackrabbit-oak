@@ -107,7 +107,7 @@ public abstract class SegmentCache {
 
     /**
      * Called on L1 memoised access ({@link SegmentId#getSegment()}): increments {@link #getCacheStats()}
-     * hit counts and, for data segments with {@link #FT_OAK_12214_ENABLE} {@code true}, touches L2
+     * hit counts and, for data segments with {@link #FT_OAK_12214_PROPAGATE_L1_HITS_TO_L2_ENABLED} {@code true}, touches L2
      * (e.g. {@code getIfPresent}) so eviction policy matches real reads. Name is historical
      * ({@code hit} = stats); the L2 side is access notification, not only accounting.
      * <p>
@@ -119,7 +119,7 @@ public abstract class SegmentCache {
     public abstract void recordHit(@NotNull SegmentId id);
 
     /**
-     * Feature toggle name for {@link #FT_OAK_12214_ENABLE}: propagate L1 memoisation hits to the
+     * Feature toggle name for {@link #FT_OAK_12214_PROPAGATE_L1_HITS_TO_L2_ENABLED}: propagate L1 memoisation hits to the
      * segment L2 cache so frequency/recency used for eviction stay aligned with actual access.
      * Disable at runtime via the OSGi Whiteboard when diagnosing behavior.
      */
@@ -131,7 +131,7 @@ public abstract class SegmentCache {
      * the OSGi Whiteboard {@link org.apache.jackrabbit.oak.spi.toggle.FeatureToggle FeatureToggle}
      * registered under {@link #FT_OAK_12214} for diagnosis or A/B runs.
      */
-    public static final AtomicBoolean FT_OAK_12214_ENABLE = new AtomicBoolean(true);
+    public static final AtomicBoolean FT_OAK_12214_PROPAGATE_L1_HITS_TO_L2_ENABLED = new AtomicBoolean(true);
 
     private static class NonEmptyCache extends SegmentCache {
 
@@ -243,7 +243,7 @@ public abstract class SegmentCache {
         @Override
         public void recordHit(@NotNull SegmentId id) {
             stats.hitCount.incrementAndGet();
-            if (id.isDataSegmentId() && FT_OAK_12214_ENABLE.get()) {
+            if (id.isDataSegmentId() && FT_OAK_12214_PROPAGATE_L1_HITS_TO_L2_ENABLED.get()) {
                 cache.getIfPresent(id);
             }
         }
