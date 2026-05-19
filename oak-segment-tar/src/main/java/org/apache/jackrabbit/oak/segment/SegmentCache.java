@@ -35,7 +35,6 @@ import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
 import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.apache.jackrabbit.oak.segment.CacheWeights.SegmentCacheWeigher;
-import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -47,12 +46,8 @@ import org.jetbrains.annotations.NotNull;
  * level cache is implemented by memoising the segment in its id (see {@code
  * SegmentId#segment}. Every time an segment is evicted from this cache the
  * memoised segment is discarded (see {@code SegmentId#onAccess}). On an L1 hit,
-<<<<<<< HEAD
  * {@link #recordHit(SegmentId)} records L1 hits in {@link #getCacheStats()} and, when enabled,
  * touches L2 so eviction policies see the access.
-=======
- * {@link #recordHit(SegmentId)} notifies L2 so eviction policies see the access.
->>>>>>> 3fcfdaa256 (OAK-12210 : benchmark cleanup and cache bug fixes)
  */
 public abstract class SegmentCache {
 
@@ -106,13 +101,6 @@ public abstract class SegmentCache {
      * does not retain stale frequency for reclaimed generations.
      */
     public abstract void clear();
-
-    /**
-     * Performs any pending cache maintenance operations, including flushing
-     * deferred eviction processing.  Call before reading eviction statistics
-     * to ensure all pending evictions are counted.
-     */
-    public abstract void cleanUp();
 
     /**
      * @return Statistics for this cache.
@@ -241,20 +229,12 @@ public abstract class SegmentCache {
 
         @Override
         public void clear() {
-            // CaffeineCacheAdapter.invalidateAll() calls cleanUp() internally so
-            // onRemove() fires for every entry before this returns, clearing L1
-            // (key.unloaded()) and decrementing currentWeight for each entry.
-            // The set(0) below is a safety net: any SIZE-eviction that was already
-            // pending in Caffeine's write buffer before this call will also fire
-            // during cleanUp() and could double-decrement a weight that was already
-            // subtracted by the EXPLICIT removal notification.
+            // invalidateAll() triggers onRemove() for every entry synchronously
+            // (maintenance runs on the caller thread via executor(Runnable::run)).
+            // The set(0) below is a safety net for any SIZE-eviction already pending
+            // in Caffeine's write buffer that would double-decrement currentWeight.
             cache.invalidateAll();
             stats.currentWeight.set(0);
-        }
-
-        @Override
-        public void cleanUp() {
-            cache.cleanUp();
         }
 
         @Override
@@ -310,9 +290,6 @@ public abstract class SegmentCache {
 
         @Override
         public void clear() {}
-
-        @Override
-        public void cleanUp() {}
 
         @NotNull
         @Override

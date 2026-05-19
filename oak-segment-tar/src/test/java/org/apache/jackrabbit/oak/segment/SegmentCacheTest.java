@@ -89,7 +89,6 @@ public class SegmentCacheTest {
     public void putSegmentDoesNotInflateWeightOrElementCount() throws ExecutionException {
         AbstractCacheStats stats = cache.getCacheStats();
         cache.putSegment(segment1);
-        cache.cleanUp();
         assertEquals(33, stats.estimateCurrentWeight());
         assertEquals(1, stats.getElementCount());
         // Entry must still be accessible via L1 and L2
