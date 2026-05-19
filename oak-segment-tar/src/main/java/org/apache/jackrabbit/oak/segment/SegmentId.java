@@ -94,7 +94,7 @@ public class SegmentId implements Comparable<SegmentId> {
      * @param lsb      least significant bits of this id
      * @param onAccess callback invoked whenever the locally memoised segment is accessed
      *                 ({@link #getSegment()}); receives {@code this} (e.g. to notify {@link SegmentCache}).
-     *                 <p><strong>API note (Oak 2.1, OAK-12214):</strong> this parameter type changed from
+     *                 <p><strong>API note (Oak 2.2.0, OAK-12214):</strong> this parameter type changed from
      *                 {@link Runnable} to {@link java.util.function.Consumer Consumer}{@code <SegmentId>} for
      *                 L1-to-L2 propagation; downstream code that constructed ids with a {@code Runnable} must be updated.
      */

@@ -121,7 +121,7 @@ public abstract class SegmentCache {
     /**
      * Feature toggle name for {@link #FT_OAK_12214_ENABLE}: propagate L1 memoisation hits to the
      * segment L2 cache so frequency/recency used for eviction stay aligned with actual access.
-     * Disable at runtime via the OSGi Whiteboard when diagnosing behaviour.
+     * Disable at runtime via the OSGi Whiteboard when diagnosing behavior.
      */
     public static final String FT_OAK_12214 = "FT_OAK-12214";
 
