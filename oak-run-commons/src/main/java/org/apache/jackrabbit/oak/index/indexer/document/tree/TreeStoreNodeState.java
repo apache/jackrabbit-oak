@@ -34,14 +34,53 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A node state of an Oak node that is stored in a tree store.
  *
- * This is mostly a wrapper. It allows iterating over the children and reading
+ * <p>This is mostly a wrapper. It allows iterating over the children and reading
  * children directly.
+ *
+ * <h2>Storage Layout</h2>
+ *
+ * <p>The underlying key-value store holds two kinds of entries:
+ *
+ * <ul>
+ *   <li><b>Node entries</b>: key = node path, value = JSON-encoded node properties.</li>
+ *   <li><b>Child-reference entries</b>: key = parent path + {@code \t} + child name,
+ *       value = empty string. These represent membership in a parent's child list
+ *       without duplicating any node data.</li>
+ * </ul>
+ *
+ * <p>For a tree that contains the nodes {@code /}, {@code /content},
+ * {@code /content/dam}, and {@code /content/site}, the store holds these entries
+ * (shown here in sort order):
+ *
+ * <pre>
+ *   /               → {"jcr:primaryType":"rep:root", ...}   (node entry)
+ *   /\tcontent      → ""                                     (child-reference entry)
+ *   /content        → {"jcr:primaryType":"nt:folder", ...}  (node entry)
+ *   /content\tdam   → ""                                     (child-reference entry)
+ *   /content\tsite  → ""                                     (child-reference entry)
+ *   /content/dam    → {"jcr:primaryType":"sling:Folder",...} (node entry)
+ *   /content/site   → {"jcr:primaryType":"sling:Folder",...} (node entry)
+ * </pre>
+ *
+ * <p>The tab character ({@code \t}, U+0009) sorts before the slash ({@code /},
+ * U+002F) and before any letter, so a node's child-reference entries always sort
+ * immediately after the node entry itself and before any of its descendants.
+ * This makes it efficient to list a node's direct children: start the scan just after
+ * the node entry, consume entries with an empty value (each is one child name), and
+ * stop at the first non-empty value (the start of the next node's data).
+ *
+ * <p>See {@link TreeStore#toChildNodeEntry(String)} for the method that converts a
+ * node path to its corresponding child-reference key.
  */
 public class TreeStoreNodeState implements NodeState, MemoryObject {
+
+    private static final Logger LOG = LoggerFactory.getLogger(TreeStoreNodeState.class);
 
     private final NodeState delegate;
     private final String path;
@@ -180,6 +219,15 @@ public class TreeStoreNodeState implements NodeState, MemoryObject {
                 s -> treeStore.getNodeStateEntry(PathUtils.concat(path, s)));
     }
 
+    /**
+     * Returns an iterator over the names of this node's direct children.
+     *
+     * <p>The iterator relies on the child-reference entries described in the
+     * class-level documentation: it scans the entries that immediately follow
+     * this node's own entry in the store, collecting the child names encoded
+     * in those keys, and stops as soon as it reaches a non-empty value (which
+     * indicates the start of the next node's data rather than a child reference).
+     */
     Iterator<String> getChildNodeNamesIterator() {
         Iterator<Entry<String, String>> it = treeStore.getSession().iterator(path);
         return new Iterator<String>() {
@@ -201,7 +249,15 @@ public class TreeStoreNodeState implements NodeState, MemoryObject {
                         if (index < 0) {
                             throw new IllegalArgumentException(key);
                         }
-                        current = key.substring(index + 1);
+                        if (!key.startsWith(path + "\t")) {
+                            // this is the child of a _different_ node:
+                            // that means this node doesn't have a child
+                            String missingChild = key.substring(0, index);
+                            LOG.warn("Missing node {} when listing children of {}", missingChild, path);
+                            current = null;
+                        } else {
+                            current = key.substring(index + 1);
+                        }
                     }
                 }
             }
