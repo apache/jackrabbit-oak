@@ -64,6 +64,7 @@
                           <exclude>com/google/common/escape/**</exclude>
                           <exclude>com/google/common/eventbus/**</exclude>
                           <exclude>com/google/common/graph/**</exclude>
+                          <exclude>com/google/common/hash/**</exclude>
                           <exclude>com/google/common/html/**</exclude>
                           <exclude>com/google/common/io/**</exclude>
                           <exclude>com/google/common/net/**</exclude>
@@ -101,7 +102,6 @@
               ${pref}.common.base;version="34.0.0",
               ${pref}.common.cache;version="33.4.2";uses:="${pref}.common.base,${pref}.common.collect,${pref}.common.util.concurrent",
               ${pref}.common.collect;version="34.0.1";uses:="${pref}.common.base",
-              ${pref}.common.hash;version="33.5.0";uses:="${pref}.common.base",
               ${pref}.common.util.concurrent;version="33.5.0";uses:="${pref}.common.base,${pref}.common.collect,${pref}.common.util.concurrent.internal,${pref}.common.primitives",
             </Export-Package>
             <Import-Package>

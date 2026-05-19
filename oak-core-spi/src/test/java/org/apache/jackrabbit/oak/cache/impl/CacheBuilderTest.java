@@ -178,6 +178,33 @@ public class CacheBuilderTest {
         Assert.assertEquals(1, stats.missCount());
     }
 
+    /** Zero-size caches evict written entries before they are visible to later reads. */
+    @Test
+    public void zeroMaximumSizeEvictsImmediately() {
+        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumSize(0)
+                .build();
+
+        cache.put("key", "value");
+
+        Assert.assertNull(cache.getIfPresent("key"));
+        Assert.assertEquals(0, cache.estimatedSize());
+    }
+
+    /** Zero-weight caches evict written entries before they are visible to later reads. */
+    @Test
+    public void zeroMaximumWeightEvictsImmediately() {
+        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumWeight(0)
+                .weigher((k, v) -> 1)
+                .build();
+
+        cache.put("key", "value");
+
+        Assert.assertNull(cache.getIfPresent("key"));
+        Assert.assertEquals(0, cache.estimatedSize());
+    }
+
     /** Invalid builder combinations are rejected before backend-specific build logic runs. */
     @Test
     public void buildRejectsInvalidConfigurations() {

@@ -1076,6 +1076,59 @@ public class IndexUpdateTest {
  
     }    
 
+    /*
+     * OAK-12196: diff.index and diff.index.optimizer legitimately use
+     * jcr:primaryType=nt:unstructured. They should be reported once at INFO,
+     * not repeatedly at WARN.
+     */
+    @Test
+    public void testDiffIndexLoggedOnceAtInfo() throws Exception {
+        IndexUpdate.resetDiffIndexesDetectedForTest();
+
+        LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class.getName())
+                .enable(Level.INFO).create();
+        try {
+            customLogs.starting();
+
+            NodeBuilder oakIndex = builder.child(INDEX_DEFINITIONS_NAME);
+            oakIndex.child("diff.index")
+                    .setProperty(org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE,
+                            org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED, Type.NAME)
+                    .setProperty(TYPE_PROPERTY_NAME, "diff");
+            oakIndex.child("diff.index.optimizer")
+                    .setProperty(org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE,
+                            org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED, Type.NAME)
+                    .setProperty(TYPE_PROPERTY_NAME, "diff");
+
+            NodeState before = root;
+            NodeState after = builder.getNodeState();
+            NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+            // run a second commit; the INFO messages must NOT be repeated
+            NodeBuilder b2 = indexed.builder();
+            b2.child("anyContent").setProperty("foo", "bar");
+            HOOK.processCommit(indexed, b2.getNodeState(), CommitInfo.EMPTY);
+
+            List<String> logs = customLogs.getLogs();
+            List<String> detected = logs.stream()
+                    .filter(s -> s.contains("is detected"))
+                    .collect(java.util.stream.Collectors.toList());
+            assertEquals("expected each diff index name to be reported once, got: " + detected,
+                    2, detected.size());
+            assertThat(detected, IsCollectionContaining.hasItems(
+                    "index diff.index is detected",
+                    "index diff.index.optimizer is detected"));
+
+            for (String entry : logs) {
+                assertFalse("WARN about jcr:primaryType must not fire for diff.index nodes: " + entry,
+                        entry.contains("jcr:primaryType of index"));
+            }
+        } finally {
+            customLogs.finished();
+            IndexUpdate.resetDiffIndexesDetectedForTest();
+        }
+    }
+
     private static void markCorrupt(NodeBuilder builder, String indexName) {
         builder.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(indexName)
                 .setProperty(IndexConstants.CORRUPT_PROPERTY_NAME, ISO8601.format(Calendar.getInstance()));
