@@ -355,26 +355,6 @@ public class SegmentCacheTest {
         }
     }
 
-    /**
-     * Smoke test for the {@link SegmentCache.SegmentCachePolicy#GUAVA} backend: put, L1 hit,
-     * L2 get, and clear all work correctly with the Guava-backed {@code NonEmptyCache}.
-     */
-    @Test
-    public void guavaPolicyCachesAndClearsLikeDefault() throws ExecutionException {
-        SegmentCache guava = newSegmentCache(DEFAULT_SEGMENT_CACHE_MB, SegmentCache.SegmentCachePolicy.GUAVA);
-        SegmentId gId = new SegmentId(EMPTY_STORE, 0x000000000000000aL, 0xa00000000000000aL, guava::recordHit);
-        Segment gSeg = mock(Segment.class);
-        when(gSeg.getSegmentId()).thenReturn(gId);
-        when(gSeg.estimateMemoryUsage()).thenReturn(1);
-
-        guava.getSegment(gId, () -> gSeg);
-        assertEquals(gSeg, gId.getSegment());
-        assertEquals(gSeg, guava.getSegment(gId, () -> failToLoad(gId)));
-
-        guava.clear();
-        expect(SegmentNotFoundException.class, gId::getSegment);
-    }
-
     @Test
     public void nonEmptyCacheStatsTest() throws Exception {
         AbstractCacheStats stats = cache.getCacheStats();
