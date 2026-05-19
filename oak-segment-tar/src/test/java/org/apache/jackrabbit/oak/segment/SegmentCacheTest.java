@@ -339,19 +339,19 @@ public class SegmentCacheTest {
     }
 
     /**
-     * When {@link SegmentCache#FT_NOTIFY_L2_ON_L1_HIT} is disabled, L1 hits must still
+     * When {@link SegmentCache#FT_OAK_12214_PROPAGATE_L1_HITS_TO_L2_ENABLED} is disabled, L1 hits must still
      * be counted in {@link AbstractCacheStats#getHitCount()} even though {@code getIfPresent}
      * is skipped — the stats branch runs regardless of the L2-notify branch.
      */
     @Test
     public void recordHitSkipsL2NotifyWhenToggleDisabled() throws ExecutionException {
-        SegmentCache.FT_NOTIFY_L2_ON_L1_HIT.setEnabled(false);
+        SegmentCache.FT_OAK_12214_PROPAGATE_L1_HITS_TO_L2_ENABLED.set(false);
         try {
             cache.getSegment(id1, () -> segment1);
             assertEquals(segment1, id1.getSegment());
             assertEquals(1, cache.getCacheStats().getHitCount());
         } finally {
-            SegmentCache.FT_NOTIFY_L2_ON_L1_HIT.setEnabled(true);
+            SegmentCache.FT_OAK_12214_PROPAGATE_L1_HITS_TO_L2_ENABLED.set(true);
         }
     }
 
