@@ -142,6 +142,28 @@ public class AutoSaveEnabledManager implements UserManager {
 
     @NotNull
     @Override
+    public User createUserWithAbsolutePath(@NotNull String userID, @Nullable String password,
+                                           @NotNull Principal principal, @NotNull String absolutePath) throws RepositoryException {
+        try {
+            return wrap(dlg.createUserWithAbsolutePath(userID, password, principal, absolutePath));
+        } finally {
+            autosave();
+        }
+    }
+
+    @NotNull
+    @Override
+    public Group createGroupWithAbsolutePath(@NotNull String groupID, @NotNull Principal principal,
+                                             @NotNull String absolutePath) throws RepositoryException {
+        try {
+            return wrap(dlg.createGroupWithAbsolutePath(groupID, principal, absolutePath));
+        } finally {
+            autosave();
+        }
+    }
+
+    @NotNull
+    @Override
     public Group createGroup(@NotNull String groupId) throws RepositoryException {
         try {
             return wrap(dlg.createGroup(groupId));
