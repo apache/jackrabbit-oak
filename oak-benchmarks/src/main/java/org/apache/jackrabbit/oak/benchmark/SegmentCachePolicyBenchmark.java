@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.segment.RecordNumbers;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
-import org.apache.jackrabbit.oak.segment.SegmentCache.SegmentCachePolicy;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentReferences;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
@@ -209,9 +208,14 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
 
     private static final long DATA_SEG_LSB_MASK = 0xa000000000000000L;
 
-    private static final SegmentCachePolicy[] POLICIES = {
-        SegmentCachePolicy.CAFFEINE,
-        SegmentCachePolicy.GUAVA
+    @FunctionalInterface
+    private interface CacheFactory {
+        SegmentCache create(int cacheSizeMb);
+    }
+
+    private static final CacheFactory[] POLICIES = {
+        SegmentCache::newSegmentCache,
+        GuavaSegmentCache::new
     };
     private static final String[] POLICY_NAMES = {"CAFFEINE", "GUAVA"};
     private static final int NUM_POLICIES = POLICIES.length;
@@ -250,7 +254,7 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
         liveSegs = new Segment[NUM_POLICIES][TOTAL_SEGMENTS];
         for (int p = 0; p < NUM_POLICIES; p++) {
             totalAccesses[p] = new LongAdder();
-            liveCaches[p] = SegmentCache.newSegmentCache(CACHE_SIZE_MB, POLICIES[p]);
+            liveCaches[p] = POLICIES[p].create(CACHE_SIZE_MB);
             for (int i = 0; i < TOTAL_SEGMENTS; i++) {
                 UUID uuid = UUID.randomUUID();
                 long msb = uuid.getMostSignificantBits();
@@ -314,7 +318,7 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
                         + " (warmup=%,d  measure=%,d ops) ---%n",
                 SCAN_LENGTH, POST_SCAN_WARMUP, POST_SCAN_MEASURE);
         for (int p = 0; p < NUM_POLICIES; p++) {
-            PolicySetup setup = freshSetup(p, POLICIES[p], TOTAL_SEGMENTS, CACHE_SIZE_MB);
+            PolicySetup setup = freshSetup(p, TOTAL_SEGMENTS, CACHE_SIZE_MB);
             long[] r = runScanThenZipf(setup);
             printResult(POLICY_NAMES[p], r[0], r[1], r[2]);
         }
@@ -332,7 +336,7 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
         long[][] totalsC = new long[NUM_POLICIES][];
         for (int p = 0; p < NUM_POLICIES; p++) {
             List<long[]> epochs = new ArrayList<>();
-            PolicySetup setup = freshSetup(p, POLICIES[p], SCAN_C + WORKING_SET_C, CACHE_SIZE_MB);
+            PolicySetup setup = freshSetup(p, SCAN_C + WORKING_SET_C, CACHE_SIZE_MB);
             totalsC[p] = runColdStart(setup, epochs);
             epochsC[p] = epochs.toArray(new long[0][]);
         }
@@ -361,7 +365,7 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
         System.out.println(
                 "  no hot data — uniform access over pool 25x cache; expected miss ~95%%");
         for (int p = 0; p < NUM_POLICIES; p++) {
-            PolicySetup setup = freshSetup(p, POLICIES[p], UNIFORM_POOL_D, CACHE_SIZE_MB);
+            PolicySetup setup = freshSetup(p, UNIFORM_POOL_D, CACHE_SIZE_MB);
             long[] r = runUniformRandom(setup);
             printResult(POLICY_NAMES[p], r[0], r[1], r[2]);
         }
@@ -374,7 +378,7 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
                 "  warm Zipfian cache hit by burst of new segments;"
                         + " measures working-set miss rate after burst subsides");
         for (int p = 0; p < NUM_POLICIES; p++) {
-            PolicySetup setup = freshSetup(p, POLICIES[p], TOTAL_SEGMENTS + BURST_SIZE_E, CACHE_SIZE_MB);
+            PolicySetup setup = freshSetup(p, TOTAL_SEGMENTS + BURST_SIZE_E, CACHE_SIZE_MB);
             long[] r = runBurstNewContent(setup);
             printResult(POLICY_NAMES[p], r[0], r[1], r[2]);
         }
@@ -387,7 +391,7 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
                 "  repeated small scans interleaved with Zipfian;"
                         + " cumulative sketch pollution vs LRU recency aging");
         for (int p = 0; p < NUM_POLICIES; p++) {
-            PolicySetup setup = freshSetup(p, POLICIES[p], TOTAL_SEGMENTS, CACHE_SIZE_MB);
+            PolicySetup setup = freshSetup(p, TOTAL_SEGMENTS, CACHE_SIZE_MB);
             long[] r = runPeriodicGC(setup);
             printResult(POLICY_NAMES[p], r[0], r[1], r[2]);
         }
@@ -400,7 +404,7 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
                 "  large sequential import followed by random reads of recently-imported segments;"
                         + " recency (LRU) vs frequency (Caffeine) post-import");
         for (int p = 0; p < NUM_POLICIES; p++) {
-            PolicySetup setup = freshSetup(p, POLICIES[p], IMPORT_SIZE_G, CACHE_SIZE_MB);
+            PolicySetup setup = freshSetup(p, IMPORT_SIZE_G, CACHE_SIZE_MB);
             long[] r = runImportThenRead(setup);
             printResult(POLICY_NAMES[p], r[0], r[1], r[2]);
         }
@@ -415,7 +419,7 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
                 "  hot window slides forward; pure recency (LRU) is optimal;"
                         + " window > cache forces evictions on every slide");
         for (int p = 0; p < NUM_POLICIES; p++) {
-            PolicySetup setup = freshSetup(p, POLICIES[p], TOTAL_POOL_H, CACHE_SIZE_MB);
+            PolicySetup setup = freshSetup(p, TOTAL_POOL_H, CACHE_SIZE_MB);
             long[] r = runSlidingWindow(setup);
             printResult(POLICY_NAMES[p], r[0], r[1], r[2]);
         }
@@ -432,7 +436,7 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
         long[][] totalsI = new long[NUM_POLICIES][];
         for (int p = 0; p < NUM_POLICIES; p++) {
             List<long[]> epochs = new ArrayList<>();
-            PolicySetup setup = freshSetup(p, POLICIES[p], POOL_I, CACHE_SIZE_MB);
+            PolicySetup setup = freshSetup(p, POOL_I, CACHE_SIZE_MB);
             totalsI[p] = runDriftingWindow(setup, epochs);
             epochsI[p] = epochs.toArray(new long[0][]);
         }
@@ -469,7 +473,7 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             String label = drift == Integer.MAX_VALUE ? "static" : String.valueOf(drift);
             System.out.printf("  %-12s", label);
             for (int p = 0; p < NUM_POLICIES; p++) {
-                PolicySetup setup = freshSetup(p, POLICIES[p], POOL_J, CACHE_SIZE_MB);
+                PolicySetup setup = freshSetup(p, POOL_J, CACHE_SIZE_MB);
                 long[] r = runDriftVariant(setup, drift);
                 long total = r[0] + r[1];
                 System.out.printf("  %14.1f", total == 0 ? 0.0 : 100.0 * r[1] / total);
@@ -492,7 +496,7 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
         long[][] totalsK = new long[NUM_POLICIES][];
         for (int p = 0; p < NUM_POLICIES; p++) {
             List<long[]> epochs = new ArrayList<>();
-            PolicySetup setup = freshSetup(p, POLICIES[p], OLD_GEN_K + NEW_GEN_K, CACHE_SIZE_MB);
+            PolicySetup setup = freshSetup(p, OLD_GEN_K + NEW_GEN_K, CACHE_SIZE_MB);
             totalsK[p] = runCompactionColdStart(setup, epochs);
             epochsK[p] = epochs.toArray(new long[0][]);
         }
@@ -537,7 +541,7 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             Segment[] poolI = createSegmentPool(POOL_I);
             System.out.printf("  %8d", sizeMb);
             for (int p = 0; p < NUM_POLICIES; p++) {
-                PolicySetup setup = freshSetupWithPool(p, POLICIES[p], poolI, sizeMb);
+                PolicySetup setup = freshSetupWithPool(p, poolI, sizeMb);
                 long[] r = runDriftingWindow(setup, new ArrayList<>());
                 long total = r[0] + r[1];
                 System.out.printf("  %14.1f", total == 0 ? 0.0 : 100.0 * r[1] / total);
@@ -558,7 +562,7 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             Segment[] poolK = createSegmentPool(OLD_GEN_K + NEW_GEN_K);
             System.out.printf("  %8d", sizeMb);
             for (int p = 0; p < NUM_POLICIES; p++) {
-                PolicySetup setup = freshSetupWithPool(p, POLICIES[p], poolK, sizeMb);
+                PolicySetup setup = freshSetupWithPool(p, poolK, sizeMb);
                 long[] totals = runCompactionColdStart(setup, new ArrayList<>());
                 long total = totals[0] + totals[1];
                 System.out.printf("  %14.1f", total == 0 ? 0.0 : 100.0 * totals[1] / total);
@@ -645,15 +649,13 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
      * {@link #createSegmentPool} once and pass the result to this method for each policy
      * to avoid accumulating mock objects across the size sweep.
      *
-     * @param policyIndex unused — kept for call-site readability
-     * @param policy      the cache eviction policy to use
+     * @param policyIndex index into {@link #POLICIES}
      * @param segs        pre-created mock segments (from {@link #createSegmentPool})
      * @param cacheSizeMb cache capacity in megabytes
      */
-    private static PolicySetup freshSetupWithPool(int policyIndex, SegmentCachePolicy policy,
-                                                  Segment[] segs, int cacheSizeMb) {
+    private static PolicySetup freshSetupWithPool(int policyIndex, Segment[] segs, int cacheSizeMb) {
         int n = segs.length;
-        SegmentCache cache = SegmentCache.newSegmentCache(cacheSizeMb, policy);
+        SegmentCache cache = POLICIES[policyIndex].create(cacheSizeMb);
         SegmentId[] ids = new SegmentId[n];
         for (int i = 0; i < n; i++) {
             UUID uuid = UUID.randomUUID();
@@ -667,13 +669,12 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
     /**
      * Builds a fresh {@link PolicySetup} with {@code n} segments.
      *
-     * @param policyIndex unused — kept for call-site readability
-     * @param policy      the cache eviction policy to use
+     * @param policyIndex index into {@link #POLICIES}
      * @param n           number of distinct segments to create
      * @param cacheSizeMb cache capacity in megabytes
      */
-    private static PolicySetup freshSetup(int policyIndex, SegmentCachePolicy policy, int n, int cacheSizeMb) {
-        return freshSetupWithPool(policyIndex, policy, createSegmentPool(n), cacheSizeMb);
+    private static PolicySetup freshSetup(int policyIndex, int n, int cacheSizeMb) {
+        return freshSetupWithPool(policyIndex, createSegmentPool(n), cacheSizeMb);
     }
 
     // -----------------------------------------------------------------------

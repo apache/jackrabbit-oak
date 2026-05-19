@@ -30,7 +30,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
-import org.apache.jackrabbit.oak.segment.SegmentCache.SegmentCachePolicy;
+import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -94,9 +94,14 @@ public class SegmentCacheTarBenchmark extends AbstractTest {
     private static final int    MEASURE_3        = 300_000;
     private static final int    EPOCH_OPS_3      = 2_000;
 
-    private static final SegmentCachePolicy[] POLICIES    = {
-        SegmentCachePolicy.CAFFEINE,
-        SegmentCachePolicy.GUAVA
+    @FunctionalInterface
+    private interface CacheFactory {
+        SegmentCache create(int cacheSizeMb);
+    }
+
+    private static final CacheFactory[] POLICIES = {
+        SegmentCache::newSegmentCache,
+        GuavaSegmentCache::new
     };
     private static final String[] POLICY_NAMES = {"CAFFEINE", "GUAVA"};
     private static final int      NUM_POLICIES  = POLICIES.length;
@@ -178,18 +183,17 @@ public class SegmentCacheTarBenchmark extends AbstractTest {
         liveStores = new ReadOnlyFileStore[NUM_POLICIES];
         liveIds    = new SegmentId[NUM_POLICIES][];
         for (int p = 0; p < NUM_POLICIES; p++) {
-            ReadOnlyFileStore store = openReadOnly(POLICIES[p], CACHE_SIZE_MB);
+            ReadOnlyFileStore store = openReadOnly(p, CACHE_SIZE_MB);
             liveStores[p] = store;
             liveIds[p]    = collectDataIds(store);
         }
     }
 
     /** Opens a fresh on-heap {@link ReadOnlyFileStore} with the given policy and cache size. */
-    private ReadOnlyFileStore openReadOnly(SegmentCachePolicy policy, int cacheSizeMb)
+    private ReadOnlyFileStore openReadOnly(int policyIndex, int cacheSizeMb)
             throws IOException, InvalidFileStoreVersionException {
         return FileStoreBuilder.fileStoreBuilder(storeDir)
-                .withSegmentCacheSize(cacheSizeMb)
-                .withSegmentCachePolicy(policy)
+                .withSegmentCache(POLICIES[policyIndex].create(cacheSizeMb))
                 .withMemoryMapping(false)
                 .buildReadOnly();
     }
@@ -294,7 +298,7 @@ public class SegmentCacheTarBenchmark extends AbstractTest {
                 WARMUP_OPS, MEASURE_OPS, ZIPF_EXP, CACHE_SIZE_MB);
         double[] cdf = buildZipfCdf(poolSize, ZIPF_EXP);
         for (int p = 0; p < NUM_POLICIES; p++) {
-            try (ReadOnlyFileStore store = openReadOnly(POLICIES[p], CACHE_SIZE_MB)) {
+            try (ReadOnlyFileStore store = openReadOnly(p, CACHE_SIZE_MB)) {
                 SegmentId[] ids = collectDataIds(store);
                 int n = ids.length;
                 ThreadLocalRandom rng = ThreadLocalRandom.current();
@@ -334,7 +338,7 @@ public class SegmentCacheTarBenchmark extends AbstractTest {
         long[][][] epochs = new long[NUM_POLICIES][numEpochs][];
         long[][]   totals = new long[NUM_POLICIES][];
         for (int p = 0; p < NUM_POLICIES; p++) {
-            try (ReadOnlyFileStore store = openReadOnly(POLICIES[p], CACHE_SIZE_MB)) {
+            try (ReadOnlyFileStore store = openReadOnly(p, CACHE_SIZE_MB)) {
                 SegmentId[] ids = collectDataIds(store);
                 epochs[p] = new long[numEpochs][];
                 totals[p] = runDriftingEpochs(store, ids, width, epochs[p]);
@@ -365,7 +369,7 @@ public class SegmentCacheTarBenchmark extends AbstractTest {
         long[][][] epochs = new long[NUM_POLICIES][numEpochs][];
         long[][]   totals = new long[NUM_POLICIES][];
         for (int p = 0; p < NUM_POLICIES; p++) {
-            try (ReadOnlyFileStore store = openReadOnly(POLICIES[p], CACHE_SIZE_MB)) {
+            try (ReadOnlyFileStore store = openReadOnly(p, CACHE_SIZE_MB)) {
                 SegmentId[] ids = collectDataIds(store);
                 epochs[p] = new long[numEpochs][];
                 totals[p] = runCompactionEpochs(store, ids, oldGen, epochs[p]);
@@ -397,7 +401,7 @@ public class SegmentCacheTarBenchmark extends AbstractTest {
         for (int sizeMb : sizes) {
             System.out.printf("  %8d", sizeMb);
             for (int p = 0; p < NUM_POLICIES; p++) {
-                try (ReadOnlyFileStore store = openReadOnly(POLICIES[p], sizeMb)) {
+                try (ReadOnlyFileStore store = openReadOnly(p, sizeMb)) {
                     SegmentId[] ids = collectDataIds(store);
                     long[][] ignored = new long[MEASURE_2 / EPOCH_OPS_2][];
                     long[] r = runDriftingEpochs(store, ids, width, ignored);
@@ -419,7 +423,7 @@ public class SegmentCacheTarBenchmark extends AbstractTest {
         for (int sizeMb : sizes) {
             System.out.printf("  %8d", sizeMb);
             for (int p = 0; p < NUM_POLICIES; p++) {
-                try (ReadOnlyFileStore store = openReadOnly(POLICIES[p], sizeMb)) {
+                try (ReadOnlyFileStore store = openReadOnly(p, sizeMb)) {
                     SegmentId[] ids = collectDataIds(store);
                     long[][] ignored = new long[MEASURE_3 / EPOCH_OPS_3][];
                     long[] r = runCompactionEpochs(store, ids, oldGen, ignored);

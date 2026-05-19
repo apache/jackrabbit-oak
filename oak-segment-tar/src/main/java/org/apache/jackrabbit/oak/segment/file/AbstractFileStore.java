@@ -150,7 +150,8 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
             }
         });
         this.blobStore = builder.getBlobStore();
-        this.segmentCache = newSegmentCache(builder.getSegmentCacheSize(), builder.getSegmentCachePolicy());
+        SegmentCache injectedCache = builder.getSegmentCache();
+        this.segmentCache = injectedCache != null ? injectedCache : newSegmentCache(builder.getSegmentCacheSize());
         this.segmentReader = new CachingSegmentReader(
             this::getWriter,
             blobStore,

@@ -36,7 +36,6 @@ import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.segment.RecordNumbers;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
-import org.apache.jackrabbit.oak.segment.SegmentCache.SegmentCachePolicy;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentReferences;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
@@ -104,9 +103,14 @@ public class SegmentCacheMemoizationBenchmark extends AbstractTest {
 
     private static final long DATA_SEG_LSB_MASK = 0xa000000000000000L;
 
-    private static final SegmentCachePolicy[] POLICIES = {
-        SegmentCachePolicy.CAFFEINE,
-        SegmentCachePolicy.GUAVA
+    @FunctionalInterface
+    private interface CacheFactory {
+        SegmentCache create(int cacheSizeMb);
+    }
+
+    private static final CacheFactory[] POLICIES = {
+        SegmentCache::newSegmentCache,
+        GuavaSegmentCache::new
     };
     private static final String[] POLICY_NAMES = {"CAFFEINE", "GUAVA"};
     private static final int NUM_POLICIES = POLICIES.length;
@@ -134,7 +138,7 @@ public class SegmentCacheMemoizationBenchmark extends AbstractTest {
         liveRng = new Random(RANDOM_SEED);
         liveSetups = new CacheSetup[NUM_POLICIES];
         for (int p = 0; p < NUM_POLICIES; p++) {
-            liveSetups[p] = freshSetup(POLICIES[p], POOL_1, CACHE_SIZE_MB);
+            liveSetups[p] = freshSetup(p, POOL_1, CACHE_SIZE_MB);
         }
     }
 
@@ -226,7 +230,7 @@ public class SegmentCacheMemoizationBenchmark extends AbstractTest {
         long[][] totals = new long[NUM_POLICIES][];
         for (int p = 0; p < NUM_POLICIES; p++) {
             List<long[]> epochList = new ArrayList<>();
-            CacheSetup setup = freshSetupWithPool(POLICIES[p], pool2, cacheSizeMb);
+            CacheSetup setup = freshSetupWithPool(p, pool2, cacheSizeMb);
             totals[p] = runCompactionColdStart(setup, epochList);
             epochs[p] = epochList.toArray(new long[0][]);
         }
@@ -249,7 +253,7 @@ public class SegmentCacheMemoizationBenchmark extends AbstractTest {
         long[][] totals = new long[NUM_POLICIES][];
         for (int p = 0; p < NUM_POLICIES; p++) {
             List<long[]> epochList = new ArrayList<>();
-            CacheSetup setup = freshSetupWithPool(POLICIES[p], pool3, cacheSizeMb);
+            CacheSetup setup = freshSetupWithPool(p, pool3, cacheSizeMb);
             totals[p] = runDriftingWindow(setup, epochList);
             epochs[p] = epochList.toArray(new long[0][]);
         }
@@ -381,13 +385,13 @@ public class SegmentCacheMemoizationBenchmark extends AbstractTest {
      * {@link InstrumentedStore}.  Call {@link #createSegmentPool} once and pass the result
      * to this method for each policy to avoid accumulating mock objects.
      *
-     * @param policy      the eviction policy to use
+     * @param policyIndex index into {@link #POLICIES}
      * @param segs        pre-created mock segments (from {@link #createSegmentPool})
      * @param cacheSizeMb cache capacity in megabytes
      */
-    private static CacheSetup freshSetupWithPool(SegmentCachePolicy policy, Segment[] segs, int cacheSizeMb) {
+    private static CacheSetup freshSetupWithPool(int policyIndex, Segment[] segs, int cacheSizeMb) {
         int n = segs.length;
-        SegmentCache cache = SegmentCache.newSegmentCache(cacheSizeMb, policy);
+        SegmentCache cache = POLICIES[policyIndex].create(cacheSizeMb);
         SegmentId[] ids = new SegmentId[n];
         Map<SegmentId, Segment> segMap = new IdentityHashMap<>(n * 2);
         InstrumentedStore store = new InstrumentedStore(cache, segMap);
@@ -409,12 +413,12 @@ public class SegmentCacheMemoizationBenchmark extends AbstractTest {
     /**
      * Builds a fresh {@link CacheSetup} with {@code n} new mock segments.
      *
-     * @param policy      the eviction policy to use
+     * @param policyIndex index into {@link #POLICIES}
      * @param n           number of distinct segments in the pool
      * @param cacheSizeMb cache capacity in megabytes
      */
-    private static CacheSetup freshSetup(SegmentCachePolicy policy, int n, int cacheSizeMb) {
-        return freshSetupWithPool(policy, createSegmentPool(n), cacheSizeMb);
+    private static CacheSetup freshSetup(int policyIndex, int n, int cacheSizeMb) {
+        return freshSetupWithPool(policyIndex, createSegmentPool(n), cacheSizeMb);
     }
 
     // -----------------------------------------------------------------------

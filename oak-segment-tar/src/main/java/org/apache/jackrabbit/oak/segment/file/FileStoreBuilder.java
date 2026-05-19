@@ -40,7 +40,7 @@ import org.apache.jackrabbit.oak.segment.CacheWeights.StringCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.TemplateCacheWeigher;
 import org.apache.jackrabbit.oak.segment.RecordCache;
 import org.apache.jackrabbit.oak.segment.Segment;
-import org.apache.jackrabbit.oak.segment.SegmentCache.SegmentCachePolicy;
+import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
@@ -84,8 +84,8 @@ public class FileStoreBuilder {
 
     private int segmentCacheSize = DEFAULT_SEGMENT_CACHE_MB;
 
-    @NotNull
-    private SegmentCachePolicy segmentCachePolicy = SegmentCachePolicy.CAFFEINE;
+    @Nullable
+    private SegmentCache segmentCache;
 
     private int stringCacheSize = DEFAULT_STRING_CACHE_MB;
 
@@ -209,14 +209,16 @@ public class FileStoreBuilder {
     }
 
     /**
-     * Eviction policy for the segment cache.
+     * Injects a pre-built {@link SegmentCache} to use instead of the default Caffeine cache.
+     * Useful for benchmarking alternative eviction policies without polluting the production
+     * {@link SegmentCache} class. When set, {@link #withSegmentCacheSize(int)} is ignored.
      *
-     * @param segmentCachePolicy the policy to use (must not be null)
+     * @param segmentCache the cache to use (must not be null)
      * @return this instance
      */
     @NotNull
-    public FileStoreBuilder withSegmentCachePolicy(@NotNull SegmentCachePolicy segmentCachePolicy) {
-        this.segmentCachePolicy = segmentCachePolicy;
+    public FileStoreBuilder withSegmentCache(@NotNull SegmentCache segmentCache) {
+        this.segmentCache = segmentCache;
         return this;
     }
 
@@ -561,9 +563,9 @@ public class FileStoreBuilder {
         return segmentCacheSize;
     }
 
-    @NotNull
-    SegmentCachePolicy getSegmentCachePolicy() {
-        return segmentCachePolicy;
+    @Nullable
+    SegmentCache getSegmentCache() {
+        return segmentCache;
     }
 
     int getStringCacheSize() {

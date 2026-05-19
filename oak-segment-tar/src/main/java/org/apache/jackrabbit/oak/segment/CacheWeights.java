@@ -65,20 +65,12 @@ public final class CacheWeights {
         return (Weigher<K, V>) NOOP_WEIGHER;
     }
 
-    static int segmentWeight(Segment segment) {
+    public static int segmentWeight(Segment segment) {
         return SEGMENT_CACHE_OVERHEAD + segment.estimateMemoryUsage();
     }
 
     public static class SegmentCacheWeigher implements
             Weigher<SegmentId, Segment> {
-        @Override
-        public int weigh(@NotNull SegmentId id, @NotNull Segment segment) {
-            return segmentWeight(segment);
-        }
-    }
-
-    public static class SegmentCacheWeigherGuava implements
-            org.apache.jackrabbit.guava.common.cache.Weigher<SegmentId, Segment> {
         @Override
         public int weigh(@NotNull SegmentId id, @NotNull Segment segment) {
             return segmentWeight(segment);

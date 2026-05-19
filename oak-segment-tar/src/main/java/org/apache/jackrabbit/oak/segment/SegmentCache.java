@@ -22,23 +22,17 @@ package org.apache.jackrabbit.oak.segment;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.CacheWeights.segmentWeight;
 
-import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
-import org.apache.jackrabbit.guava.common.cache.RemovalNotification;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
-import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
 import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.apache.jackrabbit.oak.segment.CacheWeights.SegmentCacheWeigher;
 import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
@@ -70,42 +64,15 @@ public abstract class SegmentCache {
     private static final String NAME = "Segment Cache";
 
     /**
-     * Eviction policy used by {@link NonEmptyCache}.
-     *
-     * <p>The default is {@link #CAFFEINE}. {@link #GUAVA} selects the original
-     * Guava LRU implementation. Useful for A/B testing or benchmarking.</p>
-     */
-    public enum SegmentCachePolicy {
-        /** Caffeine W-TinyLFU — current default. */
-        CAFFEINE,
-        // TODO : remove me after next release (only added for benchmark tests)
-        /** Guava LRU — original SegmentCache backend, before the LIRS migration. */
-        GUAVA
-    }
-
-    /**
-     * Create a new segment cache of the given size using the default
-     * {@link SegmentCachePolicy#CAFFEINE} eviction policy.
+     * Create a new segment cache of the given size using Caffeine W-TinyLFU.
      * Returns an always-empty cache for {@code cacheSizeMB <= 0}.
      *
      * @param cacheSizeMB size of the cache in megabytes.
      */
     @NotNull
     public static SegmentCache newSegmentCache(long cacheSizeMB) {
-        return newSegmentCache(cacheSizeMB, SegmentCachePolicy.CAFFEINE);
-    }
-
-    /**
-     * Create a new segment cache of the given size with the specified eviction
-     * policy. Returns an always-empty cache for {@code cacheSizeMB <= 0}.
-     *
-     * @param cacheSizeMB size of the cache in megabytes.
-     * @param policy      the eviction policy to use (must not be null).
-     */
-    @NotNull
-    public static SegmentCache newSegmentCache(long cacheSizeMB, @NotNull SegmentCachePolicy policy) {
         if (cacheSizeMB > 0) {
-            return new NonEmptyCache(cacheSizeMB, policy);
+            return new NonEmptyCache(cacheSizeMB);
         } else {
             return new EmptyCache();
         }
@@ -196,42 +163,14 @@ public abstract class SegmentCache {
         @NotNull
         private final Stats stats;
 
-        /**
-         * Create a new cache of the given size using the specified eviction policy.
-         *
-         * @param cacheSizeMB size of the cache in megabytes.
-         * @param policy      the eviction policy to use.
-         */
-        private NonEmptyCache(long cacheSizeMB, SegmentCachePolicy policy) {
+        private NonEmptyCache(long cacheSizeMB) {
             long maximumWeight = cacheSizeMB * 1024 * 1024;
-            this.cache = buildCache(maximumWeight, policy);
+            this.cache = CacheBuilder.<SegmentId, Segment>newBuilder()
+                    .maximumWeight(maximumWeight)
+                    .weigher(new SegmentCacheWeigher())
+                    .evictionListener(this::onRemove)
+                    .build();
             this.stats = new Stats(NAME, maximumWeight, cache::estimatedSize);
-        }
-
-        private Cache<SegmentId, Segment> buildCache(long maximumWeight, SegmentCachePolicy policy) {
-            switch (policy) {
-                case GUAVA:
-                    return buildGuavaCache(maximumWeight);
-                case CAFFEINE:
-                default:
-                    return CacheBuilder.<SegmentId, Segment>newBuilder()
-                            .maximumWeight(maximumWeight)
-                            .weigher(new SegmentCacheWeigher())
-                            .evictionListener(this::onRemove)
-                            .build();
-            }
-        }
-
-        private Cache<SegmentId, Segment> buildGuavaCache(long maximumWeight) {
-            org.apache.jackrabbit.guava.common.cache.Cache<SegmentId, Segment> guava =
-                    org.apache.jackrabbit.guava.common.cache.CacheBuilder.newBuilder()
-                            .maximumWeight(maximumWeight)
-                            .weigher(new CacheWeights.SegmentCacheWeigherGuava())
-                            .removalListener((RemovalNotification<SegmentId, Segment> n) ->
-                                    this.onRemove(n.getKey(), n.getValue(),
-                                            org.apache.jackrabbit.oak.cache.CacheLIRS.toOakCause(n.getCause())))
-                            .build();
-            return new GuavaCacheAdapter<>(guava);
         }
 
         /**
@@ -339,95 +278,6 @@ public abstract class SegmentCache {
 
         private SegmentCacheLoaderException(@NotNull Exception cause) {
             super(cause);
-        }
-    }
-
-    /**
-     * Adapts a Guava {@link org.apache.jackrabbit.guava.common.cache.Cache} to the
-     * Oak {@link Cache} interface so it can be used as the L2 backend in
-     * {@link NonEmptyCache}.
-     */
-    private static final class GuavaCacheAdapter<K, V> implements Cache<K, V> {
-
-        private final org.apache.jackrabbit.guava.common.cache.Cache<K, V> delegate;
-
-        GuavaCacheAdapter(org.apache.jackrabbit.guava.common.cache.Cache<K, V> delegate) {
-            this.delegate = delegate;
-        }
-
-        @Override
-        public V getIfPresent(@NotNull K key) {
-            return delegate.getIfPresent(key);
-        }
-
-        @Override
-        public V get(@NotNull K key, @NotNull Function<? super K, ? extends V> fn) {
-            try {
-                return delegate.get(key, () -> fn.apply(key));
-            } catch (ExecutionException e) {
-                Throwable cause = e.getCause();
-                if (cause instanceof RuntimeException re) { throw re; }
-                if (cause instanceof Error er) { throw er; }
-                throw new CompletionException(cause == null ? e : cause);
-            }
-        }
-
-        @Override
-        public void put(@NotNull K key, @NotNull V value) {
-            delegate.put(key, value);
-        }
-
-        @Override
-        public void invalidate(@NotNull K key) {
-            delegate.invalidate(key);
-        }
-
-        @Override
-        public void invalidateAll() {
-            delegate.invalidateAll();
-        }
-
-        @Override
-        public void invalidateAll(@NotNull Iterable<? extends K> keys) {
-            delegate.invalidateAll(keys);
-        }
-
-        @Override
-        public long estimatedSize() {
-            return delegate.size();
-        }
-
-        @Override
-        @NotNull
-        public CacheStatsSnapshot stats() {
-            return new CacheStatsSnapshot(0, 0, 0, 0, 0, 0);
-        }
-
-        @Override
-        @NotNull
-        public ConcurrentMap<K, V> asMap() {
-            return delegate.asMap();
-        }
-
-        @Override
-        @NotNull
-        public Map<K, V> getAllPresent(@NotNull Iterable<? extends K> keys) {
-            return delegate.getAllPresent(keys);
-        }
-
-        @Override
-        public void cleanUp() {
-            delegate.cleanUp();
-        }
-
-        @Override
-        public long getUsedWeight() {
-            return -1;
-        }
-
-        @Override
-        public void setMaximumWeight(long maximumWeight) {
-            // Guava does not support dynamic resizing
         }
     }
 
