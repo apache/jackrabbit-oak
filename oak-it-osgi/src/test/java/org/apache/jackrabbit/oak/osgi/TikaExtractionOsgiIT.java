@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.osgi;
 
-import org.apache.sling.testing.paxexam.SlingOptions;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.Parser;
@@ -77,14 +76,10 @@ public class TikaExtractionOsgiIT {
     private static final String VERSION_PROP_RESOURCE_NAME = "versions.properties";
     private static final String TIKA_VERSION = "tika";
     private static final String POI_VERSION = "poi";
-    private static final String COLLECTIONS4_VERSION = "commons-collections4";
     private static final String COMPRESS_VERSION = "commons-compress";
-    private static final String LANG3_VERSION = "commons-lang3";
-    private static final String MATH3_VERSION = "commons-math3";
     private static final String COMMONS_CSV_VERSION = "commons-csv";
-    private static final String[] VERSION_KEYS = new String[]{TIKA_VERSION, POI_VERSION
-            , COLLECTIONS4_VERSION, COMPRESS_VERSION
-            , LANG3_VERSION, MATH3_VERSION, COMMONS_CSV_VERSION};
+    private static final String[] VERSION_KEYS = new String[]{TIKA_VERSION, POI_VERSION, COMPRESS_VERSION,
+            COMMONS_CSV_VERSION};
 
     private static final String EXPECTED_TEXT_FRAGMENT = "A sample document";
     private static final String EXPECTED_CSV_FRAGMENT =
@@ -109,7 +104,10 @@ public class TikaExtractionOsgiIT {
                 mavenBundle( "org.ops4j.pax.logging", "pax-logging-api", "1.7.2" ),
                 mavenBundle("org.apache.logging.log4j", "log4j-api", "2.23.0"),
                 mavenBundle("jakarta.servlet", "jakarta.servlet-api", "5.0.0"),
-                SlingOptions.spyfly(),
+                mavenBundle().groupId("com.github.ben-manes.caffeine").artifactId("caffeine").version("3.1.8"),
+
+                // required for slf4j 2.0.x
+                OSGiIT.spyflyOptions(),
                 setupTikaAndPoi(),
                 frameworkProperty("repository.home").value("target"),
                 systemProperties(new SystemPropertyOption("felix.fileinstall.dir").value(getConfigDir())),
@@ -124,8 +122,7 @@ public class TikaExtractionOsgiIT {
         Map<String, String> versions = setupVersions();
         return composite(
                 composite(
-                        mavenBundle("org.apache.tika", "tika-core", versions.get(TIKA_VERSION))
-                        , mavenBundle("org.apache.tika", "tika-parsers", versions.get(TIKA_VERSION))
+                        mavenBundle("org.apache.tika", "tika-parsers", versions.get(TIKA_VERSION))
                         // for csv parsing
                         , mavenBundle("org.apache.commons", "commons-csv", versions.get(COMMONS_CSV_VERSION))
                         // poi dependency start
@@ -137,10 +134,7 @@ public class TikaExtractionOsgiIT {
                         , wrappedBundle(mavenBundle("org.apache.poi", "ooxml-security", "1.0"))
                         , wrappedBundle(mavenBundle("org.apache.xmlbeans", "xmlbeans", "5.0.3"))
                         , wrappedBundle(mavenBundle("com.drewnoakes", "metadata-extractor", "2.6.2"))
-                        , mavenBundle("org.apache.commons", "commons-collections4", versions.get(COLLECTIONS4_VERSION))
                         , mavenBundle("org.apache.commons", "commons-compress", versions.get(COMPRESS_VERSION))
-                        , mavenBundle("org.apache.commons", "commons-lang3", versions.get(LANG3_VERSION))
-                        , mavenBundle("org.apache.commons", "commons-math3", versions.get(MATH3_VERSION))
                         // poi dependency end
                 )
                 , OSGiIT.jarBundles()
