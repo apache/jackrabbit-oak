@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
+import com.github.benmanes.caffeine.cache.Policy;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
 import org.apache.jackrabbit.oak.cache.api.Cache;
@@ -60,19 +61,11 @@ public class CaffeineCacheAdapter<K, V> implements Cache<K, V> {
     @Override
     public void invalidateAll() {
         cache.invalidateAll();
-        // Caffeine batches removal notifications into a write buffer and drains
-        // them during maintenance, not during invalidateAll() itself. cleanUp()
-        // forces maintenance to run synchronously so every registered eviction
-        // listener fires before this method returns — matching the contract of
-        // Guava's Cache.invalidateAll() and making callers that track derived
-        // state (weight counters, L1 references) consistent immediately.
-        cache.cleanUp();
     }
 
     @Override
     public void invalidateAll(@NotNull Iterable<? extends K> keys) {
         cache.invalidateAll(keys);
-        cache.cleanUp();
     }
 
     @Override

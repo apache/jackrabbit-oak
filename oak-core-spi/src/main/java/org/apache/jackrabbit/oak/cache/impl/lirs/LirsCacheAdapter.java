@@ -36,11 +36,11 @@ import org.jetbrains.annotations.NotNull;
  * API: runtime failures propagate directly and checked loader failures are
  * wrapped in {@link CompletionException}.</p>
  */
-public class LirsCacheAdapter<K, V> implements Cache<K, V> {
+class LirsCacheAdapter<K, V> implements Cache<K, V> {
 
     private final CacheLIRS<K, V> cache;
 
-    public LirsCacheAdapter(CacheLIRS<K, V> cache) {
+    LirsCacheAdapter(CacheLIRS<K, V> cache) {
         this.cache = cache;
     }
 

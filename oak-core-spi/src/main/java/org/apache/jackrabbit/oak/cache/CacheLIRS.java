@@ -39,7 +39,6 @@ import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
 import org.apache.jackrabbit.oak.cache.api.EvictionCause;
-import org.apache.jackrabbit.oak.cache.impl.lirs.LirsCacheAdapter;
 import org.apache.jackrabbit.oak.cache.impl.lirs.LirsLoadingCacheAdapter;
 import org.apache.jackrabbit.oak.commons.annotations.Internal;
 import org.jetbrains.annotations.NotNull;
@@ -1786,19 +1785,6 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     @NotNull
     public org.apache.jackrabbit.oak.cache.api.LoadingCache<K, V> asOakCache() {
         return new LirsLoadingCacheAdapter<>(this);
-    }
-
-    /**
-     * Exposes this CacheLIRS instance through the Oak manual-cache API.
-     * Unlike {@link #asOakCache()}, this variant does not require a loader and
-     * supports the {@link org.apache.jackrabbit.oak.cache.api.Cache#get(Object, java.util.function.Function)}
-     * mapping-function contract used by most Oak caches.
-     *
-     * @return a Cache-backed Oak view of this cache
-     */
-    @NotNull
-    public org.apache.jackrabbit.oak.cache.api.Cache<K, V> asManualCache() {
-        return new LirsCacheAdapter<>(this);
     }
 
     /**
