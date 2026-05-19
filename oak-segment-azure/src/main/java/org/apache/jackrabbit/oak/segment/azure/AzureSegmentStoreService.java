@@ -59,26 +59,35 @@ public class AzureSegmentStoreService {
     @Activate
     public void activate(ComponentContext context, Configuration config) throws IOException {
         if (useAzureSdkV12) {
-            log.info("Starting node store using Azure SDK 12");
-            AzurePersistence persistence = AzurePersistenceManager.createAzurePersistenceFrom(config);
-            registration = context.getBundleContext()
-                    .registerService(SegmentNodeStorePersistence.class, persistence, new Hashtable<String, Object>() {{
-                        put(SERVICE_PID, String.format("%s(%s, %s)", AzurePersistence.class.getName(), config.accountName(), config.rootPath()));
-                        if (!Objects.equals(config.role(), "")) {
-                            put("role", config.role());
-                        }
-                    }});
+            AzurePersistence persistence;
+            String accountName;
+            if (config.failoverEnabled()) {
+                log.info("Starting node store using Azure SDK 12 in failover mode");
+                accountName = config.failoverAccountName();
+                persistence = AzurePersistenceManager.createAzurePersistenceFromFailover(config);
+            } else {
+                log.info("Starting node store using Azure SDK 12");
+                accountName = config.accountName();
+                persistence = AzurePersistenceManager.createAzurePersistenceFrom(config);
+            }
+            Hashtable<String, Object> properties = getServiceRegistrationProperties(AzurePersistence.class.getName(), config, accountName);
+
+            registration = context.getBundleContext().registerService(SegmentNodeStorePersistence.class, persistence, properties);
         } else {
             log.info("Starting node store using Azure SDK 8");
+            Hashtable<String, Object> properties = getServiceRegistrationProperties(AzurePersistenceV8.class.getName(), config, config.accountName());
             AzurePersistenceV8 persistence = AzureSegmentStoreV8.createAzurePersistenceFrom(config);
-            registration = context.getBundleContext()
-                    .registerService(SegmentNodeStorePersistence.class, persistence, new Hashtable<String, Object>() {{
-                        put(SERVICE_PID, String.format("%s(%s, %s)", AzurePersistenceV8.class.getName(), config.accountName(), config.rootPath()));
-                        if (!Objects.equals(config.role(), "")) {
-                            put("role", config.role());
-                        }
-                    }});
+            registration = context.getBundleContext().registerService(SegmentNodeStorePersistence.class, persistence, properties);
         }
+    }
+
+    private Hashtable<String, Object> getServiceRegistrationProperties(String persistenceClassName, Configuration config, String accountName) {
+        Hashtable<String, Object> properties = new Hashtable<>();
+        properties.put(SERVICE_PID, String.format("%s(%s, %s)", persistenceClassName, accountName, config.rootPath()));
+        if (!Objects.equals(config.role(), "")) {
+            properties.put("role", config.role());
+        }
+        return properties;
     }
 
     @Deactivate

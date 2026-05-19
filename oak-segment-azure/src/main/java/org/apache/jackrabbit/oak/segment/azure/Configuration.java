@@ -95,4 +95,39 @@ public @interface Configuration {
             description = "When set to true specifies that requests will be attempted in primary, then in secondary region." +
                 "Default value is '" + AzureSegmentStoreService.DEFAULT_ENABLE_SECONDARY_LOCATION + "'.")
     boolean enableSecondaryLocation() default AzureSegmentStoreService.DEFAULT_ENABLE_SECONDARY_LOCATION;
+
+    @AttributeDefinition(
+            name = "Enable failover",
+            description = "When set to true, enables failover to the failover Azure Storage account.")
+    boolean failoverEnabled() default false;
+
+    @AttributeDefinition(
+            name = "Azure account name for failover",
+            description = "Name of the Azure Storage account to use for failover.")
+    String failoverAccountName();
+
+    @AttributeDefinition(
+            name = "Azure container name for failover",
+            description = "Name of the Azure Storage container to use for failover.")
+    String failoverContainerName();
+
+    @AttributeDefinition(
+            name = "Azure account access key for failover",
+            description = "Access key which should be used to authenticate on the failover account")
+    String failoverAccessKey();
+
+    @AttributeDefinition(
+            name = "Azure Service Principal ID for failover",
+            description = "Azure Service Principal ID for Azure Storage authentication")
+    String failoverClientId() default "";
+
+    @AttributeDefinition(
+            name = "Azure Service Principal Password for failover",
+            description = "Azure Service Principal Password for Azure Storage authentication")
+    String failoverClientSecret() default "";
+
+    @AttributeDefinition(
+            name = "Azure Active Directory ID for failover",
+            description = "Azure Active Directory ID for Azure Storage authentication")
+    String failoverTenantId() default "";
 }
