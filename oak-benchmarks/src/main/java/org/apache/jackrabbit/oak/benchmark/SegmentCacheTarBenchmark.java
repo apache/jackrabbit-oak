@@ -100,15 +100,6 @@ public class SegmentCacheTarBenchmark extends AbstractTest {
     };
     private static final String[] POLICY_NAMES = {"CAFFEINE", "GUAVA"};
     private static final int      NUM_POLICIES  = POLICIES.length;
-    /**
-     * Set {@code -Doak.benchmark.clearCacheOnCompaction=true} to clear the segment cache
-     * between the old-gen warmup and new-gen measurement phases of Scenario 3, simulating
-     * the JIRA-4 fix.  Default is {@code false}: old-gen incumbents at freq=15 block
-     * new-gen admission and the freeze shows up as higher TAR-read% for Caffeine.
-     */
-    private static final boolean  CLEAR_CACHE_ON_COMPACTION =
-            Boolean.getBoolean("oak.benchmark.clearCacheOnCompaction");
-
     // ----- live-run state -----
     private File           storeDir;
     private int            poolSize;
@@ -368,8 +359,7 @@ public class SegmentCacheTarBenchmark extends AbstractTest {
                         + " (old-gen=%d  new-gen=%d  warmup=%,d  measure=%,d  epoch=%,d  zipf-new=%.1f) ---%n"
                         + "  Old-gen saturated to freq=15; new-gen auto-rejected (freq≤5 gate):%n"
                         + "  Caffeine ~40%%+ TAR-read%% initially, self-corrects after ~30K ops; Guava ~27%% steady.%n"
-                        + "  After convergence: Caffeine ~20%% vs Guava ~24%% — W-TinyLFU wins long-term.%n"
-                        + "  Fix: -Doak.benchmark.clearCacheOnCompaction=true (JIRA-4) eliminates the freeze.%n",
+                        + "  After convergence: Caffeine ~20%% vs Guava ~24%% — W-TinyLFU wins long-term.%n",
                 oldGen, newGen, WARMUP_3, MEASURE_3, EPOCH_OPS_3, ZIPF_3_NEW_EXP);
         int numEpochs = MEASURE_3 / EPOCH_OPS_3;
         long[][][] epochs = new long[NUM_POLICIES][numEpochs][];
@@ -509,10 +499,6 @@ public class SegmentCacheTarBenchmark extends AbstractTest {
         for (int i = 0; i < WARMUP_3; i++) {
             pool[zipfSample(oldCdf, rng.nextDouble())].getSegment();
         }
-        if (CLEAR_CACHE_ON_COMPACTION) {
-            store.clearSegmentCache();
-        }
-
         long h0 = store.getSegmentCacheStats().getHitCount();
         long m0 = store.getSegmentCacheStats().getMissCount();
         long totTotal = 0, totL1 = 0, totL2 = 0, totTar = 0;

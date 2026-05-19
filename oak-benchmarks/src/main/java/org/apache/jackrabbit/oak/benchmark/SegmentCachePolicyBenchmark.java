@@ -215,16 +215,6 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
     };
     private static final String[] POLICY_NAMES = {"CAFFEINE", "GUAVA"};
     private static final int NUM_POLICIES = POLICIES.length;
-    /**
-     * Set {@code -Doak.benchmark.clearCacheOnCompaction=true} to clear the segment cache
-     * between the old-gen warmup and new-gen measurement phases of Scenario K, simulating
-     * what {@code AbstractCompactionStrategy} does when JIRA-4's fix is in place.
-     * Default is {@code false}: the freeze is visible because old-gen incumbents at freq=15
-     * block new-gen admission (W-TinyLFU auto-rejects candidates with freq ≤ 5).
-     */
-    private static final boolean CLEAR_CACHE_ON_COMPACTION =
-            Boolean.getBoolean("oak.benchmark.clearCacheOnCompaction");
-
     // ----- live Scenario A state -----
     private double[] zipfCdf;
     private Random rng;
@@ -498,9 +488,6 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
                 "  Caffeine: ~40%+ miss% initially, self-corrects after ~30K ops; Guava: ~27% steady.");
         System.out.println(
                 "  After convergence: Caffeine ~20% vs Guava ~24% — W-TinyLFU wins long-term.");
-        System.out.printf(
-                "  Fix: -Doak.benchmark.clearCacheOnCompaction=true (JIRA-4) eliminates the freeze;"
-                        + " both start at ~27%%.%n");
         long[][][] epochsK = new long[NUM_POLICIES][][];
         long[][] totalsK = new long[NUM_POLICIES][];
         for (int p = 0; p < NUM_POLICIES; p++) {
@@ -1071,14 +1058,6 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
         for (int i = 0; i < WARMUP_K; i++) {
             setup.access(zipfSample(oldCdf, r.nextDouble()));
         }
-        // Optionally simulate the JIRA-4 fix: clearing the cache lets new-gen fill
-        // the empty L2 directly, bypassing the admission gate entirely.
-        // Without this (-Doak.benchmark.clearCacheOnCompaction=false, the default),
-        // old-gen incumbents at freq=15 block new-gen for many epochs.
-        if (CLEAR_CACHE_ON_COMPACTION) {
-            setup.cache.clear();
-        }
-
         // Phase 2: compaction — all traffic switches to new-gen (freq=0 in sketch)
         long totalHits = 0;
         long totalMisses = 0;

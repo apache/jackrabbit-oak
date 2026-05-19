@@ -110,15 +110,6 @@ public class SegmentCacheMemoizationBenchmark extends AbstractTest {
     };
     private static final String[] POLICY_NAMES = {"CAFFEINE", "GUAVA"};
     private static final int NUM_POLICIES = POLICIES.length;
-    /**
-     * Set {@code -Doak.benchmark.clearCacheOnCompaction=true} to clear the segment cache
-     * between the old-gen warmup and new-gen measurement phases of Scenario 2, simulating
-     * the JIRA-4 fix.  Default is {@code false}: old-gen incumbents at freq=15 block
-     * new-gen admission and the freeze is visible in per-epoch TAR-read%.
-     */
-    private static final boolean CLEAR_CACHE_ON_COMPACTION =
-            Boolean.getBoolean("oak.benchmark.clearCacheOnCompaction");
-
     // ----- live Scenario 1 state (used by runTest / statsValues) -----
     private double[] liveCdf;
     private Random liveRng;
@@ -230,9 +221,6 @@ public class SegmentCacheMemoizationBenchmark extends AbstractTest {
                 "  Caffeine: ~40%+ TAR-read% initially, self-corrects after ~30K ops; Guava: ~27% steady.");
         System.out.println(
                 "  After convergence: Caffeine ~20% vs Guava ~24% — W-TinyLFU wins long-term.");
-        System.out.printf(
-                "  Fix: -Doak.benchmark.clearCacheOnCompaction=true (JIRA-4) eliminates the freeze;"
-                        + " both start at ~27%%.%n");
         Segment[] pool2 = createSegmentPool(OLD_GEN_2 + NEW_GEN_2);
         long[][][] epochs = new long[NUM_POLICIES][][];
         long[][] totals = new long[NUM_POLICIES][];
@@ -447,9 +435,6 @@ public class SegmentCacheMemoizationBenchmark extends AbstractTest {
 
         for (int i = 0; i < WARMUP_2; i++) {
             setup.access(zipfSample(oldCdf, r.nextDouble()));
-        }
-        if (CLEAR_CACHE_ON_COMPACTION) {
-            setup.cache.clear();
         }
         setup.snapshotAndReset(); // discard warmup counts + reset eviction baseline
 
