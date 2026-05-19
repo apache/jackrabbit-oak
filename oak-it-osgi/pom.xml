@@ -317,7 +317,7 @@
     <dependency>
       <groupId>org.apache.sling</groupId>
       <artifactId>org.apache.sling.testing.paxexam</artifactId>
-      <version>3.1.0</version>
+      <version>4.1.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
