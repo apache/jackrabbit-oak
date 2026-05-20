@@ -94,6 +94,20 @@ public class FulltextIndexPlanner {
     public static final AtomicBoolean FT_OAK_12171_DISABLE = new AtomicBoolean(false);
 
     /**
+     * Feature toggle name for OAK-12221.
+     * When enabled, cost estimation uses a multiplicative selectivity model: each indexed
+     * condition reduces the estimated entry count by dividing by its weight, so queries with
+     * more indexed conditions produce lower cost estimates.  Disabled by default.
+     */
+    public static final String FT_OAK_12221 = "FT_OAK-12221";
+
+    /**
+     * Enable flag for the multiplicative cost estimation introduced by OAK-12221.
+     * Default is {@code false} (feature disabled). Wired to {@link #FT_OAK_12221} at runtime.
+     */
+    public static final AtomicBoolean FT_OAK_12221_ENABLE = new AtomicBoolean(false);
+
+    /**
      * IndexPlan Attribute name which refers to the name of the fields that should be used for facets.
      */
     public static final String ATTR_FACET_FIELDS = "oak.facet.fields";
@@ -912,19 +926,35 @@ public class FulltextIndexPlanner {
                 }
             }
 
-            if (weight > 1) {
-                // use it to scale down the doc count - in broad strokes, we can think of weight
-                // as number of terms for the field with all terms getting equal share of
-                // the documents in this field
-                double scaledDocCnt = Math.ceil((double) docCntForField / weight);
-                if (minNumDocs < scaledDocCnt) {
-                    continue;
+            if (FT_OAK_12221_ENABLE.get()) {
+                // With OAK-12221: check MCV stats first for equality restrictions, then fall
+                // back to the multiplicative selectivity model.
+                Long mcvCount = null;
+                if (pr != null && isEqualityRestriction(pr)) {
+                    mcvCount = propDef.getValue().commonValues.get(pr.first.getValue(Type.STRING));
                 }
-                // since, we've already taken care that scaled cost is lower than minCost,
-                // we can safely cast without risking overflow
-                minNumDocs = (int)scaledDocCnt;
-            } else if (docCntForField < minNumDocs) {
-                minNumDocs = docCntForField;
+                if (mcvCount != null) {
+                    // Use the MCV count directly, capped at docCntForField.
+                    minNumDocs = (int) Math.min(Math.min(mcvCount, docCntForField), minNumDocs);
+                } else if (weight > 1) {
+                    // Multiplicative model: divide the running estimate by this condition's weight,
+                    // then cap at docCntForField.
+                    double scaledEst = Math.ceil((double) minNumDocs / weight);
+                    minNumDocs = (int) Math.min(docCntForField, scaledEst);
+                } else if (docCntForField < minNumDocs) {
+                    minNumDocs = docCntForField;
+                }
+            } else {
+                // Legacy min model: compute a per-field estimate and track the minimum.
+                if (weight > 1) {
+                    double scaledDocCnt = Math.ceil((double) docCntForField / weight);
+                    if (minNumDocs < scaledDocCnt) {
+                        continue;
+                    }
+                    minNumDocs = (int) scaledDocCnt;
+                } else if (docCntForField < minNumDocs) {
+                    minNumDocs = docCntForField;
+                }
             }
         }
 

@@ -1465,6 +1465,144 @@ public class IndexPlannerTest {
         assertEquals(0, plan.getEstimatedEntryCount());
     }
 
+    /**
+     * Verifies cost estimation for a query with more indexed conditions against one with fewer.
+     *
+     * Real-world case: a query on (@id = 'X' or @identifier = 'X') and @type = 'variant'
+     * may be evaluated as a UNION; one leg carries both id and type restrictions.
+     * That leg should cost less than a plan using only type.
+     *
+     * Without FT_OAK-12221 the legacy min-model is used: both plans estimate
+     * min(ceil(100/5), ceil(100/5)) = 20, so adding id has no effect on cost.
+     *
+     * With FT_OAK-12221 enabled the multiplicative model divides by each condition's weight:
+     *   - plan1 (type only):      ceil(100/5)        = 20
+     *   - plan2 (id AND type): ceil(ceil(100/5)/5) =  4
+     */
+    @Test
+    public void moreRestrictedQueryShouldCostLess() throws Exception {
+        String indexPath = "/test";
+        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(child(builder, indexPath));
+        idxBuilder.indexRule("nt:base")
+            .property("type").propertyIndex()
+            .enclosingRule()
+            .property("id").propertyIndex();
+        NodeState defn = idxBuilder.build();
+
+        // 100 documents, every one carrying both indexed properties.
+        List<Document> docs = new ArrayList<>();
+        for (int i = 0; i < 100; i++) {
+            Document doc = new Document();
+            doc.add(new StringField("type", "variant", Field.Store.NO));
+            doc.add(new StringField("id", "id" + i, Field.Store.NO));
+            docs.add(doc);
+        }
+        Directory sampleDirectory = createSampleDirectory(0, docs);
+        LuceneIndexDefinition idxDefn = new LuceneIndexDefinition(root, defn, indexPath);
+        LuceneIndexNode node = createIndexNode(idxDefn, sampleDirectory);
+
+        // Less specific: only restrict on type
+        FilterImpl filter1 = createFilter("nt:base");
+        filter1.restrictProperty("type", Operator.EQUAL, PropertyValues.newString("variant"));
+        FulltextIndexPlanner planner1 = new FulltextIndexPlanner(node, indexPath, filter1, Collections.emptyList());
+        QueryIndex.IndexPlan plan1 = planner1.getPlan();
+        assertNotNull(plan1);
+
+        // More specific: restrict on both id and type.
+        // This corresponds to one branch of a UNION query for
+        //   (@id = '151215Z71' or @identifier = '151215Z71') and @type = 'variant'.
+        FilterImpl filter2 = createFilter("nt:base");
+        filter2.restrictProperty("type", Operator.EQUAL, PropertyValues.newString("variant"));
+        filter2.restrictProperty("id", Operator.EQUAL, PropertyValues.newString("151215Z71"));
+        FulltextIndexPlanner planner2 = new FulltextIndexPlanner(node, indexPath, filter2, Collections.emptyList());
+        QueryIndex.IndexPlan plan2 = planner2.getPlan();
+        assertNotNull(plan2);
+
+        // Legacy (toggle off): both plans yield the same estimate because the min-model cannot
+        // distinguish between one and two conditions when all fields have identical doc counts.
+        assertEquals(documentsPerValue(100), plan1.getEstimatedEntryCount());
+        assertEquals(documentsPerValue(100), plan2.getEstimatedEntryCount());
+
+        // With FT_OAK-12221 the multiplicative model gives a strictly lower estimate for plan2.
+        FulltextIndexPlanner.FT_OAK_12221_ENABLE.set(true);
+        try {
+            QueryIndex.IndexPlan plan1ft = new FulltextIndexPlanner(node, indexPath, filter1, Collections.emptyList()).getPlan();
+            QueryIndex.IndexPlan plan2ft = new FulltextIndexPlanner(node, indexPath, filter2, Collections.emptyList()).getPlan();
+            // plan1ft: ceil(100/5) = 20
+            assertEquals(documentsPerValue(100), plan1ft.getEstimatedEntryCount());
+            // plan2ft: ceil(ceil(100/5)/5) = ceil(20/5) = 4  <  20
+            assertThat(plan2ft.getEstimatedEntryCount(), lessThan(plan1ft.getEstimatedEntryCount()));
+        } finally {
+            FulltextIndexPlanner.FT_OAK_12221_ENABLE.set(false);
+        }
+    }
+
+    /**
+     * Verifies that MCV (Most Common Values) statistics in the 'stats' property override
+     * the weight-based estimate when querying for a specific value, when FT_OAK-12221 is enabled.
+     *
+     * The index has 900 documents: 800 with status=active, 100 with status=deleted.
+     * The 'stats' property encodes those counts. With the toggle on:
+     *   - status=active  → 800  (from MCV)
+     *   - status=deleted → 100  (from MCV)
+     *   - status=unknown → 180  (ceil(900/5), MCV fallback)
+     * With the toggle off all values yield the same weight-based estimate of 180.
+     */
+    @Test
+    public void mcvStatsShouldBeUsedForCostEstimation() throws Exception {
+        String indexPath = "/test";
+        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(child(builder, indexPath));
+        idxBuilder.indexRule("nt:base")
+            .property("status").propertyIndex()
+                .stats("{\"common\":{\"active\":800,\"deleted\":100}}");
+        NodeState defn = idxBuilder.build();
+
+        // 800 docs with status=active, 100 with status=deleted
+        List<Document> docs = new ArrayList<>();
+        for (int i = 0; i < 800; i++) {
+            Document doc = new Document();
+            doc.add(new StringField("status", "active", Field.Store.NO));
+            docs.add(doc);
+        }
+        for (int i = 0; i < 100; i++) {
+            Document doc = new Document();
+            doc.add(new StringField("status", "deleted", Field.Store.NO));
+            docs.add(doc);
+        }
+        Directory sampleDirectory = createSampleDirectory(0, docs);
+        LuceneIndexDefinition idxDefn = new LuceneIndexDefinition(root, defn, indexPath);
+        LuceneIndexNode node = createIndexNode(idxDefn, sampleDirectory);
+
+        // Toggle off (default): MCV is ignored, all values get the same weight-based estimate
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictProperty("status", Operator.EQUAL, PropertyValues.newString("active"));
+        QueryIndex.IndexPlan plan = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList()).getPlan();
+        assertNotNull(plan);
+        assertEquals(documentsPerValue(900), plan.getEstimatedEntryCount());
+
+        // Toggle on: MCV counts are used for known values; unknown values fall back to weight
+        FulltextIndexPlanner.FT_OAK_12221_ENABLE.set(true);
+        try {
+            filter = createFilter("nt:base");
+            filter.restrictProperty("status", Operator.EQUAL, PropertyValues.newString("active"));
+            plan = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList()).getPlan();
+            assertEquals(800, plan.getEstimatedEntryCount());
+
+            filter = createFilter("nt:base");
+            filter.restrictProperty("status", Operator.EQUAL, PropertyValues.newString("deleted"));
+            plan = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList()).getPlan();
+            assertEquals(100, plan.getEstimatedEntryCount());
+
+            // Unknown value: no MCV entry, falls back to multiplicative estimate ceil(900/5) = 180
+            filter = createFilter("nt:base");
+            filter.restrictProperty("status", Operator.EQUAL, PropertyValues.newString("unknown"));
+            plan = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList()).getPlan();
+            assertEquals(documentsPerValue(900), plan.getEstimatedEntryCount());
+        } finally {
+            FulltextIndexPlanner.FT_OAK_12221_ENABLE.set(false);
+        }
+    }
+
     @Test
     public void weightedRegexPropDefs() throws Exception {
         String indexPath = "/test";
