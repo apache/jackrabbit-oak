@@ -45,7 +45,7 @@ cost = costPerExecution + estimatedEntryCount × costPerEntry / (1 + |sortOrder|
 | `costPerExecution`     | `costPerExecution` property on the index definition                                                     | `1.0`                 |
 | `costPerEntry`         | `costPerEntry` property on the index definition                                                         | `1.0` (`1.5` for the legacy Lucene V1 format because it re-aggregates at runtime) |
 | `estimatedEntryCount`  | computed from `numDocs`, the indexed properties' statistics, and the filter (`getMaxPossibleNumDocs`)   | derived per query     |
-| `costPerEntryFactor`   | `1 + sortOrder.size()` — sorting amortises the per-entry cost                                           | derived per query     |
+| `costPerEntryFactor`   | `1 + sortOrder.size()` - sorting amortises the per-entry cost                                           | derived per query     |
 
 The query engine then picks the plan with the lowest `cost`. The interesting
 number is `estimatedEntryCount`. The rest of this page is about how that number
@@ -64,7 +64,7 @@ scaledDocCnt = weight == 1 : docCntForField
 minNumDocs   = min(minNumDocs, scaledDocCnt)
 ```
 
-`docCntForField` is the live Lucene/Elastic field doc count — the number of
+`docCntForField` is the live Lucene/Elastic field doc count - the number of
 documents that have at least one term in that field. `weight` is configured per
 property and defaults to **5** (system property
 `oak.fulltext.defaultPropertyWeight`).
@@ -117,7 +117,7 @@ Stats stored per column: `n_distinct`, `null_frac`, `most_common_vals` +
 stats are available PostgreSQL falls back to constants like
 `DEFAULT_EQ_SEL = 0.005` (equality assumed to match 0.5 %).
 
-The cost of a row is split into per-tuple CPU, sequential I/O, random I/O —
+The cost of a row is split into per-tuple CPU, sequential I/O, random I/O -
 finer-grained than Oak's single `costPerEntry`.
 
 ## The New Selectivity Model (OAK-12221)
@@ -134,8 +134,8 @@ document having the field):
 | `x = v` and `v` ∈ `stats.common`              | `stats.common[v] / 100`                                              |
 | `x = v` and `v` ∉ `stats.common`              | `1 / weight`                                                         |
 | Range / `LIKE` on `x`                         | `1 / min(3, weight)` (i.e. ≥ 33 %)                                   |
-| `x IS NOT NULL`                               | `1.0` — cap below is the exact match count                           |
-| `x IS NULL`                                   | `1.0` — cap below is the exact match count                           |
+| `x IS NOT NULL`                               | `1.0` - cap below is the exact match count                           |
+| `x IS NULL`                                   | `1.0` - cap below is the exact match count                           |
 
 **Combined estimate:**
 
@@ -152,14 +152,14 @@ Key consequences:
   sequence of `min` / `ceil` operations whose interaction depended on
   HashMap iteration order.
 - **`AND` compounds.** Adding indexed conditions reduces the estimate
-  multiplicatively, so plans with more indexed restrictions cost less — the
+  multiplicatively, so plans with more indexed restrictions cost less - the
   original motivation for OAK-12221.
 - **MCV is stored as a percentage**, not as an absolute count. Percentages
   survive uniform purges / growth without re-tuning, since the estimate is
   derived as `percentage × live docCntForField` at planning time.
 - **`IS NULL` / `IS NOT NULL` use live counts directly.** For `IS NOT NULL`,
   the field's live doc count is the exact number of matching documents. For
-  `IS NULL`, the estimate is `numDocs − docCntForField(propertyName)` — exact
+  `IS NULL`, the estimate is `numDocs − docCntForField(propertyName)` - exact
   per property, independent of how many other properties have null-check
   enabled. The `weightNull` / `weightNotNull` heuristic is bypassed.
 
@@ -167,7 +167,7 @@ Key consequences:
 
 Index: 1 000 documents. Properties `a` and `b` both indexed.
 
-- `a` has `stats = {"common":{"x":10}}` — value `"x"` matches 10 % of `a`.
+- `a` has `stats = {"common":{"x":10}}` - value `"x"` matches 10 % of `a`.
 - `b` has default `weight = 5`.
 
 Query: `a = 'x' AND b = 'y'`. The planner computes:
@@ -207,7 +207,7 @@ or on property definitions inside `indexRules/<nodeType>/properties/<name>`
 | `stats`               | JSON string    | Most-Common-Values (MCV) percentages. Format: `{"common":{"value1": pct1, "value2": pct2}}`. Used only when **FT_OAK-12221 is enabled**. Values are percentages (e.g. `33.33` means 33.33 %; `0.5` means half a percent). |
 
 When `FT_OAK-12221` is enabled, `weightNull` / `weightNotNull` are not consulted
-— `IS NULL` / `IS NOT NULL` use the exact live counts instead.
+- `IS NULL` / `IS NOT NULL` use the exact live counts instead.
 
 ## Feature Toggles
 
@@ -246,7 +246,7 @@ In code, the toggles are reachable as
   to work; only `weightNull` / `weightNotNull` lose effect (the new model
   uses live counts).
 - To exercise MCV, add a `stats` JSON property to the property definition.
-  Percentages can be tuned over time without redeploying — the planner reads
+  Percentages can be tuned over time without redeploying - the planner reads
   them on each plan.
 - Estimated cost is exposed in query EXPLAIN output and via the index MBeans;
   changes after enabling FT_OAK-12221 are observable there.
