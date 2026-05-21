@@ -132,10 +132,12 @@ public class PropertyDefinition {
 
     /**
      * Most Common Values from the {@code stats} property (if present).
-     * Maps a property value (string) to its document count. Used by the cost estimator
-     * when the query restricts this property to a specific value. Empty if not configured.
+     * Maps a property value (string) to its frequency as a fraction in [0, 1],
+     * derived by dividing the configured percentage by 100.
+     * Used by the cost estimator when the query restricts this property to a specific value.
+     * Empty if not configured.
      */
-    public final Map<String, Long> commonValues;
+    public final Map<String, Double> commonValues;
 
     public final boolean dynamicBoost;
 
@@ -225,7 +227,7 @@ public class PropertyDefinition {
         validate();
     }
 
-    private static Map<String, Long> parseCommonValues(NodeState defn) {
+    private static Map<String, Double> parseCommonValues(NodeState defn) {
         PropertyState statsProperty = defn.getProperty(PROP_STATS);
         if (statsProperty == null) {
             return Map.of();
@@ -240,9 +242,10 @@ public class PropertyDefinition {
             if (props.isEmpty()) {
                 return Map.of();
             }
-            Map<String, Long> result = new HashMap<>(props.size());
+            Map<String, Double> result = new HashMap<>(props.size());
             for (Map.Entry<String, String> e : props.entrySet()) {
-                result.put(e.getKey(), Long.parseLong(e.getValue()));
+                double fraction = Double.parseDouble(e.getValue()) / 100.0;
+                result.put(e.getKey(), fraction);
             }
             return Collections.unmodifiableMap(result);
         } catch (Exception e) {
