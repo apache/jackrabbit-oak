@@ -59,8 +59,8 @@ public abstract class SegmentCache {
     private static final String NAME = "Segment Cache";
 
     /**
-     * Create a new segment cache of the given size using Caffeine W-TinyLFU.
-     * Returns an always-empty cache for {@code cacheSizeMB <= 0}.
+     * Create a new segment cache of the given size. Returns an always empty
+     * cache for {@code cacheSizeMB <= 0}.
      *
      * @param cacheSizeMB size of the cache in megabytes.
      */
@@ -95,10 +95,7 @@ public abstract class SegmentCache {
     public abstract void putSegment(@NotNull Segment segment);
 
     /**
-     * Clear all segments from the cache and drop L1 memoization on every cached id
-     * ({@link SegmentId#unloaded()}). Invoked after successful compaction (before tar
-     * cleanup) and during {@code DefaultCleanupStrategy} cleanup so W-TinyLFU / LRU state
-     * does not retain stale frequency for reclaimed generations.
+     * Clear all segment from the cache
      */
     public abstract void clear();
 
@@ -151,6 +148,11 @@ public abstract class SegmentCache {
         @NotNull
         private final Stats stats;
 
+        /**
+         * Create a new cache of the given size.
+         *
+         * @param cacheSizeMB size of the cache in megabytes.
+         */
         private NonEmptyCache(long cacheSizeMB) {
             long maximumWeight = cacheSizeMB * 1024 * 1024;
             this.cache = CacheBuilder.<SegmentId, Segment>newBuilder()
@@ -229,12 +231,7 @@ public abstract class SegmentCache {
 
         @Override
         public void clear() {
-            // invalidateAll() triggers onRemove() for every entry synchronously
-            // (maintenance runs on the caller thread via executor(Runnable::run)).
-            // The set(0) below is a safety net for any SIZE-eviction already pending
-            // in Caffeine's write buffer that would double-decrement currentWeight.
             cache.invalidateAll();
-            stats.currentWeight.set(0);
         }
 
         @Override

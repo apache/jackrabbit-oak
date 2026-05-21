@@ -697,7 +697,6 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             setup.access(zipfSample(cdf, r.nextDouble()));
         }
 
-        setup.cache.cleanUp();
         long missesBase = setup.cache.getCacheStats().getMissCount();
         long evictBase = setup.cache.getCacheStats().getEvictionCount();
 
@@ -705,7 +704,6 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             setup.access(zipfSample(cdf, r.nextDouble()));
         }
 
-        setup.cache.cleanUp();
         long misses = setup.cache.getCacheStats().getMissCount() - missesBase;
         long evictions = setup.cache.getCacheStats().getEvictionCount() - evictBase;
         return new long[]{POST_SCAN_MEASURE - misses, misses, evictions};
@@ -738,7 +736,6 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
         int numEpochs = MEASURE_C / EPOCH_OPS_C;
 
         for (int epoch = 0; epoch < numEpochs; epoch++) {
-            setup.cache.cleanUp();
             long missBase = setup.cache.getCacheStats().getMissCount();
             long evictBase = setup.cache.getCacheStats().getEvictionCount();
 
@@ -751,7 +748,6 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
                 }
             }
 
-            setup.cache.cleanUp();
             long epochMisses = setup.cache.getCacheStats().getMissCount() - missBase;
             long epochEvictions = setup.cache.getCacheStats().getEvictionCount() - evictBase;
             long epochHits = EPOCH_OPS_C - epochMisses;
@@ -781,7 +777,6 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             setup.access(r.nextInt(n));
         }
 
-        setup.cache.cleanUp();
         long missesBase = setup.cache.getCacheStats().getMissCount();
         long evictBase  = setup.cache.getCacheStats().getEvictionCount();
 
@@ -789,7 +784,6 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             setup.access(r.nextInt(n));
         }
 
-        setup.cache.cleanUp();
         long misses    = setup.cache.getCacheStats().getMissCount()     - missesBase;
         long evictions = setup.cache.getCacheStats().getEvictionCount() - evictBase;
         return new long[]{MEASURE_D - misses, misses, evictions};
@@ -817,7 +811,6 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             }
         }
 
-        setup.cache.cleanUp();
         long missesBase = setup.cache.getCacheStats().getMissCount();
         long evictBase = setup.cache.getCacheStats().getEvictionCount();
 
@@ -825,7 +818,6 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             setup.access(zipfSample(cdf, r.nextDouble()));
         }
 
-        setup.cache.cleanUp();
         long misses = setup.cache.getCacheStats().getMissCount() - missesBase;
         long evictions = setup.cache.getCacheStats().getEvictionCount() - evictBase;
         return new long[]{MEASURE_E - misses, misses, evictions};
@@ -853,7 +845,6 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             }
         }
 
-        setup.cache.cleanUp();
         long missesBase = setup.cache.getCacheStats().getMissCount();
         long evictBase = setup.cache.getCacheStats().getEvictionCount();
 
@@ -861,7 +852,6 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             setup.access(zipfSample(cdf, r.nextDouble()));
         }
 
-        setup.cache.cleanUp();
         long misses = setup.cache.getCacheStats().getMissCount() - missesBase;
         long evictions = setup.cache.getCacheStats().getEvictionCount() - evictBase;
         return new long[]{MEASURE_F - misses, misses, evictions};
@@ -882,7 +872,6 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             setup.access(i);
         }
 
-        setup.cache.cleanUp();
         long missesBase = setup.cache.getCacheStats().getMissCount();
         long evictBase = setup.cache.getCacheStats().getEvictionCount();
 
@@ -891,7 +880,6 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             setup.access(base + r.nextInt(RECENT_WINDOW_G));
         }
 
-        setup.cache.cleanUp();
         long misses = setup.cache.getCacheStats().getMissCount() - missesBase;
         long evictions = setup.cache.getCacheStats().getEvictionCount() - evictBase;
         return new long[]{MEASURE_G - misses, misses, evictions};
@@ -917,7 +905,6 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             windowStart += SLIDE_STEP_H;
         }
 
-        setup.cache.cleanUp();
         long missesBase = setup.cache.getCacheStats().getMissCount();
         long evictBase = setup.cache.getCacheStats().getEvictionCount();
 
@@ -934,7 +921,6 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             windowStart = (windowStart + SLIDE_STEP_H) % TOTAL_POOL_H;
         }
 
-        setup.cache.cleanUp();
         long misses = setup.cache.getCacheStats().getMissCount() - missesBase;
         long evictions = setup.cache.getCacheStats().getEvictionCount() - evictBase;
         return new long[]{MEASURE_H - misses, misses, evictions};
@@ -970,7 +956,6 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
         int numEpochs = MEASURE_I / EPOCH_OPS_I;
 
         for (int epoch = 0; epoch < numEpochs; epoch++) {
-            setup.cache.cleanUp();
             long missBase = setup.cache.getCacheStats().getMissCount();
             long evictBase = setup.cache.getCacheStats().getEvictionCount();
 
@@ -982,7 +967,6 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
                 opCount++;
             }
 
-            setup.cache.cleanUp();
             long epochMisses = setup.cache.getCacheStats().getMissCount() - missBase;
             long epochEvictions = setup.cache.getCacheStats().getEvictionCount() - evictBase;
             long epochHits = EPOCH_OPS_I - epochMisses;
@@ -1017,7 +1001,6 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             opCount++;
         }
 
-        setup.cache.cleanUp();
         long missesBase = setup.cache.getCacheStats().getMissCount();
         long evictBase = setup.cache.getCacheStats().getEvictionCount();
 
@@ -1029,7 +1012,6 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
             opCount++;
         }
 
-        setup.cache.cleanUp();
         long misses = setup.cache.getCacheStats().getMissCount() - missesBase;
         long evictions = setup.cache.getCacheStats().getEvictionCount() - evictBase;
         return new long[]{MEASURE_J - misses, misses, evictions};
@@ -1066,7 +1048,6 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
         int numEpochs = MEASURE_K / EPOCH_OPS_K;
 
         for (int epoch = 0; epoch < numEpochs; epoch++) {
-            setup.cache.cleanUp();
             long missBase = setup.cache.getCacheStats().getMissCount();
             long evictBase = setup.cache.getCacheStats().getEvictionCount();
 
@@ -1074,7 +1055,6 @@ public class SegmentCachePolicyBenchmark extends AbstractTest {
                 setup.access(OLD_GEN_K + zipfSample(newCdf, r.nextDouble()));
             }
 
-            setup.cache.cleanUp();
             long epochMisses = setup.cache.getCacheStats().getMissCount() - missBase;
             long epochEvictions = setup.cache.getCacheStats().getEvictionCount() - evictBase;
             long epochHits = EPOCH_OPS_K - epochMisses;

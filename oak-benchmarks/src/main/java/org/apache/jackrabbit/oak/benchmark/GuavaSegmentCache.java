@@ -125,11 +125,6 @@ class GuavaSegmentCache extends SegmentCache {
     }
 
     @Override
-    public void cleanUp() {
-        cache.cleanUp();
-    }
-
-    @Override
     @NotNull
     public AbstractCacheStats getCacheStats() {
         return stats;
@@ -138,7 +133,7 @@ class GuavaSegmentCache extends SegmentCache {
     @Override
     public void recordHit(@NotNull SegmentId id) {
         if (id.isDataSegmentId()) {
-            if (FT_NOTIFY_L2_ON_L1_HIT.isEnabled()) {
+            if (FT_OAK_12214_PROPAGATE_L1_HITS_TO_L2_ENABLED.get()) {
                 cache.getIfPresent(id);
             }
             stats.hitCount.incrementAndGet();

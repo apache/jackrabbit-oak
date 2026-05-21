@@ -300,7 +300,6 @@ public class SegmentCacheMemoizationBenchmark extends AbstractTest {
             long total    = store.totalAccesses.getAndSet(0);
             long l1Hits   = store.l1Hits.getAndSet(0);
             long tarReads = store.tarReads.getAndSet(0);
-            cache.cleanUp();
             long currentEvictions = cache.getCacheStats().getEvictionCount();
             long evictionsDelta   = currentEvictions - evictionBaseline;
             evictionBaseline      = currentEvictions;
