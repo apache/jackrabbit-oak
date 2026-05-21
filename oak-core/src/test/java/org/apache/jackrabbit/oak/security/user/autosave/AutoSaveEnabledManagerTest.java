@@ -355,6 +355,26 @@ public class AutoSaveEnabledManagerTest extends AbstractAutoSaveTest {
     }
 
     @Test
+    public void testCreateUserWithAbsolutePath() throws Exception {
+        Principal principal = new PrincipalImpl("u");
+        autosaveMgr.createUserWithAbsolutePath("u", null, principal, UserConstants.DEFAULT_USER_PATH + "/absolute/u");
+        assertFalse(root.hasPendingChanges());
+
+        verify(mgrDlg, times(1)).createUserWithAbsolutePath("u", null, principal, UserConstants.DEFAULT_USER_PATH + "/absolute/u");
+        verify(autosaveMgr, times(1)).autosave();
+    }
+
+    @Test
+    public void testCreateGroupWithAbsolutePath() throws Exception {
+        Principal principal = new PrincipalImpl("g");
+        autosaveMgr.createGroupWithAbsolutePath("g", principal, UserConstants.DEFAULT_GROUP_PATH + "/absolute/g");
+        assertFalse(root.hasPendingChanges());
+
+        verify(mgrDlg, times(1)).createGroupWithAbsolutePath("g", principal, UserConstants.DEFAULT_GROUP_PATH + "/absolute/g");
+        verify(autosaveMgr, times(1)).autosave();
+    }
+
+    @Test
     public void testUnwrap() {
         assertSame(mgrDlg, autosaveMgr.unwrap());
     }

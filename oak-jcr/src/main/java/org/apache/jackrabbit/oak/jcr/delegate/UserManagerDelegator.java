@@ -170,6 +170,21 @@ public class UserManagerDelegator implements UserManager {
 
     @NotNull
     @Override
+    public User createUserWithAbsolutePath(@NotNull final String userID, @Nullable final String password,
+                                           @NotNull final Principal principal, @NotNull final String absolutePath)
+            throws RepositoryException {
+        return sessionDelegate.perform(new UserManagerOperation<User>(sessionDelegate, "createUserWithAbsolutePath", true) {
+            @NotNull
+            @Override
+            public User perform() throws RepositoryException {
+                User user = userManagerDelegate.createUserWithAbsolutePath(userID, password, principal, absolutePath);
+                return UserDelegator.wrap(sessionDelegate, user);
+            }
+        });
+    }
+
+    @NotNull
+    @Override
     public User createSystemUser(@NotNull final String userID, @Nullable final String intermediatePath) throws RepositoryException {
         return sessionDelegate.perform(new UserManagerOperation<User>(sessionDelegate, "createUser", true) {
             @NotNull
@@ -228,6 +243,21 @@ public class UserManagerDelegator implements UserManager {
             @Override
             public Group perform() throws RepositoryException {
                 Group group = userManagerDelegate.createGroup(groupID, principal, intermediatePath);
+                return GroupDelegator.wrap(sessionDelegate, group);
+            }
+        });
+    }
+
+    @NotNull
+    @Override
+    public Group createGroupWithAbsolutePath(@NotNull final String groupID, @NotNull final Principal principal,
+                                             @NotNull final String absolutePath)
+            throws RepositoryException {
+        return sessionDelegate.perform(new UserManagerOperation<Group>(sessionDelegate, "createGroupWithAbsolutePath", true) {
+            @NotNull
+            @Override
+            public Group perform() throws RepositoryException {
+                Group group = userManagerDelegate.createGroupWithAbsolutePath(groupID, principal, absolutePath);
                 return GroupDelegator.wrap(sessionDelegate, group);
             }
         });

@@ -214,6 +214,35 @@ public interface UserManager {
 
 
     /**
+     * Creates a new {@code User} for the given parameters at the specified absolute JCR path.
+     * Unlike {@link #createUser(String, String, Principal, String)} where the
+     * {@code intermediatePath} is a relative hint, this method accepts an absolute
+     * JCR repository path that precisely determines the location of the new user node.
+     * The path must be within the configured user root.
+     * <p>
+     * Implementations that do not support creation with at an absolute path
+     * must throw {@link UnsupportedRepositoryOperationException}.
+     *
+     * @param userID       The ID of the new user.
+     * @param password     The initial password of the new user, may be {@code null}.
+     * @param principal    The principal of the new user.
+     * @param absolutePath The absolute JCR repository path at which the user node
+     *                     must be created. Must not be {@code null}.
+     * @return The new {@code User}.
+     * @throws AuthorizableExistsException             if an authorizable with the given
+     *                                                 userID or principal already exists.
+     * @throws UnsupportedRepositoryOperationException if the implementation does not
+     *                                                 support creation at an absolute path.
+     * @throws RepositoryException                     If another error occurs.
+     */
+    @NotNull
+    default User createUserWithAbsolutePath(@NotNull String userID, @Nullable String password,
+                                            @NotNull Principal principal, @NotNull String absolutePath)
+            throws AuthorizableExistsException, UnsupportedRepositoryOperationException, RepositoryException {
+        throw new UnsupportedRepositoryOperationException("Creating user with absolutePath not supported");
+    }
+
+    /**
      * Create a new system user for the specified {@code userID}. The new authorizable
      * is required to have the following characteristics:
      *
@@ -304,6 +333,35 @@ public interface UserManager {
      */
     @NotNull
     Group createGroup(@NotNull String groupID, @NotNull Principal principal, @Nullable String intermediatePath) throws AuthorizableExistsException, RepositoryException;
+
+    /**
+     * Creates a new {@code Group} at the specified absolute JCR repository path.
+     * <p>
+     * Unlike {@link #createGroup(String, Principal, String)} where the
+     * {@code intermediatePath} is a relative hint, this method accepts an absolute
+     * JCR repository path that precisely determines the location of the new group node.
+     * The path must be within the configured group root.
+     * <p>
+     * Implementations that do not support creation with at an absolute path
+     * must throw {@link UnsupportedRepositoryOperationException}.
+     *
+     * @param groupID      The ID of the new group.
+     * @param principal    The principal of the new group.
+     * @param absolutePath The absolute JCR repository path at which the group node
+     *                     must be created. Must not be {@code null}.
+     * @return The new {@code Group}.
+     * @throws AuthorizableExistsException             if an authorizable with the given
+     *                                                 groupID or principal already exists.
+     * @throws UnsupportedRepositoryOperationException if the implementation does not
+     *                                                 support creation at an absolute path.
+     * @throws RepositoryException                     If another error occurs.
+     */
+    @NotNull
+    default Group createGroupWithAbsolutePath(@NotNull String groupID, @NotNull Principal principal,
+                                              @NotNull String absolutePath)
+            throws AuthorizableExistsException, UnsupportedRepositoryOperationException, RepositoryException {
+        throw new UnsupportedRepositoryOperationException("Creating group with absolutePath not supported");
+    }
 
     /**
      * If any write operations executed through the User API are automatically
