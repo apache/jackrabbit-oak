@@ -23,13 +23,19 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FIELD_BOOST;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_IS_REGEX;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_SIMILARITY_SEARCH_DENSE_VECTOR_SIZE;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_STATS;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_WEIGHT;
 import static org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.DEFAULT_PROPERTY_WEIGHT;
 import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.ValuePattern;
@@ -124,6 +130,15 @@ public class PropertyDefinition {
      */
     public final int weightNotNull;
 
+    /**
+     * Most Common Values from the {@code stats} property (if present).
+     * Maps a property value (string) to its frequency as a fraction in [0, 1],
+     * derived by dividing the configured percentage by 100.
+     * Used by the cost estimator when the query restricts this property to a specific value.
+     * Empty if not configured.
+     */
+    public final Map<String, Double> commonValues;
+
     public final boolean dynamicBoost;
 
     /**
@@ -165,6 +180,7 @@ public class PropertyDefinition {
         this.weight = getOptionalValue(defn, PROP_WEIGHT, DEFAULT_PROPERTY_WEIGHT);
         this.weightNull = getOptionalValue(defn, FulltextIndexConstants.PROP_WEIGHT_NULL, -1);
         this.weightNotNull = getOptionalValue(defn, FulltextIndexConstants.PROP_WEIGHT_NOT_NULL, -1);
+        this.commonValues = parseCommonValues(defn);
         this.dynamicBoost = getOptionalValue(defn, FulltextIndexConstants.PROP_DYNAMIC_BOOST, false);
 
         //By default if a property is defined it is indexed
@@ -211,6 +227,32 @@ public class PropertyDefinition {
         validate();
     }
 
+    private static Map<String, Double> parseCommonValues(NodeState defn) {
+        PropertyState statsProperty = defn.getProperty(PROP_STATS);
+        if (statsProperty == null) {
+            return Map.of();
+        }
+        try {
+            JsonObject stats = JsonObject.fromJson(statsProperty.getValue(Type.STRING), false);
+            JsonObject common = stats.getChildren().get("common");
+            if (common == null) {
+                return Map.of();
+            }
+            Map<String, String> props = common.getProperties();
+            if (props.isEmpty()) {
+                return Map.of();
+            }
+            Map<String, Double> result = new HashMap<>(props.size());
+            for (Map.Entry<String, String> e : props.entrySet()) {
+                double fraction = Double.parseDouble(e.getValue()) / 100.0;
+                result.put(e.getKey(), fraction);
+            }
+            return Collections.unmodifiableMap(result);
+        } catch (Exception e) {
+            log.warn("Failed to parse 'stats' property: {}", statsProperty.getValue(Type.STRING), e);
+            return Map.of();
+        }
+    }
 
     /**
      * If 'analyzed' is enabled then property value would be used to evaluate the
