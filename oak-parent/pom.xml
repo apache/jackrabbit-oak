@@ -70,7 +70,7 @@
     <pax-url.version>2.6.17</pax-url.version>
     <groovy.version>3.0.25</groovy.version>
     <netty.version>4.1.133.Final</netty.version>
-    <aws.sdk.version>2.34.1</aws.sdk.version>
+    <aws.sdk.version>2.34.9</aws.sdk.version>
     <!-- determines the bytecode version (i.e. the minimum JRE required to run the build artifact) -->
     <javaTargetVersion>17</javaTargetVersion>
     <maven.compiler.release>${javaTargetVersion}</maven.compiler.release>
