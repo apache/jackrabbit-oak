@@ -7,6 +7,14 @@ use these interfaces to access implementation-specific functionality.
 
 (Copied over from the original Jackrabbit project, see OAK-8339 for details)
 
+Java 11 Compatibility
+---------------------
+
+*Note*: unlike other Oak components, this one targets Java 11
+so that implementations that are still on Java 11 (for instance,
+Jackrabbit Classic) can implement it.
+
+
 License
 -------
 

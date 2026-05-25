@@ -29,6 +29,11 @@
 
   <name>Jackrabbit API</name>
 
+  <properties>
+    <!-- OAK-12226 -->
+    <maven.compiler.release>11</maven.compiler.release>
+  </properties>
+
   <build>
     <plugins>
       <plugin>
