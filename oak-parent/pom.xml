@@ -71,7 +71,7 @@
     <jackson.version>2.16.2</jackson.version>
     <testcontainers.version>1.21.4</testcontainers.version>
     <groovy.version>2.5.23</groovy.version>
-    <netty.version>4.1.132.Final</netty.version>
+    <netty.version>4.1.133.Final</netty.version>
     <aws.sdk.version>2.34.1</aws.sdk.version>
     <!-- determines the bytecode version (i.e. the minimum JRE required to run the build artifact) -->
     <javaTargetVersion>8</javaTargetVersion>
