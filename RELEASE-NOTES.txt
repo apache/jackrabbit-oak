@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 2.0.0
+Release Notes -- Apache Jackrabbit Oak -- Version 2.2.0
 
 Introduction
 ------------
@@ -7,96 +7,56 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 2.0.0 is an incremental feature release based
+Apache Jackrabbit Oak 2.2.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
 
-Oak 2.0.0 is the first release requiring Java 17.
-
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 2.0.0
+Changes in Oak 2.2.0
 --------------------
 
 ** Sub-task
-    * [OAK-12147] - Introduce Oak Cache API interfaces in oak-core-spi
-    * [OAK-12148] - Add hidden cache implementations and OakCacheBuilder in oak-core-spi
-    * [OAK-12149] - Migrate oak-blob-cloud to Oak Cache API
-    * [OAK-12150] - Migrate oak-blob-cloud-azure to Oak Cache API
-    * [OAK-12151] - Migrate oak-blob to Oak Cache API
-    * [OAK-12152] - Migrate oak-search-elastic to Oak Cache API
-    * [OAK-12153] - Migrate oak-search to Oak Cache API
-    * [OAK-12154] - Migrate oak-store-document cache infrastructure to Oak Cache API
-    * [OAK-12155] - Migrate oak-store-document diff caches to Oak Cache API
-    * [OAK-12156] - Migrate oak-store-document persistent cache and document stores to Oak Cache API
-    * [OAK-12157] - Migrate oak-segment-tar Guava-shim caches to Oak Cache API
-    * [OAK-12158] - Migrate oak-segment-tar CacheLIRS-based caches to Oak Cache API
-    * [OAK-12159] - Migrate oak-blob-plugins to Oak Cache API
-    * [OAK-12160] - Migrate oak-run-commons and any remaining modules to Oak Cache API
+    * [OAK-12161] - Verify OSGi bundle isolation — no consumer imports Caffeine or Guava cache packages
 
 ** Technical task
-    * [OAK-12108] - Remove usage of Guava's Monitor from SegmentBufferWriterPool
-    * [OAK-12115] - Write unit cases for SegmentBufferWriterPool to verify it works fine after Guava's Monitor removal
-    * [OAK-12129] - Improve coverage for ChangeProcessor
-    * [OAK-12130] - Remove TreeTraverser from tests
-    * [OAK-12131] - Remove Guava references from FutureUtilsTest
-    * [OAK-12132] - Remove toCompletableFuture() from FutureConverter
-    * [OAK-12142] - jackrabbit-data: cleanup POMs
-
+    * [OAK-12185] - CacheFactory SPI interface [oak-core-spi]
+    * [OAK-12186] - CacheFactory wiring and CacheBuilder decoupling [oak-core-spi]
 
 ** Bug
-    * [OAK-12051] - Sorting Unions by Score: NullPointerException
-    * [OAK-12057] - Wrong index may be selected when using LIMIT OPTION
-    * [OAK-12113] - MongoDocumentStore: BsonException should be wrapped as DocumentStoreException
-    * [OAK-12114] - MongoDBExceptionTest add checks for bson compression
-    * [OAK-12119] - Offline Compaction does not persist compacted head into gc.log
-    * [OAK-12134] - compaction with concurrent writes can increase segmentstore size
-
-
-
-** New Feature
-    * [OAK-11952] - Bump up minimal Java version to 17
+    * [OAK-12189] - integration tests in oak-it-osgi fail due to misconfiguration of the assembly plugin
+    * [OAK-12199] - fix the removal of persistent cache from oak-store-document
+    * [OAK-12200] - Preserve repository-not-reachable exception handling after Caffeine migration
+    * [OAK-12201] - Missing import for IterableUtils.limit() in CdCommand
+    * [OAK-12203] - Oak-auth-ldap uses vulnerable org.apache.mina.mina-core
+    * [OAK-12204] - FullGC: prevent NPE in recommendations when fullGC is enabled and collect limit is exceeded
+    * [OAK-12206] - oak-search-elastic: Fix subtree deletion not cascading to child documents in Elastic index
+    * [OAK-12212] - Drifts in PersistentDiskCache.cacheSize counter
 
 ** Improvement
-    * [OAK-12097] - Default tokenizer should be used by NodeStateAnalyzerFactory when none provided
-    * [OAK-12099] - Improve documentation, in the form of an AGENTS.md file
-    * [OAK-12101] - Skip indexing of very long similarity tags
-    * [OAK-12117] - Limit the max number of tags per document
-    * [OAK-12122] - Flaky test oak.run.DataStoreCommandTest
-    * [OAK-12133] - With the segment store, binary properties can not be aggregated
-    * [OAK-12135] - FulltextIndex: Don't log twice for the same exception
-    * [OAK-12136] - Improve documentation for oak-store-document module in the form of an AGENTS.md file
-    * [OAK-12139] - Add skill to create an OSGi config and related setter/getter and unit cases for oak-store-document
-    * [OAK-12143] - AsyncLaneSwitcher.switchLane() falsely treats user-provided async-previous as already-switched, silently skipping out-of-band reindexing
-    * [OAK-12146] - Use the latest elastic OR lucene index, if there are multiple versions
-    * [OAK-12167] - oak-search-elastic: use fast hash function instead of SHA-256 for shard selection
-    * [OAK-12170] - Invalid path: rep:facet
-    * [OAK-12171] - Cost estimation for "is (not) null" checks are wrong
-    * [OAK-12174] - Offload Elastic async response processing from I/O thread to avoid inflated query time metrics
+    * [OAK-12190] - Add createUserWithAbsolutePath and createGroupWithAbsolutePath to UserManager API
+    * [OAK-12193] - Large numbers of deleted Lucene documents cause incremental indexing to consume too much memory
+    * [OAK-12196] - Improve logging for diff.index
+    * [OAK-12202] - Add DistinctBinarySize.add(String blobId)
+    * [OAK-12209] - oak-upgrade: remove unused code (LengthCachingDataStore)
+    * [OAK-12213] - Tree store: child node list maybe be incorrect if an intermediate node is missing
+    * [OAK-12220] - Flaky test: ElasticFacetTest.statisticalFacets
+    * [OAK-12226] - oak-jackrabbit-api should (still) target Java 11
 
 ** Test
-    * [OAK-12060] - Regression Test for Elastic Inference Query
-
+    * [OAK-12197] - DocumentBundlingTest.hasChildren_BundledRoot_NonBundledChild flaky
+    * [OAK-12198] - test that findAndUpdate does not return stale document
 
 ** Task
-    * [OAK-8840] - copy jackrabbit-data into Oak
-    * [OAK-12121] - Write a test case to produce that Offline Compaction does not persist compacted head into gc.log
-    * [OAK-12127] - Update Derby version to 1.16.x
-    * [OAK-12128] - Fail earlier (and add more diags) when detecting late writes
-    * [OAK-12137] - Create aggregate jacoco report
-    * [OAK-12138] - add junit-jupiter-bom to managed dependencies
-    * [OAK-12140] - use aggregated coverage report in Sonar checks
-    * [OAK-12145] - Create compatibility test for guava cache usage
-    * [OAK-12169] - remove org.apache.jackrabbit.oak.spi.blob.data.util.NamedThreadFactory
-    * [OAK-12175] - oak-blob: cleanup org.apache.jackrabbit.oak.spi.blob.fs
-    * [OAK-12176] - Upgrade jackson-databind dependency to 2.19.4
-    * [OAK-12177] - improve diagnostics in VersionGarbageCollectorLogTest and DocumentNodeStoreIT
-    * [OAK-12178] - bump netty version to 4.1.132.Final
-    * [OAK-12179] - update Tomcat dependency to 9.0.117
-    * [OAK-12182] - Create SPEC/PLAN/TASKS for guava removal
-    * [OAK-12184] - revert oak-blob-cloud-azure to version as of 1.90.0
+    * [OAK-12166] - RDBVersionGC MODE 1 (old method) should leverage SD columns when available
+    * [OAK-12187] - MongoDocumentStore: improve diagnostics for too large docs in findAndModify
+    * [OAK-12214] - SegmentCache: L1 hits should notify L2 (caffeine) to keep frequency/recency accurate
+    * [OAK-12217] - reset ClusterNodeInfo clock in DocumentNodeStoreIT tearDown to prevent cross-test leakage
+    * [OAK-12218] - reset ClusterNodeInfo clock in UnrecoveredRevisionTest tearDown to avoid CI flakiness
+    * [OAK-12223] - bump netty versions to 4.1.133.Final
+    * [OAK-12225] - bump aws sdk to 2.34.9
 
 In addition to the above-mentioned changes, this release contains all
 changes up to the previous release.
