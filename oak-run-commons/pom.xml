@@ -141,10 +141,6 @@
                     <groupId>org.apache.lucene</groupId>
                     <artifactId>lucene-core</artifactId>
                 </exclusion>
-                <exclusion>
-                    <groupId>org.apache.tika</groupId>
-                    <artifactId>tika-core</artifactId>
-                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
