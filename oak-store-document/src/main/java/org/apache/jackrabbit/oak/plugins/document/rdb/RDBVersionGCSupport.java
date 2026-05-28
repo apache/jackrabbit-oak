@@ -95,17 +95,27 @@ public class RDBVersionGCSupport extends VersionGCSupport {
         }
     }
 
-    private Iterable<NodeDocument> getSplitDocuments() {
-        List<QueryCondition> conditions = Collections.emptyList();
-        // absent support for SDTYPE as indexed property: exclude those
-        // documents from the query which definitively aren't split documents
+    // MODE==1
+    private Iterable<NodeDocument> getSplitDocuments(final Set<SplitDocType> gcTypes, final long oldestRevTimeStamp) {
+        List<QueryCondition> conditions = new ArrayList<>();
+        if (store.getTable(Collection.NODES).hasSplitDocs()) {
+            // we can add constraints on SDTYPE
+            List<Integer> gcTypeCodes = new ArrayList<>();
+            for (SplitDocType type : gcTypes) {
+                gcTypeCodes.add(type.typeCode());
+            }
+            conditions.add(new QueryCondition(NodeDocument.SD_TYPE, "in", gcTypeCodes));
+            conditions.add(new QueryCondition(NodeDocument.SD_MAX_REV_TIME_IN_SECS, "<=", NodeDocument.getModifiedInSecs(oldestRevTimeStamp)));
+            conditions.add(new QueryCondition(RDBDocumentStore.VERSIONPROP, ">=", 2));
+        }
+        // in any case: exclude those documents from the query which definitively aren't split documents
         List<String> excludeKeyPatterns = Arrays.asList("_:/%", "__:/%", "___:/%");
         return getIterator(excludeKeyPatterns, conditions);
     }
 
     private Iterable<NodeDocument> identifyGarbageMode1(final Set<SplitDocType> gcTypes, final RevisionVector sweepRevs,
             final long oldestRevTimeStamp) {
-        return filter(getSplitDocuments(), getGarbageCheckPredicate(gcTypes, sweepRevs, oldestRevTimeStamp));
+        return filter(getSplitDocuments(gcTypes, oldestRevTimeStamp), getGarbageCheckPredicate(gcTypes, sweepRevs, oldestRevTimeStamp));
     }
 
     private Predicate<NodeDocument> getGarbageCheckPredicate(final Set<SplitDocType> gcTypes, final RevisionVector sweepRevs,
