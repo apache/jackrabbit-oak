@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.run.cli;
 
 import org.junit.Test;
 
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 /**
  * Verifies that tika-core is not transitively available in oak-run-commons.
@@ -37,11 +37,6 @@ public class TikaExclusionTest {
 
     @Test
     public void tikaCoreNotTransitivelyAvailable() {
-        assertThrows(
-            ClassNotFoundException.class,
-            () -> Class.forName("org.apache.tika.Tika"),
-            "tika-core must not be on oak-run-commons's classpath. " +
-               "Ensure the tika-core exclusion is present in the jackrabbit-core dependency in pom.xml"
-    );
+        assertThrows(ClassNotFoundException.class, () -> Class.forName("org.apache.tika.Tika"));
 }
 }
