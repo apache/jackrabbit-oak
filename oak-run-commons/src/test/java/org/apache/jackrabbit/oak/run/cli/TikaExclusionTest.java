@@ -37,12 +37,11 @@ public class TikaExclusionTest {
 
     @Test
     public void tikaCoreNotTransitivelyAvailable() {
-        try {
-            Class.forName("org.apache.tika.Tika");
-            fail("tika-core must not be on oak-run-commons's classpath; " +
-                    "check that the tika-core exclusion is present in the jackrabbit-core dependency in pom.xml");
-        } catch (ClassNotFoundException expected) {
-            // correct: tika-core is excluded from jackrabbit-core's transitive deps
-        }
-    }
+        assertThrows(
+            ClassNotFoundException.class,
+            () -> Class.forName("org.apache.tika.Tika"),
+            "tika-core must not be on oak-run-commons's classpath. " +
+               "Ensure the tika-core exclusion is present in the jackrabbit-core dependency in pom.xml"
+    );
+}
 }
