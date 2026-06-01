@@ -74,8 +74,12 @@ import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
+import org.apache.sling.testing.mock.osgi.MockOsgi;
+import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
@@ -91,6 +95,9 @@ import ch.qos.logback.core.spi.FilterReply;
  * Test the Property2 index mechanism.
  */
 public class PropertyIndexTest {
+
+    @Rule
+    public final OsgiContext osgiContext = new OsgiContext();
 
     private static final int MANY = 100;
 
@@ -1186,5 +1193,147 @@ public class PropertyIndexTest {
         private String getCommitPath(String changeNodeName) {
             return PathUtils.concat(path, changeNodeName);
         }
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-12125">OAK-12125</a>
+     *
+     * With no Feature wired into the provider (the default), a property index
+     * definition missing the required 'propertyNames' must NPE out of the editor
+     * constructor. IndexUpdate catches IllegalStateException but NOT NullPointerException,
+     * so the NPE propagates and breaks the indexing cycle. This pins the
+     * "default OFF = pre-PR behavior" contract.
+     */
+    @Test
+    public void missingPropertyNames_toggleOff_breaksIndexing() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+        NodeBuilder builder = root.builder();
+
+        NodeBuilder invalidIndex = builder.child(INDEX_DEFINITIONS_NAME).child("invalidIndex_off");
+        invalidIndex.setProperty(JCR_PRIMARYTYPE,
+                IndexConstants.INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
+        invalidIndex.setProperty(IndexConstants.TYPE_PROPERTY_NAME,
+                PropertyIndexEditorProvider.TYPE);
+
+        NodeState before = builder.getNodeState();
+        builder.child("content").setProperty("foo", "bar");
+        NodeState after = builder.getNodeState();
+
+        try {
+            HOOK.processCommit(before, after, CommitInfo.EMPTY);
+            fail("Expected NullPointerException to propagate from the indexing cycle");
+        } catch (NullPointerException expected) {
+            // success path: NPE bubbled directly
+        } catch (Exception other) {
+            // Some Oak commit-hook layers wrap exceptions; accept NPE anywhere in cause chain
+            Throwable cause = other;
+            boolean foundNpe = false;
+            while (cause != null) {
+                if (cause instanceof NullPointerException) {
+                    foundNpe = true;
+                    break;
+                }
+                cause = cause.getCause();
+            }
+            assertTrue("Expected NullPointerException in the cause chain, got: " + other, foundNpe);
+        }
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-12125">OAK-12125</a>
+     *
+     * With an enabled Feature wired into the provider, a missing 'propertyNames'
+     * must NOT throw. Instead the editor falls back to a sentinel, logs one WARN
+     * naming the misconfigured index path, and lets the indexing cycle complete
+     * so the valid sibling index still works.
+     */
+    @Test
+    public void missingPropertyNames_toggleOn_logsWarnAndContinues() throws Exception {
+        EditorHook hook = hookWithFeatureEnabled(true);
+        LogCustomizer customLogs = LogCustomizer
+                .forLogger(PropertyIndexEditor.class.getName()).enable(Level.WARN).create();
+        try {
+            customLogs.starting();
+
+            NodeState root = INITIAL_CONTENT;
+            NodeBuilder builder = root.builder();
+
+            createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                    true, false, Set.of("foo"), null);
+
+            NodeBuilder invalidIndex = builder.child(INDEX_DEFINITIONS_NAME).child("invalidIndex_on");
+            invalidIndex.setProperty(JCR_PRIMARYTYPE,
+                    IndexConstants.INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
+            invalidIndex.setProperty(IndexConstants.TYPE_PROPERTY_NAME,
+                    PropertyIndexEditorProvider.TYPE);
+
+            NodeState before = builder.getNodeState();
+            builder.child("content").setProperty("foo", "bar");
+            NodeState after = builder.getNodeState();
+
+            NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+
+            assertTrue("Expected a WARN message naming the invalid index path",
+                    customLogs.getLogs().stream().anyMatch(
+                            msg -> msg.contains("invalidIndex_on") && msg.contains(IndexConstants.PROPERTY_NAMES)));
+
+            FilterImpl f = createFilter(indexed, NT_BASE);
+            PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+            assertEquals(Set.of("content"), find(lookup, "foo", "bar", f));
+        } finally {
+            customLogs.finished();
+        }
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-12125">OAK-12125</a>
+     *
+     * With the Feature enabled and the same invalid index hit twice, exactly one
+     * WARN must be emitted for that index path. Uses a unique index node name
+     * ("invalidIndex_dedup") so the JVM-wide dedup set doesn't get poisoned by
+     * earlier tests in the suite.
+     */
+    @Test
+    public void missingPropertyNames_toggleOn_warnLoggedOncePerIndexPath() throws Exception {
+        EditorHook hook = hookWithFeatureEnabled(true);
+        LogCustomizer customLogs = LogCustomizer
+                .forLogger(PropertyIndexEditor.class.getName()).enable(Level.WARN).create();
+        try {
+            customLogs.starting();
+
+            NodeState root = INITIAL_CONTENT;
+            NodeBuilder builder = root.builder();
+
+            NodeBuilder invalidIndex = builder.child(INDEX_DEFINITIONS_NAME).child("invalidIndex_dedup");
+            invalidIndex.setProperty(JCR_PRIMARYTYPE,
+                    IndexConstants.INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
+            invalidIndex.setProperty(IndexConstants.TYPE_PROPERTY_NAME,
+                    PropertyIndexEditorProvider.TYPE);
+
+            NodeState before = builder.getNodeState();
+            builder.child("content_a").setProperty("foo", "bar");
+            NodeState after1 = builder.getNodeState();
+            hook.processCommit(before, after1, CommitInfo.EMPTY);
+
+            builder.child("content_b").setProperty("foo", "baz");
+            NodeState after2 = builder.getNodeState();
+            hook.processCommit(after1, after2, CommitInfo.EMPTY);
+
+            long warnsForThisIndex = customLogs.getLogs().stream()
+                    .filter(msg -> msg.contains("invalidIndex_dedup"))
+                    .count();
+            assertEquals("Expected exactly one WARN for invalidIndex_dedup across two cycles, got: "
+                    + customLogs.getLogs(), 1, warnsForThisIndex);
+        } finally {
+            customLogs.finished();
+        }
+    }
+
+    private EditorHook hookWithFeatureEnabled(boolean enabled) {
+        PropertyIndexEditorProvider provider = new PropertyIndexEditorProvider();
+        MockOsgi.activate(provider, osgiContext.bundleContext());
+        FeatureToggle toggle = osgiContext.getService(FeatureToggle.class);
+        toggle.setEnabled(enabled);
+        return new EditorHook(new IndexUpdateProvider(provider));
     }
 }
