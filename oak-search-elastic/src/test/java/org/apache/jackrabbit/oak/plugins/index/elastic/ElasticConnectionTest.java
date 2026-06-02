@@ -108,11 +108,13 @@ public class ElasticConnectionTest {
     }
 
     @Test
-    public void responseExecutorIsDedicatedAndStableByDefault() throws IOException {
-        try (ElasticConnection connection = defaultConnection()) {
-            Executor executor = connection.getResponseExecutor();
+    public void responseExecutorIsSharedAndDecoupledFromCommonPool() throws IOException {
+        try (ElasticConnection c1 = defaultConnection(); ElasticConnection c2 = defaultConnection()) {
+            Executor executor = c1.getResponseExecutor();
             // the dedicated executor decouples async response processing from the common pool (OAK-12234)
             assertNotSame(ForkJoinPool.commonPool(), executor);
+            // the pool is shared JVM-wide, so every connection hands out the same instance
+            assertSame(executor, c2.getResponseExecutor());
         }
     }
 
@@ -125,19 +127,14 @@ public class ElasticConnectionTest {
     }
 
     @Test
-    public void responseExecutorHonoursPoolSizeSystemProperty() throws IOException {
+    public void responseExecutorHonoursPoolSizeSystemProperty() {
+        // the shared pool is created once per JVM, so verify the sizing via the factory directly
         System.setProperty(ElasticConnection.PROP_RESPONSE_THREAD_POOL_SIZE, "3");
-        try (ElasticConnection connection = defaultConnection()) {
-            ThreadPoolExecutor executor = (ThreadPoolExecutor) connection.getResponseExecutor();
-            assertEquals(3, executor.getMaximumPoolSize());
+        ExecutorService executor = ElasticConnection.createResponseExecutor();
+        try {
+            assertEquals(3, ((ThreadPoolExecutor) executor).getMaximumPoolSize());
+        } finally {
+            executor.shutdownNow();
         }
-    }
-
-    @Test
-    public void responseExecutorIsShutDownOnClose() throws IOException {
-        ElasticConnection connection = defaultConnection();
-        ExecutorService executor = (ExecutorService) connection.getResponseExecutor();
-        connection.close();
-        assertTrue(executor.isShutdown());
     }
 }

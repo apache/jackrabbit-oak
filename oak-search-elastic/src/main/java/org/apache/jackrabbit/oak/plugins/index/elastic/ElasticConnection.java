@@ -41,6 +41,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -76,9 +77,9 @@ public class ElasticConnection implements Closeable {
     public static final AtomicBoolean FT_OAK_12234_DISABLE = new AtomicBoolean(false);
 
     /**
-     * System property to size the dedicated executor used to process Elastic async responses. These threads are mostly
+     * System property to size the shared executor used to process Elastic async responses. These threads are mostly
      * blocked enqueueing results or evaluating ACLs (I/O bound) rather than CPU bound, so the default is intentionally
-     * larger than the number of cores.
+     * larger than the number of cores. It is read once when the shared pool is first created.
      */
     static final String PROP_RESPONSE_THREAD_POOL_SIZE = "oak.elastic.searchResponseThreadPoolSize";
     private static final int DEFAULT_RESPONSE_THREAD_POOL_SIZE =
@@ -94,10 +95,6 @@ public class ElasticConnection implements Closeable {
     private final String apiKeySecret;
 
     private volatile Clients clients;
-
-    // dedicated executor to process async responses off the Elastic client I/O dispatcher thread (OAK-12174) without
-    // competing with callers that drive the query from the common pool (OAK-12234). Lazily created on first use.
-    private volatile ExecutorService responseExecutor;
 
     private final AtomicBoolean isClosed = new AtomicBoolean(false);
 
@@ -181,33 +178,32 @@ public class ElasticConnection implements Closeable {
 
     /**
      * Returns the {@link Executor} to use when processing Elastic async responses (e.g. via
-     * {@code CompletableFuture.whenCompleteAsync}). It returns a dedicated, connection-owned thread pool so that
-     * response handling never runs on the Elastic client I/O dispatcher thread nor competes with callers that drive the
-     * query from the {@link ForkJoinPool#commonPool() common pool}. When the {@link #FT_OAK_12234_DISABLE} toggle is
-     * set, the common pool is returned instead, restoring the previous behaviour.
+     * {@code CompletableFuture.whenCompleteAsync}). It returns a shared, JVM-wide thread pool so that response handling
+     * never runs on the Elastic client I/O dispatcher thread nor competes with callers that drive the query from the
+     * {@link ForkJoinPool#commonPool() common pool}. The pool is shared across all connections to bound the total number
+     * of callback threads. When the {@link #FT_OAK_12234_DISABLE} toggle is set, the common pool is returned instead,
+     * restoring the previous behaviour.
      */
     public Executor getResponseExecutor() {
-        if (FT_OAK_12234_DISABLE.get()) {
-            return ForkJoinPool.commonPool();
-        }
-        return getOrCreateResponseExecutor();
+        return FT_OAK_12234_DISABLE.get() ? ForkJoinPool.commonPool() : ResponseExecutorHolder.INSTANCE;
     }
 
-    private ExecutorService getOrCreateResponseExecutor() {
-        if (isClosed.get()) {
-            throw new IllegalStateException("Already closed");
-        }
-        // double-checked locking to lazily create the executor only when async responses are actually processed
-        if (responseExecutor == null) {
-            synchronized (this) {
-                if (responseExecutor == null) {
-                    int size = Integer.getInteger(PROP_RESPONSE_THREAD_POOL_SIZE, DEFAULT_RESPONSE_THREAD_POOL_SIZE);
-                    LOG.info("Creating Elastic async response executor for {} with {} threads", this, size);
-                    responseExecutor = Executors.newFixedThreadPool(size, new ResponseThreadFactory());
-                }
-            }
-        }
-        return responseExecutor;
+    /**
+     * Initialization-on-demand holder for the shared async response executor. The pool is created lazily on first use
+     * (i.e. on the first async query) and lives for the JVM lifetime; its daemon threads time out when idle so an unused
+     * pool costs nothing and does not prevent the JVM from exiting.
+     */
+    private static final class ResponseExecutorHolder {
+        static final ExecutorService INSTANCE = createResponseExecutor();
+    }
+
+    static ExecutorService createResponseExecutor() {
+        int size = Integer.getInteger(PROP_RESPONSE_THREAD_POOL_SIZE, DEFAULT_RESPONSE_THREAD_POOL_SIZE);
+        LOG.info("Creating shared Elastic async response executor with {} threads", size);
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(size, new ResponseThreadFactory());
+        executor.setKeepAliveTime(60, TimeUnit.SECONDS);
+        executor.allowCoreThreadTimeOut(true);
+        return executor;
     }
 
     private static class ResponseThreadFactory implements ThreadFactory {
@@ -246,18 +242,6 @@ public class ElasticConnection implements Closeable {
                 // standard and async clients are based on the same transport layer. We can just close the one from the
                 // standard client
                 clients.client._transport().close();
-            }
-        }
-        if (responseExecutor != null) {
-            responseExecutor.shutdown();
-            try {
-                if (!responseExecutor.awaitTermination(30, TimeUnit.SECONDS)) {
-                    LOG.warn("Elastic async response executor for {} did not terminate in time, forcing shutdown", this);
-                    responseExecutor.shutdownNow();
-                }
-            } catch (InterruptedException e) {
-                responseExecutor.shutdownNow();
-                Thread.currentThread().interrupt();
             }
         }
         isClosed.set(true);
