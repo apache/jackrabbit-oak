@@ -83,7 +83,7 @@ public class ElasticConnection implements Closeable {
      */
     static final String PROP_RESPONSE_THREAD_POOL_SIZE = "oak.elastic.searchResponseThreadPoolSize";
     private static final int DEFAULT_RESPONSE_THREAD_POOL_SIZE =
-            Math.max(4, Runtime.getRuntime().availableProcessors() * 2);
+            Math.min(32, Math.max(4, Runtime.getRuntime().availableProcessors() * 2));
 
     private final String indexPrefix;
     private final String scheme;
