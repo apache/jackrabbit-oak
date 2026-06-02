@@ -111,7 +111,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
         LOG.trace("Kicking search query with random sampling {}", searchRequest);
         this.searchFuture = connection.getAsyncClient()
                 .search(searchRequest, ObjectNode.class)
-                .thenApplyAsync(this::computeFacets);
+                .thenApplyAsync(this::computeFacets, connection.getResponseExecutor());
     }
 
     @Override
