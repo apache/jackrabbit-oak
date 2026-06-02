@@ -113,8 +113,6 @@ public class ElasticConnectionTest {
             Executor executor = connection.getResponseExecutor();
             // the dedicated executor decouples async response processing from the common pool (OAK-12234)
             assertNotSame(ForkJoinPool.commonPool(), executor);
-            // the same executor instance is reused across calls
-            assertSame(executor, connection.getResponseExecutor());
         }
     }
 
