@@ -36,7 +36,15 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Objects;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * This class represents an Elasticsearch Connection with the related <code>RestHighLevelClient</code>.
@@ -58,6 +66,24 @@ public class ElasticConnection implements Closeable {
     protected static final String DEFAULT_API_KEY_SECRET = "";
     protected static final int DEFAULT_MAX_RETRY_TIME = 0;
     protected static final int ES_SOCKET_TIMEOUT = 120000;
+
+    /**
+     * Feature toggle for OAK-12234: process Elastic async responses on a dedicated executor instead of the JDK
+     * {@link ForkJoinPool#commonPool() common pool}. Enabled by default (bug fix). When the toggle is flipped the
+     * shared {@link #FT_OAK_12234_DISABLE} flag is set to {@code true} and response handling falls back to the common
+     * pool, restoring the previous behaviour.
+     */
+    public static final String FT_OAK_12234 = "FT_OAK-12234";
+    public static final AtomicBoolean FT_OAK_12234_DISABLE = new AtomicBoolean(false);
+
+    /**
+     * System property to size the shared executor used to process Elastic async responses. These threads are mostly
+     * blocked enqueueing results or evaluating ACLs (I/O bound) rather than CPU bound, so the default is intentionally
+     * larger than the number of cores. It is read once when the shared pool is first created.
+     */
+    static final String PROP_RESPONSE_THREAD_POOL_SIZE = "oak.elastic.searchResponseThreadPoolSize";
+    private static final int DEFAULT_RESPONSE_THREAD_POOL_SIZE =
+            Math.min(32, Math.max(4, Runtime.getRuntime().availableProcessors() * 2));
 
     private final String indexPrefix;
     private final String scheme;
@@ -148,6 +174,47 @@ public class ElasticConnection implements Closeable {
      */
     public ElasticsearchAsyncClient getAsyncClient() {
         return getClients().asyncClient;
+    }
+
+    /**
+     * Returns the {@link Executor} to use when processing Elastic async responses (e.g. via
+     * {@code CompletableFuture.whenCompleteAsync}). It returns a shared, JVM-wide thread pool so that response handling
+     * never runs on the Elastic client I/O dispatcher thread nor competes with callers that drive the query from the
+     * {@link ForkJoinPool#commonPool() common pool}. The pool is shared across all connections to bound the total number
+     * of callback threads. When the {@link #FT_OAK_12234_DISABLE} toggle is set, the common pool is returned instead,
+     * restoring the previous behaviour.
+     */
+    public Executor getResponseExecutor() {
+        return FT_OAK_12234_DISABLE.get() ? ForkJoinPool.commonPool() : ResponseExecutorHolder.INSTANCE;
+    }
+
+    /**
+     * Initialization-on-demand holder for the shared async response executor. The pool is created lazily on first use
+     * (i.e. on the first async query) and lives for the JVM lifetime; its daemon threads time out when idle so an unused
+     * pool costs nothing and does not prevent the JVM from exiting.
+     */
+    private static final class ResponseExecutorHolder {
+        static final ExecutorService INSTANCE = createResponseExecutor();
+    }
+
+    static ExecutorService createResponseExecutor() {
+        int size = Integer.getInteger(PROP_RESPONSE_THREAD_POOL_SIZE, DEFAULT_RESPONSE_THREAD_POOL_SIZE);
+        LOG.info("Creating shared Elastic async response executor with {} threads", size);
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(size, new ResponseThreadFactory());
+        executor.setKeepAliveTime(60, TimeUnit.SECONDS);
+        executor.allowCoreThreadTimeOut(true);
+        return executor;
+    }
+
+    private static class ResponseThreadFactory implements ThreadFactory {
+        private final AtomicInteger count = new AtomicInteger();
+
+        @Override
+        public Thread newThread(@NotNull Runnable r) {
+            Thread t = new Thread(r, "elastic-search-response-" + count.incrementAndGet());
+            t.setDaemon(true);
+            return t;
+        }
     }
 
     public String getIndexPrefix() {

@@ -17,14 +17,44 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ThreadPoolExecutor;
 
+import org.junit.After;
 import org.junit.Test;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 
 public class ElasticConnectionTest {
+
+    @Test
+    public void ft_oak_12234_toggleShouldBeRemoved() {
+        // Time-bombed: if this test fails, the feature toggle FT_OAK_12234 and its guard in
+        // ElasticConnection#getResponseExecutor should be cleaned up — the fix has been in production long enough.
+        assertTrue("Feature toggle " + ElasticConnection.FT_OAK_12234 + " is overdue for removal",
+                LocalDate.now().isBefore(LocalDate.of(2027, 6, 2)));
+    }
+
+    @After
+    public void resetToggle() {
+        ElasticConnection.FT_OAK_12234_DISABLE.set(false);
+        System.clearProperty(ElasticConnection.PROP_RESPONSE_THREAD_POOL_SIZE);
+    }
+
+    private static ElasticConnection defaultConnection() {
+        return ElasticConnection.newBuilder()
+                .withIndexPrefix("my+test")
+                .withDefaultConnectionParameters()
+                .build();
+    }
 
     @Test
     public void uniqueClient() throws IOException {
@@ -75,5 +105,36 @@ public class ElasticConnectionTest {
                 .withIndexPrefix("cannot_have_*_chars")
                 .withDefaultConnectionParameters()
                 .build();
+    }
+
+    @Test
+    public void responseExecutorIsSharedAndDecoupledFromCommonPool() throws IOException {
+        try (ElasticConnection c1 = defaultConnection(); ElasticConnection c2 = defaultConnection()) {
+            Executor executor = c1.getResponseExecutor();
+            // the dedicated executor decouples async response processing from the common pool (OAK-12234)
+            assertNotSame(ForkJoinPool.commonPool(), executor);
+            // the pool is shared JVM-wide, so every connection hands out the same instance
+            assertSame(executor, c2.getResponseExecutor());
+        }
+    }
+
+    @Test
+    public void responseExecutorFallsBackToCommonPoolWhenToggleDisabled() throws IOException {
+        ElasticConnection.FT_OAK_12234_DISABLE.set(true);
+        try (ElasticConnection connection = defaultConnection()) {
+            assertSame(ForkJoinPool.commonPool(), connection.getResponseExecutor());
+        }
+    }
+
+    @Test
+    public void responseExecutorHonoursPoolSizeSystemProperty() {
+        // the shared pool is created once per JVM, so verify the sizing via the factory directly
+        System.setProperty(ElasticConnection.PROP_RESPONSE_THREAD_POOL_SIZE, "3");
+        ExecutorService executor = ElasticConnection.createResponseExecutor();
+        try {
+            assertEquals(3, ((ThreadPoolExecutor) executor).getMaximumPoolSize());
+        } finally {
+            executor.shutdownNow();
+        }
     }
 }

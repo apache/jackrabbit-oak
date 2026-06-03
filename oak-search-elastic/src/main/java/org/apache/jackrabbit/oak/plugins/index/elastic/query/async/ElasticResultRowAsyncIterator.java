@@ -343,7 +343,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
 
             ongoingRequest = indexNode.getConnection().getAsyncClient()
                     .search(searchRequest, ObjectNode.class)
-                    .whenCompleteAsync(this::handleResponse);
+                    .whenCompleteAsync(this::handleResponse, indexNode.getConnection().getResponseExecutor());
             metricHandler.markQuery(indexNode.getDefinition().getIndexPath(), true);
         }
 
@@ -462,7 +462,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
                 searchStartTime = System.currentTimeMillis();
                 ongoingRequest = indexNode.getConnection().getAsyncClient()
                         .search(searchReq, ObjectNode.class)
-                        .whenCompleteAsync(this::handleResponse);
+                        .whenCompleteAsync(this::handleResponse, indexNode.getConnection().getResponseExecutor());
                 metricHandler.markQuery(indexNode.getDefinition().getIndexPath(), false);
             } else {
                 LOG.trace("Scanner is closing or still processing data from the previous scan");
