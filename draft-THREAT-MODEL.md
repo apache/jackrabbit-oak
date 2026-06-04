@@ -34,6 +34,20 @@ each other for the JCR contract and stand on their own for everything else.
 The triage utility of a closed-set §13 disposition table requires that
 each project's set actually be closed.
 
+**Shared Jackrabbit bundles span the three models.** The Jackrabbit PMC
+also ships a set of bundles that are consumed by *both* Oak and
+filevault (and by jackrabbit-core), so a finding in one of them is
+relevant to more than one model and must be cross-referenced rather than
+silently claimed by one: the Jackrabbit `commons` library, the JCR
+`commons`/SPI interface bundles, and everything in the `oak-run` /
+`oak-upgrade` migration path that bridges JR2 and Oak *(maintainer —
+reschke)*. A vulnerability in a shared bundle is in-model for Oak when
+Oak's calling pattern reaches it, but the fix may land in a
+Jackrabbit-commons artefact shared with filevault; triagers should check
+the companion models before closing. (The Java-version correction that
+prompted §5's update is tracked in
+`https://github.com/apache/jackrabbit-oak/pull/2927` — OAK-12235.)
+
 ## §1 Header
 
 - **Project:** Apache Jackrabbit Oak (`apache/jackrabbit-oak`) *(documented:
@@ -45,9 +59,13 @@ each project's set actually be closed.
   (`trunk`) *(documented: `.asf.yaml` — `protected_branches: trunk`)*. A
   vulnerability report against Oak version *N* should be triaged against
   the model as it stood at *N* (release tag), not against `trunk`.
-- **Date:** 2026-05-30.
-- **Authors:** ASF Security team draft, awaiting Jackrabbit PMC review.
-- **Status:** draft — under maintainer review.
+- **Date:** 2026-05-30 (rev. 2026-06-04 after first maintainer-review
+  pass on PR #2923).
+- **Authors:** ASF Security team draft, incorporating Jackrabbit PMC
+  review feedback (mreutegg, mbaedke, reschke, rishabhdaim).
+- **Status:** draft — revised after first maintainer-review round; open
+  §14 items remain (notably TarMK scope, where mbaedke and reschke
+  differ, and the XXE default-config ruling).
 - **Reporting cross-reference:** findings that may violate a §8 property
   should be reported per the ASF Security Team disclosure channel
   (`security@apache.org`) and the Jackrabbit project's security mailing
@@ -62,7 +80,13 @@ each project's set actually be closed.
   draft; *(inferred)* — synthesised from code structure or domain
   knowledge, awaiting PMC ratification (every *(inferred)* tag has a
   matching §14 question).
-- **Draft confidence:** 35 documented / 0 maintainer / 28 inferred.
+- **Draft confidence (rev. after first maintainer-review pass):**
+  ~86 documented / ~19 maintainer-confirmed / ~35 inferred provenance
+  tags across the body (maintainer positions added from the
+  mreutegg / mbaedke / reschke / rishabhdaim review of this PR).
+  Genuinely-disputed or still-open items (TarMK in-scope, XXE default
+  config) are kept *(inferred)* / *(disputed)* with a matching §14
+  question rather than asserted.
 
 **About the project.** Apache Jackrabbit Oak is the actively-developed
 scalable hierarchical content repository that succeeded the original
@@ -101,14 +125,26 @@ and a `PrivilegeConfiguration` *(documented: `security/introduction.md`,
 
 ### Deployment shape
 
-Oak is **not** a standalone daemon and is **not** a network service in its
-own right. It is an in-process library. Network exposure (HTTP, WebDAV,
-custom protocol) is **always** an artefact of the host application; Oak
-ships no listener of its own *(inferred — §14 Q1)*. The threat model
-is therefore that of a library, not a service — but a library whose
-contract specifically promises authentication and authorisation
-properties to its host, which makes it a more security-load-bearing
-library than (say) zlib.
+Oak's **primary** and supported deployment is as an in-process library,
+**not** a standalone daemon. In the embedded shape, network exposure
+(custom servlet, WebDAV, application protocol) is an artefact of the host
+application. **However, Oak does ship network-facing surface of its
+own:** `oak-http` exposes the repository over HTTP, and `oak-run` has a
+`server` mode that serves HTTP (README documents it listening on
+`:8080`) *(documented: `AGENTS.md` lists `oak-http`; `README.md` —
+`oak-run` HTTP server on `:8080`)*. So the blanket "Oak ships no
+listener" claim is **wrong** and must not be used to triage an
+HTTP-surface finding as host-only: a bug in `oak-http`'s request parsing,
+authentication wiring, or path handling, or in the `oak-run server`
+listener, is **in-model** (see the `oak-http` row in the component-family
+table and §4). The threat model is therefore that of a library that is
+*usually* embedded but *also* offers first-party HTTP entry points — a
+more security-load-bearing library than (say) zlib, and one that cannot
+assume "no inbound network" across the board *(refined per maintainer —
+rishabhdaim)*. Whether the embedded-library shape is the *only* posture
+the PMC wants to treat as the supported production default (vs.
+`oak-http` / `oak-run server` being dev/integration tooling) is
+§14 Q1.
 
 ### Caller roles
 
@@ -121,7 +157,7 @@ Following §2 of the output-structure rubric (in-process-library split):
 | **System / admin principal** | trusted | A session obtained via `loginAdministrative` / `loginService` (host-driven) carries `SystemPrincipal` or `AdminPrincipal` and bypasses permission evaluation *(documented: `security/permission/default.md` — "Three principal categories automatically receive full repository access: SystemPrincipal, AdminPrincipal, and Principals matching configured administrative names")*. |
 | **External identity provider** | trusted control plane | The host configures one or more `ExternalIdentityProvider`s for LDAP / SAML / OAuth; Oak's `ExternalLoginModule` accepts whatever identity these IDPs assert *(documented: `security/authentication/externalloginmodule.md` — "The mechanism implicitly trusts that the configured IDP accurately authenticates identities")*. |
 | **Pre-authenticated caller** | trusted (operator-asserted) | When `PreAuthenticatedLogin` is in use, Oak performs no credential verification at all; the host is asserting "this user has already been authenticated upstream" *(documented: `security/authentication/preauthentication.md` — "Oak delegates all authentication responsibility to the caller")*. |
-| **NodeStore backend** | trusted | Mongo / Tar / Segment / RDB / Composite storage is assumed honest and assumed to enforce its own at-rest protections *(inferred — §14 Q2)*. |
+| **External NodeStore backend** | trusted | Mongo / RDB storage (and the external object stores) is assumed honest and assumed to enforce its own at-rest protections *(inferred — §14 Q2)*. **TarMK / Segment (`oak-segment-tar`) is excluded from this trusted set — it is Oak's own code and its format parsing is in-model** *(maintainer — mbaedke; reschke uncertain — §14 Q2a)*. |
 | **BlobStore backend** | trusted | S3 / Azure / FileBlobStore is assumed honest *(inferred — §14 Q2)*. |
 
 ### Component-family table
@@ -135,11 +171,13 @@ Following §2 of the output-structure rubric (in-process-library split):
 | `oak-authorization-principalbased` — principal-based authz *(documented: `AGENTS.md`)* | composite `AuthorizationConfiguration` | no | **yes** |
 | `oak-auth-external` — IDP framework *(documented: `security/authentication/externalloginmodule.md`)* | `ExternalIdentityProvider` SPI | depends on IDP impl | **yes** for the wrapper; IDP impl is per-host |
 | `oak-auth-ldap` — LDAP IDP *(documented: `AGENTS.md`)* | `LdapIdentityProvider` | **yes — LDAP/AD** | **yes** |
-| Persistence — `oak-store-document` (Mongo / RDB), `oak-segment-tar`, `oak-store-composite`, `oak-store-spi` | `DocumentNodeStore`, `SegmentNodeStore` | **yes — DB / FS** | **yes** for in-Oak code; backend itself is trusted (§3) |
+| Persistence — `oak-store-document` (Mongo / RDB), `oak-segment-tar` (**TarMK**), `oak-store-composite`, `oak-store-spi` | `DocumentNodeStore`, `SegmentNodeStore` | **yes — DB / FS** | **yes** for in-Oak code. **TarMK (`oak-segment-tar`) is Oak's own proprietary store and is fully in-model** — the on-disk tar format parser, segment graph, and recovery paths are Oak code, so a malformed-segment or tar-parsing bug is an Oak finding, not a "trusted backend" issue *(maintainer — mbaedke; reschke uncertain, see §14 Q2a)*. The *external* DB / object-store backends (Mongo, RDB, S3, Azure) remain trusted (§3 item 2). |
 | BlobStore — `oak-blob`, `oak-blob-cloud`, `oak-blob-cloud-azure`, `oak-blob-plugins` | `S3DataStore`, `AzureDataStore` | **yes — S3 / Azure / FS** | **yes** for in-Oak code; cloud APIs trusted (§3) |
 | Search — `oak-lucene`, `oak-search`, `oak-search-elastic` | `IndexEditor`, query parsers | sometimes (Elasticsearch over HTTP) | **yes** |
-| `oak-run` — operator CLI / tooling | `oak-run.jar` | OS / FS / network depending on subcommand | **see §3** (in-model only for the command-driven contract; out-of-model for "operator runs it as the wrong user") |
-| `oak-pojosr`, `oak-standalone` — repository launchers | embedded repository | filesystem | **yes** for code; deployment is operator's |
+| `oak-http` — first-party HTTP binding of the repository *(documented: `AGENTS.md`)* | HTTP request handler | **yes — inbound HTTP** | **yes** (in-model network entry point: request parsing, authn wiring, path handling, response leakage — *not* host-only) |
+| `oak-run` — operator CLI **and `server` HTTP mode** | `oak-run.jar` (`server` listens on `:8080` per `README.md`) | OS / FS / **inbound HTTP in `server` mode** / network depending on subcommand | **see §3** (in-model for the command-driven contract *and* for the `server` listener's in-process request handling; out-of-model for "operator runs it as the wrong user") |
+| `oak-pojosr` — POJO service-registry launcher | embedded repository | filesystem | **yes** for code; deployment is operator's |
+| `oak-standalone` (lives under `oak-examples/standalone`) — repository launcher | embedded repository | filesystem | **see §3 item 7** — as an `oak-examples` sub-module it is an example/launcher, not a supported product component; named explicitly here to resolve the naming clash (per maintainer — rishabhdaim) |
 | `oak-upgrade` — JR2 → Oak migration | offline migration job | filesystem | **yes** for code; the migration source is a trusted JR2 repository |
 | `oak-it`, `oak-it-osgi`, `oak-bench-*`, `oak-jcr-tests`, `oak-test-bundle`, `oak-exercise` | integration tests, benchmarks, training | varies | **out of model** — unsupported components *(§3)* |
 | `oak-examples`, `oak-doc-railroad-macro`, `oak-doc` | examples and docs | none | **out of model** *(§3)* |
@@ -159,16 +197,25 @@ Reports requiring any of these will be closed with the cited disposition:
    *(documented: `security/permission/default.md` — admin/system
    principals bypass permission evaluation)*. → `OUT-OF-MODEL:
    adversary-not-in-scope`.
-2. **NodeStore / BlobStore / IDP correctness.** Mongo, RDB, TarMK on
-   disk, S3, Azure, LDAP, SAML — Oak trusts the responses these systems
-   give. A backend returning forged bytes, an LDAP server asserting a
-   spoofed group membership, an S3 bucket allowing unauthorised reads —
-   none are Oak vulnerabilities *(inferred — §14 Q2)*. →
-   `OUT-OF-MODEL: trusted-input`.
+2. **External NodeStore / BlobStore / IDP correctness.** Mongo, RDB,
+   S3, Azure, LDAP, SAML — Oak trusts the responses these *external*
+   systems give. A backend returning forged bytes, an LDAP server
+   asserting a spoofed group membership, an S3 bucket allowing
+   unauthorised reads — none are Oak vulnerabilities *(inferred —
+   §14 Q2)*. → `OUT-OF-MODEL: trusted-input`. **Note:** this does
+   **not** cover TarMK / `oak-segment-tar` — that store is Oak's own
+   code and its on-disk-format parsing *is* in-model (component-family
+   table; §14 Q2a). The trusted-input carve-out here is for the
+   *external* DB / object-store / IDP peers only.
 3. **Storage-level authorisation.** HDFS / S3 / filesystem ACLs on the
-   underlying NodeStore / BlobStore are the operator's responsibility. A
-   tar-store file readable by `other` is not an Oak bug *(inferred —
-   §14 Q3)*. → `OUT-OF-MODEL: adversary-not-in-scope`.
+   underlying external NodeStore / BlobStore are the operator's
+   responsibility. Whether a tar-segment *file* readable by `other` on
+   disk is an Oak concern is the operator's filesystem-permissions
+   responsibility *(inferred — §14 Q3)* — but note this is distinct
+   from the in-model question of whether Oak *parses* a malformed tar
+   segment safely (that is in-model; see §14 Q2a). →
+   `OUT-OF-MODEL: adversary-not-in-scope` (for the filesystem-ACL
+   aspect only).
 4. **Pre-authentication misuse.** The `PreAuthenticatedLogin` mechanism
    is an *explicit* bypass: Oak does no credential verification at all
    and trusts that an upstream layer has *(documented:
@@ -189,10 +236,15 @@ Reports requiring any of these will be closed with the cited disposition:
    `OUT-OF-MODEL: adversary-not-in-scope`.
 7. **Code that ships but is not part of the supported product:**
    `oak-it/`, `oak-it-osgi/`, `oak-bench-*/`, `oak-jcr-tests/`,
-   `oak-test-bundle/`, `oak-exercise/`, `oak-examples/`,
+   `oak-test-bundle/`, `oak-exercise/`, `oak-examples/` (which
+   **includes `oak-examples/standalone`, i.e. `oak-standalone`**),
    `oak-doc-railroad-macro/`, archived `oak-mk-*` modules
    *(documented: README, AGENTS.md)*. → `OUT-OF-MODEL:
-   unsupported-component`.
+   unsupported-component`. **Naming note (per maintainer — rishabhdaim):**
+   `oak-standalone` is the launcher under `oak-examples/standalone`; it
+   is covered by this `oak-examples` exclusion. The component-family
+   table lists it explicitly so a triager does not treat the
+   `oak-standalone` artefact name as a separate, in-model component.
 8. **Original `jackrabbit` / `jackrabbit-core` code.** Oak migrated away
    from the JR2 codebase; jackrabbit-core has a separate threat model.
    The `oak-upgrade` module imports from jackrabbit-core as a one-shot
@@ -213,7 +265,34 @@ Reports requiring any of these will be closed with the cited disposition:
 ## §4 Trust boundaries and data flow
 
 Oak's trust boundary is **the JCR `Session` / Oak `ContentSession` API
-surface**. Once a `Session` has been obtained, every read/write goes
+surface, including all immediately derived interfaces** *(maintainer —
+mbaedke)* — e.g. `Workspace` (and its import/copy/move methods),
+`QueryManager`, `ObservationManager`, `AccessControlManager`,
+`SecurityManager`/`UserManager`/`PrincipalManager`, and the
+`VersionManager`/`LockManager` obtained from a `Session`. The boundary
+is deliberately drawn *wide* here, not narrow: any of these
+session-derived APIs is an in-model entry point, and so are the parsers
+and mappers they reach. In particular:
+
+- **XML and SQL2/XPath parsing is in-model.** `Workspace.importXML` /
+  `Session.importXML` (and the JCR document/system-view importers) parse
+  attacker-influenced XML; **XML External Entity (XXE) injection,
+  entity-expansion DoS, and similar XML-parsing flaws are in-scope §8/§11
+  concerns, not out-of-model** *(maintainer — mbaedke)*. Likewise the
+  SQL2 / XPath query parser (`QueryManager.createQuery`) processes
+  free-form caller text and its parsing/planning is in-model. Whether the
+  default XML parser configuration disables external entities by default
+  is §14 Q1a.
+- **JCR-API → Oak-API security-entity mapping is in-model.** The
+  translation between the public JCR security objects
+  (`AccessControlManager`, `Privilege`, `Principal`, `Authorizable`) and
+  Oak's internal security entities is a security-load-bearing mapping; a
+  flaw that causes the wrong Oak principal/privilege to be materialised
+  from a JCR-API call (or vice versa) is a `VALID` finding, **not**
+  excluded by the "trust boundary is the Session API" framing
+  *(maintainer — mbaedke)*.
+
+Once a `Session` has been obtained, every read/write goes
 through the configured `PermissionProvider` chain — *unless* the
 principal is `SystemPrincipal`, `AdminPrincipal`, or matches a
 configured administrative name, in which case permission evaluation is
@@ -269,13 +348,35 @@ A finding is in-model only if it meets the family's reachability test:
   (the search must respect §3 §4 permission scope). The
   `QueryEngine` is documented to filter by permission as part of
   result delivery *(inferred — §14 Q7)*.
-- **`oak-run`**: in-model only for in-process logic; "operator runs
-  it with a bad keystore on the file system" is out (§3 item 6).
+- **`oak-http` / `oak-run server` (HTTP listeners)**: in-model for the
+  inbound-HTTP request path — request parsing, the authentication the
+  HTTP layer wires up (or fails to), path/credential handling, and
+  response content (it must not leak unauthorised *paths* — see §9.5).
+  A finding here is **not** automatically host-only: the listener is
+  Oak's own code *(maintainer — rishabhdaim)*. Out-of-model only for an
+  operator deploying the listener with no fronting authn when the PMC
+  classifies these as dev/integration tooling (§14 Q1).
+- **XML import / SQL2 parsing reachability**: in-model whenever the
+  parser is reachable from a `Session`/`Workspace`-derived call with a
+  principal carrying less than `SystemPrincipal`/`AdminPrincipal`
+  (importing XML or running a query does not require admin). XXE /
+  entity-expansion and query-parser flaws meet this test.
+- **`oak-segment-tar` (TarMK) format parsing**: in-model — Oak parses
+  its own on-disk segment format and recovers from corruption; a parser
+  flaw reachable when Oak opens a segment store is an Oak finding
+  *(maintainer — mbaedke; reschke uncertain — §14 Q2a)*. (Distinct from
+  the *external* trusted backends in §3 item 2.)
+- **`oak-run`**: in-model for in-process logic and for the `server`
+  listener's request handling (above); "operator runs it with a bad
+  keystore on the file system" is out (§3 item 6).
 
 ## §5 Assumptions about the environment
 
-- **JVM / runtime.** Java 11+ at HEAD; the build requires Maven 3.x
-  *(documented: `README.md`)*. JVM is conformant; the security manager
+- **JVM / runtime.** **Java 17** at HEAD *(maintainer — mreutegg; the
+  authoritative source is `oak-parent/pom.xml`, not `README.md`, which
+  was out of date; the README fix is tracked in
+  `https://github.com/apache/jackrabbit-oak/pull/2927` — OAK-12235)*.
+  The build requires Maven 3.x. JVM is conformant; the security manager
   is *not* required (modern Java has deprecated it; Oak is not designed
   to defend against in-JVM attackers).
 - **Concurrency.** `Repository` is `Send`-equivalent (thread-safe in
@@ -301,14 +402,23 @@ A finding is in-model only if it meets the family's reachability test:
   default. FileBlobStore writes blob files. Permissions on these
   directories are the operator's responsibility *(inferred —
   §14 Q3)*.
-- **Network.** Oak itself opens no listening sockets. Outbound
-  connections are to: Mongo / RDB (DocumentNodeStore), S3 / Azure
-  (BlobStore), LDAP (oak-auth-ldap), Elasticsearch
-  (oak-search-elastic). All endpoints are operator-configured trusted
-  *(inferred — §14 Q10)*.
-- **What Oak does NOT do to its host** *(predominantly negative
-  claims, awaiting maintainer ratification — §14 Q11)*:
-  - opens **no** listening sockets;
+- **Network.** The embedded `oak-core`/`oak-jcr` repository opens no
+  listening sockets of its own. **But Oak does ship optional
+  network-listening components — `oak-http` and `oak-run server`
+  (`:8080`)** — so "Oak opens no listening sockets" is only true of the
+  core embedded path, not of the product as a whole *(refined per
+  maintainer — rishabhdaim; see §2 deployment shape and the `oak-http`
+  component row)*. Outbound connections are to: Mongo / RDB
+  (DocumentNodeStore), S3 / Azure (BlobStore), LDAP (oak-auth-ldap),
+  Elasticsearch (oak-search-elastic). All *external* endpoints are
+  operator-configured trusted *(inferred — §14 Q10)*.
+- **What Oak's embedded core does NOT do to its host** *(predominantly
+  negative claims, awaiting maintainer ratification — §14 Q11; scoped to
+  the embedded `oak-core`/`oak-jcr` path — the optional `oak-http` /
+  `oak-run server` components **do** open listeners, per above)*:
+  - the embedded core opens **no** listening sockets (the optional
+    `oak-http` and `oak-run server` components do — they are separate,
+    in-model network surface);
   - installs **no** process-wide signal handlers;
   - does **not** spawn child processes from the core;
   - reads a documented set of system properties (e.g.
@@ -362,14 +472,18 @@ security-relevant subset:
 | `Repository.login(Credentials)` | `Credentials` | **yes** (this is *the* untrusted input) | configured `LoginModule`s do the work; host need not pre-validate |
 | `Session.getNode(path)`, `getProperty(path)`, … | `path` | **yes** via the authenticated user, but reads filtered through `PermissionProvider` *(documented: `security/permission/evaluation.md`)* | nothing |
 | `Session.save()` | accumulated transient changes | yes via the authenticated user, validated by `PermissionValidator` commit hook *(documented: `security/permission/evaluation.md`)* | nothing |
-| `QueryManager.createQuery(stmt, lang)` | SQL2 / XPath text | **yes** (free-form query language) | Oak parses + plans + filters results by permissions |
+| `QueryManager.createQuery(stmt, lang)` | SQL2 / XPath text | **yes** (free-form query language) | Oak parses + plans + filters results by permissions; **the SQL2/XPath parser itself is in-model** |
+| `Session.importXML(path, in, behavior)` / `Workspace.importXML(...)` | XML byte stream (system/document view) | **yes** (attacker-influenced XML) | Oak's importer parses the XML — **XXE / entity-expansion is in-model** (mbaedke); §14 Q1a covers whether external entities are disabled by default |
+| `Workspace.copy(...)` / `Workspace.move(...)` / `Workspace.getImportContentHandler(...)` / `Workspace.createWorkspace(...)` | source/dest paths, content handler | **yes** via the authenticated user | gated by privileges, then validated through the commit-hook chain; **explicitly in-model entry points** (mbaedke) |
+| `AccessControlManager` ↔ Oak security-entity mapping (`Privilege`, `Principal`, `Authorizable` translation) | JCR-API security objects | **yes** via the authenticated user | the JCR-API → Oak-API mapping must materialise the correct internal principal/privilege; a mis-mapping is **in-model** (mbaedke) |
 | `AccessControlManager.setPolicy(path, policy)` | path + ACE list | only by callers with `MODIFY_ACCESS_CONTROL` privilege *(documented: `security/authorization.md`)* | Oak gates by privilege |
 | `UserManager.createUser(id, password)` | user id, password | only by callers with the right privileges | password is hashed per `PasswordUtil` |
 | `UserManager.createSystemUser(id, intermediatePath)` | id | only by callers with the right privileges | system users have no password and are intended for service identities |
 | `loginAdministrative()` / `loginService(subject, ws)` | n/a | **none** — host code only; trusted | host must not expose these to user code |
 | `PreAuthenticatedLogin` marker | n/a | **none** — host code only | host must not let user-supplied bytes reach the pre-auth code path |
 | `ExternalIdentityProvider.authenticate(creds)` | credentials forwarded from JAAS | **yes** | the IDP impl is the trust anchor *(documented: `security/authentication/externalloginmodule.md`)* |
-| `oak-run` subcommands | argv | **none** — operator-controlled | OS-level filesystem perms on the configured `repository.home` |
+| `oak-run` subcommands (offline) | argv | **none** — operator-controlled | OS-level filesystem perms on the configured `repository.home` |
+| `oak-http` HTTP requests / `oak-run server` (`:8080`) | request method, path, headers, body | **yes — inbound HTTP** | the HTTP layer's own authn wiring; responses must not leak unauthorised *paths* (§9.5). **In-model network surface** (rishabhdaim) |
 | Index documents (Lucene / Elasticsearch) | content of indexed properties | yes (whoever wrote the property) | query results filter by `PermissionProvider`; index *content* is treated as data |
 | NodeStore byte stream | Tar blocks, Mongo BSON, RDB rows | **no** — trusted control plane | backend must not be hostile (§3 item 2) |
 
@@ -560,6 +674,24 @@ cluster is a Mongo-replication story; Oak trusts the Mongo answer
   underlying native code is in-scope only insofar as Oak's calling
   pattern triggers it *(inferred — §14 Q20)*.
 
+### P12 — Safe parsing of caller-supplied XML and query text
+
+- **Condition.** A non-admin / non-system session calls
+  `Session.importXML` / `Workspace.importXML` (system- or document-view
+  XML) or `QueryManager.createQuery` with SQL2 / XPath text. These
+  parsers are reachable from a §6 input *(maintainer — mbaedke:
+  XML/SQL2 parsing is in-model)*.
+- **Violation symptom.** An XML External Entity (XXE) injection that
+  reads local files or performs SSRF; an entity-expansion (billion-laughs)
+  DoS; or a query-parser flaw that escapes the intended parse/plan into
+  unintended behaviour. The unauthorised-path-leak case is also covered
+  here (§9.5).
+- **Severity.** Security-critical (`VALID`) for XXE / SSRF /
+  arbitrary-file-read; DoS-class parser flaws are `VALID-HARDENING` at
+  most, consistent with §9.4. Whether the default importer disables
+  external entities is **conditional on the §14 Q1a ruling**.
+- *(maintainer + inferred — §14 Q1a)*
+
 ## §9 Security properties the project does NOT provide
 
 Stated plainly so triagers can route inbound reports to a matching
@@ -593,12 +725,25 @@ count, transient state per session, or commit size. A user with
 burns the host's CPU and memory budget. *(inferred — §14 Q15 /
 Q16)*
 
-### 9.5 No defence against query-result side channels
+### 9.5 No defence against query-result existence side channels
 
 Query result filtering by `PermissionProvider` hides the *content* of
 unauthorised nodes, but query timing, error messages, and partial
-result counts may leak existence of unauthorised paths. *(inferred —
-§14 Q21)*
+result counts may leak the *existence* of unauthorised paths.
+
+**Important distinction *(maintainer — mbaedke)*:** leaking the mere
+**existence** of an unauthorised path (e.g. a timing difference, a
+"not found vs. forbidden" distinction, or a result count) is an
+acceptable, disclaimed side channel. **Leaking the unauthorised path
+*itself* — its actual name/location — in an error message, exception,
+log line surfaced to the caller, or HTTP response is NOT acceptable and
+is a `VALID` finding.** Concretely: an error like "access denied" or
+"item not found" is fine even if it reveals that *something* is there;
+an error that echoes back the concrete path the caller may not read
+(e.g. `/content/secret/launch-plan` in a thrown message) is in-model and
+must be fixed. This applies equally to the `oak-http` / `oak-run server`
+response surface. The *existence*-leak side channel itself remains
+disclaimed *(inferred — §14 Q21)*.
 
 ### 9.6 No defender stance against pre-authentication misuse
 
@@ -779,6 +924,14 @@ The host application (and, where relevant, the operator) MUST:
   as Oak.** They share the JVM with Oak; they can `loginAdministrative`.
 - **Using `loginService` with a `SubjectProvider` that derives its
   Subject from a query string.** Equivalent to a bypass.
+- **Feeding untrusted XML straight into `importXML` and relying on it
+  being safe.** XML import is in-model (§8 P12); the importer's parser
+  config (external-entity handling) is what stands between the caller and
+  XXE / SSRF — do not assume the host has sanitised it.
+- **Exposing `oak-http` / `oak-run server` on a network with no
+  fronting authentication or reverse proxy.** These are real listeners;
+  treating them as "internal only" without network controls puts the
+  repository on the wire.
 
 ## §11a Known non-findings (recurring false positives)
 
@@ -824,9 +977,12 @@ licenses the call.
 - **"Move-cascade ACL evaluation gap."** Documented limitation
   *(documented: `security/permission.md`)*. → `BY-DESIGN:
   property-disclaimed` per §9.12.
-- **"Query result count leaks existence of unauthorised paths via
-  timing / error message."** Side-channel — §9.5. → `BY-DESIGN:
-  property-disclaimed`.
+- **"Query result count / timing leaks *existence* of unauthorised
+  paths."** Existence-only side channel — §9.5. → `BY-DESIGN:
+  property-disclaimed`. **But:** if the error message / response leaks
+  the unauthorised **path itself** (not just its existence), that is
+  **`VALID`**, not a known non-finding — see §9.5 *(maintainer —
+  mbaedke)*.
 - **"`TokenCredentials` is a bearer credential — anyone who has it
   can use it."** Documented behaviour; rotation / revocation is the
   operator's. → `BY-DESIGN: property-disclaimed` per §9 false-friend.
@@ -834,6 +990,27 @@ licenses the call.
   authn."** Host container is the security boundary, not Oak
   *(inferred — §14 Q17)*. → `OUT-OF-MODEL:
   adversary-not-in-scope`.
+- **"`oak-http` / `oak-run server` exposes the repository over HTTP."**
+  This is **NOT** automatically host-only. These are Oak's own
+  network-facing components; a request-parsing, authentication-wiring,
+  path-handling, or path-leaking flaw in them is **in-model** (`VALID`
+  or `VALID-HARDENING`), *not* `OUT-OF-MODEL`. Only "operator deployed
+  the listener with no fronting authn" is operator-posture, and even
+  that turns on the §14 Q1 supported-posture ruling *(maintainer —
+  rishabhdaim)*.
+- **"XXE / entity-expansion via `importXML`."** XML import parsing is
+  **in-model** (§8 P12); do **not** triage an XXE in the importer as
+  out-of-scope. → `VALID` (subject to §14 Q1a on the default parser
+  config) *(maintainer — mbaedke)*.
+- **"Malformed TarMK segment crashes / mis-parses in
+  `oak-segment-tar`."** TarMK is Oak's own store, **in-model** — not a
+  trusted-backend carve-out. → assess as `VALID` / `VALID-HARDENING`,
+  not `OUT-OF-MODEL: trusted-input` *(maintainer — mbaedke; reschke
+  uncertain — §14 Q2a)*.
+- **"Error message / HTTP response includes the concrete path of a
+  node the caller may not read."** Leaking the path **itself** is
+  `VALID` (existence-only leaks are disclaimed; the path is not) — §9.5
+  *(maintainer — mbaedke)*.
 
 ## §12 Conditions that would change this model
 
@@ -878,14 +1055,38 @@ answers are inline; confirm, correct, or strike.
 
 ### Wave 1 — scope and deployment shape
 
-**Q1.** The model assumes Oak is an *in-process JCR library* with
-**no built-in network listener**. Any network exposure (HTTP, WebDAV,
-custom protocol) is host-driven. Confirm? *(maps to §2)*
+**Q1.** Oak's embedded `oak-core`/`oak-jcr` path opens no listener, but
+Oak **does** ship `oak-http` and `oak-run server` (`:8080`) — so the
+blanket "no network listener" claim has been corrected (per
+rishabhdaim). The remaining ruling: are `oak-http` and `oak-run server`
+part of the **supported production posture** (so a network-surface flaw
+in them is `VALID`), or are they dev/integration tooling (so deploying
+them is `OUT-OF-MODEL: non-default-build`)? The model currently treats
+the *code* as in-model and only the operator's no-authn deployment as
+posture. Confirm. *(maps to §2, §4, §5, §11a)*
 
-**Q2.** Are NodeStore (Mongo, RDB, Tar), BlobStore (S3, Azure, FS),
-and external IDPs (LDAP, SAML) modelled as trusted backends — i.e.
-Oak does not defend against a malicious peer in those positions
-(proposed: yes)? *(maps to §2, §3 item 2, §9.2, §11a)*
+**Q1a.** XML import (`Session.importXML` / `Workspace.importXML`): does
+the default importer disable external entities and limit entity
+expansion (i.e. is XXE / billion-laughs prevented out of the box), or
+must the host harden the parser? §8 P12 treats XXE as `VALID`; this
+ruling decides whether the *default* config is already safe. *(maps to
+§4, §6, §8 P12, §11a)* *(new — raised by mbaedke's XML-parsing note)*
+
+**Q2.** Are the **external** NodeStore (Mongo, RDB), BlobStore (S3,
+Azure, FS), and external IDPs (LDAP, SAML) modelled as trusted backends
+— i.e. Oak does not defend against a malicious peer in those positions
+(proposed: yes)? **Note this no longer includes TarMK — see Q2a.**
+*(maps to §2, §3 item 2, §9.2, §11a)*
+
+**Q2a.** TarMK / `oak-segment-tar` is Oak's own proprietary store, so
+its on-disk-format parsing and recovery are now modelled as **in-scope
+Oak code** (a malformed-segment / tar-parsing bug is an Oak finding, not
+a trusted-backend issue). mbaedke asked to treat it as Oak's
+responsibility; **reschke was unsure about tar**. This item is left
+**in-scope pending the PMC's reconciliation** rather than hard-excluded.
+Confirm: is TarMK-format parsing in-model (proposed: yes), and does the
+disagreement need a wider PMC decision before this is settled? *(maps to
+§2 component table, §3 items 2–3, §4)* *(disputed — mbaedke vs reschke)*
 
 **Q3.** Filesystem-level protection of `repository.home`, tar
 segments, FileBlobStore directories, and keystores — confirmed to be
@@ -987,10 +1188,15 @@ under their own component-family trust level? *(maps to §4, §8 P11)*
 
 ### Wave 6 — false friends and edge cases
 
-**Q21.** Query / search side channels: confirmed that "a query
-timing variation that distinguishes an authorised-but-empty result
-from an unauthorised hidden result" is `BY-DESIGN:
-property-disclaimed` and not a §8 violation? *(maps to §9.5)*
+**Q21.** Query / search side channels: confirmed that a side channel
+revealing only the **existence** of an unauthorised path (timing
+variation, "empty vs. forbidden" distinction, result count) is
+`BY-DESIGN: property-disclaimed` and not a §8 violation — **while
+leaking the unauthorised path *itself* (in an error message, exception,
+log surfaced to the caller, or HTTP response) is `VALID`** per mbaedke's
+clarification (now stated in §9.5)? Confirm the existence/path split is
+where the PMC wants the line. *(maps to §9.5, §8 P2)* *(refined per
+maintainer — mbaedke)*
 
 **Q22.** Data-at-rest encryption: confirmed delegated to backend
 (Mongo encryption-at-rest, S3 SSE, FS-level encryption)? *(maps to
@@ -1057,4 +1263,6 @@ disclosure page).
 | `security/reports.md` | CVE-2020-1940 + "binary patches are not produced" | §1 reporting cross-ref |
 | `AGENTS.md` | module list; security-module 100% coverage mandate; `FT_OAK-<issue>` toggles; no regex parsing | §2 component family, §5a |
 | `.asf.yaml` | `trunk` protected; `oak-dev@jackrabbit.apache.org` / `oak-commits@jackrabbit.apache.org` | §1 |
-| `README.md` | MicroKernel modules archived | §2 / §3 item 7 |
+| `README.md` | MicroKernel modules archived; **`oak-run server` serves HTTP on `:8080`**; **Java version (corrected to 17 — README was stale; fix in PR #2927 / OAK-12235)** | §2 / §3 item 7 / §2 deployment shape / §5 |
+| `AGENTS.md` | lists **`oak-http`** (first-party HTTP binding) among modules | §2 component family / §4 / §5 |
+| `oak-parent/pom.xml` | **authoritative Java version: 17** *(maintainer — mreutegg)* | §5 |
