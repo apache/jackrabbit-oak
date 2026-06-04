@@ -51,7 +51,7 @@ public class PropertyIndexEditorProvider implements IndexEditorProvider {
 
     public static final String TYPE = "property";
 
-    public static final String FT_GRANITE_63829 = "FT_GRANITE-63829";
+    public static final String FT_OAK_12125 = "FT_OAK-12125";
 
     @Reference
     private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
@@ -62,7 +62,7 @@ public class PropertyIndexEditorProvider implements IndexEditorProvider {
     @Activate
     private void activate(BundleContext bundleContext) {
         Whiteboard whiteboard = new OsgiWhiteboard(bundleContext);
-        this.feature = newFeature(FT_GRANITE_63829, whiteboard);
+        this.feature = newFeature(FT_OAK_12125, whiteboard);
     }
 
     @Deactivate
