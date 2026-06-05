@@ -556,8 +556,6 @@ public final class DocumentNodeStore
 
     private final Predicate<Path> nodeCachePredicate;
 
-    private final Feature prefetchFeature;
-
     private final Feature cancelInvalidationFeature;
 
     private final Feature noChildOrderCleanupFeature;
@@ -637,7 +635,6 @@ public final class DocumentNodeStore
             leaseUpdateThread.start();
         }
 
-        this.prefetchFeature = builder.getPrefetchFeature();
         this.cancelInvalidationFeature = builder.getCancelInvalidationFeature();
         this.noChildOrderCleanupFeature = builder.getNoChildOrderCleanupFeature();
         this.avoidMergeLock = isAvoidMergeLockEnabled(builder);
