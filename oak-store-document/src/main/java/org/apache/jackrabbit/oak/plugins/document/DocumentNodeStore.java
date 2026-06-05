@@ -216,9 +216,6 @@ public final class DocumentNodeStore
     static final long DEFAULT_MAX_SERVER_TIME_DIFFERENCE = 2000L;
     private final long maxTimeDiffMillis = SystemPropertySupplier.create("oak.documentMK.maxServerTimeDiffMillis", DEFAULT_MAX_SERVER_TIME_DIFFERENCE).loggingTo(LOG).get();
 
-    public static final String SYS_PROP_PREFETCH = "oak.documentstore.prefetch";
-    private final boolean prefetchEnabled = SystemPropertySupplier.create(SYS_PROP_PREFETCH, false).loggingTo(LOG).get();
-
     /**
      * The document store without potentially lease checking wrapper.
      */
@@ -4046,16 +4043,9 @@ public final class DocumentNodeStore
     @Override
     public void prefetch(java.util.Collection<String> paths, NodeState rootState) {
         if (paths != null
-                && rootState instanceof DocumentNodeState
-                && isPrefetchEnabled()) {
+                && rootState instanceof DocumentNodeState) {
             cacheWarming.prefetch(paths, (DocumentNodeState) rootState);
         }
-    }
-
-    private boolean isPrefetchEnabled() {
-        // feature can be enabled with system property or feature toggle
-        return prefetchEnabled
-                || (prefetchFeature != null && prefetchFeature.isEnabled());
     }
 
     /**

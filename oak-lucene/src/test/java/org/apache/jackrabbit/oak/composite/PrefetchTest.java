@@ -36,18 +36,13 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.oak.commons.junit.TemporarySystemProperty;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.prefetch.CacheWarming;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.contrib.java.lang.system.ProvideSystemProperty;
-import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.LoggerFactory;
 
@@ -80,20 +75,9 @@ public class PrefetchTest extends CompositeNodeStoreQueryTestBase {
     private final String cacheWarmingLogger = CacheWarming.class.getName();
 
 
-    @Rule
-    public final ProvideSystemProperty updateSystemProperties
-            = new ProvideSystemProperty(DocumentNodeStore.SYS_PROP_PREFETCH, "true");
-
-    @Rule
-    public final RestoreSystemProperties restoreSystemProperties
-            = new RestoreSystemProperties();
-
     public PrefetchTest(NodeStoreKind root, NodeStoreKind mounts) {
         super(root, mounts);
     }
-
-    @Rule
-    public TemporarySystemProperty temporarySystemProperty = new TemporarySystemProperty();
 
     @Before
     public void loggingAppenderStart() {

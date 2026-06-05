@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.prefetch;
 
-import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore.SYS_PROP_PREFETCH;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -34,7 +33,6 @@ import java.util.TreeSet;
 
 import com.mongodb.MongoTimeoutException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.commons.junit.TemporarySystemProperty;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.CountingDocumentStore;
@@ -55,16 +53,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.Nullable;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CacheWarmingTest {
-
-    @Rule
-    public TemporarySystemProperty systemProperties = new TemporarySystemProperty();
 
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
@@ -77,11 +71,6 @@ public class CacheWarmingTest {
     private @Nullable MongoConnection mongoConnection;
 
     private CountingMongoDatabase db;
-
-    @Before
-    public void enablePrefetch() {
-        System.setProperty(SYS_PROP_PREFETCH, "true");
-    }
 
     @AfterClass
     public static void cleanUp() {
