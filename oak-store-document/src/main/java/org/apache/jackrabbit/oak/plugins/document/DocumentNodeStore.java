@@ -4040,8 +4040,8 @@ public final class DocumentNodeStore
     @Override
     public void prefetch(java.util.Collection<String> paths, NodeState rootState) {
         if (paths != null
-                && rootState instanceof DocumentNodeState) {
-            cacheWarming.prefetch(paths, (DocumentNodeState) rootState);
+                && rootState instanceof DocumentNodeState documentNodeState) {
+            cacheWarming.prefetch(paths, documentNodeState);
         }
     }
 

@@ -262,7 +262,6 @@ public class DocumentNodeStoreService {
     private DocumentNodeStore nodeStore;
     private ObserverTracker observerTracker;
     private JournalPropertyHandlerFactory journalPropertyHandlerFactory = new JournalPropertyHandlerFactory();
-    private Feature prefetchFeature;
     private Feature docStoreThrottlingFeature;
     private Feature noChildOrderCleanupFeature;
     private Feature cancelInvalidationFeature;
