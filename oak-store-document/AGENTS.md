@@ -328,9 +328,7 @@ every 10 `create` calls.
 ## Prefetch
 
 `PrefetchDispatcher` pre-fetches visible external changes in a background thread before delivery
-to local observers, hiding MongoDB/RDB read latency during observer dispatch. Controlled by
-feature toggle `FT_PREFETCH_OAK-9780` (disabled by default); wired via
-`DocumentNodeStoreBuilder.setPrefetchFeature()`.
+to local observers, hiding MongoDB/RDB read latency during observer dispatch.
 
 ## Persistent Cache
 
@@ -364,7 +362,6 @@ Registered in `DocumentNodeStoreService`, wired into `DocumentNodeStoreBuilder`.
 
 | Toggle name | Builder method | Purpose |
 |---|---|---|
-| `FT_PREFETCH_OAK-9780` | `setPrefetchFeature` | Enable async pre-fetching of external changes |
 | `FT_THROTTLING_OAK-9909` | `setDocStoreThrottlingFeature` | Enable write throttling on MongoDB |
 | `FT_DISABLE_THROTTLING_OAK-12119` | `setDocStoreDisableThrottlingFeature` | Runtime kill-switch to disable throttling |
 | `FT_NOCOCLEANUP_OAK-10660` | `setNoChildOrderCleanupFeature` | Disable child-order property cleanup |
