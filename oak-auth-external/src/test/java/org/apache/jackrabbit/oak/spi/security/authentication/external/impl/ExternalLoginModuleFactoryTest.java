@@ -43,7 +43,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -109,6 +108,7 @@ public class ExternalLoginModuleFactoryTest extends ExternalLoginTestBase {
         context.registerService(Repository.class, mock(Repository.class));
         context.registerService(SyncManager.class, new SyncManagerImpl(whiteboard));
         context.registerService(ExternalIdentityProviderManager.class, new ExternalIDPManagerImpl(whiteboard));
+        context.registerService(ExternalIdentityMonitor.class, mock(ExternalIdentityMonitor.class));
 
         final LoginModuleFactory lmf = context.registerInjectActivateService(ExternalLoginModuleFactory.class);
         options.put(ProxyLoginModule.PROP_LOGIN_MODULE_FACTORY, (ProxyLoginModule.BootLoginModuleFactory) lmf::createLoginModule);
