@@ -803,4 +803,59 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         }
     }
 
+    @Test
+    public void testMonitorNotResolvedWhenLoginFailsBeforeSync() throws Exception {
+        ExternalIdentityProvider idp = mock(ExternalIdentityProvider.class, withSettings().extraInterfaces(CredentialsSupport.class));
+        when(idp.getName()).thenReturn(DEFAULT_IDP_NAME);
+        when(((CredentialsSupport) idp).getUserId(any(Credentials.class))).thenReturn(null);
+        when(((CredentialsSupport) idp).getCredentialClasses()).thenReturn(Set.of(SimpleCredentials.class));
+        when(extIPMgr.getProvider(DEFAULT_IDP_NAME)).thenReturn(idp);
+        when(syncManager.getSyncHandler("syncHandler")).thenReturn(new DefaultSyncHandler(new DefaultSyncConfigImpl().setName("syncHandler")));
+
+        wb.register(ExternalIdentityProviderManager.class, extIPMgr, Collections.emptyMap());
+        wb.register(SyncManager.class, syncManager, Collections.emptyMap());
+
+        CallbackHandler cbh = createCallbackHandler(wb, getContentRepository(), getSecurityProvider(), new SimpleCredentials("testUser", new char[0]));
+        loginModule.initialize(new Subject(), cbh, new HashMap<>(), Map.of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
+        assertFalse(loginModule.login());
+
+        verify(wb, never()).track(ExternalIdentityMonitor.class);
+        verifyNoInteractions(externalIdentityMonitor);
+    }
+
+    @Test
+    public void testMonitorResolvedExactlyOnceOnSuccessfulSync() throws Exception {
+        when(extIPMgr.getProvider(DEFAULT_IDP_NAME)).thenReturn(new TestIdentityProvider());
+        when(syncManager.getSyncHandler("syncHandler")).thenReturn(new DefaultSyncHandler(new DefaultSyncConfigImpl().setName("syncHandler")));
+
+        wb.register(ExternalIdentityProviderManager.class, extIPMgr, Collections.emptyMap());
+        wb.register(SyncManager.class, syncManager, Collections.emptyMap());
+
+        Credentials crds = new SimpleCredentials(ID_TEST_USER, new char[0]);
+        CallbackHandler cbh = createCallbackHandler(wb, getContentRepository(), getSecurityProvider(), crds);
+        loginModule.initialize(new Subject(), cbh, new HashMap<>(), Map.of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
+        assertTrue(loginModule.login());
+
+        verify(wb, times(1)).track(ExternalIdentityMonitor.class);
+    }
+
+    @Test
+    public void testNoopMonitorUsedWhenMonitorNotRegistered() throws Exception {
+        Whiteboard freshWb = spy(new DefaultWhiteboard());
+        when(extIPMgr.getProvider(DEFAULT_IDP_NAME)).thenReturn(new TestIdentityProvider());
+        when(syncManager.getSyncHandler("syncHandler")).thenReturn(new DefaultSyncHandler(new DefaultSyncConfigImpl().setName("syncHandler")));
+
+        freshWb.register(ExternalIdentityProviderManager.class, extIPMgr, Collections.emptyMap());
+        freshWb.register(SyncManager.class, syncManager, Collections.emptyMap());
+
+        Credentials crds = new SimpleCredentials(ID_TEST_USER, new char[0]);
+        CallbackHandler cbh = createCallbackHandler(freshWb, getContentRepository(), getSecurityProvider(), crds);
+
+        ExternalLoginModule lm = new ExternalLoginModule();
+        lm.initialize(new Subject(), cbh, new HashMap<>(), Map.of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
+        assertTrue(lm.login());
+
+        verify(freshWb, times(1)).track(ExternalIdentityMonitor.class);
+    }
+
 }
