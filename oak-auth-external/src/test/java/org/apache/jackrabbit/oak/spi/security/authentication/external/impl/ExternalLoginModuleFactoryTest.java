@@ -43,6 +43,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -230,14 +231,15 @@ public class ExternalLoginModuleFactoryTest extends ExternalLoginTestBase {
     }
 
     @Test
-    public void testCreateLoginModuleNullBundleContextNoMonitor() {
-        // When created without a bundle context (non-OSGi path) createLoginModule()
-        // must not throw and the monitor falls back to the whiteboard lookup.
+    public void testCreateLoginModuleNoMonitorServiceFallsBackToNoop() {
+        // When no ExternalIdentityMonitor service is available (e.g. non-OSGi path or
+        // monitor not yet registered), createLoginModule() must still inject NOOP so that
+        // initialize() never needs to open a ServiceTracker via the whiteboard.
         ExternalLoginModuleFactory factory = new ExternalLoginModuleFactory(
                 mock(SyncManager.class), mock(ExternalIdentityProviderManager.class), null);
 
         ExternalLoginModule lm = (ExternalLoginModule) factory.createLoginModule();
-        assertNull(lm.getMonitor());
+        assertSame(ExternalIdentityMonitor.NOOP, lm.getMonitor());
     }
 
     private SynchronizationMBean getMBeanRegistration() throws Exception {

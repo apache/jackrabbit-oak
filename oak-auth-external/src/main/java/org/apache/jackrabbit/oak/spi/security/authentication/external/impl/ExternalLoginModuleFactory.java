@@ -29,9 +29,8 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.monitor.ExternalIdentityMonitor;
-import org.osgi.util.tracker.ServiceTracker;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.monitor.ExternalIdentityMonitor;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SyncMBeanImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SynchronizationMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
@@ -133,12 +132,12 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
 
     private final BundleContext bundleContext;
 
+    private volatile ExternalIdentityMonitor monitor;
+
     /**
      * whiteboard registration handle of the manager mbean
      */
     private volatile Registration mbeanRegistration;
-
-    private ServiceTracker<ExternalIdentityMonitor, ExternalIdentityMonitor> monitorTracker;
 
     //----------------------------------------------------< SCR integration >---
     /**
@@ -160,11 +159,6 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
                 .orElse(ConfigurationParameters.EMPTY);
         this.bundleContext = Optional.ofNullable(context).map(ComponentContext::getBundleContext).orElse(null);
 
-        if (this.bundleContext != null) {
-            monitorTracker = new ServiceTracker<>(this.bundleContext, ExternalIdentityMonitor.class, null);
-            monitorTracker.open();
-        }
-
         mayRegisterSyncMBean();
     }
 
@@ -172,10 +166,6 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
     @Deactivate
     private void deactivate() {
         unregisterSyncMBean();
-        if (monitorTracker != null) {
-            monitorTracker.close();
-            monitorTracker = null;
-        }
     }
 
     @SuppressWarnings("UnusedDeclaration")
@@ -202,6 +192,17 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
     public void unbindSecurityProvider(SecurityProvider securityProvider)  {
         this.securityProvider = null;
         unregisterSyncMBean();
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    @Reference(name = "monitor", cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC)
+    public void bindMonitor(ExternalIdentityMonitor monitor) {
+        this.monitor = monitor;
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    public void unbindMonitor(ExternalIdentityMonitor monitor) {
+        this.monitor = null;
     }
 
     private void mayRegisterSyncMBean() {
@@ -260,8 +261,6 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
         ExternalLoginModule lm = new ExternalLoginModule(osgiConfig);
         lm.setIdpManager(idpManager);
         lm.setSyncManager(syncManager);
-        // TODO: the monitorTracker cannot be null either (see the TODO in the c'tor)
-        ExternalIdentityMonitor monitor = monitorTracker != null ? monitorTracker.getService() : null;
         if (monitor != null) {
             lm.setMonitor(monitor);
         }
