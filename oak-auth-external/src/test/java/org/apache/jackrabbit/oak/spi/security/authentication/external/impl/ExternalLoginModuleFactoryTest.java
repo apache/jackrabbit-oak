@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalId
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginTestBase;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.monitor.ExternalIdentityMonitor;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SynchronizationMBean;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
@@ -211,6 +212,32 @@ public class ExternalLoginModuleFactoryTest extends ExternalLoginTestBase {
 
         factory.bindContentRepository(getContentRepository());
         assertSame(mbeanregistration, getMBeanRegistration());
+    }
+
+    @Test
+    public void testCreateLoginModuleInjectsMonitor() {
+        ExternalIdentityMonitor monitor = mock(ExternalIdentityMonitor.class);
+        context.registerService(ExternalIdentityMonitor.class, monitor);
+        context.registerService(SyncManager.class, mock(SyncManager.class));
+        context.registerService(ExternalIdentityProviderManager.class, mock(ExternalIdentityProviderManager.class));
+
+        ExternalLoginModuleFactory factory = context.registerInjectActivateService(ExternalLoginModuleFactory.class);
+        ExternalLoginModule lm = (ExternalLoginModule) factory.createLoginModule();
+
+        // The monitor must be pre-injected so that initialize() does not open a
+        // ServiceTracker on every login (which causes Felix EventDispatcher contention).
+        assertSame(monitor, lm.getMonitor());
+    }
+
+    @Test
+    public void testCreateLoginModuleNullBundleContextNoMonitor() {
+        // When created without a bundle context (non-OSGi path) createLoginModule()
+        // must not throw and the monitor falls back to the whiteboard lookup.
+        ExternalLoginModuleFactory factory = new ExternalLoginModuleFactory(
+                mock(SyncManager.class), mock(ExternalIdentityProviderManager.class), null);
+
+        ExternalLoginModule lm = (ExternalLoginModule) factory.createLoginModule();
+        assertNull(lm.getMonitor());
     }
 
     private SynchronizationMBean getMBeanRegistration() throws Exception {

@@ -165,7 +165,9 @@ public class ExternalLoginModule extends AbstractLoginModule {
             log.debug("No 'SupportedCredentials' configured. Using default implementation supporting 'SimpleCredentials'.");
         }
 
-        monitor = WhiteboardUtils.getService(whiteboard, ExternalIdentityMonitor.class);
+        if (monitor == null) {
+            monitor = WhiteboardUtils.getService(whiteboard, ExternalIdentityMonitor.class);
+        }
         if (monitor == null) {
             log.debug("No ExternalIdentityMonitor registered.");
             monitor = ExternalIdentityMonitor.NOOP;
@@ -527,5 +529,14 @@ public class ExternalLoginModule extends AbstractLoginModule {
 
     public void setIdpManager(@NotNull ExternalIdentityProviderManager idpManager) {
         this.idpManager = idpManager;
+    }
+
+    public void setMonitor(@NotNull ExternalIdentityMonitor monitor) {
+        this.monitor = monitor;
+    }
+
+    @Nullable
+    ExternalIdentityMonitor getMonitor() {
+        return monitor;
     }
 }

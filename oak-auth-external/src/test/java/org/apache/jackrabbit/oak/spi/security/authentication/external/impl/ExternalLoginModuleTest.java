@@ -172,6 +172,22 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
     }
 
     @Test
+    public void testSetMonitorSkipsWhiteboardLookup() throws LoginException {
+        // When the monitor is pre-injected (OSGi factory path), initialize() must
+        // not open a ServiceTracker via the whiteboard — that is the source of
+        // Felix EventDispatcher lock contention under concurrent logins.
+        ExternalIdentityMonitor preInjectedMonitor = mock(ExternalIdentityMonitor.class);
+        loginModule.setIdpManager(extIPMgr);
+        loginModule.setSyncManager(syncManager);
+        loginModule.setMonitor(preInjectedMonitor);
+
+        loginModule.initialize(new Subject(), createCallbackHandler(wb, null, null, null),
+                Collections.emptyMap(), Map.of(PARAM_IDP_NAME, "idp", PARAM_SYNC_HANDLER_NAME, "syncHandler"));
+
+        verify(wb, never()).track(ExternalIdentityMonitor.class);
+    }
+
+    @Test
     public void testInitializeMissingIdpSyncHandler() throws LoginException {
         loginModule.initialize(new Subject(), createCallbackHandler(wb, null, null, null), Collections.emptyMap(), Map.of(PARAM_IDP_NAME, "idp", PARAM_SYNC_HANDLER_NAME, "syncHandler"));
         assertFalse(loginModule.login());
