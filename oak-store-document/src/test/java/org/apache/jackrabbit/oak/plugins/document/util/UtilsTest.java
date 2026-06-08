@@ -347,42 +347,25 @@ public class UtilsTest {
     public void embeddedVerificationExplicitlyDisabled() {
         DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
         builder.setEmbeddedVerificationEnabled(false);
-        Feature docStoreEmbeddedVerificationFeature = mock(Feature.class);
-        when(docStoreEmbeddedVerificationFeature.isEnabled()).thenReturn(false);
-        builder.setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature);
         boolean embeddedVerificationEnabled = isEmbeddedVerificationEnabled(builder);
         assertFalse("Embedded Verification is disabled explicitly", embeddedVerificationEnabled);
     }
 
     @Test
-    public void embeddedVerificationEnabledViaConfiguration() {
-        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
-        builder.setEmbeddedVerificationEnabled(true);
-        Feature docStoreEmbeddedVerificationFeature = mock(Feature.class);
-        when(docStoreEmbeddedVerificationFeature.isEnabled()).thenReturn(false);
-        builder.setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature);
-        boolean embeddedVerificationEnabled = isEmbeddedVerificationEnabled(builder);
-        assertTrue("Embedded Verification is enabled via configuration", embeddedVerificationEnabled);
-    }
-
-    @Test
-    public void embeddedVerificationEnabledViaFeatureToggle() {
+    public void embeddedVerificationConfigurationRoundTrip() {
         DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
         builder.setEmbeddedVerificationEnabled(false);
-        Feature docStoreEmbeddedVerificationFeature = mock(Feature.class);
-        when(docStoreEmbeddedVerificationFeature.isEnabled()).thenReturn(true);
-        builder.setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature);
-        boolean embeddedVerificationEnabled = isEmbeddedVerificationEnabled(builder);
-        assertTrue("Embedded Verification is enabled via Feature Toggle", embeddedVerificationEnabled);
+        assertFalse("Embedded Verification can be disabled via configuration",
+                isEmbeddedVerificationEnabled(builder));
+        builder.setEmbeddedVerificationEnabled(true);
+        assertTrue("Embedded Verification can be re-enabled via configuration",
+                isEmbeddedVerificationEnabled(builder));
     }
 
     @Test
     public void embeddedVerificationDisabledForRDB() {
         DocumentNodeStoreBuilder<?> builder = newRDBDocumentNodeStoreBuilder();
         builder.setEmbeddedVerificationEnabled(true);
-        Feature docStoreEmbeddedVerificationFeature = mock(Feature.class);
-        when(docStoreEmbeddedVerificationFeature.isEnabled()).thenReturn(true);
-        builder.setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature);
         boolean embeddedVerificationEnabled = isEmbeddedVerificationEnabled(builder);
         assertFalse("Embedded Verification is disabled for RDB Document Store", embeddedVerificationEnabled);
     }

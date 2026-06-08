@@ -107,15 +107,6 @@ public class RDBDocumentNodeStoreBuilderTest {
     }
 
     @Test
-    public void embeddedVerificationFeatureToggleDisabled() {
-        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
-        Feature embeddedVerificationFeature = mock(Feature.class);
-        when(embeddedVerificationFeature.isEnabled()).thenReturn(true);
-        builder.setDocStoreEmbeddedVerificationFeature(embeddedVerificationFeature);
-        assertNull(builder.getDocStoreEmbeddedVerificationFeature());
-    }
-
-    @Test
     public void avoidMergeLockFeatureToggleDisabled() {
         RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
         Feature avoidMergeLockFeature = mock(Feature.class);
