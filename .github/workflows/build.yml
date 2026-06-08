@@ -23,6 +23,9 @@ on:
       - 1.22
   pull_request:
     types: [opened, synchronize, reopened]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   build:
     name: Maven Build
