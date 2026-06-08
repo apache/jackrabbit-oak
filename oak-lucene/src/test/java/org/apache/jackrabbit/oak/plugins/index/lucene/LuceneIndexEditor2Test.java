@@ -21,10 +21,13 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -50,12 +53,28 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
+import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEditor;
+import org.junit.After;
+import org.junit.Before;
+
 public class LuceneIndexEditor2Test {
+
+    @Before
+    public void resetToggles() {
+        FulltextIndexEditor.FT_OAK_12244_DISABLE.set(false);
+    }
+
+    @After
+    public void restoreToggles() {
+        FulltextIndexEditor.FT_OAK_12244_DISABLE.set(false);
+    }
 
     private final NodeState root = INITIAL_CONTENT;
     private NodeState before = root;
@@ -179,6 +198,114 @@ public class LuceneIndexEditor2Test {
         propCallback.state.assertState("/a", "jcr:content/metadata/foo", UpdateState.DELETED);
         assertEquals(1, propCallback.invocationCount);
         propCallback.reset();
+    }
+
+    @Test
+    public void nodeGainsMixinTriggersIndexUpdate() throws Exception {
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
+        defnb.indexRule("mix:title").property("jcr:title").propertyIndex();
+
+        NodeState defnState = defnb.build();
+        IndexDefinition defn = new IndexDefinition(root, defnState, indexPath);
+        LuceneIndexEditorContext ctx = newContext(defnState.builder(), defn, true);
+        EditorHook hook = createHook(ctx);
+
+        updateBefore(defnb);
+
+        // Commit 1: node exists without the mixin — must not be indexed
+        NodeBuilder builder = before.builder();
+        builder.child("a").setProperty("jcr:title", "hello");
+        before = hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+        assertFalse("Node without mixin should not be indexed", writer.docs.containsKey("/a"));
+
+        // Commit 2: mixin added to existing node — must be indexed
+        builder = before.builder();
+        builder.child("a").setProperty(JcrConstants.JCR_MIXINTYPES, List.of("mix:title"), Type.NAMES);
+        hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+        assertTrue("Node after gaining mixin should be added to index", writer.docs.containsKey("/a"));
+    }
+
+    @Test
+    public void nodeLosesMixinTriggersDocumentDeletion() throws Exception {
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
+        defnb.indexRule("mix:title").property("jcr:title").propertyIndex();
+
+        NodeState defnState = defnb.build();
+        IndexDefinition defn = new IndexDefinition(root, defnState, indexPath);
+        LuceneIndexEditorContext ctx = newContext(defnState.builder(), defn, true);
+        EditorHook hook = createHook(ctx);
+
+        updateBefore(defnb);
+
+        // Commit 1: node with mixin — must be indexed
+        NodeBuilder builder = before.builder();
+        builder.child("a")
+                .setProperty(JcrConstants.JCR_MIXINTYPES, List.of("mix:title"), Type.NAMES)
+                .setProperty("jcr:title", "hello");
+        before = hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+        assertTrue("Node with mixin should be indexed", writer.docs.containsKey("/a"));
+
+        // Commit 2: mixin removed — existing index document must be deleted
+        builder = before.builder();
+        builder.child("a").removeProperty(JcrConstants.JCR_MIXINTYPES);
+        hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+        assertTrue("Removing mixin should trigger deleteDocuments for the node", writer.deletedPaths.contains("/a"));
+    }
+
+    @Test
+    public void nodeGainsMixinDoesNotTriggerIndexUpdateWhenToggleDisabled() throws Exception {
+        FulltextIndexEditor.FT_OAK_12244_DISABLE.set(true);
+
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
+        defnb.indexRule("mix:title").property("jcr:title").propertyIndex();
+
+        NodeState defnState = defnb.build();
+        IndexDefinition defn = new IndexDefinition(root, defnState, indexPath);
+        LuceneIndexEditorContext ctx = newContext(defnState.builder(), defn, true);
+        EditorHook hook = createHook(ctx);
+
+        updateBefore(defnb);
+
+        // Commit 1: node exists without the mixin
+        NodeBuilder builder = before.builder();
+        builder.child("a").setProperty("jcr:title", "hello");
+        before = hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+        assertFalse("Node without mixin should not be indexed", writer.docs.containsKey("/a"));
+
+        // Commit 2: mixin added — with toggle disabled, node must not be indexed
+        builder = before.builder();
+        builder.child("a").setProperty(JcrConstants.JCR_MIXINTYPES, List.of("mix:title"), Type.NAMES);
+        hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+        assertFalse("Mixin tracking disabled: node gaining mixin should not be indexed", writer.docs.containsKey("/a"));
+    }
+
+    @Test
+    public void nodeLosesMixinDoesNotTriggerDocumentDeletionWhenToggleDisabled() throws Exception {
+        FulltextIndexEditor.FT_OAK_12244_DISABLE.set(true);
+
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
+        defnb.indexRule("mix:title").property("jcr:title").propertyIndex();
+
+        NodeState defnState = defnb.build();
+        IndexDefinition defn = new IndexDefinition(root, defnState, indexPath);
+        LuceneIndexEditorContext ctx = newContext(defnState.builder(), defn, true);
+        EditorHook hook = createHook(ctx);
+
+        updateBefore(defnb);
+
+        // Commit 1: node with mixin — indexed because it's a new node
+        NodeBuilder builder = before.builder();
+        builder.child("a")
+                .setProperty(JcrConstants.JCR_MIXINTYPES, List.of("mix:title"), Type.NAMES)
+                .setProperty("jcr:title", "hello");
+        before = hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+        assertTrue("Node with mixin should be indexed", writer.docs.containsKey("/a"));
+
+        // Commit 2: mixin removed — with toggle disabled, stale document must not be deleted
+        builder = before.builder();
+        builder.child("a").removeProperty(JcrConstants.JCR_MIXINTYPES);
+        hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+        assertFalse("Mixin tracking disabled: removing mixin should not trigger deleteDocuments", writer.deletedPaths.contains("/a"));
     }
 
     private void updateBefore(LuceneIndexDefinitionBuilder defnb) {

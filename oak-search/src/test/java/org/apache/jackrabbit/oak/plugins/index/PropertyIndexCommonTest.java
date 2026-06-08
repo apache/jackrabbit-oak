@@ -521,6 +521,54 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
     }
 
     @Test
+    public void nodeGainsMixinAppearsInMixinBasedIndex() throws Exception {
+        indexOptions.setIndex(
+                root,
+                "test1",
+                indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), "mix:title", false, "jcr:title")
+        );
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = test.addChild("a");
+        a.setProperty("jcr:title", "hello");
+        root.commit();
+
+        String query = "select [jcr:path] from [mix:title] where [jcr:title] = 'hello'";
+        assertEventually(() -> assertQuery(query, List.of()));
+
+        a = root.getTree("/test/a");
+        a.setProperty(JcrConstants.JCR_MIXINTYPES, List.of("mix:title"), Type.NAMES);
+        root.commit();
+
+        assertEventually(() -> assertQuery(query, List.of("/test/a")));
+    }
+
+    @Test
+    public void nodeLosesMixinDisappearsFromMixinBasedIndex() throws Exception {
+        indexOptions.setIndex(
+                root,
+                "test1",
+                indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), "mix:title", false, "jcr:title")
+        );
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = createNodeWithMixinType(test, "a", "mix:title");
+        a.setProperty("jcr:title", "hello");
+        root.commit();
+
+        String query = "select [jcr:path] from [mix:title] where [jcr:title] = 'hello'";
+        assertEventually(() -> assertQuery(query, List.of("/test/a")));
+
+        a = root.getTree("/test/a");
+        a.removeProperty(JcrConstants.JCR_MIXINTYPES);
+        root.commit();
+
+        assertEventually(() -> assertQuery(query, List.of()));
+    }
+
+    @Test
     public void indexingBasedOnMixinAndRelativeProps() throws Exception {
         indexOptions.setIndex(
                 root,
