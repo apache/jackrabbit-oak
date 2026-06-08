@@ -217,6 +217,18 @@ via the Apache RAT plugin. Use this exact header:
 - Use `@NotNull` / `@Nullable` from `org.jetbrains.annotations` for API contracts
 - Use OSGi annotations (`@Component`, `@Activate`, etc.) for service components
 
+### OSGi exports and baseline
+- A package is **exported** (and baseline-checked by `maven-bundle-plugin`, `failOnError: true`
+  in `oak-parent`) when it appears in the bundle manifest `Export-Package` — typically via
+  `package-info.java` (`@Version` from `org.osgi.annotation.versioning`) in SPI/API modules,
+  or via an explicit `<Export-Package>` list in the module `pom.xml` (e.g. `oak-core`).
+- Packages absent from `Export-Package` — including typical `*.impl.*` implementation packages
+  in SPI modules — are bundle-internal even when classes are `public`.
+- Baseline applies when you change an **exported** package contract, not every `public` class
+  in a bundle module.
+- To verify exports: inspect `Export-Package` in the module manifest or `target/baseline.xml`
+  after `mvn process-classes bundle:manifest -pl <module>`.
+
 ## Git Workflow
 
 - **Main branch:** `trunk` (not master/main). Never commit directly to trunk
@@ -244,5 +256,5 @@ via the Apache RAT plugin. Use this exact header:
 - MongoDB must be running locally (port 27017) for `DOCUMENT_NS` fixture tests
 - Some modules have long-running integration tests; use `-DskipTests` or `-Pfast` for
   quick iteration
-- OSGi baseline checks may fail if you change a public API - this is intentional to
-  prevent accidental breaking changes
+- OSGi baseline checks may fail if you change an **exported** public API (see **OSGi exports
+  and baseline** above) — this is intentional to prevent accidental breaking changes
