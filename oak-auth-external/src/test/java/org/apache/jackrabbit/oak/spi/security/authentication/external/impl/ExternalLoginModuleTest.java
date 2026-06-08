@@ -172,7 +172,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testSetMonitorSkipsWhiteboardLookup() throws LoginException {
+    public void testSetMonitorSkipsWhiteboardLookup() {
         // When the monitor is pre-injected (OSGi factory path), initialize() must
         // not open a ServiceTracker via the whiteboard — that is the source of
         // Felix EventDispatcher lock contention under concurrent logins.
