@@ -537,7 +537,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
     }
 
     @NotNull
-    ExternalIdentityMonitor getMonitor() {
+    public ExternalIdentityMonitor getMonitor() {
         return monitor;
     }
 }
