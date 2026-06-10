@@ -76,4 +76,9 @@ public class PooledLuceneIndexWriter implements LuceneIndexWriter {
                 "deletes: " + deleteCount +
                 "]";
     }
+
+    @Override
+    public long getTotalDocCount() {
+        return delegateWriter.getTotalDocCount();
+    }
 }

@@ -57,6 +57,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexClea
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEditor;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEditorContext;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.TextExtractionStatsMBean;
@@ -383,6 +384,9 @@ public class LuceneIndexProviderService {
                 emptyMap()));
         oakRegs.add(whiteboard.register(FeatureToggle.class,
                 new FeatureToggle(FulltextIndexEditor.FT_OAK_12193, FulltextIndexEditor.FT_OAK_12193_DISABLE),
+                emptyMap()));
+        oakRegs.add(whiteboard.register(FeatureToggle.class,
+                new FeatureToggle(FulltextIndexEditorContext.FT_OAK_12247, FulltextIndexEditorContext.FT_OAK_12247_DISABLE),
                 emptyMap()));
         initializeIndexDir(bundleContext, config);
         initializeExtractedTextCache(bundleContext, config, statisticsProvider);

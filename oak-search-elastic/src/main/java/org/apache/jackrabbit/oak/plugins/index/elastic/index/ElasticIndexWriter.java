@@ -54,6 +54,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.LongAdder;
 
 class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticIndexWriter.class);
@@ -65,6 +66,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     private final boolean reindex;
     private final String indexName;
     private final ElasticRetryPolicy retryPolicy;
+    private final LongAdder docCount;
 
     ElasticIndexWriter(@NotNull ElasticIndexTracker indexTracker,
                        @NotNull ElasticConnection elasticConnection,
@@ -79,6 +81,10 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         this.reindex = reindex;
         this.bulkProcessorHandler = bulkProcessorHandler;
         this.retryPolicy = retryPolicy;
+
+        long prevTotal = reindex ? 0L : Math.max(0L, indexDefinition.getTotalIndexedNodes());
+        this.docCount = new LongAdder();
+        this.docCount.add(prevTotal);
 
         // We don't use stored index definitions with elastic. Every time a new writer gets created we
         // use the actual index name (based on the current seed) while reindexing, or the alias (pointing to the
@@ -115,7 +121,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
                 waitForESAcknowledgement = false;
             }
         }
-        bulkProcessorHandler.registerIndex(indexName, indexDefinition, definitionBuilder, commitInfo, waitForESAcknowledgement);
+        bulkProcessorHandler.registerIndex(indexName, indexDefinition, definitionBuilder, commitInfo, waitForESAcknowledgement, docCount);
     }
 
     @TestOnly
@@ -140,6 +146,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         this.indexName = indexDefinition.getIndexAlias();
         this.retryPolicy = retryPolicy;
         this.reindex = reindex;
+        this.docCount = new LongAdder();
     }
 
     @Override
@@ -167,11 +174,14 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
 
     @Override
     public void deleteDocuments(String path) throws IOException {
+        // Direct bulk delete: queues exactly 1 delete for the document AT `path`, matched by its
+        // document ID (derived from the path). Stats for this delete are incremented via
+        // OakBulkListener.afterBulk() when the response arrives (result="deleted").
         retryPolicy.withRetries(() -> bulkProcessorHandler.delete(indexName, ElasticIndexUtils.idFromPath(path)));
         if (!ElasticIndexEditorProvider.FT_OAK_12206_DISABLE.get()) {
             // Delete all descendants: mirrors Lucene's PrefixQuery on the path term.
-            // The :ancestors field is indexed with path_hierarchy, so a term query on `path`
-            // matches every document whose ancestor chain includes that path.
+            // :ancestors stores parent paths only (not self), so deleteByQuery targets
+            // strict descendants; the direct bulk delete covers the node itself.
             // The ES Bulk API does not support delete by query, so we need to issue a separate request.
             // This is not ideal but should be ok since deletes are expected to be less frequent than updates.
             // The alternative would be to get the list of affected documents and issue a bulk delete by id,
@@ -182,6 +192,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
                 response.failures().forEach(f -> LOG.warn("Failed to delete descendants of {}: shard {} reason {}", path, f.id(), f.cause()));
                 if (response.deleted() != null && response.deleted() > 0) {
                     LOG.info("Deleted {} descendants of {} in {} ms", response.deleted(), path, response.took());
+                    docCount.add(-response.deleted());
                 }
             });
         }
@@ -201,6 +212,11 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
             saveMetrics();
         }
         return updateStatus;
+    }
+
+    @Override
+    public long getTotalDocCount() {
+        return docCount.sum();
     }
 
     private void saveMetrics() {

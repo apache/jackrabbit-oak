@@ -111,6 +111,17 @@ class MultiplexingIndexWriter implements LuceneIndexWriter {
     }
 
     @Override
+    public long getTotalDocCount() {
+        if (writers.isEmpty()) {
+            return -1L;
+        }
+        return writers.values().stream()
+                .mapToLong(LuceneIndexWriter::getTotalDocCount)
+                .filter(c -> c >= 0)
+                .sum();
+    }
+
+    @Override
     public String toString() {
         return "MultiplexingIndexWriter{" +
                 "writers=" + writers.values() +
