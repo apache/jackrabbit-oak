@@ -51,6 +51,17 @@ public class FeatureToggleTest {
     }
 
     @Test
+    public void defaultOverridden() {
+        String sysPropName = "oak-feature.my.toggle";
+        System.setProperty(sysPropName, "true");
+        try (Feature feature = newFeature("my.toggle", whiteboard)) {
+            assertTrue(feature.isEnabled());
+        } finally {
+            System.clearProperty(sysPropName);
+        }
+    }
+
+    @Test
     public void register() {
         try (Feature feature = newFeature("my.toggle", whiteboard)) {
             assertFalse(feature.isEnabled());

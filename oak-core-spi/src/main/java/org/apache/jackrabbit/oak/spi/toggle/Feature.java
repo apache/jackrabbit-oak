@@ -22,8 +22,11 @@ import java.io.Closeable;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A feature toggle to control new functionality. The default state of a feature
@@ -40,6 +43,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
  */
 public final class Feature implements Closeable {
 
+    private static final Logger log = LoggerFactory.getLogger(Feature.class);
     private final AtomicBoolean value;
 
     private final Registration registration;
@@ -60,7 +64,9 @@ public final class Feature implements Closeable {
      * @return the feature toggle.
      */
     public static Feature newFeature(String name, Whiteboard whiteboard) {
-        AtomicBoolean value = new AtomicBoolean();
+        // by default the initial value is false, but it can be overridden by a system property
+        AtomicBoolean value = new AtomicBoolean(
+                SystemPropertySupplier.create("oak-feature." + name, false).logSuccessAs("INFO").get());
         FeatureToggle adapter = new FeatureToggle(name, value);
         return new Feature(value, whiteboard.register(
                 FeatureToggle.class, adapter, Collections.emptyMap()));
