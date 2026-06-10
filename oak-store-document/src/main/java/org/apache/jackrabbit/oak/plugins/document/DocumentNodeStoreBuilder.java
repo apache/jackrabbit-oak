@@ -133,7 +133,6 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Feature noChildOrderCleanupFeature;
     private Feature cancelInvalidationFeature;
     private Feature docStoreFullGCFeature;
-    private Feature docStoreEmbeddedVerificationFeature;
     private Feature docStoreAvoidMergeLockFeature;
     private Feature prevNoPropCacheFeature;
     private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
@@ -513,16 +512,6 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public Feature getDocStoreFullGCFeature() {
         return docStoreFullGCFeature;
-    }
-
-    public T setDocStoreEmbeddedVerificationFeature(@Nullable Feature getDocStoreEmbeddedVerification) {
-        this.docStoreEmbeddedVerificationFeature = getDocStoreEmbeddedVerification;
-        return thisBuilder();
-    }
-
-    @Nullable
-    public Feature getDocStoreEmbeddedVerificationFeature() {
-        return docStoreEmbeddedVerificationFeature;
     }
 
     public Feature getDocStoreAvoidMergeLockFeature() {

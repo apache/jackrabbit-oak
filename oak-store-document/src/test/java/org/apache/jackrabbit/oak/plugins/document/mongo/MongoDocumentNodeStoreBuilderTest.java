@@ -115,12 +115,6 @@ public class MongoDocumentNodeStoreBuilderTest {
     }
 
     @Test
-    public void embeddedVerificationFeatureToggleEnabled() {
-        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
-        assertNull(builder.getDocStoreEmbeddedVerificationFeature());
-    }
-
-    @Test
     public void avoidMergeLockFeatureToggleEnabled() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
         assertNull(builder.getDocStoreAvoidMergeLockFeature());

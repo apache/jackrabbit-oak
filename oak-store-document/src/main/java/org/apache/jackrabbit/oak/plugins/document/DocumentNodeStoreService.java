@@ -223,11 +223,6 @@ public class DocumentNodeStoreService {
      */
     private static final String FT_NAME_AVOID_MERGE_LOCK = "FT_AVOID_MERGE_LOCK_OAK-11720";
 
-    /**
-     * Feature toggle name to enable embedded verification for full GC mode for Mongo Document Store
-     */
-    private static final String FT_NAME_EMBEDDED_VERIFICATION = "FT_EMBEDDED_VERIFICATION_OAK-10633";
-
     /** OAK-11246 : default millis for perflogger info */
     static final long DEFAULT_PERFLOGGER_INFO_MILLIS = Long.MAX_VALUE;
 
@@ -281,7 +276,6 @@ public class DocumentNodeStoreService {
     private Feature noChildOrderCleanupFeature;
     private Feature cancelInvalidationFeature;
     private Feature docStoreFullGCFeature;
-    private Feature docStoreEmbeddedVerificationFeature;
     private Feature docStoreAvoidMergeLockFeature;
     private Feature prevNoPropCacheFeature;
     private ComponentContext context;
@@ -321,7 +315,6 @@ public class DocumentNodeStoreService {
         noChildOrderCleanupFeature = Feature.newFeature(FT_NAME_DOC_STORE_NOCOCLEANUP, whiteboard);
         cancelInvalidationFeature = Feature.newFeature(FT_NAME_CANCEL_INVALIDATION, whiteboard);
         docStoreFullGCFeature = Feature.newFeature(FT_NAME_FULL_GC, whiteboard);
-        docStoreEmbeddedVerificationFeature = Feature.newFeature(FT_NAME_EMBEDDED_VERIFICATION, whiteboard);
         docStoreAvoidMergeLockFeature = Feature.newFeature(FT_NAME_AVOID_MERGE_LOCK, whiteboard);
         prevNoPropCacheFeature = Feature.newFeature(FT_NAME_PREV_NO_PROP_CACHE, whiteboard);
 
@@ -559,7 +552,6 @@ public class DocumentNodeStoreService {
                 setNoChildOrderCleanupFeature(noChildOrderCleanupFeature).
                 setCancelInvalidationFeature(cancelInvalidationFeature).
                 setDocStoreFullGCFeature(docStoreFullGCFeature).
-                setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature).
                 setDocStoreAvoidMergeLockFeature(docStoreAvoidMergeLockFeature).
                 setPrevNoPropCacheFeature(prevNoPropCacheFeature).
                 setThrottlingEnabled(config.throttlingEnabled()).
@@ -721,7 +713,7 @@ public class DocumentNodeStoreService {
         }
 
         closeFeatures(prefetchFeature, docStoreThrottlingFeature, cancelInvalidationFeature, docStoreFullGCFeature,
-                docStoreEmbeddedVerificationFeature, prevNoPropCacheFeature, docStoreAvoidMergeLockFeature);
+                prevNoPropCacheFeature, docStoreAvoidMergeLockFeature);
 
         unregisterNodeStore();
     }
