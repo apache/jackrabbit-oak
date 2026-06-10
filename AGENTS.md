@@ -178,9 +178,9 @@ Toggles are disabled by default and can be enabled without redeployment.
 
 **Examples in the codebase:**
 - Query engine toggles (`FT_OAK-11949`, `FT_OAK-12007`) registered in `oak-core/.../Oak.java`
-- Document store toggles (throttling, full GC) in
-  `oak-store-document/.../DocumentNodeStoreBuilder.java` (embedded verification is OSGi
-  `embeddedVerificationEnabled` config only, not a runtime toggle)
+- Document store toggles (throttling, merge lock) in
+  `oak-store-document/.../DocumentNodeStoreBuilder.java` (Both embedded verification & full GC are OSGi
+  `embeddedVerificationEnabled` & `fullGCEnabled` config only respectively, not a runtime toggle)
 - Some features also support a system property fallback (e.g., `oak.classicMove`)
 
 ## Code Conventions
