@@ -43,7 +43,6 @@ import org.slf4j.LoggerFactory;
  */
 public final class Feature implements Closeable {
 
-    private static final Logger log = LoggerFactory.getLogger(Feature.class);
     private final AtomicBoolean value;
 
     private final Registration registration;
@@ -66,7 +65,7 @@ public final class Feature implements Closeable {
     public static Feature newFeature(String name, Whiteboard whiteboard) {
         // by default the initial value is false, but it can be overridden by a system property
         AtomicBoolean value = new AtomicBoolean(
-                SystemPropertySupplier.create("oak-feature." + name, false).logSuccessAs("INFO").get());
+                SystemPropertySupplier.create("oak-feature." + name, false).get());
         FeatureToggle adapter = new FeatureToggle(name, value);
         return new Feature(value, whiteboard.register(
                 FeatureToggle.class, adapter, Collections.emptyMap()));
