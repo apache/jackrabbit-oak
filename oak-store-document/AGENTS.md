@@ -222,6 +222,11 @@ property `oak.documentstore.embeddedVerificationEnabled`); there is no runtime w
 toggle. Deployments that previously relied on `FT_EMBEDDED_VERIFICATION_OAK-10633` must set this
 config property instead.
 
+Full GC is controlled only by `fullGCEnabled` (OSGi or framework
+property `oak.documentstore.fullGCEnabled`); there is no runtime whiteboard
+toggle. Deployments that previously relied on `FT_FULL_GC_OAK-10199` must set this
+config property instead.
+
 ## Throttling
 
 **MongoDB only** — throttling is not available for RDB. Enabled via `throttlingEnabled=true`.
@@ -364,7 +369,6 @@ Registered in `DocumentNodeStoreService`, wired into `DocumentNodeStoreBuilder`.
 | `FT_DISABLE_THROTTLING_OAK-12119` | `setDocStoreDisableThrottlingFeature` | Runtime kill-switch to disable throttling |
 | `FT_NOCOCLEANUP_OAK-10660` | `setNoChildOrderCleanupFeature` | Disable child-order property cleanup |
 | `FT_CANCELINVALIDATION_OAK-10595` | `setCancelInvalidationFeature` | Cancel in-flight cache invalidations |
-| `FT_FULL_GC_OAK-10199` | `setDocStoreFullGCFeature` | Enable Full GC phase (MongoDB only) |
 | `FT_AVOID_MERGE_LOCK_OAK-11720` | `setDocStoreAvoidMergeLockFeature` | Avoid acquiring merge lock where safe |
 | `FT_PREV_NO_PROP_OAK-11184` | `setPrevNoPropCacheFeature` | Skip caching previous documents with no properties |
 
