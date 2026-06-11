@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
  */
 public final class Feature implements Closeable {
 
+    private static final Logger log = LoggerFactory.getLogger(Feature.class);
     private final AtomicBoolean value;
 
     private final Registration registration;
@@ -63,14 +64,9 @@ public final class Feature implements Closeable {
      * @return the feature toggle.
      */
     public static Feature newFeature(String name, Whiteboard whiteboard) {
-        boolean b = false;
         // by default the initial value is false, but it can be overridden by a system property
-        try {
-            b = SystemPropertySupplier.create("oak-feature." + name, false).get();
-        } catch (IllegalArgumentException e) {
-            // https://issues.apache.org/jira/browse/OAK-12255
-        }
-        AtomicBoolean value = new AtomicBoolean(b);
+        AtomicBoolean value = new AtomicBoolean(
+                SystemPropertySupplier.create("oak-feature." + name, false).logSuccessAs("INFO").get());
         FeatureToggle adapter = new FeatureToggle(name, value);
         return new Feature(value, whiteboard.register(
                 FeatureToggle.class, adapter, Collections.emptyMap()));
