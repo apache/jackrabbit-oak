@@ -232,17 +232,6 @@ public class RDBDocumentNodeStoreBuilder
     }
   
     @Override
-    public RDBDocumentNodeStoreBuilder setDocStoreFullGCFeature(@Nullable Feature docStoreFullGC) {
-        return thisBuilder();
-    }
-
-    @Override
-    @Nullable
-    public Feature getDocStoreFullGCFeature() {
-        return null;
-    }
-
-    @Override
     public boolean isEmbeddedVerificationEnabled() {
         return false;
     }
