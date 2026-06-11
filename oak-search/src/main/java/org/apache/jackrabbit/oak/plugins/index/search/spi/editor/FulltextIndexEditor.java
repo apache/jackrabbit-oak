@@ -69,6 +69,23 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
      */
     public static final AtomicBoolean FT_OAK_12193_DISABLE = new AtomicBoolean(false);
 
+    /**
+     * Feature toggle name for OAK-12244.
+     * When active (default), nodes that gain or lose a mixin type at runtime are
+     * correctly added to or removed from the fulltext index, even when
+     * {@code jcr:mixinTypes} is not listed in the rule's property definitions.
+     */
+    public static final String FT_OAK_12244 = "FT_OAK-12244";
+
+    /**
+     * Kill switch for the OAK-12244 mixin-transition tracking. Set to {@code true} to
+     * revert to the pre-OAK-12244 behavior where mixin additions and removals do not
+     * trigger index updates unless an indexed property also changed.
+     * Default is {@code false} (mixin-transition tracking active). Wired to the
+     * {@link #FT_OAK_12244} feature toggle at runtime.
+     */
+    public static final AtomicBoolean FT_OAK_12244_DISABLE = new AtomicBoolean(false);
+
     private static final List<Aggregate.Matcher> EMPTY_AGGREGATE_MATCHER_LIST = List.of();
 
     private final FulltextIndexEditorContext<D> context;
@@ -80,6 +97,8 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
     private final String path;
 
     private boolean propertiesChanged = false;
+
+    private boolean wasIndexable = false;
 
     private final List<PropertyState> propertiesModified = new ArrayList<>();
 
@@ -143,17 +162,48 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
             if (indexingRule != null) {
                 currentMatchers = indexingRule.getAggregate().createMatchers(this);
             }
+
+            if (!FT_OAK_12244_DISABLE.get() && before.exists()) {
+                wasIndexable = getDefinition().getApplicableIndexingRule(before) != null;
+            }
         }
     }
 
     @Override
     public void leave(NodeState before, NodeState after)
             throws CommitFailedException {
-        if (propertiesChanged || !before.exists()) {
-            if (addOrUpdate(path, after, before.exists())) {
-                long indexed = context.incIndexedNodes();
-                if (indexed % 1000 == 0) {
-                    log.debug("[{}] => Indexed {} nodes...", getIndexName(), indexed);
+        if (FT_OAK_12244_DISABLE.get()) {
+            // Legacy: no mixin-transition tracking (pre-OAK-12244 behavior)
+            if (propertiesChanged || !before.exists()) {
+                if (addOrUpdate(path, after, before.exists())) {
+                    long indexed = context.incIndexedNodes();
+                    if (indexed % 1000 == 0) {
+                        log.debug("[{}] => Indexed {} nodes...", getIndexName(), indexed);
+                    }
+                }
+            }
+        } else {
+            boolean toBeDeleted = wasIndexable && !isIndexable();
+            boolean toBeAdded = !wasIndexable && isIndexable();
+            boolean toBeUpdated = wasIndexable && isIndexable() && propertiesChanged;
+
+            if (toBeDeleted) {
+                try {
+                    context.getWriter().deleteDocuments(path);
+                    context.indexUpdate();
+                } catch (IOException e) {
+                    CommitFailedException ce = new CommitFailedException("Fulltext", 6,
+                            "Failed to delete stale index document for " + path
+                                    + " in index " + context.getIndexingContext().getIndexPath(), e);
+                    context.getIndexingContext().indexUpdateFailed(ce);
+                    throw ce;
+                }
+            } else if (toBeAdded || toBeUpdated) {
+                if (addOrUpdate(path, after, before.exists())) {
+                    long indexed = context.incIndexedNodes();
+                    if (indexed % 1000 == 0) {
+                        log.debug("[{}] => Indexed {} nodes...", getIndexName(), indexed);
+                    }
                 }
             }
         }
