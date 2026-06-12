@@ -508,15 +508,24 @@ switches that can be controlled at runtime without requiring a repository restar
 
 ##### Core Architecture
 
-Built upon the **Whiteboard** (the internal service registry), the system relies on the `FeatureToggle` interface
-from the `org.apache.jackrabbit.oak.spi.toggle` package.
+The `org.apache.jackrabbit.oak.spi.toggle.FeatureToggle` class encapsulates the concept
+of a named boolean flag. The code behind the toggle  normally only needs access to the
+boolean; the name is used to identify the correct `FeatureToggle` and to change the value
+of the boolean flag. The boolean is represented by java's `AtomicBoolean` class.
 
+`FeatureToggle` instances are meant to be registered with a **Whiteboard**, Oak's internal
+service registry abstraction. This allows `FeatureToggle` instances to be discovered by
+third party code. E.g. in order to enable/disable the toggle using its `#setEnabled(boolean)`
+method.
 
-* **Registration:** Components register a `FeatureToggle` instance into the Whiteboard with a unique name.
-* **Consumption:** Dependent repository logic queries the Whiteboard to check `isEnabled()` before executing the toggled code paths.
+* **Registration:** Components register a `FeatureToggle` instance into the Whiteboard with
+* a unique name.
+* **Consumption:** Dependent repository logic usually only needs access to the
+* `AtomicBoolean` instance, which allows to keep implementations agnostic of the
+* `FeatureToggle` API.
 
-**Note:** The Whiteboard is primarily needed as a lookup service. Code that already has direct access to the
-`FeatureToggle` instance - such as in test cases - does not need to look it up.
+**Note:** Code that already has direct access to the `AtomicBoolean` or to the `FeatureToggle`
+instance - such as test cases - does not require a lookup via the `Whiteboard`.
 
 ##### Key Benefits
 
