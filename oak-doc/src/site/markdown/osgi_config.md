@@ -515,6 +515,9 @@ from the `org.apache.jackrabbit.oak.spi.toggle` package.
 * **Registration:** Components register a `FeatureToggle` instance into the Whiteboard with a unique name.
 * **Consumption:** Dependent repository logic queries the Whiteboard to check `isEnabled()` before executing the toggled code paths.
 
+**Note:** The Whiteboard is primarily needed as a lookup service. Code that already has direct access to the
+`FeatureToggle` instance - such as in test cases - does not need to look it up.
+
 ##### Key Benefits
 
 * **Trunk-Based Development:** New architectural changes can be merged into the main codebase while staying safely dormant.
