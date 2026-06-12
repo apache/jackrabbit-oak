@@ -35,10 +35,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.jackrabbit.JcrConstants;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -52,7 +55,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
 
     /**
      * Feature toggle name for OAK-12193.
-     * When this toggle is active (default), deleteDocuments calls are skipped for
+     * When this toggle is active (default), deleteDocumentTree calls are skipped for
      * removed subtrees that do not contain any node matching the index definition's
      * indexing rules. This avoids accumulating large numbers of buffered deletes in
      * the Lucene writer's DocumentsWriterDeleteQueue during delete-heavy async
@@ -62,7 +65,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
 
     /**
      * Kill switch for the OAK-12193 filtered delete behavior. Set to {@code true} to
-     * revert to the legacy behavior of always issuing a deleteDocuments call for every
+     * revert to the legacy behavior of always issuing a deleteDocumentTree call for every
      * removed subtree regardless of whether the index could have indexed its nodes.
      * Default is {@code false} (filtered behavior active). Wired to the
      * {@link #FT_OAK_12193} feature toggle at runtime.
@@ -163,8 +166,13 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
                 currentMatchers = indexingRule.getAggregate().createMatchers(this);
             }
 
-            if (!FT_OAK_12244_DISABLE.get() && before.exists()) {
-                wasIndexable = getDefinition().getApplicableIndexingRule(before) != null;
+            if (context.isTypeChangeTrackingEnabled() && before.exists()) {
+                if (hasNodeTypeChange(before, after)) {
+                    wasIndexable = getDefinition().getApplicableIndexingRule(before) != null;
+                } else {
+                    // Types unchanged: before and after match the same rule
+                    wasIndexable = indexingRule != null;
+                }
             }
         }
     }
@@ -172,9 +180,25 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
     @Override
     public void leave(NodeState before, NodeState after)
             throws CommitFailedException {
-        if (FT_OAK_12244_DISABLE.get()) {
-            // Legacy: no mixin-transition tracking (pre-OAK-12244 behavior)
-            if (propertiesChanged || !before.exists()) {
+        if (context.isTypeChangeTrackingEnabled()) {
+            // OAK-12244: act on rule-gained / rule-lost transitions
+            boolean toBeDeleted = wasIndexable && !isIndexable();
+            boolean toBeAdded   = !wasIndexable && isIndexable();
+            boolean toBeUpdated = wasIndexable && isIndexable() && propertiesChanged;
+
+            if (toBeDeleted) {
+                try {
+                    // Exact-document delete: children that still carry the mixin must not be evicted
+                    context.getWriter().deleteDocument(path);
+                    context.indexUpdate();
+                } catch (IOException e) {
+                    CommitFailedException ce = new CommitFailedException("Fulltext", 5,
+                            "Failed to delete stale index document for " + path
+                                    + " in index " + context.getIndexingContext().getIndexPath(), e);
+                    context.getIndexingContext().indexUpdateFailed(ce);
+                    throw ce;
+                }
+            } else if (toBeAdded || toBeUpdated) {
                 if (addOrUpdate(path, after, before.exists())) {
                     long indexed = context.incIndexedNodes();
                     if (indexed % 1000 == 0) {
@@ -183,22 +207,8 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
                 }
             }
         } else {
-            boolean toBeDeleted = wasIndexable && !isIndexable();
-            boolean toBeAdded = !wasIndexable && isIndexable();
-            boolean toBeUpdated = wasIndexable && isIndexable() && propertiesChanged;
-
-            if (toBeDeleted) {
-                try {
-                    context.getWriter().deleteDocuments(path);
-                    context.indexUpdate();
-                } catch (IOException e) {
-                    CommitFailedException ce = new CommitFailedException("Fulltext", 6,
-                            "Failed to delete stale index document for " + path
-                                    + " in index " + context.getIndexingContext().getIndexPath(), e);
-                    context.getIndexingContext().indexUpdateFailed(ce);
-                    throw ce;
-                }
-            } else if (toBeAdded || toBeUpdated) {
+            // pre-OAK-12244: only property changes and new nodes trigger indexing
+            if (propertiesChanged || !before.exists()) {
                 if (addOrUpdate(path, after, before.exists())) {
                     long indexed = context.incIndexedNodes();
                     if (indexed % 1000 == 0) {
@@ -293,14 +303,14 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
         }
 
         if (!FT_OAK_12193_DISABLE.get()) {
-            // OAK-12193: skip the deleteDocuments call when no node in the removed subtree
-            // could have been indexed. Legacy behavior would route a deleteDocuments call
+            // OAK-12193: skip the deleteDocumentTree call when no node in the removed subtree
+            // could have been indexed. Legacy behavior would route a deleteDocumentTree call
             // for every removed subtree regardless, accumulating buffered deletes in the
             // Lucene writer during delete-heavy async cycles.
             if (!isDeleted && subtreeHasIndexableNode(context.getDefinition(), before)) {
                 try {
                     FulltextIndexWriter<D> writer = context.getWriter();
-                    writer.deleteDocuments(childPath);
+                    writer.deleteDocumentTree(childPath);
                     this.context.indexUpdate();
                 } catch (IOException e) {
                     CommitFailedException ce = new CommitFailedException("Fulltext", 5, "Failed to remove the index entries of"
@@ -315,7 +325,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
             try {
                 FulltextIndexWriter<D> writer = context.getWriter();
                 // Remove all index entries in the removed subtree
-                writer.deleteDocuments(childPath);
+                writer.deleteDocumentTree(childPath);
                 this.context.indexUpdate();
             } catch (IOException e) {
                 CommitFailedException ce = new CommitFailedException("Fulltext", 5, "Failed to remove the index entries of"
@@ -509,6 +519,13 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
 
     private boolean isIndexable() {
         return indexingRule != null;
+    }
+
+    private static boolean hasNodeTypeChange(NodeState before, NodeState after) {
+        return !Objects.equals(before.getProperty(JcrConstants.JCR_MIXINTYPES),
+                               after.getProperty(JcrConstants.JCR_MIXINTYPES))
+            || !Objects.equals(before.getProperty(JcrConstants.JCR_PRIMARYTYPE),
+                               after.getProperty(JcrConstants.JCR_PRIMARYTYPE));
     }
 
     private String getIndexName() {
