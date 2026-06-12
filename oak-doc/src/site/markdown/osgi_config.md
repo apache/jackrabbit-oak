@@ -500,6 +500,28 @@ in both config file and framework properties then framework property takes prece
 For example by default Sling sets **repository.home** to _${sling.home}/repository_. So this value
 need not be specified in config files
 
+#### Feature Toggles
+
+The **Feature Toggle** mechanism enables the safe rollout, testing, and management of internal repository features.
+It allows new functionality, experimental logic, or performance optimizations to be shielded behind conditional
+switches that can be controlled at runtime without requiring a repository restart.
+
+##### Core Architecture
+
+Built upon the **Whiteboard** (the internal service registry), the system relies on the `FeatureToggle` interface
+from the `org.apache.jackrabbit.oak.spi.toggle` package.
+
+
+* **Registration:** Components register a `FeatureToggle` instance into the Whiteboard with a unique name.
+* **Consumption:** Dependent repository logic queries the Whiteboard to check `isEnabled()` before executing the toggled code paths.
+
+##### Key Benefits
+
+* **Trunk-Based Development:** New architectural changes can be merged into the main codebase while staying safely dormant.
+* **Runtime Control:** Allows administrators to dynamically enable or disable features (like new indexing behaviors or garbage collection routines) instantly.
+* **Risk Mitigation:** Acts as an immediate "kill switch" to revert to legacy, stable behavior.
+
+
 [1]: http://docs.mongodb.org/manual/reference/connection-string/
 [2]: http://jackrabbit.apache.org/api/2.4/org/apache/jackrabbit/core/data/FileDataStore.html
 [OAK-1645]: https://issues.apache.org/jira/browse/OAK-1645
