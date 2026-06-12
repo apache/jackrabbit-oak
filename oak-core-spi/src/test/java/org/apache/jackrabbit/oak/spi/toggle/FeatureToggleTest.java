@@ -28,6 +28,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.spi.toggle.Feature.newFeature;
+import static org.apache.jackrabbit.oak.spi.toggle.Feature.newFeatureWithSystemPropertyDefault;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.core.Is.is;
@@ -54,7 +55,7 @@ public class FeatureToggleTest {
     public void defaultOverriddenAsTrue() {
         String sysPropName = "oak-feature.my.toggle";
         System.setProperty(sysPropName, "true");
-        try (Feature feature = newFeature("my.toggle", whiteboard)) {
+        try (Feature feature = newFeatureWithSystemPropertyDefault("my.toggle", whiteboard)) {
             assertTrue(feature.isEnabled());
         } finally {
             System.clearProperty(sysPropName);
@@ -65,7 +66,7 @@ public class FeatureToggleTest {
     public void defaultOverriddenAsFalse() {
         String sysPropName = "oak-feature.my.toggle";
         System.setProperty(sysPropName, "false");
-        try (Feature feature = newFeature("my.toggle", whiteboard)) {
+        try (Feature feature = newFeatureWithSystemPropertyDefault("my.toggle", whiteboard)) {
             assertFalse(feature.isEnabled());
         } finally {
             System.clearProperty(sysPropName);
