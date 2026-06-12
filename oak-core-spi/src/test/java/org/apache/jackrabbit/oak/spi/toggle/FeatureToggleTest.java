@@ -55,7 +55,7 @@ public class FeatureToggleTest {
         String sysPropName = "oak-feature.my.toggle";
         System.setProperty(sysPropName, "true");
         try (Feature feature = newFeature("my.toggle", whiteboard)) {
-            assertFalse(feature.isEnabled());
+            assertTrue(feature.isEnabled());
         } finally {
             System.clearProperty(sysPropName);
         }
@@ -66,7 +66,7 @@ public class FeatureToggleTest {
         String sysPropName = "oak-feature.my.toggle";
         System.setProperty(sysPropName, "false");
         try (Feature feature = newFeature("my.toggle", whiteboard)) {
-            assertTrue(feature.isEnabled());
+            assertFalse(feature.isEnabled());
         } finally {
             System.clearProperty(sysPropName);
         }
