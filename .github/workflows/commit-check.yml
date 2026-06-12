@@ -21,6 +21,10 @@ on:
   pull_request:
     branches: 'trunk'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   commit-check:
     runs-on: ubuntu-latest
@@ -34,7 +38,7 @@ jobs:
           fetch-depth: 0  # required for merge-base check
       # https://github.com/commit-check
       # must be pinned due to https://infra.apache.org/github-actions-policy.html
-      - uses: commit-check/commit-check-action@8d507e12899a9feb405c3ed546252ff9508724e0
+      - uses: commit-check/commit-check-action@f237ed0085f49444ab5c85bdfa5cdcd490fc09c5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # use GITHUB_TOKEN because of use pr-comments
         with:

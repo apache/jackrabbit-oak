@@ -232,17 +232,6 @@ public class RDBDocumentNodeStoreBuilder
     }
   
     @Override
-    public RDBDocumentNodeStoreBuilder setDocStoreFullGCFeature(@Nullable Feature docStoreFullGC) {
-        return thisBuilder();
-    }
-
-    @Override
-    @Nullable
-    public Feature getDocStoreFullGCFeature() {
-        return null;
-    }
-
-    @Override
     public boolean isEmbeddedVerificationEnabled() {
         return false;
     }
@@ -251,16 +240,5 @@ public class RDBDocumentNodeStoreBuilder
     public RDBDocumentNodeStoreBuilder setEmbeddedVerificationEnabled(boolean b) {
         // embeddedVerification is non supported for RDB since fullGC is not.
         return thisBuilder();
-    }
-
-    @Override
-    public RDBDocumentNodeStoreBuilder setDocStoreEmbeddedVerificationFeature(@Nullable Feature getDocStoreEmbeddedVerification) {
-        return thisBuilder();
-    }
-
-    @Override
-    @Nullable
-    public Feature getDocStoreEmbeddedVerificationFeature() {
-        return null;
     }
 }

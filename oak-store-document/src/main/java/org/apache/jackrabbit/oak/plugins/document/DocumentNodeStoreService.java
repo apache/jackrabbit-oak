@@ -213,20 +213,11 @@ public class DocumentNodeStoreService {
      * Feature toggle name to enable invalidation on cancel (due to a merge collision)
      */
     private static final String FT_NAME_CANCEL_INVALIDATION = "FT_CANCELINVALIDATION_OAK-10595";
-    /**
-     * Feature toggle name to enable full GC for Mongo Document Store
-     */
-    private static final String FT_NAME_FULL_GC = "FT_FULL_GC_OAK-10199";
 
     /**
      * Feature toggle name to avoid exclusive merge lock for merging changes in repository in case of a conflict
      */
     private static final String FT_NAME_AVOID_MERGE_LOCK = "FT_AVOID_MERGE_LOCK_OAK-11720";
-
-    /**
-     * Feature toggle name to enable embedded verification for full GC mode for Mongo Document Store
-     */
-    private static final String FT_NAME_EMBEDDED_VERIFICATION = "FT_EMBEDDED_VERIFICATION_OAK-10633";
 
     /** OAK-11246 : default millis for perflogger info */
     static final long DEFAULT_PERFLOGGER_INFO_MILLIS = Long.MAX_VALUE;
@@ -280,8 +271,6 @@ public class DocumentNodeStoreService {
     private Feature docStoreThrottlingFeature;
     private Feature noChildOrderCleanupFeature;
     private Feature cancelInvalidationFeature;
-    private Feature docStoreFullGCFeature;
-    private Feature docStoreEmbeddedVerificationFeature;
     private Feature docStoreAvoidMergeLockFeature;
     private Feature prevNoPropCacheFeature;
     private ComponentContext context;
@@ -320,8 +309,6 @@ public class DocumentNodeStoreService {
         docStoreThrottlingFeature = Feature.newFeature(FT_NAME_DOC_STORE_THROTTLING, whiteboard);
         noChildOrderCleanupFeature = Feature.newFeature(FT_NAME_DOC_STORE_NOCOCLEANUP, whiteboard);
         cancelInvalidationFeature = Feature.newFeature(FT_NAME_CANCEL_INVALIDATION, whiteboard);
-        docStoreFullGCFeature = Feature.newFeature(FT_NAME_FULL_GC, whiteboard);
-        docStoreEmbeddedVerificationFeature = Feature.newFeature(FT_NAME_EMBEDDED_VERIFICATION, whiteboard);
         docStoreAvoidMergeLockFeature = Feature.newFeature(FT_NAME_AVOID_MERGE_LOCK, whiteboard);
         prevNoPropCacheFeature = Feature.newFeature(FT_NAME_PREV_NO_PROP_CACHE, whiteboard);
 
@@ -558,8 +545,6 @@ public class DocumentNodeStoreService {
                 setDocStoreThrottlingFeature(docStoreThrottlingFeature).
                 setNoChildOrderCleanupFeature(noChildOrderCleanupFeature).
                 setCancelInvalidationFeature(cancelInvalidationFeature).
-                setDocStoreFullGCFeature(docStoreFullGCFeature).
-                setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature).
                 setDocStoreAvoidMergeLockFeature(docStoreAvoidMergeLockFeature).
                 setPrevNoPropCacheFeature(prevNoPropCacheFeature).
                 setThrottlingEnabled(config.throttlingEnabled()).
@@ -720,8 +705,8 @@ public class DocumentNodeStoreService {
             journalPropertyHandlerFactory.stop();
         }
 
-        closeFeatures(prefetchFeature, docStoreThrottlingFeature, cancelInvalidationFeature, docStoreFullGCFeature,
-                docStoreEmbeddedVerificationFeature, prevNoPropCacheFeature, docStoreAvoidMergeLockFeature);
+        closeFeatures(prefetchFeature, docStoreThrottlingFeature, cancelInvalidationFeature, prevNoPropCacheFeature,
+                docStoreAvoidMergeLockFeature);
 
         unregisterNodeStore();
     }

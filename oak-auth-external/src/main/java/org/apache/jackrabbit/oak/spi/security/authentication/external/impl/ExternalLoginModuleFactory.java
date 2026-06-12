@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.monitor.ExternalIdentityMonitor;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SyncMBeanImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SynchronizationMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
@@ -131,6 +132,8 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
 
     private final BundleContext bundleContext;
 
+    private volatile ExternalIdentityMonitor monitor;
+
     /**
      * whiteboard registration handle of the manager mbean
      */
@@ -149,6 +152,8 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
         this.syncManager = syncManager;
         this.idpManager = idpManager;
 
+        // TODO: context cannot be null, but tests are invoked with this being null. Tests should
+        // be adjusted accordingly, and then all these implicit and explicit null checks should be removed. 
         this.osgiConfig = Optional.ofNullable(context)
                 .map(ctx -> ConfigurationParameters.of(ctx.getProperties()))
                 .orElse(ConfigurationParameters.EMPTY);
@@ -187,6 +192,17 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
     public void unbindSecurityProvider(SecurityProvider securityProvider)  {
         this.securityProvider = null;
         unregisterSyncMBean();
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    @Reference(name = "monitor", cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC)
+    public void bindMonitor(ExternalIdentityMonitor monitor) {
+        this.monitor = monitor;
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    public void unbindMonitor(ExternalIdentityMonitor monitor) {
+        this.monitor = null;
     }
 
     private void mayRegisterSyncMBean() {
@@ -245,6 +261,9 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
         ExternalLoginModule lm = new ExternalLoginModule(osgiConfig);
         lm.setIdpManager(idpManager);
         lm.setSyncManager(syncManager);
+        if (monitor != null) {
+            lm.setMonitor(monitor);
+        }
         return lm;
     }
 }
