@@ -37,11 +37,18 @@ import org.slf4j.LoggerFactory;
  * involves registering a feature toggle on the {@link Whiteboard} and
  * potentially comes with some overhead (e.g. when the whiteboard is based on
  * OSGi). Therefore, client code should not create a new feature, check the
- * state and then immediately release/close it again. Instead a feature should
+ * state and then immediately release/close it again. Instead, a feature should
  * be acquired initially, checked at runtime whenever needed and finally
  * released when the client component is destroyed.
+ * <p>
+ * The default state of {@code false} can be overridden by a system property,
+ * with the name derived from the toggle name. This helps to quickly verify
+ * a new feature. For a toggle named {@code "foo"}, the system property name is
+ * {@code oak-feature.foo}.
  */
 public final class Feature implements Closeable {
+
+    private static final Logger LOG = LoggerFactory.getLogger(Feature.class);
 
     private final AtomicBoolean value;
 
@@ -65,7 +72,8 @@ public final class Feature implements Closeable {
     public static Feature newFeature(String name, Whiteboard whiteboard) {
         // by default the initial value is false, but it can be overridden by a system property
         AtomicBoolean value = new AtomicBoolean(
-                SystemPropertySupplier.create("oak-feature." + name, false).get());
+                SystemPropertySupplier.create("oak-feature." + name, false).
+                        loggingTo(LOG).get());
         FeatureToggle adapter = new FeatureToggle(name, value);
         return new Feature(value, whiteboard.register(
                 FeatureToggle.class, adapter, Collections.emptyMap()));

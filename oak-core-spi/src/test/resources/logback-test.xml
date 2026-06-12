@@ -27,11 +27,12 @@
     </encoder>
 </appender>
 
-<root level="INFO">
+<root level="ERROR">
     <!--
     <appender-ref ref="console"/>
     -->
     <appender-ref ref="file"/>
 </root>
 
+<logger name="org.apache.jackrabbit.oak.spi.toggle.Feature" level="INFO"/>
 </configuration>
