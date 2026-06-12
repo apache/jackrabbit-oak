@@ -500,6 +500,40 @@ in both config file and framework properties then framework property takes prece
 For example by default Sling sets **repository.home** to _${sling.home}/repository_. So this value
 need not be specified in config files
 
+#### Feature Toggles
+
+The **Feature Toggle** mechanism enables the safe rollout, testing, and management of internal repository features.
+It allows new functionality, experimental logic, or performance optimizations to be shielded behind conditional
+switches that can be controlled at runtime without requiring a repository restart.
+
+##### Core Architecture
+
+The `org.apache.jackrabbit.oak.spi.toggle.FeatureToggle` class encapsulates the concept
+of a named boolean flag. The code behind the toggle  normally only needs access to the
+boolean; the name is used to identify the correct `FeatureToggle` and to change the value
+of the boolean flag. The boolean is represented by java's `AtomicBoolean` class.
+
+`FeatureToggle` instances are meant to be registered with a **Whiteboard**, Oak's internal
+service registry abstraction. This allows `FeatureToggle` instances to be discovered by
+third party code. E.g. in order to enable/disable the toggle using its `#setEnabled(boolean)`
+method.
+
+* **Registration:** Components register a `FeatureToggle` instance into the Whiteboard with
+* a unique name.
+* **Consumption:** Dependent repository logic usually only needs access to the
+* `AtomicBoolean` instance, which allows to keep implementations agnostic of the
+* `FeatureToggle` API.
+
+**Note:** Code that already has direct access to the `AtomicBoolean` or to the `FeatureToggle`
+instance - such as test cases - does not require a lookup via the `Whiteboard`.
+
+##### Key Benefits
+
+* **Trunk-Based Development:** New architectural changes can be merged into the main codebase while staying safely dormant.
+* **Runtime Control:** Allows administrators to dynamically enable or disable features (like new indexing behaviors or garbage collection routines) instantly.
+* **Risk Mitigation:** Acts as an immediate "kill switch" to revert to legacy, stable behavior.
+
+
 [1]: http://docs.mongodb.org/manual/reference/connection-string/
 [2]: http://jackrabbit.apache.org/api/2.4/org/apache/jackrabbit/core/data/FileDataStore.html
 [OAK-1645]: https://issues.apache.org/jira/browse/OAK-1645
