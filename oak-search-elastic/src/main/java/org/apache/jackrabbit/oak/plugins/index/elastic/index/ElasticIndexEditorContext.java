@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.DocumentMaker;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEditorContext;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.Nullable;
@@ -50,8 +51,8 @@ class ElasticIndexEditorContext extends FulltextIndexEditorContext<ElasticDocume
     }
 
     @Override
-    public ElasticIndexWriter getWriter() {
-        return (ElasticIndexWriter) super.getWriter();
+    public FulltextIndexWriter<ElasticDocument> getWriter() {
+        return super.getWriter();
     }
 
     @Override

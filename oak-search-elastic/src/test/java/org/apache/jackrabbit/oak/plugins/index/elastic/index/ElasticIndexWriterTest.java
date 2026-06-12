@@ -19,12 +19,18 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.DeleteByQueryRequest;
 import co.elastic.clients.elasticsearch.core.DeleteByQueryResponse;
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch.core.DeleteByQueryRequest;
+import co.elastic.clients.elasticsearch.core.DeleteByQueryResponse;
 import co.elastic.clients.util.ObjectBuilder;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexStatistics;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,6 +43,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticTestUtils.randomString;
@@ -44,6 +51,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.number.OrderingComparison.lessThan;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -95,6 +103,8 @@ public class ElasticIndexWriterTest {
     @After
     public void tearDown() throws Exception {
         closeable.close();
+        ElasticIndexStatistics.FT_OAK_12248_ENABLE.set(false);
+        ElasticIndexEditorProvider.FT_OAK_12249_ENABLE.set(false);
     }
 
     @Test
@@ -185,6 +195,55 @@ public class ElasticIndexWriterTest {
         // ElasticIndexWriter#deleteDocumentTree should be removed — the fix has been in production long enough.
         assertTrue("Feature toggle " + ElasticIndexEditorProvider.FT_OAK_12206 + " is overdue for removal",
                 LocalDate.now().isBefore(LocalDate.of(2027, 5, 6)));
+    }
+
+    // --- OAK-12249: lazy provisioning tests ---
+
+    @Test
+    public void lazyProvisioning_requiresGraceful404Toggle() {
+        // OAK-12249 alone must not activate lazy provisioning — OAK-12248 is the hard dependency.
+        ElasticIndexStatistics.FT_OAK_12248_ENABLE.set(false);
+        ElasticIndexEditorProvider.FT_OAK_12249_ENABLE.set(true);
+
+        assertFalse("Lazy provisioning must be inactive when graceful 404 handling is off",
+                ElasticIndexEditorProvider.isLazyProvisioningActive());
+    }
+
+    @Test
+    public void emptyReindex_supplierNeverCalled() throws IOException {
+        // GIVEN: a LazyElasticIndexWriter whose supplier records whether it was invoked
+        AtomicBoolean supplierCalled = new AtomicBoolean(false);
+        NodeBuilder definitionBuilder = EmptyNodeState.EMPTY_NODE.builder();
+        LazyElasticIndexWriter lazyWriter = new LazyElasticIndexWriter(() -> {
+            supplierCalled.set(true);
+            return indexWriter;
+        }, definitionBuilder);
+
+        // WHEN: closed without writing any documents
+        lazyWriter.close(System.currentTimeMillis());
+
+        // THEN: supplier was never called — no ElasticIndexWriter created, no ES index provisioned
+        assertFalse("Supplier must not be called when no documents are written", supplierCalled.get());
+    }
+
+    @Test
+    public void nonEmptyReindex_supplierCalledOnFirstWrite() throws IOException {
+        // GIVEN: a LazyElasticIndexWriter whose supplier records when it is invoked
+        AtomicBoolean supplierCalled = new AtomicBoolean(false);
+        NodeBuilder definitionBuilder = EmptyNodeState.EMPTY_NODE.builder();
+        LazyElasticIndexWriter lazyWriter = new LazyElasticIndexWriter(() -> {
+            supplierCalled.set(true);
+            return indexWriter;
+        }, definitionBuilder);
+
+        // Supplier not yet called before any write
+        assertFalse(supplierCalled.get());
+
+        // WHEN: first document written
+        lazyWriter.updateDocument("/foo", new ElasticDocument("/foo"));
+
+        // THEN: supplier was called — ElasticIndexWriter (and its ES index) created on first write
+        assertTrue("Supplier must be called on the first write", supplierCalled.get());
     }
 
 }
