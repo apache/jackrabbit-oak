@@ -68,16 +68,8 @@ public class OakServlet extends HttpServlet {
             HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
-            Credentials credentials = null;
-
-            String authorization = request.getHeader("Authorization");
-            if (authorization != null && authorization.startsWith("Basic ")) {
-                String[] basic =
-                        Base64.decode(authorization.substring("Basic ".length())).split(":");
-                credentials = new SimpleCredentials(basic[0], basic[1].toCharArray());
-            } else {
-                throw new LoginException();
-            }
+            Credentials credentials =
+                    parseBasicCredentials(request.getHeader("Authorization"));
 
             ContentSession session = repository.login(credentials, null);
             try {
@@ -113,6 +105,30 @@ public class OakServlet extends HttpServlet {
             response.setHeader("WWW-Authenticate", "Basic realm=\"Oak\"");
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
         }
+    }
+
+    /**
+     * Parses the credentials from an HTTP {@code Authorization} header using the
+     * Basic authentication scheme (RFC 7617). The decoded value has the form
+     * {@code user-id ":" password}; the user-id must not contain a colon, but
+     * the password may, so only the first colon is treated as the separator.
+     * Splitting on every colon would silently truncate passwords that contain
+     * one (weakening authentication), and a missing colon would throw an
+     * {@link ArrayIndexOutOfBoundsException} instead of failing the login.
+     */
+    private Credentials parseBasicCredentials(String authorization)
+            throws LoginException {
+        if (authorization == null || !authorization.startsWith("Basic ")) {
+            throw new LoginException("Missing or unsupported Authorization header; expected Basic scheme");
+        }
+        String decoded = Base64.decode(authorization.substring("Basic ".length()));
+        int colon = decoded.indexOf(':');
+        if (colon < 0) {
+            throw new LoginException("Malformed Basic credentials: missing ':' separator");
+        }
+        String userId = decoded.substring(0, colon);
+        String password = decoded.substring(colon + 1);
+        return new SimpleCredentials(userId, password.toCharArray());
     }
 
     @Override
