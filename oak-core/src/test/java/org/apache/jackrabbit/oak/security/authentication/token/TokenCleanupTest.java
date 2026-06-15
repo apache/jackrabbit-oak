@@ -22,6 +22,7 @@ import java.util.Map;
 
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.authentication.credentials.SimpleCredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
@@ -90,5 +91,36 @@ public class TokenCleanupTest extends AbstractTokenTest {
             tokenProvider.createToken(userId, Map.of());
         }
         assertTokenNodes(10);
+    }
+
+    @Test
+    public void testBatchSizeLimitsCleanup() throws Exception {
+        int batchSize = 3;
+        TokenProviderImpl tp = createTokenProvider(root,
+                ConfigurationParameters.of(
+                        TokenProviderImpl.PARAM_TOKEN_CLEANUP_THRESHOLD, 5,
+                        TokenProviderImpl.PARAM_TOKEN_CLEANUP_BATCH_SIZE, batchSize),
+                getUserConfiguration(), SimpleCredentialsSupport.getInstance());
+
+        // create more expired tokens than the batch size
+        int expiredCount = batchSize + 2;
+        for (int i = 0; i < expiredCount; i++) {
+            TokenInfo info = tp.createToken(userId, Map.of(TokenProvider.PARAM_TOKEN_EXPIRATION, 2));
+            if (info != null) {
+                waitUntilExpired(info);
+            }
+        }
+
+        // create non-expired tokens until one triggers cleanup
+        int extras = 0;
+        boolean cleaned = false;
+        while (!cleaned && extras < 50) {
+            TokenInfo info = createTokenInfo(tp, userId);
+            cleaned = TokenProviderImpl.shouldRunCleanup(info.getToken());
+            extras++;
+        }
+
+        // only batchSize expired tokens should have been removed; the rest remain
+        assertTokenNodes((expiredCount - batchSize) + extras);
     }
 }
