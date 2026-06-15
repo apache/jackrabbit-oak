@@ -123,6 +123,30 @@ public interface QueryBuilder<T> {
     void setLimit(long offset, long maxCount);
 
     /**
+     * Set an index tag for the query. If set, the query that is executed to
+     * collect the result is augmented with an
+     * <code>option(index tag &lt;indexTag&gt;)</code> clause, forcing the query
+     * engine to use one of the indexes that are marked with the given tag. See
+     * the Oak documentation on the
+     * <a href="https://jackrabbit.apache.org/oak/docs/query/query-engine.html#query-option-index-tag">index tag query option</a>
+     * for further details.
+     * <p>
+     * The <code>indexTag</code> must be a valid identifier consisting of word
+     * characters only (<code>a-z</code>, <code>A-Z</code>, <code>0-9</code> and
+     * <code>_</code>); otherwise query execution will fail.
+     * <p>
+     * The default implementation ignores the index tag. This keeps the method
+     * backwards compatible with {@code QueryBuilder} implementations that do not
+     * support index tags (e.g. those backed by a query engine that has no
+     * notion of index tags).
+     *
+     * @param indexTag  The name of the index tag to use.
+     */
+    default void setIndexTag(@NotNull String indexTag) {
+        // default implementation ignores the index tag for backwards compatibility
+    }
+
+    /**
      * Create a condition which holds if the name of the {@link Authorizable}
      * matches a <code>pattern</code>.
      * The percent character "%" represents any string of zero or more characters and the
