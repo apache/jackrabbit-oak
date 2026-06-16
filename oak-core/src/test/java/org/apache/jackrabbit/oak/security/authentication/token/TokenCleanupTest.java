@@ -17,10 +17,12 @@
 package org.apache.jackrabbit.oak.security.authentication.token;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.SimpleCredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants;
@@ -28,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
+import org.slf4j.event.Level;
 
 public class TokenCleanupTest extends AbstractTokenTest {
 
@@ -122,5 +125,38 @@ public class TokenCleanupTest extends AbstractTokenTest {
 
         // only batchSize expired tokens should have been removed; the rest remain
         assertTokenNodes((expiredCount - batchSize) + extras);
+    }
+
+    @Test
+    public void testWarnThresholdLogged() {
+        int warnThreshold = 5;
+        TokenProviderImpl tp = createTokenProvider(root,
+                ConfigurationParameters.of(
+                        TokenProviderImpl.PARAM_TOKEN_CLEANUP_THRESHOLD, warnThreshold,
+                        TokenProviderImpl.PARAM_TOKEN_WARN_THRESHOLD, warnThreshold),
+                getUserConfiguration(), SimpleCredentialsSupport.getInstance());
+
+        LogCustomizer log = LogCustomizer
+                .forLogger(TokenProviderImpl.class.getName())
+                .enable(Level.WARN)
+                .create();
+        log.starting();
+        try {
+            // stay below warn threshold — no warning expected
+            for (int i = 0; i < warnThreshold - 1; i++) {
+                createTokenInfo(tp, userId);
+            }
+            assertEquals(0, log.getLogs().size());
+
+            // cross the warn threshold and trigger cleanup
+            boolean cleaned = false;
+            while (!cleaned) {
+                TokenInfo info = createTokenInfo(tp, userId);
+                cleaned = TokenProviderImpl.shouldRunCleanup(info.getToken());
+            }
+            assertFalse("expected a warn log entry for excessive token count", log.getLogs().isEmpty());
+        } finally {
+            log.finished();
+        }
     }
 }

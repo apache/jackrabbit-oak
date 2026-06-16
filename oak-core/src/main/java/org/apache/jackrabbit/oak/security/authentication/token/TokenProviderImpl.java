@@ -122,10 +122,16 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
     static final int DEFAULT_TOKEN_CLEANUP_BATCH_SIZE = 100;
 
     /**
-     * If this number of token is crossed for a user, the system will start to
-     * log warnings.
+     * Optional configuration parameter to define the number of token nodes for
+     * a user above which a warning is logged on cleanup, indicating excessive
+     * token creation instead of token reuse.
      */
-    static final int WARN_THRESHOLD_TOKEN_COUNT = 1000;
+    static final String PARAM_TOKEN_WARN_THRESHOLD = "tokenWarnThreshold";
+
+    /**
+     * Default number of tokens above which a warning is logged.
+     */
+    static final int DEFAULT_TOKEN_WARN_THRESHOLD = 1000;
 
     /**
      * Default expiration time in ms for login tokens is 2 hours.
@@ -144,6 +150,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
     private final IdentifierManager identifierManager;
     private final long cleanupThreshold;
     private final int cleanupBatchSize;
+    private final int warnThreshold;
 
     TokenProviderImpl(@NotNull Root root, @NotNull ConfigurationParameters options, @NotNull UserConfiguration userConfiguration) {
         this(root, options, userConfiguration, SimpleCredentialsSupport.getInstance());
@@ -158,6 +165,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         this.identifierManager = new IdentifierManager(root);
         this.cleanupThreshold = options.getConfigValueOrDefault(PARAM_TOKEN_CLEANUP_THRESHOLD, NO_TOKEN_CLEANUP);
         this.cleanupBatchSize = options.getConfigValueOrDefault(PARAM_TOKEN_CLEANUP_BATCH_SIZE, DEFAULT_TOKEN_CLEANUP_BATCH_SIZE);
+        this.warnThreshold = options.getConfigValueOrDefault(PARAM_TOKEN_WARN_THRESHOLD, DEFAULT_TOKEN_WARN_THRESHOLD);
     }
 
     //------------------------------------------------------< TokenProvider >---
@@ -490,8 +498,8 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             long active = 0;
             long expired = 0;
             try {
-                long childrenCount = parent.getChildrenCount(cleanupThreshold);
-                if (childrenCount >= WARN_THRESHOLD_TOKEN_COUNT) {
+                long childrenCount = parent.getChildrenCount(Math.max(cleanupThreshold, warnThreshold));
+                if (childrenCount >= warnThreshold) {
                     log.warn("Identified {} existing tokens stored for user {} while checking for expired tokens;"
                             + " consider to reuse login-tokens instead of creating new ones for requests",
                             childrenCount, userId);
