@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# format as outlined in https://github.com/commit-check/commit-check/blob/main/.commit-check.yml
+# format as outlined in https://commit-check.github.io/commit-check/configuration.html#options-table-description
 # further information in https://github.com/commit-check/commit-check/blob/main/README.rst
 
 [commit]

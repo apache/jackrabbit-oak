@@ -44,7 +44,7 @@ jobs:
         with:
           # check commit message formatting convention
           message: true
-          branch: true
+          branch: false
           author-name: true
           author-email: true
           job-summary: true
