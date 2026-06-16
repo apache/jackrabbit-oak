@@ -18,3 +18,8 @@
 
 [commit]
 message_pattern  = "^OAK-\\d+:?\\s\\S+.*"
+
+
+[branch]
+# Don't enforce branch names
+conventional_branch = false
