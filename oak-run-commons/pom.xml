@@ -143,8 +143,8 @@
                 </exclusion>
                 <!-- jackrabbit-core:2.22.3 (via jackrabbit-parent) declares tika.version=2.4.1,
                      but this project uses Tika 1.x (see ${tika.version} in oak-parent).
-                     Exclude here to prevent jackrabbit-core from silently downgrading to 1.x at runtime,
-                     which could cause failures if jackrabbit-core's Tika 2.x code paths are exercised. -->
+                     Excluding prevents jackrabbit-core from pulling in Tika 2.x, which would be
+                     silently downgraded to 1.x at runtime and could cause failures. -->
                 <exclusion>
                     <groupId>org.apache.tika</groupId>
                     <artifactId>tika-core</artifactId>

@@ -879,7 +879,11 @@
         <artifactId>jsr305</artifactId>
         <version>3.0.2</version>
       </dependency>
-      <!-- oak-shaded-guava pulls 33.5.0-jre; azure-keyvault-core:1.2.6 pulls 30.1.1-jre -->
+      <!-- azure-keyvault-core:1.2.6 pulls guava:30.1.1-jre, conflicting with the direct guava
+           deps in oak-blob-cloud-azure and oak-segment-azure. Additionally, in reactor builds
+           Maven uses oak-shaded-guava's original pom.xml rather than dependency-reduced-pom.xml,
+           so guava:33.5.0-jre also appears as a transitive dep (making guava optional in
+           oak-shaded-guava would eliminate that false positive, but not the azure-keyvault conflict). -->
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
