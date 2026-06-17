@@ -186,7 +186,9 @@ public class IndexName implements Comparable<IndexName> {
         IndexName latest = null;
         for (IndexName n : all) {
             if (n.baseName.equals(baseName)) {
-                if (compareTo(n) > 0 && n.customerVersion == 0) {
+                // for unversioned indexes, allow equal (the index is its own ancestor)
+                boolean sameOrOlder = isVersioned ? compareTo(n) > 0 : compareTo(n) >= 0;
+                if (sameOrOlder && n.customerVersion == 0) {
                     if (latest == null || n.compareTo(latest) > 0) {
                         latest = n;
                     }
@@ -283,6 +285,9 @@ public class IndexName implements Comparable<IndexName> {
     }
 
     public String nextCustomizedName() {
+        if (productVersion == 0) {
+            return baseName + "-custom-" + (customerVersion + 1);
+        }
         return baseName + "-" + productVersion + "-custom-" + (customerVersion + 1);
     }
 
