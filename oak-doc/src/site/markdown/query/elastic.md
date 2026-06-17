@@ -54,11 +54,10 @@ however there are differences:
   Note that `isFlattened` is `false` by default, and is automatically overridden to `false` when `analyzed` is `true` on the same property
   definition, because flattened fields do not support full-text queries.
   Flattened fields come with the following limitations (see [Elasticsearch documentation][flattened]):
-    * Only `term`, `terms`, `terms_set`, `prefix`, `range`, `match`, `multi_match`, `query_string`, `simple_query_string`, and `exists` queries are supported.
+    * Only filtered queries are supported.
     * All values are treated as string keywords regardless of their actual type; in particular, `range` queries use lexicographic comparison, not numeric ordering.
     * Wildcard key references are not supported (e.g. `labels.time*`).
     * Highlighting is not supported.
-    * Stored fields are not supported.
 * For property definitions, `sync` and `unique` are ignored.
   Synchronous indexing, and enforcing uniqueness constraints is not currently supported in elastic indexes.
 * The behavior of `dynamicBoost` differs slightly between Lucene and Elasticsearch:  
