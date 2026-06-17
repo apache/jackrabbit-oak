@@ -477,6 +477,24 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>3.5.0</version>
+        <executions>
+          <execution>
+            <id>enforce-dependency-convergence</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <dependencyConvergence/>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 
@@ -706,6 +724,12 @@
         <artifactId>caffeine</artifactId>
         <version>3.1.8</version>
       </dependency>
+      <!-- guava:33.5.0-jre pulls 2.41.0; caffeine:3.1.8 pulls 2.21.1 -->
+      <dependency>
+        <groupId>com.google.errorprone</groupId>
+        <artifactId>error_prone_annotations</artifactId>
+        <version>2.41.0</version>
+      </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-annotations</artifactId>
@@ -854,6 +878,166 @@
         <groupId>com.google.code.findbugs</groupId>
         <artifactId>jsr305</artifactId>
         <version>3.0.2</version>
+      </dependency>
+      <!-- azure-keyvault-core:1.2.6 pulls guava:30.1.1-jre, conflicting with the direct guava
+           deps in oak-blob-cloud-azure and oak-segment-azure. Additionally, in reactor builds
+           Maven uses oak-shaded-guava's original pom.xml rather than dependency-reduced-pom.xml,
+           so guava:33.5.0-jre also appears as a transitive dep (making guava optional in
+           oak-shaded-guava would eliminate that false positive, but not the azure-keyvault conflict). -->
+      <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>33.5.0-jre</version>
+      </dependency>
+      <!-- jackrabbit-core:2.22.3 pulls oak-jackrabbit-api:1.88.0 -->
+      <dependency>
+        <groupId>org.apache.jackrabbit</groupId>
+        <artifactId>oak-jackrabbit-api</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <!-- oak-auth-ldap has a direct dep on 2.12.0; api-all:2.0.1 pulls 2.8.0 -->
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-pool2</artifactId>
+        <version>2.12.0</version>
+      </dependency>
+      <!-- oak-auth-ldap has a direct dep on 2.1.12; api-all:2.0.1 pulls 2.1.3 -->
+      <dependency>
+        <groupId>org.apache.mina</groupId>
+        <artifactId>mina-core</artifactId>
+        <version>2.1.12</version>
+      </dependency>
+      <!-- parsson:1.0.5 pulls 2.0.2; elasticsearch-java:8.19.5 pulls 2.0.1 -->
+      <dependency>
+        <groupId>jakarta.json</groupId>
+        <artifactId>jakarta.json-api</artifactId>
+        <version>2.0.2</version>
+      </dependency>
+
+      <!-- jackrabbit-jcr-server:2.22.3 pulls tika-core:2.4.1; oak-lucene uses ${tika.version} -->
+      <dependency>
+        <groupId>org.apache.tika</groupId>
+        <artifactId>tika-core</artifactId>
+        <version>${tika.version}</version>
+      </dependency>
+      <!-- jetty-annotations (via spring-boot-starter-jetty:2.7.18) pulls 9.6; tika-parsers:1.28.5 pulls 9.3 -->
+      <dependency>
+        <groupId>org.ow2.asm</groupId>
+        <artifactId>asm</artifactId>
+        <version>9.6</version>
+      </dependency>
+      <!-- poi:5.2.2 and poi-scratchpad:5.2.2 pull 2.17.2; xmlbeans:5.0.3 (via poi-ooxml) pulls 2.17.1 -->
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-api</artifactId>
+        <version>2.17.2</version>
+      </dependency>
+      <!-- oak-run has a direct dep on 1.3.4; aws-java-sdk-core:1.12.791 pulls 1.1.3, httpclient pulls 1.2 -->
+      <dependency>
+        <groupId>commons-logging</groupId>
+        <artifactId>commons-logging</artifactId>
+        <version>1.3.4</version>
+      </dependency>
+      <!-- azure-identity:1.11.3 pulls 5.13.0; tika-parsers:1.28.5 pulls 5.12.1 -->
+      <dependency>
+        <groupId>net.java.dev.jna</groupId>
+        <artifactId>jna</artifactId>
+        <version>5.13.0</version>
+      </dependency>
+      <!-- jackson-dataformat-xml:2.19.4 (via oak-segment-azure) pulls 7.1.1; tika-parsers:1.28.5 pulls 6.3.1 -->
+      <dependency>
+        <groupId>com.fasterxml.woodstox</groupId>
+        <artifactId>woodstox-core</artifactId>
+        <version>7.1.1</version>
+      </dependency>
+      <!-- aws-java-sdk-s3:1.12.791 pulls 2.12.7; edu.ucar:udunits (via tika-parsers) pulls 2.2 -->
+      <dependency>
+        <groupId>joda-time</groupId>
+        <artifactId>joda-time</artifactId>
+        <version>2.12.7</version>
+      </dependency>
+      <!-- msal4j-persistence-extension:1.2.0 (via azure-identity) pulls 5.13.0; azure-identity:1.11.3 pulls 5.6.0 -->
+      <dependency>
+        <groupId>net.java.dev.jna</groupId>
+        <artifactId>jna-platform</artifactId>
+        <version>5.13.0</version>
+      </dependency>
+      <!-- dynamodb-lock-client:1.1.0 pulls aws-java-sdk-core:1.11.475 and aws-java-sdk-dynamodb:1.11.475 -->
+      <dependency>
+        <groupId>com.amazonaws</groupId>
+        <artifactId>aws-java-sdk-core</artifactId>
+        <version>1.12.791</version>
+      </dependency>
+      <dependency>
+        <groupId>com.amazonaws</groupId>
+        <artifactId>aws-java-sdk-dynamodb</artifactId>
+        <version>1.12.791</version>
+      </dependency>
+      <!-- awssdk:netty-nio-client:2.34.9 pulls 4.1.126.Final; azure-core-http-netty:1.14.1 pulls 4.1.101.Final -->
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-buffer</artifactId>
+        <version>${netty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-codec</artifactId>
+        <version>${netty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-codec-dns</artifactId>
+        <version>${netty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-codec-http</artifactId>
+        <version>${netty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-codec-http2</artifactId>
+        <version>${netty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-common</artifactId>
+        <version>${netty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-handler</artifactId>
+        <version>${netty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-handler-proxy</artifactId>
+        <version>${netty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-resolver</artifactId>
+        <version>${netty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-resolver-dns</artifactId>
+        <version>${netty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-transport</artifactId>
+        <version>${netty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-transport-classes-epoll</artifactId>
+        <version>${netty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-transport-native-unix-common</artifactId>
+        <version>${netty.version}</version>
       </dependency>
       <dependency>
         <groupId>software.amazon.awssdk</groupId>

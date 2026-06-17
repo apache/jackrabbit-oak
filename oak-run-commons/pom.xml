@@ -141,6 +141,10 @@
                     <groupId>org.apache.lucene</groupId>
                     <artifactId>lucene-core</artifactId>
                 </exclusion>
+                <!-- jackrabbit-core:2.22.3 (via jackrabbit-parent) declares tika.version=2.4.1,
+                     but this project uses Tika 1.x (see ${tika.version} in oak-parent).
+                     Excluding prevents jackrabbit-core from pulling in Tika 2.x, which would be
+                     silently downgraded to 1.x at runtime and could cause failures. -->
                 <exclusion>
                     <groupId>org.apache.tika</groupId>
                     <artifactId>tika-core</artifactId>

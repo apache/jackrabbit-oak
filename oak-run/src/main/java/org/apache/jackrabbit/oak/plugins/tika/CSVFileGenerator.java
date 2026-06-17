@@ -46,6 +46,8 @@ public class CSVFileGenerator {
             CSVPrinter printer = new CSVPrinter(new BufferedWriter(new FileWriter(outFile, StandardCharsets.UTF_8)),
                     CSVFileBinaryResourceProvider.FORMAT);
             closer.register(printer);
+            // commons-csv 1.2+ no longer auto-writes the header on construction; must be explicit
+            printer.printRecord((Object[]) CSVFileBinaryResourceProvider.FORMAT.getHeader());
             for (BinaryResource br : binaries){
                 count++;
                 printer.printRecord(
