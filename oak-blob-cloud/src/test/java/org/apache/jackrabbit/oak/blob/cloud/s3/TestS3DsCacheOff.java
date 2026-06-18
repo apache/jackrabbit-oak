@@ -51,16 +51,17 @@ public class TestS3DsCacheOff extends TestS3Ds {
         try {
             doDeleteRecordTest();
         } catch (Exception e) {
-            org.junit.Assert.fail(e.getMessage());
+            throw new RuntimeException(e);
         }
     }
 
     // S3Backend updates duplicate records via CopyObject (copy-to-self). S3Mock does not
-    // support that operation, so this test cannot run against the emulator with cache off.
+    // support that operation, so this test cannot run against the emulator.
     @Override
+    @Test
     public void testAddDuplicateRecord() {
-        Assume.assumeFalse("S3Mock does not support CopyObject used by S3Backend for duplicate record updates",
-                S3EmulatorSupport.isAvailable());
+        Assume.assumeTrue("S3Mock does not support CopyObject used by S3Backend for duplicate record updates",
+                !S3EmulatorSupport.isAvailable());
         super.testAddDuplicateRecord();
     }
 }
