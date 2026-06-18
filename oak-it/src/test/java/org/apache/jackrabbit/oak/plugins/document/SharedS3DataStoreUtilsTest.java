@@ -81,6 +81,14 @@ public class SharedS3DataStoreUtilsTest extends SharedDataStoreUtilsTest {
         super.test();
     }
 
+    @Override
+    @Test
+    public void testStreamFromGetAllRecords() throws Exception {
+        assumeFalse("S3Mock returns getAllRecords lastModified values with second precision",
+                S3DataStoreUtils.isS3EmulatorConfigured());
+        super.testStreamFromGetAllRecords();
+    }
+
     @After
     public void close() throws IOException {
         try {

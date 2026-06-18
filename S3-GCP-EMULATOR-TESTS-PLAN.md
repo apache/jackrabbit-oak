@@ -126,7 +126,7 @@ Examples that can remain cloud-only until separately fixed:
 - direct-access presigned GET/PUT URLs that point to real AWS because the presigner lacks the emulator endpoint override
 - S3Mock-unsupported copy-to-self behavior used for duplicate record updates
 - cache/concurrency checks that rely on real S3 behavior and are unreliable through S3Mock's local HTTP implementation
-- metadata timestamp checks that require millisecond precision; S3Mock metadata listings return whole-second `LastModified` values
+- metadata and record timestamp checks that require millisecond precision; S3Mock listings return whole-second `LastModified` values
 - shared-blob GC special-character write coverage that is not reliable through S3Mock
 - SSE modes requiring real service semantics or keys
 - transfer acceleration and other AWS-service-only behavior
