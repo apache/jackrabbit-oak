@@ -81,6 +81,14 @@ public class S3DataStoreUtils extends DataStoreUtils {
         return true;
     }
 
+    public static boolean isS3EmulatorConfigured() {
+        Properties props = getS3Config();
+        return S3EmulatorSupport.ACCESS_KEY.equals(props.getProperty(S3Constants.ACCESS_KEY))
+                && S3EmulatorSupport.SECRET_KEY.equals(props.getProperty(S3Constants.SECRET_KEY))
+                && "true".equals(props.getProperty(S3Constants.PATH_STYLE_ACCESS))
+                && props.getProperty(S3Constants.S3_END_POINT, "").startsWith("http://127.0.0.1:");
+    }
+
     /**
      *
      * @return true if SSE_C encryption is configured
