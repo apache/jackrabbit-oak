@@ -18,8 +18,13 @@
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
 import java.util.Properties;
 
@@ -199,6 +204,69 @@ public class UtilsTest {
         props.put(S3Constants.MODE, S3Backend.RemoteStorageMode.S3);
         Utils.setRemoteStorageMode(props);
         Assert.assertEquals(S3Backend.RemoteStorageMode.GCP, props.get(S3Constants.MODE));
+    }
+
+    @Test
+    public void testSetRemoteStorageModeDefaultsPreSetGCPToS3() {
+        Properties props = new Properties();
+        props.setProperty("s3EndPoint", "http://127.0.0.1:9090");
+        props.put(S3Constants.MODE, S3Backend.RemoteStorageMode.GCP);
+        Utils.setRemoteStorageMode(props);
+        Assert.assertEquals(S3Backend.RemoteStorageMode.S3, props.get(S3Constants.MODE));
+    }
+
+    @Test
+    public void testSetRemoteStorageModeDefaultsBlankModeToS3() {
+        Properties props = new Properties();
+        props.setProperty("s3EndPoint", "https://s3.amazonaws.com");
+        props.setProperty(S3Constants.MODE, "");
+        Utils.setRemoteStorageMode(props);
+        Assert.assertEquals(S3Backend.RemoteStorageMode.S3, props.get(S3Constants.MODE));
+    }
+
+    @Test
+    public void testPathStyleAccessConstantHasExpectedStringValue() {
+        Assert.assertEquals("pathStyleAccess", S3Constants.PATH_STYLE_ACCESS);
+    }
+
+    @Test
+    public void testPathStyleAccessDefaultsToFalseWhenPropertyAbsent() {
+        Properties props = new Properties();
+        Assert.assertFalse(Boolean.parseBoolean(props.getProperty(S3Constants.PATH_STYLE_ACCESS, "false")));
+    }
+
+    @Test
+    public void testPathStyleAccessTrueWhenPropertySetToTrue() {
+        Properties props = new Properties();
+        props.setProperty(S3Constants.PATH_STYLE_ACCESS, "true");
+        Assert.assertTrue(Boolean.parseBoolean(props.getProperty(S3Constants.PATH_STYLE_ACCESS, "false")));
+    }
+
+    @Test
+    public void isS3ConfiguredReturnsFalseForPartialCredentialsWithNoRegionOrEndpoint() throws IOException {
+        // accessKey + secretKey without region or endpoint must not count as real credentials
+        File tmp = File.createTempFile("s3test-partial-creds", ".properties");
+        String previousConfig = System.getProperty("s3.config");
+        try {
+            Properties partial = new Properties();
+            partial.setProperty(S3Constants.ACCESS_KEY, "somekey");
+            partial.setProperty(S3Constants.SECRET_KEY, "somesecret");
+            try (OutputStream out = new FileOutputStream(tmp)) {
+                partial.store(out, null);
+            }
+            System.setProperty("s3.config", tmp.getAbsolutePath());
+            // Skip when emulator is available — getS3Config() would fall back to it, making isS3Configured() true
+            Assume.assumeFalse("Emulator available — would override partial creds", S3EmulatorSupport.isAvailable());
+            Assert.assertFalse("Partial credentials (no region/endpoint) must not be treated as real",
+                    S3DataStoreUtils.isS3Configured());
+        } finally {
+            if (previousConfig == null) {
+                System.clearProperty("s3.config");
+            } else {
+                System.setProperty("s3.config", previousConfig);
+            }
+            tmp.delete();
+        }
     }
 
 }

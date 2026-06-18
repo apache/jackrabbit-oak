@@ -367,6 +367,10 @@ s3Region
 s3EndPoint
 : S3 rest API endpoint. Can help reduce latency of redirection from standard endpoint if a different region configured.
 
+pathStyleAccess
+: Default - `false`
+: Set to `true` to use path-style S3 requests (`http://endpoint/bucket/key`) instead of virtual-host-style requests. This is useful for S3-compatible endpoints that do not support bucket names in the host. Note: always enabled automatically when the remote storage mode is GCP; the property has no effect in that case.
+
 connectionTimeout
 : S3 connection timeout. See [AWS S3 documentation](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/section-client-configuration.html).
 

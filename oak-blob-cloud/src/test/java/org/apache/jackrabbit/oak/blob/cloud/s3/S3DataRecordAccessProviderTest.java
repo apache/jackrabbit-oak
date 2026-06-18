@@ -22,20 +22,29 @@ import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getFixtur
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3Config;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3DataStore;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.isS3Configured;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 
 import javax.net.ssl.HttpsURLConnection;
 
+import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordAccessProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
 import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
@@ -131,7 +140,12 @@ public class S3DataRecordAccessProviderTest extends AbstractDataRecordAccessProv
 
     @Override
     protected HttpsURLConnection getHttpsConnection(long length, URI uri) throws IOException {
-        return S3DataStoreUtils.getHttpsConnection(length, uri);
+        throw new UnsupportedOperationException("S3Mock uses HTTP; upload is handled by doHttpsUpload");
+    }
+
+    @Override
+    protected void doHttpsUpload(InputStream in, long contentLength, URI uri) throws IOException {
+        S3DataStoreUtils.doHttpUpload(in, contentLength, uri);
     }
 
     @Test
@@ -167,5 +181,160 @@ public class S3DataRecordAccessProviderTest extends AbstractDataRecordAccessProv
         // expectedNumURIs still 10000, AWS limit
         upload = ds.initiateDataRecordUpload(uploadSize, -1);
         assertEquals(expectedNumURIs, upload.getUploadURIs().size());
+    }
+
+    @Override
+    @Test
+    public void testGetDownloadURIIT() throws DataStoreException, IOException {
+        assumeTrue("SSE-C doesn't support presigned GET URLs", !isSSECustomerKeyEncryption());
+        assumeTrue("S3Presigner does not inherit endpointOverride from S3Client; presigned URLs point to real AWS, not emulator",
+                !S3EmulatorSupport.isAvailable());
+        DataRecord record = null;
+        DataRecordAccessProvider dataStore = getDataStore();
+        try {
+            InputStream testStream = randomStream(0, 256);
+            record = doSynchronousAddRecord((DataStore) dataStore, testStream);
+            URI uri = dataStore.getDownloadURI(record.getIdentifier(), DataRecordDownloadOptions.DEFAULT);
+            HttpURLConnection conn = (HttpURLConnection) uri.toURL().openConnection();
+            try {
+                conn.setRequestMethod("GET");
+                assertEquals(200, conn.getResponseCode());
+
+                testStream.reset();
+                try (InputStream responseStream = conn.getInputStream()) {
+                    assertTrue(Arrays.equals(testStream.readAllBytes(), responseStream.readAllBytes()));
+                }
+            } finally {
+                conn.disconnect();
+            }
+        } finally {
+            if (null != record) {
+                doDeleteRecord((DataStore) dataStore, record.getIdentifier());
+            }
+        }
+    }
+
+    @Override
+    @Test
+    public void testGetDownloadURIWithCustomHeadersIT() throws DataStoreException, IOException {
+        assumeTrue("SSE-C doesn't support presigned GET URLs", !isSSECustomerKeyEncryption());
+        assumeTrue("S3Presigner does not inherit endpointOverride from S3Client; presigned URLs point to real AWS, not emulator",
+                !S3EmulatorSupport.isAvailable());
+        String umlautFilename = "Umläutfile.png";
+        String umlautFilename_ISO_8859_1 = new String(
+                StandardCharsets.ISO_8859_1.encode(umlautFilename).array(),
+                StandardCharsets.ISO_8859_1
+        );
+        List<String> fileNames = List.of(
+                "image.png",
+                "beautiful landscape.png",
+                "\"filename-with-double-quotes\".png",
+                "filename-with-one\"double-quote.jpg",
+                umlautFilename
+        );
+        List<String> iso_8859_1_fileNames = List.of(
+                "image.png",
+                "beautiful landscape.png",
+                "\\\"filename-with-double-quotes\\\".png",
+                "filename-with-one\\\"double-quote.jpg",
+                umlautFilename_ISO_8859_1
+        );
+        List<String> rfc8187_fileNames = List.of(
+                "image.png",
+                "beautiful%20landscape.png",
+                "%22filename-with-double-quotes%22.png",
+                "filename-with-one%22double-quote.jpg",
+                "Uml%C3%A4utfile.png"
+        );
+
+        DataRecord record = null;
+        DataRecordAccessProvider dataStore = getDataStore();
+        try {
+            InputStream testStream = randomStream(0, 256);
+            record = doSynchronousAddRecord((DataStore) dataStore, testStream);
+            String mimeType = "image/png";
+            String dispositionType = "inline";
+            for (int i = 0; i < fileNames.size(); i++) {
+                String fileName = fileNames.get(i);
+                String iso_8859_1_fileName = iso_8859_1_fileNames.get(i);
+                String encodedFileName = rfc8187_fileNames.get(i);
+                DataRecordDownloadOptions downloadOptions =
+                        DataRecordDownloadOptions.fromBlobDownloadOptions(
+                                new BlobDownloadOptions(mimeType, null, fileName, dispositionType)
+                        );
+                URI uri = dataStore.getDownloadURI(record.getIdentifier(), downloadOptions);
+
+                HttpURLConnection conn = (HttpURLConnection) uri.toURL().openConnection();
+                try {
+                    conn.setRequestMethod("GET");
+                    assertEquals(200, conn.getResponseCode());
+
+                    assertEquals(mimeType, conn.getHeaderField("Content-Type"));
+                    assertEquals(
+                            String.format("%s; filename=\"%s\"; filename*=UTF-8''%s",
+                                    dispositionType, iso_8859_1_fileName, encodedFileName),
+                            conn.getHeaderField("Content-Disposition")
+                    );
+
+                    testStream.reset();
+                    try (InputStream responseStream = conn.getInputStream()) {
+                        assertTrue(Arrays.equals(testStream.readAllBytes(), responseStream.readAllBytes()));
+                    }
+                } finally {
+                    conn.disconnect();
+                }
+            }
+        } finally {
+            if (null != record) {
+                doDeleteRecord((DataStore) dataStore, record.getIdentifier());
+            }
+        }
+    }
+
+    @Override
+    @Test
+    public void testSinglePutDirectUploadIT() throws DataRecordUploadException, DataStoreException, IOException {
+        assumeTrue("S3Presigner does not inherit endpointOverride from S3Client; presigned PUT URLs point to real AWS, not emulator",
+                !S3EmulatorSupport.isAvailable());
+        super.testSinglePutDirectUploadIT();
+    }
+
+    @Override
+    @Test
+    public void testCompleteAlreadyUploadedBinaryReturnsSameBinaryIT() throws DataStoreException, DataRecordUploadException, IOException {
+        assumeTrue("S3Presigner does not inherit endpointOverride from S3Client; presigned PUT URLs point to real AWS, not emulator",
+                !S3EmulatorSupport.isAvailable());
+        super.testCompleteAlreadyUploadedBinaryReturnsSameBinaryIT();
+    }
+
+    @Override
+    @Test
+    public void testGetExpiredReadURIFailsIT() throws DataStoreException, IOException {
+        assumeTrue("SSE-C doesn't support presigned GET URLs", !isSSECustomerKeyEncryption());
+        assumeFalse("S3Presigner does not inherit endpointOverride from S3Client; presigned URLs point to real AWS, not emulator",
+                S3EmulatorSupport.isAvailable());
+        DataRecord record = null;
+        ConfigurableDataRecordAccessProvider dataStore = getDataStore();
+        try {
+            dataStore.setDirectDownloadURIExpirySeconds(2);
+            record = doSynchronousAddRecord((DataStore) dataStore, randomStream(0, 256));
+            URI uri = dataStore.getDownloadURI(record.getIdentifier(), DataRecordDownloadOptions.DEFAULT);
+            try {
+                Thread.sleep(5 * 1000);
+            } catch (InterruptedException e) {
+            }
+            HttpURLConnection conn = (HttpURLConnection) uri.toURL().openConnection();
+            try {
+                conn.setRequestMethod("GET");
+                assertEquals(403, conn.getResponseCode());
+            } finally {
+                conn.disconnect();
+            }
+        } finally {
+            if (null != record) {
+                doDeleteRecord((DataStore) dataStore, record.getIdentifier());
+            }
+            dataStore.setDirectDownloadURIExpirySeconds(expirySeconds);
+        }
     }
 }

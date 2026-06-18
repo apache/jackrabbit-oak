@@ -170,7 +170,7 @@ public final class Utils {
                 .credentialsProvider(Utils.getAwsCredentials(props))
                 .region(Region.of(Utils.getRegion(props)))
                 .serviceConfiguration(S3Configuration.builder()
-                        .pathStyleAccessEnabled(isGCP)
+                        .pathStyleAccessEnabled(isPathStyleAccessEnabled(props, isGCP))
                         .chunkedEncodingEnabled(!isGCP)
                         .build())
                 .build();
@@ -584,10 +584,14 @@ public final class Utils {
 
         builder.serviceConfiguration(
                 S3Configuration.builder()
-                        .pathStyleAccessEnabled(isGCP) // enable for GCP
+                        .pathStyleAccessEnabled(isPathStyleAccessEnabled(prop, isGCP)) // always on for GCP; opt-in for S3 via pathStyleAccess property
                         .chunkedEncodingEnabled(!isGCP) // Disable for GCP
                         .useArnRegionEnabled(!isGCP)  // Disable for GCP
                         .build());
+    }
+
+    private static boolean isPathStyleAccessEnabled(Properties prop, boolean isGCP) {
+        return isGCP || Boolean.parseBoolean(prop.getProperty(S3Constants.PATH_STYLE_ACCESS, "false"));
     }
 
     // Helper class to hold common Http config
