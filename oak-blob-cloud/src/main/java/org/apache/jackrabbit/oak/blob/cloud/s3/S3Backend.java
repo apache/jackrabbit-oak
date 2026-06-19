@@ -48,6 +48,7 @@ import java.util.function.Function;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
 import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
@@ -499,7 +500,7 @@ public class S3Backend extends AbstractSharedBackend {
             }
             closePresignClient();
             if (sdkTimeoutExecutor != null) {
-                sdkTimeoutExecutor.shutdownNow();
+                new ExecutorCloser(sdkTimeoutExecutor).close();
             }
             s3Client.close();
         }
