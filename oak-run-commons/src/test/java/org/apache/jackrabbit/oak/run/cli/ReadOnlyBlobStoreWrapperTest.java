@@ -23,9 +23,12 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
 
+import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.spi.blob.data.FileDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.TypedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -60,6 +63,26 @@ public class ReadOnlyBlobStoreWrapperTest {
             assertNotNull(is);
         }
 
+    }
+
+    @Test
+    public void readOnlySubclassPreservesBlobStoreInterfaces() throws Exception {
+        FileDataStore fds = new FileDataStore();
+        fds.setPath(temporaryFolder.getRoot().getAbsolutePath());
+        fds.init(null);
+
+        BlobStore readOnly = ReadOnlyBlobStoreWrapper.wrap(new DerivedDataStoreBlobStore(fds));
+
+        assertTrue(readOnly instanceof BlobStore);
+        assertTrue(readOnly instanceof GarbageCollectableBlobStore);
+        assertTrue(readOnly instanceof TypedDataStore);
+        assertTrue(readOnly instanceof BlobTrackingStore);
+    }
+
+    private static final class DerivedDataStoreBlobStore extends DataStoreBlobStore {
+        private DerivedDataStoreBlobStore(FileDataStore delegate) {
+            super(delegate);
+        }
     }
 
 }
