@@ -26,9 +26,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Backend.RemoteStorageMode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -78,6 +81,9 @@ public final class Utils {
     private static final String DELETE_CONFIG_SUFFIX = ";burn";
 
     private static final String HTTPS = "https";
+
+    private static final ScheduledExecutorService SDK_TIMEOUT_EXECUTOR = Executors.newScheduledThreadPool(5,
+            BasicThreadFactory.builder().namingPattern("s3-sdk-timeout-%d").daemon().build());
 
     /**
      * The default value AWS bucket region.
@@ -166,9 +172,11 @@ public final class Utils {
      */
     public static S3Presigner createPresigner(final S3Client s3Client, final Properties props) {
         final boolean isGCP = Objects.equals(RemoteStorageMode.GCP, props.get(S3Constants.MODE));
+        String region = Utils.getRegion(props);
         return S3Presigner.builder().s3Client(s3Client)
                 .credentialsProvider(Utils.getAwsCredentials(props))
-                .region(Region.of(Utils.getRegion(props)))
+                .region(Region.of(region))
+                .endpointOverride(getEndPointUri(props, false, region))
                 .serviceConfiguration(S3Configuration.builder()
                         .pathStyleAccessEnabled(isPathStyleAccessEnabled(props, isGCP))
                         .chunkedEncodingEnabled(!isGCP)
@@ -420,6 +428,7 @@ public final class Utils {
 
         ClientOverrideConfiguration.Builder builder = ClientOverrideConfiguration.builder();
 
+        builder.scheduledExecutorService(SDK_TIMEOUT_EXECUTOR);
         builder.retryStrategy(b -> b.maxAttempts(maxErrorRetry));
         builder.apiCallTimeout(Duration.ofMillis(apiTimeout)); // Long timeout for large uploads
         builder.apiCallAttemptTimeout(Duration.ofMillis(connectionTimeOut)); // Per-attempt timeout

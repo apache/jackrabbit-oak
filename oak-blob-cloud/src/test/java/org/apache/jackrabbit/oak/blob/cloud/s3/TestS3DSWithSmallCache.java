@@ -48,7 +48,7 @@ public class TestS3DSWithSmallCache extends TestS3Ds {
     @Test
     public void testMultiThreaded() {
         Assume.assumeTrue("S3Mock is not reliable with concurrent reads through the very small local cache",
-                !S3EmulatorSupport.isAvailable());
+                !S3DataStoreUtils.isS3EmulatorConfigured());
         super.testMultiThreaded();
     }
 }

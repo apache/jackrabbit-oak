@@ -26,6 +26,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -83,8 +84,8 @@ public class S3DataStoreUtils extends DataStoreUtils {
 
     public static boolean isS3EmulatorConfigured() {
         Properties props = getS3Config();
-        return S3EmulatorSupport.ACCESS_KEY.equals(props.getProperty(S3Constants.ACCESS_KEY))
-                && S3EmulatorSupport.SECRET_KEY.equals(props.getProperty(S3Constants.SECRET_KEY))
+        return Objects.equals(S3EmulatorSupport.ACCESS_KEY, props.getProperty(S3Constants.ACCESS_KEY))
+                && Objects.equals(S3EmulatorSupport.SECRET_KEY, props.getProperty(S3Constants.SECRET_KEY))
                 && "true".equals(props.getProperty(S3Constants.PATH_STYLE_ACCESS))
                 && props.getProperty(S3Constants.S3_END_POINT, "").startsWith("http://127.0.0.1:");
     }
@@ -222,14 +223,27 @@ public class S3DataStoreUtils extends DataStoreUtils {
                 IOUtils.copy(in, out);
             }
             int responseCode = conn.getResponseCode();
-            org.junit.Assert.assertTrue(conn.getResponseMessage(), responseCode < 400);
-        } finally {
-            InputStream err = conn.getErrorStream();
-            if (err != null) {
-                try { IOUtils.toByteArray(err); } catch (IOException ignored) {}
-                IOUtils.closeQuietly(err);
+            if (responseCode >= 400) {
+                String errorBody = getErrorBody(conn);
+                org.junit.Assert.fail(conn.getResponseMessage()
+                        + (StringUtils.isEmpty(errorBody) ? "" : ": " + errorBody));
             }
+        } finally {
             conn.disconnect();
+        }
+    }
+
+    private static String getErrorBody(HttpURLConnection conn) {
+        InputStream err = conn.getErrorStream();
+        if (err == null) {
+            return "";
+        }
+        try {
+            return IOUtils.toString(err, StandardCharsets.UTF_8);
+        } catch (IOException ignored) {
+            return "";
+        } finally {
+            IOUtils.closeQuietly(err);
         }
     }
 }

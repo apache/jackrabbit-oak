@@ -25,7 +25,6 @@ import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.isS3Confi
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
@@ -187,8 +186,6 @@ public class S3DataRecordAccessProviderTest extends AbstractDataRecordAccessProv
     @Test
     public void testGetDownloadURIIT() throws DataStoreException, IOException {
         assumeTrue("SSE-C doesn't support presigned GET URLs", !isSSECustomerKeyEncryption());
-        assumeTrue("S3Presigner does not inherit endpointOverride from S3Client; presigned URLs point to real AWS, not emulator",
-                !S3EmulatorSupport.isAvailable());
         DataRecord record = null;
         DataRecordAccessProvider dataStore = getDataStore();
         try {
@@ -218,8 +215,6 @@ public class S3DataRecordAccessProviderTest extends AbstractDataRecordAccessProv
     @Test
     public void testGetDownloadURIWithCustomHeadersIT() throws DataStoreException, IOException {
         assumeTrue("SSE-C doesn't support presigned GET URLs", !isSSECustomerKeyEncryption());
-        assumeTrue("S3Presigner does not inherit endpointOverride from S3Client; presigned URLs point to real AWS, not emulator",
-                !S3EmulatorSupport.isAvailable());
         String umlautFilename = "Umläutfile.png";
         String umlautFilename_ISO_8859_1 = new String(
                 StandardCharsets.ISO_8859_1.encode(umlautFilename).array(),
@@ -294,16 +289,12 @@ public class S3DataRecordAccessProviderTest extends AbstractDataRecordAccessProv
     @Override
     @Test
     public void testSinglePutDirectUploadIT() throws DataRecordUploadException, DataStoreException, IOException {
-        assumeTrue("S3Presigner does not inherit endpointOverride from S3Client; presigned PUT URLs point to real AWS, not emulator",
-                !S3EmulatorSupport.isAvailable());
         super.testSinglePutDirectUploadIT();
     }
 
     @Override
     @Test
     public void testCompleteAlreadyUploadedBinaryReturnsSameBinaryIT() throws DataStoreException, DataRecordUploadException, IOException {
-        assumeTrue("S3Presigner does not inherit endpointOverride from S3Client; presigned PUT URLs point to real AWS, not emulator",
-                !S3EmulatorSupport.isAvailable());
         super.testCompleteAlreadyUploadedBinaryReturnsSameBinaryIT();
     }
 
@@ -311,8 +302,7 @@ public class S3DataRecordAccessProviderTest extends AbstractDataRecordAccessProv
     @Test
     public void testGetExpiredReadURIFailsIT() throws DataStoreException, IOException {
         assumeTrue("SSE-C doesn't support presigned GET URLs", !isSSECustomerKeyEncryption());
-        assumeFalse("S3Presigner does not inherit endpointOverride from S3Client; presigned URLs point to real AWS, not emulator",
-                S3EmulatorSupport.isAvailable());
+        assumeTrue("S3Mock does not enforce presigned URL expiry", !S3EmulatorSupport.isAvailable());
         DataRecord record = null;
         ConfigurableDataRecordAccessProvider dataStore = getDataStore();
         try {

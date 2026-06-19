@@ -51,7 +51,7 @@ public class TestS3DsCacheOff extends TestS3Ds {
         try {
             doDeleteRecordTest();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new AssertionError("Failed to delete S3 record with cache disabled", e);
         }
     }
 
@@ -61,7 +61,7 @@ public class TestS3DsCacheOff extends TestS3Ds {
     @Test
     public void testAddDuplicateRecord() {
         Assume.assumeTrue("S3Mock does not support CopyObject used by S3Backend for duplicate record updates",
-                !S3EmulatorSupport.isAvailable());
+                !S3DataStoreUtils.isS3EmulatorConfigured());
         super.testAddDuplicateRecord();
     }
 }
