@@ -29,8 +29,6 @@ import java.lang.reflect.Method;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Properties;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -254,23 +252,6 @@ public class UtilsTest {
     }
 
     @Test
-    public void clientConfigurationDoesNotExposeUnmanagedTimeoutExecutorByDefault() throws Exception {
-        ClientOverrideConfiguration configuration = getClientConfiguration();
-        Assert.assertFalse(configuration.scheduledExecutorService().isPresent());
-    }
-
-    @Test
-    public void clientConfigurationUsesProvidedTimeoutExecutor() throws Exception {
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        try {
-            ClientOverrideConfiguration configuration = getClientConfiguration(executor);
-            Assert.assertSame(executor, configuration.scheduledExecutorService().orElseThrow());
-        } finally {
-            executor.shutdownNow();
-        }
-    }
-
-    @Test
     public void createPresignerUsesConfiguredEndpointOverride() {
         Properties props = clientProperties();
         props.setProperty(S3Constants.S3_END_POINT, "http://127.0.0.1:9090");
@@ -358,12 +339,6 @@ public class UtilsTest {
         Method method = Utils.class.getDeclaredMethod("getClientConfiguration", Properties.class);
         method.setAccessible(true);
         return (ClientOverrideConfiguration) method.invoke(null, clientProperties());
-    }
-
-    private static ClientOverrideConfiguration getClientConfiguration(ScheduledExecutorService timeoutExecutor) throws Exception {
-        Method method = Utils.class.getDeclaredMethod("getClientConfiguration", Properties.class, ScheduledExecutorService.class);
-        method.setAccessible(true);
-        return (ClientOverrideConfiguration) method.invoke(null, clientProperties(), timeoutExecutor);
     }
 
     private static Properties clientProperties() {

@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -117,14 +116,9 @@ public final class Utils {
      * @return {@link S3Client}
      */
     public static S3Client openService(final Properties prop, boolean accReq) {
-        return openService(prop, accReq, null);
-    }
-
-    static S3Client openService(final Properties prop, boolean accReq, @Nullable ScheduledExecutorService timeoutExecutor) {
-
         S3ClientBuilder builder = S3Client.builder();
 
-        configureBuilder(builder, prop, accReq, timeoutExecutor);
+        configureBuilder(builder, prop, accReq);
         // sync http client
         builder.httpClient(getSdkHttpClient(prop));
 
@@ -137,11 +131,11 @@ public final class Utils {
      * @param prop properties to configure @link {@link S3Client}
      * @return {@link S3Client}
      */
-    public static S3AsyncClient openAsyncService(final Properties prop, @Nullable ScheduledExecutorService timeoutExecutor) {
+    public static S3AsyncClient openAsyncService(final Properties prop) {
         S3AsyncClientBuilder builder = S3AsyncClient.builder();
         boolean isS3 = Objects.equals(RemoteStorageMode.S3, prop.get(S3Constants.MODE));
 
-        configureBuilder(builder, prop, false, timeoutExecutor);
+        configureBuilder(builder, prop, false);
         // async http client
         builder.httpClient(getSdkAsyncHttpClient(prop));
 
@@ -422,11 +416,6 @@ public final class Utils {
     }
 
     private static ClientOverrideConfiguration getClientConfiguration(Properties prop) {
-        return getClientConfiguration(prop, null);
-    }
-
-    private static ClientOverrideConfiguration getClientConfiguration(Properties prop,
-                                                                      @Nullable ScheduledExecutorService timeoutExecutor) {
         final boolean isS3 = Objects.equals(RemoteStorageMode.S3, prop.get(S3Constants.MODE));
 
         int maxErrorRetry = Integer.parseInt(prop.getProperty(S3Constants.S3_MAX_ERR_RETRY));
@@ -438,10 +427,6 @@ public final class Utils {
         int apiTimeout = Math.max(connectionTimeOut * 10, 300000); // At least 5 minutes
 
         ClientOverrideConfiguration.Builder builder = ClientOverrideConfiguration.builder();
-
-        if (timeoutExecutor != null) {
-            builder.scheduledExecutorService(timeoutExecutor);
-        }
         builder.retryStrategy(b -> b.maxAttempts(maxErrorRetry));
         builder.apiCallTimeout(Duration.ofMillis(apiTimeout)); // Long timeout for large uploads
         builder.apiCallAttemptTimeout(Duration.ofMillis(connectionTimeOut)); // Per-attempt timeout
@@ -584,12 +569,11 @@ public final class Utils {
         }
     }
 
-    private static void configureBuilder(final S3BaseClientBuilder builder, final Properties prop, final boolean accReq,
-                                         @Nullable ScheduledExecutorService timeoutExecutor) {
+    private static void configureBuilder(final S3BaseClientBuilder builder, final Properties prop, final boolean accReq) {
         final boolean isGCP = Objects.equals(RemoteStorageMode.GCP, prop.get(S3Constants.MODE));
 
         builder.credentialsProvider(getAwsCredentials(prop));
-        builder.overrideConfiguration(getClientConfiguration(prop, timeoutExecutor));
+        builder.overrideConfiguration(getClientConfiguration(prop));
 
         // region is mandatory even with endpointOverride
         String region = getRegion(prop);

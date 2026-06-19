@@ -41,14 +41,12 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
-import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
 import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
@@ -137,7 +135,6 @@ public class S3Backend extends AbstractSharedBackend {
     private S3Client s3Client;
     private S3Client s3PresignClient;
     private S3AsyncClient s3AsyncClient;
-    private ScheduledExecutorService sdkTimeoutExecutor;
 
     // needed only in case of transfer acceleration is enabled for presigned URIs
     private S3Presigner s3PresignService;
@@ -173,15 +170,13 @@ public class S3Backend extends AbstractSharedBackend {
 
             final String region = Utils.getRegion(properties);
 
-            sdkTimeoutExecutor = Executors.newScheduledThreadPool(5,
-                    BasicThreadFactory.builder().namingPattern("s3-sdk-timeout-%d").daemon().build());
-            s3Client = Utils.openService(properties, false, sdkTimeoutExecutor);
+            s3Client = Utils.openService(properties, false);
 
             setBinaryTransferAccelerationEnabled(
                     Boolean.parseBoolean(
                             properties.getProperty(S3Constants.PRESIGNED_URI_ENABLE_ACCELERATION, "false")));
 
-            s3AsyncClient = Utils.openAsyncService(properties, sdkTimeoutExecutor);
+            s3AsyncClient = Utils.openAsyncService(properties);
             s3ReqDecorator = new S3RequestDecorator(properties);
 
             if (bucket == null || bucket.trim().isEmpty()) {
@@ -303,7 +298,7 @@ public class S3Backend extends AbstractSharedBackend {
                 b -> b.bucket(bucket).build());
 
         if (Objects.equals(BucketAccelerateStatus.ENABLED, accelerateConfig.status())) {
-            s3PresignClient = Utils.openService(properties, true, sdkTimeoutExecutor);
+            s3PresignClient = Utils.openService(properties, true);
             s3PresignService = Utils.createPresigner(s3PresignClient, properties, true);
             LOG.info("S3 Transfer Acceleration enabled for presigned URIs.");
         } else {
@@ -499,9 +494,6 @@ public class S3Backend extends AbstractSharedBackend {
                 s3PresignService.close();
             }
             closePresignClient();
-            if (sdkTimeoutExecutor != null) {
-                new ExecutorCloser(sdkTimeoutExecutor).close();
-            }
             s3Client.close();
         }
         LOG.info("S3Backend closed.");
