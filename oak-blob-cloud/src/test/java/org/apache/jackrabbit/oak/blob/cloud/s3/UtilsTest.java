@@ -29,6 +29,7 @@ import java.lang.reflect.Method;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Properties;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
@@ -253,15 +254,20 @@ public class UtilsTest {
     }
 
     @Test
-    public void clientConfigurationUsesSharedTimeoutExecutor() throws Exception {
-        ClientOverrideConfiguration first = getClientConfiguration();
-        ClientOverrideConfiguration second = getClientConfiguration();
+    public void clientConfigurationDoesNotExposeUnmanagedTimeoutExecutorByDefault() throws Exception {
+        ClientOverrideConfiguration configuration = getClientConfiguration();
+        Assert.assertFalse(configuration.scheduledExecutorService().isPresent());
+    }
 
-        ScheduledExecutorService firstExecutor = first.scheduledExecutorService().orElseThrow();
-        ScheduledExecutorService secondExecutor = second.scheduledExecutorService().orElseThrow();
-
-        Assert.assertSame(firstExecutor, secondExecutor);
-        Assert.assertFalse(firstExecutor.isShutdown());
+    @Test
+    public void clientConfigurationUsesProvidedTimeoutExecutor() throws Exception {
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        try {
+            ClientOverrideConfiguration configuration = getClientConfiguration(executor);
+            Assert.assertSame(executor, configuration.scheduledExecutorService().orElseThrow());
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     @Test
@@ -282,6 +288,23 @@ public class UtilsTest {
             Assert.assertEquals("127.0.0.1", presigned.url().getHost());
             Assert.assertEquals(9090, presigned.url().getPort());
             Assert.assertEquals("/bucket/key", presigned.url().getPath());
+        }
+    }
+
+    @Test
+    public void createPresignerUsesAccelerationEndpointWhenRequested() {
+        Properties props = clientProperties();
+
+        try (S3Client client = Utils.openService(props, true);
+             S3Presigner presigner = Utils.createPresigner(client, props, true)) {
+            GetObjectRequest getObject = GetObjectRequest.builder().bucket("bucket").key("key").build();
+            GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+                    .signatureDuration(Duration.ofMinutes(5))
+                    .getObjectRequest(getObject)
+                    .build();
+            PresignedGetObjectRequest presigned = presigner.presignGetObject(presignRequest);
+
+            Assert.assertTrue(presigned.url().getHost().contains("s3-accelerate"));
         }
     }
 
@@ -335,6 +358,12 @@ public class UtilsTest {
         Method method = Utils.class.getDeclaredMethod("getClientConfiguration", Properties.class);
         method.setAccessible(true);
         return (ClientOverrideConfiguration) method.invoke(null, clientProperties());
+    }
+
+    private static ClientOverrideConfiguration getClientConfiguration(ScheduledExecutorService timeoutExecutor) throws Exception {
+        Method method = Utils.class.getDeclaredMethod("getClientConfiguration", Properties.class, ScheduledExecutorService.class);
+        method.setAccessible(true);
+        return (ClientOverrideConfiguration) method.invoke(null, clientProperties(), timeoutExecutor);
     }
 
     private static Properties clientProperties() {

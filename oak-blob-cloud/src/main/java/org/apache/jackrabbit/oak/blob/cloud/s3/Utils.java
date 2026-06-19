@@ -26,12 +26,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Backend.RemoteStorageMode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -82,9 +80,6 @@ public final class Utils {
 
     private static final String HTTPS = "https";
 
-    private static final ScheduledExecutorService SDK_TIMEOUT_EXECUTOR = Executors.newScheduledThreadPool(5,
-            BasicThreadFactory.builder().namingPattern("s3-sdk-timeout-%d").daemon().build());
-
     /**
      * The default value AWS bucket region.
      */
@@ -122,10 +117,14 @@ public final class Utils {
      * @return {@link S3Client}
      */
     public static S3Client openService(final Properties prop, boolean accReq) {
+        return openService(prop, accReq, null);
+    }
+
+    static S3Client openService(final Properties prop, boolean accReq, @Nullable ScheduledExecutorService timeoutExecutor) {
 
         S3ClientBuilder builder = S3Client.builder();
 
-        configureBuilder(builder, prop, accReq);
+        configureBuilder(builder, prop, accReq, timeoutExecutor);
         // sync http client
         builder.httpClient(getSdkHttpClient(prop));
 
@@ -138,11 +137,11 @@ public final class Utils {
      * @param prop properties to configure @link {@link S3Client}
      * @return {@link S3Client}
      */
-    public static S3AsyncClient openAsyncService(final Properties prop) {
+    public static S3AsyncClient openAsyncService(final Properties prop, @Nullable ScheduledExecutorService timeoutExecutor) {
         S3AsyncClientBuilder builder = S3AsyncClient.builder();
         boolean isS3 = Objects.equals(RemoteStorageMode.S3, prop.get(S3Constants.MODE));
 
-        configureBuilder(builder, prop, false);
+        configureBuilder(builder, prop, false, timeoutExecutor);
         // async http client
         builder.httpClient(getSdkAsyncHttpClient(prop));
 
@@ -171,17 +170,24 @@ public final class Utils {
      * @return a configured {@link S3Presigner} instance
      */
     public static S3Presigner createPresigner(final S3Client s3Client, final Properties props) {
+        return createPresigner(s3Client, props, false);
+    }
+
+    static S3Presigner createPresigner(final S3Client s3Client, final Properties props, final boolean accReq) {
         final boolean isGCP = Objects.equals(RemoteStorageMode.GCP, props.get(S3Constants.MODE));
         String region = Utils.getRegion(props);
-        return S3Presigner.builder().s3Client(s3Client)
+        S3Presigner.Builder builder = S3Presigner.builder().s3Client(s3Client)
                 .credentialsProvider(Utils.getAwsCredentials(props))
                 .region(Region.of(region))
-                .endpointOverride(getEndPointUri(props, false, region))
                 .serviceConfiguration(S3Configuration.builder()
                         .pathStyleAccessEnabled(isPathStyleAccessEnabled(props, isGCP))
                         .chunkedEncodingEnabled(!isGCP)
-                        .build())
-                .build();
+                        .build());
+
+        if (accReq || hasCustomEndpoint(props)) {
+            builder.endpointOverride(getEndPointUri(props, accReq, region));
+        }
+        return builder.build();
     }
 
     /**
@@ -416,6 +422,11 @@ public final class Utils {
     }
 
     private static ClientOverrideConfiguration getClientConfiguration(Properties prop) {
+        return getClientConfiguration(prop, null);
+    }
+
+    private static ClientOverrideConfiguration getClientConfiguration(Properties prop,
+                                                                      @Nullable ScheduledExecutorService timeoutExecutor) {
         final boolean isS3 = Objects.equals(RemoteStorageMode.S3, prop.get(S3Constants.MODE));
 
         int maxErrorRetry = Integer.parseInt(prop.getProperty(S3Constants.S3_MAX_ERR_RETRY));
@@ -428,7 +439,9 @@ public final class Utils {
 
         ClientOverrideConfiguration.Builder builder = ClientOverrideConfiguration.builder();
 
-        builder.scheduledExecutorService(SDK_TIMEOUT_EXECUTOR);
+        if (timeoutExecutor != null) {
+            builder.scheduledExecutorService(timeoutExecutor);
+        }
         builder.retryStrategy(b -> b.maxAttempts(maxErrorRetry));
         builder.apiCallTimeout(Duration.ofMillis(apiTimeout)); // Long timeout for large uploads
         builder.apiCallAttemptTimeout(Duration.ofMillis(connectionTimeOut)); // Per-attempt timeout
@@ -571,11 +584,12 @@ public final class Utils {
         }
     }
 
-    private static void configureBuilder(final S3BaseClientBuilder builder, final Properties prop, final boolean accReq) {
+    private static void configureBuilder(final S3BaseClientBuilder builder, final Properties prop, final boolean accReq,
+                                         @Nullable ScheduledExecutorService timeoutExecutor) {
         final boolean isGCP = Objects.equals(RemoteStorageMode.GCP, prop.get(S3Constants.MODE));
 
         builder.credentialsProvider(getAwsCredentials(prop));
-        builder.overrideConfiguration(getClientConfiguration(prop));
+        builder.overrideConfiguration(getClientConfiguration(prop, timeoutExecutor));
 
         // region is mandatory even with endpointOverride
         String region = getRegion(prop);
@@ -601,6 +615,11 @@ public final class Utils {
 
     private static boolean isPathStyleAccessEnabled(Properties prop, boolean isGCP) {
         return isGCP || Boolean.parseBoolean(prop.getProperty(S3Constants.PATH_STYLE_ACCESS, "false"));
+    }
+
+    private static boolean hasCustomEndpoint(Properties prop) {
+        String endpoint = prop.getProperty(S3Constants.S3_END_POINT);
+        return endpoint != null && !endpoint.isEmpty();
     }
 
     // Helper class to hold common Http config
