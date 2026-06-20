@@ -18,6 +18,7 @@
 
 [commit]
 message_pattern  = "^OAK-\\d+:?\\s\\S+.*"
+subject_max_length = 120
 
 
 [branch]
