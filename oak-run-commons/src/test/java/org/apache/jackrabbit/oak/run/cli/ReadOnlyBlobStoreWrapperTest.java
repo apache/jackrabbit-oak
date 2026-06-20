@@ -66,7 +66,7 @@ public class ReadOnlyBlobStoreWrapperTest {
     }
 
     @Test
-    public void readOnlySubclassPreservesBlobStoreInterfaces() throws Exception {
+    public void readOnlySubclassPreservesBlobStoreInterfaces() {
         FileDataStore fds = new FileDataStore();
         fds.setPath(temporaryFolder.getRoot().getAbsolutePath());
         fds.init(null);

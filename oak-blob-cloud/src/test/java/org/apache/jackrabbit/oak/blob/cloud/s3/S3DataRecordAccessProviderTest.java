@@ -23,6 +23,7 @@ import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3Conf
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3DataStore;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.isS3Configured;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
@@ -33,7 +34,6 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -186,12 +186,12 @@ public class S3DataRecordAccessProviderTest extends AbstractDataRecordAccessProv
     @Test
     public void testGetDownloadURIIT() throws DataStoreException, IOException {
         assumeTrue("SSE-C doesn't support presigned GET URLs", !isSSECustomerKeyEncryption());
-        DataRecord record = null;
-        DataRecordAccessProvider dataStore = getDataStore();
+        DataRecord dataRecord = null;
+        DataRecordAccessProvider store = getDataStore();
         try {
             InputStream testStream = randomStream(0, 256);
-            record = doSynchronousAddRecord((DataStore) dataStore, testStream);
-            URI uri = dataStore.getDownloadURI(record.getIdentifier(), DataRecordDownloadOptions.DEFAULT);
+            dataRecord = doSynchronousAddRecord((DataStore) store, testStream);
+            URI uri = store.getDownloadURI(dataRecord.getIdentifier(), DataRecordDownloadOptions.DEFAULT);
             HttpURLConnection conn = (HttpURLConnection) uri.toURL().openConnection();
             try {
                 conn.setRequestMethod("GET");
@@ -199,14 +199,14 @@ public class S3DataRecordAccessProviderTest extends AbstractDataRecordAccessProv
 
                 testStream.reset();
                 try (InputStream responseStream = conn.getInputStream()) {
-                    assertTrue(Arrays.equals(testStream.readAllBytes(), responseStream.readAllBytes()));
+                    assertArrayEquals(testStream.readAllBytes(), responseStream.readAllBytes());
                 }
             } finally {
                 conn.disconnect();
             }
         } finally {
-            if (null != record) {
-                doDeleteRecord((DataStore) dataStore, record.getIdentifier());
+            if (null != dataRecord) {
+                doDeleteRecord((DataStore) store, dataRecord.getIdentifier());
             }
         }
     }
@@ -216,7 +216,7 @@ public class S3DataRecordAccessProviderTest extends AbstractDataRecordAccessProv
     public void testGetDownloadURIWithCustomHeadersIT() throws DataStoreException, IOException {
         assumeTrue("SSE-C doesn't support presigned GET URLs", !isSSECustomerKeyEncryption());
         String umlautFilename = "Umläutfile.png";
-        String umlautFilename_ISO_8859_1 = new String(
+        String umlautfilenameIso88591 = new String(
                 StandardCharsets.ISO_8859_1.encode(umlautFilename).array(),
                 StandardCharsets.ISO_8859_1
         );
@@ -227,14 +227,14 @@ public class S3DataRecordAccessProviderTest extends AbstractDataRecordAccessProv
                 "filename-with-one\"double-quote.jpg",
                 umlautFilename
         );
-        List<String> iso_8859_1_fileNames = List.of(
+        List<String> iso88591FileNames = List.of(
                 "image.png",
                 "beautiful landscape.png",
                 "\\\"filename-with-double-quotes\\\".png",
                 "filename-with-one\\\"double-quote.jpg",
-                umlautFilename_ISO_8859_1
+                umlautfilenameIso88591
         );
-        List<String> rfc8187_fileNames = List.of(
+        List<String> rfc8187FileNames = List.of(
                 "image.png",
                 "beautiful%20landscape.png",
                 "%22filename-with-double-quotes%22.png",
@@ -242,22 +242,22 @@ public class S3DataRecordAccessProviderTest extends AbstractDataRecordAccessProv
                 "Uml%C3%A4utfile.png"
         );
 
-        DataRecord record = null;
-        DataRecordAccessProvider dataStore = getDataStore();
+        DataRecord dataRecord = null;
+        DataRecordAccessProvider store = getDataStore();
         try {
             InputStream testStream = randomStream(0, 256);
-            record = doSynchronousAddRecord((DataStore) dataStore, testStream);
+            dataRecord = doSynchronousAddRecord((DataStore) store, testStream);
             String mimeType = "image/png";
             String dispositionType = "inline";
             for (int i = 0; i < fileNames.size(); i++) {
                 String fileName = fileNames.get(i);
-                String iso_8859_1_fileName = iso_8859_1_fileNames.get(i);
-                String encodedFileName = rfc8187_fileNames.get(i);
+                String iso88591FileName = iso88591FileNames.get(i);
+                String encodedFileName = rfc8187FileNames.get(i);
                 DataRecordDownloadOptions downloadOptions =
                         DataRecordDownloadOptions.fromBlobDownloadOptions(
                                 new BlobDownloadOptions(mimeType, null, fileName, dispositionType)
                         );
-                URI uri = dataStore.getDownloadURI(record.getIdentifier(), downloadOptions);
+                URI uri = store.getDownloadURI(dataRecord.getIdentifier(), downloadOptions);
 
                 HttpURLConnection conn = (HttpURLConnection) uri.toURL().openConnection();
                 try {
@@ -267,21 +267,21 @@ public class S3DataRecordAccessProviderTest extends AbstractDataRecordAccessProv
                     assertEquals(mimeType, conn.getHeaderField("Content-Type"));
                     assertEquals(
                             String.format("%s; filename=\"%s\"; filename*=UTF-8''%s",
-                                    dispositionType, iso_8859_1_fileName, encodedFileName),
+                                    dispositionType, iso88591FileName, encodedFileName),
                             conn.getHeaderField("Content-Disposition")
                     );
 
                     testStream.reset();
                     try (InputStream responseStream = conn.getInputStream()) {
-                        assertTrue(Arrays.equals(testStream.readAllBytes(), responseStream.readAllBytes()));
+                        assertArrayEquals(testStream.readAllBytes(), responseStream.readAllBytes());
                     }
                 } finally {
                     conn.disconnect();
                 }
             }
         } finally {
-            if (null != record) {
-                doDeleteRecord((DataStore) dataStore, record.getIdentifier());
+            if (null != dataRecord) {
+                doDeleteRecord((DataStore) store, dataRecord.getIdentifier());
             }
         }
     }
@@ -303,15 +303,15 @@ public class S3DataRecordAccessProviderTest extends AbstractDataRecordAccessProv
     public void testGetExpiredReadURIFailsIT() throws DataStoreException, IOException {
         assumeTrue("SSE-C doesn't support presigned GET URLs", !isSSECustomerKeyEncryption());
         assumeTrue("S3Mock does not enforce presigned URL expiry", !S3EmulatorSupport.isAvailable());
-        DataRecord record = null;
-        ConfigurableDataRecordAccessProvider dataStore = getDataStore();
+        DataRecord dataRecord = null;
+        ConfigurableDataRecordAccessProvider store = getDataStore();
         try {
-            dataStore.setDirectDownloadURIExpirySeconds(2);
-            record = doSynchronousAddRecord((DataStore) dataStore, randomStream(0, 256));
-            URI uri = dataStore.getDownloadURI(record.getIdentifier(), DataRecordDownloadOptions.DEFAULT);
+            store.setDirectDownloadURIExpirySeconds(2);
+            dataRecord = doSynchronousAddRecord((DataStore) store, randomStream(0, 256));
+            URI uri = store.getDownloadURI(dataRecord.getIdentifier(), DataRecordDownloadOptions.DEFAULT);
             try {
                 Thread.sleep(5 * 1000);
-            } catch (InterruptedException e) {
+            } catch (InterruptedException ignored) {
             }
             HttpURLConnection conn = (HttpURLConnection) uri.toURL().openConnection();
             try {
@@ -321,10 +321,10 @@ public class S3DataRecordAccessProviderTest extends AbstractDataRecordAccessProv
                 conn.disconnect();
             }
         } finally {
-            if (null != record) {
-                doDeleteRecord((DataStore) dataStore, record.getIdentifier());
+            if (null != dataRecord) {
+                doDeleteRecord((DataStore) store, dataRecord.getIdentifier());
             }
-            dataStore.setDirectDownloadURIExpirySeconds(expirySeconds);
+            store.setDirectDownloadURIExpirySeconds(expirySeconds);
         }
     }
 }

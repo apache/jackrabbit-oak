@@ -25,12 +25,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.lang.reflect.Method;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Properties;
 
-import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -333,12 +331,6 @@ public class UtilsTest {
         props.setProperty(S3Constants.S3_END_POINT, "https://s3.amazonaws.com");
 
         withS3Config(props, () -> Assert.assertFalse(S3DataStoreUtils.isS3EmulatorConfigured()));
-    }
-
-    private static ClientOverrideConfiguration getClientConfiguration() throws Exception {
-        Method method = Utils.class.getDeclaredMethod("getClientConfiguration", Properties.class);
-        method.setAccessible(true);
-        return (ClientOverrideConfiguration) method.invoke(null, clientProperties());
     }
 
     private static Properties clientProperties() {
