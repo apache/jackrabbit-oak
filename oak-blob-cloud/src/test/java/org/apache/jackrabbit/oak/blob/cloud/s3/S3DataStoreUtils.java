@@ -22,14 +22,16 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
 import java.net.URI;
+import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
-
-import javax.net.ssl.HttpsURLConnection;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
@@ -80,6 +82,14 @@ public class S3DataStoreUtils extends DataStoreUtils {
         return true;
     }
 
+    public static boolean isS3EmulatorConfigured() {
+        Properties props = getS3Config();
+        return Objects.equals(S3EmulatorSupport.ACCESS_KEY, props.getProperty(S3Constants.ACCESS_KEY))
+                && Objects.equals(S3EmulatorSupport.SECRET_KEY, props.getProperty(S3Constants.SECRET_KEY))
+                && "true".equals(props.getProperty(S3Constants.PATH_STYLE_ACCESS))
+                && props.getProperty(S3Constants.S3_END_POINT, "").startsWith("http://127.0.0.1:");
+    }
+
     /**
      *
      * @return true if SSE_C encryption is configured
@@ -125,7 +135,19 @@ public class S3DataStoreUtils extends DataStoreUtils {
             props = new Properties();
             props.putAll(filtered);
         }
+        // Fall back to emulator when no real credentials are present.
+        if (!hasRealCredentials(props) && S3EmulatorSupport.isAvailable()) {
+            return S3EmulatorSupport.getEmulatorProperties();
+        }
         return props;
+    }
+
+    private static boolean hasRealCredentials(Properties props) {
+        String accessKey = props.getProperty(S3Constants.ACCESS_KEY, "").trim();
+        String secretKey = props.getProperty(S3Constants.SECRET_KEY, "").trim();
+        String region = props.getProperty(S3Constants.S3_REGION, "").trim();
+        String endpoint = props.getProperty(S3Constants.S3_END_POINT, "").trim();
+        return !accessKey.isEmpty() && !secretKey.isEmpty() && (!region.isEmpty() || !endpoint.isEmpty());
     }
 
     public static DataStore getS3DataStore(String className, Properties props, String homeDir) throws Exception {
@@ -150,38 +172,78 @@ public class S3DataStoreUtils extends DataStoreUtils {
         S3BackendHelper.deleteBucketAndAbortMultipartUploads(bucket, date, props);
     }
 
-    protected static HttpsURLConnection getHttpsConnection(long length, URI uri) throws IOException {
-        HttpsURLConnection conn = (HttpsURLConnection) uri.toURL().openConnection();
-        conn.setDoOutput(true);
-        conn.setRequestMethod("PUT");
-        conn.setRequestProperty("Content-Length", String.valueOf(length));
+    protected static HttpURLConnection getHttpConnection(long length, URI uri) throws IOException {
+        URLConnection raw = uri.toURL().openConnection();
+        if (!(raw instanceof HttpURLConnection)) {
+            throw new IOException("Expected HTTP(S) connection for URI: " + uri);
+        }
+        HttpURLConnection conn = (HttpURLConnection) raw;
+        try {
+            conn.setDoOutput(true);
+            conn.setRequestMethod("PUT");
+            conn.setRequestProperty("Content-Length", String.valueOf(length));
 
-        final Properties props = getS3Config();
-        DataEncryption encryption = Utils.getDataEncryption(props);
+            final Properties props = getS3Config();
+            DataEncryption encryption = Utils.getDataEncryption(props);
 
-        switch (encryption) {
-            case SSE_S3:
-                conn.setRequestProperty("x-amz-server-side-encryption", "AES256");
-                System.out.println("Added SSE-S3 header: AES256");
-                break;
-            case SSE_KMS:
-                conn.setRequestProperty("x-amz-server-side-encryption", "aws:kms");
-                System.out.println("Added SSE-KMS header: aws:kms");
-                if (Objects.nonNull(props.getProperty(S3Constants.S3_SSE_KMS_KEYID))) {
-                    conn.setRequestProperty("x-amz-server-side-encryption-aws-kms-key-id", props.getProperty(S3Constants.S3_SSE_KMS_KEYID));
-                    System.out.println("Added KMS Key ID: " + props.getProperty(S3Constants.S3_SSE_KMS_KEYID));
-                }
-                break;
-            case SSE_C:
-                String customerKey = props.getProperty(S3Constants.S3_SSE_C_KEY);
-                String customerKeyMD5 = Utils.calculateMD5(customerKey);
-                conn.setRequestProperty("x-amz-server-side-encryption-customer-algorithm", "AES256");
-                conn.setRequestProperty("x-amz-server-side-encryption-customer-key", customerKey);
-                conn.setRequestProperty("x-amz-server-side-encryption-customer-key-MD5", customerKeyMD5);
-                break;
-            case NONE:
-                break;
+            switch (encryption) {
+                case SSE_S3:
+                    conn.setRequestProperty("x-amz-server-side-encryption", "AES256");
+                    System.out.println("Added SSE-S3 header: AES256");
+                    break;
+                case SSE_KMS:
+                    conn.setRequestProperty("x-amz-server-side-encryption", "aws:kms");
+                    System.out.println("Added SSE-KMS header: aws:kms");
+                    if (Objects.nonNull(props.getProperty(S3Constants.S3_SSE_KMS_KEYID))) {
+                        conn.setRequestProperty("x-amz-server-side-encryption-aws-kms-key-id", props.getProperty(S3Constants.S3_SSE_KMS_KEYID));
+                        System.out.println("Added KMS Key ID: " + props.getProperty(S3Constants.S3_SSE_KMS_KEYID));
+                    }
+                    break;
+                case SSE_C:
+                    String customerKey = props.getProperty(S3Constants.S3_SSE_C_KEY);
+                    String customerKeyMD5 = Utils.calculateMD5(customerKey);
+                    conn.setRequestProperty("x-amz-server-side-encryption-customer-algorithm", "AES256");
+                    conn.setRequestProperty("x-amz-server-side-encryption-customer-key", customerKey);
+                    conn.setRequestProperty("x-amz-server-side-encryption-customer-key-MD5", customerKeyMD5);
+                    break;
+                case NONE:
+                    break;
+            }
+        } catch (RuntimeException e) {
+            conn.disconnect();
+            throw e;
         }
         return conn;
+    }
+
+    protected static void doHttpUpload(InputStream in, long contentLength, URI uri) throws IOException {
+        HttpURLConnection conn = getHttpConnection(contentLength, uri);
+        try {
+            try (OutputStream out = conn.getOutputStream()) {
+                IOUtils.copy(in, out);
+            }
+            int responseCode = conn.getResponseCode();
+            if (responseCode >= 400) {
+                String errorBody = getErrorBody(conn);
+                org.junit.Assert.fail(conn.getResponseMessage()
+                        + (StringUtils.isEmpty(errorBody) ? "" : ": " + errorBody));
+            }
+        } finally {
+            conn.disconnect();
+        }
+    }
+
+    private static String getErrorBody(HttpURLConnection conn) {
+        InputStream err = conn.getErrorStream();
+        if (err == null) {
+            return "";
+        }
+        try {
+            return IOUtils.toString(err, StandardCharsets.UTF_8);
+        } catch (IOException ignored) {
+            return "";
+        } finally {
+            IOUtils.closeQuietly(err);
+        }
     }
 }
