@@ -18,10 +18,22 @@
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
+import java.time.Duration;
 import java.util.Properties;
+
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
 /**
  * Unit cases for Utils class
@@ -199,6 +211,163 @@ public class UtilsTest {
         props.put(S3Constants.MODE, S3Backend.RemoteStorageMode.S3);
         Utils.setRemoteStorageMode(props);
         Assert.assertEquals(S3Backend.RemoteStorageMode.GCP, props.get(S3Constants.MODE));
+    }
+
+    @Test
+    public void testSetRemoteStorageModeDefaultsPreSetGCPToS3() {
+        Properties props = new Properties();
+        props.setProperty("s3EndPoint", "http://127.0.0.1:9090");
+        props.put(S3Constants.MODE, S3Backend.RemoteStorageMode.GCP);
+        Utils.setRemoteStorageMode(props);
+        Assert.assertEquals(S3Backend.RemoteStorageMode.S3, props.get(S3Constants.MODE));
+    }
+
+    @Test
+    public void testSetRemoteStorageModeDefaultsBlankModeToS3() {
+        Properties props = new Properties();
+        props.setProperty("s3EndPoint", "https://s3.amazonaws.com");
+        props.setProperty(S3Constants.MODE, "");
+        Utils.setRemoteStorageMode(props);
+        Assert.assertEquals(S3Backend.RemoteStorageMode.S3, props.get(S3Constants.MODE));
+    }
+
+    @Test
+    public void testPathStyleAccessConstantHasExpectedStringValue() {
+        Assert.assertEquals("pathStyleAccess", S3Constants.PATH_STYLE_ACCESS);
+    }
+
+    @Test
+    public void testPathStyleAccessDefaultsToFalseWhenPropertyAbsent() {
+        Properties props = new Properties();
+        Assert.assertFalse(Boolean.parseBoolean(props.getProperty(S3Constants.PATH_STYLE_ACCESS, "false")));
+    }
+
+    @Test
+    public void testPathStyleAccessTrueWhenPropertySetToTrue() {
+        Properties props = new Properties();
+        props.setProperty(S3Constants.PATH_STYLE_ACCESS, "true");
+        Assert.assertTrue(Boolean.parseBoolean(props.getProperty(S3Constants.PATH_STYLE_ACCESS, "false")));
+    }
+
+    @Test
+    public void createPresignerUsesConfiguredEndpointOverride() {
+        Properties props = clientProperties();
+        props.setProperty(S3Constants.S3_END_POINT, "http://127.0.0.1:9090");
+        props.setProperty(S3Constants.PATH_STYLE_ACCESS, "true");
+
+        try (S3Client client = Utils.openService(props, false);
+             S3Presigner presigner = Utils.createPresigner(client, props)) {
+            GetObjectRequest getObject = GetObjectRequest.builder().bucket("bucket").key("key").build();
+            GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+                    .signatureDuration(Duration.ofMinutes(5))
+                    .getObjectRequest(getObject)
+                    .build();
+            PresignedGetObjectRequest presigned = presigner.presignGetObject(presignRequest);
+
+            Assert.assertEquals("127.0.0.1", presigned.url().getHost());
+            Assert.assertEquals(9090, presigned.url().getPort());
+            Assert.assertEquals("/bucket/key", presigned.url().getPath());
+        }
+    }
+
+    @Test
+    public void createPresignerUsesAccelerationEndpointWhenRequested() {
+        Properties props = clientProperties();
+
+        try (S3Client client = Utils.openService(props, true);
+             S3Presigner presigner = Utils.createPresigner(client, props, true)) {
+            GetObjectRequest getObject = GetObjectRequest.builder().bucket("bucket").key("key").build();
+            GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+                    .signatureDuration(Duration.ofMinutes(5))
+                    .getObjectRequest(getObject)
+                    .build();
+            PresignedGetObjectRequest presigned = presigner.presignGetObject(presignRequest);
+
+            Assert.assertTrue(presigned.url().getHost().contains("s3-accelerate"));
+        }
+    }
+
+    @Test
+    public void isS3ConfiguredReturnsFalseForPartialCredentialsWithNoRegionOrEndpoint() throws IOException {
+        // accessKey + secretKey without region or endpoint must not count as real credentials
+        File tmp = File.createTempFile("s3test-partial-creds", ".properties");
+        String previousConfig = System.getProperty("s3.config");
+        try {
+            Properties partial = new Properties();
+            partial.setProperty(S3Constants.ACCESS_KEY, "somekey");
+            partial.setProperty(S3Constants.SECRET_KEY, "somesecret");
+            try (OutputStream out = new FileOutputStream(tmp)) {
+                partial.store(out, null);
+            }
+            System.setProperty("s3.config", tmp.getAbsolutePath());
+            // Skip when emulator is available — getS3Config() would fall back to it, making isS3Configured() true
+            Assume.assumeFalse("Emulator available — would override partial creds", S3EmulatorSupport.isAvailable());
+            Assert.assertFalse("Partial credentials (no region/endpoint) must not be treated as real",
+                    S3DataStoreUtils.isS3Configured());
+        } finally {
+            if (previousConfig == null) {
+                System.clearProperty("s3.config");
+            } else {
+                System.setProperty("s3.config", previousConfig);
+            }
+            tmp.delete();
+        }
+    }
+
+    @Test
+    public void isS3EmulatorConfiguredReturnsTrueForEmulatorProperties() throws IOException {
+        Properties props = clientProperties();
+        props.setProperty(S3Constants.ACCESS_KEY, S3EmulatorSupport.ACCESS_KEY);
+        props.setProperty(S3Constants.SECRET_KEY, S3EmulatorSupport.SECRET_KEY);
+        props.setProperty(S3Constants.S3_END_POINT, "http://127.0.0.1:9090");
+        props.setProperty(S3Constants.PATH_STYLE_ACCESS, "true");
+
+        withS3Config(props, () -> Assert.assertTrue(S3DataStoreUtils.isS3EmulatorConfigured()));
+    }
+
+    @Test
+    public void isS3EmulatorConfiguredReturnsFalseForRealS3Properties() throws IOException {
+        Properties props = clientProperties();
+        props.setProperty(S3Constants.S3_END_POINT, "https://s3.amazonaws.com");
+
+        withS3Config(props, () -> Assert.assertFalse(S3DataStoreUtils.isS3EmulatorConfigured()));
+    }
+
+    private static Properties clientProperties() {
+        Properties props = new Properties();
+        props.setProperty(S3Constants.ACCESS_KEY, "accessKey");
+        props.setProperty(S3Constants.SECRET_KEY, "secretKey");
+        props.setProperty(S3Constants.S3_REGION, "us-east-1");
+        props.setProperty(S3Constants.S3_MAX_ERR_RETRY, "3");
+        props.setProperty(S3Constants.S3_CONN_TIMEOUT, "1000");
+        props.setProperty(S3Constants.S3_SOCK_TIMEOUT, "1000");
+        props.setProperty(S3Constants.S3_MAX_CONNS, "2");
+        props.setProperty(S3Constants.S3_CONN_PROTOCOL, "http");
+        props.setProperty(S3Constants.S3_CROSS_REGION_ACCESS, "false");
+        return props;
+    }
+
+    private static void withS3Config(Properties props, ConfigAssertion assertion) throws IOException {
+        File tmp = File.createTempFile("s3test-config", ".properties");
+        String previousConfig = System.getProperty("s3.config");
+        try {
+            try (OutputStream out = new FileOutputStream(tmp)) {
+                props.store(out, null);
+            }
+            System.setProperty("s3.config", tmp.getAbsolutePath());
+            assertion.run();
+        } finally {
+            if (previousConfig == null) {
+                System.clearProperty("s3.config");
+            } else {
+                System.setProperty("s3.config", previousConfig);
+            }
+            tmp.delete();
+        }
+    }
+
+    private interface ConfigAssertion {
+        void run();
     }
 
 }
