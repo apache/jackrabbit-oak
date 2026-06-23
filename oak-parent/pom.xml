@@ -129,7 +129,7 @@
             <doclint>none</doclint>
             <detectJavaApiLink>true</detectJavaApiLink>
             <links>
-              <link>https://developer.adobe.com/experience-manager/reference-materials/spec/javax.jcr/javadocs/jcr-2.0/</link>
+              <link>https://s.apache.org/jcr-2.0-javadoc/</link>
               <link>https://jackrabbit.apache.org/api/2.20/</link>
               <link>https://www.slf4j.org/apidocs/</link>
             </links>
