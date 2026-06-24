@@ -36,7 +36,9 @@
         <include>commons-codec:commons-codec</include>
         <include>commons-io:commons-io</include>
         <include>commons-logging:commons-logging</include>
+        <include>com.fasterxml.jackson.core:jackson-annotations</include>
         <include>com.fasterxml.jackson.core:jackson-core</include>
+        <include>com.fasterxml.jackson.core:jackson-databind</include>
         <include>org.apache.commons:commons-lang3</include>
         <include>org.apache.commons:commons-math3</include>
         <include>org.apache.commons:commons-text</include>
