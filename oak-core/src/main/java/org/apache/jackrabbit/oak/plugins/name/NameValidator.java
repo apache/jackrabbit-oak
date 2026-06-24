@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -116,8 +117,9 @@ class NameValidator extends DefaultValidator {
 
     private void checkPrefix(String prefix) throws CommitFailedException {
         if (prefix.isEmpty() || !contains(prefixes, namespaces, prefix)) {
-            String msg = "Invalid namespace prefix(" + prefixes + "): " + prefix +
-                    " in " + namespaces + " " + SetUtils.toSet(namespaces.getChildNodeNames());
+            String msg = "Prefix + '" + prefix + "' missing in namespace registry. Prefixes: " + prefixes + ". " +
+                    "Prefix -> Namespace mappings: " + namespaces + ", " +
+                    "Namespace (escaped) - Prefix mappings: " + ListUtils.toList(namespaces.getChildNodeNames());
             if (initPhase && !strictInitialNSChecks) {
                 LOG.warn(msg);
                 return;
