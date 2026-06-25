@@ -34,7 +34,8 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -42,6 +43,7 @@ public abstract class AbstractPersistentCache implements PersistentCache, Closea
     private static final Logger logger = LoggerFactory.getLogger(AbstractPersistentCache.class);
 
     public static final int THREADS = Integer.getInteger("oak.segment.cache.threads", 10);
+    public static final int WRITE_QUEUE_SIZE = Integer.getInteger("oak.segment.cache.writeQueueSize", THREADS * 100);
 
     protected ExecutorService executor;
     protected AtomicLong cacheSize = new AtomicLong(0);
@@ -51,7 +53,19 @@ public abstract class AbstractPersistentCache implements PersistentCache, Closea
     protected SegmentCacheStats segmentCacheStats;
 
     public AbstractPersistentCache() {
-        executor = Executors.newFixedThreadPool(THREADS);
+        // Segment write-back tasks are queued here before being written to the local disk cache.
+        // Each queued task holds a copy of the segment buffer in memory until a thread processes it.
+        // Using a bounded queue (WRITE_QUEUE_SIZE) with DiscardPolicy prevents OOM under high load:
+        // when the queue is full, new write tasks are silently dropped rather than accumulating in
+        // memory. This is safe because the disk cache is an optimisation only — a dropped write
+        // means the segment is not cached locally and will be fetched from remote storage on the
+        // next read. Formerly Executors.newFixedThreadPool() was used here, which internally creates
+        // an unbounded LinkedBlockingQueue, allowing unlimited segment buffers to pile up in memory.
+        executor = new ThreadPoolExecutor(
+                THREADS, THREADS,
+                0L, TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<>(WRITE_QUEUE_SIZE),
+                new ThreadPoolExecutor.DiscardPolicy());
         writesPending = ConcurrentHashMap.newKeySet();
     }
 
