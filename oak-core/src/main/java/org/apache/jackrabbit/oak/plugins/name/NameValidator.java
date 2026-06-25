@@ -117,9 +117,9 @@ class NameValidator extends DefaultValidator {
 
     private void checkPrefix(String prefix) throws CommitFailedException {
         if (prefix.isEmpty() || !contains(prefixes, namespaces, prefix)) {
-            String msg = "Prefix + '" + prefix + "' missing in namespace registry. Prefixes: " + prefixes + ". " +
+            String msg = "Prefix '" + prefix + "' not present in namespace registry. (registered) Prefixes: " + prefixes + ". " +
                     "Prefix -> Namespace mappings: " + namespaces + ", " +
-                    "Namespace (escaped) - Prefix mappings: " + ListUtils.toList(namespaces.getChildNodeNames());
+                    "(escaped) Namespace -> Prefix mappings: " + ListUtils.toList(namespaces.getChildNodeNames());
             if (initPhase && !strictInitialNSChecks) {
                 LOG.warn(msg);
                 return;
