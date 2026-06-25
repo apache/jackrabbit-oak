@@ -54,6 +54,9 @@ public class SegmentCacheStats extends AbstractCacheStats {
     @NotNull
     final AtomicLong missCount = new AtomicLong();
 
+    @NotNull
+    private Supplier<Long> writeDiscardCountSupplier = () -> 0L;
+
     public SegmentCacheStats(@NotNull String name,
                              @NotNull Supplier<Long> maximumWeight,
                              @NotNull Supplier<Long> elementCount,
@@ -76,6 +79,14 @@ public class SegmentCacheStats extends AbstractCacheStats {
                 loadTime.get(),
                 evictionCount.get()
         );
+    }
+
+    public void setWriteDiscardCountSupplier(@NotNull Supplier<Long> supplier) {
+        this.writeDiscardCountSupplier = requireNonNull(supplier);
+    }
+
+    public long getWriteDiscardCount() {
+        return writeDiscardCountSupplier.get();
     }
 
     @Override

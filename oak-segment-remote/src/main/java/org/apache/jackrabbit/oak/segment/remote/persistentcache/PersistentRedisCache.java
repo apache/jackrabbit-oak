@@ -74,6 +74,7 @@ public class PersistentRedisCache extends AbstractPersistentCache {
                 redisSocketTimeout, null, redisDBIndex, null);
         this.segmentCacheStats = new SegmentCacheStats(NAME, this::getRedisMaxMemory, this::getCacheElementCount,
                 this::getCurrentWeight, this::getNumberOfEvictedKeys);
+        this.segmentCacheStats.setWriteDiscardCountSupplier(() -> discardCount.get());
     }
 
     private long getCacheElementCount() {

@@ -31,12 +31,14 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class AbstractPersistentCache implements PersistentCache, Closeable {
@@ -49,23 +51,48 @@ public abstract class AbstractPersistentCache implements PersistentCache, Closea
     protected AtomicLong cacheSize = new AtomicLong(0);
     protected PersistentCache nextCache;
     protected final Set<String> writesPending;
+    protected AtomicLong discardCount = new AtomicLong();
 
     protected SegmentCacheStats segmentCacheStats;
 
+    /**
+     * Name of the feature toggle for the OAK-12282 bounded write-queue fix.
+     * See {@link #FT_OAK_12282_BOUNDED_WRITE_QUEUE_ENABLED}.
+     */
+    public static final String FT_OAK_12282 = "FT_OAK-12282";
+
+    /**
+     * Whether the bounded write queue introduced in OAK-12282 is active.
+     * <p>
+     * When {@code true} (default), the executor uses a queue bounded to
+     * {@link #WRITE_QUEUE_SIZE} and silently discards write tasks when full,
+     * preventing OOM under high write load. This is safe because the disk
+     * cache is an optimisation only — a dropped write means the segment is
+     * fetched from remote storage on the next read.
+     * <p>
+     * Set to {@code false} via the {@link org.apache.jackrabbit.oak.spi.toggle.FeatureToggle}
+     * registered with the Whiteboard to revert to the pre-fix unbounded queue.
+     * <strong>Note:</strong> changing this flag requires a process restart, as
+     * the executor is created at startup.
+     */
+    public static final AtomicBoolean FT_OAK_12282_BOUNDED_WRITE_QUEUE_ENABLED = new AtomicBoolean(true);
+
     public AbstractPersistentCache() {
-        // Segment write-back tasks are queued here before being written to the local disk cache.
-        // Each queued task holds a copy of the segment buffer in memory until a thread processes it.
-        // Using a bounded queue (WRITE_QUEUE_SIZE) with DiscardPolicy prevents OOM under high load:
-        // when the queue is full, new write tasks are silently dropped rather than accumulating in
-        // memory. This is safe because the disk cache is an optimisation only — a dropped write
-        // means the segment is not cached locally and will be fetched from remote storage on the
-        // next read. Formerly Executors.newFixedThreadPool() was used here, which internally creates
-        // an unbounded LinkedBlockingQueue, allowing unlimited segment buffers to pile up in memory.
+        // Formerly Executors.newFixedThreadPool() was used here, which creates an unbounded
+        // LinkedBlockingQueue — allowing unlimited segment buffers to pile up in memory under
+        // high write load. The bounded queue (gated by FT_OAK_12282) prevents OOM by dropping
+        // write tasks when full; this is safe because the disk cache is an optimisation only.
+        BlockingQueue<Runnable> writeQueue = FT_OAK_12282_BOUNDED_WRITE_QUEUE_ENABLED.get()
+                ? new LinkedBlockingQueue<>(WRITE_QUEUE_SIZE)
+                : new LinkedBlockingQueue<>();
         executor = new ThreadPoolExecutor(
                 THREADS, THREADS,
                 0L, TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue<>(WRITE_QUEUE_SIZE),
-                new ThreadPoolExecutor.DiscardPolicy());
+                writeQueue,
+                (r, e) -> {
+                    discardCount.incrementAndGet();
+                    logger.debug("Segment write task discarded: write queue full (capacity={})", WRITE_QUEUE_SIZE);
+                });
         writesPending = ConcurrentHashMap.newKeySet();
     }
 
@@ -161,5 +188,9 @@ public abstract class AbstractPersistentCache implements PersistentCache, Closea
 
     public int getWritesPending() {
         return writesPending.size();
+    }
+
+    public long getWriteDiscardCount() {
+        return discardCount.get();
     }
 }

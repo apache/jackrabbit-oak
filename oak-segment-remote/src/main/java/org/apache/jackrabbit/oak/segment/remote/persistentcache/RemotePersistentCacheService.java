@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RoleStatisticsProvider;
+import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.AbstractPersistentCache;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.PersistentCache;
 import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
@@ -101,6 +102,12 @@ public class RemotePersistentCacheService {
                     new FeatureToggle(PersistentDiskCache.FT_OAK_12212, PersistentDiskCache.FT_OAK_12212_SKIP_MISSING_FILE_CHECK),
                     Collections.emptyMap()));
 
+            // OAK-12282: expose the bounded write-queue kill switch. Changing this
+            // flag requires a process restart since the executor is created at startup.
+            registerCloseable(osgiWhiteboard.register(FeatureToggle.class,
+                    new FeatureToggle(AbstractPersistentCache.FT_OAK_12282, AbstractPersistentCache.FT_OAK_12282_BOUNDED_WRITE_QUEUE_ENABLED),
+                    Collections.emptyMap()));
+
             CacheStatsMBean diskCacheStatsMBean = persistentDiskCache.getCacheStats();
             registerCloseable(registerMBean(CacheStatsMBean.class, diskCacheStatsMBean, CacheStats.TYPE, diskCacheStatsMBean.getName()));
 
@@ -119,6 +126,11 @@ public class RemotePersistentCacheService {
             PersistentRedisCache redisCache = new PersistentRedisCache(configuration.redisCacheHost(), configuration.redisCachePort(), configuration.redisCacheExpireSeconds(), configuration.redisSocketTimeout(), configuration.redisConnectionTimeout(),
                     configuration.redisMinConnections(), configuration.redisMaxConnections(), configuration.redisMaxTotalConnections(), configuration.redisDBIndex(), redisCacheIOMonitor);
             closer.register(redisCache);
+
+            // OAK-12282: expose the bounded write-queue kill switch. Requires a restart to take effect.
+            registerCloseable(osgiWhiteboard.register(FeatureToggle.class,
+                    new FeatureToggle(AbstractPersistentCache.FT_OAK_12282, AbstractPersistentCache.FT_OAK_12282_BOUNDED_WRITE_QUEUE_ENABLED),
+                    Collections.emptyMap()));
 
             CacheStatsMBean redisCacheStatsMBean = redisCache.getCacheStats();
             registerCloseable(registerMBean(CacheStatsMBean.class, redisCacheStatsMBean, CacheStats.TYPE, redisCacheStatsMBean.getName()));
