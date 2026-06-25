@@ -249,7 +249,7 @@ public class LuceneIndexEditor2Test {
         builder = before.builder();
         builder.child("a").removeProperty(JcrConstants.JCR_MIXINTYPES);
         hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
-        assertTrue("Removing mixin should trigger deleteDocuments for the node", writer.deletedPaths.contains("/a"));
+        assertTrue("Removing mixin should trigger deleteDocument for the node", writer.deletedPaths.contains("/a"));
     }
 
     @Test
@@ -305,7 +305,7 @@ public class LuceneIndexEditor2Test {
         builder = before.builder();
         builder.child("a").removeProperty(JcrConstants.JCR_MIXINTYPES);
         hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
-        assertFalse("Mixin tracking disabled: removing mixin should not trigger deleteDocuments", writer.deletedPaths.contains("/a"));
+        assertFalse("Mixin tracking disabled: removing mixin should not trigger deleteDocument", writer.deletedPaths.contains("/a"));
     }
 
     private void updateBefore(LuceneIndexDefinitionBuilder defnb) {
@@ -417,7 +417,12 @@ public class LuceneIndexEditor2Test {
         }
 
         @Override
-        public void deleteDocuments(String path) {
+        public void deleteDocumentTree(String path) {
+            deletedPaths.add(path);
+        }
+
+        @Override
+        public void deleteDocument(String path) {
             deletedPaths.add(path);
         }
 
