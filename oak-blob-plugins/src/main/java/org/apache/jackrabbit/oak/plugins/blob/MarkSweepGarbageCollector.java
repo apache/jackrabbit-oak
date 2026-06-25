@@ -39,7 +39,6 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -153,6 +152,9 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     private boolean traceOutput;
 
     private Clock clock;
+
+    @Nullable
+    private File lastGcSummaryFile;
 
     /**
      * Creates an instance of MarkSweepGarbageCollector
@@ -331,6 +333,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      */
     protected void markAndSweep(boolean markOnly, boolean forceBlobRetrieve) throws Exception {
         statsCollector.start();
+        lastGcSummaryFile = null;
         boolean threw = true;
         GarbageCollectorFileState fs = new GarbageCollectorFileState(root);
         Stopwatch sw = Stopwatch.createStarted();
@@ -545,6 +548,20 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         if (checkConsistencyAfterGc) {
             BlobCollectionType.get(blobStore).checkConsistencyAfterGC(blobStore, fs, consistencyStats);
         }
+
+        // Copy the gc summary file out of the gcworkdir so it outlives handleRemoves.
+        // The persistent copy is exposed via getLastGcSummaryFile() for callers that
+        // need to act on the sweep result after collectGarbage() returns.
+        File gcSummary = new File(root, fs.getGarbage().getName());
+        if (fs.getGarbage().exists() && fs.getGarbage().length() > 0) {
+            try {
+                copyFile(fs.getGarbage(), gcSummary);
+                lastGcSummaryFile = gcSummary;
+            } catch (IOException e) {
+                LOG.warn("Could not persist gc summary to [{}]", gcSummary, e);
+            }
+        }
+
         BlobCollectionType.get(blobStore).handleRemoves(blobStore, fs.getGarbage(), fs.getMarkedRefs());
 
         if(count != deleted) {
@@ -810,6 +827,16 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     }
 
     /**
+     * Returns the gc summary file written during the most recent sweep, or {@code null} if no
+     * sweep has run yet or the last sweep deleted nothing. The file persists beyond the lifetime
+     * of the internal working directory and can be used by callers to act on the GC result.
+     */
+    @Nullable
+    public File getLastGcSummaryFile() {
+        return lastGcSummaryFile;
+    }
+
+    /**
      * BlobIdRetriever class to retrieve all blob ids.
      */
     private class BlobIdRetriever implements Callable<Integer> {
@@ -1067,13 +1094,19 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             LOG.trace("Blob ids to be deleted {}", ids);
             for (String id : ids) {
                 try {
-                    long deleted = blobStore.countDeleteChunks(new ArrayList<>(Arrays.asList(id)), maxModified);
-                    if (deleted != 1) {
-                        LOG.debug("Blob [{}] not deleted", id);
-                    } else {
+                    long deleted = blobStore.countDeleteChunk(id, maxModified);
+                    if (deleted == 1) {
                         exceptionQueue.add(id);
                         totalDeleted += 1;
+                    } else if (deleted < 0) {
+                        LOG.info("Blob [{}] no longer exists in data store; removing from tracker state", id);
+                        exceptionQueue.add(id);
+                    } else {
+                        LOG.debug("Blob [{}] not deleted", id);
                     }
+                } catch (DataStoreException e) {
+                   LOG.info("Blob [{}] not found in data store; removing from tracker state", id);
+                    exceptionQueue.add(id);
                 } catch (Exception e) {
                     LOG.warn("Error occurred while deleting blob with id [{}]", id, e);
                 }

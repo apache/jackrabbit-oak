@@ -635,6 +635,7 @@ Maintenance commands for the DataStore:
             [--out-dir <output_path>] \
             [--work-dir <temporary_path>] \
             [--max-age <seconds>] \
+            [--repository-home <repository_home>] \
             [--verbose] \
             [--verboseRootPath] \
             [--useDirListing] \
@@ -683,7 +684,16 @@ The following options are available:
     --sweep-only-refs-past-retention - Sweep only if the earliest references from all repositories are past the retention period which is govered by the max-age parameter.
                                        Boolean (Optional). Defaults to False. Only applicable for --collect-garbage
     --check-consistency-gc    - Performs a consistency check immediately after the GC.        
-                                Boolean (Optional). Defaults to False. Only applicable for --collect-garbage                           
+                                 Boolean (Optional). Defaults to False. Only applicable for --collect-garbage
+    --repository-home         - Repository home of the running Oak instance, i.e. the parent of the
+                                'blobids' BlobIdTracker directory (the tracker lives at <repository-home>/blobids).
+                                Optional: when omitted it is derived from the segment store path (its parent),
+                                which matches a standard deployment. After --collect-garbage (non mark-only) the
+                                BlobIdTracker is reconciled automatically: blob IDs deleted by this run are removed
+                                from the local tracker files and the DataStore snapshot, so online GC no longer
+                                warns about (or fails to clean up) already-deleted blobs on subsequent runs.
+                                Only applicable to a segment NodeStore backed by a FileDataStore (SharedDataStore);
+                                pass this explicitly for a document NodeStore or a non-standard layout.
 Note:
 
 Note: When using --export-metrics the following additional jars have to be downloaded to support Prometheus Pushgatway

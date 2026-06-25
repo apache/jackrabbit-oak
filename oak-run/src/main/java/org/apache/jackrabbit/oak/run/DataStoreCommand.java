@@ -44,6 +44,9 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -72,6 +75,7 @@ import org.apache.jackrabbit.oak.run.commons.LoggingInitializer;
 import org.apache.jackrabbit.oak.segment.SegmentBlobReferenceRetriever;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -267,6 +271,9 @@ public class DataStoreCommand implements Command {
                     }
                 } else if (dataStoreOpts.collectGarbage()) {
                     collector.collectGarbage(dataStoreOpts.markOnly());
+                    if (!dataStoreOpts.markOnly()) {
+                        reconcileTrackerState(fixture, dataStoreOpts, opts, collector.getLastGcSummaryFile());
+                    }
                 }
             }
         }
@@ -358,6 +365,95 @@ public class DataStoreCommand implements Command {
         collector.setTraceOutput(true);
 
         return collector;
+    }
+
+    /**
+     * After an offline GC run, reconciles the BlobIdTracker state used by online GC so that the blob IDs
+     * deleted by this run are removed from the local tracker files and the DataStore snapshot. This prevents
+     * online GC from repeatedly warning about (and failing to clean up) blobs that no longer exist in the
+     * data store.
+     *
+     * <p>The tracker is rooted at {@code <repository-home>/blobids} (see {@link BlobIdTracker#build}). The
+     * repository home is taken from {@code --repository-home} when supplied, otherwise it is derived from the
+     * segment store path (its parent). Only applicable to a segment NodeStore backed by a FileDataStore
+     * (SharedDataStore) that maintains a BlobIdTracker; other configurations are skipped gracefully.
+     */
+    private static void reconcileTrackerState(NodeStoreFixture fixture, DataStoreOptions dataStoreOpts,
+            Options opts, @Nullable File gcFile) {
+        if (gcFile == null) {
+            log.info("No blobs deleted by this GC run; nothing to reconcile in tracker state");
+            return;
+        }
+
+        BlobStore blobStore = fixture.getBlobStore();
+        if (!(blobStore instanceof DataStoreBlobStore)) {
+            log.debug("Skipping tracker reconciliation: blob store is not a DataStoreBlobStore (got {})",
+                blobStore == null ? "null" : blobStore.getClass().getName());
+            return;
+        }
+        DataStore dataStore = ((DataStoreBlobStore) blobStore).getDataStore();
+        if (!(dataStore instanceof SharedDataStore)) {
+            log.debug("Skipping tracker reconciliation: underlying DataStore does not implement SharedDataStore (got {})",
+                dataStore == null ? "null" : dataStore.getClass().getName());
+            return;
+        }
+
+        File repositoryHome = resolveRepositoryHome(dataStoreOpts, opts);
+        if (repositoryHome == null) {
+            return;
+        }
+        // BlobIdTracker.build() appends the "blobids" sub-directory to the repository home; only reconcile when
+        // that directory actually exists, otherwise we would silently create an empty, unrelated tracker.
+        File trackerDir = new File(repositoryHome, "blobids");
+        if (!trackerDir.isDirectory()) {
+            log.warn("Skipping tracker reconciliation: no BlobIdTracker directory at [{}]. "
+                + "Pass --repository-home if the repository home is not the parent of the segment store.", trackerDir);
+            return;
+        }
+
+        String repositoryId = ClusterRepositoryInfo.getId(fixture.getStore());
+        if (repositoryId == null) {
+            log.warn("Cannot reconcile tracker state: repository id is null");
+            return;
+        }
+
+        log.info("Reconciling BlobIdTracker state at [{}] using gc file [{}]", trackerDir, gcFile);
+        try (BlobIdTracker tracker = BlobIdTracker.build(repositoryHome.getAbsolutePath(), repositoryId, 1,
+                (SharedDataStore) dataStore);
+             LineIterator lines = FileUtils.lineIterator(gcFile, StandardCharsets.UTF_8.name())) {
+            tracker.remove(lines);
+            log.info("BlobIdTracker state reconciled successfully; {} removed from tracker",
+                    gcFile.getName());
+        } catch (IOException e) {
+            log.error("Failed to reconcile BlobIdTracker state", e);
+        }
+    }
+
+    /**
+     * Resolves the repository home that hosts the BlobIdTracker ({@code <repository-home>/blobids}). Uses the
+     * {@code --repository-home} value when supplied, otherwise derives it from the segment store path (its
+     * parent). Returns {@code null} (with a warning) when it cannot be determined, e.g. for a document
+     * NodeStore where the repository home is not part of the connection string.
+     */
+    @Nullable
+    private static File resolveRepositoryHome(DataStoreOptions dataStoreOpts, Options opts) {
+        File override = dataStoreOpts.getRepositoryHome();
+        if (override != null) {
+            return override;
+        }
+        CommonOptions common = opts.getCommonOpts();
+        if (common.isDocument()) {
+            log.warn("Cannot derive repository home for a document NodeStore; "
+                + "pass --repository-home to reconcile the BlobIdTracker after offline GC");
+            return null;
+        }
+        File parent = new File(common.getStoreArg()).getAbsoluteFile().getParentFile();
+        if (parent == null) {
+            log.warn("Cannot derive repository home from store path [{}]; pass --repository-home",
+                common.getStoreArg());
+            return null;
+        }
+        return parent;
     }
 
     private static BlobReferenceRetriever getRetriever(NodeStoreFixture fixture, DataStoreOptions dataStoreOpts,

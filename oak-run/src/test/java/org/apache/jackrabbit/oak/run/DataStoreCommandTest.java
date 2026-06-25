@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Dictionary;
 import java.util.Enumeration;
@@ -43,10 +44,12 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import ch.qos.logback.classic.Level;
+import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.commons.lang3.StringUtils;
 import joptsimple.OptionException;
 import org.apache.commons.io.FileUtils;
 import org.apache.felix.cm.file.ConfigurationHandler;
+import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -59,8 +62,9 @@ import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
-import org.apache.jackrabbit.oak.plugins.blob.MemoryBlobStoreNodeStore;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
+import org.apache.jackrabbit.oak.plugins.blob.MemoryBlobStoreNodeStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
@@ -608,6 +612,72 @@ public class DataStoreCommandTest {
         storeFixture.close();
 
         testGc(dump, data, 0, false, false);
+    }
+
+    @Test
+    public void gcReconcilesTrackerStateUsingDerivedRepositoryHome() throws Exception {
+        Assume.assumeTrue(storeFixture instanceof StoreFixture.SegmentStoreFixture);
+        Assume.assumeTrue(blobFixture.getType() == Type.FDS);
+
+        File dump = temporaryFolder.newFolder();
+
+        // The BlobIdTracker of a live instance lives at <repository-home>/blobids, where the repository
+        // home is the parent of the segment store. The reconcile derives this from the store path, so the
+        // tracker dir must sit next to the segment store - no --blobids-path/--repository-home needed.
+        File repositoryHome = new File(storeFixture.getConnectionString()).getAbsoluteFile().getParentFile();
+
+        // Prepare: 5 blobs added, 3 deleted from nodestore (so 3 are GC candidates), 0 missing from DS
+        Data data = prepareData(storeFixture, blobFixture, 5, 3, 0);
+        // Read repoId before closing the store — ClusterRepositoryInfo reads from the segment store
+        String repoId = org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo.getId(store);
+        storeFixture.close();
+
+        // Pre-populate the tracker with all 5 blob IDs to simulate the state of a live oak
+        // instance whose tracker still has the IDs that will be deleted by the offline GC run.
+        SharedDataStore sharedDS =
+            (SharedDataStore) setupDataStore.getDataStore();
+        try (BlobIdTracker preTracker = BlobIdTracker.build(repositoryHome.getAbsolutePath(), repoId, 1, sharedDS)) {
+            preTracker.add(data.added.iterator());
+        }
+
+        // Run offline GC; reconcileTrackerState runs automatically after a (non mark-only) collect-garbage,
+        // deriving the repository home from the segment store path.
+        List<String> argsList = new ArrayList<>(Arrays.asList(
+            "--collect-garbage", "false",
+            "--max-age", "0",
+            "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(),
+            storeFixture.getConnectionString(),
+            "--out-dir", dump.getAbsolutePath(),
+            "--work-dir", temporaryFolder.newFolder().getAbsolutePath()));
+        if (!StringUtils.isEmpty(additionalParams)) {
+            argsList.addAll(Arrays.stream(additionalParams.split(" ")).toList());
+        }
+        DataStoreCommand cmd = new DataStoreCommand();
+        cmd.execute(argsList.toArray(new String[0]));
+
+        // Assert: gc summary file was created in outDir
+        Collection<File> gcFiles = org.apache.commons.io.FileUtils.listFiles(
+            dump,
+            FileFilterUtils.prefixFileFilter("gc-"),
+            FileFilterUtils.trueFileFilter());
+        assertFalse("A gc-* summary file must exist in outDir after GC", gcFiles.isEmpty());
+
+        // Assert: the reconcile targeted the live tracker dir, not a nested <repository-home>/blobids/blobids
+        assertFalse("Reconcile must not create a nested blobids/blobids directory",
+            new File(repositoryHome, "blobids/blobids").exists());
+
+        // Assert: deleted blob IDs are no longer in the tracker state
+        BlobIdTracker postTracker = BlobIdTracker.build(repositoryHome.getAbsolutePath(), repoId, 1, sharedDS);
+        Set<String> remainingIds;
+        try {
+            remainingIds = SetUtils.toSet(postTracker.get());
+        } finally {
+            postTracker.close();
+        }
+        for (String deletedId : data.deleted) {
+            assertFalse("Deleted blob [" + deletedId + "] must have been removed from tracker state",
+                remainingIds.contains(deletedId));
+        }
     }
     /*
     Command should throw and exception if --verboseRootPath specified

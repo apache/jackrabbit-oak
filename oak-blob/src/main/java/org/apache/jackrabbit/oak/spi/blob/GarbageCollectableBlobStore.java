@@ -111,6 +111,32 @@ public interface GarbageCollectableBlobStore extends BlobStore {
     long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception;
 
     /**
+     * Deletes a single blob with the given id.
+     *
+     * <p>Return values:
+     * <ul>
+     *   <li>{@code 1}  &mdash; blob was found and successfully deleted</li>
+     *   <li>{@code 0}  &mdash; blob was found but skipped (too recent per {@code maxLastModifiedTime})</li>
+     *   <li>{@code -1} &mdash; blob was not found in the data store (ghost blob — e.g. already
+     *       removed by offline GC); the caller should remove the id from any tracker state to
+     *       avoid repeated warnings on future GC runs</li>
+     * </ul>
+     *
+     * <p>The default implementation delegates to {@link #countDeleteChunks(List, long)} with a
+     * single-element list.  Implementations that can distinguish ghost blobs from ordinary
+     * deletion failures (e.g. {@code DataStoreBlobStore}) should override this method.
+     *
+     * @param chunkId the chunk id to delete
+     * @param maxLastModifiedTime the max last modified time to consider for retrieval,
+     *            with the special value '0' meaning no filtering by time
+     * @return the deletion outcome: {@code 1} deleted, {@code 0} skipped, {@code -1} ghost blob
+     * @throws Exception the exception
+     */
+    default long countDeleteChunk(String chunkId, long maxLastModifiedTime) throws Exception {
+        return countDeleteChunks(List.of(chunkId), maxLastModifiedTime);
+    }
+
+    /**
      * Resolve chunks stored in the blob store from the given Id.
      * This will not return any chunks stored in-line in the id.
      * 

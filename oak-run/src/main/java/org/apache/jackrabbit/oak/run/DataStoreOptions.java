@@ -30,6 +30,7 @@ import joptsimple.OptionSpec;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.run.cli.OptionsBean;
 import org.apache.jackrabbit.oak.run.cli.OptionsBeanFactory;
+import org.jetbrains.annotations.Nullable;
 
 public class DataStoreOptions implements OptionsBean {
 
@@ -56,6 +57,7 @@ public class DataStoreOptions implements OptionsBean {
     private OptionSpec<String> exportMetrics;
     private static final String DELIM = ",";
     private OptionSpec<Boolean> sweepIfRefsPastRetention;
+    private final OptionSpec<File> repositoryHomeOpt;
 
     public DataStoreOptions(OptionParser parser) {
         collectGarbage = parser.accepts("collect-garbage",
@@ -115,6 +117,14 @@ public class DataStoreOptions implements OptionsBean {
                 .ofType(Boolean.class).defaultsTo(Boolean.TRUE);
         exportMetrics = parser.accepts("export-metrics",
             "type, URI to export the metrics and optional metadata all delimeted by semi-colon(;)").withRequiredArg();
+
+        repositoryHomeOpt = parser.accepts("repository-home",
+            "Repository home of the running Oak instance, i.e. the parent of the 'blobids' BlobIdTracker directory "
+                + "(e.g. <repository-home> where the tracker lives at <repository-home>/blobids). Optional: when omitted "
+                + "it is derived from the segment store path (its parent). After --collect-garbage the BlobIdTracker is "
+                + "reconciled so online GC does not warn about blobs already removed by this run.")
+            .availableIf(collectGarbage)
+            .withRequiredArg().ofType(File.class);
 
         //Set of options which define action
         actionOpts = Set.of(collectGarbage, consistencyCheck, idOp, refOp, metadataOp);
@@ -251,5 +261,10 @@ public class DataStoreOptions implements OptionsBean {
 
     public boolean sweepIfRefsPastRetention() {
         return options.has(sweepIfRefsPastRetention) && sweepIfRefsPastRetention.value(options) ;
+    }
+
+    @Nullable
+    public File getRepositoryHome() {
+        return options.has(repositoryHomeOpt) ? repositoryHomeOpt.value(options) : null;
     }
 }

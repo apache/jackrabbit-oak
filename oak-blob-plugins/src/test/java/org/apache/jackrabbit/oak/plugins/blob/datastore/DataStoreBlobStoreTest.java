@@ -54,6 +54,8 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
@@ -243,6 +245,35 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
     @Override
     @Test
     public void testGarbageCollection() throws Exception {
+    }
+
+    @Test
+    public void testCountDeleteChunkReturnsMinusOneForGhostBlob() throws Exception {
+        DataIdentifier ghostId = new DataIdentifier("ghostblobid");
+
+        OakFileDataStore mockedDS = mock(OakFileDataStore.class);
+        when(mockedDS.getMinRecordLength()).thenReturn(0);
+        when(mockedDS.getRecordIfStored(ghostId)).thenReturn(null);
+        try (DataStoreBlobStore ds = new DataStoreBlobStore(mockedDS)) {
+            long result = ds.countDeleteChunk("ghostblobid", 0L);
+
+            assertEquals(-1, result);
+            // deleteRecord must NOT have been called for a ghost blob
+            verify(mockedDS, never()).deleteRecord(ghostId);
+        }
+    }
+
+
+    @Test
+    public void testGetRecordIfStoredReturnsNull() throws DataStoreException {
+        DataIdentifier missingId = new DataIdentifier("missingblob");
+
+        DataStore mockedDS = mock(DataStore.class);
+        when(mockedDS.getMinRecordLength()).thenReturn(0);
+        when(mockedDS.getRecordIfStored(missingId)).thenReturn(null);
+        try (DataStoreBlobStore ds = new DataStoreBlobStore(mockedDS)) {
+            assertNull(ds.getRecordIfStored(missingId));
+        }
     }
 
     @After

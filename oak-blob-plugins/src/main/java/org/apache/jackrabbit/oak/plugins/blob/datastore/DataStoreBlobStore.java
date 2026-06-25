@@ -174,7 +174,7 @@ public class DataStoreBlobStore
                     delegate.getRecordIfStored(identifier);
 
             long elapsed = System.nanoTime() - start;
-            stats.getRecordIfStoredCalled(elapsed, TimeUnit.NANOSECONDS, rec.getLength());
+            stats.getRecordIfStoredCalled(elapsed, TimeUnit.NANOSECONDS, rec != null ? rec.getLength() : 0);
             stats.getRecordIfStoredCompleted(identifier.toString());
 
             return rec;
@@ -510,41 +510,53 @@ public class DataStoreBlobStore
     }
 
     @Override
-    public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
-        int count = 0;
-        if (delegate instanceof MultiDataStoreAware) {
-            try {
-                List<String> deleted = new ArrayList<>(512);
-                for (String chunkId : chunkIds) {
-                    long start = System.nanoTime();
-
-                    String blobId = extractBlobId(chunkId);
-                    DataIdentifier identifier = new DataIdentifier(blobId);
-                    DataRecord dataRecord = getRecordForId(identifier);
-                    boolean success = (maxLastModifiedTime <= 0)
-                            || dataRecord.getLastModified() <= maxLastModifiedTime;
-                    log.trace("Deleting blob [{}] with last modified date [{}] : [{}]", blobId,
-                            dataRecord.getLastModified(), success);
-                    if (success) {
-                        ((MultiDataStoreAware) delegate).deleteRecord(identifier);
-                        deleted.add(blobId);
-                        count++;
-                        if (count % 512 == 0) {
-                            log.info("Deleted blobs {}", deleted);
-                            deleted.clear();
-                        }
-                    }
-
-                    stats.deleted(blobId, System.nanoTime() - start, TimeUnit.NANOSECONDS);
-                    stats.deleteCompleted(blobId);
-                }
-                if (!deleted.isEmpty()) {
-                    log.info("Deleted blobs {}", deleted);
-                }
+    public long countDeleteChunk(String chunkId, long maxLastModifiedTime) throws Exception {
+        if (!(delegate instanceof MultiDataStoreAware)) {
+            return 0;
+        }
+        long start = System.nanoTime();
+        String blobId = extractBlobId(chunkId);
+        DataIdentifier identifier = new DataIdentifier(blobId);
+        try {
+            DataRecord dataRecord = getRecordIfStored(identifier);
+            if (dataRecord == null) {
+                log.info("Blob [{}] not found in data store", blobId);
+                return -1;
             }
-            catch (Exception e) {
-                stats.deleteFailed();
-                throw e;
+            boolean eligible = (maxLastModifiedTime <= 0) || dataRecord.getLastModified() <= maxLastModifiedTime;
+            log.trace("Deleting blob [{}] with last modified date [{}] : [{}]", blobId,
+                    dataRecord.getLastModified(), eligible);
+            if (eligible) {
+                ((MultiDataStoreAware) delegate).deleteRecord(identifier);
+            }
+            stats.deleted(blobId, System.nanoTime() - start, TimeUnit.NANOSECONDS);
+            stats.deleteCompleted(blobId);
+            return eligible ? 1 : 0;
+        } catch (Exception e) {
+            stats.deleteFailed();
+            throw e;
+        }
+    }
+
+    @Override
+    public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+        long count = 0;
+        if (delegate instanceof MultiDataStoreAware) {
+            List<String> deleted = new ArrayList<>(512);
+            for (String chunkId : chunkIds) {
+                long result = countDeleteChunk(chunkId, maxLastModifiedTime);
+                if (result == 1) {
+                    deleted.add(extractBlobId(chunkId));
+                    count++;
+                    if (count % 512 == 0) {
+                        log.info("Deleted blobs {}", deleted);
+                        deleted.clear();
+                    }
+                }
+                // result == -1 means ghost blob — skip silently; caller cleans tracker state
+            }
+            if (!deleted.isEmpty()) {
+                log.info("Deleted blobs {}", deleted);
             }
         }
         return count;
