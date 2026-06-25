@@ -40,10 +40,9 @@
                         <Import-Package>
                             com.fasterxml.jackson.annotation;resolution:=optional,
                             com.fasterxml.jackson.databind*;resolution:=optional,
-                            com.fasterxml.jackson.dataformat.xml;resolution:=optional,
+                            com.fasterxml.jackson.dataformat.xml*;resolution:=optional,
                             com.fasterxml.jackson.datatype*;resolution:=optional,
-                            com.azure.identity.broker.implementation;resolution:=optional,
-                            com.azure.xml;resolution:=optional,
+                            com.azure.identity.broker*;resolution:=optional,
                             com.microsoft.aad.msal4jextensions*;resolution:=optional,
                             com.sun.net.httpserver;resolution:=optional,
                             sun.misc;resolution:=optional,
@@ -64,10 +63,14 @@
                         <DynamicImport-Package>sun.io</DynamicImport-Package>
                         <Embed-Dependency>
                             azure-storage,
+                            azure-storage-blob,
+                            azure-storage-common,
+                            azure-storage-internal-avro,
                             azure-keyvault-core,
                             azure-core,
                             azure-identity,
                             azure-json,
+                            azure-xml,
                             guava,
                             jsr305,
                             reactive-streams,
@@ -167,19 +170,46 @@
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-keyvault-core</artifactId>
         </dependency>
+
+        <!-- Azure SDK V12 Blob Storage dependencies -->
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-blob</artifactId>
+            <version>12.34.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-common</artifactId>
+            <version>12.33.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-internal-avro</artifactId>
+            <version>12.19.0</version>
+        </dependency>
+
+        <!-- Azure identity and core -->
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-identity</artifactId>
+            <version>1.18.3</version>
         </dependency>
 
         <!-- Azure identity transitive dependencies  -->
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-core</artifactId>
+            <version>1.58.0</version>
         </dependency>
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-json</artifactId>
+            <version>1.5.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-xml</artifactId>
+            <version>1.2.1</version>
         </dependency>
         <dependency>
             <groupId>org.reactivestreams</groupId>
@@ -188,6 +218,7 @@
         <dependency>
             <groupId>com.microsoft.azure</groupId>
             <artifactId>msal4j</artifactId>
+            <version>1.23.1</version>
         </dependency>
         <dependency>
             <groupId>io.projectreactor</groupId>
@@ -200,6 +231,7 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-core-http-netty</artifactId>
+            <version>1.16.4</version>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
@@ -326,6 +358,12 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit4</artifactId>
+            <version>1.3.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
