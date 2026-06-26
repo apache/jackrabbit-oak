@@ -21,6 +21,7 @@ import org.apache.jackrabbit.util.Base64;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 import java.util.Enumeration;
+import java.util.Locale;
 import java.util.NoSuchElementException;
 
 public class AuthorizationField {
@@ -44,10 +45,18 @@ public class AuthorizationField {
         return parseCredentials(field);
     }
 
-    private static SimpleCredentials parseCredentials(String fieldValue) throws LoginException {
-        if (fieldValue.startsWith("Basic ")) {
+    private static SimpleCredentials parseCredentials(String rawFieldValue) throws LoginException {
+        boolean hasControls = rawFieldValue.chars().anyMatch(c -> c < ' ');
+        if (hasControls) {
+            throw new LoginException("Control characters are not allowed");
+        }
+
+        String fieldValue = rawFieldValue.trim();
+
+        if (fieldValue.toLowerCase(Locale.ENGLISH).startsWith("basic ")) {
+            String token68 = fieldValue.substring("basic ".length());
             String[] basic =
-                    Base64.decode(fieldValue.substring("Basic ".length())).split(":");
+                    Base64.decode(token68).split(":");
             return new SimpleCredentials(basic[0], basic[1].toCharArray());
         } else {
             throw new LoginException("Only Basic Authentication supported");
