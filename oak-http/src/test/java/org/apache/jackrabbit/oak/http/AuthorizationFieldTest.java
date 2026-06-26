@@ -130,6 +130,6 @@ public class AuthorizationFieldTest {
         String b64 = Base64.getEncoder().withoutPadding().encodeToString("foo:bar".getBytes(StandardCharsets.UTF_8));
         SimpleCredentials credentials = AuthorizationField.valueOf(Collections.enumeration(List.of("Basic " + b64)));
         assertEquals("foo", credentials.getUserID());
-        assertEquals("ba", new String(credentials.getPassword())); // SHOULD be "bar"
+        assertEquals("bar", new String(credentials.getPassword()));
     }
 }
