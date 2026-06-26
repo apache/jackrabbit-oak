@@ -185,7 +185,8 @@ public class S3DataRecordAccessProviderTest extends AbstractDataRecordAccessProv
     @Override
     @Test
     public void testGetDownloadURIIT() throws DataStoreException, IOException {
-        assumeTrue("SSE-C doesn't support presigned GET URLs", !isSSECustomerKeyEncryption());
+        assumeTrue("Presigned GET URLs are skipped for SSE-C",
+                !isSSECustomerKeyEncryption());
         DataRecord dataRecord = null;
         DataRecordAccessProvider store = getDataStore();
         try {
@@ -214,7 +215,8 @@ public class S3DataRecordAccessProviderTest extends AbstractDataRecordAccessProv
     @Override
     @Test
     public void testGetDownloadURIWithCustomHeadersIT() throws DataStoreException, IOException {
-        assumeTrue("SSE-C doesn't support presigned GET URLs", !isSSECustomerKeyEncryption());
+        assumeTrue("Presigned GET URLs are skipped for SSE-C",
+                !isSSECustomerKeyEncryption());
         String umlautFilename = "Umläutfile.png";
         String umlautfilenameIso88591 = new String(
                 StandardCharsets.ISO_8859_1.encode(umlautFilename).array(),
@@ -301,7 +303,8 @@ public class S3DataRecordAccessProviderTest extends AbstractDataRecordAccessProv
     @Override
     @Test
     public void testGetExpiredReadURIFailsIT() throws DataStoreException, IOException {
-        assumeTrue("SSE-C doesn't support presigned GET URLs", !isSSECustomerKeyEncryption());
+        assumeTrue("Presigned GET URLs are skipped for SSE-C",
+                !isSSECustomerKeyEncryption());
         assumeTrue("S3Mock does not enforce presigned URL expiry", !S3EmulatorSupport.isAvailable());
         DataRecord dataRecord = null;
         ConfigurableDataRecordAccessProvider store = getDataStore();

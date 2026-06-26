@@ -112,6 +112,10 @@ public class TestS3Ds extends AbstractDataStoreTest {
         return DateUtils.addMinutes(new Date(), -1);
     }
 
+    protected boolean isSSECustomerKeyEncryption() {
+        return Objects.equals(Utils.getDataEncryption(props), DataEncryption.SSE_C);
+    }
+
     protected void setEncryptionData() {}
 
     @BeforeClass
@@ -162,7 +166,7 @@ public class TestS3Ds extends AbstractDataStoreTest {
 
     @Test
     public void testGetDownloadURI() throws IOException, RepositoryException {
-        Assume.assumeTrue("SSE-C doesn't support presigned GET URLs", !isSseCustomerKeyEncrypted());
+        Assume.assumeTrue("Presigned GET URLs are skipped for SSE-C", !isSSECustomerKeyEncryption());
         DataStore ds = createDataStore();
 
         byte[] data = new byte[dataLength];
@@ -186,7 +190,8 @@ public class TestS3Ds extends AbstractDataStoreTest {
 
     @Test
     public void testDataMigration() {
-        Assume.assumeTrue("For SSE-C we can't change encryption without manual intervention", !isSseCustomerKeyEncrypted());
+        Assume.assumeTrue("For SSE-C we can't change encryption without manual intervention",
+                !isSSECustomerKeyEncryption());
         try {
             String encryption = props.getProperty(S3_ENCRYPTION);
 
