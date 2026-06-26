@@ -71,7 +71,6 @@ import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3Conf
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3DataStore;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.isS3Configured;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.isS3EmulatorConfigured;
-import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.isSseCustomerKeyEncrypted;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 import static software.amazon.awssdk.services.s3.model.ServerSideEncryption.AES256;
