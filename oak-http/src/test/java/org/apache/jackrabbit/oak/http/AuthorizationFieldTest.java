@@ -47,7 +47,7 @@ public class AuthorizationFieldTest {
         assertEquals("bar", new String(credentials.getPassword()));
     }
 
-    @Test(expected = ArrayIndexOutOfBoundsException.class) // BUG: OAK-12259
+    @Test(expected = LoginException.class)
     public void testInvalidBase64() throws LoginException {
         String b64 = Base64.getEncoder().encodeToString("foo:bar".getBytes(StandardCharsets.UTF_8));
         SimpleCredentials credentials = AuthorizationField.valueOf(Collections.enumeration(List.of("Basic dksjdkj" + b64)));
@@ -64,10 +64,15 @@ public class AuthorizationFieldTest {
     @Test
     public void testColonInPassword() throws LoginException {
         String b64 = "Basic " + Base64.getEncoder().encodeToString("foo:bar:qux".getBytes(StandardCharsets.UTF_8));
-        SimpleCredentials credentials =AuthorizationField.valueOf(Collections.enumeration(List.of(b64)));
+        SimpleCredentials credentials = AuthorizationField.valueOf(Collections.enumeration(List.of(b64)));
         assertEquals("foo", credentials.getUserID());
-        // BUG: OAK-12259
-        assertEquals("bar", new String(credentials.getPassword()));
+        assertEquals("bar:qux", new String(credentials.getPassword()));
+    }
+
+    @Test(expected = LoginException.class)
+    public void testMissingColon() throws LoginException {
+        String b64 = "Basic " + Base64.getEncoder().encodeToString("foobarqux".getBytes(StandardCharsets.UTF_8));
+        AuthorizationField.valueOf(Collections.enumeration(List.of(b64)));
     }
 
     @Test
@@ -103,7 +108,7 @@ public class AuthorizationFieldTest {
         assertEquals("bar", new String(credentials.getPassword()));
     }
 
-    @Test(expected = ArrayIndexOutOfBoundsException.class) // BUG should be LongException
+    @Test(expected = LoginException.class)
     public void testMoreBrokenBase64() throws LoginException {
         String b64 = Base64.getEncoder().encodeToString("foo:bar".getBytes(StandardCharsets.UTF_8));
         b64 = b64.substring(0,5) + "=" + b64.substring(5);

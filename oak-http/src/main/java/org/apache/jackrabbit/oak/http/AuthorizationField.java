@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.http;
 
+import com.fasterxml.jackson.databind.ser.Serializers;
 import org.apache.jackrabbit.util.Base64;
 
 import javax.jcr.SimpleCredentials;
@@ -55,9 +56,16 @@ public class AuthorizationField {
 
         if (fieldValue.toLowerCase(Locale.ENGLISH).startsWith("basic ")) {
             String token68 = fieldValue.substring("basic ".length());
-            String[] basic =
-                    Base64.decode(token68).split(":");
-            return new SimpleCredentials(basic[0], basic[1].toCharArray());
+            String decoded  = Base64.decode(token68);
+            int colon = decoded.indexOf(':');
+            if (colon < 0) {
+                throw new LoginException(
+                        "Malformed Basic credentials: missing ':' separator");
+            }
+            String userId = decoded.substring(0, colon);
+            String password = decoded.substring(colon + 1);
+
+            return new SimpleCredentials(userId, password.toCharArray());
         } else {
             throw new LoginException("Only Basic Authentication supported");
         }
