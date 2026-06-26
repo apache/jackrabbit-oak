@@ -69,4 +69,62 @@ public class AuthorizationFieldTest {
         // BUG: OAK-12259
         assertEquals("bar", new String(credentials.getPassword()));
     }
+
+    @Test(expected = LoginException.class) // BUG
+    public void testSchemeCase() throws LoginException {
+        String b64 = Base64.getEncoder().encodeToString("foo:bar".getBytes(StandardCharsets.UTF_8));
+        SimpleCredentials credentials = AuthorizationField.valueOf(Collections.enumeration(List.of("BaSiC " + b64)));
+        assertEquals("foo", credentials.getUserID());
+        assertEquals("bar", new String(credentials.getPassword()));
+    }
+
+    @Test
+    public void testMoreWhitespace() throws LoginException {
+        String b64 = Base64.getEncoder().encodeToString("foo:bar".getBytes(StandardCharsets.UTF_8));
+        SimpleCredentials credentials = AuthorizationField.valueOf(Collections.enumeration(List.of("Basic   " + b64)));
+        assertEquals("foo", credentials.getUserID());
+        assertEquals("bar", new String(credentials.getPassword()));
+    }
+
+    @Test // SHOULD FAIL
+    public void testNonSpWhitespace() throws LoginException {
+        String b64 = Base64.getEncoder().encodeToString("foo:bar".getBytes(StandardCharsets.UTF_8));
+        SimpleCredentials credentials = AuthorizationField.valueOf(Collections.enumeration(List.of("Basic \t " + b64)));
+        assertEquals("foo", credentials.getUserID());
+        assertEquals("bar", new String(credentials.getPassword()));
+    }
+
+    @Test // SHOULD FAIL
+    public void testBrokenBase64() throws LoginException {
+        String b64 = Base64.getEncoder().encodeToString("foo:bar".getBytes(StandardCharsets.UTF_8));
+        b64 = b64.substring(0,5) + " " + b64.substring(5);
+        SimpleCredentials credentials = AuthorizationField.valueOf(Collections.enumeration(List.of("Basic \t " + b64)));
+        assertEquals("foo", credentials.getUserID());
+        assertEquals("bar", new String(credentials.getPassword()));
+    }
+
+    @Test(expected = ArrayIndexOutOfBoundsException.class) // BUG should be LongException
+    public void testMoreBrokenBase64() throws LoginException {
+        String b64 = Base64.getEncoder().encodeToString("foo:bar".getBytes(StandardCharsets.UTF_8));
+        b64 = b64.substring(0,5) + "=" + b64.substring(5);
+        SimpleCredentials credentials = AuthorizationField.valueOf(Collections.enumeration(List.of("Basic " + b64)));
+        assertEquals("foo", credentials.getUserID());
+        assertEquals("bar", new String(credentials.getPassword()));
+    }
+
+    @Test
+    public void testMoreNonAscii() throws LoginException {
+        String b64 = Base64.getEncoder().encodeToString("test:123\u00a3".getBytes(StandardCharsets.UTF_8));
+        SimpleCredentials credentials = AuthorizationField.valueOf(Collections.enumeration(List.of("Basic " + b64)));
+        assertEquals("test", credentials.getUserID());
+        assertEquals("123\u00a3", new String(credentials.getPassword()));
+    }
+
+    @Test
+    public void Basic64NoPadding() throws LoginException {
+        String b64 = Base64.getEncoder().withoutPadding().encodeToString("foo:bar".getBytes(StandardCharsets.UTF_8));
+        SimpleCredentials credentials = AuthorizationField.valueOf(Collections.enumeration(List.of("Basic " + b64)));
+        assertEquals("foo", credentials.getUserID());
+        assertEquals("ba", new String(credentials.getPassword())); // SHOULD be "bar"
+    }
 }
