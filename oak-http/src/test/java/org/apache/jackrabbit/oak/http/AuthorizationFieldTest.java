@@ -102,6 +102,7 @@ public class AuthorizationFieldTest {
     @Test(expected = LoginException.class)
     public void testBrokenBase64() throws LoginException {
         String b64 = Base64.getEncoder().encodeToString("foo:bar".getBytes(StandardCharsets.UTF_8));
+        // insert a single SP into the base64 sequence
         b64 = b64.substring(0,5) + " " + b64.substring(5);
         SimpleCredentials credentials = AuthorizationField.valueOf(Collections.enumeration(List.of("Basic \t " + b64)));
         assertEquals("foo", credentials.getUserID());
