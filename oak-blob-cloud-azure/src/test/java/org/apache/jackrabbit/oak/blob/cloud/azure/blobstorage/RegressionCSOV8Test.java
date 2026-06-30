@@ -63,7 +63,7 @@ public class RegressionCSOV8Test {
                 "V8 minPartSize must be 10MB (Azure SDK V8 limit). " +
                         "Regression to 256KB caused 40x URI explosion in CSO 24893. " +
                         "Ref: GRANITE-66069",
-                10L * 1024L * 1024L, AzureBlobStoreBackend.MIN_MULTIPART_UPLOAD_PART_SIZE);
+                AzureBlobStoreBackend.MIN_MULTIPART_UPLOAD_PART_SIZE, 10L * 1024L * 1024L);
     }
 
     /**
@@ -79,7 +79,7 @@ public class RegressionCSOV8Test {
                 "V8 maxPartSize must be 100MB (Azure SDK V8 limit). " +
                         "Regression to 4000MB caused Java OOM on large DAM downloads in CSO 24893. " +
                         "Ref: ASSETS-65164",
-                100L * 1024L * 1024L, AzureBlobStoreBackend.MAX_MULTIPART_UPLOAD_PART_SIZE);
+                AzureBlobStoreBackend.MAX_MULTIPART_UPLOAD_PART_SIZE, 100L * 1024L * 1024L);
     }
 
     /**
@@ -92,7 +92,7 @@ public class RegressionCSOV8Test {
                 "V8 maxSinglePutUploadSize must be 256MB (Azure REST API Put Blob limit). " +
                         "Uploads <= 256MB use direct PUT; larger use block transfer. " +
                         "Ref: Azure Blob Storage REST API",
-                256L * 1024L * 1024L, AzureBlobStoreBackend.MAX_SINGLE_PUT_UPLOAD_SIZE);
+                AzureBlobStoreBackend.MAX_SINGLE_PUT_UPLOAD_SIZE, 256L * 1024L * 1024L);
     }
 
     /**
@@ -106,8 +106,8 @@ public class RegressionCSOV8Test {
                 "V8 maxBinaryUploadSize must be ~4.75TB (Azure SDK V8 limit). " +
                         "Regression to V12's ~190.7TiB silently altered V8 upload size behavior. " +
                         "Ref: OAK-12164",
-                (long) Math.floor(1024L * 1024L * 1024L * 1024L * 4.75),
-                AzureBlobStoreBackend.MAX_BINARY_UPLOAD_SIZE);
+                AzureBlobStoreBackend.MAX_BINARY_UPLOAD_SIZE,
+                (long) Math.floor(1024L * 1024L * 1024L * 1024L * 4.75));
     }
 
     // --- Isolation: V8 and V12 constants must not be equal ---
