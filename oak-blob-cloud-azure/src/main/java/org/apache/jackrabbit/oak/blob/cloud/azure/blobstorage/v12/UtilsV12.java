@@ -177,14 +177,8 @@ final class UtilsV12 {
             throw new IOException("Config file not found. fileName=" + fileName);
         }
         Properties prop = new Properties();
-        InputStream in = null;
-        try {
-            in = new FileInputStream(fileName);
+        try (InputStream in = new FileInputStream(fileName)) {
             prop.load(in);
-        } finally {
-            if (in != null) {
-                in.close();
-            }
         }
         return prop;
     }

@@ -20,6 +20,10 @@ package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
+import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
 import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
 import org.junit.After;
@@ -32,8 +36,10 @@ import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 
 import java.io.ByteArrayInputStream;
+import java.net.URI;
 import java.util.Collections;
 import java.util.Dictionary;
+import java.util.Iterator;
 import java.util.Map;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -43,7 +49,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doReturn;
@@ -84,25 +89,25 @@ public class AzureDataStoreWrapperTest {
 
     @Test
     public void addRecordDelegatesToActiveImpl() throws DataStoreException {
-        DataRecord record = mock(DataRecord.class);
-        when(mockImpl.addRecord(any())).thenReturn(record);
+        DataRecord dataRecord = mock(DataRecord.class);
+        when(mockImpl.addRecord(any())).thenReturn(dataRecord);
 
         DataRecord result = wrapper.new DelegatingDataStore()
                 .addRecord(new ByteArrayInputStream(new byte[]{1}));
 
-        assertSame(record, result);
+        assertSame(dataRecord, result);
         verify(mockImpl).addRecord(any());
     }
 
     @Test
     public void getRecordDelegatesToActiveImpl() throws DataStoreException {
-        DataRecord record = mock(DataRecord.class);
-        when(mockImpl.getRecord(any())).thenReturn(record);
+        DataRecord dataRecord = mock(DataRecord.class);
+        when(mockImpl.getRecord(any())).thenReturn(dataRecord);
 
         DataRecord result = wrapper.new DelegatingDataStore()
                 .getRecord(mock(org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier.class));
 
-        assertSame(record, result);
+        assertSame(dataRecord, result);
         verify(mockImpl).getRecord(any());
     }
 
@@ -168,7 +173,7 @@ public class AzureDataStoreWrapperTest {
         AzureDataStoreWrapper.registerService(ctx, mockImpl);
 
         verify(ctx.getBundleContext()).registerService(
-                eq(AbstractSharedCachingDataStore.class.getName()), same(mockImpl), any());
+                eq(AbstractSharedCachingDataStore.class), same(mockImpl), any());
     }
 
     /**
@@ -183,7 +188,7 @@ public class AzureDataStoreWrapperTest {
         ArgumentCaptor<Dictionary<String, Object>> props = ArgumentCaptor.forClass(Dictionary.class);
         AzureDataStoreWrapper.registerService(ctx, mockImpl);
 
-        verify(ctx.getBundleContext()).registerService(anyString(), any(), props.capture());
+        verify(ctx.getBundleContext()).registerService(any(Class.class), any(), props.capture());
         assertEquals(AzureDataStore.class.getName(), props.getValue().get(Constants.SERVICE_PID));
     }
 
@@ -195,7 +200,7 @@ public class AzureDataStoreWrapperTest {
         ArgumentCaptor<Dictionary<String, Object>> props = ArgumentCaptor.forClass(Dictionary.class);
         AzureDataStoreWrapper.registerService(ctx, mockImpl);
 
-        verify(ctx.getBundleContext()).registerService(anyString(), any(), props.capture());
+        verify(ctx.getBundleContext()).registerService(any(Class.class), any(), props.capture());
         assertArrayEquals(new String[]{"type=AzureBlob"},
                 (String[]) props.getValue().get("oak.datastore.description"));
     }
@@ -205,7 +210,7 @@ public class AzureDataStoreWrapperTest {
         ComponentContext ctx = mockComponentContext();
         BundleContext bundleContext = ctx.getBundleContext();
         ServiceRegistration<?> reg = mock(ServiceRegistration.class);
-        doReturn(reg).when(bundleContext).registerService(anyString(), any(), any());
+        doReturn(reg).when(bundleContext).registerService(any(Class.class), any(), any());
 
         ServiceRegistration<?> result = AzureDataStoreWrapper.registerService(ctx, mockImpl);
 
@@ -219,8 +224,128 @@ public class AzureDataStoreWrapperTest {
         when(ctx.getBundleContext()).thenReturn(bundleContext);
         // registerService must be pre-stubbed; without this, Mockito returns null and
         // registerService() NPEs before the test can capture its arguments.
-        doReturn(mock(ServiceRegistration.class)).when(bundleContext).registerService(anyString(), any(), any());
+        doReturn(mock(ServiceRegistration.class)).when(bundleContext).registerService(any(Class.class), any(), any());
         return ctx;
+    }
+
+    @Test
+    public void getRecordIfStoredDelegatesToActiveImpl() throws DataStoreException {
+        DataRecord dataRecord = mock(DataRecord.class);
+        when(mockImpl.getRecordIfStored(any())).thenReturn(dataRecord);
+
+        DataRecord result = wrapper.new DelegatingDataStore()
+                .getRecordIfStored(mock(DataIdentifier.class));
+
+        assertSame(dataRecord, result);
+        verify(mockImpl).getRecordIfStored(any());
+    }
+
+    @Test
+    public void getRecordFromReferenceDelegatesToActiveImpl() throws DataStoreException {
+        DataRecord dataRecord = mock(DataRecord.class);
+        when(mockImpl.getRecordFromReference("ref123")).thenReturn(dataRecord);
+
+        DataRecord result = wrapper.new DelegatingDataStore().getRecordFromReference("ref123");
+
+        assertSame(dataRecord, result);
+        verify(mockImpl).getRecordFromReference("ref123");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void getAllIdentifiersDelegatesToActiveImpl() throws DataStoreException {
+        Iterator<DataIdentifier> iter = mock(Iterator.class);
+        when(mockImpl.getAllIdentifiers()).thenReturn(iter);
+
+        Iterator<DataIdentifier> result = wrapper.new DelegatingDataStore().getAllIdentifiers();
+
+        assertSame(iter, result);
+        verify(mockImpl).getAllIdentifiers();
+    }
+
+    @Test
+    public void updateModifiedDateOnAccessDelegatesToActiveImpl() {
+        wrapper.new DelegatingDataStore().updateModifiedDateOnAccess(12345L);
+        verify(mockImpl).updateModifiedDateOnAccess(12345L);
+    }
+
+    @Test
+    public void deleteAllOlderThanDelegatesToActiveImpl() throws DataStoreException {
+        when(mockImpl.deleteAllOlderThan(99999L)).thenReturn(3);
+
+        int result = wrapper.new DelegatingDataStore().deleteAllOlderThan(99999L);
+
+        assertEquals(3, result);
+        verify(mockImpl).deleteAllOlderThan(99999L);
+    }
+
+    @Test
+    public void clearInUseDelegatesToActiveImpl() {
+        wrapper.new DelegatingDataStore().clearInUse();
+        verify(mockImpl).clearInUse();
+    }
+
+    @Test
+    public void getMinRecordLengthDelegatesToActiveImpl() {
+        when(mockImpl.getMinRecordLength()).thenReturn(4096);
+
+        int result = wrapper.new DelegatingDataStore().getMinRecordLength();
+
+        assertEquals(4096, result);
+        verify(mockImpl).getMinRecordLength();
+    }
+
+    @Test
+    public void initiateDataRecordUploadDelegatesToActiveImpl() throws DataRecordUploadException {
+        DataRecordUpload upload = mock(DataRecordUpload.class);
+        ConfigurableDataRecordAccessProvider provider = (ConfigurableDataRecordAccessProvider) mockImpl;
+        when(provider.initiateDataRecordUpload(1024L, 5)).thenReturn(upload);
+
+        DataRecordUpload result = wrapper.new DelegatingDataStore().initiateDataRecordUpload(1024L, 5);
+
+        assertSame(upload, result);
+        verify(provider).initiateDataRecordUpload(1024L, 5);
+    }
+
+    @Test
+    public void completeDataRecordUploadDelegatesToActiveImpl() throws Exception {
+        DataRecord dataRecord = mock(DataRecord.class);
+        ConfigurableDataRecordAccessProvider provider = (ConfigurableDataRecordAccessProvider) mockImpl;
+        when(provider.completeDataRecordUpload("token123")).thenReturn(dataRecord);
+
+        DataRecord result = wrapper.new DelegatingDataStore().completeDataRecordUpload("token123");
+
+        assertSame(dataRecord, result);
+        verify(provider).completeDataRecordUpload("token123");
+    }
+
+    @Test
+    public void getDownloadURIDelegatesToActiveImpl() {
+        URI uri = URI.create("https://example.com/blob");
+        ConfigurableDataRecordAccessProvider provider = (ConfigurableDataRecordAccessProvider) mockImpl;
+        DataIdentifier id = mock(DataIdentifier.class);
+        when(provider.getDownloadURI(same(id), any())).thenReturn(uri);
+
+        URI result = wrapper.new DelegatingDataStore()
+                .getDownloadURI(id, DataRecordDownloadOptions.DEFAULT);
+
+        assertEquals(uri, result);
+        verify(provider).getDownloadURI(same(id), any());
+    }
+
+    @Test
+    public void createV8Store_returnsAzureDataStoreInstance() {
+        AbstractSharedCachingDataStore store = AzureDataStoreWrapper.createV8Store(new java.util.Properties());
+        assertNotNull(store);
+        assertTrue(store instanceof AzureDataStore);
+    }
+
+    @Test
+    public void createV12Store_returnsAzureDataStoreV12Instance() {
+        AbstractSharedCachingDataStore store = AzureDataStoreWrapper.createV12Store(new java.util.Properties());
+        assertNotNull(store);
+        assertNotNull(store.getClass().getName());
+        assertTrue(store.getClass().getName().contains("AzureDataStoreV12"));
     }
 
     // Guards against activeImpl accidentally becoming static; each wrapper must own its impl.

@@ -43,6 +43,7 @@ import java.security.InvalidKeyException;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicReference;
 
 class AzureBlobContainerProviderV12 {
     private static final Logger log = LoggerFactory.getLogger(AzureBlobContainerProviderV12.class);
@@ -61,7 +62,7 @@ class AzureBlobContainerProviderV12 {
     private final ClientSecretCredential clientSecretCredential;
     // Cached service client for user-delegation SAS generation — avoids allocating a new Netty
     // event loop and connection pool on every SAS call.
-    private volatile BlobServiceClient cachedBlobServiceClient;
+    private final AtomicReference<BlobServiceClient> cachedBlobServiceClient = new AtomicReference<>();
 
     private AzureBlobContainerProviderV12(Builder builder) {
         this.azureConnectionString = builder.azureConnectionString;
@@ -169,7 +170,7 @@ class AzureBlobContainerProviderV12 {
                                                 Properties properties,
                                                 @Nullable BlobSasHeadersV12 optionalHeaders) throws DataStoreException, URISyntaxException, InvalidKeyException {
 
-        OffsetDateTime expiry = OffsetDateTime.now().plusSeconds(expirySeconds);
+        OffsetDateTime expiry = OffsetDateTime.now(ZoneOffset.UTC).plusSeconds(expirySeconds);
         BlobServiceSasSignatureValues serviceSasSignatureValues = new BlobServiceSasSignatureValues(expiry, blobSasPermissions);
 
         // Apply headers if provided
@@ -203,10 +204,12 @@ class AzureBlobContainerProviderV12 {
     }
 
     private BlobServiceClient getOrCreateBlobServiceClient(Properties properties) {
-        if (cachedBlobServiceClient == null) {
+        BlobServiceClient client = cachedBlobServiceClient.get();
+        if (client == null) {
             synchronized (this) {
-                if (cachedBlobServiceClient == null) {
-                    cachedBlobServiceClient = new BlobServiceClientBuilder()
+                client = cachedBlobServiceClient.get();
+                if (client == null) {
+                    client = new BlobServiceClientBuilder()
                             .endpoint(getEndpointUrl(accountName, blobEndpoint))
                             .credential(getClientSecretCredential())
                             .addPolicy(new AzureHttpRequestLoggingPolicyV12())
@@ -214,10 +217,11 @@ class AzureBlobContainerProviderV12 {
                                     .proxy(UtilsV12.computeProxyOptions(properties))
                                     .build())
                             .buildClient();
+                    cachedBlobServiceClient.set(client);
                 }
             }
         }
-        return cachedBlobServiceClient;
+        return client;
     }
 
     private ClientSecretCredential getClientSecretCredential() {
@@ -226,7 +230,7 @@ class AzureBlobContainerProviderV12 {
 
     @NotNull
     private BlobContainerClient getBlobContainerFromServicePrincipals(String accountName, RequestRetryOptions retryOptions, Properties properties) {
-        ClientSecretCredential clientSecretCredential = getClientSecretCredential();
+        ClientSecretCredential credential = getClientSecretCredential();
         AzureHttpRequestLoggingPolicyV12 loggingPolicy = new AzureHttpRequestLoggingPolicyV12();
 
         String endpoint = getEndpointUrl(accountName, blobEndpoint);
@@ -236,7 +240,7 @@ class AzureBlobContainerProviderV12 {
         BlobContainerClientBuilder builder = new BlobContainerClientBuilder()
                 .endpoint(endpoint)
                 .containerName(containerName)
-                .credential(clientSecretCredential)
+                .credential(credential)
                 .addPolicy(loggingPolicy)
                 .httpClient(httpClient);
         if (retryOptions != null) {

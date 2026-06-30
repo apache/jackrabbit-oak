@@ -89,6 +89,7 @@ public class AzureDataRecordAccessProviderV12IT {
         try {
             store.close();
         } catch (Exception ignore) {
+            // best-effort cleanup; ignore failures during test teardown
         }
     }
 
@@ -168,11 +169,11 @@ public class AzureDataRecordAccessProviderV12IT {
                 .getBlockBlobClient()
                 .stageBlock(blockId, new ByteArrayInputStream(payload), payload.length);
 
-        DataRecord record = store.completeDataRecordUpload(encodedToken);
+        DataRecord dataRecord = store.completeDataRecordUpload(encodedToken);
 
-        assertNotNull("completed upload must return a DataRecord", record);
-        assertEquals("DataRecord length must equal staged payload size", payload.length, record.getLength());
-        assertNotNull("DataRecord must have an identifier", record.getIdentifier());
+        assertNotNull("completed upload must return a DataRecord", dataRecord);
+        assertEquals("DataRecord length must equal staged payload size", payload.length, dataRecord.getLength());
+        assertNotNull("DataRecord must have an identifier", dataRecord.getIdentifier());
     }
 
     /**
@@ -180,9 +181,9 @@ public class AzureDataRecordAccessProviderV12IT {
      */
     @Test
     public void getDownloadURI_existingBlob_returnsNonNullURI() throws DataStoreException, IOException {
-        DataRecord record = store.addRecord(new ByteArrayInputStream("download test".getBytes()));
+        DataRecord dataRecord = store.addRecord(new ByteArrayInputStream("download test".getBytes()));
 
-        URI uri = store.getDownloadURI(record.getIdentifier(), DataRecordDownloadOptions.DEFAULT);
+        URI uri = store.getDownloadURI(dataRecord.getIdentifier(), DataRecordDownloadOptions.DEFAULT);
 
         assertNotNull("download URI must be returned for an existing blob", uri);
     }
@@ -205,11 +206,11 @@ public class AzureDataRecordAccessProviderV12IT {
     @Test
     public void getDownloadURI_withContentType_uriContainsContentTypeParam()
             throws DataStoreException, IOException {
-        DataRecord record = store.addRecord(new ByteArrayInputStream("pdf content".getBytes()));
+        DataRecord dataRecord = store.addRecord(new ByteArrayInputStream("pdf content".getBytes()));
 
         DataRecordDownloadOptions options = DataRecordDownloadOptions.fromBlobDownloadOptions(
                 new BlobDownloadOptions("application/pdf", null, null, "inline"));
-        URI uri = store.getDownloadURI(record.getIdentifier(), options);
+        URI uri = store.getDownloadURI(dataRecord.getIdentifier(), options);
 
         assertNotNull("download URI with content-type options must not be null", uri);
         String query = uri.toString();
@@ -218,16 +219,7 @@ public class AzureDataRecordAccessProviderV12IT {
     }
 
     private Properties azuriteProps(String containerName) {
-        Properties p = new Properties();
-        p.setProperty(AzureConstantsV12.AZURE_CONNECTION_STRING,
-                "DefaultEndpointsProtocol=http" +
-                        ";AccountName=" + AzuriteDockerRule.ACCOUNT_NAME +
-                        ";AccountKey=" + AzuriteDockerRule.ACCOUNT_KEY +
-                        ";BlobEndpoint=" + AZURITE.getBlobEndpoint());
-        p.setProperty(AzureConstantsV12.AZURE_BLOB_CONTAINER_NAME, containerName);
-        p.setProperty(AzureConstantsV12.AZURE_CREATE_CONTAINER, "true");
-        // required so getDefaultBlobStorageDomain() can resolve a non-null domain for SAS URI generation
-        p.setProperty(AzureConstantsV12.AZURE_BLOB_ENDPOINT, AZURITE.getBlobEndpoint());
-        return p;
+        // AZURE_BLOB_ENDPOINT required so getDefaultBlobStorageDomain() can resolve a non-null domain for SAS URI generation
+        return AzuriteV12TestUtils.azuriteProps(containerName, AZURITE.getBlobEndpoint());
     }
 }

@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
 import org.apache.jackrabbit.util.Base64;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,6 +75,9 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
     private static final Logger LOG = LoggerFactory.getLogger(AzureBlobStoreBackendV12.class);
     private static final Logger LOG_STREAMS_DOWNLOAD = LoggerFactory.getLogger("oak.datastore.download.streams");
     private static final Logger LOG_STREAMS_UPLOAD = LoggerFactory.getLogger("oak.datastore.upload.streams");
+
+    private static final String ERR_ID_NULL = "identifier must not be null";
+    private static final String LOG_ERR_WRITE_BLOB = "Error writing blob. identifier={}";
 
     private final AtomicReference<BlobContainerClient> azureContainerReference = new AtomicReference<>();
 
@@ -239,7 +243,7 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
         BlobContainerClient azureContainer = getAzureContainer();
 
         try {
-            if (createBlobContainer && !azureContainer.exists()) {
+            if (createBlobContainer && Boolean.FALSE.equals(azureContainer.exists())) {
                 azureContainer.create();
                 LOG.info("New container created. containerName={}", getContainerName());
             } else {
@@ -289,14 +293,14 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
 
     @Override
     public InputStream read(DataIdentifier identifier) throws DataStoreException {
-        Objects.requireNonNull(identifier, "identifier must not be null");
+        Objects.requireNonNull(identifier, ERR_ID_NULL);
 
         String key = getKeyName(identifier);
         Stopwatch stopwatch = Stopwatch.createStarted();
         try {
             return withBundleContextClassLoader(() -> {
                 BlockBlobClient blob = getAzureContainer().getBlobClient(key).getBlockBlobClient();
-                if (!blob.exists()) {
+                if (Boolean.FALSE.equals(blob.exists())) {
                     throw new DataStoreException("Trying to read missing blob. identifier=" + key);
                 }
                 InputStream is = blob.openInputStream();
@@ -345,7 +349,7 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
 
     @Override
     public DataRecord getRecord(DataIdentifier identifier) throws DataStoreException {
-        Objects.requireNonNull(identifier, "identifier must not be null");
+        Objects.requireNonNull(identifier, ERR_ID_NULL);
 
         String key = getKeyName(identifier);
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -353,15 +357,15 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
             return withBundleContextClassLoader(() -> {
                 BlockBlobClient blob = getAzureContainer().getBlobClient(key).getBlockBlobClient();
                 BlobProperties props = blob.getProperties();
-                AzureBlobStoreDataRecord record = new AzureBlobStoreDataRecord(
+                AzureBlobStoreDataRecord dataRecord = new AzureBlobStoreDataRecord(
                         this,
                         azureBlobContainerProvider,
                         new DataIdentifier(getIdentifierName(blob.getBlobName())),
                         getLastModified(props),
                         props.getBlobSize());
                 LOG.debug("Data record read for blob. identifier={} duration={} record={}",
-                        key, stopwatch.elapsed(TimeUnit.MILLISECONDS), record);
-                return record;
+                        key, stopwatch.elapsed(TimeUnit.MILLISECONDS), dataRecord);
+                return dataRecord;
             });
         } catch (BlobStorageException e) {
             if (e.getStatusCode() == 404) {
@@ -423,7 +427,7 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
 
     @Override
     public void deleteRecord(DataIdentifier identifier) throws DataStoreException {
-        Objects.requireNonNull(identifier, "identifier must not be null");
+        Objects.requireNonNull(identifier, ERR_ID_NULL);
 
         String key = getKeyName(identifier);
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -465,7 +469,7 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
     }
 
     private BlockBlobClient getMetaBlobClient(String name) throws DataStoreException {
-        return getAzureContainer().getBlobClient(AzureConstantsV12.AZURE_BlOB_META_DIR_NAME + "/" + name).getBlockBlobClient();
+        return getAzureContainer().getBlobClient(AzureConstantsV12.AZURE_BLOB_META_DIR_NAME + "/" + name).getBlockBlobClient();
     }
 
     private void addMetadataRecordImpl(final InputStream input, String name, long recordLength) throws DataStoreException {
@@ -492,21 +496,21 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
         try {
             return withBundleContextClassLoader(() -> {
                 BlockBlobClient blockBlobClient = getMetaBlobClient(name);
-                if (!blockBlobClient.exists()) {
+                if (Boolean.FALSE.equals(blockBlobClient.exists())) {
                     LOG.warn("Trying to read missing metadata. metadataName={}", name);
                     return null;
                 }
                 BlobProperties metaProps = blockBlobClient.getProperties();
                 long lastModified = getLastModified(metaProps);
                 long length = metaProps.getBlobSize();
-                AzureBlobStoreDataRecord record = new AzureBlobStoreDataRecord(this,
+                AzureBlobStoreDataRecord dataRecord = new AzureBlobStoreDataRecord(this,
                         azureBlobContainerProvider,
                         new DataIdentifier(name),
                         lastModified,
                         length,
                         true);
-                LOG.debug("Metadata record read. metadataName={} duration={} record={}", name, stopwatch.elapsed(TimeUnit.MILLISECONDS), record);
-                return record;
+                LOG.debug("Metadata record read. metadataName={} duration={} record={}", name, stopwatch.elapsed(TimeUnit.MILLISECONDS), dataRecord);
+                return dataRecord;
             });
         } catch (BlobStorageException | DataStoreException e) {
             LOG.info("Error reading metadata record. metadataName={}", name, e);
@@ -523,7 +527,7 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
             return withBundleContextClassLoader(() -> {
                 List<DataRecord> records = new ArrayList<>();
                 ListBlobsOptions listBlobsOptions = new ListBlobsOptions();
-                listBlobsOptions.setPrefix(AzureConstantsV12.AZURE_BlOB_META_DIR_NAME + "/" + prefix);
+                listBlobsOptions.setPrefix(AzureConstantsV12.AZURE_BLOB_META_DIR_NAME + "/" + prefix);
 
                 for (BlobItem blobItem : getAzureContainer().listBlobs(listBlobsOptions, null)) {
                     records.add(new AzureBlobStoreDataRecord(this,
@@ -569,7 +573,7 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
             withBundleContextClassLoaderVoid(() -> {
                 int total = 0;
                 ListBlobsOptions listBlobsOptions = new ListBlobsOptions();
-                listBlobsOptions.setPrefix(AzureConstantsV12.AZURE_BlOB_META_DIR_NAME + "/" + prefix);
+                listBlobsOptions.setPrefix(AzureConstantsV12.AZURE_BLOB_META_DIR_NAME + "/" + prefix);
 
                 for (BlobItem blobItem : getAzureContainer().listBlobs(listBlobsOptions, null)) {
                     BlobClient blobClient = getAzureContainer().getBlobClient(blobItem.getName());
@@ -621,56 +625,60 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
 
     protected URI createHttpDownloadURI(@NotNull DataIdentifier identifier,
                                         @NotNull DataRecordDownloadOptions downloadOptions) {
-        URI uri = null;
-
-        Objects.requireNonNull(identifier, "identifier must not be null");
+        Objects.requireNonNull(identifier, ERR_ID_NULL);
         Objects.requireNonNull(downloadOptions, "downloadOptions must not be null");
 
-        if (httpDownloadURIExpirySeconds > 0) {
+        if (httpDownloadURIExpirySeconds <= 0) {
+            return null;
+        }
 
-            String domain = getDirectDownloadBlobStorageDomain(downloadOptions.isDomainOverrideIgnored());
-            Objects.requireNonNull(domain, "Could not determine domain for direct download");
+        String domain = getDirectDownloadBlobStorageDomain(downloadOptions.isDomainOverrideIgnored());
+        Objects.requireNonNull(domain, "Could not determine domain for direct download");
 
-            String cacheKey = identifier
-                    + domain
-                    + Objects.toString(downloadOptions.getContentTypeHeader(), "")
-                    + Objects.toString(downloadOptions.getContentDispositionHeader(), "");
-            if (httpDownloadURICache != null) {
-                uri = httpDownloadURICache.getIfPresent(cacheKey);
-            }
-            if (uri == null) {
-                if (presignedDownloadURIVerifyExists) {
-                    // Check if this identifier exists.  If not, we want to return null
-                    // even if the identifier is in the download URI cache.
-                    try {
-                        if (!exists(identifier)) {
-                            LOG.warn("Cannot create download URI for nonexistent blob {}; returning null", getKeyName(identifier));
-                            return null;
-                        }
-                    } catch (DataStoreException e) {
-                        LOG.warn("Cannot create download URI for blob {} (caught DataStoreException); returning null", getKeyName(identifier), e);
-                        return null;
+        String cacheKey = identifier
+                + domain
+                + Objects.toString(downloadOptions.getContentTypeHeader(), "")
+                + Objects.toString(downloadOptions.getContentDispositionHeader(), "");
+
+        URI uri = (httpDownloadURICache != null) ? httpDownloadURICache.getIfPresent(cacheKey) : null;
+        if (uri == null) {
+            uri = buildPresignedDownloadURI(identifier, cacheKey, domain, downloadOptions);
+        }
+        return uri;
+    }
+
+    @Nullable
+    private URI buildPresignedDownloadURI(DataIdentifier identifier, String cacheKey, String domain, DataRecordDownloadOptions downloadOptions) {
+        if (presignedDownloadURIVerifyExists) {
+            try {
+                if (!exists(identifier)) {
+                    if (LOG.isWarnEnabled()) {
+                        LOG.warn("Cannot create download URI for nonexistent blob {}; returning null", getKeyName(identifier));
                     }
+                    return null;
                 }
-
-                String key = getKeyName(identifier);
-
-                // Prepare headers for the presigned URI
-                BlobSasHeadersV12 headers = new BlobSasHeadersV12()
-                        .setCacheControl(String.format("private, max-age=%d, immutable", httpDownloadURIExpirySeconds))
-                        .setContentType(downloadOptions.getContentTypeHeader())
-                        .setContentDisposition(downloadOptions.getContentDispositionHeader());
-
-                uri = createPresignedURI(key,
-                        new BlobSasPermission().setReadPermission(true),
-                        httpDownloadURIExpirySeconds,
-                        Map.of(),
-                        domain,
-                        headers);
-                if (uri != null && httpDownloadURICache != null) {
-                    httpDownloadURICache.put(cacheKey, uri);
+            } catch (DataStoreException e) {
+                if (LOG.isWarnEnabled()) {
+                    LOG.warn("Cannot create download URI for blob {} (caught DataStoreException); returning null", getKeyName(identifier), e);
                 }
+                return null;
             }
+        }
+
+        String key = getKeyName(identifier);
+        BlobSasHeadersV12 headers = new BlobSasHeadersV12()
+                .setCacheControl(String.format("private, max-age=%d, immutable", httpDownloadURIExpirySeconds))
+                .setContentType(downloadOptions.getContentTypeHeader())
+                .setContentDisposition(downloadOptions.getContentDispositionHeader());
+
+        URI uri = createPresignedURI(key,
+                new BlobSasPermission().setReadPermission(true),
+                httpDownloadURIExpirySeconds,
+                Map.of(),
+                domain,
+                headers);
+        if (uri != null && httpDownloadURICache != null) {
+            httpDownloadURICache.put(cacheKey, uri);
         }
         return uri;
     }
@@ -721,7 +729,7 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
             // doing multi-part or single-put upload
             uploadId = Base64.encode(UUID.randomUUID().toString());
 
-            long numParts = 0L;
+            long numParts;
             if (maxNumberOfURIs > 0) {
                 long requestedPartSize = (long) Math.ceil(((double) maxUploadSizeInBytes) / ((double) maxNumberOfURIs));
                 if (requestedPartSize <= maxPartSize) {
@@ -764,8 +772,8 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
             }
 
             try {
-                byte[] secret = getOrCreateReferenceKey();
-                String uploadToken = new DataRecordUploadToken(blobId, uploadId).getEncodedToken(secret);
+                byte[] refKey = getOrCreateReferenceKey();
+                String uploadToken = new DataRecordUploadToken(blobId, uploadId).getEncodedToken(refKey);
                 return new DataRecordUpload() {
                     @Override
                     @NotNull
@@ -799,7 +807,7 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
 
     @Override
     public void write(DataIdentifier identifier, File file) throws DataStoreException {
-        Objects.requireNonNull(identifier, "identifier must not be null");
+        Objects.requireNonNull(identifier, ERR_ID_NULL);
         Objects.requireNonNull(file, "file must not be null");
 
         String key = getKeyName(identifier);
@@ -809,7 +817,7 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
                 long len = file.length();
                 LOG.debug("Blob write started. identifier={} length={}", key, len);
                 BlockBlobClient blob = getAzureContainer().getBlobClient(key).getBlockBlobClient();
-                if (!blob.exists()) {
+                if (Boolean.FALSE.equals(blob.exists())) {
                     uploadBlob(blob, file, len, stopwatch, key);
                     return;
                 }
@@ -835,25 +843,23 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
                 updateLastModifiedMetadata(blob);
                 long lm = getLastModified(blob);
 
-                if (LOG.isTraceEnabled()) {
-                    LOG.trace("Blob already exists. identifier={} lastModified={}", key, lm);
-                }
+                LOG.trace("Blob already exists. identifier={} lastModified={}", key, lm);
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("Blob updated. identifier={} lastModified={} duration={}", key,
                             lm, stopwatch.elapsed(TimeUnit.MILLISECONDS));
                 }
             });
         } catch (BlobStorageException e) {
-            LOG.info("Error writing blob. identifier={}", key, e);
+            LOG.info(LOG_ERR_WRITE_BLOB, key, e);
             throw new DataStoreException("Cannot write blob. identifier=" + key, e);
         } catch (DataStoreException e) {
             // IOException from uploadBlob() was wrapped by withBundleContextClassLoaderVoid
             Throwable cause = e.getCause();
             if (cause instanceof IOException) {
-                LOG.debug("Error writing blob. identifier={}", key, cause);
+                LOG.debug(LOG_ERR_WRITE_BLOB, key, e);
                 throw new DataStoreException("Cannot write blob. identifier=" + key, cause);
             }
-            LOG.info("Error writing blob. identifier={}", key, e);
+            LOG.info(LOG_ERR_WRITE_BLOB, key, e);
             throw e;
         }
     }
@@ -891,9 +897,9 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
         String key = uploadToken.getBlobId();
         DataIdentifier blobId = new DataIdentifier(getIdentifierName(key));
 
-        DataRecord record = null;
+        DataRecord dataRecord = null;
         try {
-            record = getRecord(blobId);
+            dataRecord = getRecord(blobId);
             // If this succeeds this means either it was a "single put" upload
             // (we don't need to do anything in this case - blob is already uploaded)
             // or it was completed before with the same token.
@@ -905,12 +911,12 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
             if (!(cause instanceof BlobStorageException) || ((BlobStorageException) cause).getStatusCode() != 404) {
                 throw e1;
             }
-            // record doesn't exist - so this means we are safe to do the complete request
+            // dataRecord doesn't exist - so this means we are safe to do the complete request
             try {
                 if (uploadToken.getUploadId().isPresent()) {
                     BlockBlobClient blockBlobClient = getAzureContainer().getBlobClient(key).getBlockBlobClient();
                     long size = commitBlocksAndGetSize(blockBlobClient);
-                    record = new AzureBlobStoreDataRecord(
+                    dataRecord = new AzureBlobStoreDataRecord(
                             this,
                             azureBlobContainerProvider,
                             blobId,
@@ -918,7 +924,7 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
                             size);
                 } else {
                     // Something is wrong - upload ID missing from upload token
-                    // but record doesn't exist already, so this is invalid
+                    // but dataRecord doesn't exist already, so this is invalid
                     throw new DataRecordUploadException(
                             String.format("Unable to finalize direct write of binary %s - upload ID missing from upload token",
                                     blobId)
@@ -932,7 +938,7 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
             }
         }
 
-        return record;
+        return dataRecord;
     }
 
     String getDefaultBlobStorageDomain() {
@@ -966,13 +972,6 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
 
     private String getDirectUploadBlobStorageDomain(boolean ignoreDomainOverride) {
         return getBlobStorageDomain(ignoreDomainOverride, uploadDomainOverride);
-    }
-
-    private URI createPresignedURI(String key,
-                                   BlobSasPermission blobSasPermissions,
-                                   int expirySeconds,
-                                   String domain) {
-        return createPresignedURI(key, blobSasPermissions, expirySeconds, Map.of(), domain, null);
     }
 
     private URI createPresignedURI(String key,
@@ -1023,10 +1022,10 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
         } catch (URISyntaxException | InvalidKeyException e) {
             LOG.error("Can't generate a presigned URI for key {}", key, e);
         } catch (BlobStorageException e) {
+            String operation = blobSasPermissions.hasReadPermission() ? "GET" : (blobSasPermissions.hasWritePermission() ? "PUT" : "");
             LOG.error("Azure request to create presigned Azure Blob Storage {} URI failed. " +
                             "Key: {}, Error: {}, HTTP Code: {}, Azure Error Code: {}",
-                    blobSasPermissions.hasReadPermission() ? "GET" :
-                            ((blobSasPermissions.hasWritePermission()) ? "PUT" : ""),
+                    operation,
                     key,
                     e.getMessage(),
                     e.getStatusCode(),
@@ -1100,7 +1099,7 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
      */
     @FunctionalInterface
     private interface AzureSDKCall<T> {
-        T execute() throws Exception;
+        T execute() throws DataStoreException, IOException;
     }
 
     /**
@@ -1109,14 +1108,14 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
      */
     @FunctionalInterface
     private interface AzureSDKCallVoid {
-        void execute() throws Exception;
+        void execute() throws DataStoreException, IOException;
     }
 
     static class AzureBlobStoreDataRecord extends AbstractDataRecord {
         final AzureBlobContainerProviderV12 azureBlobContainerProvider;
         final long lastModified;
         final long length;
-        final boolean isMeta; // true for metadata blobs (stored under AZURE_BlOB_META_DIR_NAME/); affects key construction in getStream()
+        final boolean isMeta; // true for metadata blobs (stored under AZURE_BLOB_META_DIR_NAME/); affects key construction in getStream()
 
         public AzureBlobStoreDataRecord(AbstractSharedBackend backend, AzureBlobContainerProviderV12 azureBlobContainerProvider,
                                         DataIdentifier key, long lastModified, long length) {
@@ -1157,6 +1156,16 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
         @Override
         public long getLastModified() {
             return lastModified;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return super.equals(obj);
+        }
+
+        @Override
+        public int hashCode() {
+            return super.hashCode();
         }
 
         @Override

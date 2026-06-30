@@ -194,10 +194,10 @@ public class AzureDataStoreWrapperIT {
         byte[] payload = new byte[32 * 1024];
         Arrays.fill(payload, (byte) 'x');
 
-        DataRecord record = dsV12.addRecord(new ByteArrayInputStream(payload));
-        assertNotNull(record);
+        DataRecord dataRecord = dsV12.addRecord(new ByteArrayInputStream(payload));
+        assertNotNull(dataRecord);
 
-        String blobKey = blobKeyFor(record.getIdentifier());
+        String blobKey = blobKeyFor(dataRecord.getIdentifier());
         BlobContainerClient containerClient = azuriteContainerClient();
         BlockBlobClient blobClient = containerClient.getBlobClient(blobKey).getBlockBlobClient();
 
@@ -225,7 +225,7 @@ public class AzureDataStoreWrapperIT {
         CountDownLatch ready = new CountDownLatch(backends);
         CountDownLatch start = new CountDownLatch(1);
         ExecutorService pool = Executors.newFixedThreadPool(backends);
-        List<Future<byte[]>> futures = new ArrayList<>();
+        List<Future<byte[]>> futures = new ArrayList<>(backends);
 
         for (int i = 0; i < backends; i++) {
             futures.add(pool.submit(() -> {
@@ -243,6 +243,9 @@ public class AzureDataStoreWrapperIT {
         start.countDown();
         pool.shutdown();
         assertTrue("backends did not initialize in time", pool.awaitTermination(60, TimeUnit.SECONDS));
+        for (Future<byte[]> f : futures) {
+            f.get(); // propagate any task-level exceptions
+        }
 
         long refKeyCount = azuriteContainerClient()
                 .listBlobs(new com.azure.storage.blob.models.ListBlobsOptions()
