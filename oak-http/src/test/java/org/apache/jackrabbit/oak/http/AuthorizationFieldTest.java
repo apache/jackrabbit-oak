@@ -50,9 +50,7 @@ public class AuthorizationFieldTest {
     @Test(expected = LoginException.class)
     public void testInvalidBase64() throws LoginException {
         String b64 = Base64.getEncoder().encodeToString("foo:bar".getBytes(StandardCharsets.UTF_8));
-        SimpleCredentials credentials = AuthorizationField.valueOf(Collections.enumeration(List.of("Basic dksjdkj" + b64)));
-        assertEquals("foo", credentials.getUserID());
-        assertEquals("bar", new String(credentials.getPassword()));
+        AuthorizationField.valueOf(Collections.enumeration(List.of("Basic dksjdkj" + b64)));
     }
 
     @Test(expected = LoginException.class)
@@ -94,9 +92,7 @@ public class AuthorizationFieldTest {
     @Test(expected = LoginException.class)
     public void testNonSpWhitespace() throws LoginException {
         String b64 = Base64.getEncoder().encodeToString("foo:bar".getBytes(StandardCharsets.UTF_8));
-        SimpleCredentials credentials = AuthorizationField.valueOf(Collections.enumeration(List.of("Basic \t " + b64)));
-        assertEquals("foo", credentials.getUserID());
-        assertEquals("bar", new String(credentials.getPassword()));
+        AuthorizationField.valueOf(Collections.enumeration(List.of("Basic \t " + b64)));
     }
 
     @Test(expected = LoginException.class)
@@ -111,9 +107,7 @@ public class AuthorizationFieldTest {
     public void testMoreBrokenBase64() throws LoginException {
         String b64 = Base64.getEncoder().encodeToString("foo:bar".getBytes(StandardCharsets.UTF_8));
         b64 = b64.substring(0,5) + "=" + b64.substring(5);
-        SimpleCredentials credentials = AuthorizationField.valueOf(Collections.enumeration(List.of("Basic " + b64)));
-        assertEquals("foo", credentials.getUserID());
-        assertEquals("bar", new String(credentials.getPassword()));
+        AuthorizationField.valueOf(Collections.enumeration(List.of("Basic " + b64)));
     }
 
     @Test
