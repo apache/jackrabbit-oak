@@ -125,7 +125,7 @@ public class AuthorizationFieldTest {
     }
 
     @Test
-    public void Basic64NoPadding() throws LoginException {
+    public void testBasic64NoPadding() throws LoginException {
         String b64 = Base64.getEncoder().withoutPadding().encodeToString("foo:bar".getBytes(StandardCharsets.UTF_8));
         SimpleCredentials credentials = AuthorizationField.valueOf(Collections.enumeration(List.of("Basic " + b64)));
         assertEquals("foo", credentials.getUserID());
