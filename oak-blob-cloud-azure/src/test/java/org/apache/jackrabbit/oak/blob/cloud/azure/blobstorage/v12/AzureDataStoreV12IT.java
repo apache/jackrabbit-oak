@@ -69,6 +69,7 @@ public class AzureDataStoreV12IT {
         try {
             store.close();
         } catch (Exception ignore) {
+            // best-effort cleanup; ignore failures during test teardown
         }
     }
 
@@ -76,20 +77,20 @@ public class AzureDataStoreV12IT {
      * addRecord must return a record with correct length and a non-empty identifier.
      */
     @Test
-    public void testAddRecord() throws DataStoreException, IOException {
+    public void testAddRecord() throws DataStoreException {
         byte[] data = "hello world".getBytes();
-        DataRecord record = store.addRecord(new ByteArrayInputStream(data));
+        DataRecord dataRecord = store.addRecord(new ByteArrayInputStream(data));
 
-        assertNotNull("record must be returned", record);
-        assertEquals("record length must match input", data.length, record.getLength());
-        assertFalse("record ID must be non-empty", record.getIdentifier().toString().isEmpty());
+        assertNotNull("record must be returned", dataRecord);
+        assertEquals("record length must match input", data.length, dataRecord.getLength());
+        assertFalse("record ID must be non-empty", dataRecord.getIdentifier().toString().isEmpty());
     }
 
     /**
      * getRecord must return the same content and length as what was written.
      */
     @Test
-    public void testGetRecord() throws DataStoreException, IOException {
+    public void testGetRecord() throws DataStoreException {
         byte[] data = "test data for get".getBytes();
         DataRecord added = store.addRecord(new ByteArrayInputStream(data));
 
@@ -113,7 +114,7 @@ public class AzureDataStoreV12IT {
      * Same content must produce the same record ID — deduplication is the core space-saving contract.
      */
     @Test
-    public void testAddDuplicateRecord() throws DataStoreException, IOException {
+    public void testAddDuplicateRecord() throws DataStoreException {
         byte[] data = "identical content".getBytes();
         DataRecord r1 = store.addRecord(new ByteArrayInputStream(data));
         DataRecord r2 = store.addRecord(new ByteArrayInputStream(data));
@@ -125,9 +126,9 @@ public class AzureDataStoreV12IT {
      * deleteRecord must remove the blob so that subsequent getRecord returns null.
      */
     @Test
-    public void testDeleteRecord() throws DataStoreException, IOException {
-        DataRecord record = store.addRecord(new ByteArrayInputStream("to be deleted".getBytes()));
-        DataIdentifier id = record.getIdentifier();
+    public void testDeleteRecord() throws DataStoreException {
+        DataRecord dataRecord = store.addRecord(new ByteArrayInputStream("to be deleted".getBytes()));
+        DataIdentifier id = dataRecord.getIdentifier();
 
         store.deleteRecord(id);
 
@@ -138,16 +139,16 @@ public class AzureDataStoreV12IT {
      * Records of different sizes must all round-trip correctly — exercises small, medium, and large code paths.
      */
     @Test
-    public void testRecordsOfVaryingSizes() throws DataStoreException, IOException {
+    public void testRecordsOfVaryingSizes() throws DataStoreException {
         int[] sizes = {100, 10 * 1024, 1024 * 1024};
         List<DataIdentifier> ids = new ArrayList<>();
 
         for (int size : sizes) {
             byte[] data = new byte[size];
             Arrays.fill(data, (byte) 0x42);
-            DataRecord record = store.addRecord(new ByteArrayInputStream(data));
-            assertEquals("stored record length must match for size=" + size, size, record.getLength());
-            ids.add(record.getIdentifier());
+            DataRecord dataRecord = store.addRecord(new ByteArrayInputStream(data));
+            assertEquals("stored record length must match for size=" + size, size, dataRecord.getLength());
+            ids.add(dataRecord.getIdentifier());
         }
 
         for (int i = 0; i < sizes.length; i++) {
@@ -158,15 +159,6 @@ public class AzureDataStoreV12IT {
     }
 
     private Properties azuriteProps(String containerName) {
-        Properties p = new Properties();
-        p.setProperty(AzureConstantsV12.AZURE_CONNECTION_STRING,
-                "DefaultEndpointsProtocol=http" +
-                        ";AccountName=" + AzuriteDockerRule.ACCOUNT_NAME +
-                        ";AccountKey=" + AzuriteDockerRule.ACCOUNT_KEY +
-                        ";BlobEndpoint=" + AZURITE.getBlobEndpoint());
-        p.setProperty(AzureConstantsV12.AZURE_BLOB_CONTAINER_NAME, containerName);
-        p.setProperty(AzureConstantsV12.AZURE_CREATE_CONTAINER, "true");
-        p.setProperty(AzureConstantsV12.AZURE_BLOB_ENDPOINT, AZURITE.getBlobEndpoint());
-        return p;
+        return AzuriteV12TestUtils.azuriteProps(containerName, AZURITE.getBlobEndpoint());
     }
 }
