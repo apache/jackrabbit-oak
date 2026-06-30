@@ -188,7 +188,7 @@ public class AzureDataStoreWrapperTest {
         ArgumentCaptor<Dictionary<String, Object>> props = ArgumentCaptor.forClass(Dictionary.class);
         AzureDataStoreWrapper.registerService(ctx, mockImpl);
 
-        verify(ctx.getBundleContext()).registerService(any(Class.class), any(), props.capture());
+        verify(ctx.getBundleContext()).registerService(any(Class.class), any(AbstractSharedCachingDataStore.class), props.capture());
         assertEquals(AzureDataStore.class.getName(), props.getValue().get(Constants.SERVICE_PID));
     }
 
@@ -200,7 +200,7 @@ public class AzureDataStoreWrapperTest {
         ArgumentCaptor<Dictionary<String, Object>> props = ArgumentCaptor.forClass(Dictionary.class);
         AzureDataStoreWrapper.registerService(ctx, mockImpl);
 
-        verify(ctx.getBundleContext()).registerService(any(Class.class), any(), props.capture());
+        verify(ctx.getBundleContext()).registerService(any(Class.class), any(AbstractSharedCachingDataStore.class), props.capture());
         assertArrayEquals(new String[]{"type=AzureBlob"},
                 (String[]) props.getValue().get("oak.datastore.description"));
     }
@@ -210,7 +210,7 @@ public class AzureDataStoreWrapperTest {
         ComponentContext ctx = mockComponentContext();
         BundleContext bundleContext = ctx.getBundleContext();
         ServiceRegistration<?> reg = mock(ServiceRegistration.class);
-        doReturn(reg).when(bundleContext).registerService(any(Class.class), any(), any());
+        doReturn(reg).when(bundleContext).registerService(any(Class.class), any(AbstractSharedCachingDataStore.class), any());
 
         ServiceRegistration<?> result = AzureDataStoreWrapper.registerService(ctx, mockImpl);
 
@@ -224,7 +224,7 @@ public class AzureDataStoreWrapperTest {
         when(ctx.getBundleContext()).thenReturn(bundleContext);
         // registerService must be pre-stubbed; without this, Mockito returns null and
         // registerService() NPEs before the test can capture its arguments.
-        doReturn(mock(ServiceRegistration.class)).when(bundleContext).registerService(any(Class.class), any(), any());
+        doReturn(mock(ServiceRegistration.class)).when(bundleContext).registerService(any(Class.class), any(AbstractSharedCachingDataStore.class), any());
         return ctx;
     }
 
