@@ -195,7 +195,7 @@ public class DocumentNodeStoreService {
     /**
      * Default interval for taking snapshots of locally tracked blob ids.
      */
-    static final long DEFAULT_BLOB_SNAPSHOT_INTERVAL = 12 * 60 * 60;
+    static final long DEFAULT_BLOB_SNAPSHOT_INTERVAL = 0L;
 
     /**
      * Feature toggle name to enable prefetch operation in DocumentStore
