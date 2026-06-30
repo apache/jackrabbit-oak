@@ -111,8 +111,8 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                 () -> maxCacheSizeBytes,
                 () -> Long.valueOf(directory.listFiles().length),
                 () -> FileUtils.sizeOfDirectory(directory),
-                () -> evictionCount.get());
-        segmentCacheStats.setWriteDiscardCountSupplier(() -> discardCount.get());
+                () -> evictionCount.get(),
+                () -> discardCount.get());
     }
 
     @Override

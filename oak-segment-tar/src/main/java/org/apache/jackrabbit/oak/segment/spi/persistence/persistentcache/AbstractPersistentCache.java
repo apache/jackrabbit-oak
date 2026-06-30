@@ -22,6 +22,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.log.LogSilencer;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.jetbrains.annotations.NotNull;
@@ -36,16 +37,17 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class AbstractPersistentCache implements PersistentCache, Closeable {
     private static final Logger logger = LoggerFactory.getLogger(AbstractPersistentCache.class);
 
     public static final int THREADS = Integer.getInteger("oak.segment.cache.threads", 10);
-    public static final int WRITE_QUEUE_SIZE = Integer.getInteger("oak.segment.cache.writeQueueSize", THREADS * 100);
+    public static final int WRITE_QUEUE_SIZE = Integer.getInteger("oak.segment.cache.writeQueueSize", 100);
 
     protected ExecutorService executor;
     protected AtomicLong cacheSize = new AtomicLong(0);
@@ -55,43 +57,27 @@ public abstract class AbstractPersistentCache implements PersistentCache, Closea
 
     protected SegmentCacheStats segmentCacheStats;
 
-    /**
-     * Name of the feature toggle for the OAK-12282 bounded write-queue fix.
-     * See {@link #FT_OAK_12282_BOUNDED_WRITE_QUEUE_ENABLED}.
-     */
-    public static final String FT_OAK_12282 = "FT_OAK-12282";
-
-    /**
-     * Whether the bounded write queue introduced in OAK-12282 is active.
-     * <p>
-     * When {@code true} (default), the executor uses a queue bounded to
-     * {@link #WRITE_QUEUE_SIZE} and silently discards write tasks when full,
-     * preventing OOM under high write load. This is safe because the disk
-     * cache is an optimisation only — a dropped write means the segment is
-     * fetched from remote storage on the next read.
-     * <p>
-     * Set to {@code false} via the {@link org.apache.jackrabbit.oak.spi.toggle.FeatureToggle}
-     * registered with the Whiteboard to revert to the pre-fix unbounded queue.
-     * <strong>Note:</strong> changing this flag requires a process restart, as
-     * the executor is created at startup.
-     */
-    public static final AtomicBoolean FT_OAK_12282_BOUNDED_WRITE_QUEUE_ENABLED = new AtomicBoolean(true);
+    private final LogSilencer writeQueueFullSilencer = new LogSilencer();
 
     public AbstractPersistentCache() {
-        // Formerly Executors.newFixedThreadPool() was used here, which creates an unbounded
-        // LinkedBlockingQueue — allowing unlimited segment buffers to pile up in memory under
-        // high write load. The bounded queue (gated by FT_OAK_12282) prevents OOM by dropping
-        // write tasks when full; this is safe because the disk cache is an optimisation only.
-        BlockingQueue<Runnable> writeQueue = FT_OAK_12282_BOUNDED_WRITE_QUEUE_ENABLED.get()
-                ? new LinkedBlockingQueue<>(WRITE_QUEUE_SIZE)
-                : new LinkedBlockingQueue<>();
+        AtomicInteger threadCount = new AtomicInteger(0);
+        ThreadFactory threadFactory = r -> {
+            Thread t = new Thread(r, "segment-cache-writer-" + threadCount.incrementAndGet());
+            t.setDaemon(true);
+            return t;
+        };
+        BlockingQueue<Runnable> writeQueue = new LinkedBlockingQueue<>(WRITE_QUEUE_SIZE);
         executor = new ThreadPoolExecutor(
                 THREADS, THREADS,
                 0L, TimeUnit.MILLISECONDS,
                 writeQueue,
+                threadFactory,
                 (r, e) -> {
                     discardCount.incrementAndGet();
-                    logger.debug("Segment write task discarded: write queue full (capacity={})", WRITE_QUEUE_SIZE);
+                    if (!writeQueueFullSilencer.silence("writeQueueFull")) {
+                        logger.warn("Segment write task discarded: write queue full (capacity={}, totalDiscarded={}){}",
+                                WRITE_QUEUE_SIZE, discardCount.get(), LogSilencer.SILENCING_POSTFIX);
+                    }
                 });
         writesPending = ConcurrentHashMap.newKeySet();
     }

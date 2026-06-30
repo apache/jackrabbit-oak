@@ -38,7 +38,8 @@ class MemoryPersistentCache extends AbstractPersistentCache {
                 () -> null,
                 () -> null,
                 () -> null,
-                () -> null);
+                () -> null,
+                () -> 0L);
     }
 
     @Override
