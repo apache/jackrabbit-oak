@@ -514,7 +514,7 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
             });
         } catch (BlobStorageException | DataStoreException e) {
             LOG.info("Error reading metadata record. metadataName={}", name, e);
-            throw new RuntimeException(e);
+            throw new IllegalStateException("Cannot read metadata record. metadataName=" + name, e);
         }
     }
 
@@ -542,7 +542,7 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
             });
         } catch (BlobStorageException | DataStoreException e) {
             // Must not return empty — callers (GC) treat empty as "no records" and may delete all live blobs.
-            throw new RuntimeException("Failed to list metadata records for prefix: " + prefix, e);
+            throw new IllegalStateException("Failed to list metadata records for prefix: " + prefix, e);
         }
     }
 
@@ -585,7 +585,7 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
                         total, prefix, stopwatch.elapsed(TimeUnit.MILLISECONDS));
             });
         } catch (BlobStorageException | DataStoreException e) {
-            throw new RuntimeException("Failed to delete metadata records for prefix: " + prefix, e);
+            throw new IllegalStateException("Failed to delete metadata records for prefix: " + prefix, e);
         }
     }
 
@@ -857,7 +857,7 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
             Throwable cause = e.getCause();
             if (cause instanceof IOException) {
                 LOG.debug(LOG_ERR_WRITE_BLOB, key, e);
-                throw new DataStoreException("Cannot write blob. identifier=" + key, cause);
+                throw new DataStoreException("Cannot write blob. identifier=" + key, e);
             }
             LOG.info(LOG_ERR_WRITE_BLOB, key, e);
             throw e;
@@ -882,7 +882,7 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
         Map<String, String> metadata = new HashMap<>();
         metadata.put(AZURE_BLOB_LAST_MODIFIED_KEY, String.valueOf(System.currentTimeMillis()));
         BlockBlobCommitBlockListOptions options = new BlockBlobCommitBlockListOptions(
-                uncommittedBlocks.stream().map(Block::getName).collect(Collectors.toList()))
+                uncommittedBlocks.stream().map(Block::getName).toList())
                 .setMetadata(metadata);
         client.commitBlockListWithResponse(options, null, Context.NONE);
         return uncommittedBlocks.stream().mapToLong(Block::getSizeLong).sum();
@@ -908,7 +908,7 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
             // Transient errors (auth, network, throttle) must propagate, not silently
             // trigger a commit that may overwrite or corrupt an in-flight upload.
             Throwable cause = e1.getCause();
-            if (!(cause instanceof BlobStorageException) || ((BlobStorageException) cause).getStatusCode() != 404) {
+            if (!(cause instanceof BlobStorageException bse) || bse.getStatusCode() != 404) {
                 throw e1;
             }
             // dataRecord doesn't exist - so this means we are safe to do the complete request
@@ -1022,7 +1022,14 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
         } catch (URISyntaxException | InvalidKeyException e) {
             LOG.error("Can't generate a presigned URI for key {}", key, e);
         } catch (BlobStorageException e) {
-            String operation = blobSasPermissions.hasReadPermission() ? "GET" : (blobSasPermissions.hasWritePermission() ? "PUT" : "");
+            String operation;
+            if (blobSasPermissions.hasReadPermission()) {
+                operation = "GET";
+            } else if (blobSasPermissions.hasWritePermission()) {
+                operation = "PUT";
+            } else {
+                operation = "";
+            }
             LOG.error("Azure request to create presigned Azure Blob Storage {} URI failed. " +
                             "Key: {}, Error: {}, HTTP Code: {}, Azure Error Code: {}",
                     operation,
@@ -1058,7 +1065,7 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
                 // Read from Azure first: another cluster node may have already written the shared secret.
                 // All nodes must use the same HMAC key so that upload tokens are valid cluster-wide.
                 key = readMetadataBytes(AZURE_BLOB_REF_KEY);
-                if (key == null) {
+                if (key.length == 0) {
                     key = super.getOrCreateReferenceKey();
                     addMetadataRecord(new ByteArrayInputStream(key), AZURE_BLOB_REF_KEY);
                 }
@@ -1073,7 +1080,7 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
     protected byte[] readMetadataBytes(String name) throws IOException, DataStoreException {
         DataRecord rec = getMetadataRecord(name);
         if (rec == null) {
-            return null;
+            return new byte[0];
         }
         try (InputStream stream = rec.getStream()) {
             return IOUtils.toByteArray(stream);
