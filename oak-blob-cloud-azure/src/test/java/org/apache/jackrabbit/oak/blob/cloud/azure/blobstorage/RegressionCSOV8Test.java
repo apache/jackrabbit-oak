@@ -59,13 +59,11 @@ public class RegressionCSOV8Test {
      */
     @Test
     public void v8_minPartSize_mustRemain10MB() {
-        long expected = 10L * 1024L * 1024L; // 10 MB
-
         assertEquals(
                 "V8 minPartSize must be 10MB (Azure SDK V8 limit). " +
                         "Regression to 256KB caused 40x URI explosion in CSO 24893. " +
                         "Ref: GRANITE-66069",
-                expected, AzureBlobStoreBackend.MIN_MULTIPART_UPLOAD_PART_SIZE);
+                10L * 1024L * 1024L, AzureBlobStoreBackend.MIN_MULTIPART_UPLOAD_PART_SIZE);
     }
 
     /**
@@ -77,13 +75,11 @@ public class RegressionCSOV8Test {
      */
     @Test
     public void v8_maxPartSize_mustRemain100MB() {
-        long expected = 100L * 1024L * 1024L; // 100 MB
-
         assertEquals(
                 "V8 maxPartSize must be 100MB (Azure SDK V8 limit). " +
                         "Regression to 4000MB caused Java OOM on large DAM downloads in CSO 24893. " +
                         "Ref: ASSETS-65164",
-                expected, AzureBlobStoreBackend.MAX_MULTIPART_UPLOAD_PART_SIZE);
+                100L * 1024L * 1024L, AzureBlobStoreBackend.MAX_MULTIPART_UPLOAD_PART_SIZE);
     }
 
     /**
@@ -92,13 +88,11 @@ public class RegressionCSOV8Test {
      */
     @Test
     public void v8_maxSinglePutUploadSize_mustBe256MB() {
-        long expected = 256L * 1024L * 1024L; // 256 MB
-
         assertEquals(
                 "V8 maxSinglePutUploadSize must be 256MB (Azure REST API Put Blob limit). " +
                         "Uploads <= 256MB use direct PUT; larger use block transfer. " +
                         "Ref: Azure Blob Storage REST API",
-                expected, AzureBlobStoreBackend.MAX_SINGLE_PUT_UPLOAD_SIZE);
+                256L * 1024L * 1024L, AzureBlobStoreBackend.MAX_SINGLE_PUT_UPLOAD_SIZE);
     }
 
     /**
@@ -108,13 +102,12 @@ public class RegressionCSOV8Test {
      */
     @Test
     public void v8_maxBinaryUploadSize_mustRemain4_75TB() {
-        long expected = (long) Math.floor(1024L * 1024L * 1024L * 1024L * 4.75); // ~4.75 TB
-
         assertEquals(
                 "V8 maxBinaryUploadSize must be ~4.75TB (Azure SDK V8 limit). " +
                         "Regression to V12's ~190.7TiB silently altered V8 upload size behavior. " +
                         "Ref: OAK-12164",
-                expected, AzureBlobStoreBackend.MAX_BINARY_UPLOAD_SIZE);
+                (long) Math.floor(1024L * 1024L * 1024L * 1024L * 4.75),
+                AzureBlobStoreBackend.MAX_BINARY_UPLOAD_SIZE);
     }
 
     // --- Isolation: V8 and V12 constants must not be equal ---

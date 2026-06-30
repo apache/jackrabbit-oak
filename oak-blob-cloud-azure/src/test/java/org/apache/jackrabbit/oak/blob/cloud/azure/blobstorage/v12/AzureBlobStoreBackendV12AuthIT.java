@@ -97,6 +97,7 @@ public class AzureBlobStoreBackendV12AuthIT {
             try {
                 adminContainer.deleteIfExists();
             } catch (Exception ignore) {
+                // best-effort cleanup; ignore failures during test teardown
             }
         }
     }

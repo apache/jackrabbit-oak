@@ -47,7 +47,6 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -130,9 +129,9 @@ public class AzureBlobStoreBackendV12IT {
 
         // Complete the upload — this invokes commitBlocksAndGetSize, which now atomically
         // includes lastModified metadata via BlockBlobCommitBlockListOptions.
-        DataRecord record = backend.completeHttpUpload(encodedToken);
-        assertNotNull("completeHttpUpload must return a DataRecord", record);
-        assertEquals("DataRecord length must equal payload size", payload.length, record.getLength());
+        DataRecord dataRecord = backend.completeHttpUpload(encodedToken);
+        assertNotNull("completeHttpUpload must return a DataRecord", dataRecord);
+        assertEquals("DataRecord length must equal payload size", payload.length, dataRecord.getLength());
 
         // Verify the committed blob has lastModified metadata in Azurite.
         BlockBlobClient blobClient = backend.getAzureContainer()
@@ -269,7 +268,7 @@ public class AzureBlobStoreBackendV12IT {
         // Count reference key blobs in Azurite — must be exactly one.
         long refKeyCount = backend.getAzureContainer()
                 .listBlobs(new com.azure.storage.blob.models.ListBlobsOptions()
-                        .setPrefix(AzureConstantsV12.AZURE_BlOB_META_DIR_NAME + "/"), null)
+                        .setPrefix(AzureConstantsV12.AZURE_BLOB_META_DIR_NAME + "/"), null)
                 .stream()
                 .filter(b -> b.getName().contains(AzureConstantsV12.AZURE_BLOB_REF_KEY)
                         || b.getName().contains("oak.datastore.key"))
@@ -282,15 +281,6 @@ public class AzureBlobStoreBackendV12IT {
     }
 
     private Properties azuriteProps(String containerName) {
-        Properties p = new Properties();
-        p.setProperty(AzureConstantsV12.AZURE_CONNECTION_STRING,
-                "DefaultEndpointsProtocol=http" +
-                        ";AccountName=" + AzuriteDockerRule.ACCOUNT_NAME +
-                        ";AccountKey=" + AzuriteDockerRule.ACCOUNT_KEY +
-                        ";BlobEndpoint=" + AZURITE.getBlobEndpoint());
-        p.setProperty(AzureConstantsV12.AZURE_BLOB_CONTAINER_NAME, containerName);
-        p.setProperty(AzureConstantsV12.AZURE_CREATE_CONTAINER, "true");
-        p.setProperty(AzureConstantsV12.AZURE_BLOB_ENDPOINT, AZURITE.getBlobEndpoint());
-        return p;
+        return AzuriteV12TestUtils.azuriteProps(containerName, AZURITE.getBlobEndpoint());
     }
 }

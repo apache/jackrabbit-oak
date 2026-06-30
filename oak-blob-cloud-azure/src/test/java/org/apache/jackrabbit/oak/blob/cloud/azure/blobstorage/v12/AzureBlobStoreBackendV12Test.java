@@ -34,7 +34,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
@@ -46,50 +45,28 @@ public class AzureBlobStoreBackendV12Test {
     /**
      * getAllMetadataRecords must throw on storage error, not return empty — an empty result tells GC no records exist and causes it to delete all blobs.
      */
-    @Test
+    @Test(expected = RuntimeException.class)
     public void getAllMetadataRecords_storageException_propagatesInsteadOfReturningEmpty() {
-        try {
-            new FailingContainerBackend().getAllMetadataRecords("prefix");
-            fail("Storage failure must propagate; silent empty return causes GC to delete all blobs");
-        } catch (RuntimeException expected) {
-            // correct: GC receives the error and aborts rather than sweeping against empty live-refs
-        }
+        new FailingContainerBackend().getAllMetadataRecords("prefix");
     }
 
     /**
      * deleteAllMetadataRecords must throw on storage error, not silently succeed — a silent no-op leaves stale metadata that misleads the next GC mark phase.
      */
-    @Test
+    @Test(expected = RuntimeException.class)
     public void deleteAllMetadataRecords_storageException_propagatesInsteadOfSilentReturn() {
-        try {
-            new FailingContainerBackend().deleteAllMetadataRecords("prefix");
-            fail("Storage failure must propagate; silent no-op on delete leaves GC in inconsistent state");
-        } catch (RuntimeException expected) {
-            // correct: caller learns the delete failed and can retry or abort the GC phase
-        }
+        new FailingContainerBackend().deleteAllMetadataRecords("prefix");
     }
 
     /**
      * IllegalArgumentException from Azure SDK validation inside uploadBlob must be caught and surfaced as DataStoreException, not escape unchecked (which would silently leave the blob unwritten).
      */
-    @Test
+    @Test(expected = DataStoreException.class)
     public void uploadBlob_illegalArgumentFromSdk_wrappedAsDataStoreException() throws Exception {
-        // Simulate what the Azure SDK does when block size > 4000 MiB.
-        // The FailingUploadBackend overrides uploadBlob to throw IllegalArgumentException,
-        // exactly what ParallelTransferOptions.setBlockSizeLong(oversized) does.
         FailingUploadBackend backend = new FailingUploadBackend();
-
         java.io.File tempFile = java.io.File.createTempFile("safety-test", ".bin");
         tempFile.deleteOnExit();
-
-        try {
-            backend.write(new org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier("test1234567890abcdef"), tempFile);
-            fail("IllegalArgumentException from Azure SDK must be wrapped as DataStoreException, not escape unchecked");
-        } catch (DataStoreException expected) {
-            // correct: caller sees a typed exception and can handle/retry appropriately
-        } catch (IllegalArgumentException leaked) {
-            fail("IllegalArgumentException leaked unchecked from write() — blob silently not stored: " + leaked);
-        }
+        backend.write(new org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier("test1234567890abcdef"), tempFile);
     }
 
     /**
@@ -122,9 +99,7 @@ public class AzureBlobStoreBackendV12Test {
                     int n;
                     while ((n = input.read(chunk)) != -1) buf.write(chunk, 0, n);
                     stored = buf.toByteArray();
-                } catch (IOException e) {
-                    throw new DataStoreException(e.getMessage());
-                } catch (InterruptedException e) {
+                } catch (IOException | InterruptedException e) {
                     throw new DataStoreException(e.getMessage());
                 }
             }
@@ -137,7 +112,7 @@ public class AzureBlobStoreBackendV12Test {
 
         // Thread 2: starts while Thread 1 is blocked mid-write
         Future<byte[]> f2 = exec.submit(backend::getOrCreateReferenceKey);
-        Thread.sleep(50); // give Thread 2 time to reach readMetadataBytes (no sync) or block on lock (sync)
+        Thread.sleep(50); // NOSONAR: intentional timing gap so Thread 2 races into getOrCreateReferenceKey while Thread 1 is mid-write
 
         letWriteProceed.countDown(); // let Thread 1 finish writing
 

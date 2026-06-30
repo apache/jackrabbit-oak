@@ -72,16 +72,16 @@ public class AzureDataStoreWrapper extends AbstractDataStoreService {
     AbstractSharedCachingDataStore activeImpl;
     @Reference
     private StatisticsProvider statisticsProvider;
-    private ServiceRegistration<?> delegateReg;
+    private ServiceRegistration<AbstractSharedCachingDataStore> delegateReg;
 
-    static ServiceRegistration<?> registerService(ComponentContext context, AbstractSharedCachingDataStore service) {
+    static ServiceRegistration<AbstractSharedCachingDataStore> registerService(ComponentContext context, AbstractSharedCachingDataStore service) {
         Dictionary<String, Object> delegateProps = new Hashtable<>();
         // Use the v8 PID so consumers bound to "org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore"
         // still receive this service without needing a config change.
         delegateProps.put(Constants.SERVICE_PID, AzureDataStore.class.getName());
         delegateProps.put("oak.datastore.description", new String[]{"type=AzureBlob"});
         return context.getBundleContext().registerService(
-                AbstractSharedCachingDataStore.class.getName(), service, delegateProps);
+                AbstractSharedCachingDataStore.class, service, delegateProps);
     }
 
     /**

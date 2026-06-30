@@ -23,12 +23,12 @@ final class AzureConstantsV12 {
     /**
      * Directory name for storing metadata files in the blob storage
      */
-    public static final String AZURE_BlOB_META_DIR_NAME = "META";
+    public static final String AZURE_BLOB_META_DIR_NAME = "META";
 
     /**
      * Key prefix for metadata entries, includes trailing slash for directory structure
      */
-    public static final String AZURE_BLOB_META_KEY_PREFIX = AZURE_BlOB_META_DIR_NAME + "/";
+    public static final String AZURE_BLOB_META_KEY_PREFIX = AZURE_BLOB_META_DIR_NAME + "/";
 
     /**
      * Blob name (under META/) for the shared HMAC-SHA1 secret used to sign and verify upload tokens.
