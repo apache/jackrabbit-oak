@@ -25,12 +25,24 @@ import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 /**
  * Unit tests for AzureDataStoreV12 — covers guards and config delegation before init().
  */
 public class AzureDataStoreV12Test {
+
+    /**
+     * setBinaryTransferAccelerationEnabled is a no-op on Azure (not a supported feature) — must not throw.
+     */
+    @Test
+    public void setBinaryTransferAccelerationEnabled_doesNotThrow() {
+        AzureDataStoreV12 store = new AzureDataStoreV12();
+        store.setBinaryTransferAccelerationEnabled(true);
+        store.setBinaryTransferAccelerationEnabled(false);
+        assertNotNull(store);
+    }
 
     @Test
     public void getMinRecordLength_default_returns16k() {
@@ -86,7 +98,9 @@ public class AzureDataStoreV12Test {
      */
     @Test
     public void setDirectUploadURIExpirySeconds_beforeInit_doesNotThrow() {
-        new AzureDataStoreV12().setDirectUploadURIExpirySeconds(300);
+        AzureDataStoreV12 store = new AzureDataStoreV12();
+        store.setDirectUploadURIExpirySeconds(300);
+        assertNotNull(store); // setter must not NPE before init(); store remains usable
     }
 
     /**
@@ -94,7 +108,9 @@ public class AzureDataStoreV12Test {
      */
     @Test
     public void setDirectDownloadURIExpirySeconds_beforeInit_doesNotThrow() {
-        new AzureDataStoreV12().setDirectDownloadURIExpirySeconds(300);
+        AzureDataStoreV12 store = new AzureDataStoreV12();
+        store.setDirectDownloadURIExpirySeconds(300);
+        assertNotNull(store);
     }
 
     /**
@@ -102,6 +118,8 @@ public class AzureDataStoreV12Test {
      */
     @Test
     public void setDirectDownloadURICacheSize_beforeInit_doesNotThrow() {
-        new AzureDataStoreV12().setDirectDownloadURICacheSize(100);
+        AzureDataStoreV12 store = new AzureDataStoreV12();
+        store.setDirectDownloadURICacheSize(100);
+        assertNotNull(store);
     }
 }

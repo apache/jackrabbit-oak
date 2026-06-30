@@ -54,7 +54,9 @@ public class BlobSasHeadersV12Test {
      */
     @Test
     public void applyTo_nullSasValues_doesNotThrow() {
-        new BlobSasHeadersV12("cc", "cd", "ce", "cl", "ct").applyTo(null);
+        BlobSasHeadersV12 headers = new BlobSasHeadersV12("cc", "cd", "ce", "cl", "ct");
+        headers.applyTo(null);
+        assertTrue("headers should still report hasHeaders() after a no-op applyTo(null)", headers.hasHeaders());
     }
 
     /**
