@@ -1065,7 +1065,9 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
                 // Read from Azure first: another cluster node may have already written the shared secret.
                 // All nodes must use the same HMAC key so that upload tokens are valid cluster-wide.
                 key = readMetadataBytes(AZURE_BLOB_REF_KEY);
-                if (key.length == 0) {
+                // readMetadataBytes returns an empty array for a missing record; a subclass override
+                // (e.g. in tests) may still return null, so guard both.
+                if (key == null || key.length == 0) {
                     key = super.getOrCreateReferenceKey();
                     addMetadataRecord(new ByteArrayInputStream(key), AZURE_BLOB_REF_KEY);
                 }
