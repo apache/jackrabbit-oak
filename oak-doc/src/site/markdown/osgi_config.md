@@ -224,11 +224,13 @@ For example, as per default, only those BLOBs which have been created 24 hours i
   minimum. This is to ensure that the NodeStore(s) have had the time to flush out its internal data structures to 
   persistence and the references to recently added blobs are accounted.
 
-blobTrackSnapshotIntervalInSecs (long) - 43200
+blobTrackSnapshotIntervalInSecs (long) - 0
 : The blob ids cached/tracked locally are synchronized with the DataStore at this interval. Any additions and 
 deletions will be visible to other cluster nodes or repositories connected to the shared DatStore after this. This 
 should be less than the blobGcMaxAgeInSecs parameter above and the frequency of blob gc. See [Blob 
 tracker][blobtracker].
+A value of `0` (the default since Oak 2.4.0) disables blob ID tracking entirely for the Segment Node Store. To enable tracking,
+set this to a positive value (e.g. `43200` for 12 hours). Note that DocumentNodeStore defaults to `43200`.
 
 <a name="document-node-store"></a>
 #### DocumentNodeStore
