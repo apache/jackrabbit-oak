@@ -348,6 +348,71 @@ public class AzureDataStoreWrapperTest {
         assertTrue(store.getClass().getName().contains("AzureDataStoreV12"));
     }
 
+    @Test
+    public void initDelegatesToActiveImpl() throws DataStoreException {
+        wrapper.new DelegatingDataStore().init("/home/dir");
+        verify(mockImpl).init("/home/dir");
+    }
+
+    @Test
+    public void initiateDataRecordUpload_threeArg_delegatesToActiveImpl() throws DataRecordUploadException {
+        DataRecordUpload upload = mock(DataRecordUpload.class);
+        ConfigurableDataRecordAccessProvider provider = (ConfigurableDataRecordAccessProvider) mockImpl;
+        org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions options =
+                org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions.DEFAULT;
+        when(provider.initiateDataRecordUpload(2048L, 7, options)).thenReturn(upload);
+
+        DataRecordUpload result = wrapper.new DelegatingDataStore().initiateDataRecordUpload(2048L, 7, options);
+
+        assertSame(upload, result);
+        verify(provider).initiateDataRecordUpload(2048L, 7, options);
+    }
+
+    @Test
+    public void getDescription_returnsAzureBlobType() {
+        assertArrayEquals(new String[]{"type=AzureBlob"}, wrapper.getDescription());
+    }
+
+    @Test
+    public void statisticsProvider_getterReturnsInjectedValue() {
+        org.apache.jackrabbit.oak.stats.StatisticsProvider stats =
+                mock(org.apache.jackrabbit.oak.stats.StatisticsProvider.class);
+        wrapper.setStatisticsProvider(stats);
+        assertSame(stats, wrapper.getStatisticsProvider());
+    }
+
+    /**
+     * Default config (no v12 flag) must build the v8 store and return a working DelegatingDataStore
+     * registered under the v8 PID.
+     */
+    @Test
+    public void createDataStore_defaultFlag_createsV8Store() {
+        AzureDataStoreWrapper w = new AzureDataStoreWrapper();
+        w.setStatisticsProvider(mock(org.apache.jackrabbit.oak.stats.StatisticsProvider.class));
+        ComponentContext ctx = mockComponentContext();
+
+        org.apache.jackrabbit.oak.spi.blob.data.DataStore ds = w.createDataStore(ctx, new java.util.HashMap<>());
+
+        assertNotNull(ds);
+        assertTrue(w.activeImpl instanceof AzureDataStore);
+    }
+
+    /**
+     * v12 JVM flag must build the v12 store. Confirms the flag actually switches implementations.
+     */
+    @Test
+    public void createDataStore_v12Flag_createsV12Store() {
+        System.setProperty(AzureDataStoreWrapper.JVM_PROPERTY_V12_ENABLED, "true");
+        AzureDataStoreWrapper w = new AzureDataStoreWrapper();
+        w.setStatisticsProvider(mock(org.apache.jackrabbit.oak.stats.StatisticsProvider.class));
+        ComponentContext ctx = mockComponentContext();
+
+        org.apache.jackrabbit.oak.spi.blob.data.DataStore ds = w.createDataStore(ctx, new java.util.HashMap<>());
+
+        assertNotNull(ds);
+        assertTrue(w.activeImpl.getClass().getName().contains("AzureDataStoreV12"));
+    }
+
     // Guards against activeImpl accidentally becoming static; each wrapper must own its impl.
     @Test
     public void instancesHaveIndependentActiveImpl() throws DataStoreException {

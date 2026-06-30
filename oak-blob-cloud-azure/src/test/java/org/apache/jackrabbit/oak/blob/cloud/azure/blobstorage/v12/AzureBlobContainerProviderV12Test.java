@@ -20,10 +20,12 @@ package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12;
 
 import org.junit.Test;
 
+import java.lang.reflect.Method;
 import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit tests for AzureBlobContainerProviderV12.Builder — no Azure connection required.
@@ -81,6 +83,49 @@ public class AzureBlobContainerProviderV12Test {
 
         assertNotNull(provider);
         assertEquals("test-conn-string", provider.getAzureConnectionString());
+    }
+
+    /**
+     * Supplying tenant/client/secret triggers the ClientSecretCredential build branch in the
+     * constructor. The connection-string-only tests cover the null-credential branch; this covers
+     * the service-principal branch.
+     */
+    @Test
+    public void builder_withServicePrincipalFields_buildsCredentialBranch() {
+        AzureBlobContainerProviderV12 provider = AzureBlobContainerProviderV12.Builder
+                .builder("sp-container")
+                .withAccountName("acct")
+                .withTenantId("tenant-id")
+                .withClientId("client-id")
+                .withClientSecret("client-secret")
+                .build();
+
+        assertNotNull(provider);
+        assertEquals("sp-container", provider.getContainerName());
+    }
+
+    @Test
+    public void getEndpointUrl_customEndpointWithScheme_usedAsIs() throws Exception {
+        assertEquals("https://custom.example.com", invokeGetEndpointUrl("acct", "https://custom.example.com"));
+    }
+
+    @Test
+    public void getEndpointUrl_customEndpointWithoutScheme_getsHttpsPrefix() throws Exception {
+        assertEquals("https://custom.example.com", invokeGetEndpointUrl("acct", "custom.example.com"));
+    }
+
+    @Test
+    public void getEndpointUrl_noCustomEndpoint_buildsDefaultPublicEndpoint() throws Exception {
+        String url = invokeGetEndpointUrl("myacct", "");
+        assertEquals("https://myacct.blob.core.windows.net", url);
+        assertTrue(url.startsWith("https://"));
+    }
+
+    private static String invokeGetEndpointUrl(String accountName, String customEndpoint) throws Exception {
+        Method m = AzureBlobContainerProviderV12.class
+                .getDeclaredMethod("getEndpointUrl", String.class, String.class);
+        m.setAccessible(true);
+        return (String) m.invoke(null, accountName, customEndpoint);
     }
 
     @Test
