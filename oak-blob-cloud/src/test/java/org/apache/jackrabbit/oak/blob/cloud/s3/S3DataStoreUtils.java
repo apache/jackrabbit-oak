@@ -96,8 +96,7 @@ public class S3DataStoreUtils extends DataStoreUtils {
      */
     public static boolean isSseCustomerKeyEncrypted() {
         final Properties s3Config = getS3Config();
-        return Objects.equals(Utils.getDataEncryption(s3Config), DataEncryption.SSE_C)
-                || Objects.nonNull(s3Config.getProperty(S3Constants.S3_SSE_C_KEY));
+        return Objects.equals(Utils.getDataEncryption(s3Config), DataEncryption.SSE_C);
     }
 
     /**
