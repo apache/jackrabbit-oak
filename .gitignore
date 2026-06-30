@@ -14,3 +14,4 @@ derby.log
 oak-shaded-guava/dependency-reduced-pom.xml
 .DS_Store
 .claude/settings.local.json
+pom.xml.versionsBackup
