@@ -47,14 +47,29 @@ final class AzureConstantsV12 {
     public static final long AZURE_BLOB_BUFFERED_STREAM_THRESHOLD = 8L * 1024L * 1024L;
 
     /**
-     * Minimum part size (256 KiB) required for Azure Blob Storage multipart uploads
+     * Minimum part size (10 MiB) for presigned URI generation (Direct Binary Access).
+     * Aligns with V8 SDK behavior. Smaller values (e.g., 256 KiB) generate ~40x more URIs
+     * (e.g., ~41k URIs for 10 GB), creating large JSON payloads with downstream impact.
+     * Reference: CSO Release 24893 (GRANITE-66069) — V8->V12 upgrade URI explosion.
      */
-    public static final long AZURE_BLOB_MIN_MULTIPART_UPLOAD_PART_SIZE = 256L * 1024L;
+    public static final long AZURE_BLOB_MIN_MULTIPART_UPLOAD_PART_SIZE = 10L * 1024L * 1024L;
 
     /**
-     * Maximum part size (4000 MiB / 4 GiB) allowed by Azure Blob Storage for multipart uploads
+     * Maximum part size (4000 MiB / 4 GiB) allowed by Azure Blob Storage for multipart uploads.
+     * This is the Azure REST API limit for a single block in block-blob uploads.
+     * Used as a validator for presigned URI generation, NOT as the actual block size for internal uploads.
+     * Reference: Azure Blob Storage limits (50,000 blocks max, 4000 MiB max per block).
      */
     public static final long AZURE_BLOB_MAX_MULTIPART_UPLOAD_PART_SIZE = 4000L * 1024L * 1024L;
+
+    /**
+     * Block size (64 MiB) used for internal file uploads via uploadFromFileWithResponse.
+     * Balances throughput (larger blocks) vs. memory usage (bounded concurrent staging).
+     * Memory overhead = AZURE_BLOB_UPLOAD_BLOCK_SIZE × concurrentRequestCount
+     * At 64 MiB × 5 = 320 MiB max, regardless of file size.
+     * Reference: CSO Release 24893 (ASSETS-65164) — OOM from 4 GB block size.
+     */
+    public static final long AZURE_BLOB_UPLOAD_BLOCK_SIZE = 64L * 1024L * 1024L;
 
     /**
      * Maximum size (256 MiB) for single PUT operations in Azure Blob Storage

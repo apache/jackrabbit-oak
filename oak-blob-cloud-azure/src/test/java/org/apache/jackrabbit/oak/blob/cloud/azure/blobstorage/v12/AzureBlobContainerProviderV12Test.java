@@ -18,14 +18,24 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12;
 
+import com.azure.storage.blob.BlobServiceClient;
+import com.azure.storage.blob.models.UserDelegationKey;
 import org.junit.Test;
 
 import java.lang.reflect.Method;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for AzureBlobContainerProviderV12.Builder — no Azure connection required.
@@ -120,6 +130,112 @@ public class AzureBlobContainerProviderV12Test {
         assertEquals("https://myacct.blob.core.windows.net", url);
         assertTrue(url.startsWith("https://"));
     }
+
+    // -------------------------------------------------------------------------
+    // Delegation key caching
+    // -------------------------------------------------------------------------
+
+    /** Builds a provider wired with service-principal fields (no real Azure call needed). */
+    private static AzureBlobContainerProviderV12 buildSpProvider() {
+        return AzureBlobContainerProviderV12.Builder.builder("container")
+                .withAccountName("account")
+                .withTenantId("tenant")
+                .withClientId("client")
+                .withClientSecret("secret")
+                .build();
+    }
+
+    @Test
+    public void delegationKey_coldCache_fetchesFromAzure() {
+        AzureBlobContainerProviderV12 provider = buildSpProvider();
+        BlobServiceClient mockServiceClient = mock(BlobServiceClient.class);
+        UserDelegationKey mockKey = mock(UserDelegationKey.class);
+        when(mockServiceClient.getUserDelegationKey(any(), any())).thenReturn(mockKey);
+
+        OffsetDateTime sasExpiry = OffsetDateTime.now(ZoneOffset.UTC).plusHours(1);
+        UserDelegationKey result = provider.getOrRefreshDelegationKey(mockServiceClient, sasExpiry);
+
+        assertSame(mockKey, result);
+        verify(mockServiceClient, times(1)).getUserDelegationKey(any(), any());
+    }
+
+    @Test
+    public void delegationKey_warmCache_reusesWithoutAzureCall() {
+        AzureBlobContainerProviderV12 provider = buildSpProvider();
+        BlobServiceClient mockServiceClient = mock(BlobServiceClient.class);
+        UserDelegationKey mockKey = mock(UserDelegationKey.class);
+        when(mockServiceClient.getUserDelegationKey(any(), any())).thenReturn(mockKey);
+
+        OffsetDateTime sasExpiry = OffsetDateTime.now(ZoneOffset.UTC).plusHours(1);
+
+        // First call — cold cache
+        provider.getOrRefreshDelegationKey(mockServiceClient, sasExpiry);
+        // Subsequent calls within the same key lifetime — should reuse
+        provider.getOrRefreshDelegationKey(mockServiceClient, sasExpiry);
+        provider.getOrRefreshDelegationKey(mockServiceClient, sasExpiry);
+
+        verify(mockServiceClient, times(1)).getUserDelegationKey(any(), any());
+    }
+
+    @Test
+    public void delegationKey_expiredCache_refreshes() {
+        AzureBlobContainerProviderV12 provider = buildSpProvider();
+        BlobServiceClient mockServiceClient = mock(BlobServiceClient.class);
+        UserDelegationKey expiredKey = mock(UserDelegationKey.class);
+        UserDelegationKey freshKey = mock(UserDelegationKey.class);
+        when(mockServiceClient.getUserDelegationKey(any(), any())).thenReturn(freshKey);
+
+        // Inject a cached key whose expiry is already in the past.
+        OffsetDateTime pastExpiry = OffsetDateTime.now(ZoneOffset.UTC).minusSeconds(1);
+        provider.cachedDelegationKey.set(
+                new AzureBlobContainerProviderV12.CachedDelegationKey(expiredKey, pastExpiry));
+
+        OffsetDateTime sasExpiry = OffsetDateTime.now(ZoneOffset.UTC).plusHours(1);
+        UserDelegationKey result = provider.getOrRefreshDelegationKey(mockServiceClient, sasExpiry);
+
+        assertSame(freshKey, result);
+        verify(mockServiceClient, times(1)).getUserDelegationKey(any(), any());
+    }
+
+    @Test
+    public void delegationKey_keyExpiresBelowRenewalBuffer_refreshes() {
+        AzureBlobContainerProviderV12 provider = buildSpProvider();
+        BlobServiceClient mockServiceClient = mock(BlobServiceClient.class);
+        UserDelegationKey staleKey = mock(UserDelegationKey.class);
+        UserDelegationKey freshKey = mock(UserDelegationKey.class);
+        when(mockServiceClient.getUserDelegationKey(any(), any())).thenReturn(freshKey);
+
+        // Cached key expires 30s after sasExpiry — inside the 60s renewal buffer.
+        OffsetDateTime sasExpiry = OffsetDateTime.now(ZoneOffset.UTC).plusHours(1);
+        OffsetDateTime keyExpiryTooSoon = sasExpiry.plusSeconds(30);
+        provider.cachedDelegationKey.set(
+                new AzureBlobContainerProviderV12.CachedDelegationKey(staleKey, keyExpiryTooSoon));
+
+        UserDelegationKey result = provider.getOrRefreshDelegationKey(mockServiceClient, sasExpiry);
+
+        assertSame(freshKey, result);
+        verify(mockServiceClient, times(1)).getUserDelegationKey(any(), any());
+    }
+
+    @Test
+    public void delegationKey_keyExpiresOutsideRenewalBuffer_reuses() {
+        AzureBlobContainerProviderV12 provider = buildSpProvider();
+        BlobServiceClient mockServiceClient = mock(BlobServiceClient.class);
+        UserDelegationKey cachedKey = mock(UserDelegationKey.class);
+
+        // Cached key expires 90s after sasExpiry — comfortably outside the 60s buffer.
+        OffsetDateTime sasExpiry = OffsetDateTime.now(ZoneOffset.UTC).plusHours(1);
+        OffsetDateTime keyExpiry = sasExpiry.plusSeconds(90);
+        provider.cachedDelegationKey.set(
+                new AzureBlobContainerProviderV12.CachedDelegationKey(cachedKey, keyExpiry));
+
+        UserDelegationKey result = provider.getOrRefreshDelegationKey(mockServiceClient, sasExpiry);
+
+        assertSame(cachedKey, result);
+        verify(mockServiceClient, times(0)).getUserDelegationKey(any(), any());
+    }
+
+    // -------------------------------------------------------------------------
 
     private static String invokeGetEndpointUrl(String accountName, String customEndpoint) throws Exception {
         Method m = AzureBlobContainerProviderV12.class
