@@ -38,19 +38,22 @@ import static org.junit.Assert.assertTrue;
 public class RegressionCSOV12Test {
 
     /**
-     * V12 MIN_MULTIPART_UPLOAD_PART_SIZE must be 256KB.
-     * This is intentional for V12 SDK v12 to optimize throughput with larger blocks.
-     * Changing this affects URI generation and downstream consumer systems.
+     * V12 MIN_MULTIPART_UPLOAD_PART_SIZE must be 10MB.
+     * Originally set to 256KB (V12 SDK default) but caused 40x URI explosion in CSO 24893.
+     * For a 10GB download: 256KB → ~41k URIs (~4MB JSON), 10MB → ~1k URIs (~100KB JSON).
+     * Fixed to match V8 (OAK-12219 rework). Presigned URI generation now produces sane payloads.
+     * Reference: GRANITE-66069, CSO Release 24893
      */
     @Test
-    public void v12_minPartSize_mustBe256KB() {
-        long expected = 256L * 1024L; // 256 KB
+    public void v12_minPartSize_mustBe10MB() {
+        long expected = 10L * 1024L * 1024L; // 10 MB
         long actual = AzureConstantsV12.AZURE_BLOB_MIN_MULTIPART_UPLOAD_PART_SIZE;
 
         assertEquals(
-                "V12 minPartSize must be 256KB. Changes here affect presigned URI generation " +
-                        "and downstream systems (browsers, aemupload, NUI workers). " +
-                        "Ref: CSO 24893 - 256KB generates ~40x more URIs than V8's 10MB",
+                "V12 minPartSize must be 10MB (aligned with V8 for sane URI generation). " +
+                        "Originally 256KB in OAK-11267, causing 40x more URIs for large downloads. " +
+                        "10GB download: 256KB → ~41k URIs (~4MB JSON); 10MB → ~1k URIs (~100KB JSON). " +
+                        "Ref: GRANITE-66069, OAK-12219",
                 expected, actual);
     }
 
@@ -209,7 +212,8 @@ public class RegressionCSOV12Test {
 
     /**
      * Part size ratio test: ensures V12 minPartSize << maxPartSize.
-     * Ratio ~16000x (4000MB / 256KB) is healthy. Collapse indicates misconfiguration.
+     * Ratio ~400x (4000MB / 10MB). Collapse indicates misconfiguration.
+     * maxPartSize is the Azure REST API limit (validator); minPartSize governs URI generation.
      */
     @Test
     public void v12_partSize_ratio_isHealthy() {
@@ -217,19 +221,20 @@ public class RegressionCSOV12Test {
         long maxSize = AzureConstantsV12.AZURE_BLOB_MAX_MULTIPART_UPLOAD_PART_SIZE;
 
         double ratio = (double) maxSize / minSize;
-        double expectedRatio = 16000.0; // 4000MB / 256KB
+        double expectedRatio = 400.0; // 4000MB / 10MB
 
         assertEquals(
-                "V12 part size ratio must be ~16000x (4000MB max / 256KB min). " +
+                "V12 part size ratio must be ~400x (4000MB max / 10MB min). " +
                         "Deviation indicates misconfiguration or refactoring error. " +
-                        "Ref: CSO 24893",
+                        "Ref: CSO 24893, OAK-12219",
                 expectedRatio, ratio, 1.0);
     }
 
     /**
-     * Presigned URI generation scalability: 10GB download with V12's 256KB minPartSize.
-     * Expected: ~40,960 URIs (10GB / 256KB).
-     * This documents the URI explosion that motivated the CSO investigation.
+     * Presigned URI generation scalability: 10GB download with V12's 10MB minPartSize.
+     * Expected: ~1,024 URIs (10GB / 10MB) — same as V8, safe for all downstream consumers.
+     * Previously 256KB generated ~40,960 URIs (~4MB JSON payload) causing the CSO.
+     * Reference: GRANITE-66069, OAK-12219
      */
     @Test
     public void v12_presignedURI_generation_scalability_10GB_download() {
@@ -237,37 +242,80 @@ public class RegressionCSOV12Test {
         long downloadSize = 10L * 1024L * 1024L * 1024L; // 10 GB
         long uriCount = (downloadSize + minPartSize - 1) / minPartSize; // ceiling division
 
-        long expectedURICount = 40960; // Approximately 10GB / 256KB
+        long expectedURICount = 1024; // 10GB / 10MB
         long actualURICount = uriCount;
 
         assertEquals(
-                "V12 presigned URI count for 10GB download is ~40,960 (with 256KB minPartSize). " +
-                        "This is 40x more than V8's ~1024 URIs, creating ~4MB JSON payloads. " +
-                        "Downstream systems (browsers, aemupload, NUI) must handle this. " +
-                        "Ref: GRANITE-66069 (CSO 24893)",
+                "V12 presigned URI count for 10GB download must be ~1,024 (with 10MB minPartSize). " +
+                        "Matches V8 behavior. Previously 256KB generated ~40,960 URIs (~4MB JSON). " +
+                        "Ref: GRANITE-66069 (CSO 24893), OAK-12219",
                 expectedURICount, actualURICount);
     }
 
     /**
-     * Azure's 50,000 block limit caps the maximum uploadable blob size at current minPartSize.
-     * Max size = 50,000 blocks * 256KB = 12.5 GiB.
-     * Files larger than this at 256KB min part size cannot be uploaded without increasing the block size.
-     * The CSO incident tested a ~12.8GB download which generated ~48,805 URIs — near but under the limit.
+     * Azure's 50,000 block limit caps the maximum addressable size via presigned URIs at minPartSize.
+     * Max size = 50,000 blocks * 10MB = ~500 GiB.
+     * At the previous 256KB min, this was only 12.5 GiB — files just above that (e.g., the CSO's
+     * ~12.8GB test) approached the block limit, generating ~48,805 URIs.
+     * At 10MB min, the ceiling is ~500 GiB, well above any realistic single-asset size.
+     * Reference: CSO 24893, OAK-12219
      */
     @Test
-    public void v12_maxUploadableSize_at_minPartSize_is_12_5GiB() {
-        long minPartSize = AzureConstantsV12.AZURE_BLOB_MIN_MULTIPART_UPLOAD_PART_SIZE; // 256KB
-        long maxBlocks = AzureConstantsV12.AZURE_BLOB_MAX_ALLOWABLE_UPLOAD_URIS;       // 50,000
-        long maxSize = minPartSize * maxBlocks; // 12.5 GiB
+    public void v12_maxUploadableSize_at_minPartSize_is_500GiB() {
+        long minPartSize = AzureConstantsV12.AZURE_BLOB_MIN_MULTIPART_UPLOAD_PART_SIZE; // 10MB
+        long maxBlocks = AzureConstantsV12.AZURE_BLOB_MAX_ALLOWABLE_UPLOAD_URIS;        // 50,000
+        long maxSize = minPartSize * maxBlocks; // ~500 GiB
 
-        long expected = 256L * 1024L * 50_000L;
+        long expected = 10L * 1024L * 1024L * 50_000L;
 
         assertEquals(
-                "Max uploadable size at V12 minPartSize (256KB) is 50,000 * 256KB = 12.5 GiB. " +
-                        "Files larger than this require the SDK to negotiate a larger block size. " +
-                        "The CSO tested a ~12.8GB download (~48,805 URIs) approaching this boundary. " +
-                        "Ref: CSO 24893 incident report, Azure block limit",
+                "Max addressable size via presigned URIs at V12 minPartSize (10MB) is 50,000 * 10MB = ~500 GiB. " +
+                        "Well above any realistic single-asset size. " +
+                        "Previously 256KB capped this at 12.5 GiB, near the CSO's ~12.8GB test case. " +
+                        "Ref: CSO 24893, OAK-12219",
                 expected, maxSize);
+    }
+
+    /**
+     * V12 AZURE_BLOB_UPLOAD_BLOCK_SIZE must be 64MB.
+     * This is the block size used for internal Oak uploads via uploadFromFileWithResponse.
+     * Previously, uploadBlob() used min(fileSize, MAX_MULTIPART) as blockSize — for a 1GB file
+     * that staged a 1GB block; at 5 concurrent uploads = 5GB in-flight memory → OOM.
+     * Fixed to a bounded 64MB block size: 5 × 64MB = 320MB max, regardless of file size.
+     * Reference: ASSETS-65164, OAK-12219
+     */
+    @Test
+    public void v12_uploadBlockSize_mustBe64MB() {
+        long expected = 64L * 1024L * 1024L; // 64 MB
+        long actual = AzureConstantsV12.AZURE_BLOB_UPLOAD_BLOCK_SIZE;
+
+        assertEquals(
+                "V12 uploadBlockSize must be 64MB (internal block upload granularity). " +
+                        "Memory overhead = uploadBlockSize × concurrentRequestCount = 64MB × 5 = 320MB max. " +
+                        "Previously used min(fileSize, 4000MB) — 1GB file → 5 × 1GB = 5GB in-flight memory. " +
+                        "Ref: ASSETS-65164 (CSO 24893), OAK-12219",
+                expected, actual);
+    }
+
+    /**
+     * Internal upload memory overhead is bounded regardless of file size.
+     * Memory = AZURE_BLOB_UPLOAD_BLOCK_SIZE × DEFAULT_CONCURRENT_REQUEST_COUNT = 64MB × 5 = 320MB.
+     * Previously: blockSize = min(fileSize, 4000MB) → for a 5GB file, 5 × 4000MB = 20GB in-flight.
+     */
+    @Test
+    public void v12_uploadMemory_bounded_by_blockSize_and_concurrency() {
+        long blockSize = AzureConstantsV12.AZURE_BLOB_UPLOAD_BLOCK_SIZE;
+        int concurrency = AzureConstantsV12.AZURE_BLOB_DEFAULT_CONCURRENT_REQUEST_COUNT;
+        long maxInFlightMemory = blockSize * concurrency;
+
+        long expectedMax = 64L * 1024L * 1024L * 5; // 320 MB
+
+        assertEquals(
+                "Max in-flight upload memory (blockSize × concurrency) must be 320MB (64MB × 5). " +
+                        "Bounded regardless of file size. " +
+                        "Previously min(fileSize, 4000MB) × 5 could reach 20GB for large files. " +
+                        "Ref: ASSETS-65164 (CSO 24893), OAK-12219",
+                expectedMax, maxInFlightMemory);
     }
 
     /**

@@ -195,6 +195,14 @@ public class AzureBlobContainerProvider implements Closeable {
         return Utils.getBlobContainer(connectionStringWithAccountKey, containerName, blobRequestOptions);
     }
 
+    public boolean deleteContainerIfExists() throws DataStoreException {
+        try {
+            return getBlobContainer().deleteIfExists();
+        } catch (StorageException e) {
+            throw new DataStoreException("Failed to delete container " + containerName, e);
+        }
+    }
+
     @NotNull
     private CloudBlobContainer getBlobContainerFromServicePrincipals(@Nullable BlobRequestOptions blobRequestOptions) throws DataStoreException {
         StorageCredentialsToken storageCredentialsToken = getStorageCredentials();
