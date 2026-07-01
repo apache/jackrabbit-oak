@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Properties;
@@ -63,6 +64,16 @@ class AzureBlobContainerProviderV12 {
     // Cached service client for user-delegation SAS generation — avoids allocating a new Netty
     // event loop and connection pool on every SAS call.
     private final AtomicReference<BlobServiceClient> cachedBlobServiceClient = new AtomicReference<>();
+    // Cached user delegation key — Azure issues one key per round-trip; reusing it across all
+    // presigned URI generations in an upload/download avoids O(N) calls to the userdelegationkey
+    // endpoint (N = number of parts). Azure allows keys valid up to 7 days.
+    // Package-private for test injection.
+    final AtomicReference<CachedDelegationKey> cachedDelegationKey = new AtomicReference<>();
+
+    // Request keys for the full 7-day window so they cover any SAS expiry we'd generate.
+    private static final Duration DELEGATION_KEY_LIFETIME = Duration.ofDays(7);
+    // Renew early enough to cover clock skew between this host and Azure.
+    private static final Duration DELEGATION_KEY_RENEWAL_BUFFER = Duration.ofSeconds(60);
 
     private AzureBlobContainerProviderV12(Builder builder) {
         this.azureConnectionString = builder.azureConnectionString;
@@ -193,9 +204,35 @@ class AzureBlobContainerProviderV12 {
                                                      Properties properties) {
 
         BlobServiceClient blobServiceClient = getOrCreateBlobServiceClient(properties);
-        OffsetDateTime startTime = OffsetDateTime.now(ZoneOffset.UTC);
-        UserDelegationKey userDelegationKey = blobServiceClient.getUserDelegationKey(startTime, expiryTime);
+        UserDelegationKey userDelegationKey = getOrRefreshDelegationKey(blobServiceClient, expiryTime);
         return blobClient.generateUserDelegationSas(serviceSasSignatureValues, userDelegationKey);
+    }
+
+    /**
+     * Returns a cached {@link UserDelegationKey} valid past {@code sasExpiry}, fetching a fresh
+     * one when the cache is cold or the cached key would expire too soon. The key is always
+     * requested for {@link #DELEGATION_KEY_LIFETIME} (7 days) so it covers any SAS expiry we
+     * would generate without frequent round-trips to Azure.
+     */
+    UserDelegationKey getOrRefreshDelegationKey(BlobServiceClient blobServiceClient, OffsetDateTime sasExpiry) {
+        // Fast path: cached key still covers sasExpiry with headroom.
+        CachedDelegationKey cached = cachedDelegationKey.get();
+        if (cached != null && cached.expiry.isAfter(sasExpiry.plus(DELEGATION_KEY_RENEWAL_BUFFER))) {
+            return cached.key;
+        }
+        synchronized (this) {
+            // Re-check inside the lock — another thread may have refreshed while we waited.
+            cached = cachedDelegationKey.get();
+            if (cached != null && cached.expiry.isAfter(sasExpiry.plus(DELEGATION_KEY_RENEWAL_BUFFER))) {
+                return cached.key;
+            }
+            OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+            OffsetDateTime keyExpiry = now.plus(DELEGATION_KEY_LIFETIME);
+            UserDelegationKey newKey = blobServiceClient.getUserDelegationKey(now, keyExpiry);
+            cachedDelegationKey.set(new CachedDelegationKey(newKey, keyExpiry));
+            log.debug("Refreshed user delegation key, valid until {}", keyExpiry);
+            return newKey;
+        }
     }
 
     private boolean authenticateViaServicePrincipal() {
@@ -253,6 +290,17 @@ class AzureBlobContainerProviderV12 {
     private String generateSas(BlockBlobClient blob,
                                BlobServiceSasSignatureValues blobServiceSasSignatureValues) {
         return blob.generateSas(blobServiceSasSignatureValues, null);
+    }
+
+    /** Holds a {@link UserDelegationKey} alongside the expiry we requested it with. */
+    static final class CachedDelegationKey {
+        final UserDelegationKey key;
+        final OffsetDateTime expiry;
+
+        CachedDelegationKey(UserDelegationKey key, OffsetDateTime expiry) {
+            this.key = key;
+            this.expiry = expiry;
+        }
     }
 
     public static class Builder {
