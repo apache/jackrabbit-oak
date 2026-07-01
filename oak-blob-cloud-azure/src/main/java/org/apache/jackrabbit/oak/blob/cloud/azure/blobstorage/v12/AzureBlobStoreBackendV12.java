@@ -22,14 +22,7 @@ import com.azure.core.http.rest.Response;
 import com.azure.core.util.Context;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.models.BlobItem;
-import com.azure.storage.blob.models.BlobProperties;
-import com.azure.storage.blob.models.BlobStorageException;
-import com.azure.storage.blob.models.Block;
-import com.azure.storage.blob.models.BlockBlobItem;
-import com.azure.storage.blob.models.BlockListType;
-import com.azure.storage.blob.models.ListBlobsOptions;
-import com.azure.storage.blob.models.ParallelTransferOptions;
+import com.azure.storage.blob.models.*;
 import com.azure.storage.blob.options.BlobUploadFromFileOptions;
 import com.azure.storage.blob.options.BlockBlobCommitBlockListOptions;
 import com.azure.storage.blob.sas.BlobSasPermission;
@@ -43,11 +36,7 @@ import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadToken;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.*;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
@@ -59,13 +48,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UncheckedIOException;
+import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
@@ -73,16 +56,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -359,10 +333,9 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
         // Memory overhead = AZURE_BLOB_UPLOAD_BLOCK_SIZE × concurrentRequestCount.
         // Previously used min(len, MAX_MULTIPART) which could stage 4 GB blocks concurrently → OOM.
         // Reference: CSO Release 24893 (ASSETS-65164).
-        // Minimum 1: SDK rejects blockSize=0 (e.g. empty file).
-        long blockSize = Math.max(1L, len <= AZURE_BLOB_MAX_SINGLE_PUT_UPLOAD_SIZE
+        long blockSize = len <= AZURE_BLOB_MAX_SINGLE_PUT_UPLOAD_SIZE
                 ? len
-                : AZURE_BLOB_UPLOAD_BLOCK_SIZE);
+                : AZURE_BLOB_UPLOAD_BLOCK_SIZE;
         ParallelTransferOptions parallelTransferOptions = new ParallelTransferOptions()
                 .setBlockSizeLong(blockSize)
                 .setMaxConcurrency(concurrentRequestCount)
