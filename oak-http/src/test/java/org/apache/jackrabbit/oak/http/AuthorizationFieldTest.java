@@ -47,12 +47,10 @@ public class AuthorizationFieldTest {
         assertEquals("bar", new String(credentials.getPassword()));
     }
 
-    @Test(expected = ArrayIndexOutOfBoundsException.class) // BUG: OAK-12259
+    @Test(expected = LoginException.class)
     public void testInvalidBase64() throws LoginException {
         String b64 = Base64.getEncoder().encodeToString("foo:bar".getBytes(StandardCharsets.UTF_8));
-        SimpleCredentials credentials = AuthorizationField.valueOf(Collections.enumeration(List.of("Basic dksjdkj" + b64)));
-        assertEquals("foo", credentials.getUserID());
-        assertEquals("bar", new String(credentials.getPassword()));
+        AuthorizationField.valueOf(Collections.enumeration(List.of("Basic dksjdkj" + b64)));
     }
 
     @Test(expected = LoginException.class)
@@ -64,9 +62,67 @@ public class AuthorizationFieldTest {
     @Test
     public void testColonInPassword() throws LoginException {
         String b64 = "Basic " + Base64.getEncoder().encodeToString("foo:bar:qux".getBytes(StandardCharsets.UTF_8));
-        SimpleCredentials credentials =AuthorizationField.valueOf(Collections.enumeration(List.of(b64)));
+        SimpleCredentials credentials = AuthorizationField.valueOf(Collections.enumeration(List.of(b64)));
         assertEquals("foo", credentials.getUserID());
-        // BUG: OAK-12259
+        assertEquals("bar:qux", new String(credentials.getPassword()));
+    }
+
+    @Test(expected = LoginException.class)
+    public void testMissingColon() throws LoginException {
+        String b64 = "Basic " + Base64.getEncoder().encodeToString("foobarqux".getBytes(StandardCharsets.UTF_8));
+        AuthorizationField.valueOf(Collections.enumeration(List.of(b64)));
+    }
+
+    @Test
+    public void testSchemeCase() throws LoginException {
+        String b64 = Base64.getEncoder().encodeToString("foo:bar".getBytes(StandardCharsets.UTF_8));
+        SimpleCredentials credentials = AuthorizationField.valueOf(Collections.enumeration(List.of("BaSiC " + b64)));
+        assertEquals("foo", credentials.getUserID());
+        assertEquals("bar", new String(credentials.getPassword()));
+    }
+
+    @Test
+    public void testMoreWhitespace() throws LoginException {
+        String b64 = Base64.getEncoder().encodeToString("foo:bar".getBytes(StandardCharsets.UTF_8));
+        SimpleCredentials credentials = AuthorizationField.valueOf(Collections.enumeration(List.of("Basic   " + b64)));
+        assertEquals("foo", credentials.getUserID());
+        assertEquals("bar", new String(credentials.getPassword()));
+    }
+
+    @Test(expected = LoginException.class)
+    public void testNonSpWhitespace() throws LoginException {
+        String b64 = Base64.getEncoder().encodeToString("foo:bar".getBytes(StandardCharsets.UTF_8));
+        AuthorizationField.valueOf(Collections.enumeration(List.of("Basic \t " + b64)));
+    }
+
+    @Test(expected = LoginException.class)
+    public void testBrokenBase64() throws LoginException {
+        String b64 = Base64.getEncoder().encodeToString("foo:bar".getBytes(StandardCharsets.UTF_8));
+        // insert a single SP into the base64 sequence
+        b64 = b64.substring(0,5) + " " + b64.substring(5);
+        AuthorizationField.valueOf(Collections.enumeration(List.of("Basic " + b64)));
+    }
+
+    @Test(expected = LoginException.class)
+    public void testMoreBrokenBase64() throws LoginException {
+        String b64 = Base64.getEncoder().encodeToString("foo:bar".getBytes(StandardCharsets.UTF_8));
+        b64 = b64.substring(0,5) + "=" + b64.substring(5);
+        AuthorizationField.valueOf(Collections.enumeration(List.of("Basic " + b64)));
+    }
+
+    @Test
+    public void testMoreNonAscii() throws LoginException {
+        String b64 = Base64.getEncoder().encodeToString("test:123\u00a3".getBytes(StandardCharsets.UTF_8));
+        SimpleCredentials credentials = AuthorizationField.valueOf(Collections.enumeration(List.of("Basic " + b64)));
+        assertEquals("test", credentials.getUserID());
+        assertEquals("123\u00a3", new String(credentials.getPassword()));
+    }
+
+    @Test
+    public void testBasic64NoPadding() throws LoginException {
+        String b64 = Base64.getEncoder().withoutPadding().encodeToString("foo:bar".getBytes(StandardCharsets.UTF_8));
+        SimpleCredentials credentials = AuthorizationField.valueOf(Collections.enumeration(List.of("Basic " + b64)));
+        assertEquals("foo", credentials.getUserID());
         assertEquals("bar", new String(credentials.getPassword()));
     }
 }
