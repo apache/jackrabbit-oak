@@ -318,9 +318,14 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
     }
 
     private void uploadBlob(BlockBlobClient client, File file, long len, Stopwatch stopwatch, String key) throws IOException {
-        // Azure SDK rejects 0 and values > AZURE_BLOB_MAX_MULTIPART_UPLOAD_PART_SIZE.
-        // For large files the SDK will split into multiple blocks of blockSize bytes each.
-        long blockSize = Math.max(1, Math.min(len, AZURE_BLOB_MAX_MULTIPART_UPLOAD_PART_SIZE));
+        // Files <= MAX_SINGLE_PUT_UPLOAD_SIZE are uploaded in a single PUT (no blocks needed).
+        // Larger files use block upload with a fixed block size to bound memory usage.
+        // Memory overhead = AZURE_BLOB_UPLOAD_BLOCK_SIZE × concurrentRequestCount.
+        // Previously used min(len, MAX_MULTIPART) which could stage 4 GB blocks concurrently → OOM.
+        // Reference: CSO Release 24893 (ASSETS-65164).
+        long blockSize = len <= AZURE_BLOB_MAX_SINGLE_PUT_UPLOAD_SIZE
+                ? len
+                : AZURE_BLOB_UPLOAD_BLOCK_SIZE;
         ParallelTransferOptions parallelTransferOptions = new ParallelTransferOptions()
                 .setBlockSizeLong(blockSize)
                 .setMaxConcurrency(concurrentRequestCount)
