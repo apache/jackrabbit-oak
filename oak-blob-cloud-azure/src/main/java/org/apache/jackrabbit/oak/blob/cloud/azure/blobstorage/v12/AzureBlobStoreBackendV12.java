@@ -85,7 +85,6 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12.AzureConstantsV12.*;
 import static org.apache.jackrabbit.oak.commons.StringUtils.emptyToNull;
@@ -182,10 +181,21 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
 
     // Lazy: retryOptions and azureBlobContainerProvider aren't set until initContainerConnection() runs.
     protected BlobContainerClient getAzureContainer() throws DataStoreException {
-        if (azureContainerReference.get() == null) {
-            azureContainerReference.compareAndSet(null, azureBlobContainerProvider.getBlobContainer(retryOptions, properties));
+        BlobContainerClient existing = azureContainerReference.get();
+        if (existing != null) {
+            return existing;
         }
-        return azureContainerReference.get();
+        // Synchronize so getBlobContainer() (which allocates a Netty event loop) is called
+        // at most once — the previous non-synchronized compareAndSet could lose a race and
+        // silently discard a fully initialised client including its event loop group.
+        synchronized (this) {
+            existing = azureContainerReference.get();
+            if (existing == null) {
+                existing = azureBlobContainerProvider.getBlobContainer(retryOptions, properties);
+                azureContainerReference.set(existing);
+            }
+            return existing;
+        }
     }
 
     // Swaps Thread Class Context Loader to this bundle's classloader so Azure SDK's ServiceLoader-based SPI discovery works in OSGi.
@@ -411,17 +421,18 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
 
     @Override
     public Iterator<DataIdentifier> getAllIdentifiers() throws DataStoreException {
+        // Preserve Azure SDK v12's lazy pagination — do not collect() to a List.
         return withBundleContextClassLoader(() ->
                 getAzureContainer().listBlobs().stream()
                         .map(blobItem -> getIdentifierName(blobItem.getName()))
                         .filter(Objects::nonNull)
                         .map(DataIdentifier::new)
-                        .collect(Collectors.toList())
                         .iterator());
     }
 
     @Override
     public Iterator<DataRecord> getAllRecords() throws DataStoreException {
+        // Preserve Azure SDK v12's lazy pagination — do not collect() to a List.
         return withBundleContextClassLoader(() ->
                 getAzureContainer().listBlobs().stream()
                         .map(blobItem -> {
@@ -437,7 +448,6 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
                                     blobItem.getProperties().getContentLength());
                         })
                         .filter(Objects::nonNull)
-                        .collect(Collectors.toList())
                         .iterator());
     }
 
@@ -454,7 +464,10 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
 
     @Override
     public void close() {
-        //Nothing to close
+        azureContainerReference.set(null);
+        if (azureBlobContainerProvider != null) {
+            azureBlobContainerProvider.close();
+        }
     }
 
     @Override
