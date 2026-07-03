@@ -340,10 +340,6 @@ public class DiffIndexMerger {
         String prefix = "/oak:index/";
         for (String key : combined.getChildren().keySet()) {
             IndexName name = IndexName.parse(key.substring(prefix.length()));
-            if (!name.isVersioned()) {
-                log("Ignoring unversioned index {}", name);
-                continue;
-            }
             if (!name.getBaseName().equals(indexName)) {
                 continue;
             }
@@ -457,9 +453,12 @@ public class DiffIndexMerger {
                         "-custom-" + (latestCustomized.getCustomerVersion() + 1);
             } else {
                 // customized OOTB index: use the latest product as the base
-                key = prefix + indexName +
-                        "-" + latestProduct.getProductVersion() +
-                        "-custom-";
+                int productVersion = latestProduct.getProductVersion();
+                if (productVersion == 0) {
+                    key = prefix + indexName + "-custom-";
+                } else {
+                    key = prefix + indexName + "-" + productVersion + "-custom-";
+                }
                 if (latestCustomized != null) {
                     key += (latestCustomized.getCustomerVersion() + 1);
                 } else {

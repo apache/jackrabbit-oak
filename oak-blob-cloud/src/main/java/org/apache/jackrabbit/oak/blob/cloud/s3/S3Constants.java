@@ -170,6 +170,14 @@ public final class S3Constants {
     public static final String PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS = "presignedHttpDownloadURIVerifyExists";
 
     /**
+     * Boolean property to enable path-style access for S3 clients ({@code pathStyleAccess=true}).
+     * When enabled, requests use {@code http://endpoint/bucket/key} instead of
+     * {@code https://bucket.endpoint/key}. Defaults to {@code false}.
+     * Always enabled automatically when the remote storage mode is GCP.
+     */
+    public static final String PATH_STYLE_ACCESS = "pathStyleAccess";
+
+    /**
      * private constructor so that class cannot initialized from outside.
      */
     private S3Constants() {

@@ -80,7 +80,7 @@ public class SegmentNodeStoreService {
     // TODO(frm) This is only exposed to tests. Should it be removed?
     public static final String REPOSITORY_HOME_DIRECTORY = "repository.home";
 
-    private static final long DEFAULT_BLOB_SNAPSHOT_INTERVAL = 12 * 60 * 60;
+    private static final long DEFAULT_BLOB_SNAPSHOT_INTERVAL = 0L;
 
     private static final long DEFAULT_BLOB_GC_MAX_AGE = 24 * 60 * 60;
 

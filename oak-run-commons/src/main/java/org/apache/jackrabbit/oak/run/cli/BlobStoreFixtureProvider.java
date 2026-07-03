@@ -29,6 +29,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -100,7 +101,8 @@ public class BlobStoreFixtureProvider {
             }
             delegate.init(null);
         }
-        DataStoreBlobStore blobStore = new DataStoreBlobStore(delegate);
+        // The command fixture and DocumentNodeStore can both tear down the same blob store instance.
+        DataStoreBlobStore blobStore = new IdempotentDataStoreBlobStore(delegate);
         return new DataStoreFixture(blobStore, closer,
             (!options.getCommonOpts().isReadWrite() && !bsopts.isReadWrite()));
     }
@@ -140,11 +142,27 @@ public class BlobStoreFixtureProvider {
 
         @Override
         public void close() throws IOException {
-            closer.close();
             try {
+                closer.close();
                 blobStore.close();
             } catch (DataStoreException e) {
                 throw new IOException(e);
+            }
+        }
+    }
+
+    private static final class IdempotentDataStoreBlobStore extends DataStoreBlobStore {
+        private final AtomicBoolean closed = new AtomicBoolean();
+
+        private IdempotentDataStoreBlobStore(DataStore delegate) {
+            super(delegate);
+        }
+
+        @Override
+        public void close() throws DataStoreException {
+            // DocumentNodeStore and the outer fixture can both own teardown of the same blob store.
+            if (closed.compareAndSet(false, true)) {
+                super.close();
             }
         }
     }

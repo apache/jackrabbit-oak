@@ -132,7 +132,6 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Feature docStoreThrottlingFeature;
     private Feature noChildOrderCleanupFeature;
     private Feature cancelInvalidationFeature;
-    private Feature docStoreFullGCFeature;
     private Feature docStoreAvoidMergeLockFeature;
     private Feature prevNoPropCacheFeature;
     private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
@@ -503,15 +502,6 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     @Nullable
     public Feature getCancelInvalidationFeature() {
         return cancelInvalidationFeature;
-    }
-
-    public T setDocStoreFullGCFeature(@Nullable Feature docStoreFullGC) {
-        this.docStoreFullGCFeature = docStoreFullGC;
-        return thisBuilder();
-    }
-
-    public Feature getDocStoreFullGCFeature() {
-        return docStoreFullGCFeature;
     }
 
     public Feature getDocStoreAvoidMergeLockFeature() {

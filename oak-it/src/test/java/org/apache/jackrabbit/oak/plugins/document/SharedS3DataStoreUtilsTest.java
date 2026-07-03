@@ -30,12 +30,14 @@ import org.apache.jackrabbit.oak.plugins.blob.SharedDataStoreUtilsTest;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.junit.After;
 import org.junit.BeforeClass;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.deleteBucket;
+import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 /**
@@ -69,6 +71,22 @@ public class SharedS3DataStoreUtilsTest extends SharedDataStoreUtilsTest {
         props.setProperty(S3Constants.MAX_KEYS, "2");
         return new DataStoreBlobStore(
             S3DataStoreUtils.getS3DataStore(s3Class, props, rootFolder.getAbsolutePath()));
+    }
+
+    @Override
+    @Test
+    public void test() throws Exception {
+        assumeFalse("S3Mock returns metadata lastModified values with second precision",
+                S3DataStoreUtils.isS3EmulatorConfigured());
+        super.test();
+    }
+
+    @Override
+    @Test
+    public void testStreamFromGetAllRecords() throws Exception {
+        assumeFalse("S3Mock returns getAllRecords lastModified values with second precision",
+                S3DataStoreUtils.isS3EmulatorConfigured());
+        super.testStreamFromGetAllRecords();
     }
 
     @After

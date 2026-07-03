@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>37</version>
+    <version>39</version>
     <relativePath />
   </parent>
 
@@ -70,7 +70,7 @@
     <pax-url.version>2.6.17</pax-url.version>
     <groovy.version>3.0.25</groovy.version>
     <netty.version>4.1.135.Final</netty.version>
-    <aws.sdk.version>2.34.9</aws.sdk.version>
+    <aws.sdk.version>2.35.11</aws.sdk.version>
     <!-- determines the bytecode version (i.e. the minimum JRE required to run the build artifact) -->
     <javaTargetVersion>17</javaTargetVersion>
     <maven.compiler.release>${javaTargetVersion}</maven.compiler.release>
@@ -131,7 +131,7 @@
             <links>
               <link>https://s.apache.org/jcr-2.0-javadoc/</link>
               <link>https://jackrabbit.apache.org/api/2.20/</link>
-              <link>http://www.slf4j.org/apidocs/</link>
+              <link>https://www.slf4j.org/apidocs/</link>
             </links>
             <!-- workaround for https://issues.apache.org/jira/browse/OAK-8517 -->
       	    <excludePackageNames>org.apache.jackrabbit.oak.plugins.index.*</excludePackageNames>

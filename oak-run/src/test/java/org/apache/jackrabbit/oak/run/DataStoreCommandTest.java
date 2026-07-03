@@ -27,6 +27,8 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.Dictionary;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -843,10 +845,16 @@ public class DataStoreCommandTest {
         }
 
         Set<String> blobsBeforeGc = SetUtils.difference(data.added, data.missingDataStore);
-        if (maxAge <= 0) {
-            assertEquals(SetUtils.difference(blobsBeforeGc, data.deleted), blobs(setupDataStore));
-        } else {
-            assertEquals(blobsBeforeGc, blobs(setupDataStore));
+        // storeFixture.close() may dispose the original blob store, so validate through a fresh handle.
+        DataStoreBlobStore validationBlobStore = blobFixture.openDataStore(temporaryFolder.newFolder().getAbsolutePath());
+        try {
+            if (maxAge <= 0) {
+                assertEquals(SetUtils.difference(blobsBeforeGc, data.deleted), blobs(validationBlobStore));
+            } else {
+                assertEquals(blobsBeforeGc, blobs(validationBlobStore));
+            }
+        } finally {
+            validationBlobStore.close();
         }
     }
 
@@ -965,6 +973,21 @@ public class DataStoreCommandTest {
         FileOutputStream fos = FileUtils.openOutputStream(cfgFile);
         ConfigurationHandler.write(fos, props);
         return cfgFile.getAbsolutePath();
+    }
+
+    // Reuse the same OSGi config format as the command under test when reopening a datastore.
+    private static Properties readConfigProperties(String cfgFilePath) throws IOException {
+        Dictionary<?, ?> dict;
+        try (FileInputStream fis = new FileInputStream(cfgFilePath)) {
+            dict = ConfigurationHandler.read(fis);
+        }
+        Properties props = new Properties();
+        Enumeration<?> keys = dict.keys();
+        while (keys.hasMoreElements()) {
+            String key = (String) keys.nextElement();
+            props.put(key, dict.get(key));
+        }
+        return props;
     }
 
     private static Set<String> encodedIdsAndPath(Set<String> ids, Type dsOption, Map<String, String> idToNodes,
@@ -1244,6 +1267,8 @@ public class DataStoreCommandTest {
 
         DataStoreBlobStore getDataStore();
 
+        DataStoreBlobStore openDataStore(String homeDir) throws Exception;
+
         String getConfigPath();
 
         Type getType();
@@ -1279,6 +1304,12 @@ public class DataStoreCommandTest {
 
             @Override public DataStoreBlobStore getDataStore() {
                 return blobStore;
+            }
+
+            @Override public DataStoreBlobStore openDataStore(String homeDir) throws Exception {
+                Properties props = readConfigProperties(cfgFilePath);
+                DataStore ds = S3DataStoreUtils.getS3DataStore(S3DataStoreUtils.getFixtures().get(0), props, homeDir);
+                return new DataStoreBlobStore(ds);
             }
 
             @Override public String getConfigPath() {
@@ -1322,6 +1353,12 @@ public class DataStoreCommandTest {
 
             @Override public DataStoreBlobStore getDataStore() {
                 return blobStore;
+            }
+
+            @Override public DataStoreBlobStore openDataStore(String homeDir) throws Exception {
+                Properties props = readConfigProperties(cfgFilePath);
+                DataStore ds = AzureDataStoreUtils.getAzureDataStore(props, homeDir);
+                return new DataStoreBlobStore(ds);
             }
 
             @Override public String getConfigPath() {
@@ -1368,6 +1405,14 @@ public class DataStoreCommandTest {
 
             @Override public DataStoreBlobStore getDataStore() {
                 return blobStore;
+            }
+
+            @Override public DataStoreBlobStore openDataStore(String homeDir) throws Exception {
+                OakFileDataStore delegate = new OakFileDataStore();
+                Properties props = readConfigProperties(cfgFilePath);
+                delegate.setPath(props.getProperty("path"));
+                delegate.init(null);
+                return new DataStoreBlobStore(delegate);
             }
 
             @Override public String getConfigPath() {

@@ -21,6 +21,7 @@ import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefini
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexStatistics;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResultRowAsyncIterator;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
@@ -33,6 +34,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
@@ -120,6 +122,14 @@ class ElasticIndex extends FulltextIndex {
         ElasticQueryIterator itr;
         ElasticIndexNode indexNode = acquireIndexNode(plan);
         try {
+            if (ElasticIndexStatistics.FT_OAK_12248_ENABLE.get() && indexNode.getIndexStatistics().numDocs() == 0) {
+                final String explainQuery = requestHandler.baseQuery().toString();
+                return new ElasticQueryIterator() {
+                    @Override public boolean hasNext() { return false; }
+                    @Override public FulltextResultRow next() { throw new NoSuchElementException(); }
+                    @Override public String explain() { return explainQuery; }
+                };
+            }
             if (requestHandler.requiresSpellCheck()) {
                 itr = new ElasticSpellcheckIterator(indexNode, requestHandler, responseHandler);
             } else if (requestHandler.requiresSuggestion()) {
