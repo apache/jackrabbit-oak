@@ -191,7 +191,11 @@ public class AzureDataStoreWrapper extends AbstractDataStoreService {
      * Returning activeImpl directly would hand ownership to the base class and prevent the
      * separate registration. This delegate keeps the two registrations independent.
      */
-    class DelegatingDataStore implements DataStore, ConfigurableDataRecordAccessProvider,
+    // Must be public: AbstractDataStoreService.createDataStore() reflects into this via
+    // PropertiesUtil.populate() (org.apache.jackrabbit.oak.commons, a different package) to set
+    // bean properties like cacheSize. A package-private class fails that reflective access even
+    // though the setter methods themselves are public.
+    public class DelegatingDataStore implements DataStore, ConfigurableDataRecordAccessProvider,
             SharedDataStore, MultiDataStoreAware, TypedDataStore {
 
         @Override
