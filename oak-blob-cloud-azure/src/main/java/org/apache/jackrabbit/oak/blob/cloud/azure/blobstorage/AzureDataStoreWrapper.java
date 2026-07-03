@@ -18,15 +18,20 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12.AzureDataStoreV12;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractDataStoreService;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.TypedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.*;
+import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
 import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
+import org.apache.jackrabbit.oak.spi.blob.data.MultiDataStoreAware;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -40,6 +45,7 @@ import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.*;
@@ -95,7 +101,7 @@ public class AzureDataStoreWrapper extends AbstractDataStoreService {
             return useV12;
         }
         String envVar = System.getenv(ENV_VAR_V12_ENABLED);
-        if (envVar != null) {
+        if (StringUtils.isNotBlank(envVar)) {
             boolean useV12 = Boolean.parseBoolean(envVar);
             log.info("Azure SDK v12 flag: environment variable {}={}", ENV_VAR_V12_ENABLED, useV12);
             return useV12;
@@ -185,7 +191,12 @@ public class AzureDataStoreWrapper extends AbstractDataStoreService {
      * Returning activeImpl directly would hand ownership to the base class and prevent the
      * separate registration. This delegate keeps the two registrations independent.
      */
-    class DelegatingDataStore implements DataStore, ConfigurableDataRecordAccessProvider {
+    // Must be public: AbstractDataStoreService.createDataStore() reflects into this via
+    // PropertiesUtil.populate() (org.apache.jackrabbit.oak.commons, a different package) to set
+    // bean properties like cacheSize. A package-private class fails that reflective access even
+    // though the setter methods themselves are public.
+    public class DelegatingDataStore implements DataStore, ConfigurableDataRecordAccessProvider,
+            SharedDataStore, MultiDataStoreAware, TypedDataStore {
 
         @Override
         public void init(String homeDir) throws DataStoreException {
@@ -296,6 +307,86 @@ public class AzureDataStoreWrapper extends AbstractDataStoreService {
         public URI getDownloadURI(@NotNull DataIdentifier identifier,
                                   @NotNull DataRecordDownloadOptions downloadOptions) {
             return provider().getDownloadURI(identifier, downloadOptions);
+        }
+
+        // -- SharedDataStore --
+
+        @Override
+        public void addMetadataRecord(InputStream stream, String name) throws DataStoreException {
+            activeImpl.addMetadataRecord(stream, name);
+        }
+
+        @Override
+        public void addMetadataRecord(File f, String name) throws DataStoreException {
+            activeImpl.addMetadataRecord(f, name);
+        }
+
+        @Override
+        public DataRecord getMetadataRecord(String name) {
+            return activeImpl.getMetadataRecord(name);
+        }
+
+        @Override
+        public boolean metadataRecordExists(String name) {
+            return activeImpl.metadataRecordExists(name);
+        }
+
+        @Override
+        public List<DataRecord> getAllMetadataRecords(String prefix) {
+            return activeImpl.getAllMetadataRecords(prefix);
+        }
+
+        @Override
+        public boolean deleteMetadataRecord(String name) {
+            return activeImpl.deleteMetadataRecord(name);
+        }
+
+        @Override
+        public void deleteAllMetadataRecords(String prefix) {
+            activeImpl.deleteAllMetadataRecords(prefix);
+        }
+
+        @Override
+        public Iterator<DataRecord> getAllRecords() throws DataStoreException {
+            return activeImpl.getAllRecords();
+        }
+
+        @Override
+        public DataRecord getRecordForId(DataIdentifier id) throws DataStoreException {
+            return activeImpl.getRecordForId(id);
+        }
+
+        @Override
+        public SharedDataStore.Type getType() {
+            return activeImpl.getType();
+        }
+
+        // -- MultiDataStoreAware --
+
+        @Override
+        public void deleteRecord(DataIdentifier identifier) throws DataStoreException {
+            activeImpl.deleteRecord(identifier);
+        }
+
+        // -- TypedDataStore --
+
+        @Override
+        public DataRecord addRecord(InputStream input, BlobOptions options) throws DataStoreException {
+            return activeImpl.addRecord(input, options);
+        }
+
+        // -- Cache-layer setters forwarded so PropertiesUtil.populate() can inject them --
+
+        public void setPath(String path) {
+            activeImpl.setPath(path);
+        }
+
+        public void setCacheSize(long cacheSize) {
+            activeImpl.setCacheSize(cacheSize);
+        }
+
+        public void setUploadThreads(int uploadThreads) {
+            activeImpl.setUploadThreads(uploadThreads);
         }
     }
 }
