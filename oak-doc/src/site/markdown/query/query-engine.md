@@ -57,6 +57,7 @@ grep "^#.*$" src/site/markdown/query/query-engine.md | sed 's/#/    /g' | sed 's
   - [SQL-2 Optimisation](#sql-2-optimisation)
   - [Additional XPath and SQL-2 Features](#additional-xpath-and-sql-2-features)
   - [Temporarily Blocking Queries](#temporarily-blocking-queries)
+  - [Cost Estimation](#cost-estimation)
 
 
 ## Overview
@@ -825,3 +826,11 @@ Patterns are evaluated in alphabetical order.
 They are only read once, at startup.
 
 See also [OAK-8294](https://issues.apache.org/jira/browse/OAK-8294)
+
+### Cost Estimation
+
+* See [Cost Estimation for Property / Fulltext Indexes](cost-estimation.html) 
+  for how Lucene and Elastic indexes estimates query cost, the per-property statistics
+  (`weight`, `weightNull`, `weightNotNull`, `stats`) and feature toggles
+  (`FT_OAK-12171`, `FT_OAK-12221`) that influence it, and how the model
+  compares with relational-database planners.

@@ -27,6 +27,8 @@ releases directly from [trunk](https://github.com/apache/jackrabbit-oak/tree/tru
 
 Starting with 1.50.0, these require Java 11.
 
+Starting with 2.0.0, these require Java 17.
+
 Maintenance branches
 --------------------
 We currently support one maintenance branch:
@@ -87,5 +89,5 @@ by default, are not ported to maintenance branches.
 which was necessary to keep compatiblity with JDK 14.
 
 "Guava shaded" refers to issue [OAK-10323](https://issues.apache.org/jira/browse/OAK-10323),
-which was necessary to remove all API usages of the Guava library (Oak now internally
-uses a shaded copy of Guava, which is not visible in Oak APIs anymore).
+which was necessary to remove all API usages of the Guava library (Oak still
+uses a shaded copy of Guava internally, which is not visible in Oak APIs anymore).

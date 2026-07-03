@@ -98,7 +98,7 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider {
         Map<String, Map<String, Integer>> accumulatedFacets = new ConcurrentHashMap<>();
 
         return searchWithIncrementalFacetProcessing(connection, null, accumulatedFacets)
-                .thenApplyAsync(this::buildFinalFacetResult);
+                .thenApplyAsync(this::buildFinalFacetResult, connection.getResponseExecutor());
     }
 
     private CompletableFuture<Map<String, Map<String, Integer>>> searchWithIncrementalFacetProcessing(
@@ -157,7 +157,7 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider {
 
                     // Recursively continue with next batch
                     return searchWithIncrementalFacetProcessing(connection, nextSearchAfter, accumulatedFacets);
-                })
+                }, connection.getResponseExecutor())
                 .exceptionally(throwable -> {
                     LOG.error("Error during search pagination", throwable);
                     // Return accumulated facets even if there's an error

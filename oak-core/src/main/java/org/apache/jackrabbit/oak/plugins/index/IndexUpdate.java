@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -86,6 +87,15 @@ public class IndexUpdate implements Editor, PathSource {
     // Warnings about missing index providers are rate limited, so the log file is not filled with them.
     // this is the last time such a message was logged (if any).
     private static final AtomicLong lastMissingProviderMessageTime = new AtomicLong();
+
+    // Names of diff index nodes (e.g. "diff.index", "diff.index.optimizer") for which a
+    // detection message has already been logged in this JVM. They legitimately use
+    // jcr:primaryType=nt:unstructured, so their presence is reported once at INFO.
+    private static final Set<String> diffIndexesDetected = ConcurrentHashMap.newKeySet();
+
+    static void resetDiffIndexesDetectedForTest() {
+        diffIndexesDetected.clear();
+    }
 
     /**
      * <p>
@@ -314,6 +324,13 @@ public class IndexUpdate implements Editor, PathSource {
                  and skip further execution for invalid nodetype of index definition.
                  */
                 if (!IndexConstants.INDEX_DEFINITIONS_NODE_TYPE.equals(primaryType)) {
+                    if (DiffIndexMerger.DIFF_INDEX.equals(name)
+                            || DiffIndexMerger.DIFF_INDEX_OPTIMIZER.equals(name)) {
+                        if (diffIndexesDetected.add(name)) {
+                            log.info("index {} is detected", name);
+                        }
+                        continue;
+                    }
                     // It is a cyclic counter which reset back to 0 after INDEX_JCR_TYPE_INVALID_LOG_LIMITER
                     // This is to sparsely log this warning.
                     if ((cyclicExecutionCount >= INDEX_JCR_TYPE_INVALID_LOG_LIMITER)) {

@@ -154,7 +154,7 @@ public class MongoRevisionGCTest extends AbstractMongoConnectionTest {
         String prevId = prev.getId();
         assertNotNull(prevId);
         cache.invalidate(prevId);
-        cache.get(prevId, () -> new NodeDocument(store, clock.getTime()));
+        cache.get(prevId, k -> new NodeDocument(store, clock.getTime()));
 
         // must succeed without exception
         try {

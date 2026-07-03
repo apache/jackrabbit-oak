@@ -123,7 +123,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
     private Set<? extends Principal> principals;
     private AuthInfo authInfo;
 
-    private ExternalIdentityMonitor monitor;
+    private ExternalIdentityMonitor monitor = ExternalIdentityMonitor.NOOP;
 
     /**
      * Default constructor for the OSGIi LoginModuleFactory case and the default non-OSGi JAAS case.
@@ -165,10 +165,13 @@ public class ExternalLoginModule extends AbstractLoginModule {
             log.debug("No 'SupportedCredentials' configured. Using default implementation supporting 'SimpleCredentials'.");
         }
 
-        monitor = WhiteboardUtils.getService(whiteboard, ExternalIdentityMonitor.class);
-        if (monitor == null) {
-            log.debug("No ExternalIdentityMonitor registered.");
-            monitor = ExternalIdentityMonitor.NOOP;
+        if (monitor == ExternalIdentityMonitor.NOOP) {
+            ExternalIdentityMonitor resolved = WhiteboardUtils.getService(whiteboard, ExternalIdentityMonitor.class);
+            if (resolved != null) {
+                monitor = resolved;
+            } else {
+                log.debug("No ExternalIdentityMonitor registered.");
+            }
         }
     }
     
@@ -527,5 +530,14 @@ public class ExternalLoginModule extends AbstractLoginModule {
 
     public void setIdpManager(@NotNull ExternalIdentityProviderManager idpManager) {
         this.idpManager = idpManager;
+    }
+
+    public void setMonitor(@NotNull ExternalIdentityMonitor monitor) {
+        this.monitor = monitor;
+    }
+
+    @NotNull
+    public ExternalIdentityMonitor getMonitor() {
+        return monitor;
     }
 }

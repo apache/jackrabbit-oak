@@ -517,8 +517,8 @@ public class FileStore extends AbstractFileStore {
         try (ShutDownCloser ignored = shutDown.keepAlive()) {
             return segmentCache.getSegment(id, () -> readSegmentUncached(id));
         } catch (ExecutionException | RuntimeException e) {
-            if (e.getCause() instanceof RepositoryNotReachableException) {
-                RepositoryNotReachableException re = (RepositoryNotReachableException) e.getCause();
+            RepositoryNotReachableException re = asRepositoryNotReachableException(e);
+            if (re != null) {
                 log.warn("Unable to access repository", re);
                 throw re;
             }
@@ -528,6 +528,18 @@ public class FileStore extends AbstractFileStore {
             stats.notify(id, snfe);
             throw snfe;
         }
+    }
+
+    private static RepositoryNotReachableException asRepositoryNotReachableException(Exception e) {
+        // Preserve the former Guava cache exception shape while also tolerating
+        // Caffeine exposing runtime loader failures directly.
+        if (e instanceof RepositoryNotReachableException) {
+            return (RepositoryNotReachableException) e;
+        }
+        if (e.getCause() instanceof RepositoryNotReachableException) {
+            return (RepositoryNotReachableException) e.getCause();
+        }
+        return null;
     }
 
     @Override

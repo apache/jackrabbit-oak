@@ -20,6 +20,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
@@ -42,9 +43,9 @@ public interface LoadingCache<K, V> extends Cache<K, V> {
      * pre-configured {@link CacheLoader} if absent.
      *
      * @param key the key whose value should be returned or loaded (must not be null)
-     * @return the current or newly loaded value (never null)
+     * @return the current or newly loaded value (could be null)
      */
-    @NotNull
+    @Nullable
     V get(@NotNull K key);
 
     /**

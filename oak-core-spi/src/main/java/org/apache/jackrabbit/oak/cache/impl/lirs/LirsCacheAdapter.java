@@ -36,11 +36,11 @@ import org.jetbrains.annotations.NotNull;
  * API: runtime failures propagate directly and checked loader failures are
  * wrapped in {@link CompletionException}.</p>
  */
-public class LirsCacheAdapter<K, V> implements Cache<K, V> {
+class LirsCacheAdapter<K, V> implements Cache<K, V> {
 
     private final CacheLIRS<K, V> cache;
 
-    public LirsCacheAdapter(CacheLIRS<K, V> cache) {
+    LirsCacheAdapter(CacheLIRS<K, V> cache) {
         this.cache = cache;
     }
 
@@ -110,17 +110,21 @@ public class LirsCacheAdapter<K, V> implements Cache<K, V> {
         cache.cleanUp();
     }
 
+    @Override
+    public long getUsedWeight() {
+        return cache.getUsedMemory();
+    }
+
+    @Override
+    public void setMaximumWeight(long maximumWeight) {
+        cache.setMaxMemory(maximumWeight);
+    }
+
     /**
      * Maps a Guava shim {@code RemovalCause} to the Oak-neutral {@link EvictionCause}.
      */
     public static EvictionCause toOakCause(RemovalCause cause) {
-        return switch (cause) {
-            case EXPLICIT   -> EvictionCause.EXPLICIT;
-            case REPLACED   -> EvictionCause.REPLACED;
-            case SIZE       -> EvictionCause.SIZE;
-            case EXPIRED    -> EvictionCause.EXPIRED;
-            case COLLECTED  -> EvictionCause.COLLECTED;
-        };
+        return CacheLIRS.toOakCause(cause);
     }
 
     static RuntimeException toCaffeineException(ExecutionException e) {

@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexInfoProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticRetryPolicy;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexStatistics;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConstants;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceMBeanImpl;
@@ -217,6 +218,18 @@ public class ElasticIndexProviderService {
         whiteboard = new OsgiWhiteboard(bundleContext);
         oakRegs.add(whiteboard.register(FeatureToggle.class,
                 new FeatureToggle(FulltextIndexPlanner.FT_OAK_12171, FulltextIndexPlanner.FT_OAK_12171_DISABLE),
+                emptyMap()));
+        oakRegs.add(whiteboard.register(FeatureToggle.class,
+                new FeatureToggle(FulltextIndexPlanner.FT_OAK_12221, FulltextIndexPlanner.FT_OAK_12221_ENABLE),
+                emptyMap()));
+        oakRegs.add(whiteboard.register(FeatureToggle.class,
+                new FeatureToggle(ElasticIndexEditorProvider.FT_OAK_12206, ElasticIndexEditorProvider.FT_OAK_12206_DISABLE),
+                emptyMap()));
+        oakRegs.add(whiteboard.register(FeatureToggle.class,
+                new FeatureToggle(ElasticConnection.FT_OAK_12234, ElasticConnection.FT_OAK_12234_DISABLE),
+                emptyMap()));
+        oakRegs.add(whiteboard.register(FeatureToggle.class,
+                new FeatureToggle(ElasticIndexStatistics.FT_OAK_12248, ElasticIndexStatistics.FT_OAK_12248_ENABLE),
                 emptyMap()));
         if (System.getProperty(QueryEngineSettings.OAK_INFERENCE_ENABLED) != null) {
             this.isInferenceEnabled = Boolean.parseBoolean(System.getProperty(QueryEngineSettings.OAK_INFERENCE_ENABLED));

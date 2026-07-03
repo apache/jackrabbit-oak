@@ -63,12 +63,6 @@ public class MongoDocumentNodeStoreBuilderTest {
     }
 
     @Test
-    public void fullGCFeatureToggleDisabled() {
-        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
-        assertNull(builder.getDocStoreFullGCFeature());
-    }
-
-    @Test
     public void fullGCIncludePathsNotEmpty() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
         builder.setFullGCIncludePaths(new String[] {"/foo"});
@@ -112,12 +106,6 @@ public class MongoDocumentNodeStoreBuilderTest {
     public void embeddedVerificationEnabled() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
         assertTrue(builder.isEmbeddedVerificationEnabled());
-    }
-
-    @Test
-    public void embeddedVerificationFeatureToggleEnabled() {
-        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
-        assertNull(builder.getDocStoreEmbeddedVerificationFeature());
     }
 
     @Test

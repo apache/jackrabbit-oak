@@ -1,0 +1,42 @@
+{
+  "run": {
+    "/oak:index/test": {
+      "type": "lucene"
+    },
+    "/oak:index/test-custom-1": {
+      "type": "lucene",
+      "indexRules": {
+        "nt:base": {
+          "properties": {
+            "prop1": {
+              "name": "prop1"
+            }
+          }
+        }
+      }
+    }
+  },
+  "build": {
+    "/oak:index/test": {
+      "type": "lucene"
+    }
+  },
+  "expected": {
+    "/oak:index/test": {
+      "type": "lucene"
+    },
+    "/oak:index/test-custom-1": {
+      "type": "lucene",
+      "merges": ["/oak:index/test", "/oak:index/test-custom-1"],
+      "indexRules": {
+        "nt:base": {
+          "properties": {
+            "prop1": {
+              "name": "prop1"
+            }
+          }
+        }
+      }
+    }
+  }
+}

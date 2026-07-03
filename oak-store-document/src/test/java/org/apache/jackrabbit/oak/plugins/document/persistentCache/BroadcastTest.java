@@ -24,8 +24,8 @@ import java.io.File;
 import java.util.concurrent.Callable;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
+import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.plugins.document.MemoryDiffCache.Key;
 import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
@@ -136,6 +136,6 @@ public class BroadcastTest {
     private static Cache<Key, StringValue> openCache(PersistentCache p) {
         CacheLIRS<Key, StringValue> cache = new CacheLIRS.Builder<Key, StringValue>().
                 maximumSize(1).build();
-        return p.wrap(null,  null,  cache, CacheType.DIFF);        
+        return p.wrap(null, null, cache.asOakCache(), CacheType.DIFF);
     }
 }

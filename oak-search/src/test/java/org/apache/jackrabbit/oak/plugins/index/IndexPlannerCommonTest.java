@@ -1734,4 +1734,44 @@ public abstract class IndexPlannerCommonTest {
         }
     }
 
+    /**
+     * With FT_OAK-12221 enabled, IS NULL / IS NOT NULL cost estimation uses the live
+     * field doc count directly instead of the {@code weightNull}/{@code weightNotNull}
+     * heuristic. The configured {@code weight=500} is ignored for these conditions when
+     * the selectivity model is active.
+     *
+     * IS NULL is derived as {@code numDocs - docCntForField(propertyName)} — exact per
+     * property. The shared {@code :nullProps} field is not consulted, because its raw
+     * doc count is pooled across every property with null-check enabled and would
+     * over-count when more than one such property exists.
+     *
+     * Setup: 100 docs with the property set, 200 without. Expected:
+     *   - IS NOT NULL: docCntForField("updated") = 100 → estimate 100 (exact)
+     *   - IS NULL:     300 - 100 = 200 (exact)
+     */
+    @Test
+    public void nullCheckUsesLiveDocCountWhenSelectivityModelEnabled() throws Exception {
+        String indexPath = "/" + INDEX_DEFINITIONS_NAME + "/nullCheckSelectivity";
+        IndexDefinitionBuilder idxBuilder = getIndexDefinitionBuilder(child(builder, indexPath));
+        idxBuilder.indexRule("nt:unstructured")
+                .property("updated").propertyIndex().nullCheckEnabled().notNullCheckEnabled().weight(500);
+        IndexDefinition idxDefn = getIndexDefinition(root, idxBuilder.build(), indexPath);
+        IndexNode node = createIndexNodeForNullCheckTest(idxDefn, "updated", 100, 200);
+
+        FulltextIndexPlanner.FT_OAK_12221_ENABLE.set(true);
+        try {
+            FilterImpl filter = createFilter("nt:unstructured");
+            filter.restrictProperty("updated", Operator.NOT_EQUAL, null);
+            FulltextIndexPlanner planner = getIndexPlanner(node, indexPath, filter, Collections.emptyList());
+            assertEquals(100, planner.getPlan().getEstimatedEntryCount());
+
+            filter = createFilter("nt:unstructured");
+            filter.restrictProperty("updated", Operator.EQUAL, null);
+            planner = getIndexPlanner(node, indexPath, filter, Collections.emptyList());
+            assertEquals(200, planner.getPlan().getEstimatedEntryCount());
+        } finally {
+            FulltextIndexPlanner.FT_OAK_12221_ENABLE.set(false);
+        }
+    }
+
 }

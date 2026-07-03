@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import javax.jcr.Repository;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
+import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.fixture.OakFixture;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;

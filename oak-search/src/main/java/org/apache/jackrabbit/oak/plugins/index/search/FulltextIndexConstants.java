@@ -140,6 +140,18 @@ public interface FulltextIndexConstants {
     String PROP_WEIGHT = "weight";
 
     /**
+     * JSON string property on a property definition for Most Common Values (MCV) statistics.
+     * Format: {@code {"common":{"value1": pct1, "value2": pct2}}}
+     * where each value is the percentage of index entries matching that property value
+     * (e.g. {@code 33.33} means 33.33 %; {@code 0.5} means half a percent).
+     * Used for cost estimation when the query restricts a property to a specific value.
+     * If the value is present in "common", the percentage is multiplied by the live
+     * document count to estimate the number of matching entries; otherwise falls back
+     * to {@link #PROP_WEIGHT}.
+     */
+    String PROP_STATS = "stats";
+
+    /**
      * Weight used for cost estimation of "is null" property restrictions.
      * Falls back to {@link #PROP_WEIGHT} if not set.
      */

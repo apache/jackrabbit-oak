@@ -24,15 +24,16 @@ import static org.apache.jackrabbit.oak.segment.CacheWeights.segmentWeight;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
-import org.apache.jackrabbit.guava.common.cache.RemovalNotification;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
+import org.apache.jackrabbit.oak.cache.api.Cache;
+import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
+import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.apache.jackrabbit.oak.segment.CacheWeights.SegmentCacheWeigher;
 import org.jetbrains.annotations.NotNull;
 
@@ -44,7 +45,9 @@ import org.jetbrains.annotations.NotNull;
  * Conceptually this cache serves as a 2nd level cache for segments. The 1st
  * level cache is implemented by memoising the segment in its id (see {@code
  * SegmentId#segment}. Every time an segment is evicted from this cache the
- * memoised segment is discarded (see {@code SegmentId#onAccess}.
+ * memoised segment is discarded (see {@code SegmentId#onAccess}). On an L1 hit,
+ * {@link #recordHit(SegmentId)} records L1 hits in {@link #getCacheStats()} and, when enabled,
+ * touches L2 so eviction policies see the access.
  */
 public abstract class SegmentCache {
 
@@ -103,11 +106,32 @@ public abstract class SegmentCache {
     public abstract AbstractCacheStats getCacheStats();
 
     /**
-     * Record a hit in this cache's underlying statistics.
+     * Called on L1 memoised access ({@link SegmentId#getSegment()}): increments {@link #getCacheStats()}
+     * hit counts and, for data segments with {@link #FT_OAK_12214_PROPAGATE_L1_HITS_TO_L2_ENABLED} {@code true}, touches L2
+     * (e.g. {@code getIfPresent}) so eviction policy matches real reads. Name is historical
+     * ({@code hit} = stats); the L2 side is access notification, not only accounting.
+     * <p>
+     * When the toggle is {@code true} and {@code id} is a data segment, this performs one extra map
+     * lookup on the hottest read path whenever the segment is still in L2.
      *
-     * See {@code SegmentId#onAccess}
+     * @param id the segment id that was served from L1
      */
-    public abstract void recordHit();
+    public abstract void recordHit(@NotNull SegmentId id);
+
+    /**
+     * Feature toggle name for {@link #FT_OAK_12214_PROPAGATE_L1_HITS_TO_L2_ENABLED}: propagate L1 memoisation hits to the
+     * segment L2 cache so frequency/recency used for eviction stay aligned with actual access.
+     * Disable at runtime via the OSGi Whiteboard when diagnosing behavior.
+     */
+    public static final String FT_OAK_12214 = "FT_OAK-12214";
+
+    /**
+     * Whether L1 memoised hits are propagated to L2 so W-TinyLFU / LRU state matches actual access.
+     * Defaults to {@code true} as a <strong>bug-fix</strong> toggle (L2 was blind to L1); flip via
+     * the OSGi Whiteboard {@link org.apache.jackrabbit.oak.spi.toggle.FeatureToggle FeatureToggle}
+     * registered under {@link #FT_OAK_12214} for diagnosis or A/B runs.
+     */
+    public static final AtomicBoolean FT_OAK_12214_PROPAGATE_L1_HITS_TO_L2_ENABLED = new AtomicBoolean(true);
 
     private static class NonEmptyCache extends SegmentCache {
 
@@ -131,47 +155,54 @@ public abstract class SegmentCache {
          */
         private NonEmptyCache(long cacheSizeMB) {
             long maximumWeight = cacheSizeMB * 1024 * 1024;
-            this.cache = CacheBuilder.newBuilder()
-                    .concurrencyLevel(16)
+            this.cache = CacheBuilder.<SegmentId, Segment>newBuilder()
                     .maximumWeight(maximumWeight)
                     .weigher(new SegmentCacheWeigher())
-                    .removalListener(this::onRemove)
+                    .evictionListener(this::onRemove)
                     .build();
-            this.stats = new Stats(NAME, maximumWeight, cache::size);
+            this.stats = new Stats(NAME, maximumWeight, cache::estimatedSize);
         }
 
         /**
          * Removal handler called whenever an item is evicted from the cache.
          */
-        private void onRemove(@NotNull RemovalNotification<SegmentId, Segment> notification) {
+        private void onRemove(@NotNull SegmentId key, Segment value, @NotNull EvictionCause cause) {
             stats.evictionCount.incrementAndGet();
-            if (notification.getValue() != null) {
-                stats.currentWeight.addAndGet(-segmentWeight(notification.getValue()));
+            if (value != null) {
+                stats.currentWeight.addAndGet(-segmentWeight(value));
             }
-            if (notification.getKey() != null) {
-                notification.getKey().unloaded();
-            }
+            key.unloaded();
         }
 
         @Override
         @NotNull
         public Segment getSegment(@NotNull SegmentId id, @NotNull Callable<Segment> loader) throws ExecutionException {
             if (id.isDataSegmentId()) {
-                return cache.get(id, () -> {
-                    try {
-                        long t0 = System.nanoTime();
-                        Segment segment = loader.call();
-                        stats.loadSuccessCount.incrementAndGet();
-                        stats.loadTime.addAndGet(System.nanoTime() - t0);
-                        stats.missCount.incrementAndGet();
-                        stats.currentWeight.addAndGet(segmentWeight(segment));
-                        id.loaded(segment);
-                        return segment;
-                    } catch (Exception e) {
-                        stats.loadExceptionCount.incrementAndGet();
-                        throw e;
+                try {
+                    return cache.get(id, k -> {
+                        try {
+                            long t0 = System.nanoTime();
+                            Segment segment = loader.call();
+                            stats.loadSuccessCount.incrementAndGet();
+                            stats.loadTime.addAndGet(System.nanoTime() - t0);
+                            stats.missCount.incrementAndGet();
+                            stats.currentWeight.addAndGet(segmentWeight(segment));
+                            id.loaded(segment);
+                            return segment;
+                        } catch (Exception e) {
+                            stats.loadExceptionCount.incrementAndGet();
+                            // Preserve the former Guava cache exception shape. Letting Caffeine
+                            // expose runtime loader failures directly broke FileStore RNE handling.
+                            throw new SegmentCacheLoaderException(e);
+                        }
+                    });
+                } catch (RuntimeException e) {
+                    Throwable cause = e.getCause();
+                    if (cause instanceof Exception && !(cause instanceof RuntimeException)) {
+                        throw new ExecutionException(cause);
                     }
-                });
+                    throw e;
+                }
             } else {
                 try {
                     return loader.call();
@@ -210,8 +241,20 @@ public abstract class SegmentCache {
         }
 
         @Override
-        public void recordHit() {
+        public void recordHit(@NotNull SegmentId id) {
             stats.hitCount.incrementAndGet();
+            if (id.isDataSegmentId() && FT_OAK_12214_PROPAGATE_L1_HITS_TO_L2_ENABLED.get()) {
+                cache.getIfPresent(id);
+            }
+        }
+    }
+
+    private static final class SegmentCacheLoaderException extends RuntimeException {
+
+        private static final long serialVersionUID = 1L;
+
+        private SegmentCacheLoaderException(@NotNull Exception cause) {
+            super(cause);
         }
     }
 
@@ -252,7 +295,7 @@ public abstract class SegmentCache {
         }
 
         @Override
-        public void recordHit() {
+        public void recordHit(@NotNull SegmentId id) {
             stats.hitCount.incrementAndGet();
         }
     }

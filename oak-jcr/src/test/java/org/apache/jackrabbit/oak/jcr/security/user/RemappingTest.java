@@ -25,8 +25,10 @@ import javax.jcr.Session;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -277,6 +279,69 @@ public class RemappingTest extends AbstractUserTest {
             } catch (RepositoryException e) {
                 // success
             }
+        }
+    }
+
+    @Test
+    public void testCreateUserWithAbsolutePath() throws Exception {
+        // Path uses session-local namespace prefixes: myRep: for rep:, my: for uTest:
+        String jcrPath = "/myRep:security/myRep:authorizables/myRep:users/my:remaptest/testUserNode";
+        String userId = createUserId();
+        User created = getUserManager(session).createUserWithAbsolutePath(
+                userId, null, getTestPrincipal(), jcrPath);
+        session.save();
+        try {
+            // getPath() via session returns the path in session-local namespace → not DEFAULT_USER_PATH
+            assertFalse(created.getPath().startsWith(UserConstants.DEFAULT_USER_PATH));
+            assertEquals(jcrPath, created.getPath());
+            assertNotNull(getUserManager(session).getAuthorizableByPath(jcrPath));
+        } finally {
+            created.remove();
+            session.save();
+        }
+    }
+
+    @Test
+    public void testCreateGroupWithAbsolutePath() throws Exception {
+        // Path uses session-local namespace prefixes: myRep: for rep:, my: for uTest:
+        String jcrPath = "/myRep:security/myRep:authorizables/myRep:groups/my:remaptest/testGroupNode";
+        String groupId = createGroupId();
+        Group created = getUserManager(session).createGroupWithAbsolutePath(
+                groupId, getTestPrincipal(), jcrPath);
+        session.save();
+        try {
+            assertFalse(created.getPath().startsWith(UserConstants.DEFAULT_GROUP_PATH));
+            assertEquals(jcrPath, created.getPath());
+            assertNotNull(getUserManager(session).getAuthorizableByPath(jcrPath));
+        } finally {
+            created.remove();
+            session.save();
+        }
+    }
+
+    @Test
+    public void testCreateUserWithAbsolutePathUnmappedPrefix() throws Exception {
+        // rep: is overridden by myRep: in session → using canonical rep: prefix must fail
+        try {
+            getUserManager(session).createUserWithAbsolutePath(
+                    createUserId(), null, getTestPrincipal(),
+                    UserConstants.DEFAULT_USER_PATH + "/testUserNode");
+            fail("path with unmapped prefix must throw RepositoryException");
+        } catch (RepositoryException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testCreateGroupWithAbsolutePathUnmappedPrefix() throws Exception {
+        // rep: is overridden by myRep: in session → using canonical rep: prefix must fail
+        try {
+            getUserManager(session).createGroupWithAbsolutePath(
+                    createGroupId(), getTestPrincipal(),
+                    UserConstants.DEFAULT_GROUP_PATH + "/testGroupNode");
+            fail("path with unmapped prefix must throw RepositoryException");
+        } catch (RepositoryException e) {
+            // success
         }
     }
 }

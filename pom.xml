@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.93-SNAPSHOT</version>
+    <version>2.3-SNAPSHOT</version>
     <relativePath>oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -104,6 +104,7 @@
             <exclude>oak-doc*/target/**</exclude>
             <exclude>oak-segment-tar/target/**</exclude>
             <exclude>oak-segment-tar/*.iml</exclude>
+            <exclude>specs/**</exclude>
           </excludes>
         </configuration>
       </plugin>

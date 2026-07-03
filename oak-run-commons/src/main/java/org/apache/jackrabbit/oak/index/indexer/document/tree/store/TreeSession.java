@@ -536,7 +536,7 @@ public class TreeSession {
     // this is fast: internally, a stack of Position object is kept
 
     /**
-     * Get all entries. Do not add or move entries while
+     * Get all entries in key order. Do not add or move entries while
      * iterating.
      *
      * @return the result
@@ -546,7 +546,7 @@ public class TreeSession {
     }
 
     /**
-     * Get all entries. Do not add or move entries while iterating.
+     * Get all entries in key order. Do not add or move entries while iterating.
      *
      * @param largerThan all returned keys are larger than this; null to start at
      *                   the beginning

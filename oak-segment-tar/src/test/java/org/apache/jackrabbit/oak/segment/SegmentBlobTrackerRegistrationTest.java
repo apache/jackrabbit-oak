@@ -44,6 +44,9 @@ public class SegmentBlobTrackerRegistrationTest extends AbstractBlobTrackerRegis
         Hashtable<String, Object> properties = new Hashtable<>();
         properties.put(SegmentNodeStoreService.CUSTOM_BLOB_STORE, true);
         properties.put(SegmentNodeStoreService.REPOSITORY_HOME_DIRECTORY, repoHome);
+        // Explicitly enable blob ID tracking (default is 0/disabled since Oak 2.4.0).
+        // This test verifies tracker reinitialization which requires an active tracker.
+        properties.put("blobTrackSnapshotIntervalInSecs", 3600L);
         SegmentNodeStoreService service = new SegmentNodeStoreService();
         
         // OAK-10367: The call 

@@ -399,6 +399,36 @@ public class VersionGCTest {
         assertTrue(nduration == duration / 2);
     }
 
+    @Test
+    public void fullGCProgressNotUpdatedOnLimitExceeded() throws Exception {
+
+        VersionGCOptions options = gc.getOptions();
+        final long oneYearAgo = ns.getClock().getTime() - TimeUnit.DAYS.toMillis(365);
+        final long twelveTimesTheLimit = options.collectLimit * 12;
+        final long secondsPerDay = TimeUnit.DAYS.toMillis(1);
+
+        UpdateOp op = new UpdateOp(SETTINGS_COLLECTION_ID, true);
+        op.set(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP, 42L);
+        op.set(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP, "1:/existing");
+        ns.getDocumentStore().createOrUpdate(SETTINGS, op);
+
+        VersionGCSupport localgcsupport = fakeVersionGCSupport(ns.getDocumentStore(), oneYearAgo, twelveTimesTheLimit);
+
+        VersionGCRecommendations rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), true, ns.getClock(),
+                localgcsupport, options, new TestGCMonitor(), true, false, SECONDS.toMillis(DEFAULT_FULL_GC_MAX_AGE));
+
+        VersionGCStats stats = new VersionGCStats();
+        stats.limitExceeded = true;
+        rec.evaluate(stats);
+        assertTrue(stats.needRepeat);
+        assertNull(stats.oldestModifiedDocId);
+
+        Document vgc = ns.getDocumentStore().find(SETTINGS, SETTINGS_COLLECTION_ID);
+        assertNotNull(vgc);
+        assertEquals(42L, vgc.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP));
+        assertEquals("1:/existing", vgc.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
+    }
+
     // OAK-8448: test that after shrinking the scope to the minimum and after
     // successful runs, scope will be expanded again
     @Test

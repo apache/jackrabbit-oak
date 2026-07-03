@@ -73,6 +73,7 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
     @After
     public void tearDown() {
         Revision.resetClockToDefault();
+        ClusterNodeInfo.resetClockToDefault();
         markDocumentsForCleanup();
     }
 
@@ -245,14 +246,25 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
         b1.setProperty("prop", -1);
         ns1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
+        long now = clock.getTime();
         // create MANY previous docs
+        int mergeOps = 0;
         for (int j = 0; j < 100; j++) {
             for (int i = 0; i < NodeDocument.NUM_REVS_THRESHOLD; i++) {
-                b1 = ns1.getRoot().builder();
-                b1.setProperty("prop", i);
-                ns1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                try {
+                    mergeOps += 1;
+                    b1 = ns1.getRoot().builder();
+                    b1.setProperty("prop", i);
+                    ns1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                } catch (DocumentStoreException dse) {
+                    long elapsed = clock.getTime() - now;
+                    fail("document store exception, likely because of lease updated failure after " + elapsed + " clock ticks of "
+                            + clock + ", store: " + ns1.getDocumentStore() + ", " +
+                            "after " + mergeOps + " merge operations, exception was: " + dse.getMessage());
+                }
             }
             ns1.runBackgroundOperations();
+            ns1.renewClusterIdLease();
         }
 
         // create /a as some initial content

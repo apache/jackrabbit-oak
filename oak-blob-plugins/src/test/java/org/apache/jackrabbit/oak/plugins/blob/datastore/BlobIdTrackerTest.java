@@ -230,6 +230,19 @@ public class BlobIdTrackerTest {
     }
 
     @Test
+    public void zeroSnapshotIntervalBuildsNoOpTracker() throws Exception {
+        LOG.info("In zeroSnapshotIntervalBuildsNoOpTracker");
+
+        BlobIdTracker noOpTracker = BlobIdTracker.build(root.getAbsolutePath(), repoId + "-noop", 0, dataStore);
+        closer.register(noOpTracker);
+
+        noOpTracker.add("id1");
+        noOpTracker.add(java.util.Collections.singletonList("id2").iterator());
+
+        assertTrue("No-op tracker must return empty iterator from get()", !noOpTracker.get().hasNext());
+    }
+
+    @Test
     public void externalAddOffline() throws Exception {
         LOG.info("In externalAddOffline");
 

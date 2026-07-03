@@ -487,6 +487,11 @@ public class IndexDefinitionBuilder {
             return this;
         }
 
+        public PropertyRule stats(String statsJson) {
+            propTree.setProperty(FulltextIndexConstants.PROP_STATS, statsJson);
+            return this;
+        }
+
         public PropertyRule boost(float boost) {
             propTree.setProperty(FIELD_BOOST, (double) boost, Type.DOUBLE);
             return this;

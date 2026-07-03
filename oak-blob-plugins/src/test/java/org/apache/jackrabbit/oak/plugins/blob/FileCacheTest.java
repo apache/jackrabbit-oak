@@ -78,7 +78,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         TestExecutor executor = new TestExecutor(1, beforeLatch, afterLatch, afterExecuteLatch);
         beforeLatch.countDown();
         afterLatch.countDown();
-        cache = FileCache.build(4 * 1024/* KB */, root, loader, executor);
+        cache = FileCache.build(16 * 1024/* KB */, root, loader, executor);
         FutureUtils.successfulAsList(executor.futures).get();
 
         closer.register(cache);
@@ -235,7 +235,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
     public void getDifferentConcurrent() throws Exception {
         LOG.info("Started getDifferentConcurrent");
 
-        cache = FileCache.build(4 * 1024/* KB */, root, loader, null);
+        cache = FileCache.build(16 * 1024/* KB */, root, loader, null);
         closer.register(cache);
 
         File f = createFile(0, loader, cache, folder);
@@ -464,7 +464,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         TestExecutor executor = new TestExecutor(1, beforeLatch, afterLatch, afterExecuteLatch);
         beforeLatch.countDown();
         afterLatch.countDown();
-        cache = FileCache.build(4 * 1024/* bytes */, root, loader, executor);
+        cache = FileCache.build(16 * 1024/* bytes */, root, loader, executor);
         closer.register(cache);
         afterExecuteLatch.await();
         FutureUtils.successfulAsList(executor.futures).get();

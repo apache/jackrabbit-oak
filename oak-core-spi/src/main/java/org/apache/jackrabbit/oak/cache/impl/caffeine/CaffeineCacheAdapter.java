@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
+import com.github.benmanes.caffeine.cache.Policy;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
 import org.apache.jackrabbit.oak.cache.api.Cache;
@@ -98,6 +99,19 @@ public class CaffeineCacheAdapter<K, V> implements Cache<K, V> {
     public void cleanUp() {
         cache.cleanUp();
     }
+
+    @Override
+    public long getUsedWeight() {
+        return cache.policy().eviction()
+                .map(eviction -> eviction.weightedSize().orElse(cache.estimatedSize()))
+                .orElse(cache.estimatedSize());
+    }
+
+    @Override
+    public void setMaximumWeight(long maximumWeight) {
+        cache.policy().eviction().ifPresent(eviction -> eviction.setMaximum(maximumWeight));
+    }
+
 
     /**
      * Maps a Caffeine {@code RemovalCause} to the Oak-neutral {@link EvictionCause}.

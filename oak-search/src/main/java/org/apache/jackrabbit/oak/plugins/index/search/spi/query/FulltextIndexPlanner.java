@@ -94,6 +94,20 @@ public class FulltextIndexPlanner {
     public static final AtomicBoolean FT_OAK_12171_DISABLE = new AtomicBoolean(false);
 
     /**
+     * Feature toggle name for OAK-12221.
+     * When enabled, cost estimation uses a multiplicative selectivity model: each indexed
+     * condition reduces the estimated entry count by dividing by its weight, so queries with
+     * more indexed conditions produce lower cost estimates.  Disabled by default.
+     */
+    public static final String FT_OAK_12221 = "FT_OAK-12221";
+
+    /**
+     * Enable flag for the multiplicative cost estimation introduced by OAK-12221.
+     * Default is {@code false} (feature disabled). Wired to {@link #FT_OAK_12221} at runtime.
+     */
+    public static final AtomicBoolean FT_OAK_12221_ENABLE = new AtomicBoolean(false);
+
+    /**
      * IndexPlan Attribute name which refers to the name of the fields that should be used for facets.
      */
     public static final String ATTR_FACET_FIELDS = "oak.facet.fields";
@@ -860,6 +874,9 @@ public class FulltextIndexPlanner {
     }
 
     private int getMaxPossibleNumDocs(Map<String, PropertyDefinition> propDefns, Filter filter) {
+        if (FT_OAK_12221_ENABLE.get()) {
+            return getMaxPossibleNumDocsBySelectivity(propDefns, filter);
+        }
         IndexStatistics indexStatistics = indexNode.getIndexStatistics();
         if (indexStatistics == null) {
             log.warn("Statistics not available - possibly index is corrupt? Returning high doc count");
@@ -954,6 +971,116 @@ public class FulltextIndexPlanner {
                 // A path restriction will reduce the number of entries.
                 // So the cost of having a usable path condition is
                 // lower than the cost of not having a path condition at all.
+                minNumDocs = (int) (minNumDocs * 0.9);
+            }
+        }
+        return minNumDocs;
+    }
+
+    /**
+     * OAK-12221: cost estimation using a multiplicative selectivity model.
+     * <p>
+     * Each indexed condition contributes a selectivity (the probability that a document
+     * satisfies the condition, given it has the field): {@code mcvFraction} for MCV matches,
+     * {@code 1/weight} when only a weight is known, and {@code 1.0} when {@code weight == 1}.
+     * The combined selectivity is the product of all per-condition selectivities, applied
+     * once at the end against the most restrictive field's doc count. This makes the
+     * estimate independent of iteration order.
+     */
+    private int getMaxPossibleNumDocsBySelectivity(Map<String, PropertyDefinition> propDefns, Filter filter) {
+        IndexStatistics indexStatistics = indexNode.getIndexStatistics();
+        if (indexStatistics == null) {
+            log.warn("Statistics not available - possibly index is corrupt? Returning high doc count");
+            return Integer.MAX_VALUE;
+        }
+        int numDocs = indexStatistics.numDocs();
+        int minNumDocs = numDocs;
+        double combinedSelectivity = 1.0;
+        int selectivityCap = numDocs;
+        boolean anyCondition = false;
+
+        for (Map.Entry<String, PropertyDefinition> propDef : propDefns.entrySet()) {
+            String key = propDef.getKey();
+            if (result.relPropMapping.containsKey(key)) {
+                key = getName(key);
+            }
+            PropertyRestriction pr = filter.getPropertyRestriction(key);
+            int docCntForField;
+            if (pr != null && pr.isNullRestriction()) {
+                // Exact per-property null count: numDocs minus docs that have the property.
+                // Do NOT use the :nullProps field count here — that field is shared across
+                // every property with null-check enabled and over-counts when more than one
+                // such property exists.
+                int docsWithProperty = indexStatistics.getDocCountFor(key);
+                if (docsWithProperty == -1) {
+                    continue;
+                }
+                docCntForField = numDocs - docsWithProperty;
+            } else {
+                docCntForField = indexStatistics.getDocCountFor(key);
+                if (docCntForField == -1) {
+                    continue;
+                }
+            }
+
+            int weight = propDef.getValue().weight;
+            if (pr != null) {
+                if (pr.isNotNullRestriction()) {
+                    if (FT_OAK_12171_DISABLE.get()) {
+                        weight = 1;
+                    } else {
+                        PropertyDefinition pd = propDef.getValue();
+                        weight = resolveNullCheckWeight(pd.weightNotNull, pd.weight, pd.hasExplicitWeight);
+                    }
+                } else if (pr.isNullRestriction()) {
+                    if (FT_OAK_12171_DISABLE.get()) {
+                        weight = 1;
+                    } else {
+                        PropertyDefinition pd = propDef.getValue();
+                        weight = resolveNullCheckWeight(pd.weightNull, pd.weight, pd.hasExplicitWeight);
+                    }
+                } else if (weight > 1 && !isEqualityRestriction(pr)) {
+                    // non-equality (x > 1, x < 2, x like y, ...): cap weight at 3 (read >= 30%)
+                    weight = Math.min(3, weight);
+                }
+            }
+
+            Double mcvFraction = null;
+            if (pr != null && isEqualityRestriction(pr)) {
+                mcvFraction = propDef.getValue().commonValues.get(pr.first.getValue(Type.STRING));
+            }
+            double selectivity;
+            if (pr != null && (pr.isNullRestriction() || pr.isNotNullRestriction())) {
+                // IS NULL / IS NOT NULL: docCntForField above is the exact per-property
+                // matching count (field doc-count for IS NOT NULL; numDocs minus that for
+                // IS NULL) — selectivityCap below picks it up; no weight heuristic needed.
+                selectivity = 1.0;
+            } else if (mcvFraction != null) {
+                selectivity = mcvFraction;
+            } else if (weight > 1) {
+                selectivity = 1.0 / weight;
+            } else {
+                // weight == 1: no extra reduction beyond field coverage
+                selectivity = 1.0;
+            }
+            combinedSelectivity *= selectivity;
+            if (docCntForField < selectivityCap) {
+                selectivityCap = docCntForField;
+            }
+            anyCondition = true;
+        }
+
+        if (anyCondition) {
+            minNumDocs = (int) Math.min(numDocs, Math.round(combinedSelectivity * selectivityCap));
+        }
+
+        if (definition.evaluatePathRestrictions()) {
+            PathRestriction pathRestriction = filter.getPathRestriction();
+            if (pathRestriction == PathRestriction.EXACT || pathRestriction == PathRestriction.PARENT) {
+                minNumDocs = 1;
+            } else if (pathRestriction == PathRestriction.DIRECT_CHILDREN) {
+                minNumDocs /= 2;
+            } else if (pathRestriction != PathRestriction.NO_RESTRICTION) {
                 minNumDocs = (int) (minNumDocs * 0.9);
             }
         }
