@@ -23,7 +23,6 @@ import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
 import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.BlobContainerClientBuilder;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.UserDelegationKey;
@@ -58,6 +57,8 @@ class AzureBlobContainerProviderV12 {
     private final String tenantId;
     private final String clientId;
     private final String clientSecret;
+    // Retry policy fixed at activation time from the same properties as all other config.
+    private final RequestRetryOptions retryOptions;
     // Shared HTTP client — one Netty event loop per provider instance, reused across all Azure SDK
     // client builds. Proxy settings are fixed at activation time so one client suffices.
     private final HttpClient httpClient;
@@ -98,6 +99,7 @@ class AzureBlobContainerProviderV12 {
                 .tenantId(builder.tenantId)
                 .build()
                 : null;
+        this.retryOptions = builder.retryOptions;
         this.httpClient = new NettyAsyncHttpClientBuilder()
                 .proxy(UtilsV12.computeProxyOptions(builder.proxyHost, builder.proxyPort))
                 .build();
@@ -137,18 +139,14 @@ class AzureBlobContainerProviderV12 {
 
     @NotNull
     public BlobContainerClient getBlobContainer() throws DataStoreException {
-        return this.getBlobContainer(null);
-    }
-
-    @NotNull
-    public BlobContainerClient getBlobContainer(@Nullable RequestRetryOptions retryOptions) throws DataStoreException {
         // connection string will be given preference over service principals / sas / account key
         if (StringUtils.isNotBlank(azureConnectionString)) {
             log.debug("connecting to azure blob storage via azureConnectionString");
             return UtilsV12.getBlobContainerFromConnectionString(getAzureConnectionString(), containerName, retryOptions, httpClient);
         } else if (authenticateViaServicePrincipal()) {
             log.debug("connecting to azure blob storage via service principal credentials");
-            return getBlobContainerFromServicePrincipals(accountName, retryOptions);
+            // Reuse the cached BlobServiceClient — derives a container client from the same pipeline.
+            return getOrCreateBlobServiceClient().getBlobContainerClient(containerName);
         } else if (StringUtils.isNotBlank(sasToken)) {
             log.debug("connecting to azure blob storage via sas token");
             final String connectionStringWithSasToken = UtilsV12.getConnectionStringForSas(sasToken, blobEndpoint, accountName);
@@ -267,7 +265,7 @@ class AzureBlobContainerProviderV12 {
             synchronized (this) {
                 container = cachedContainerForSigning.get();
                 if (container == null) {
-                    container = getBlobContainer(null);
+                    container = getBlobContainer();
                     cachedContainerForSigning.set(container);
                 }
             }
@@ -299,31 +297,20 @@ class AzureBlobContainerProviderV12 {
             synchronized (this) {
                 client = cachedBlobServiceClient.get();
                 if (client == null) {
-                    client = new BlobServiceClientBuilder()
+                    BlobServiceClientBuilder builder = new BlobServiceClientBuilder()
                             .endpoint(getEndpointUrl(accountName, blobEndpoint))
                             .credential(clientSecretCredential)
                             .addPolicy(AzureHttpRequestLoggingPolicyV12.INSTANCE)
-                            .httpClient(httpClient)
-                            .buildClient();
+                            .httpClient(httpClient);
+                    if (retryOptions != null) {
+                        builder.retryOptions(retryOptions);
+                    }
+                    client = builder.buildClient();
                     cachedBlobServiceClient.set(client);
                 }
             }
         }
         return client;
-    }
-
-    @NotNull
-    private BlobContainerClient getBlobContainerFromServicePrincipals(String accountName, RequestRetryOptions retryOptions) {
-        BlobContainerClientBuilder builder = new BlobContainerClientBuilder()
-                .endpoint(getEndpointUrl(accountName, blobEndpoint))
-                .containerName(containerName)
-                .credential(clientSecretCredential)
-                .addPolicy(AzureHttpRequestLoggingPolicyV12.INSTANCE)
-                .httpClient(httpClient);
-        if (retryOptions != null) {
-            builder.retryOptions(retryOptions);
-        }
-        return builder.buildClient();
     }
 
     @NotNull
@@ -355,6 +342,7 @@ class AzureBlobContainerProviderV12 {
         private String clientSecret;
         private String proxyHost;
         private String proxyPort;
+        private RequestRetryOptions retryOptions;
 
         private Builder(String containerName) {
             this.containerName = containerName;
@@ -411,6 +399,11 @@ class AzureBlobContainerProviderV12 {
 
         public Builder withProxyPort(String proxyPort) {
             this.proxyPort = proxyPort;
+            return this;
+        }
+
+        public Builder withRetryOptions(RequestRetryOptions retryOptions) {
+            this.retryOptions = retryOptions;
             return this;
         }
 
