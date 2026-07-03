@@ -20,16 +20,13 @@ package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12;
 
 import com.azure.core.http.HttpClient;
 import com.azure.core.http.ProxyOptions;
-import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
 import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.BlobServiceClient;
-import com.azure.storage.blob.BlobServiceClientBuilder;
+import com.azure.storage.blob.BlobContainerClientBuilder;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
@@ -47,37 +44,11 @@ final class UtilsV12 {
     private UtilsV12() {
     }
 
-    public static BlobContainerClient getBlobContainer(@NotNull final String connectionString,
-                                                       @NotNull final String containerName,
-                                                       @Nullable final RequestRetryOptions retryOptions,
-                                                       final Properties properties) throws DataStoreException {
-        try {
-            AzureHttpRequestLoggingPolicyV12 loggingPolicy = new AzureHttpRequestLoggingPolicyV12();
-
-            BlobServiceClientBuilder builder = new BlobServiceClientBuilder()
-                    .connectionString(connectionString)
-                    .retryOptions(retryOptions)
-                    .addPolicy(loggingPolicy);
-
-            HttpClient httpClient = new NettyAsyncHttpClientBuilder()
-                    .proxy(computeProxyOptions(properties))
-                    .build();
-
-            builder.httpClient(httpClient);
-
-            BlobServiceClient blobServiceClient = builder.buildClient();
-            return blobServiceClient.getBlobContainerClient(containerName);
-
-        } catch (Exception e) {
-            throw new DataStoreException(e);
-        }
-    }
-
-    public static ProxyOptions computeProxyOptions(final Properties properties) {
-        String proxyHost = properties.getProperty(AzureConstantsV12.PROXY_HOST);
-        String proxyPort = properties.getProperty(AzureConstantsV12.PROXY_PORT);
-
-        if (!(Objects.toString(proxyHost, "").isEmpty() || Objects.toString(proxyPort, "").isEmpty())) {
+    /**
+     * Returns proxy options when both host and port are non-blank, null otherwise.
+     */
+    static ProxyOptions computeProxyOptions(@Nullable String proxyHost, @Nullable String proxyPort) {
+        if (StringUtils.isNoneBlank(proxyHost, proxyPort)) {
             return new ProxyOptions(ProxyOptions.Type.HTTP,
                     new InetSocketAddress(proxyHost, Integer.parseInt(proxyPort)));
         }
@@ -139,30 +110,29 @@ final class UtilsV12 {
         return connString.toString();
     }
 
+    /**
+     * Returns a {@link BlobContainerClient} from a connection string. The caller supplies a shared
+     * {@link HttpClient}; pass {@code null} to use the SDK default.
+     */
     public static BlobContainerClient getBlobContainerFromConnectionString(final String azureConnectionString,
                                                                            final String containerName,
                                                                            @Nullable final RequestRetryOptions retryOptions,
-                                                                           final Properties properties) {
-        AzureHttpRequestLoggingPolicyV12 loggingPolicy = new AzureHttpRequestLoggingPolicyV12();
-
-        BlobServiceClientBuilder builder = new BlobServiceClientBuilder()
-                .connectionString(azureConnectionString)
-                .addPolicy(loggingPolicy);
-        if (retryOptions != null) {
-            builder.retryOptions(retryOptions);
+                                                                           @Nullable final HttpClient httpClient) throws DataStoreException {
+        try {
+            BlobContainerClientBuilder builder = new BlobContainerClientBuilder()
+                    .connectionString(azureConnectionString)
+                    .containerName(containerName)
+                    .addPolicy(AzureHttpRequestLoggingPolicyV12.INSTANCE);
+            if (retryOptions != null) {
+                builder.retryOptions(retryOptions);
+            }
+            if (httpClient != null) {
+                builder.httpClient(httpClient);
+            }
+            return builder.buildClient();
+        } catch (Exception e) {
+            throw new DataStoreException(e);
         }
-        HttpClient httpClient = new NettyAsyncHttpClientBuilder()
-                .proxy(computeProxyOptions(properties))
-                .build();
-        builder.httpClient(httpClient);
-        return builder.buildClient().getBlobContainerClient(containerName);
-    }
-
-    /**
-     * No-arg overload for callers without retry/proxy context (e.g. DataRecord.getStream()).
-     */
-    public static BlobContainerClient getBlobContainerFromConnectionString(final String azureConnectionString, final String containerName) {
-        return getBlobContainerFromConnectionString(azureConnectionString, containerName, null, new Properties());
     }
 
     /**

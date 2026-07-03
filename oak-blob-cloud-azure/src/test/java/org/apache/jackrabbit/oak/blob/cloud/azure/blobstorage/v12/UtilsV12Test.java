@@ -107,30 +107,28 @@ public class UtilsV12Test {
     }
 
     @Test
-    public void computeProxyOptions_hostAndPortSet_returnsProxyOptions() {
-        Properties p = new Properties();
-        p.setProperty(AzureConstantsV12.PROXY_HOST, "proxy.example.com");
-        p.setProperty(AzureConstantsV12.PROXY_PORT, "8080");
-        assertNotNull(UtilsV12.computeProxyOptions(p));
+    public void computeProxyOptions_strings_hostAndPortSet_returnsProxyOptions() {
+        assertNotNull(UtilsV12.computeProxyOptions("proxy.example.com", "8080"));
     }
 
     @Test
-    public void computeProxyOptions_noHostOrPort_returnsNull() {
-        assertNull(UtilsV12.computeProxyOptions(new Properties()));
+    public void computeProxyOptions_strings_nullHost_returnsNull() {
+        assertNull(UtilsV12.computeProxyOptions(null, "8080"));
     }
 
     @Test
-    public void computeProxyOptions_hostWithoutPort_returnsNull() {
-        Properties p = new Properties();
-        p.setProperty(AzureConstantsV12.PROXY_HOST, "proxy.example.com");
-        assertNull(UtilsV12.computeProxyOptions(p));
+    public void computeProxyOptions_strings_nullPort_returnsNull() {
+        assertNull(UtilsV12.computeProxyOptions("proxy.example.com", null));
     }
 
     @Test
-    public void computeProxyOptions_portWithoutHost_returnsNull() {
-        Properties p = new Properties();
-        p.setProperty(AzureConstantsV12.PROXY_PORT, "8080");
-        assertNull(UtilsV12.computeProxyOptions(p));
+    public void computeProxyOptions_strings_emptyHost_returnsNull() {
+        assertNull(UtilsV12.computeProxyOptions("", "8080"));
+    }
+
+    @Test
+    public void computeProxyOptions_strings_bothNull_returnsNull() {
+        assertNull(UtilsV12.computeProxyOptions(null, null));
     }
 
     /**

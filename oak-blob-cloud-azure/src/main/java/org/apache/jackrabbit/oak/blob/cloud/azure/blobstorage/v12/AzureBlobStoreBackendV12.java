@@ -191,7 +191,7 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
         synchronized (this) {
             existing = azureContainerReference.get();
             if (existing == null) {
-                existing = azureBlobContainerProvider.getBlobContainer(retryOptions, properties);
+                existing = azureBlobContainerProvider.getBlobContainer(retryOptions);
                 azureContainerReference.set(existing);
             }
             return existing;
