@@ -147,7 +147,7 @@ public class AzureDataStoreWrapper extends AbstractDataStoreService {
         }
         activeImpl.setStatisticsProvider(getStatisticsProvider());
         // Registers activeImpl separately as AbstractSharedCachingDataStore so consumers
-        // bound to that type (e.g. oak-repository-service) get the concrete store directly,
+        // bound to that type get the concrete store directly,
         // not just the DataStore view the base class exposes.
         delegateReg = registerService(context, activeImpl);
 
