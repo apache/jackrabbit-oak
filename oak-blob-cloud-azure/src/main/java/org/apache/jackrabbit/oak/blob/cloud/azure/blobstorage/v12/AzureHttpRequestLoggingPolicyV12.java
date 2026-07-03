@@ -55,9 +55,13 @@ class AzureHttpRequestLoggingPolicyV12 implements HttpPipelinePolicy {
 
         return next.process().flatMap(httpResponse -> {
             if (verboseEnabled) {
+                // Redact SAS token signature — the sig= value grants storage access and must not
+                // appear in log files. Other SAS params (se, sp, sv) are left intact for debugging.
+                String url = context.getHttpRequest().getUrl().toString();
+                String safeUrl = url.replaceAll("sig=[^&]*", "sig=[redacted]");
                 log.info("HTTP Blob Request: {} {} {} {} ms",
                         context.getHttpRequest().getHttpMethod(),
-                        context.getHttpRequest().getUrl(),
+                        safeUrl,
                         httpResponse.getStatusCode(),
                         stopwatch.elapsed(TimeUnit.MILLISECONDS));
             }

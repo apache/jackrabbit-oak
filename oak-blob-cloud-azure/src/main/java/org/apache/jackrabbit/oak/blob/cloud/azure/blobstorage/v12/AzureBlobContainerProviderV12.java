@@ -64,6 +64,9 @@ class AzureBlobContainerProviderV12 {
     // Cached service client for user-delegation SAS generation — avoids allocating a new Netty
     // event loop and connection pool on every SAS call.
     private final AtomicReference<BlobServiceClient> cachedBlobServiceClient = new AtomicReference<>();
+    // Cached container client for non-SP SAS signing — signing is local HMAC, so one client
+    // per activation is sufficient regardless of how many SAS calls are made.
+    private final AtomicReference<BlobContainerClient> cachedContainerForSigning = new AtomicReference<>();
     // Cached user delegation key — Azure issues one key per round-trip; reusing it across all
     // presigned URI generations in an upload/download avoids O(N) calls to the userdelegationkey
     // endpoint (N = number of parts). Azure allows keys valid up to 7 days.
@@ -106,10 +109,11 @@ class AzureBlobContainerProviderV12 {
     @NotNull
     private static String getEndpointUrl(String accountName, String customBlobEndpoint) {
         if (StringUtils.isNotBlank(customBlobEndpoint)) {
-            // Use custom endpoint (e.g., for private endpoints)
-            // Ensure it starts with https:// if not already present
             if (!customBlobEndpoint.startsWith("http://") && !customBlobEndpoint.startsWith("https://")) {
                 return "https://" + customBlobEndpoint;
+            }
+            if (customBlobEndpoint.startsWith("http://")) {
+                log.warn("Custom blob endpoint uses cleartext HTTP — credentials and data will be transmitted unencrypted: {}", customBlobEndpoint);
             }
             return customBlobEndpoint;
         }
@@ -189,7 +193,9 @@ class AzureBlobContainerProviderV12 {
             optionalHeaders.applyTo(serviceSasSignatureValues);
         }
 
-        BlockBlobClient blob = getBlobContainer(retryOptions, properties).getBlobClient(key).getBlockBlobClient();
+        // SAS signing is a local HMAC operation — no HTTP call is made. Use a cached client
+        // instead of getBlobContainer() which would allocate a new Netty event loop per call.
+        BlockBlobClient blob = getBlockBlobClientForSigning(key, properties);
 
         if (authenticateViaServicePrincipal()) {
             return generateUserDelegationKeySignedSas(blob, serviceSasSignatureValues, expiry, properties);
@@ -233,6 +239,47 @@ class AzureBlobContainerProviderV12 {
             log.debug("Refreshed user delegation key, valid until {}", keyExpiry);
             return newKey;
         }
+    }
+
+    /**
+     * Returns a {@link BlockBlobClient} for SAS signing without creating a new Netty event loop.
+     * SAS generation is a local HMAC operation — no HTTP connection is needed. For SP auth, the
+     * cached {@link BlobServiceClient} pipeline is reused. For other auth types, one
+     * {@link BlobContainerClient} is created and cached for the provider's lifetime.
+     */
+    private BlockBlobClient getBlockBlobClientForSigning(String key, Properties properties) throws DataStoreException {
+        if (authenticateViaServicePrincipal()) {
+            // BlobServiceClient.getBlobContainerClient() shares the existing pipeline — no new Netty client.
+            return getOrCreateBlobServiceClient(properties)
+                    .getBlobContainerClient(containerName)
+                    .getBlobClient(key)
+                    .getBlockBlobClient();
+        }
+        // Non-SP auth: cache one container client per activation (signing never makes HTTP calls).
+        BlobContainerClient container = cachedContainerForSigning.get();
+        if (container == null) {
+            synchronized (this) {
+                container = cachedContainerForSigning.get();
+                if (container == null) {
+                    container = getBlobContainer(null, properties);
+                    cachedContainerForSigning.set(container);
+                }
+            }
+        }
+        return container.getBlobClient(key).getBlockBlobClient();
+    }
+
+    /**
+     * Releases cached Azure clients. The underlying Netty event loops are not eagerly shut down
+     * (the Azure SDK {@link com.azure.core.http.HttpClient} interface has no close contract), but
+     * clearing the references allows GC to reclaim them, preventing accumulation across OSGi
+     * restart cycles.
+     */
+    public void close() {
+        cachedBlobServiceClient.set(null);
+        cachedContainerForSigning.set(null);
+        cachedDelegationKey.set(null);
+        log.debug("AzureBlobContainerProviderV12 closed; cached Azure clients released");
     }
 
     private boolean authenticateViaServicePrincipal() {
