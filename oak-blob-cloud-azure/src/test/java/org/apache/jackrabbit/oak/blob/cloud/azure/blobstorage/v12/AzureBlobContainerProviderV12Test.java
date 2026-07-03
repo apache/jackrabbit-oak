@@ -255,5 +255,46 @@ public class AzureBlobContainerProviderV12Test {
         assertNotNull(builder.withClientId("client"));
         assertNotNull(builder.withClientSecret("secret"));
         assertNotNull(builder.withAzureConnectionString("conn"));
+        assertNotNull(builder.withProxyHost("proxy.example.com"));
+        assertNotNull(builder.withProxyPort("8080"));
+    }
+
+    /**
+     * httpClient field must be non-null after build — created once at construction time.
+     * Using no proxy settings here (null ProxyOptions) avoids reactor-netty proxy code path
+     * that is not wired in the unit-test classpath.
+     */
+    @Test
+    public void build_httpClientCreatedAtConstruction() throws Exception {
+        Properties props = new Properties();
+        props.setProperty(AzureConstantsV12.AZURE_CONNECTION_STRING,
+                "DefaultEndpointsProtocol=http;AccountName=test;AccountKey=key;BlobEndpoint=http://127.0.0.1:10000/test");
+
+        AzureBlobContainerProviderV12 provider = AzureBlobContainerProviderV12.Builder
+                .builder("container")
+                .initializeWithProperties(props)
+                .build();
+
+        java.lang.reflect.Field f = AzureBlobContainerProviderV12.class.getDeclaredField("httpClient");
+        f.setAccessible(true);
+        assertNotNull("httpClient must be created at construction time", f.get(provider));
+    }
+
+    /** Two providers built from the same properties own independent httpClient instances. */
+    @Test
+    public void build_twoInstances_independentHttpClients() throws Exception {
+        Properties props = new Properties();
+        props.setProperty(AzureConstantsV12.AZURE_CONNECTION_STRING,
+                "DefaultEndpointsProtocol=http;AccountName=a;AccountKey=k;BlobEndpoint=http://127.0.0.1:10000/a");
+
+        AzureBlobContainerProviderV12 p1 = AzureBlobContainerProviderV12.Builder.builder("c").initializeWithProperties(props).build();
+        AzureBlobContainerProviderV12 p2 = AzureBlobContainerProviderV12.Builder.builder("c").initializeWithProperties(props).build();
+
+        java.lang.reflect.Field f = AzureBlobContainerProviderV12.class.getDeclaredField("httpClient");
+        f.setAccessible(true);
+        assertNotNull(f.get(p1));
+        assertNotNull(f.get(p2));
+        assertTrue("different provider instances must have separate httpClient objects",
+                f.get(p1) != f.get(p2));
     }
 }

@@ -43,6 +43,10 @@ import java.util.concurrent.TimeUnit;
  */
 class AzureHttpRequestLoggingPolicyV12 implements HttpPipelinePolicy {
 
+    // Stateless after construction — verboseEnabled is read once from system property.
+    // Share one instance across all SDK client builders rather than allocating per build.
+    static final AzureHttpRequestLoggingPolicyV12 INSTANCE = new AzureHttpRequestLoggingPolicyV12();
+
     private static final Logger log = LoggerFactory.getLogger(AzureHttpRequestLoggingPolicyV12.class);
 
     private static final String AZURE_SDK_VERBOSE_LOGGING_ENABLED = "blob.azure.v12.http.verbose.enabled";
