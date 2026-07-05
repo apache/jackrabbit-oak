@@ -33,6 +33,9 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCluster;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.MongoIterable;
+import com.mongodb.client.model.bulk.ClientBulkWriteOptions;
+import com.mongodb.client.model.bulk.ClientBulkWriteResult;
+import com.mongodb.client.model.bulk.ClientNamespacedWriteModel;
 import com.mongodb.connection.ClusterDescription;
 
 import org.bson.Document;
@@ -200,6 +203,30 @@ class MongoTestClient implements MongoClient {
     @Override
     public <TResult> ChangeStreamIterable<TResult> watch(ClientSession clientSession, List<? extends Bson> pipeline, Class<TResult> resultClass) {
         return delegate.watch(clientSession, pipeline, resultClass);
+    }
+
+    @Override
+    public ClientBulkWriteResult bulkWrite(List<? extends ClientNamespacedWriteModel> models) {
+        return delegate.bulkWrite(models);
+    }
+
+    @Override
+    public ClientBulkWriteResult bulkWrite(List<? extends ClientNamespacedWriteModel> models,
+                                           ClientBulkWriteOptions options) {
+        return delegate.bulkWrite(models, options);
+    }
+
+    @Override
+    public ClientBulkWriteResult bulkWrite(ClientSession clientSession,
+                                           List<? extends ClientNamespacedWriteModel> models) {
+        return delegate.bulkWrite(clientSession, models);
+    }
+
+    @Override
+    public ClientBulkWriteResult bulkWrite(ClientSession clientSession,
+                                           List<? extends ClientNamespacedWriteModel> models,
+                                           ClientBulkWriteOptions options) {
+        return delegate.bulkWrite(clientSession, models, options);
     }
 
     @Override
