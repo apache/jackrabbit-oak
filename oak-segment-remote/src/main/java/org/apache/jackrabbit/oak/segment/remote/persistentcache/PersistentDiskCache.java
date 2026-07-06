@@ -292,9 +292,9 @@ public class PersistentDiskCache extends AbstractPersistentCache {
     @NotNull
     private Stream<SegmentCacheEntry> getSegmentCacheEntryStream() throws IOException {
         return Files.walk(directory.toPath())
-                .filter(path -> !path.toFile().isDirectory())
-                .map(SegmentCacheEntry::fromPath)
-                .sorted();
+            .filter(path -> !path.toFile().isDirectory())
+            .map(SegmentCacheEntry::fromPath)
+            .sorted();
     }
 
     private static class SegmentCacheEntry implements Comparable<SegmentCacheEntry> {
