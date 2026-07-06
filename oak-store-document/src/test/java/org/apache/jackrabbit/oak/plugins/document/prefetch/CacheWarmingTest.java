@@ -137,7 +137,6 @@ public class CacheWarmingTest {
     @Test
     public void prefetch() throws Exception {
         DocumentStore ds = newMongoDocumentStore();
-        CacheWarming cw = new CacheWarming(ds);
         DocumentNodeStore store = builderProvider.newBuilder().setAsyncDelay(0)
                 .setDocumentStore(ds).getNodeStore();
         SortedSet<String> children = new TreeSet<String>();
@@ -152,7 +151,7 @@ public class CacheWarmingTest {
 
         store.getMBean().cleanAllCaches();
 
-        cw.prefetch(children, store.getRoot());
+        store.prefetch(children, store.getRoot());
 
         for (String p : children) {
             assertNotNull(ds.getIfCached(Collection.NODES, getIdFromPath(p)));
@@ -162,7 +161,7 @@ public class CacheWarmingTest {
         for (int i = 0; i < 10; i++) {
             paths.add("/does/not/exist-" + i);
         }
-        cw.prefetch(paths, store.getRoot());
+        store.prefetch(paths, store.getRoot());
         int numRawFindCalls = getRawFindCalls();
         assertNull(ds.find(Collection.NODES, getIdFromPath(paths.get(0))));
         assertEquals(0, getRawFindCalls() - numRawFindCalls);
