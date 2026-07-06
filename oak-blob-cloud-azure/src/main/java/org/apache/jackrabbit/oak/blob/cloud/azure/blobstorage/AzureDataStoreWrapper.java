@@ -21,11 +21,16 @@ package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12.AzureDataStoreV12;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractDataStoreService;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TypedDataStore;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.*;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
 import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
@@ -48,7 +53,12 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.InputStream;
 import java.net.URI;
-import java.util.*;
+import java.util.Dictionary;
+import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 
 /**
@@ -80,7 +90,7 @@ public class AzureDataStoreWrapper extends AbstractDataStoreService {
     private StatisticsProvider statisticsProvider;
     private ServiceRegistration<AbstractSharedCachingDataStore> delegateReg;
 
-    static ServiceRegistration<AbstractSharedCachingDataStore> registerService(ComponentContext context, AbstractSharedCachingDataStore service) {
+    static ServiceRegistration<AbstractSharedCachingDataStore> registerDataStoreService(ComponentContext context, AbstractSharedCachingDataStore service) {
         Dictionary<String, Object> delegateProps = new Hashtable<>();
         // Use the v8 PID so consumers bound to "org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore"
         // still receive this service without needing a config change.
@@ -96,9 +106,10 @@ public class AzureDataStoreWrapper extends AbstractDataStoreService {
      */
     static boolean getUseV12Value(Map<String, Object> config) {
         if (System.getProperty(JVM_PROPERTY_V12_ENABLED) != null) {
-            boolean useV12 = Boolean.getBoolean(JVM_PROPERTY_V12_ENABLED);
-            log.info("Azure SDK v12 flag: JVM property {}={}", JVM_PROPERTY_V12_ENABLED, useV12);
-            return useV12;
+            return SystemPropertySupplier.create(JVM_PROPERTY_V12_ENABLED, false)
+                    .loggingTo(log)
+                    .formatSetMessage((name, useV12) -> "Azure SDK v12 flag: JVM property " + name + "=" + useV12)
+                    .get();
         }
         String envVar = System.getenv(ENV_VAR_V12_ENABLED);
         if (StringUtils.isNotBlank(envVar)) {
@@ -111,7 +122,7 @@ public class AzureDataStoreWrapper extends AbstractDataStoreService {
             log.info("Azure SDK v12 flag: OSGi config {}={}", OSGI_CONFIG_V12_ENABLED, useV12);
             return useV12;
         }
-        log.info("Azure SDK v12 flag: not configured, using default (false)");
+        log.info("Azure SDK v12 flag: not configured, falling back to v8");
         return false;
     }
 
@@ -147,9 +158,9 @@ public class AzureDataStoreWrapper extends AbstractDataStoreService {
         }
         activeImpl.setStatisticsProvider(getStatisticsProvider());
         // Registers activeImpl separately as AbstractSharedCachingDataStore so consumers
-        // bound to that type (e.g. oak-repository-service) get the concrete store directly,
+        // bound to that type get the concrete store directly,
         // not just the DataStore view the base class exposes.
-        delegateReg = registerService(context, activeImpl);
+        delegateReg = registerDataStoreService(context, activeImpl);
 
         return new DelegatingDataStore();
     }

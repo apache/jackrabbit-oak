@@ -191,7 +191,7 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
         synchronized (this) {
             existing = azureContainerReference.get();
             if (existing == null) {
-                existing = azureBlobContainerProvider.getBlobContainer(retryOptions, properties);
+                existing = azureBlobContainerProvider.getBlobContainer();
                 azureContainerReference.set(existing);
             }
             return existing;
@@ -267,12 +267,6 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
         }
         LOG.info("Using concurrentRequestsPerOperation={}", concurrentRequestCount);
 
-        if (properties.getProperty(AzureConstantsV12.AZURE_BLOB_REQUEST_TIMEOUT) != null) {
-            requestTimeout = PropertiesUtil.toInteger(properties.getProperty(AzureConstantsV12.AZURE_BLOB_REQUEST_TIMEOUT), AZURE_BLOB_DEFAULT_REQUEST_TIMEOUT);
-        }
-
-        retryOptions = UtilsV12.getRetryOptions(properties.getProperty(AzureConstantsV12.AZURE_BLOB_MAX_REQUEST_RETRY), requestTimeout, computeSecondaryLocationEndpoint());
-
         presignedDownloadURIVerifyExists = PropertiesUtil.toBoolean(
                 emptyToNull(properties.getProperty(AzureConstantsV12.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS)), true);
 
@@ -321,9 +315,15 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
     }
 
     private void initAzureDSConfig() {
+        if (properties.getProperty(AzureConstantsV12.AZURE_BLOB_REQUEST_TIMEOUT) != null) {
+            requestTimeout = PropertiesUtil.toInteger(properties.getProperty(AzureConstantsV12.AZURE_BLOB_REQUEST_TIMEOUT), AZURE_BLOB_DEFAULT_REQUEST_TIMEOUT);
+        }
+        retryOptions = UtilsV12.getRetryOptions(properties.getProperty(AzureConstantsV12.AZURE_BLOB_MAX_REQUEST_RETRY), requestTimeout, computeSecondaryLocationEndpoint());
+
         azureBlobContainerProvider = AzureBlobContainerProviderV12.Builder
                 .builder(properties.getProperty(AzureConstantsV12.AZURE_BLOB_CONTAINER_NAME))
                 .initializeWithProperties(properties)
+                .withRetryOptions(retryOptions)
                 .build();
     }
 

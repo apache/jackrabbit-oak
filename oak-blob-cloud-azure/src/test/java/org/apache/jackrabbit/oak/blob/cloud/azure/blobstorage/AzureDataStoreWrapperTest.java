@@ -173,10 +173,10 @@ public class AzureDataStoreWrapperTest {
     }
 
     @Test
-    public void registerService_registersUnderAbstractSharedCachingDataStoreClass() {
+    public void registerDataStoreService_registersUnderAbstractSharedCachingDataStoreClass() {
         ComponentContext ctx = mockComponentContext();
 
-        AzureDataStoreWrapper.registerService(ctx, mockImpl);
+        AzureDataStoreWrapper.registerDataStoreService(ctx, mockImpl);
 
         verify(ctx.getBundleContext()).registerService(
                 eq(AbstractSharedCachingDataStore.class), same(mockImpl), any());
@@ -187,24 +187,24 @@ public class AzureDataStoreWrapperTest {
      * installations target that PID, so changing it would orphan those configs on upgrade.
      */
     @Test
-    public void registerService_usesV8PidForCompatibility() {
+    public void registerDataStoreService_usesV8PidForCompatibility() {
         ComponentContext ctx = mockComponentContext();
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Dictionary<String, Object>> props = ArgumentCaptor.forClass(Dictionary.class);
-        AzureDataStoreWrapper.registerService(ctx, mockImpl);
+        AzureDataStoreWrapper.registerDataStoreService(ctx, mockImpl);
 
         verify(ctx.getBundleContext()).registerService(any(Class.class), any(AbstractSharedCachingDataStore.class), props.capture());
         assertEquals(AzureDataStore.class.getName(), props.getValue().get(Constants.SERVICE_PID));
     }
 
     @Test
-    public void registerService_setsAzureBlobDescription() {
+    public void registerDataStoreService_setsAzureBlobDescription() {
         ComponentContext ctx = mockComponentContext();
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Dictionary<String, Object>> props = ArgumentCaptor.forClass(Dictionary.class);
-        AzureDataStoreWrapper.registerService(ctx, mockImpl);
+        AzureDataStoreWrapper.registerDataStoreService(ctx, mockImpl);
 
         verify(ctx.getBundleContext()).registerService(any(Class.class), any(AbstractSharedCachingDataStore.class), props.capture());
         assertArrayEquals(new String[]{"type=AzureBlob"},
@@ -212,13 +212,13 @@ public class AzureDataStoreWrapperTest {
     }
 
     @Test
-    public void registerService_returnsRegistrationFromBundleContext() {
+    public void registerDataStoreService_returnsRegistrationFromBundleContext() {
         ComponentContext ctx = mockComponentContext();
         BundleContext bundleContext = ctx.getBundleContext();
         ServiceRegistration<?> reg = mock(ServiceRegistration.class);
         doReturn(reg).when(bundleContext).registerService(any(Class.class), any(AbstractSharedCachingDataStore.class), any());
 
-        ServiceRegistration<?> result = AzureDataStoreWrapper.registerService(ctx, mockImpl);
+        ServiceRegistration<?> result = AzureDataStoreWrapper.registerDataStoreService(ctx, mockImpl);
 
         assertSame(reg, result);
     }
