@@ -17,9 +17,6 @@
  */
 package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
-import java.io.UncheckedIOException;
-import java.nio.file.NoSuchFileException;
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.AbstractPersistentCache;
@@ -35,9 +32,13 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.channels.FileChannel;
 import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.DirectoryIteratorException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -93,6 +94,8 @@ public class PersistentDiskCache extends AbstractPersistentCache {
 
     final AtomicLong evictionCount = new AtomicLong();
 
+    final AtomicLong elementCount = new AtomicLong();
+
     public PersistentDiskCache(File directory, int cacheMaxSizeMB, DiskCacheIOMonitor diskCacheIOMonitor) {
         this(directory, cacheMaxSizeMB, diskCacheIOMonitor, DEFAULT_TEMP_FILES_CLEANUP_WAIT_TIME_MS);
     }
@@ -106,12 +109,34 @@ public class PersistentDiskCache extends AbstractPersistentCache {
             directory.mkdirs();
         }
 
+        long totalSize = 0;
+        long count = 0;
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(
+                directory.toPath(),
+                path -> !path.getFileName().toString().endsWith(TEMP_FILE_SUFFIX))) {
+            for (Path path : stream) {
+                BasicFileAttributes attrs = Files.readAttributes(path, BasicFileAttributes.class);
+                if (attrs.isRegularFile()) {
+                    totalSize += attrs.size();
+                    count++;
+                }
+            }
+            cacheSize.set(totalSize);
+            elementCount.set(count);
+            if (totalSize > maxCacheSizeBytes) {
+                logger.info("Cache directory {} contains {} MB on startup, exceeding the {} MB limit; eviction will trigger on the next write",
+                        directory, totalSize / (1024L * 1024L), cacheMaxSizeMB);
+            }
+        } catch (IOException | DirectoryIteratorException e) {
+            logger.warn("Failed to initialize cache size counters from directory {}", directory, e);
+        }
+
         segmentCacheStats = new SegmentCacheStats(
                 NAME,
                 () -> maxCacheSizeBytes,
-                () -> Long.valueOf(directory.listFiles().length),
-                () -> FileUtils.sizeOfDirectory(directory),
-                () -> evictionCount.get());
+                elementCount::get,
+                cacheSize::get,
+                evictionCount::get);
     }
 
     @Override
@@ -190,6 +215,7 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                             Files.move(tempSegmentFile.toPath(), segmentFile.toPath());
                         }
                         long cacheSizeAfter = cacheSize.addAndGet(fileSize);
+                        elementCount.incrementAndGet();
                         diskCacheIOMonitor.updateCacheSize(cacheSizeAfter, fileSize);
                     }
                 } catch (Exception e) {
@@ -249,6 +275,9 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                         long cacheSizeAfter = cacheSize.addAndGet(-length);
                         diskCacheIOMonitor.updateCacheSize(cacheSizeAfter, -length);
                         segment.delete();
+                        if (!segmentCacheEntry.isTempFile()) {
+                            elementCount.decrementAndGet();
+                        }
                         evictionCount.incrementAndGet();
                     } else {
                         breaker.stop();
