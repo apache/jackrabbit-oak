@@ -35,7 +35,6 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.containers.Network;
@@ -59,19 +58,11 @@ public class LeaseUpdateSocketTimeoutIT {
 
     private static final int LEASE_SO_TIMEOUT = 50;
 
-    @Rule
-    public Network network = Network.newNetwork();
+    private Network network;
 
-    @Rule
-    public MongoDBContainer mongoDBContainer = new MongoDBContainer(MongoDockerRule.getDockerImageName())
-            .withNetwork(network)
-            .withNetworkAliases("mongo")
-            .withExposedPorts(MONGODB_DEFAULT_PORT);
+    private MongoDBContainer mongoDBContainer;
 
-    @Rule
-    public ToxiproxyContainer tp = new ToxiproxyContainer(TOXIPROXY_IMAGE)
-            .withStartupAttempts(3)
-            .withNetwork(network);
+    private ToxiproxyContainer tp;
 
     private Proxy proxy;
 
@@ -89,6 +80,16 @@ public class LeaseUpdateSocketTimeoutIT {
 
     @Before
     public void before() throws Exception {
+        network = Network.newNetwork();
+        mongoDBContainer = new MongoDBContainer(MongoDockerRule.getDockerImageName())
+                .withNetwork(network)
+                .withNetworkAliases("mongo")
+                .withExposedPorts(MONGODB_DEFAULT_PORT);
+        mongoDBContainer.start();
+        tp = new ToxiproxyContainer(TOXIPROXY_IMAGE)
+                .withStartupAttempts(3)
+                .withNetwork(network);
+        tp.start();
         clock = new Clock.Virtual();
         clock.waitUntil(System.currentTimeMillis());
         setClusterNodeInfoClock(clock);
@@ -103,7 +104,18 @@ public class LeaseUpdateSocketTimeoutIT {
 
     @After
     public void after() {
-        store.dispose();
+        if (store != null) {
+            store.dispose();
+        }
+        if (tp != null) {
+            tp.stop();
+        }
+        if (mongoDBContainer != null) {
+            mongoDBContainer.stop();
+        }
+        if (network != null) {
+            network.close();
+        }
         TestUtils.resetClusterNodeInfoClockToDefault();
     }
 
