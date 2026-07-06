@@ -160,20 +160,14 @@ public class SystemPropertySupplierTest {
 
     @Test
     public void testCheckNoDefaultNotSet() {
-        try {
-            assertNull(SystemPropertySupplier.create("foo", Boolean.class).
-                    usingSystemPropertyReader((n) -> null).get());
-        } catch (IllegalArgumentException expected) {
-        }
+        assertNull(SystemPropertySupplier.create("foo", Boolean.class).
+                usingSystemPropertyReader((n) -> null).get());
     }
 
     @Test
     public void testCheckNoDefaultSet() {
-        try {
-            int value = SystemPropertySupplier.create("foo", Integer.class).
-                    usingSystemPropertyReader((n) -> "4217").get();
-            assertEquals(4217, value);
-        } catch (IllegalArgumentException expected) {
-        }
+        int value = SystemPropertySupplier.create("foo", Integer.class).
+            usingSystemPropertyReader((n) -> "4217").get();
+        assertEquals(4217, value);
     }
 }
