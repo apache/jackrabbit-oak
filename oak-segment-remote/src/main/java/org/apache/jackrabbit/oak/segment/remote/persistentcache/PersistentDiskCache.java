@@ -58,7 +58,7 @@ public class PersistentDiskCache extends AbstractPersistentCache {
     public static final int DEFAULT_MAX_CACHE_SIZE_MB = 512;
     public static final String NAME = "Segment Disk Cache";
     public static final long DEFAULT_TEMP_FILES_CLEANUP_WAIT_TIME_MS = 60000;
-    private static final String TEMP_FILE_SUFFIX = ".part";
+    static final String TEMP_FILE_SUFFIX = ".part";
 
     /**
      * Name of the feature toggle that controls the OAK-12212 fix, see
@@ -292,9 +292,9 @@ public class PersistentDiskCache extends AbstractPersistentCache {
     @NotNull
     private Stream<SegmentCacheEntry> getSegmentCacheEntryStream() throws IOException {
         return Files.walk(directory.toPath())
-            .filter(path -> !path.toFile().isDirectory())
-            .map(SegmentCacheEntry::fromPath)
-            .sorted();
+                .filter(path -> !path.toFile().isDirectory())
+                .map(SegmentCacheEntry::fromPath)
+                .sorted();
     }
 
     private static class SegmentCacheEntry implements Comparable<SegmentCacheEntry> {

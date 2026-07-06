@@ -78,7 +78,7 @@ public class PersistentDiskCacheCounterTest {
         }
 
         // One temp file (.part) that must NOT be counted
-        File temp = new File(cacheFolder, UUID.randomUUID().toString() + System.nanoTime() + ".part");
+        File temp = new File(cacheFolder, UUID.randomUUID().toString() + System.nanoTime() + PersistentDiskCache.TEMP_FILE_SUFFIX);
         try (FileOutputStream fos = new FileOutputStream(temp)) {
             fos.write(new byte[999]);
         }
@@ -165,7 +165,7 @@ public class PersistentDiskCacheCounterTest {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(cacheFolder.toPath())) {
             for (Path path : stream) {
                 BasicFileAttributes attrs = Files.readAttributes(path, BasicFileAttributes.class);
-                if (attrs.isRegularFile() && !path.getFileName().toString().endsWith(".part")) {
+                if (attrs.isRegularFile() && !path.getFileName().toString().endsWith(PersistentDiskCache.TEMP_FILE_SUFFIX)) {
                     actualCount++;
                     actualSize += attrs.size();
                 }
