@@ -176,4 +176,10 @@ public class SystemPropertySupplierTest {
         assertNull(SystemPropertySupplier.create("foo", Integer.class).
                 usingSystemPropertyReader((n) -> "abcd").get());
     }
+
+    @Test
+    public void testCheckNoDefaultValidatorRejects() {
+        assertNull(SystemPropertySupplier.create("foo", String.class).
+                usingSystemPropertyReader((n) -> "abcd").validateWith(x-> false) .get());
+    }
 }
