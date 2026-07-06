@@ -27,7 +27,6 @@ import org.testcontainers.containers.Network;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
-import org.testcontainers.utility.MountableFile;
 
 import co.elastic.clients.transport.Version;
 
@@ -72,12 +71,11 @@ public class ElasticTestServer implements AutoCloseable {
         network = Network.newNetwork();
         CONTAINER = new ElasticsearchContainer("docker.elastic.co/elasticsearch/elasticsearch:" + esDockerImageVersion)
                 .withEnv("ES_JAVA_OPTS", "-Xms1g -Xmx1g")
-                // Keep test transport deterministic across Testcontainers/ES versions.
+                .withEnv("network.host", "0.0.0.0")
+                .withEnv("ingest.geoip.downloader.enabled", "false")
                 .withEnv("xpack.security.enabled", "false")
                 .withEnv("xpack.security.http.ssl.enabled", "false")
-                .withCopyFileToContainer(
-                        MountableFile.forClasspathResource("elasticsearch.yml"),
-                        "/usr/share/elasticsearch/config/elasticsearch.yml")
+                .withEnv("action.destructive_requires_name", "false")
                 .withNetwork(network)
                 .withNetworkAliases("elasticsearch")
                 .waitingFor(Wait.forHttp("/").forPort(9200).forStatusCode(200))

@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import co.elastic.clients.elasticsearch._types.ElasticsearchException;
-import co.elastic.clients.elasticsearch.indices.GetAliasResponse;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.rules.ExternalResource;
@@ -96,14 +94,8 @@ public class ElasticConnectionRule extends ExternalResource {
         ElasticConnection esConnection = getElasticConnection();
         if (esConnection != null) {
             try {
-                // ES can reject wildcard deletes, so resolve concrete indices first.
-                GetAliasResponse aliasResponse = esConnection.getClient().indices().getAlias(a -> a
-                        .index(this.indexPrefix + "*")
-                        .ignoreUnavailable(true));
-                if (!aliasResponse.result().isEmpty()) {
-                    esConnection.getClient().indices().delete(d -> d.index(aliasResponse.result().keySet().stream().toList()));
-                }
-            } catch (IOException | ElasticsearchException e) {
+                esConnection.getClient().indices().delete(d -> d.index(this.indexPrefix + "*"));
+            } catch (IOException e) {
                 LOG.error("Unable to delete indexes with prefix {}", this.indexPrefix);
             } finally {
                 IOUtils.closeQuietly(esConnection, e -> LOG.debug("Error closing Elasticsearch connection", e));
