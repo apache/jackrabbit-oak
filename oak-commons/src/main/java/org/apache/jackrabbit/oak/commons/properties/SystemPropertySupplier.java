@@ -23,6 +23,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,26 +50,34 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
     private final String propName;
     private final T defaultValue;
     private final Function<String, T> parser;
-
     private Logger log = LOG;
     private String successLogLevel = "INFO";
     private boolean hideValue = false;
-    private Predicate<T> validator = (a) -> true;
+    private Predicate<T> validator = a -> true;
     private Function<String, String> sysPropReader = System::getProperty;
     private BiFunction<String, T, String> setMessageFormatter = (a, b) -> String.format("System property %s found to be '%s'", a,
             hideValue ? HIDDEN_REPLACEMENT : b);
 
-    private SystemPropertySupplier(@NotNull String propName, @NotNull T defaultValue) {
+    private SystemPropertySupplier(@NotNull String propName, @Nullable T defaultValue, @Nullable Class<T> clazz) {
         this.propName = Objects.requireNonNull(propName, "propertyName must be non-null");
-        this.defaultValue = Objects.requireNonNull(defaultValue, "defaultValue must be non-null");
-        this.parser = getValueParser(defaultValue);
+        this.defaultValue = defaultValue;
+        this.parser = getValueParser(defaultValue, clazz);
     }
 
     /**
      * Create it for a given property name and default value.
      */
     public static <U> SystemPropertySupplier<U> create(@NotNull String propName, @NotNull U defaultValue) {
-        return new SystemPropertySupplier<>(propName, defaultValue);
+        return new SystemPropertySupplier<>(propName,
+                Objects.requireNonNull(defaultValue, "defaultValue must not be null"), null);
+    }
+
+    /**
+     * Create it for a given property name and no default value (but expected {@linkplain Class}).
+     */
+    public static <U> SystemPropertySupplier<U> create(@NotNull String propName, @NotNull Class<U> clazz) {
+        return new SystemPropertySupplier<>(propName, null,
+                Objects.requireNonNull(clazz, "clazz must not be null"));
     }
 
     /**
@@ -191,8 +200,12 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
     }
 
     @SuppressWarnings("unchecked")
-    private static <T> Function<String, T> getValueParser(T defaultValue) {
-        if (defaultValue instanceof Boolean) {
+    private static <T> Function<String, T> getValueParser(T defaultValue, Class<T> type) {
+        Class<?> clazz = (defaultValue != null) ? defaultValue.getClass() : type;
+
+        if (clazz == null) {
+            throw new IllegalArgumentException("Cannot determine type: defaultValue is null and no type provided.");
+        } else if (Boolean.class.isAssignableFrom(clazz)) {
             return v -> (T) Boolean.valueOf(v);
         } else if (defaultValue instanceof Integer) {
             return v -> (T) Integer.valueOf(v);

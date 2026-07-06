@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.commons.properties;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
@@ -146,5 +147,14 @@ public class SystemPropertySupplierTest {
                 usingSystemPropertyReader(y -> "2").
                 logSuccessAs("AWESOME").get();
         assertEquals(2 , x);
+    }
+
+    @Test
+    public void testCheckNullDefault() {
+        try {
+            assertNull(SystemPropertySupplier.create("foo", Boolean.class).
+                    usingSystemPropertyReader((n) -> null).get());
+        } catch (IllegalArgumentException expected) {
+        }
     }
 }
