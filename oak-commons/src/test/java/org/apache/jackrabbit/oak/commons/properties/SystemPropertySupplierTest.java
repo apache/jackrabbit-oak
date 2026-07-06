@@ -170,4 +170,10 @@ public class SystemPropertySupplierTest {
             usingSystemPropertyReader((n) -> "4217").get();
         assertEquals(4217, value);
     }
+
+    @Test
+    public void testCheckNoDefaultSetInvalid() {
+        assertNull(SystemPropertySupplier.create("foo", Integer.class).
+                usingSystemPropertyReader((n) -> "abcd").get());
+    }
 }

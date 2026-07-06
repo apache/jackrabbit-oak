@@ -172,7 +172,7 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
                 log.error("Ignoring malformed value '{}' for system property {}", displayedValue, propName);
             }
 
-            if (!returnValue.equals(defaultValue)) {
+            if (!Objects.equals(returnValue, defaultValue)) {
                 String msg = setMessageFormatter.apply(propName, returnValue);
                 switch (successLogLevel) {
                     case "INFO":
