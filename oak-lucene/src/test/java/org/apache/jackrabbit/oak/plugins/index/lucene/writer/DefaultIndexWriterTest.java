@@ -142,6 +142,30 @@ public class DefaultIndexWriterTest {
         writer.close(100);
     }
 
+    /**
+     * Verifies that {@code getTotalDocCount()} returns the correct document count
+     * after the writer is closed (OAK-12247).
+     */
+    @Test
+    public void getTotalDocCountReflectsIndexedDocuments() throws Exception {
+        FSDirectoryFactory fsdir = new FSDirectoryFactory(folder.getRoot());
+        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+        DefaultIndexWriter writer = new DefaultIndexWriter(defn, builder,
+                fsdir, INDEX_DATA_CHILD_NAME, SUGGEST_DATA_CHILD_NAME, true, writerConfig);
+
+        Document doc1 = new Document();
+        doc1.add(newPathField("/a/b"));
+        writer.updateDocument("/a/b", doc1);
+
+        Document doc2 = new Document();
+        doc2.add(newPathField("/a/c"));
+        writer.updateDocument("/a/c", doc2);
+
+        writer.close(0);
+
+        assertEquals("getTotalDocCount() should return 2 after indexing 2 documents", 2L, writer.getTotalDocCount());
+    }
+
     private DefaultIndexWriter createWriter(LuceneIndexDefinition defn, boolean reindex) {
         return new DefaultIndexWriter(defn, builder,
                 new DefaultDirectoryFactory(null, null), INDEX_DATA_CHILD_NAME,

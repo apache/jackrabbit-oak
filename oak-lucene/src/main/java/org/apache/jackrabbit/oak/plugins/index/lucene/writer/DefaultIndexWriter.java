@@ -67,6 +67,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
     private Directory directory;
     private long genAtStart = -1;
     private boolean indexUpdated = false;
+    private long totalDocCount = -1L;
 
     public DefaultIndexWriter(LuceneIndexDefinition definition, NodeBuilder definitionBuilder,
                               DirectoryFactory directoryFactory, String dirName, String suggestDirName,
@@ -143,6 +144,12 @@ class DefaultIndexWriter implements LuceneIndexWriter {
                 indexUpdated |= updateSuggester(writer.getAnalyzer(), currentTime);
                 PERF_LOGGER.end(start, -1, "Completed suggester for directory {}", definition);
             }
+
+            // OAK-12247: commit() applies all pending delete queries before close(),
+            // making writer.numDocs() accurate for totalIndexedNodes tracking.
+            // close() calls commit() internally so this adds no extra I/O.
+            writer.commit();
+            totalDocCount = writer.numDocs();
 
             writer.close();
             PERF_LOGGER.end(start, -1, "Closed writer for directory {}", definition);
@@ -294,6 +301,11 @@ class DefaultIndexWriter implements LuceneIndexWriter {
             sb.append(", ");
         }
         log.trace("Directory overall size: {}, files: {}", IOUtils.humanReadableByteCount(overallSize), sb);
+    }
+
+    @Override
+    public long getTotalDocCount() {
+        return totalDocCount;
     }
 
     @Override

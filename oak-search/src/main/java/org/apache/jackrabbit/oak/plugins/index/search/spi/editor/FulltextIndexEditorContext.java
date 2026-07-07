@@ -44,6 +44,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Calendar;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_RANDOM_SEED;
@@ -60,6 +61,14 @@ public abstract class FulltextIndexEditorContext<D> {
 
     private static final PerfLogger PERF_LOGGER =
             new PerfLogger(LoggerFactory.getLogger(FulltextIndexEditorContext.class.getName() + ".perf"));
+
+    public static final String FT_OAK_12247 = "FT_OAK-12247";
+
+    /**
+     * Kill switch for OAK-12247 totalIndexedNodes tracking. Default {@code false}
+     * (tracking active). Set to {@code true} to revert to legacy behaviour.
+     */
+    public static final AtomicBoolean FT_OAK_12247_DISABLE = new AtomicBoolean(false);
 
     protected IndexDefinition definition;
 
@@ -154,7 +163,8 @@ public abstract class FulltextIndexEditorContext<D> {
     public void closeWriter() throws IOException {
         Calendar currentTime = getCalendar();
         final long start = PERF_LOGGER.start();
-        boolean indexUpdated = getWriter().close(currentTime.getTimeInMillis());
+        FulltextIndexWriter<D> writer = getWriter(); // OAK-12247: local ref needed for getTotalDocCount() after close
+        boolean indexUpdated = writer.close(currentTime.getTimeInMillis());
 
         if (indexUpdated) {
             PERF_LOGGER.end(start, -1, "Closed writer for directory {}", definition);
@@ -173,6 +183,25 @@ public abstract class FulltextIndexEditorContext<D> {
 
             if (textExtractor != null) {
                 textExtractor.done(reindex);
+            }
+        }
+
+        // OAK-12247: persist totalIndexedNodes and fix the Elastic empty-reindex gap
+        // (empty reindex returns indexUpdated=false, so the block above never runs and
+        // REINDEX_COMPLETION_TIMESTAMP would not be written — planner has no signal).
+        // When indexUpdated=true the legacy block already wrote REINDEX_COMPLETION_TIMESTAMP,
+        // so we only write it here for the !indexUpdated && reindex case.
+        if (!FT_OAK_12247_DISABLE.get() && (indexUpdated || reindex)) {
+            NodeBuilder status = definitionBuilder.child(IndexDefinition.STATUS_NODE);
+            long total = writer.getTotalDocCount();
+            if (total >= 0) {
+                status.setProperty(IndexDefinition.PROP_TOTAL_INDEXED_NODES, total);
+            }
+            if (!indexUpdated && reindex) {
+                status.setProperty(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP,
+                        ISO8601.format(currentTime), Type.DATE);
+                log.info("{} set for index: {}", IndexDefinition.REINDEX_COMPLETION_TIMESTAMP,
+                        definition.getIndexPath());
             }
         }
     }

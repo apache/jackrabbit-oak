@@ -28,5 +28,6 @@ import org.apache.lucene.index.IndexableField;
 
 public interface LuceneIndexWriterFactory extends FulltextIndexWriterFactory<Iterable<? extends IndexableField>>, AutoCloseable {
     @Override
-    LuceneIndexWriter newInstance(IndexDefinition definition, NodeBuilder definitionBuilder, CommitInfo commitInfo, boolean reindex);
+    LuceneIndexWriter newInstance(IndexDefinition definition, NodeBuilder definitionBuilder,
+                                  CommitInfo commitInfo, boolean reindex);
 }

@@ -49,4 +49,12 @@ public interface FulltextIndexWriter<D> {
      * @return true if index was updated or any write happened.
      */
     boolean close(long timestamp) throws IOException;
+
+    /**
+     * Returns the total number of documents in the index after this writer is closed,
+     * or {@code -1} if not tracked by this implementation.
+     */
+    default long getTotalDocCount() {
+        return -1L;
+    }
 }

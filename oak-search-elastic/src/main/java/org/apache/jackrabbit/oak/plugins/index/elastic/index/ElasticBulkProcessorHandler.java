@@ -48,6 +48,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
@@ -66,6 +67,7 @@ public class ElasticBulkProcessorHandler {
         public final NodeBuilder definitionBuilder;
         public final boolean waitForESAcknowledgement;
         public final boolean isRealTime;
+        public final LongAdder docCount;
         /**
          * Exceptions occurred while trying to update index in elasticsearch
          */
@@ -77,11 +79,16 @@ public class ElasticBulkProcessorHandler {
         boolean indexModified = false;
 
         IndexInfo(String indexName, ElasticIndexDefinition indexDefinition, NodeBuilder definitionBuilder, boolean waitForESAcknowledgement, boolean isRealTime) {
+            this(indexName, indexDefinition, definitionBuilder, waitForESAcknowledgement, isRealTime, new LongAdder());
+        }
+
+        IndexInfo(String indexName, ElasticIndexDefinition indexDefinition, NodeBuilder definitionBuilder, boolean waitForESAcknowledgement, boolean isRealTime, LongAdder docCount) {
             this.indexName = indexName;
             this.indexDefinition = indexDefinition;
             this.definitionBuilder = definitionBuilder;
             this.waitForESAcknowledgement = waitForESAcknowledgement;
             this.isRealTime = isRealTime;
+            this.docCount = docCount;
         }
     }
 
@@ -180,6 +187,13 @@ public class ElasticBulkProcessorHandler {
      * This option is available for sync index definitions only.
      */
     public void registerIndex(String indexName, ElasticIndexDefinition indexDefinition, NodeBuilder definitionBuilder, CommitInfo commitInfo, boolean waitForESAcknowledgement) {
+        registerIndex(indexName, indexDefinition, definitionBuilder, commitInfo, waitForESAcknowledgement, new LongAdder());
+    }
+
+    /**
+     * Registers an ElasticIndex with the given index definition configuration and document-count tracker.
+     */
+    public void registerIndex(String indexName, ElasticIndexDefinition indexDefinition, NodeBuilder definitionBuilder, CommitInfo commitInfo, boolean waitForESAcknowledgement, LongAdder docCount) {
         checkOpen();
         if (registeredIndexes.containsKey(indexName)) {
             LOG.warn("Index already registered: {}", indexName);
@@ -205,7 +219,7 @@ public class ElasticBulkProcessorHandler {
                 } else {
                     isRealTime = false;
                 }
-                return new IndexInfo(indexName, indexDefinition, definitionBuilder, waitForESAcknowledgement, isRealTime);
+                return new IndexInfo(indexName, indexDefinition, definitionBuilder, waitForESAcknowledgement, isRealTime, docCount);
             });
         }
     }
@@ -461,6 +475,13 @@ public class ElasticBulkProcessorHandler {
                     BulkResponseItem item = response.items().get(i);
                     if (item.error() == null) {
                         indexInfo.indexModified = true;
+                        String result = item.result();
+                        if ("created".equals(result)) {
+                            indexInfo.docCount.increment();
+                        } else if ("deleted".equals(result)) {
+                            indexInfo.docCount.add(-1L);
+                        }
+                        // "updated" → no count change
                     } else {
                         if (failOnIndexingError && indexInfo.suppressedErrorCauses.size() < MAX_SUPPRESSED_ERROR_CAUSES) {
                             indexInfo.suppressedErrorCauses.add(item.error());

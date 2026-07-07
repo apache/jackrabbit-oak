@@ -199,6 +199,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     public static final String CREATION_TIMESTAMP = "creationTimestamp";
     public static final String REINDEX_COMPLETION_TIMESTAMP = "reindexCompletionTimestamp";
+    public static final String PROP_TOTAL_INDEXED_NODES = "totalIndexedNodes";
 
     /**
      * Meta property which provides the unique id
@@ -744,6 +745,23 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     @Nullable
     public String getUniqueId() {
         return uid;
+    }
+
+    /**
+     * Returns the total number of documents in the index as of the last
+     * completed indexing cycle, or {@code -1} if never recorded.
+     */
+    public long getTotalIndexedNodes() {
+        PropertyState prop = definition.getChildNode(STATUS_NODE).getProperty(PROP_TOTAL_INDEXED_NODES);
+        return prop != null ? prop.getValue(Type.LONG) : -1L;
+    }
+
+    /**
+     * Returns {@code true} if at least one full reindex cycle has completed
+     * (i.e. {@code REINDEX_COMPLETION_TIMESTAMP} is present in {@code :status}).
+     */
+    public boolean isReindexCompleted() {
+        return definition.getChildNode(STATUS_NODE).hasProperty(REINDEX_COMPLETION_TIMESTAMP);
     }
 
     public boolean isNRTIndexingEnabled() {
