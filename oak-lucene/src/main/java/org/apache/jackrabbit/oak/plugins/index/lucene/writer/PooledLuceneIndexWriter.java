@@ -51,8 +51,14 @@ public class PooledLuceneIndexWriter implements LuceneIndexWriter {
     }
 
     @Override
-    public void deleteDocuments(String path) throws IOException {
-        writerPool.deleteDocuments(delegateWriter, path);
+    public void deleteDocumentTree(String path) throws IOException {
+        writerPool.deleteDocumentTree(delegateWriter, path);
+        deleteCount++;
+    }
+
+    @Override
+    public void deleteDocument(String path) throws IOException {
+        writerPool.deleteDocument(delegateWriter, path);
         deleteCount++;
     }
 
