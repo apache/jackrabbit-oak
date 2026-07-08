@@ -33,8 +33,6 @@ import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 
 /**
- * @deprecated Use {@link AzureDataStoreWrapper} instead.
- */
 @Deprecated(since = "2.3", forRemoval = true)
  * Kept for binary compatibility with existing callers. Use {@link AzureDataStoreWrapper} instead.
  *
