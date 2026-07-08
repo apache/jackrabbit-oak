@@ -65,7 +65,7 @@ public final class CacheWeights {
         return (Weigher<K, V>) NOOP_WEIGHER;
     }
 
-    static int segmentWeight(Segment segment) {
+    public static int segmentWeight(Segment segment) {
         return SEGMENT_CACHE_OVERHEAD + segment.estimateMemoryUsage();
     }
 
