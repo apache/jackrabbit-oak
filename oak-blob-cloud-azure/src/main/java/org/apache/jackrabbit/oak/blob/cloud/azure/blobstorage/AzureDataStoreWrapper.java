@@ -78,6 +78,9 @@ public class AzureDataStoreWrapper extends AbstractDataStoreService {
 
     private static final Logger log = LoggerFactory.getLogger(AzureDataStoreWrapper.class);
 
+    // Intentionally set to the legacy v8 PID rather than this class's own FQN.
+    // Existing OSGi configurations reference the v8 PID, so reusing it here means
+    // no config migration is required when switching to this wrapper.
     public static final String NAME = "org.apache.jackrabbit.oak.plugins.blob.datastore.AzureDataStore";
 
     // Same name for now; kept as separate constants so they can diverge if the sources need different keys later.
@@ -189,7 +192,8 @@ public class AzureDataStoreWrapper extends AbstractDataStoreService {
 
     @Override
     protected String[] getDescription() {
-        return new String[]{"type=AzureBlob"};
+        String sdkVersion = (activeImpl instanceof AzureDataStoreV12) ? "v12" : "v8";
+        return new String[]{"type=AzureBlob", "sdkVersion=" + sdkVersion};
     }
 
     // -- Inner DelegatingDataStore (returned from createDataStore) -------
