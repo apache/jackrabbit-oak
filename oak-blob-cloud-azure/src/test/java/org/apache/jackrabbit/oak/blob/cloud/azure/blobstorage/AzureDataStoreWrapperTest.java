@@ -376,7 +376,10 @@ public class AzureDataStoreWrapperTest {
 
     @Test
     public void getDescription_returnsAzureBlobType() {
-        assertArrayEquals(new String[]{"type=AzureBlob"}, wrapper.getDescription());
+        String[] desc = wrapper.getDescription();
+        assertEquals(2, desc.length);
+        assertEquals("type=AzureBlob", desc[0]);
+        assertTrue(desc[1].startsWith("sdkVersion="));
     }
 
     // -- SharedDataStore delegation --
