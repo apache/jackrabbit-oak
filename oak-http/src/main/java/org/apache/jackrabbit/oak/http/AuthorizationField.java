@@ -16,11 +16,12 @@
  */
 package org.apache.jackrabbit.oak.http;
 
-import org.apache.jackrabbit.util.Base64;
-
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Enumeration;
+import java.util.Locale;
 import java.util.NoSuchElementException;
 
 public class AuthorizationField {
@@ -44,11 +45,30 @@ public class AuthorizationField {
         return parseCredentials(field);
     }
 
-    private static SimpleCredentials parseCredentials(String fieldValue) throws LoginException {
-        if (fieldValue.startsWith("Basic ")) {
-            String[] basic =
-                    Base64.decode(fieldValue.substring("Basic ".length())).split(":");
-            return new SimpleCredentials(basic[0], basic[1].toCharArray());
+    private static SimpleCredentials parseCredentials(String rawFieldValue) throws LoginException {
+        boolean hasControls = rawFieldValue.chars().anyMatch(c -> c < ' ');
+        if (hasControls) {
+            throw new LoginException("Control characters are not allowed");
+        }
+
+        String fieldValue = rawFieldValue.trim().replaceAll(" +", " ");
+
+        if (fieldValue.toLowerCase(Locale.ENGLISH).startsWith("basic ")) {
+            String token68 = fieldValue.substring("basic ".length());
+            try {
+                String decoded = new String(Base64.getDecoder().decode(token68), StandardCharsets.UTF_8);
+                int colon = decoded.indexOf(':');
+                if (colon < 0) {
+                    throw new LoginException(
+                            "Malformed Basic credentials: missing ':' separator");
+                }
+                String userId = decoded.substring(0, colon);
+                String password = decoded.substring(colon + 1);
+
+                return new SimpleCredentials(userId, password.toCharArray());
+            } catch (IllegalArgumentException ex) {
+                throw new LoginException(ex.getMessage());
+            }
         } else {
             throw new LoginException("Only Basic Authentication supported");
         }

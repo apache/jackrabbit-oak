@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>37</version>
+    <version>39</version>
     <relativePath />
   </parent>
 
@@ -65,7 +65,7 @@
     <tika.version>1.28.5</tika.version>
     <derby.version>10.16.1.1</derby.version>
     <jackson.version>2.19.4</jackson.version>
-    <testcontainers.version>1.21.4</testcontainers.version>
+    <testcontainers.version>2.0.3</testcontainers.version>
     <pax-exam.version>4.14.0</pax-exam.version>
     <pax-url.version>2.6.17</pax-url.version>
     <groovy.version>3.0.25</groovy.version>
@@ -664,12 +664,12 @@
       <dependency>
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
-        <version>2.20.0</version>
+        <version>2.21.0</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
-        <version>1.19.0</version>
+        <version>1.20.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>

@@ -237,9 +237,11 @@ configured NodeStore services.
 **Default behavior by NodeStore:**
 
 * **SegmentNodeStore** (`SegmentNodeStoreService` / `SegmentNodeStoreFactory`): blob ID tracking is **disabled by
-  default** (`blobTrackSnapshotIntervalInSecs = 0`). To enable it, set a positive value such as `43200` (12 hours).
-* **DocumentNodeStore**: blob ID tracking is **enabled by default** with a 12-hour sync interval
-  (`blobTrackSnapshotIntervalInSecs = 43200`).
+  default** (`blobTrackSnapshotIntervalInSecs = 0`, default since Oak 2.4.0). To enable it, set a positive value such as
+  `43200` (12 hours).
+* **DocumentNodeStore**: blob ID tracking is **disabled by default**
+  (`blobTrackSnapshotIntervalInSecs = 0`, default since Oak 2.4.0). To enable it, set a positive value such as `43200`
+  (12 hours).
 
 When tracking is disabled (interval = 0), blob IDs are not cached locally and the warnings described below do
 not apply. The full blob ID list is always retrieved directly from the DataStore during GC.

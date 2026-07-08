@@ -123,17 +123,31 @@ public class IndexWriterPool {
         }
     }
 
-    private static class DeleteOperation extends Operation {
+    private static class DeleteTreeOperation extends Operation {
         private final String path;
 
-        DeleteOperation(LuceneIndexWriter delegate, String path) {
+        DeleteTreeOperation(LuceneIndexWriter delegate, String path) {
             super(delegate);
             this.path = path;
         }
 
         @Override
         public void execute() throws IOException {
-            delegate.deleteDocuments(path);
+            delegate.deleteDocumentTree(path);
+        }
+    }
+
+    private static class DeleteDocumentOperation extends Operation {
+        private final String path;
+
+        DeleteDocumentOperation(LuceneIndexWriter delegate, String path) {
+            super(delegate);
+            this.path = path;
+        }
+
+        @Override
+        public void execute() throws IOException {
+            delegate.deleteDocument(path);
         }
     }
 
@@ -280,10 +294,16 @@ public class IndexWriterPool {
         enqueueOperation(new UpdateOperation(writer, path, doc));
     }
 
-    public void deleteDocuments(LuceneIndexWriter writer, String path) throws IOException {
+    public void deleteDocumentTree(LuceneIndexWriter writer, String path) throws IOException {
         checkOpen();
         this.deleteCount++;
-        enqueueOperation(new DeleteOperation(writer, path));
+        enqueueOperation(new DeleteTreeOperation(writer, path));
+    }
+
+    public void deleteDocument(LuceneIndexWriter writer, String path) throws IOException {
+        checkOpen();
+        this.deleteCount++;
+        enqueueOperation(new DeleteDocumentOperation(writer, path));
     }
 
     public boolean closeWriter(LuceneIndexWriter writer, long timestamp) throws IOException {

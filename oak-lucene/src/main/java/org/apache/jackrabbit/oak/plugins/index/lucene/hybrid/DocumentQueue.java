@@ -266,7 +266,7 @@ public class DocumentQueue implements Closeable, IndexingQueue {
                     doc.markProcessed();
                 }
                 if (doc.delete) {
-                    writer.deleteDocuments(doc.docPath);
+                    writer.deleteDocumentTree(doc.docPath);
                 } else {
                     writer.updateDocument(doc.docPath, doc.doc);
                 }

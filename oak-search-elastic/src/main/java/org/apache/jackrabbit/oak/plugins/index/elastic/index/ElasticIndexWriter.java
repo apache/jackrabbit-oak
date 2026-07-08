@@ -166,7 +166,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     }
 
     @Override
-    public void deleteDocuments(String path) throws IOException {
+    public void deleteDocumentTree(String path) throws IOException {
         retryPolicy.withRetries(() -> bulkProcessorHandler.delete(indexName, ElasticIndexUtils.idFromPath(path)));
         if (!ElasticIndexEditorProvider.FT_OAK_12206_DISABLE.get()) {
             // Delete all descendants: mirrors Lucene's PrefixQuery on the path term.
@@ -185,6 +185,12 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
                 }
             });
         }
+    }
+
+    @Override
+    public void deleteDocument(String path) throws IOException {
+        // Exact-document delete: no descendant sweep
+        retryPolicy.withRetries(() -> bulkProcessorHandler.delete(indexName, ElasticIndexUtils.idFromPath(path)));
     }
 
     @Override
