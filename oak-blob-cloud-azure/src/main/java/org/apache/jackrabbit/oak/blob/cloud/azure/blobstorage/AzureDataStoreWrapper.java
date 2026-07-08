@@ -67,7 +67,7 @@ import java.util.Properties;
  * chosen implementation under the legacy v8 PID so consumers bound to that PID keep working.
  *
  * <p>Replaces the old dual-service architecture (AzureDataStoreService + AzureDataStoreServiceV12
- * + AzureSDKConditionGate) that caused deadlocks during OSGi service swap on FT toggle.
+ * + AzureSDKConditionGate) that caused deadlocks during runtime OSGi service swap.
  */
 @Component(
         name = AzureDataStoreWrapper.NAME,
