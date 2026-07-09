@@ -58,12 +58,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Mock-based unit tests for AzureBlobStoreBackendV12 that exercise the blob CRUD and metadata paths
+ * CRUD unit tests for AzureBlobStoreBackendV12 that exercise the blob CRUD and metadata paths
  * without a live Azure/Azurite endpoint. The integration tests (AzureBlobStoreBackendV12IT) cover the
  * same paths against real storage but are skipped in CI when Docker/Azurite is unavailable, so these
- * mock tests are what actually drives line coverage for the SDK-call branches.
+ * unit tests are what actually drives line coverage for the SDK-call branches.
  */
-public class AzureBlobStoreBackendV12MockTest {
+public class AzureBlobStoreBackendV12CRUDTest {
 
     // A valid 24-char identifier: getKeyName() does substring(0,4) + "-" + substring(4).
     private static final DataIdentifier ID = new DataIdentifier("abcdef0123456789abcdef01");
@@ -278,7 +278,10 @@ public class AzureBlobStoreBackendV12MockTest {
             backend.write(ID, tempFile);
             fail("expected DataStoreException for length collision");
         } catch (DataStoreException e) {
-            assertTrue(e.getMessage().contains("Length Collision"));
+            // Re-wrapped with "Cannot write blob" outer message; check the cause
+            DataStoreException cause = (DataStoreException) e.getCause();
+            assertNotNull("Expected nested DataStoreException cause", cause);
+            assertTrue(cause.getMessage().contains("Length Collision"));
         }
     }
 
