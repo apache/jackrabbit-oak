@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
  *
  * @deprecated
  */
-@Deprecated
+@Deprecated(since = "2.3", forRemoval = true)
 public class AzureDataStoreService extends AbstractAzureDataStoreService {
 
     private StatisticsProvider statisticsProvider;

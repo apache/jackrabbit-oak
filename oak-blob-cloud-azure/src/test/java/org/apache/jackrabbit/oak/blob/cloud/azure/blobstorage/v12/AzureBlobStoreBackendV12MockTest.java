@@ -53,6 +53,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -140,10 +141,10 @@ public class AzureBlobStoreBackendV12MockTest {
         when(blockBlobClient.getProperties()).thenReturn(propsWithSize(4242L));
         when(blockBlobClient.getBlobName()).thenReturn("abcd-ef0123456789abcdef01");
 
-        DataRecord record = backend.getRecord(ID);
+        DataRecord rec = backend.getRecord(ID);
 
-        assertNotNull(record);
-        assertEquals(4242L, record.getLength());
+        assertNotNull(rec);
+        assertEquals(4242L, rec.getLength());
     }
 
     @Test
@@ -209,9 +210,9 @@ public class AzureBlobStoreBackendV12MockTest {
         when(blockBlobClient.exists()).thenReturn(true);
         when(blockBlobClient.getProperties()).thenReturn(propsWithSize(7L));
 
-        DataRecord record = backend.getMetadataRecord("some-meta");
+        DataRecord rec = backend.getMetadataRecord("some-meta");
 
-        assertNotNull(record);
+        assertNotNull(rec);
     }
 
     @Test(expected = IllegalStateException.class)
@@ -221,7 +222,7 @@ public class AzureBlobStoreBackendV12MockTest {
     }
 
     @Test
-    public void metadataRecordExists_reflectsBlobExists() throws Exception {
+    public void metadataRecordExists_reflectsBlobExists() {
         when(blobClient.exists()).thenReturn(true);
         assertTrue(backend.metadataRecordExists("meta1"));
         when(blobClient.exists()).thenReturn(false);
@@ -359,7 +360,7 @@ public class AzureBlobStoreBackendV12MockTest {
 
         backend.init();
 
-        verify(container, org.mockito.Mockito.never()).create();
+        verify(container, never()).create();
     }
 
     @Test
@@ -390,7 +391,7 @@ public class AzureBlobStoreBackendV12MockTest {
         backend.setProperties(p);
 
         backend.init();
-        // No exception means all the option-parsing branches ran with the configured values.
+        verify(container).exists();
     }
 
     @Test
@@ -402,6 +403,7 @@ public class AzureBlobStoreBackendV12MockTest {
         backend.setProperties(p);
 
         backend.init();
+        verify(container).exists();
     }
 
     // --- getAllIdentifiers / getAllRecords (list-based) ---
@@ -483,13 +485,13 @@ public class AzureBlobStoreBackendV12MockTest {
 
     @Test
     public void dataRecord_exposesLengthLastModifiedAndToString() throws Exception {
-        AzureBlobStoreBackendV12.AzureBlobStoreDataRecord record =
+        AzureBlobStoreBackendV12.AzureBlobStoreDataRecord rec =
                 new AzureBlobStoreBackendV12.AzureBlobStoreDataRecord(
                         backend, null, ID, 1234L, 5678L);
 
-        assertEquals(5678L, record.getLength());
-        assertEquals(1234L, record.getLastModified());
-        String s = record.toString();
+        assertEquals(5678L, rec.getLength());
+        assertEquals(1234L, rec.getLastModified());
+        String s = rec.toString();
         assertTrue(s.contains("5678"));
         assertTrue(s.contains("1234"));
     }
