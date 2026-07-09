@@ -209,17 +209,22 @@ public class IndexImporter {
                     indexPathsToUpdate.add(indexInfo.indexPath);
                     String idxBuilderType = idxBuilder.getString(TYPE_PROPERTY_NAME);
 
-                    // check if provided index definitions is of different type than existing one
-                    // also check if one of them is an elasticsearch type
-                    if (idxBuilderType != null &&
-                            !idxBuilderType.equals(indexInfo.type) &&
-                            (idxBuilderType.equals(TYPE_ELASTICSEARCH) || indexInfo.type.equals(TYPE_ELASTICSEARCH))) {
+                    // If the provided index definition has a different type than the one on disk
+                    // (e.g. disabled -> lucene, lucene -> elasticsearch), the on-disk definition is
+                    // obsolete: the rebuilt index must reflect only the provided definition. Align the
+                    // async property to the provided definition before switching lanes, so its lane
+                    // (or its absence, for a sync index) is what gets restored afterwards.
+                    if (idxBuilderType != null && !idxBuilderType.equals(indexInfo.type)) {
+                        LOG.info("Existing index [{}] has a different type than the provided definition ([{}] -> [{}]);" +
+                                " using the provided definition", indexInfo.indexPath, idxBuilderType, indexInfo.type);
 
-                        LOG.info("Provided index [{}] has a different type compared to the existing index." +
-                                " Using lane from the index definition provided", indexInfo.indexPath);
-
-                        PropertyState asyncProperty = PropertyStates.createProperty(ASYNC_PROPERTY_NAME, List.of(indexInfo.asyncLaneName), Type.STRINGS);
-                        idxBuilder.setProperty(asyncProperty);
+                        PropertyState providedAsync = indexDefinitionUpdater.getIndexState(indexInfo.indexPath)
+                                .getProperty(ASYNC_PROPERTY_NAME);
+                        if (providedAsync != null) {
+                            idxBuilder.setProperty(PropertyStates.createProperty(ASYNC_PROPERTY_NAME, providedAsync.getValue(Type.STRINGS), Type.STRINGS));
+                        } else {
+                            idxBuilder.removeProperty(ASYNC_PROPERTY_NAME);
+                        }
                     }
                     AsyncLaneSwitcher.switchLane(idxBuilder, AsyncLaneSwitcher.getTempLaneName(indexInfo.asyncLaneName));
                 }

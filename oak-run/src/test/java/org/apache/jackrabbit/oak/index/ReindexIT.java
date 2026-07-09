@@ -258,6 +258,64 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
     }
 
     @Test
+    public void reindexAndImportDisabledIndexMissingAsync() throws Exception {
+        createTestData(true);
+        fixture.getAsyncIndexUpdate("async").run();
+
+        String checkpoint = fixture.getNodeStore().checkpoint(TimeUnit.HOURS.toMillis(24));
+
+        //Close the repository so as all changes are flushed
+        fixture.close();
+
+        //Phase 1 - reindex out of band; the dumped index definition carries async
+        IndexCommand command = new IndexCommand();
+        File outDir = temporaryFolder.newFolder();
+        File storeDir = fixture.getDir();
+        String[] args = {
+                "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
+                "--index-out-dir="  + outDir.getAbsolutePath(),
+                "--index-paths=/oak:index/fooIndex",
+                "--checkpoint="+checkpoint,
+                "--reindex",
+                "--", // -- indicates that options have ended and rest needs to be treated as non option
+                storeDir.getAbsolutePath()
+        };
+        command.execute(args);
+
+        //Phase 2 - the on-disk index becomes a disabled definition missing the async property
+        IndexRepositoryFixture fixture2 = new LuceneRepositoryFixture(storeDir);
+        Session session = fixture2.getAdminSession();
+        Node idxNode = session.getNode(TEST_INDEX_PATH);
+        idxNode.setProperty("type", "disabled");
+        if (idxNode.hasProperty("async")) {
+            idxNode.getProperty("async").remove();
+        }
+        session.save();
+        session.logout();
+        fixture2.close();
+
+        //Phase 3 - import the reindexed data back
+        IndexCommand command3 = new IndexCommand();
+        File indexDir = new File(outDir, OutOfBandIndexer.LOCAL_INDEX_ROOT_DIR);
+        String[] args3 = {
+                "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
+                "--index-out-dir="  + temporaryFolder.newFolder().getAbsolutePath(),
+                "--index-import-dir="  + indexDir.getAbsolutePath(),
+                "--index-import",
+                "--read-write",
+                "--", // -- indicates that options have ended and rest needs to be treated as non option
+                storeDir.getAbsolutePath()
+        };
+        command3.execute(args3);
+
+        //Phase 4 - the imported index must stay async, not silently become a sync index
+        IndexRepositoryFixture fixture4 = new LuceneRepositoryFixture(storeDir);
+        NodeState index = getNode(fixture4.getNodeStore().getRoot(), TEST_INDEX_PATH);
+        assertEquals(List.of("async"), ListUtils.toList(index.getStrings(IndexConstants.ASYNC_PROPERTY_NAME)));
+        fixture4.close();
+    }
+
+    @Test
     public void reindexInReadWriteMode() throws Exception{
         createTestData(true);
         fixture.getAsyncIndexUpdate("async").run();
