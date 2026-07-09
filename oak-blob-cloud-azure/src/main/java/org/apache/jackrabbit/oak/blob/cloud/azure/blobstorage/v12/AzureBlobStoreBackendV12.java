@@ -905,7 +905,7 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
                 throw new DataStoreException("Cannot write blob. identifier=" + key, e);
             }
             LOG.info(LOG_ERR_WRITE_BLOB, key, e);
-            throw e;
+            throw new DataStoreException("Cannot write blob. identifier=" + key, e);
         }
     }
 

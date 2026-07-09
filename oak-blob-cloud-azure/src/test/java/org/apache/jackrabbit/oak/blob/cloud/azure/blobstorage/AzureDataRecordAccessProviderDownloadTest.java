@@ -197,17 +197,16 @@ public class AzureDataRecordAccessProviderDownloadTest {
      */
     @Test
     public void concurrent_downloads_memory_is_bounded_by_part_count() {
-        long blobSize1 = 1L * 1024L * 1024L * 1024L; // 1 GB
-        long blobSize2 = 10L * 1024L * 1024L * 1024L; // 10 GB
         long maxPartSize = AzureBlobStoreBackend.MAX_MULTIPART_UPLOAD_PART_SIZE; // 100 MB
 
         int concurrentDownloads = 10;
         long maxInFlightMemory = maxPartSize * concurrentDownloads; // 1 GB
 
-        // Both blobs use same max in-flight memory — depends on part size, not blob size
+        // In-flight memory depends on part size and concurrency, not blob size.
+        // A 1 GB blob and a 10 GB blob both use the same max in-flight memory.
         assertEquals(
                 "Memory is O(maxPartSize * concurrentDownloads), not O(blobSize). " +
-                        "10 concurrent 1GB blobs = 10 concurrent 1GB blobs use same 1GB in-flight memory. " +
+                        "10 concurrent downloads at 100MB per part = 1GB in-flight regardless of blob size. " +
                         "Ref: OAK-12164",
                 1000L * 1024L * 1024L, maxInFlightMemory);
 

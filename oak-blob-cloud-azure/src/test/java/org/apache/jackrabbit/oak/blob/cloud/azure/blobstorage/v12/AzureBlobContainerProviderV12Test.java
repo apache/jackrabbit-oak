@@ -29,6 +29,7 @@ import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -294,7 +295,7 @@ public class AzureBlobContainerProviderV12Test {
         f.setAccessible(true);
         assertNotNull(f.get(p1));
         assertNotNull(f.get(p2));
-        assertTrue("different provider instances must have separate httpClient objects",
-                f.get(p1) != f.get(p2));
+        assertNotSame("different provider instances must have separate httpClient objects",
+                f.get(p1), f.get(p2));
     }
 }

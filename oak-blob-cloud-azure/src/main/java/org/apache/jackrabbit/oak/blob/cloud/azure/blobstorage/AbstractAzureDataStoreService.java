@@ -33,12 +33,11 @@ import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 
 /**
-@Deprecated(since = "2.3", forRemoval = true)
  * Kept for binary compatibility with existing callers. Use {@link AzureDataStoreWrapper} instead.
  *
  * @deprecated
  */
-@Deprecated
+@Deprecated(since = "2.3", forRemoval = true)
 public abstract class AbstractAzureDataStoreService extends AbstractDataStoreService {
     private static final String DESCRIPTION = "oak.datastore.description";
 
