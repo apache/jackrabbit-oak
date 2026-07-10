@@ -267,7 +267,7 @@ public class DocumentNodeStoreService {
     private Feature cancelInvalidationFeature;
     private Feature docStoreAvoidMergeLockFeature;
     private Feature prevNoPropCacheFeature;
-    private ComponentContext context;
+    private volatile ComponentContext context;
     private Whiteboard whiteboard;
     private long deactivationTimestamp = 0;
 
@@ -280,13 +280,15 @@ public class DocumentNodeStoreService {
     @Reference(service = Preset.class)
     private Preset preset;
 
-    private boolean customBlobStore;
+    private volatile boolean customBlobStore;
 
     private ServiceRegistration blobStoreReg;
 
     private BlobStore defaultBlobStore;
 
     private Configuration config;
+
+    private final Object registrationLock = new Object();
 
     @Activate
     protected void activate(ComponentContext context, Configuration config) throws Exception {
@@ -309,19 +311,23 @@ public class DocumentNodeStoreService {
     }
 
     private void registerNodeStoreIfPossible() throws IOException {
-        // disallow attempts to restart (OAK-3420)
-        if (deactivationTimestamp != 0) {
-            log.info("DocumentNodeStore was already unregistered ({}ms ago)", System.currentTimeMillis() - deactivationTimestamp);
-        } else if (context == null) {
-            log.info("Component still not activated. Ignoring the initialization call");
-        } else if (customBlobStore && blobStore == null) {
-            log.info("Custom BlobStore use enabled. DocumentNodeStoreService would be initialized when "
-                    + "BlobStore would be available");
-        } else if (documentStoreType == DocumentStoreType.RDB && (dataSource == null || blobDataSource == null)) {
-            log.info("DataSource use enabled. DocumentNodeStoreService would be initialized when "
-                    + "DataSource would be available (currently available: nodes: {}, blobs: {})", dataSource, blobDataSource);
-        } else {
-            registerNodeStore();
+        synchronized (registrationLock) {
+            // disallow attempts to restart (OAK-3420)
+            if (deactivationTimestamp != 0) {
+                log.info("DocumentNodeStore was already unregistered ({}ms ago)", System.currentTimeMillis() - deactivationTimestamp);
+            } else if (nodeStore != null) {
+                log.info("DocumentNodeStore already registered. Ignoring the initialization call");
+            } else if (context == null) {
+                log.info("Component still not activated. Ignoring the initialization call");
+            } else if (customBlobStore && blobStore == null) {
+                log.info("Custom BlobStore use enabled. DocumentNodeStoreService would be initialized when "
+                        + "BlobStore would be available");
+            } else if (documentStoreType == DocumentStoreType.RDB && (dataSource == null || blobDataSource == null)) {
+                log.info("DataSource use enabled. DocumentNodeStoreService would be initialized when "
+                        + "DataSource would be available (currently available: nodes: {}, blobs: {})", dataSource, blobDataSource);
+            } else {
+                registerNodeStore();
+            }
         }
     }
 
@@ -755,7 +761,7 @@ public class DocumentNodeStoreService {
     }
 
 
-    private DocumentStoreType documentStoreType;
+    private volatile DocumentStoreType documentStoreType;
 
     @Reference(name = "blobDataSource",
             cardinality = ReferenceCardinality.OPTIONAL,
@@ -817,32 +823,34 @@ public class DocumentNodeStoreService {
     }
 
     private void unregisterNodeStore() {
-        deactivationTimestamp = System.currentTimeMillis();
+        synchronized (registrationLock) {
+            deactivationTimestamp = System.currentTimeMillis();
 
-        closeQuietly(closer);
+            closeQuietly(closer);
 
-        if (nodeStoreReg != null) {
-            nodeStoreReg.unregister();
-            nodeStoreReg = null;
-        }
+            if (nodeStoreReg != null) {
+                nodeStoreReg.unregister();
+                nodeStoreReg = null;
+            }
 
-        //If we exposed our BlobStore then unregister it *after*
-        //NodeStore service. This ensures that if any other component
-        //like SecondaryStoreCache depends on this then it remains active
-        //untill DocumentNodeStore get deactivated
-        if (blobStoreReg != null){
-            blobStoreReg.unregister();
-            blobStoreReg = null;
-        }
+            //If we exposed our BlobStore then unregister it *after*
+            //NodeStore service. This ensures that if any other component
+            //like SecondaryStoreCache depends on this then it remains active
+            //untill DocumentNodeStore get deactivated
+            if (blobStoreReg != null){
+                blobStoreReg.unregister();
+                blobStoreReg = null;
+            }
 
-        if (nodeStore != null) {
-            nodeStore.dispose();
-            nodeStore = null;
-        }
+            if (nodeStore != null) {
+                nodeStore.dispose();
+                nodeStore = null;
+            }
 
-        if (executor != null) {
-            executor.stop();
-            executor = null;
+            if (executor != null) {
+                executor.stop();
+                executor = null;
+            }
         }
     }
 
