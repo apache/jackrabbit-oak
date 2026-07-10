@@ -104,9 +104,14 @@ class DefaultIndexWriter implements LuceneIndexWriter {
     }
 
     @Override
-    public void deleteDocuments(String path) throws IOException {
+    public void deleteDocumentTree(String path) throws IOException {
         getWriter().deleteDocuments(newPathTerm(path));
         getWriter().deleteDocuments(new PrefixQuery(newPathTerm(path + "/")));
+    }
+
+    @Override
+    public void deleteDocument(String path) throws IOException {
+        getWriter().deleteDocuments(newPathTerm(path));
     }
 
     void deleteAll() throws IOException {

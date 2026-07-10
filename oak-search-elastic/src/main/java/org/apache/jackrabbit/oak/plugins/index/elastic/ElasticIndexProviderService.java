@@ -63,6 +63,8 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEditor;
+
 import static java.util.Collections.emptyMap;
 
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
@@ -227,6 +229,9 @@ public class ElasticIndexProviderService {
                 emptyMap()));
         oakRegs.add(whiteboard.register(FeatureToggle.class,
                 new FeatureToggle(ElasticConnection.FT_OAK_12234, ElasticConnection.FT_OAK_12234_DISABLE),
+                emptyMap()));
+        oakRegs.add(whiteboard.register(FeatureToggle.class,
+                new FeatureToggle(FulltextIndexEditor.FT_OAK_12244, FulltextIndexEditor.FT_OAK_12244_DISABLE),
                 emptyMap()));
         oakRegs.add(whiteboard.register(FeatureToggle.class,
                 new FeatureToggle(ElasticIndexStatistics.FT_OAK_12248, ElasticIndexStatistics.FT_OAK_12248_ENABLE),

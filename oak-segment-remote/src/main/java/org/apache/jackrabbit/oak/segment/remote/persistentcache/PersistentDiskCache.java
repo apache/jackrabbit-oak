@@ -136,7 +136,8 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                 () -> maxCacheSizeBytes,
                 elementCount::get,
                 cacheSize::get,
-                evictionCount::get);
+                evictionCount::get,
+                () -> discardCount.get());
     }
 
     @Override

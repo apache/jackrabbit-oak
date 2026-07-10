@@ -111,7 +111,7 @@ public class ElasticIndexWriterTest {
 
     @Test
     public void singleDeleteDocument() throws IOException {
-        indexWriter.deleteDocuments("/bar");
+        indexWriter.deleteDocumentTree("/bar");
 
         ArgumentCaptor<String> idCaptor = ArgumentCaptor.forClass(String.class);
         verify(bulkProcessorHandlerMock).delete(eq(indexAlias), idCaptor.capture());
@@ -127,8 +127,8 @@ public class ElasticIndexWriterTest {
     public void multiRequests() throws IOException {
         indexWriter.updateDocument("/foo", new ElasticDocument("/foo"));
         indexWriter.updateDocument("/bar", new ElasticDocument("/bar"));
-        indexWriter.deleteDocuments("/foo");
-        indexWriter.deleteDocuments("/bar");
+        indexWriter.deleteDocumentTree("/foo");
+        indexWriter.deleteDocumentTree("/bar");
 
         verify(bulkProcessorHandlerMock, times(2)).index(eq(indexAlias), anyString(), any(ElasticDocument.class));
         verify(bulkProcessorHandlerMock, times(2)).delete(eq(indexAlias), anyString());
@@ -182,7 +182,7 @@ public class ElasticIndexWriterTest {
     @Test
     public void ft_oak_12206_toggleShouldBeRemoved() {
         // Time-bombed: if this test fails, the feature toggle FT_OAK-12206 and its guard in
-        // ElasticIndexWriter#deleteDocuments should be removed — the fix has been in production long enough.
+        // ElasticIndexWriter#deleteDocumentTree should be removed — the fix has been in production long enough.
         assertTrue("Feature toggle " + ElasticIndexEditorProvider.FT_OAK_12206 + " is overdue for removal",
                 LocalDate.now().isBefore(LocalDate.of(2027, 5, 6)));
     }
