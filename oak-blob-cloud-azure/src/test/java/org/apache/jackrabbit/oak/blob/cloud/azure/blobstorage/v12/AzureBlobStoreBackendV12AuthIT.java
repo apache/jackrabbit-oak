@@ -141,7 +141,7 @@ public class AzureBlobStoreBackendV12AuthIT {
      * Read-write SAS must allow init and write — the backend needs to create the reference key on first run.
      */
     @Test
-    public void initWithSasToken_readWrite_canInitAndWrite() throws DataStoreException, IOException {
+    public void initWithSasToken_readWrite_canInitAndWrite() throws DataStoreException {
         String sasToken = generateContainerSas(readWritePermissions(), OffsetDateTime.now().plusHours(1));
 
         AzureBlobStoreBackendV12 backend = new AzureBlobStoreBackendV12();

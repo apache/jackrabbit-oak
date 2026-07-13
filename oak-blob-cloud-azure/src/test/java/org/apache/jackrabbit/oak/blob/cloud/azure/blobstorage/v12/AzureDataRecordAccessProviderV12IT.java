@@ -180,7 +180,7 @@ public class AzureDataRecordAccessProviderV12IT {
      * Download URI must be returned for a blob that exists — clients cannot download without it.
      */
     @Test
-    public void getDownloadURI_existingBlob_returnsNonNullURI() throws DataStoreException, IOException {
+    public void getDownloadURI_existingBlob_returnsNonNullURI() throws DataStoreException {
         DataRecord dataRecord = store.addRecord(new ByteArrayInputStream("download test".getBytes()));
 
         URI uri = store.getDownloadURI(dataRecord.getIdentifier(), DataRecordDownloadOptions.DEFAULT);
@@ -205,7 +205,7 @@ public class AzureDataRecordAccessProviderV12IT {
      */
     @Test
     public void getDownloadURI_withContentType_uriContainsContentTypeParam()
-            throws DataStoreException, IOException {
+            throws DataStoreException {
         DataRecord dataRecord = store.addRecord(new ByteArrayInputStream("pdf content".getBytes()));
 
         DataRecordDownloadOptions options = DataRecordDownloadOptions.fromBlobDownloadOptions(
@@ -236,7 +236,7 @@ public class AzureDataRecordAccessProviderV12IT {
      * Reference: OAK-12219
      */
     @Test
-    public void downloadURICount_1GB_blob_generates_sane_URI_count() throws DataStoreException, IOException {
+    public void downloadURICount_1GB_blob_generates_sane_URI_count() {
         // Note: This test validates URI count math via constant inspection + download request.
         // A full end-to-end test would require uploading 1GB, which is expensive for CI.
         // Instead, we verify the constants that govern URI generation are correct,
@@ -260,7 +260,7 @@ public class AzureDataRecordAccessProviderV12IT {
      * Reference: GRANITE-66069, OAK-12219
      */
     @Test
-    public void downloadURICount_10GB_blob_does_not_explode_to_40k_URIs() throws DataStoreException {
+    public void downloadURICount_10GB_blob_does_not_explode_to_40k_URIs() {
         long minPartSize = AzureConstantsV12.AZURE_BLOB_MIN_MULTIPART_UPLOAD_PART_SIZE;
         long tenGB = 10L * 1024L * 1024L * 1024L;
         long actualURICount = (tenGB + minPartSize - 1) / minPartSize;

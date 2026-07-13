@@ -455,7 +455,7 @@ public class AzureBlobStoreBackendV12CRUDTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void getAllMetadataRecords_success_returnsMatchingRecords() throws Exception {
+    public void getAllMetadataRecords_success_returnsMatchingRecords() {
         BlobItem item = blobItem(AzureConstantsV12.AZURE_BLOB_META_DIR_NAME + "/mymeta", 7L);
         PagedIterable<BlobItem> paged = mock(PagedIterable.class);
         when(paged.stream()).thenReturn(Stream.of(item));
