@@ -102,7 +102,6 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
     private static final Logger LOG_STREAMS_UPLOAD = LoggerFactory.getLogger("oak.datastore.upload.streams");
 
     private static final String ERR_ID_NULL = "identifier must not be null";
-    private static final String LOG_ERR_WRITE_BLOB = "Error writing blob. identifier={}";
 
     private final AtomicReference<BlobContainerClient> azureContainerReference = new AtomicReference<>();
 
@@ -895,16 +894,8 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
                 }
             });
         } catch (BlobStorageException e) {
-            LOG.info(LOG_ERR_WRITE_BLOB, key, e);
             throw new DataStoreException("Cannot write blob. identifier=" + key, e);
         } catch (DataStoreException e) {
-            // IOException from uploadBlob() was wrapped by withBundleContextClassLoaderVoid
-            Throwable cause = e.getCause();
-            if (cause instanceof IOException) {
-                LOG.debug(LOG_ERR_WRITE_BLOB, key, e);
-                throw new DataStoreException("Cannot write blob. identifier=" + key, e);
-            }
-            LOG.info(LOG_ERR_WRITE_BLOB, key, e);
             throw new DataStoreException("Cannot write blob. identifier=" + key, e);
         }
     }
@@ -1120,7 +1111,7 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
                 return secret;
             }
         } catch (IOException e) {
-            throw new DataStoreException("Unable to get or create key " + e);
+            throw new DataStoreException("Unable to get or create key", e);
         }
     }
 
