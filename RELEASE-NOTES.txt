@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 2.2.0
+Release Notes -- Apache Jackrabbit Oak -- Version 2.4.0
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 2.2.0 is an incremental feature release based
+Apache Jackrabbit Oak 2.4.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
@@ -15,48 +15,61 @@ production use.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 2.2.0
+Changes in Oak 2.4.0
 --------------------
 
 ** Sub-task
-    * [OAK-12161] - Verify OSGi bundle isolation — no consumer imports Caffeine or Guava cache packages
+    * [OAK-12248] - Don't query an index if it is known to be empty
+    * [OAK-12250] - update and consolidate hamcrest dependencies
 
 ** Technical task
-    * [OAK-12185] - CacheFactory SPI interface [oak-core-spi]
-    * [OAK-12186] - CacheFactory wiring and CacheBuilder decoupling [oak-core-spi]
+    * [OAK-12238] - oak-upgrade: do not override Jackrabbit's Lucene version (for now)
+    * [OAK-12264] - oak-run: sync commons-csv dependency with other modules
+    * [OAK-12274] - shaded-guava: exclude errorprone dependency
+    * [OAK-12284] - oak-http: extract Authorization Field parsing and add test coverage
 
 ** Bug
-    * [OAK-12189] - integration tests in oak-it-osgi fail due to misconfiguration of the assembly plugin
-    * [OAK-12199] - fix the removal of persistent cache from oak-store-document
-    * [OAK-12200] - Preserve repository-not-reachable exception handling after Caffeine migration
-    * [OAK-12201] - Missing import for IterableUtils.limit() in CdCommand
-    * [OAK-12203] - Oak-auth-ldap uses vulnerable org.apache.mina.mina-core
-    * [OAK-12204] - FullGC: prevent NPE in recommendations when fullGC is enabled and collect limit is exceeded
-    * [OAK-12206] - oak-search-elastic: Fix subtree deletion not cascading to child documents in Elastic index
-    * [OAK-12212] - Drifts in PersistentDiskCache.cacheSize counter
+    * [OAK-12125] - Async indexing fails on invalid index definition: missing propertyNames
+    * [OAK-12244] - [oak-search] Index not updated when node gains or loses a mixin type at runtime
+    * [OAK-12257] - CI: Commit-Check broken
+    * [OAK-12259] - oak-http: OakServlet mis-parses HTTP Basic credentials - passwords containing a colon are silently truncated and malformed headers cause an HTTP 500
+    * [OAK-12275] - NameValidator: improve logging for unmapped prefixes
+    * [OAK-12282] - PersistentDisk Cache is unbound, with many JCR reads on a empty instance can cause OOM
+    * [OAK-12303] - Update vulnerable mina-core library
 
 ** Improvement
-    * [OAK-12190] - Add createUserWithAbsolutePath and createGroupWithAbsolutePath to UserManager API
-    * [OAK-12193] - Large numbers of deleted Lucene documents cause incremental indexing to consume too much memory
-    * [OAK-12196] - Improve logging for diff.index
-    * [OAK-12202] - Add DistinctBinarySize.add(String blobId)
-    * [OAK-12209] - oak-upgrade: remove unused code (LengthCachingDataStore)
-    * [OAK-12213] - Tree store: child node list maybe be incorrect if an intermediate node is missing
-    * [OAK-12220] - Flaky test: ElasticFacetTest.statisticalFacets
-    * [OAK-12226] - oak-jackrabbit-api should (still) target Java 11
-
-** Test
-    * [OAK-12197] - DocumentBundlingTest.hasChildren_BundledRoot_NonBundledChild flaky
-    * [OAK-12198] - test that findAndUpdate does not return stale document
+    * [OAK-12227] - Exclude Tika from oak-run that is imported from Jackrabbit
+    * [OAK-12260] - TokenLoginModule cannot handle many tokens in a performant way
+    * [OAK-12262] - Simplified index mgmt: support indexes without version number
 
 ** Task
-    * [OAK-12166] - RDBVersionGC MODE 1 (old method) should leverage SD columns when available
-    * [OAK-12187] - MongoDocumentStore: improve diagnostics for too large docs in findAndModify
-    * [OAK-12214] - SegmentCache: L1 hits should notify L2 (caffeine) to keep frequency/recency accurate
-    * [OAK-12217] - reset ClusterNodeInfo clock in DocumentNodeStoreIT tearDown to prevent cross-test leakage
-    * [OAK-12218] - reset ClusterNodeInfo clock in UnrecoveredRevisionTest tearDown to avoid CI flakiness
-    * [OAK-12223] - bump netty versions to 4.1.133.Final
-    * [OAK-12225] - bump aws sdk to 2.34.9
+    * [OAK-10578] - ExternalLoginModule: reduce the number  of access to OSGI registry
+    * [OAK-12234] - Elastic async response processing should use a separate thread pool
+    * [OAK-12237] - bump netty versions to 4.1.135.Final
+    * [OAK-12240] - pojosr: remove jackrabbit-data dependency
+    * [OAK-12241] - run S3 integration tests with S3Mock emulator in CI
+    * [OAK-12242] - Remove FT_EMBEDDED_VERIFICATION_OAK-10633 and remove its related code path
+    * [OAK-12243] - AGENTS.md: clarify which packages are OSGi-exported and baseline-checked
+    * [OAK-12245] - update Tomcat dependency to 9.0.118
+    * [OAK-12252] - Remove FT_FULL_GC_OAK-10199 and remove its related code path
+    * [OAK-12254] - Upgrade mockito-core to 5.23.0
+    * [OAK-12256] - document Feature Toggles
+    * [OAK-12258] - elastic.md: add documentation for isFlattened
+    * [OAK-12265] - remove json-simple dependency in oak-pojosr
+    * [OAK-12267] - DocumentNodeStoreIT fails with lease expiry at strict lease-check boundary
+    * [OAK-12272] - Allow 120-character commit subjects in Commit Check
+    * [OAK-12273] - Stabilize Javadoc external links in CI
+    * [OAK-12283] - bump aws sdk to 2.35.11
+    * [OAK-12285] - S3 KMS is skipping presigned URL tests when sseCustomerKey is configured
+    * [OAK-12287] - Update to Apache Parent POM to version 39
+    * [OAK-12288] - disable blobId tracker for SegmentNodeStore by default
+    * [OAK-12289] - disable blobId tracker for DocumentNodeStore by default
+    * [OAK-12293] - Update commons-io dependency to 2.21.0
+    * [OAK-12294] - Update commons-codec dependency to 1.20.0
+    * [OAK-12296] - bump testcontainers to v2.0.3
+
+** Documentation
+    * [OAK-12235] - fix Java version information in README
 
 In addition to the above-mentioned changes, this release contains all
 changes up to the previous release.
