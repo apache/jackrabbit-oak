@@ -1,0 +1,149 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+tt {
+	white-space: nowrap;
+	border: 1px solid #eaeaea;
+	background-color: #f5f5f5;
+}
+pre {
+	font-size: 12px;
+}
+
+/* fluido skin moves to small-screen-statically-positioned top-nav below 980px */
+@media(min-width:980px) {
+    div[id="bodyColumn"] h1 > a[name],
+    div[id="bodyColumn"] h2 > a[name],
+    div[id="bodyColumn"] h3 > a[name],
+    div[id="bodyColumn"] h4 > a[name],
+    div[id="bodyColumn"] h5 > a[name],
+    div[id="bodyColumn"] h6 > a[name] {
+        visibility: hidden;
+        content: "";
+        display: block;
+
+        /* 42px is how layout showed as top-nav height.*/
+        margin: -42px 0 0 0;
+        height: 42px;
+    }
+}
+
+/* begin grammar railroad styling*/
+.railroad {
+    border: 0px;
+    padding: 0px;
+    margin: 0px;
+    border-collapse: collapse;
+    vertical-align: top;
+}
+
+.c {
+    padding: 1px 3px;
+    margin: 0px 0px;
+    border: 2px solid black;
+    -moz-border-radius: 0.4em;
+    -webkit-border-radius: 0.4em;
+    -khtml-border-radius: 0.4em;
+    border-radius: 0.4em;
+    background-color: #fff;
+    color: black;
+    font-size: 12px;
+}
+
+.ts {
+    border: 0px;
+    padding: 0px;
+    margin: 0px;
+    border-collapse: collapse;
+    vertical-align: top;
+    width: 16px;
+    height: 24px;
+    background-image: url(../img/railroad/div-ts.png);
+    background-size: 16px 512px;
+}
+
+.ls {
+    border: 0px;
+    padding: 0px;
+    margin: 0px;
+    border-collapse: collapse;
+    vertical-align: top;
+    width: 16px;
+    height: 24px;
+    background-image: url(../img/railroad/div-ls.png);
+    background-size: 16px 512px;
+}
+
+.ks {
+    border: 0px;
+    padding: 0px;
+    margin: 0px;
+    border-collapse: collapse;
+    vertical-align: top;
+    width: 16px;
+    height: 24px;
+    background-image: url(../img/railroad/div-ks.png);
+    background-size: 16px 512px;
+}
+
+.te {
+    border: 0px;
+    padding: 0px;
+    margin: 0px;
+    border-collapse: collapse;
+    vertical-align: top;
+    width: 16px;
+    height: 24px;
+    background-image: url(../img/railroad/div-te.png);
+    background-size: 16px 512px;
+}
+
+.le {
+    border: 0px;
+    padding: 0px;
+    margin: 0px;
+    border-collapse: collapse;
+    vertical-align: top;
+    width: 16px;
+    height: 24px;
+    background-image: url(../img/railroad/div-le.png);
+    background-size: 16px 512px;
+}
+
+.ke {
+    border: 0px;
+    padding: 0px;
+    margin: 0px;
+    border-collapse: collapse;
+    vertical-align: top;
+    width: 16px;
+    height: 24px;
+    background-image: url(../img/railroad/div-ke.png);
+    background-size: 16px 512px;
+}
+
+.d {
+    border: 0px;
+    padding: 0px;
+    margin: 0px;
+    border-collapse: collapse;
+    vertical-align: top;
+    min-width: 16px;
+    height: 24px;
+    background-image: url(../img/railroad/div-d.png);
+    background-size: 1024px 512px;
+}
+/* end grammar railroad styling*/

@@ -1,0 +1,96 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.jackrabbit.oak.plugins.index;
+
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
+import org.apache.jackrabbit.oak.stats.NonTickingTestClock;
+import org.junit.Test;
+
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.assertEquals;
+
+public class FormattingUtilsTest {
+
+    private final NonTickingTestClock clock = new NonTickingTestClock();
+
+    private final Stopwatch sw = Stopwatch.createStarted(clock);
+
+    @Test
+    public void formatToSeconds() {
+        testFormatToSeconds("00:00:00", 0);
+        testFormatToSeconds("00:00:59", TimeUnit.MILLISECONDS.toMillis(59_567));
+        testFormatToSeconds("00:01:00", TimeUnit.MILLISECONDS.toMillis(60_567));
+        testFormatToSeconds("00:59:00", TimeUnit.MINUTES.toMillis(59));
+        testFormatToSeconds("01:00:00", TimeUnit.MINUTES.toMillis(60));
+        testFormatToSeconds("23:00:00", TimeUnit.HOURS.toMillis(23));
+        testFormatToSeconds("24:00:00", TimeUnit.HOURS.toMillis(24));
+        testFormatToSeconds("48:00:00", TimeUnit.HOURS.toMillis(48));
+        testFormatToSeconds("23:59:59", TimeUnit.HOURS.toMillis(23) +
+                TimeUnit.MINUTES.toMillis(59) +
+                TimeUnit.SECONDS.toMillis(59) +
+                TimeUnit.MILLISECONDS.toMillis(999)
+        );
+        testFormatToSeconds("-00:01:00", -TimeUnit.SECONDS.toMillis(60));
+    }
+
+    private void testFormatToSeconds(String expected, long millis) {
+        clock.setTime(millis);
+        assertEquals(expected, FormattingUtils.formatToSeconds(sw));
+    }
+
+    @Test
+    public void formatToMillis() {
+        testFormatToMillis("00:00:00.000", 0);
+        testFormatToMillis("00:00:59.567", TimeUnit.MILLISECONDS.toMillis(59_567));
+        testFormatToMillis("00:01:00.567", TimeUnit.MILLISECONDS.toMillis(60_567));
+        testFormatToMillis("00:59:00.000", TimeUnit.MINUTES.toMillis(59));
+        testFormatToMillis("01:00:00.000", TimeUnit.MINUTES.toMillis(60));
+        testFormatToMillis("23:00:00.000", TimeUnit.HOURS.toMillis(23));
+        testFormatToMillis("24:00:00.000", TimeUnit.HOURS.toMillis(24));
+        testFormatToMillis("48:00:00.000", TimeUnit.HOURS.toMillis(48));
+        testFormatToMillis("23:59:59.999", TimeUnit.HOURS.toMillis(23) +
+                TimeUnit.MINUTES.toMillis(59) +
+                TimeUnit.SECONDS.toMillis(59) +
+                TimeUnit.MILLISECONDS.toMillis(999)
+        );
+        testFormatToMillis("-00:01:00.000", -TimeUnit.SECONDS.toMillis(60));
+    }
+
+    private void testFormatToMillis(String expected, long millis) {
+        clock.setTime(millis);
+        assertEquals(expected, FormattingUtils.formatToMillis(sw));
+    }
+
+    @Test
+    public void testSafeComputePercentage() {
+        assertEquals(50.0, FormattingUtils.safeComputePercentage(50, 100), 0.001);
+        assertEquals(0.0, FormattingUtils.safeComputePercentage(0, 100), 0.001);
+        assertEquals(-1.0, FormattingUtils.safeComputePercentage(50, 0), 0.001);
+        assertEquals(100.0, FormattingUtils.safeComputePercentage(100, 100), 0.001);
+        assertEquals(33.333, FormattingUtils.safeComputePercentage(1, 3), 0.001);
+    }
+
+    @Test
+    public void testSafeComputeAverage() {
+        assertEquals(50.0, FormattingUtils.safeComputeAverage(100, 2), 0.001);
+        assertEquals(0.0, FormattingUtils.safeComputeAverage(0, 100), 0.001);
+        assertEquals(-1.0, FormattingUtils.safeComputeAverage(100, 0), 0.001);
+        assertEquals(100.0, FormattingUtils.safeComputeAverage(100, 1), 0.001);
+        assertEquals(33.333, FormattingUtils.safeComputeAverage(100, 3), 0.001);
+    }
+}

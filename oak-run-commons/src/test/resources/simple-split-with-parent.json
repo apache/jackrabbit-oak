@@ -1,0 +1,8 @@
+/a|{"jcr:primaryType":"nam:no-split"}
+/a/a|{"jcr:primaryType":"nam:split"}
+/a/b|{"jcr:primaryType":"nam:split"}
+/a/c|{"jcr:primaryType":"nam:split"}
+/b|{"jcr:primaryType":"nam:no-split"}
+/b/a|{"jcr:primaryType":"nam:split"}
+/b/b|{"jcr:primaryType":"nam:split"}
+/b/c|{"jcr:primaryType":"nam:split"}

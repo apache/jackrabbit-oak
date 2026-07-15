@@ -1,0 +1,451 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.jackrabbit.oak.plugins.index;
+
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.query.AbstractJcrTest;
+import org.apache.jackrabbit.oak.query.facet.FacetResult;
+import org.junit.Before;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryResult;
+import javax.jcr.query.RowIterator;
+import javax.jcr.security.Privilege;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Random;
+import java.util.stream.Collectors;
+
+import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FACETS;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_FACETS_TOP_CHILDREN;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_RANDOM_SEED;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_REFRESH_DEFN;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_SECURE_FACETS;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_SECURE_FACETS_VALUE_INSECURE;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_SECURE_FACETS_VALUE_SECURE;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_SECURE_FACETS_VALUE_STATISTICAL;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_STATISTICAL_FACET_SAMPLE_SIZE;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.STATISTICAL_FACET_SAMPLE_SIZE_DEFAULT;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
+
+public abstract class FacetCommonTest extends AbstractJcrTest {
+    private static final Logger LOG = LoggerFactory.getLogger(FacetCommonTest.class);
+    private static final PerfLogger LOG_PERF = new PerfLogger(LOG);
+    protected TestRepository repositoryOptionsUtil;
+    protected Node indexNode;
+    protected IndexOptions indexOptions;
+    private static final String FACET_PROP = "facets";
+
+    private static final int NUM_LEAF_NODES = STATISTICAL_FACET_SAMPLE_SIZE_DEFAULT;
+    private static final int NUM_LABELS = 4;
+    private static final int NUM_LEAF_NODES_FOR_LARGE_DATASET = NUM_LEAF_NODES;
+    private static final int NUM_LEAF_NODES_FOR_SMALL_DATASET = NUM_LEAF_NODES / (2 * NUM_LABELS);
+    private final Map<String, Integer> actualLabelCount = new HashMap<>();
+    private final Map<String, Integer> actualAclLabelCount = new HashMap<>();
+    private final Map<String, Integer> actualAclPar1LabelCount = new HashMap<>();
+    private static final Random INDEX_SUFFIX_RANDOMIZER = new Random(7);
+
+    @Before
+    public void createIndex() throws RepositoryException {
+        IndexDefinitionBuilder builder = indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false);
+        builder.noAsync().evaluatePathRestrictions();
+        builder.getBuilderTree().setProperty("jcr:primaryType", "oak:QueryIndexDefinition", Type.NAME);
+        // Statistical facets in Elasticsearch use a random function with a fixed seed but the results are not
+        // consistent when the index name changes. So we set the index name to a fixed values.
+        String indexName = "FacetCommonTestIndex" + INDEX_SUFFIX_RANDOMIZER.nextInt(1000);
+        builder.getBuilderTree().setProperty(PROP_RANDOM_SEED, 3000L, Type.LONG);
+        builder.getBuilderTree().setProperty("indexNameSeed", 300L, Type.LONG);
+        IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule(JcrConstants.NT_BASE);
+        indexRule.property("cons").propertyIndex();
+        indexRule.property("foo").propertyIndex().getBuilderTree().setProperty(FACET_PROP, true, Type.BOOLEAN);
+        indexRule.property("bar").propertyIndex().getBuilderTree().setProperty(FACET_PROP, true, Type.BOOLEAN);
+        indexRule.property("baz").propertyIndex().getBuilderTree().setProperty(FACET_PROP, true, Type.BOOLEAN);
+
+        indexOptions.setIndex(adminSession, indexName, builder);
+        indexNode = indexOptions.getIndexNode(adminSession, indexName);
+    }
+
+    private void createDataset(int numberOfLeafNodes) throws RepositoryException {
+        Random fooGen = new Random(42);
+        Random barGen = new Random(42);
+        int[] fooLabelCount = new int[NUM_LABELS];
+        int[] fooAclLabelCount = new int[NUM_LABELS];
+        int[] fooAclPar1LabelCount = new int[NUM_LABELS];
+
+        int[] barLabelCount = new int[NUM_LABELS];
+        int[] barAclLabelCount = new int[NUM_LABELS];
+        int[] barAclPar1LabelCount = new int[NUM_LABELS];
+
+        Node par = allow(getOrCreateByPath("/parent", "oak:Unstructured", adminSession));
+
+        for (int i = 0; i < NUM_LABELS; i++) {
+            Node subPar = par.addNode("par" + i);
+            for (int j = 0; j < numberOfLeafNodes; j++) {
+                Node child = subPar.addNode("c" + j);
+                child.setProperty("cons", "val");
+                // Add a random label out of "l0", "l1", "l2", "l3"
+                int fooLabelNum = fooGen.nextInt(NUM_LABELS);
+                int barLabelNum = barGen.nextInt(NUM_LABELS);
+                child.setProperty("foo", "l" + fooLabelNum);
+                child.setProperty("bar", "m" + barLabelNum);
+
+                fooLabelCount[fooLabelNum]++;
+                barLabelCount[barLabelNum]++;
+                if (i != 0) {
+                    fooAclLabelCount[fooLabelNum]++;
+                    barAclLabelCount[barLabelNum]++;
+                }
+                if (i == 1) {
+                    fooAclPar1LabelCount[fooLabelNum]++;
+                    barAclPar1LabelCount[barLabelNum]++;
+                }
+            }
+
+            // deny access for one sub-parent
+            if (i == 0) {
+                deny(subPar);
+            }
+        }
+        adminSession.save();
+        for (int i = 0; i < fooLabelCount.length; i++) {
+            actualLabelCount.put("l" + i, fooLabelCount[i]);
+            actualLabelCount.put("m" + i, barLabelCount[i]);
+            actualAclLabelCount.put("l" + i, fooAclLabelCount[i]);
+            actualAclLabelCount.put("m" + i, barAclLabelCount[i]);
+            actualAclPar1LabelCount.put("l" + i, fooAclPar1LabelCount[i]);
+            actualAclPar1LabelCount.put("m" + i, barAclPar1LabelCount[i]);
+        }
+        assertNotEquals("Acl-ed and actual counts mustn't be same", actualLabelCount, actualAclLabelCount);
+    }
+
+    @Test
+    public void secureFacets() throws Exception {
+        createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
+        assertEventually(() -> assertEquals(actualAclLabelCount, getFacets()));
+    }
+
+    @Test
+    public void secureFacets_withOneLabelInaccessible() throws Exception {
+        createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
+        Node inaccessibleChild = deny(adminSession.getNode("/parent").addNode("par4")).addNode("c0");
+        inaccessibleChild.setProperty("cons", "val");
+        inaccessibleChild.setProperty("foo", "l4");
+        adminSession.save();
+        assertEventually(() -> assertEquals(actualAclLabelCount, getFacets()));
+    }
+
+    @Test
+    public void insecureFacets() throws Exception {
+        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
+        facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_INSECURE);
+        adminSession.save();
+
+        createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
+        assertEventually(() -> assertEquals(actualLabelCount, getFacets()));
+    }
+
+    @Test
+    public void statisticalFacets() throws Exception {
+        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
+        facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_STATISTICAL);
+        facetConfig.setProperty(PROP_STATISTICAL_FACET_SAMPLE_SIZE, 3000);
+        adminSession.save();
+
+        createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
+
+        assertEventually(() -> {
+            Map<String, Integer> facets = getFacets();
+            assertEquals("Unexpected number of facets", actualAclLabelCount.size(), facets.size());
+
+            for (Map.Entry<String, Integer> facet : actualAclLabelCount.entrySet()) {
+                String facetLabel = facet.getKey();
+                int facetCount = facets.get(facetLabel);
+                float ratio = ((float) facetCount) / facet.getValue();
+                assertTrue("Facet count for label: " + facetLabel + " is outside of 10% margin of error. " +
+                                "Expected: " + facet.getValue() + "; Got: " + facetCount + "; Ratio: " + ratio,
+                        Math.abs(ratio - 1) < 0.1);
+            }
+        });
+
+        // Verify that the query result is not affected by the facet sampling
+        assertEventually(() -> {
+            try {
+                int rowCounter = 0;
+                RowIterator rows = getQueryResult(null).getRows();
+                while (rows.hasNext()) {
+                    rows.nextRow();
+                    rowCounter++;
+                }
+                assertEquals("Unexpected number of rows", 3000, rowCounter);
+            } catch (RepositoryException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @Test
+    public void statisticalFacetsWithHitCountLessThanSampleSize() throws Exception {
+        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
+        facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_STATISTICAL);
+        indexNode.setProperty(PROP_REFRESH_DEFN, true);
+        adminSession.save();
+
+        createDataset(NUM_LEAF_NODES_FOR_SMALL_DATASET);
+
+        assertEventually(() -> {
+            Map<String, Integer> facets = getFacets();
+            assertEquals("Unexpected number of facets", actualAclLabelCount.size(), facets.size());
+
+            // Since the hit count is less than sample size -> flow should have switched to secure facet count instead of statistical
+            // and thus the count should be exactly equal
+            assertEquals(actualAclLabelCount, facets);
+        });
+    }
+
+    @Test
+    public void statisticalFacets_withHitCountSameAsSampleSize() throws Exception {
+        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
+        facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_STATISTICAL);
+        indexNode.setProperty(PROP_REFRESH_DEFN, true);
+        adminSession.save();
+
+        createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
+
+        assertEventually(() -> {
+            Map<String, Integer> facets = getFacets("/parent/par1");
+            assertEquals("Unexpected number of facets", actualAclPar1LabelCount.size(), facets.size());
+
+            for (Map.Entry<String, Integer> facet : actualAclPar1LabelCount.entrySet()) {
+                String facetLabel = facet.getKey();
+                int facetCount = facets.get(facetLabel);
+                float ratio = ((float) facetCount) / facet.getValue();
+                assertTrue("Facet count for label: " + facetLabel + " is outside of 10% margin of error. " +
+                                "Expected: " + facet.getValue() + "; Got: " + facetCount + "; Ratio: " + ratio,
+                        Math.abs(ratio - 1) < 0.1);
+            }
+        });
+    }
+
+    @Test
+    public void statisticalFacets_withOneLabelInaccessible() throws Exception {
+        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
+        facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_STATISTICAL);
+        indexNode.setProperty(PROP_REFRESH_DEFN, true);
+        adminSession.save();
+
+        createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
+        Node inaccessibleChild = deny(adminSession.getNode("/parent").addNode("par4")).addNode("c0");
+        inaccessibleChild.setProperty("cons", "val");
+        inaccessibleChild.setProperty("foo", "l4");
+        adminSession.save();
+        assertEventually(() -> {
+            Map<String, Integer> facets = getFacets();
+            assertEquals("Unexpected number of facets", actualAclLabelCount.size(), facets.size());
+
+            for (Map.Entry<String, Integer> facet : actualAclLabelCount.entrySet()) {
+                String facetLabel = facet.getKey();
+                int facetCount = facets.get(facetLabel);
+                float ratio = ((float) facetCount) / facet.getValue();
+                assertTrue("Facet count for label: " + facetLabel + " is outside of 10% margin of error. " +
+                                "Expected: " + facet.getValue() + "; Got: " + facetCount + "; Ratio: " + ratio,
+                        Math.abs(ratio - 1) < 0.1);
+            }
+        });
+    }
+
+    @Test
+    public void secureFacets_withAdminSession() throws Exception {
+        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
+        facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_INSECURE);
+        indexNode.setProperty(PROP_REFRESH_DEFN, true);
+        adminSession.save();
+        createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
+        qm = adminSession.getWorkspace().getQueryManager();
+        assertEventually(() -> assertEquals(actualLabelCount, getFacets()));
+    }
+
+    @Test
+    public void statisticalFacets_withAdminSession() throws Exception {
+        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
+        facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_STATISTICAL);
+        indexNode.setProperty(PROP_REFRESH_DEFN, true);
+        adminSession.save();
+        createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
+        qm = adminSession.getWorkspace().getQueryManager();
+        assertEventually(() -> {
+            Map<String, Integer> facets = getFacets();
+            assertEquals("Unexpected number of facets", actualLabelCount.size(), facets.size());
+
+            for (Map.Entry<String, Integer> facet : actualLabelCount.entrySet()) {
+                String facetLabel = facet.getKey();
+                int facetCount = facets.get(facetLabel);
+                float ratio = ((float) facetCount) / facet.getValue();
+                assertTrue("Facet count for label: " + facetLabel + " is outside of 5% margin of error. " +
+                                "Expected: " + facet.getValue() + "; Got: " + facetCount + "; Ratio: " + ratio,
+                        Math.abs(ratio - 1) < 0.05);
+            }
+        });
+    }
+
+    @Test
+    public void secureFacetsWithMultiValueProperty() throws Exception {
+        facetsWithMultiValueProperty(PROP_SECURE_FACETS_VALUE_SECURE);
+    }
+
+    @Test
+    public void insecureFacetsWithMultiValueProperty() throws Exception {
+        facetsWithMultiValueProperty(PROP_SECURE_FACETS_VALUE_INSECURE);
+    }
+
+    @Test
+    public void statisticalFacetsWithMultiValueProperty() throws Exception {
+        facetsWithMultiValueProperty(PROP_SECURE_FACETS_VALUE_STATISTICAL);
+    }
+
+    @Test
+    public void inaccessibleFacetsNotCounted() throws Exception {
+        Node node = allow(getOrCreateByPath("/parent", "oak:Unstructured", adminSession));
+        Node doc1 = createDocumentNode(node, "doc1", "apple");
+        createDocumentNode(node, "doc2", "apple");
+        createDocumentNode(node, "doc3", "banana");
+
+        deny(doc1);
+        adminSession.save();
+
+        assertEventually(() -> {
+            Map<String, Integer> facets = getFacets();
+            assertEquals(2, facets.size());
+            assertEquals(Integer.valueOf(1), facets.get("apple"));
+            assertEquals(Integer.valueOf(1), facets.get("banana"));
+        });
+    }
+
+    @Test
+    public void inaccessibleFacetOutsideTopNAreIgnored() throws Exception {
+        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
+        facetConfig.setProperty(PROP_FACETS_TOP_CHILDREN, 1);
+        adminSession.save();
+
+        Node node = allow(getOrCreateByPath("/parent", "oak:Unstructured", adminSession));
+        createDocumentNode(node, "doc1", "apple");
+        createDocumentNode(node, "doc2", "apple");
+        Node doc3 = createDocumentNode(node, "doc3", "banana");
+
+        deny(doc3);
+        adminSession.save();
+
+        assertEventually(() -> {
+            Map<String, Integer> facets = getFacets();
+            assertEquals(1, facets.size());
+            assertEquals(Integer.valueOf(2), facets.get("apple"));
+            assertFalse(facets.containsKey("banana"));
+        });
+    }
+
+    public void facetsWithMultiValueProperty(String facetType) throws Exception {
+        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
+        facetConfig.setProperty(PROP_SECURE_FACETS, facetType);
+        indexNode.setProperty(PROP_REFRESH_DEFN, true);
+        adminSession.save();
+
+        Node par = allow(getOrCreateByPath("/parent", "oak:Unstructured", adminSession));
+        Node subPar = par.addNode("par");
+        Node child = subPar.addNode("c");
+        child.setProperty("cons", "val");
+        child.setProperty("foo", new String[] { "l0", "l1", "l2", "l3" });
+        child.setProperty("bar", "m0");
+        adminSession.save();
+
+        assertEventually(() -> {
+            Map<String, Integer> facets = getFacets();
+            assertEquals("Unexpected number of facets", 5, facets.size()); // l0, l1, l2, l3, m0
+            assertEquals(1, (int) facets.get("l0"));
+            assertEquals(1, (int) facets.get("l1"));
+            assertEquals(1, (int) facets.get("l2"));
+            assertEquals(1, (int) facets.get("l3"));
+            assertEquals(1, (int) facets.get("m0"));
+        });
+    }
+
+    private Map<String, Integer> getFacets() {
+        return getFacets(null);
+    }
+
+    private Node deny(Node node) throws RepositoryException {
+        AccessControlUtils.deny(node, "anonymous", Privilege.JCR_ALL);
+        return node;
+    }
+
+    private Node allow(Node node) throws RepositoryException {
+        AccessControlUtils.allow(node, "anonymous", Privilege.JCR_READ);
+        return node;
+    }
+
+    private Map<String, Integer> getFacets(String path) {
+        QueryResult queryResult = getQueryResult(path);
+        long start = LOG_PERF.start("Getting the Facet Results...");
+        FacetResult facetResult = new FacetResult(queryResult);
+        LOG_PERF.end(start, -1, "Facet Results fetched");
+
+        return facetResult.getDimensions()
+                .stream()
+                .flatMap(dim -> Objects.requireNonNull(facetResult.getFacets(dim)).stream())
+                .collect(Collectors.toMap(FacetResult.Facet::getLabel, FacetResult.Facet::getCount));
+    }
+
+    private QueryResult getQueryResult(String path) {
+        String pathCons = "";
+        if (path != null) {
+            pathCons = " AND ISDESCENDANTNODE('" + path + "')";
+        }
+        String query = "SELECT [jcr:path], [rep:facet(foo)], [rep:facet(bar)], [rep:facet(baz)] FROM [nt:base] WHERE [cons] = 'val'" + pathCons;
+        Query q;
+        QueryResult queryResult;
+        try {
+            q = qm.createQuery(query, Query.JCR_SQL2);
+            queryResult = q.execute();
+        } catch (RepositoryException e) {
+            throw new RuntimeException(e);
+        }
+        return queryResult;
+    }
+
+    private Node createDocumentNode(Node parent, String docName, String fooValue) throws RepositoryException {
+        Node doc = parent.addNode(docName);
+        doc.setProperty("cons", "val");
+        doc.setProperty("foo", fooValue);
+        return doc;
+    }
+
+    protected void assertEventually(Runnable r) {
+        TestUtil.assertEventually(r, ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
+    }
+}

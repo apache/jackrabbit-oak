@@ -1,0 +1,830 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
+
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.log.LogSilencer;
+import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.FulltextBinaryTextExtractor;
+import org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil;
+import org.apache.jackrabbit.oak.plugins.index.search.util.FunctionIndexProcessor;
+import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.jcr.PropertyType;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
+
+/**
+ * Abstract implementation of a {@link DocumentMaker}.
+ * <p>
+ * D is the type of entities / documents to be indexed specific to subclasses implementations.
+ */
+public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
+
+    private final Logger log = LoggerFactory.getLogger(getClass());
+
+    private static final LogSilencer LOG_SILENCER = new LogSilencer();
+
+    public static final String WARN_LOG_STRING_SIZE_THRESHOLD_KEY = "oak.repository.property.index.logWarnStringSizeThreshold";
+    private static final int DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE = 102400;
+
+    private static final String THROTTLE_WARN_LOGS_KEY = "oak.repository.property.throttle.warn.logs";
+    private static final String THROTTLE_WARN_LOGS_THRESHOLD_KEY = "oak.repository.throttle.warn.logs.threshold";
+    private static final int DEFAULT_THROTTLE_WARN_LOGS_THRESHOLD_VALUE = 1000;
+
+    // Counter for multi valued ordered property warnings.
+    // Each path with a multi valued ordered property adds to the counter for every valid index that indexes this property.
+    private static final AtomicInteger WARN_LOG_COUNTER_MV_ORDERED_PROPERTY = new AtomicInteger();
+    private static final Set<String> MV_ORDERED_PROPERTY_SET = ConcurrentHashMap.newKeySet();
+
+    private static final String DYNAMIC_BOOST_TAG_NAME = "name";
+    private static final String DYNAMIC_BOOST_TAG_CONFIDENCE = "confidence";
+
+    private final FulltextBinaryTextExtractor textExtractor;
+    protected final IndexDefinition definition;
+    protected final IndexDefinition.IndexingRule indexingRule;
+    protected final String path;
+    private final int logWarnStringSizeThreshold;
+    protected static final int throttleWarnLogThreshold = Integer.getInteger(THROTTLE_WARN_LOGS_THRESHOLD_KEY,
+            DEFAULT_THROTTLE_WARN_LOGS_THRESHOLD_VALUE);
+    protected static final boolean throttleWarnLogs = Boolean.getBoolean(THROTTLE_WARN_LOGS_KEY);
+
+    public FulltextDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
+                                 @NotNull IndexDefinition definition,
+                                 IndexDefinition.IndexingRule indexingRule,
+                                 @NotNull String path) {
+        this.textExtractor = textExtractor;
+        this.definition = requireNonNull(definition);
+        this.indexingRule = requireNonNull(indexingRule);
+        this.path = requireNonNull(path);
+        this.logWarnStringSizeThreshold = Integer.getInteger(WARN_LOG_STRING_SIZE_THRESHOLD_KEY,
+                DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE);
+    }
+
+    protected abstract D initDoc();
+
+    protected abstract D finalizeDoc(D doc, boolean dirty, boolean facet) throws IOException;
+
+    protected abstract boolean isFacetingEnabled();
+
+    protected abstract boolean indexTypeOrderedFields(D doc, String pname, int tag, PropertyState property, PropertyDefinition pd);
+
+    protected abstract boolean addBinary(D doc, String path, List<String> binaryValues);
+
+    protected abstract boolean indexFacetProperty(D doc, int tag, PropertyState property, String pname);
+
+    protected abstract void indexAnalyzedProperty(D doc, String pname, String value, PropertyDefinition pd);
+
+    protected abstract void indexSuggestValue(D doc, String value);
+
+    protected abstract void indexSpellcheckValue(D doc, String value);
+
+    protected abstract void indexFulltextValue(D doc, String value);
+
+    protected abstract void indexTypedProperty(D doc, PropertyState property, String pname, PropertyDefinition pd, int index);
+
+    /**
+     * Indexes a text value that will be used to re-score results with the given confidence
+     *
+     * @param doc        the full-text document
+     * @param parent     the parent node
+     * @param nodeName   the current node name
+     * @param value      the value to be indexed
+     * @param confidence the confidence (or weight) used for re-scoring
+     * @return {@code true} if the value has been added, otherwise {@code false}
+     */
+    protected abstract boolean indexDynamicBoost(D doc, String parent, String nodeName, String value, double confidence);
+
+    protected abstract void indexAncestors(D doc, String path);
+
+    protected abstract void indexNotNullProperty(D doc, PropertyDefinition pd);
+
+    protected abstract void indexNullProperty(D doc, PropertyDefinition pd);
+
+    protected abstract void indexAggregateValue(D doc, Aggregate.NodeIncludeResult result, String value, PropertyDefinition pd);
+
+    protected abstract void indexNodeName(D doc, String value);
+
+    protected void logLargeStringProperties(String propertyName, String value) {
+        if (value.length() > logWarnStringSizeThreshold) {
+            log.warn("String length: {} for property: {} at Node: {} is greater than configured value {}",
+                    value.length(), propertyName, path, logWarnStringSizeThreshold);
+        }
+    }
+
+    /**
+     * Remove properties from the document. Default implementation is a no-op since the entire document is rebuilt
+     * on update. For implementations that support partial updates, this method should be overridden.
+     * @param doc the document
+     * @param propertyName the property name to be removed
+     */
+    protected void removeProperty(D doc, String propertyName) {
+        // Default no-op
+    }
+
+    @Nullable
+    public D makeDocument(NodeState state) throws IOException {
+        return makeDocument(state, false, List.of());
+    }
+
+    @Nullable
+    public D makeDocument(NodeState state, boolean isUpdate, @NotNull List<PropertyState> propertiesModified) throws IOException {
+        boolean facet = false;
+
+        D document = initDoc();
+        DocumentBuildContext ctx = new DocumentBuildContext();
+        boolean dirty = false;
+
+        // we make a copy of the modified properties names. These will be removed while iterating over all properties.
+        // The remaining properties are the ones that were removed.
+        Map<String, PropertyState> propertiesToRemove = propertiesModified.stream()
+                .collect(Collectors.toMap(PropertyState::getName, ps -> ps));
+
+        String nodeName = PathUtils.getName(path);
+        //We 'intentionally' are indexing node names only on root state as we don't support indexing relative or
+        //regex for node name indexing
+        PropertyState nodeNamePS = new StringPropertyState(FieldNames.NODE_NAME, nodeName);
+        for (PropertyState property : IterableUtils.chainedIterable(state.getProperties(), List.of(nodeNamePS))) {
+            String pname = property.getName();
+
+            if (!isVisible(pname) && !FieldNames.NODE_NAME.equals(pname)) {
+                continue;
+            }
+
+            PropertyDefinition pd = indexingRule.getConfig(pname);
+
+            if (pd == null || !pd.index) {
+                continue;
+            }
+
+            if (pd.ordered) {
+                dirty |= addTypedOrderedFields(document, property, pname, pd);
+            }
+
+            var indexed = indexProperty(path, document, ctx, state, property, pname, pd);
+            if (indexed) {
+                dirty = true;
+                // property was indexed, so remove from the removed list
+                propertiesToRemove.remove(pname);
+            }
+
+            facet |= pd.facet;
+        }
+
+        ResultCollector resultCollector = indexAggregates(path, document, ctx, state);
+        dirty |= resultCollector.dirtyFlag; // any (aggregate) indexing happened
+        facet |= resultCollector.facetFlag; // facet indexing during (index-time) aggregation
+        dirty |= indexNullCheckEnabledProps(path, document, state);
+        dirty |= indexFunctionRestrictions(path, document, state);
+        dirty |= indexNotNullCheckEnabledProps(path, document, state);
+        int dynamicBoostTagCount = ctx.collectedBoosts.size();
+        int maxDynamicBoostCount = definition.getMaxDynamicBoostCount();
+        if (maxDynamicBoostCount >= 0 && dynamicBoostTagCount > maxDynamicBoostCount) {
+            log.warn("[{}] Number of collected dynamic boost tags ({}) exceeds the maximum allowed ({}). Some tags will be skipped",
+                    getIndexName(), dynamicBoostTagCount, maxDynamicBoostCount);
+        }
+        dirty |= indexTopDynamicBoost(document, ctx.collectedBoosts, maxDynamicBoostCount);
+        dirty |= augmentCustomFields(path, document, state);
+
+        if (!propertiesToRemove.isEmpty()) {
+            dirty |= removeProperties(document, propertiesToRemove);
+        }
+
+        if (isUpdate && !dirty) {
+            // updated the state but had no relevant changes
+            return null;
+        }
+
+        if (indexingRule.isNodeNameIndexed()) {
+            addNodeNameField(document, nodeName);
+            dirty = true;
+        }
+
+        //For property index no use making an empty document if
+        //none of the properties are indexed
+        if (!indexingRule.indexesAllNodesOfMatchingType() && !dirty) {
+            return null;
+        }
+
+        if (indexingRule.isFulltextEnabled()) {
+            Pattern propertyRegex = definition.getPropertyRegex();
+            boolean shouldAdd = propertyRegex == null || propertyRegex.matcher(nodeName).find();
+            if (shouldAdd) {
+                indexFulltextValue(document, nodeName);
+            }
+        }
+
+        if (definition.evaluatePathRestrictions()) {
+            indexAncestors(document, path);
+        }
+
+        return finalizeDoc(document, dirty, facet);
+    }
+
+    private boolean indexFacets(D doc, PropertyState property, String pname, PropertyDefinition pd) {
+        int tag = property.getType().tag();
+        int idxDefinedTag = pd.getType();
+        // Try converting type to the defined type in the index definition
+        if (tag != idxDefinedTag) {
+            if (log.isDebugEnabled()) {
+                log.debug("[{}] Facet property defined with type {} differs from property {} with type {} in path {}",
+                        getIndexName(), Type.fromTag(idxDefinedTag, false), property, Type.fromTag(tag, false), path);
+            }
+            tag = idxDefinedTag;
+        }
+        return indexFacetProperty(doc, tag, property, pname);
+    }
+
+    private boolean indexProperty(String path,
+                                  D doc,
+                                  DocumentBuildContext ctx,
+                                  NodeState state,
+                                  PropertyState property,
+                                  String pname,
+                                  PropertyDefinition pd) {
+        boolean includeTypeForFullText = indexingRule.includePropertyType(property.getType().tag());
+
+        boolean dirty = false;
+        if (Type.BINARY.tag() == property.getType().tag() && pd.useInSimilarity) {
+            try {
+                if (definition.shouldIndexSimilarityBinaries()) {
+                    log.trace("indexing similarity binaries for {}", pd.name);
+                    indexSimilarityBinaries(doc, pd, property.getValue(Type.BINARY));
+                    dirty = true;
+                }
+            } catch (Exception e) {
+                log.error("could not index similarity field for property {} and definition {} for path {}",
+                        property.getName(), pd, path);
+            }
+        } else if (Type.BINARY.tag() == property.getType().tag()
+                && includeTypeForFullText) {
+            List<String> binaryValues = newBinary(property, state, path + "@" + pname);
+            addBinary(doc, null, binaryValues);
+            dirty = true;
+        } else {
+            if (pd.propertyIndex && pd.includePropertyType(property.getType().tag())) {
+                dirty |= addTypedFields(doc, property, pname, pd);
+            }
+            if (!definition.isDynamicBoostLiteEnabled() && pd.dynamicBoost) {
+                try {
+                    collectDynamicBoost(pname, pd.nodeName, state, ctx.collectedBoosts);
+                } catch (Exception e) {
+                    log.error("Could not collect dynamic boost for property {} and definition {}", property, pd, e);
+                }
+            }
+
+            if (pd.fulltextEnabled() && includeTypeForFullText) {
+                for (String value : property.getValue(Type.STRINGS)) {
+                    logLargeStringProperties(property.getName(), value);
+                    if (definition.getPropertyRegex() != null && !definition.getPropertyRegex().matcher(value).find()) {
+                        continue;
+                    }
+                    if (!includePropertyValue(value, pd)) {
+                        continue;
+                    }
+
+                    if (pd.analyzed && pd.includePropertyType(property.getType().tag())) {
+                        indexAnalyzedProperty(doc, pname, value, pd);
+                    }
+
+                    if (pd.useInSuggest) {
+                        indexSuggestValue(doc, value);
+                    }
+
+                    if (pd.useInSpellcheck) {
+                        indexSpellcheckValue(doc, value);
+                    }
+
+                    if (pd.nodeScopeIndex) {
+                        if (isFulltextValuePersistedAtNode(pd)) {
+                            indexFulltextValue(doc, value);
+                        }
+                        if (pd.useInSimilarity) {
+                            log.trace("indexing similarity strings for {}", pd.name);
+                            try {
+                                // fallback for when feature vectors are written in string typed properties
+                                if (definition.shouldIndexSimilarityStrings()) {
+                                    indexSimilarityStrings(doc, pd, value);
+                                }
+                            } catch (Exception e) {
+                                log.error("could not index similarity field for property {} and definition {} for path {}",
+                                        property.getName(), pd, path);
+                            }
+                        }
+                    }
+                    dirty = true;
+                }
+            }
+            if (pd.facet && isFacetingEnabled()) {
+                dirty |= indexFacets(doc, property, pname, pd);
+            }
+            if (pd.similarityTags) {
+                String value = property.getValue(Type.STRING);
+                if (isSimilarityTagWithinLimits(value, ctx.similarityTagCount)) {
+                    if (indexSimilarityTag(doc, value)) {
+                        ctx.similarityTagCount++;
+                        dirty = true;
+                    }
+                } else if (!LOG_SILENCER.silence(pname)) {
+                    log.warn("[{}] Skipping similarity tag for property {}. Either value length {} exceeds maximum" +
+                                    "allowed length or number of indexed tags {} exceeds maximum allowed count",
+                            getIndexName(), pname, value.length(), ctx.similarityTagCount);
+                }
+            }
+
+        }
+
+        return dirty;
+    }
+
+    private boolean removeProperties(D doc, Map<String, PropertyState> properties) {
+        boolean dirty = false;
+        for (PropertyState ps : properties.values()) {
+            PropertyDefinition pd = indexingRule.getConfig(ps.getName());
+            if (pd != null
+                    && pd.index
+                    && (pd.includePropertyType(ps.getType().tag())
+                    || indexingRule.includePropertyType(ps.getType().tag()))) {
+                removeProperty(doc, ps.getName());
+                dirty = true;
+            }
+        }
+        return dirty;
+    }
+
+    /**
+     * In elastic we don't add analyzed data in :fulltext if index has both analyzed
+     * and nodescope property. Instead we fire a multiMatch with cross_fields.
+     * <p>
+     * Returns {@code true} if nodeScopeIndex full text values need to be indexed at node level (:fulltext)
+     */
+    protected boolean isFulltextValuePersistedAtNode(PropertyDefinition pd) {
+        // By default nodeScopeIndex full text values need to be indexed.
+        return true;
+    }
+
+    protected abstract boolean indexSimilarityTag(D doc, String value);
+
+    protected abstract void indexSimilarityBinaries(D doc, PropertyDefinition pd, Blob blob) throws IOException;
+
+    protected abstract void indexSimilarityStrings(D doc, PropertyDefinition pd, String value) throws IOException;
+
+    protected boolean addTypedFields(D doc, PropertyState property, String pname, PropertyDefinition pd) {
+        int tag = property.getType().tag();
+        boolean fieldAdded = false;
+
+        for (int i = 0; i < property.count(); i++) {
+            if (!includePropertyValue(property, i, pd)) {
+                continue;
+            }
+
+            indexTypedProperty(doc, property, pname, pd, i);
+            fieldAdded = true;
+
+            if (tag == Type.STRING.tag()) {
+                logLargeStringProperties(property.getName(), property.getValue(Type.STRING, i));
+            }
+        }
+        return fieldAdded;
+    }
+
+    private boolean addTypedOrderedFields(D doc,
+                                          PropertyState property,
+                                          String pname,
+                                          PropertyDefinition pd) {
+        // Ignore and warn if property multi-valued as not supported
+        if (property.getType().isArray()) {
+            // Log all the warnings if throttleWarnings is not enabled.
+            // Log the warning for the first occurrence of every unique property
+            // Log the warning for every (default to 1000 but configurable) 1000 occurrence thereafter
+            // We could miss certain paths being logged here since the DocumentMaker is created for each node state for each index.
+            // But ideally a warning with the property in question should suffice.
+            // Also there is no handling for different indexes having the same property since those are usually different versions of the same index.
+            if (!throttleWarnLogs || MV_ORDERED_PROPERTY_SET.add(pname) ||
+                    WARN_LOG_COUNTER_MV_ORDERED_PROPERTY.incrementAndGet() % throttleWarnLogThreshold == 0) {
+                log.warn("[{}] Ignoring ordered property {} of type {} for path {} as multivalued ordered property not supported",
+                        getIndexName(), pname, Type.fromTag(property.getType().tag(), true), path);
+            }
+            return false;
+        }
+
+        int tag = property.getType().tag();
+        int idxDefinedTag = pd.getType();
+        // Try converting type to the defined type in the index definition
+        if (tag != idxDefinedTag) {
+            if (log.isDebugEnabled()) {
+                log.debug("[{}] Ordered property defined with type {} differs from property {} with type {} in path {}",
+                        getIndexName(), Type.fromTag(idxDefinedTag, false), property, Type.fromTag(tag, false), path);
+            }
+            tag = idxDefinedTag;
+        }
+        return indexTypeOrderedFields(doc, pname, tag, property, pd);
+    }
+
+    protected boolean includePropertyValue(PropertyState property, int i, PropertyDefinition pd) {
+        if (property.getType().tag() == PropertyType.BINARY) {
+            return true;
+        }
+
+        if (pd.valuePattern.matchesAll()) {
+            return true;
+        }
+
+        return includePropertyValue(property.getValue(Type.STRING, i), pd);
+    }
+
+    protected boolean includePropertyValue(String value, PropertyDefinition pd) {
+        return pd.valuePattern.matches(value);
+    }
+
+    private static boolean isVisible(String name) {
+        return name.charAt(0) != ':';
+    }
+
+    private List<String> newBinary(PropertyState property, NodeState state, String path) {
+        if (textExtractor == null) {
+            //Skip text extraction for sync indexing
+            return List.of();
+        } else {
+            return textExtractor.newBinary(property, state, path);
+        }
+    }
+
+    // TODO : extract more generic SPI for augmentor factory
+    protected abstract boolean augmentCustomFields(final String path, final D doc, final NodeState document);// {
+//        boolean dirty = false;
+//
+//        if (augmentorFactory != null) {
+//            Iterable<Field> augmentedFields = augmentorFactory
+//                    .getIndexFieldProvider(indexingRule.getNodeTypeName())
+//                    .getAugmentedFields(path, document, definition.getDefinitionNodeState());
+//
+//            for (Field field : augmentedFields) {
+//                fields.add(field);
+//                dirty = true;
+//            }
+//        }
+//
+//        return dirty;
+//    }
+
+    //~-------------------------------------------------------< NullCheck Support >
+
+    private boolean indexNotNullCheckEnabledProps(String path, D doc, NodeState state) {
+        boolean fieldAdded = false;
+        List<PropertyDefinition> props = indexingRule.getNotNullCheckEnabledProperties();
+        // Performance critical code: using indexed traversal to avoid creating an iterator instance.
+        for (int i = 0; i < props.size(); i++) {
+            PropertyDefinition pd = props.get(i);
+            if (isPropertyNotNull(state, pd)) {
+                indexNotNullProperty(doc, pd);
+                fieldAdded = true;
+            }
+        }
+        return fieldAdded;
+    }
+
+    private boolean indexNullCheckEnabledProps(String path, D doc, NodeState state) {
+        boolean fieldAdded = false;
+        List<PropertyDefinition> props = indexingRule.getNullCheckEnabledProperties();
+        // Performance critical code: using indexed traversal to avoid creating an iterator instance.
+        for (int i = 0; i < props.size(); i++) {
+            PropertyDefinition pd = props.get(i);
+            if (isPropertyNull(state, pd)) {
+                indexNullProperty(doc, pd);
+                fieldAdded = true;
+            }
+        }
+        return fieldAdded;
+    }
+
+    private boolean indexFunctionRestrictions(String path, D fields, NodeState state) {
+        boolean fieldAdded = false;
+        List<PropertyDefinition> functionRestrictions = indexingRule.getFunctionRestrictions();
+        // Performance critical code: using indexed traversal to avoid creating an iterator instance.
+        for (int i = 0; i < functionRestrictions.size(); i++) {
+            PropertyDefinition pd = functionRestrictions.get(i);
+            PropertyState functionValue = calculateValue(path, state, pd.functionCode);
+            if (functionValue != null) {
+                if (pd.ordered) {
+                    fieldAdded |= addTypedOrderedFields(fields, functionValue, pd.function, pd);
+                }
+                fieldAdded |= addTypedFields(fields, functionValue, pd.function, pd);
+            }
+        }
+        return fieldAdded;
+    }
+
+    private PropertyState calculateValue(String path, NodeState state, String[] functionCode) {
+        try {
+            return FunctionIndexProcessor.tryCalculateValue(path, state, functionCode);
+        } catch (RuntimeException e) {
+            log.error("Failed to calculate function value for {} at {}",
+                    Arrays.toString(functionCode), path, e);
+            throw e;
+        }
+    }
+
+    /*
+     * Determine if the property as defined by PropertyDefinition exists or not.
+     *
+     * For relative property if the intermediate nodes do not exist then property is
+     * not considered to be null
+     *
+     */
+    private boolean isPropertyNull(NodeState state, PropertyDefinition pd) {
+        NodeState propertyNode = getPropertyNode(state, pd);
+        if (!propertyNode.exists()) {
+            return false;
+        }
+        return !propertyNode.hasProperty(pd.nonRelativeName);
+    }
+
+    /*
+     * Determine if the property as defined by PropertyDefinition exists or not.
+     *
+     * For relative property if the intermediate nodes do not exist then property is
+     * considered to be null
+     */
+    private boolean isPropertyNotNull(NodeState state, PropertyDefinition pd) {
+        NodeState propertyNode = getPropertyNode(state, pd);
+        if (!propertyNode.exists()) {
+            return false;
+        }
+        return propertyNode.hasProperty(pd.nonRelativeName);
+    }
+
+    private static NodeState getPropertyNode(NodeState nodeState, PropertyDefinition pd) {
+        if (!pd.relative) {
+            return nodeState;
+        }
+        NodeState node = nodeState;
+        for (String name : pd.ancestors) {
+            node = node.getChildNode(name);
+        }
+        return node;
+    }
+
+    /*
+     * index aggregates on a certain path
+     */
+    private ResultCollector indexAggregates(final String path, final D document, final DocumentBuildContext ctx, final NodeState state) {
+        ResultCollector resultCollector = new ResultCollector(path, document, ctx, state);
+        indexingRule.getAggregate().collectAggregates(state, resultCollector);
+        return resultCollector;
+    }
+
+    private class ResultCollector implements Aggregate.ResultCollector {
+        private final String path;
+        private final D document;
+        private final DocumentBuildContext ctx;
+        private final NodeState state;
+        private boolean dirtyFlag = false;
+        private boolean facetFlag = false;
+
+        ResultCollector(String path, D document, DocumentBuildContext ctx, NodeState state) {
+            this.path = path;
+            this.document = document;
+            this.ctx = ctx;
+            this.state = state;
+        }
+
+        @Override
+        public void onResult(Aggregate.NodeIncludeResult result) {
+            dirtyFlag |= indexAggregatedNode(path, document, result);
+        }
+
+        @Override
+        public void onResult(Aggregate.PropertyIncludeResult result) {
+            if (result.pd.ordered) {
+                dirtyFlag |= addTypedOrderedFields(document, result.propertyState, result.propertyPath, result.pd);
+            }
+            dirtyFlag |= indexProperty(path, document, ctx, state, result.propertyState, result.propertyPath, result.pd);
+
+            if (result.pd.facet) {
+                facetFlag = true;
+            }
+        }
+    }
+
+    /*
+     * Create the fulltext field from the aggregated nodes. If result is for aggregate for a relative node
+     * include then
+     */
+    private boolean indexAggregatedNode(String path, D doc, Aggregate.NodeIncludeResult result) {
+        //rule for node being aggregated might be null if such nodes
+        //are not indexed on their own. In such cases we rely on current
+        //rule for some checks
+        IndexDefinition.IndexingRule ruleAggNode = definition
+                .getApplicableIndexingRule(ConfigUtil.getPrimaryTypeName(result.nodeState));
+        boolean dirty = false;
+
+        for (PropertyState property : result.nodeState.getProperties()) {
+            String pname = property.getName();
+            if (!isVisible(pname)) {
+                continue;
+            }
+
+            //Check if type is indexed
+            int type = property.getType().tag();
+            if (ruleAggNode != null) {
+                if (!ruleAggNode.includePropertyType(type)) {
+                    continue;
+                }
+            } else if (!indexingRule.includePropertyType(type)) {
+                continue;
+            }
+
+            //Check if any explicit property defn is defined via relative path
+            // and is marked to exclude this property from being indexed. We exclude
+            //it from aggregation if
+            // 1. It's not to be indexed i.e. index=false
+            // 2. It's explicitly excluded from aggregation i.e. excludeFromAggregation=true
+            String propertyPath = PathUtils.concat(result.nodePath, pname);
+            PropertyDefinition pdForRootNode = indexingRule.getConfig(propertyPath);
+            if (pdForRootNode != null && (!pdForRootNode.index || pdForRootNode.excludeFromAggregate)) {
+                continue;
+            }
+
+            if (Type.BINARY == property.getType()) {
+                String aggregatedNodePath = PathUtils.concat(path, result.nodePath);
+                //Here the fulltext is being created for aggregate root hence nodePath passed
+                //should be null
+                String nodePath = result.isRelativeNode() ? result.rootIncludePath : null;
+                List<String> binaryValues = newBinary(property, result.nodeState, aggregatedNodePath + "@" + pname);
+                addBinary(doc, nodePath, binaryValues);
+                dirty = true;
+            } else {
+                PropertyDefinition pd = null;
+                if (ruleAggNode != null) {
+                    pd = ruleAggNode.getConfig(pname);
+                }
+
+                if (pd != null && !pd.nodeScopeIndex) {
+                    continue;
+                }
+
+                for (String value : property.getValue(Type.STRINGS)) {
+                    indexAggregateValue(doc, result, value, pd);
+                    dirty = true;
+                }
+            }
+        }
+        return dirty;
+    }
+
+    /**
+     * Collects dynamic boost tags from a NodeState property into {@code collectedBoosts} for later indexing.
+     */
+    private void collectDynamicBoost(String propertyName, String nodeName, NodeState nodeState, List<DynamicBoost> collectedBoosts) {
+        NodeState propertyNode = nodeState;
+        String parentName = PathUtils.getParentPath(propertyName);
+        for (String c : PathUtils.elements(parentName)) {
+            propertyNode = propertyNode.getChildNode(c);
+        }
+
+        for (String childNodeName : propertyNode.getChildNodeNames()) {
+            NodeState dynaTag = propertyNode.getChildNode(childNodeName);
+            PropertyState p = dynaTag.getProperty(DYNAMIC_BOOST_TAG_NAME);
+            if (p == null) {
+                // here we don't log a warning, because possibly it will be added later
+                continue;
+            }
+            if (p.isArray()) {
+                log.warn("{} is an array: {}", p.getName(), parentName);
+                continue;
+            }
+            String dynaTagValue = p.getValue(Type.STRING);
+            if (!isTagLengthWithinLimits(dynaTagValue)) {
+                if (!LOG_SILENCER.silence(p.getName())) {
+                    log.warn("[{}] Skipping dynamic boost tag for property {}. Value length {} exceeds maximum allowed length",
+                            getIndexName(), p.getName(), dynaTagValue.length());
+                }
+                continue;
+            }
+            p = dynaTag.getProperty(DYNAMIC_BOOST_TAG_CONFIDENCE);
+            if (p == null) {
+                // here we don't log a warning, because possibly it will be added later
+                continue;
+            }
+            if (p.isArray()) {
+                log.warn("{} is an array: {}", p.getName(), parentName);
+                continue;
+            }
+            double dynaTagConfidence;
+            try {
+                dynaTagConfidence = p.getValue(Type.DOUBLE);
+            } catch (NumberFormatException e) {
+                log.warn("{} parsing failed: {}", p.getName(), parentName, e);
+                continue;
+            }
+            if (!Double.isFinite(dynaTagConfidence)) {
+                log.warn("{} is not finite: {}", p.getName(), parentName);
+                continue;
+            }
+
+            collectedBoosts.add(new DynamicBoost(parentName, nodeName, dynaTagValue, dynaTagConfidence));
+        }
+    }
+
+    protected String getIndexName() {
+        return definition.getIndexName();
+    }
+
+    private boolean isTagLengthWithinLimits(String value) {
+        int maxLength = definition.getMaxTagLength();
+        return maxLength < 0 || value.length() <= maxLength;
+    }
+
+    private boolean isSimilarityTagWithinLimits(String value, int similarityTagCount) {
+        if (!isTagLengthWithinLimits(value)) {
+            return false;
+        }
+        int maxCount = definition.getMaxSimilarityTagsCount();
+        return maxCount < 0 || similarityTagCount < maxCount;
+    }
+
+    /**
+     * Process collected dynamic boost tags: sort by confidence (descending) and index only the top N
+     */
+    private boolean indexTopDynamicBoost(D doc, List<DynamicBoost> collectedBoosts, int maxCount) {
+        collectedBoosts.sort(Comparator.comparingDouble((DynamicBoost tag) -> tag.confidence).reversed());
+
+        int count = 0;
+        for (DynamicBoost tag : collectedBoosts) {
+            if (maxCount >= 0 && count >= maxCount) {
+                break;
+            }
+            try {
+                if (indexDynamicBoost(doc, tag.parent, tag.nodeName, tag.value, tag.confidence)) {
+                    count++;
+                }
+            } catch (Exception e) {
+                log.error("Could not index dynamic boost tag '{}' for property {} and node {}", tag.value, tag.parent, tag.nodeName, e);
+            }
+        }
+
+        return count > 0;
+    }
+
+    /*
+     * Extracts the local name of the current node ignoring any namespace prefix
+     */
+    private void addNodeNameField(D doc, String name) {
+        //TODO Need to check if it covers all cases
+        int colon = name.indexOf(':');
+        String value = colon < 0 ? name : name.substring(colon + 1);
+
+        //For now just add a single term. Later we can look into using different analyzer
+        //to analyze the node name and add multiple terms. Like add multiple terms for a
+        //cameCase file name to allow faster like search
+        indexNodeName(doc, value);
+    }
+
+    private static class DocumentBuildContext {
+        int similarityTagCount;
+        final List<DynamicBoost> collectedBoosts = new ArrayList<>();
+    }
+
+    private record DynamicBoost(String parent, String nodeName, String value, double confidence) {}
+
+}

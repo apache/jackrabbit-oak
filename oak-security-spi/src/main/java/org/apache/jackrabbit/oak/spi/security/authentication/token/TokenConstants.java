@@ -1,0 +1,59 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.jackrabbit.oak.spi.security.authentication.token;
+
+import java.util.Set;
+
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConstants;
+
+public interface TokenConstants {
+
+    /**
+     * Constant for the token attribute passed with valid simple credentials to
+     * trigger the generation of a new token.
+     */
+    String TOKEN_ATTRIBUTE = ".token";
+    String TOKEN_ATTRIBUTE_EXPIRY = "rep:token.exp";
+    String TOKEN_ATTRIBUTE_KEY = "rep:token.key";
+
+    String TOKENS_NODE_NAME = ".tokens";
+    String TOKENS_NT_NAME = NodeTypeConstants.NT_REP_UNSTRUCTURED;
+
+    String TOKEN_NT_NAME = "rep:Token";
+    
+
+    Set<String> RESERVED_ATTRIBUTES = Set.of(
+            TOKEN_ATTRIBUTE,
+            TOKEN_ATTRIBUTE_EXPIRY,
+            TOKEN_ATTRIBUTE_KEY,
+            AuthenticationConstants.SHARED_KEY_LOGIN_NAME,
+            AuthenticationConstants.SHARED_ATTRIBUTE_EXTERNAL_ID);
+
+    Set<String> TOKEN_PROPERTY_NAMES = Set.of(TOKEN_ATTRIBUTE_EXPIRY, TOKEN_ATTRIBUTE_KEY);
+
+    /**
+     * Flag set on the TokenCredentials to skip refreshing the token expiration time
+     */
+    String TOKEN_SKIP_REFRESH = "tokenSkipRefresh";
+
+    /**
+     * Value of the {@link #TOKEN_ATTRIBUTE} property to trigger the creation of a new token.
+     */
+    String TOKEN_ATTRIBUTE_DO_CREATE = "";
+
+}

@@ -1,0 +1,24 @@
+{
+  "/oak:index/barIndex": {
+    "jcr:primaryType": "nam:oak:QueryIndexDefinition",
+    "config_without_uuid.xml": {
+      "jcr:created": "dat:2024-07-11T11:37:51.727Z",
+      "jcr:primaryType": "nam:nt:file",
+      "jcr:content": {
+        "jcr:data": ":blobId:XYZ",
+        "jcr:mimeType": "text/xml",
+        "jcr:primaryType": "nam:nt:resource"
+      }
+    },
+    "config_with_uuid.xml": {
+      "jcr:created": "dat:2024-07-11T11:37:51.727Z",
+      "jcr:primaryType": "nam:nt:file",
+      "jcr:content": {
+        "jcr:data": ":blobId:XYZ",
+        "jcr:mimeType": "text/xml",
+        "jcr:primaryType": "nam:nt:resource",
+        "jcr:uuid": "6db23ff7-986d-4c3d-bf3d-ea9eaf8b5f65"
+      }
+    }
+  }
+}

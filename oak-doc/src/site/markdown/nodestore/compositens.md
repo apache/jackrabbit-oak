@@ -1,0 +1,95 @@
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+  -->
+# Oak Composite NodeStore
+
+## Overview
+
+The `CompositeNodeStore` is a `NodeStore` implementation that wraps multiple `NodeStore` instances
+and exposes them through a single API. It is possible, for instance, to store all data in a 
+`DocumentNodeStore` instance and relocate `/libs` and `/apps` in a `SegmentNodeStore` instance.
+
+Each node store wrapped by the composite node store instance is called a _mount_. The
+`CompositeNodeStore` can be configured with one or more mounts, each owning a defined set
+of paths, and a _default mount_, owning the rest of the repository.
+
+## Mounts
+
+The mounts are identified via their mount name. 
+The mount name is used to map a `MountInfoProviderService` implementation to a `NodeStore` implementation. For that the `MountInfoProviderService`'s `name` property is prefixed by `composite-mount-` in order to find the `NodeStore` with the respective `role` property value.
+
+The mount name for the _default mount_ is always `composite-global` and mapped to the `NodeStore`'s `role` property with that value (it is *not* prefixed by `composite-mount-`).
+
+Each non-default mount defines a number of entry path's which are used from the underlying `NodeStore`. Other parts outside the `mountPaths` are hidden.
+
+## Seeding
+
+### Default Mount
+
+In order to pre-populate the empty default mount one can use the seed mount. That is automatically copied over to the default `NodeStore` if the latter is not yet initialized as Composite default store (i.e. is lacking the `:composite` child node below its root). This happens at most once!
+
+### Non-default Mounts
+
+In order to bootstrap/initialize the NodeStore which later is used as non-default mount, one needs to start Oak without the Composite NodeStore first. Only then it is possible to populate the NodeStore later acting as non-default mount (as only then one can write to it).
+
+## Design limitations
+
+### Read-only mounts
+
+The implementation allows for a default mount, which is *read-write*, and for any number of 
+additional mounts, which are *read-only*. This limitation is by design and is not expected to
+be removed in future Oak version.
+
+There are two major reasons for this limitation
+
+1. Having a commit run across two or more node stores is complicated to implement.
+Atomic commits will be very hard to ensure in a performant manner under these circumstances.
+Additionally, it will impose implementation burdens to each NodeStore
+in order to support this special-case scenario.
+1. There are multiple Oak subsystems that are not CompositeNodeStore aware and that would need to 
+changed for that to happen, and this would again complicate the implementation for a
+special-case scenario.
+
+### Referenceable nodes
+
+Referenceable nodes are not permitted in non-default mounts. The reason is cross-mount references
+can become invalid in scenarios where the set of mounts changes. Consider the following scenario:
+
+Mounts:
+
+* default mount `D`
+* non-default mount `N1`, currently mounted under /tmp
+* non-default mount `N2`, currently not mounted 
+
+In the repository, node `/content/bar` references referenceable node `/tmp/foo` (from N1). When
+the repository is shut down and reconfigureed to use N2 instead of N1, the  reference can be broken
+unless we ensure that the reference stores used by N1 and N2 are the same. This does not happen
+today.
+
+This constraint also means that:
+
+* versionable nodes are not permitted in non-default mounts, as they are referenceable
+* `nt:resource` nodes (usually found as children of `nt:file` nodes) are not permitted. It is recommended
+  to replace them with `oak:Resource` (see also [OAK-4567](https://issues.apache.org/jira/browse/OAK-4567)).
+
+## Checking for read-only access
+
+The Composite NodeStore mounts various other node stores in read-only mode. Since the read-only mode
+is not enfored via permissions, it may not be queried via `Session.hasPermission`. Instead, the
+read-only status is surfaced via `Session.hasCapability`. See [OAK-6563][OAK-6563] for details.
+
+[OAK-6563]: https://issues.apache.org/jira/browse/OAK-6563
+

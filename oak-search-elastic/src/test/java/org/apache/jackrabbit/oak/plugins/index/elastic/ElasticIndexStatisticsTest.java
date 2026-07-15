@@ -1,0 +1,188 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.jackrabbit.oak.plugins.index.elastic;
+
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import co.elastic.clients.elasticsearch.core.CountRequest;
+import co.elastic.clients.elasticsearch.core.CountResponse;
+import org.apache.jackrabbit.oak.cache.api.LoadingCache;
+import org.apache.jackrabbit.oak.stats.Clock;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import java.io.IOException;
+import java.time.Duration;
+
+import static org.apache.jackrabbit.oak.plugins.index.TestUtil.assertEventually;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+import static org.mockito.AdditionalAnswers.answersWithDelay;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+
+public class ElasticIndexStatisticsTest {
+
+    @Mock
+    private ElasticConnection elasticConnectionMock;
+
+    @Mock
+    private ElasticIndexDefinition indexDefinitionMock;
+
+    @Mock
+    private ElasticsearchClient elasticClientMock;
+
+    private AutoCloseable closeable;
+
+    @Before
+    public void setUp() {
+        this.closeable = MockitoAnnotations.openMocks(this);
+        when(indexDefinitionMock.getIndexAlias()).thenReturn("test-index");
+        when(elasticConnectionMock.getClient()).thenReturn(elasticClientMock);
+    }
+
+    @After
+    public void releaseMocks() throws Exception {
+        closeable.close();
+        ElasticIndexStatistics.FT_OAK_12248_ENABLE.set(false);
+    }
+
+    @Test
+    public void defaultIndexStatistics() {
+        ElasticIndexStatistics indexStatistics =
+                new ElasticIndexStatistics(elasticConnectionMock, indexDefinitionMock);
+        assertNotNull(indexStatistics);
+    }
+
+    @Test
+    public void cachedStatistics() throws Exception {
+        Clock.Virtual clock = new Clock.Virtual();
+        LoadingCache<ElasticIndexStatistics.StatsRequestDescriptor, Integer> cache =
+                ElasticIndexStatistics.setupCountCache(100, 10 * 60, 60, clock);
+        ElasticIndexStatistics indexStatistics =
+                new ElasticIndexStatistics(elasticConnectionMock, indexDefinitionMock, cache, null);
+
+        CountResponse countResponse = mock(CountResponse.class);
+        when(countResponse.count()).thenReturn(100L);
+
+        // simulate some delay when invoking elastic
+        when(elasticClientMock.count(any(CountRequest.class)))
+                .then(answersWithDelay(250, i -> countResponse));
+
+        // cache miss, read data from elastic
+        assertEquals(100, indexStatistics.numDocs());
+        verify(elasticClientMock).count(any(CountRequest.class));
+
+        // index count changes in elastic
+        when(countResponse.count()).thenReturn(1000L);
+
+        // cache hit, old value returned
+        assertEquals(100, indexStatistics.numDocs());
+        verifyNoMoreInteractions(elasticClientMock);
+
+        // move cache time ahead of 2 minutes, cache reload time expired
+        clock.waitFor(Duration.ofMinutes(2));
+        // old value is returned, read fresh data from elastic in background
+        assertEquals(100, indexStatistics.numDocs());
+
+        assertEventually(() -> {
+            try {
+                verify(elasticClientMock, times(2)).count(any(CountRequest.class));
+            } catch (IOException e) {
+                fail(e.getMessage());
+            }
+            // cache hit, latest value returned
+            assertEquals(1000, indexStatistics.numDocs());
+        }, 1000);
+        verifyNoMoreInteractions(elasticClientMock);
+
+        // index count changes in elastic
+        when(countResponse.count()).thenReturn(5000L);
+
+        // move cache time ahead of 15 minutes, cache value expired
+        clock.waitFor(Duration.ofMinutes(15));
+
+        // cache miss, read data from elastic
+        assertEquals(5000, indexStatistics.numDocs());
+        verify(elasticClientMock, times(3)).count(any(CountRequest.class));
+
+        // move cache time ahead of 30 minutes, cache value expired
+        clock.waitFor(Duration.ofMinutes(30));
+
+        // cache miss, read data using an elastic query
+        assertEquals(5000, indexStatistics.getDocCountFor(Query.of(qf -> qf.matchAll(mf -> mf))));
+        verify(elasticClientMock, times(4)).count(any(CountRequest.class));
+
+        // call again with the same query but a different instance
+        assertEquals(5000, indexStatistics.getDocCountFor(Query.of(qf -> qf.matchAll(mf -> mf))));
+        verifyNoMoreInteractions(elasticClientMock);
+
+        // call again with a different query
+        assertEquals(5000, indexStatistics.getDocCountFor(Query.of(qf -> qf.matchAll(mf -> mf.boost(100F)))));
+        verify(elasticClientMock, times(5)).count(any(CountRequest.class));
+    }
+
+    @Test
+    public void numDocsReturnsZeroOn404WithToggleEnabled() throws Exception {
+        ElasticIndexStatistics.FT_OAK_12248_ENABLE.set(true);
+        LoadingCache<ElasticIndexStatistics.StatsRequestDescriptor, Integer> cache =
+                ElasticIndexStatistics.setupCountCache(100, 10 * 60, 60, null);
+        ElasticIndexStatistics stats =
+                new ElasticIndexStatistics(elasticConnectionMock, indexDefinitionMock, cache, null);
+
+        ElasticsearchException notFound = mock(ElasticsearchException.class);
+        when(notFound.status()).thenReturn(404);
+        when(elasticClientMock.count(any(CountRequest.class))).thenThrow(notFound);
+
+        assertEquals(0, stats.numDocs());
+        verify(elasticClientMock).count(any(CountRequest.class));
+    }
+
+    @Test
+    public void numDocsRecoverAfterCacheExpiry() throws Exception {
+        ElasticIndexStatistics.FT_OAK_12248_ENABLE.set(true);
+        Clock.Virtual clock = new Clock.Virtual();
+        LoadingCache<ElasticIndexStatistics.StatsRequestDescriptor, Integer> cache =
+                ElasticIndexStatistics.setupCountCache(100, 10 * 60, 60, clock);
+        ElasticIndexStatistics stats =
+                new ElasticIndexStatistics(elasticConnectionMock, indexDefinitionMock, cache, null);
+
+        ElasticsearchException notFound = mock(ElasticsearchException.class);
+        when(notFound.status()).thenReturn(404);
+        CountResponse countResponse = mock(CountResponse.class);
+        when(countResponse.count()).thenReturn(5L);
+        when(elasticClientMock.count(any(CountRequest.class)))
+                .thenThrow(notFound)
+                .thenReturn(countResponse);
+
+        assertEquals(0, stats.numDocs());
+
+        clock.waitFor(Duration.ofMinutes(11));
+
+        assertEquals(5, stats.numDocs());
+        verify(elasticClientMock, times(2)).count(any(CountRequest.class));
+    }
+}

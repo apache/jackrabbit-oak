@@ -1,0 +1,637 @@
+# Oak Cache API Migration — Task Breakdown
+
+This document decomposes the Oak Cache API migration plan (PLAN.md) into independently mergeable JIRA-sized tasks. Each task produces one PR that compiles and passes tests without requiring any sibling task to be in-progress. Tasks are numbered sequentially (OAK-12147 through OAK-12162). Batch 0 splits into two tasks (API then implementations), Batch 6 splits into three (cache infra, diff caches, persistent cache), and Batch 7 splits into two (Guava-shim caches, CacheLIRS-based caches). All other batches map one-to-one.
+
+## Current local status
+
+**Merged to trunk:**
+
+- OAK-12147 merged via PR #2814
+- OAK-12148 merged via PR #2819: `CacheBuilder` creates Caffeine-backed caches only; `CacheLIRS` instances are exposed via `CacheLIRS.asOakCache()`. Separate manual/loading adapters per backend, builder-side validation, and Javadocs are all in place.
+- OAK-12149 merged via PR #2834 (oak-blob-cloud S3Backend)
+- OAK-12150 merged via PR #2838 (oak-blob-cloud-azure) — note: reverted in PR #2858 and re-done separately
+- OAK-12151 merged via PR #2839 (oak-blob)
+- OAK-12152 merged via PR #2842 (oak-search-elastic)
+- OAK-12153 merged via PR #2843 (oak-search; cascade covered `LuceneIndexProviderService` and `DocumentStoreIndexerBase`)
+- OAK-12154 merged via PR #2844 (oak-store-document cache infrastructure)
+- OAK-12155 merged via PR #2848 (oak-store-document diff caches)
+- OAK-12156 merged via PR #2854 (oak-store-document persistent cache and stores; cascade covered `DocumentNodeStoreHelper` and `PersistentCacheTest` in oak-run-commons / oak-benchmarks)
+- OAK-12160 completed via OAK-12156 cascade: `DocumentNodeStoreHelper.java` and `PersistentCacheTest.java` were migrated as cross-module return-type cascade items in PR #2854. No additional changes required; oak-run-commons and oak-benchmarks are fully clean.
+
+**Remaining:**
+
+- OAK-12157, OAK-12158 (oak-segment-tar) — not yet started
+- OAK-12159 (oak-blob-plugins) — not yet started
+- OAK-12161, OAK-12162 — blocked on OAK-12157, OAK-12158, OAK-12159
+
+## Dependency Graph
+
+```
+OAK-12147  (API interfaces)
+  |
+OAK-12148  (hidden impls + builder)
+  |
+  +--+--+--+--+--+--+--+--+--+--+--+
+  |  |  |  |  |  |  |  |  |  |  |  |
+ 149 150 151 152 153 154 155 156 157 158 159 160
+  |  |  |  |  |  |  |  |  |  |  |  |
+  +--+--+--+--+--+--+--+--+--+--+--+
+                  |
+              OAK-12161
+                  |
+              OAK-12162
+
+Parallel groups (all depend only on OAK-12148, can run concurrently):
+  OAK-12149 — oak-blob-cloud
+  OAK-12150 — oak-blob-cloud-azure
+  OAK-12151 — oak-blob
+  OAK-12152 — oak-search-elastic
+  OAK-12153 — oak-search
+  OAK-12154 — oak-store-document cache infra
+  OAK-12155 — oak-store-document diff caches
+  OAK-12156 — oak-store-document persistent cache
+  OAK-12157 — oak-segment-tar Guava-shim caches
+  OAK-12158 — oak-segment-tar CacheLIRS-based caches
+  OAK-12159 — oak-blob-plugins
+  OAK-12160 — oak-run-commons
+
+Sequential tail:
+  OAK-12161 — oak-it-osgi verification (depends on OAK-12149 through OAK-12160)
+  OAK-12162 — final cleanup (depends on OAK-12161)
+```
+
+## Migration rules (enforced for every task)
+
+**1. Guava-free check** — Before declaring a migration task done, run:
+```bash
+grep -rn "org.apache.jackrabbit.guava.common.cache" <module>/src/
+```
+This must return **zero results** — both `src/main/java` and `src/test/java` must be clean.
+Test files that reference Guava cache types (e.g. for reflective access checks) must be
+migrated in the same PR as the production code.
+
+**2. Cross-module return-type cascade** — Whenever a task changes the return type of any
+public method (e.g. `getCacheStats()`, `getCurrentStats()`), every caller across **all
+modules** must be updated in the same PR. Before closing the task:
+```bash
+grep -rn "methodName()" $(git rev-parse --show-toplevel)
+```
+A caller in an unrelated module that still expects the old return type will compile
+locally (if that module is not rebuilt) but will fail in CI's full build. The list of
+known callers must be explicitly enumerated in the task's "What changes" section.
+
+**Cascade is transitive** — if caller B is a helper that re-exposes the changed method's
+return type (e.g. `DocumentNodeStoreHelper.getNodesCache()` wraps `getNodeCache()`), then
+callers of B are **also** cascaded. After fixing each level, re-run the grep above for
+the helper's method name to find the next level of callers.
+
+**3. `e.getCause()` trap after catch-block migration** — Old code that called
+`cache.get(key, callable)` (Guava / CacheLIRS) wrapped **all** exceptions
+— including `RuntimeException` — in `ExecutionException`. The catch block was therefore
+`catch (ExecutionException e)` and the real exception was recovered with `e.getCause()`.
+
+After migration to the Oak Cache API, `cache.get(key, k -> ...)` propagates
+`RuntimeException` **directly** (both Caffeine and LIRS paths via
+`LirsCacheAdapter.toCaffeineException()`). The catch block becomes
+`catch (RuntimeException e)`, and `e` IS the real exception — calling `e.getCause()`
+returns `null` and silently swallows the cause.
+
+**Rule:** whenever a catch block is changed from `ExecutionException` to
+`RuntimeException`, every `e.getCause()` reference inside that block must be
+changed to `e`.
+
+```java
+// ❌ before (Guava) — e is UncheckedExecutionException; getCause() is the real exception
+} catch (ExecutionException e) {
+    throw DocumentStoreException.convert(e.getCause(), "...");
+}
+
+// ✅ after (Oak Cache API) — e IS the real exception; getCause() returns null
+} catch (RuntimeException e) {
+    throw DocumentStoreException.convert(e, "...");
+}
+```
+
+Before closing any task, grep for this pattern in every file touched:
+```bash
+grep -n "getCause()" <file>
+```
+Any `getCause()` inside a `catch (RuntimeException` block is almost certainly a bug.
+
+**4. OSGi impl package visibility** — Consumer modules must **never** import from
+`org.apache.jackrabbit.oak.cache.impl.lirs` or `org.apache.jackrabbit.oak.cache.impl.caffeine`.
+These packages are not exported by `oak-core-spi`. A reference to any class in them (e.g.
+`LirsCacheAdapter.toOakCause()`) causes the consumer bundle to fail OSGi resolution —
+the bundle stays in `INSTALLED` (state 2) and never reaches `ACTIVE` (state 32).
+
+The symptom surfaces in `OSGiIT.bundleStates` as:
+```
+Bundle org.apache.jackrabbit.oak-store-document not active. expected:<32> but was:<2>
+```
+
+For `RemovalCause` → `EvictionCause` conversion in consumer modules, use
+`CacheLIRS.toOakCause(cause)` (in `org.apache.jackrabbit.oak.cache`, which IS exported),
+not `LirsCacheAdapter.toOakCause(cause)`.
+
+Before closing any task that uses the LIRS path, grep for impl references in consumer modules:
+```bash
+grep -rn "cache.impl" <module>/src/main/java
+```
+This must return zero results.
+
+**5. OSGi baseline on new public methods** — Adding a new public method to an exported
+package triggers the `maven-bundle-plugin` baseline goal, which requires a minor version bump
+in the package's `package-info.java` (`@Version("1.0.0")` → `@Version("1.1.0")`). The
+baseline check runs during `mvn install` and fails the build with:
+```
+<package>: Version increase required; detected 1.0.0, suggested 1.1.0
+```
+The version bump must be included in the same PR as the new method.
+
+---
+
+## TASK-1 — Oak Cache API interfaces [oak-core-spi] — [OAK-12147](https://issues.apache.org/jira/browse/OAK-12147)
+
+**Depends on:** none
+**Independent of:** none (all other tasks depend on this transitively)
+
+### What changes
+
+- `oak-core-spi/.../cache/api/Cache.java` — **new** interface:
+  - `getIfPresent(K)` → `@Nullable V`
+  - `get(K, Function<? super K, ? extends V>)` → `@Nullable V` (matches Caffeine's manual-cache contract)
+  - `put(K, V)`
+  - `invalidate(K)`
+  - `invalidateAll()`
+  - `invalidateAll(Iterable)` — _(no Oak module currently calls this; can be removed if decided)_
+  - `estimatedSize()` → `long` — _(no Oak module currently calls this directly; can be removed if decided)_
+  - `stats()` → `CacheStatsSnapshot`
+  - `asMap()` → `ConcurrentMap<K, V>`
+  - `getAllPresent(Iterable)` → `Map<K, V>` — _(no Oak module currently calls this; CacheLIRS throws `UnsupportedOperationException` for it; can be removed if decided)_
+  - `cleanUp()` — _(no Oak module currently calls this; CacheLIRS is a no-op; can be removed if decided)_
+
+- `oak-core-spi/.../cache/api/LoadingCache.java` — **new** interface extending `Cache`:
+  - `get(K)` → `@NotNull V` (runtime exceptions propagate directly; checked loader failures surface as `CompletionException`)
+  - `refresh(K)` → `CompletableFuture<V>`
+
+- `oak-core-spi/.../cache/api/CacheLoader.java` — **new** functional interface (`V load(K) throws Exception`)
+- `oak-core-spi/.../cache/api/Weigher.java` — **new** functional interface (`int weigh(K, V)`)
+- `oak-core-spi/.../cache/api/EvictionCause.java` — **new** enum (`EXPLICIT`, `REPLACED`, `SIZE`, `EXPIRED`, `COLLECTED`)
+- `oak-core-spi/.../cache/api/EvictionListener.java` — **new** functional interface (`void onEviction(K, V, EvictionCause)`)
+- `oak-core-spi/.../cache/api/CacheStatsSnapshot.java` — **new** immutable value object: `hitCount`, `missCount`, `loadSuccessCount`, `loadFailureCount`, `totalLoadTime`, `evictionCount`; methods `minus()`, `hitRate()`, `missRate()`, `requestCount()`
+- `oak-core-spi/.../cache/AbstractCacheStats.java` — **no change** (still returns Guava shim `CacheStats` from `getCurrentStats()`; decoupled in OAK-12162)
+- `oak-core-spi/.../cache/CacheStats.java` — **no change** (existing Guava-wrapping JMX class; deferred to OAK-12162)
+
+### Acceptance criteria
+- `oak-core-spi` compiles; no new Caffeine or Guava types in the public API surface
+- All existing `oak-core-spi` tests pass (`CacheTest`, `CacheSizeTest`, `ConcurrentTest`, `ConcurrentPerformanceTest`)
+- No consumer module is changed; all existing `CacheLIRS.newBuilder()` and `new CacheStats(guavaCache, ...)` call sites still compile
+
+---
+
+## TASK-2 — Hidden implementations and builder [oak-core-spi] — [OAK-12148](https://issues.apache.org/jira/browse/OAK-12148)
+
+**Depends on:** OAK-12147
+**Independent of:** none (all consumer tasks depend on this)
+
+### What changes
+- `oak-core-spi/.../cache/api/CacheBuilder.java` — **new** public final class for creating Caffeine-backed Oak caches only.
+
+  Builder fields: `maximumWeight`, `maximumSize`, `initialCapacity`, `weigher(Weigher)`, `evictionListener(EvictionListener)`, `recordStats`, `expireAfterAccess`, `expireAfterWrite`, `refreshAfterWrite`.
+  Methods: `build()` → `Cache`, `build(CacheLoader)` → `LoadingCache`.
+  `build()` must always return a manual-cache adapter that does not implement `LoadingCache`; `build(CacheLoader)` must always return a loading-cache adapter.
+  Validation rules are enforced in the builder before cache construction:
+  - exactly one of `maximumSize` or `maximumWeight` must be configured
+  - `maximumWeight` requires `weigher(...)`
+  - `weigher(...)` requires `maximumWeight(...)`
+  - `refreshAfterWrite(...)` is valid only with `build(CacheLoader)`
+  `CacheBuilder` contains no `CacheLIRS` references; callers that still need LIRS must build
+  loading `CacheLIRS` instances directly and expose them through `CacheLIRS.asOakCache()`.
+
+- `oak-core-spi/.../cache/CacheLIRS.java` — add `asOakCache()` returning an Oak `LoadingCache` view for `CacheLIRS` instances created with a loader
+
+- `oak-core-spi/.../cache/impl/lirs/LirsCacheAdapter.java` — **new** package-private class implementing `Cache`, wrapping `CacheLIRS`; paired with `LirsLoadingCacheAdapter` for loading caches
+  - Adapts `Weigher` → Guava shim `Weigher`
+  - Adapts `EvictionListener`/`EvictionCause` → `CacheLIRS.EvictionCallback`/Guava `RemovalCause`
+  - `get(K, Function)`: adapts the key-aware mapping function to `CacheLIRS.get(K, Callable)` and converts checked failures to `CompletionException`
+  - `LirsLoadingCacheAdapter.get(K)`: delegates to `CacheLIRS.get(K)` and converts checked failures to `CompletionException`
+  - `LirsLoadingCacheAdapter.refresh(K)`: runs CacheLIRS refresh and returns a completed future representing the best-effort synchronous refresh result
+  - `stats()`: converts Guava shim `CacheStats` → `CacheStatsSnapshot`
+  - `invalidateAll(Iterable)`, `estimatedSize()`, `getAllPresent()`, `cleanUp()`: delegate directly to CacheLIRS
+
+- `oak-core-spi/.../cache/impl/caffeine/CaffeineCacheAdapter.java` — **new** package-private class implementing `Cache`, wrapping Caffeine `Cache`; paired with `CaffeineLoadingCacheAdapter` for loading caches:
+  - `get(K, Function)`: delegates directly to Caffeine's manual-cache API
+  - `CaffeineLoadingCacheAdapter.get(K)`: delegates directly to Caffeine's loading-cache API
+  - `CaffeineLoadingCacheAdapter.refresh(K)`: delegates directly to Caffeine and returns the refresh future
+  - Adapts `Weigher` → Caffeine `Weigher`, `EvictionListener`/`EvictionCause` → Caffeine `RemovalListener`/`RemovalCause`
+  - `stats()`: converts Caffeine `CacheStats` → `CacheStatsSnapshot`
+
+- `oak-core-spi/.../cache/api/CacheStatsAdapter.java` — **new** package-private class; extends `AbstractCacheStats`; overrides `getCurrentStats()` returning Guava shim `CacheStats` converted from the wrapped `Cache`'s `CacheStatsSnapshot` — Guava return type kept until OAK-12162 changes the base class
+
+- `oak-core-spi/.../cache/EmpiricalWeigher.java` — modify to implement `Weigher<CacheValue, CacheValue>` while keeping a temporary Guava-compatible bridge for existing callers until OAK-12162 cleanup
+
+- `oak-core-spi/pom.xml` — add Caffeine as `compile` scope dependency (used only inside `CaffeineCacheAdapter`; not re-exported)
+
+**Note on `put(K, V, int memory)` (CacheLIRS-specific):** `DefaultSegmentWriter` calls
+`nodeCache.put(key, value, memoryCost)`. This method has no equivalent in `Cache` or
+Caffeine — Caffeine derives weight from the configured `Weigher` at insertion time.
+Migration for this call site (OAK-12158): replace with `Cache.put(key, value)` and
+ensure an `Weigher` is set on the builder that computes the same cost from the
+key/value. `LirsCacheAdapter` does **not** expose `put(K, V, int memory)` on the interface.
+
+### Restore javadoc links from OAK-12147
+OAK-12147 deferred `{@link CacheBuilder}` references as plain `{@code}` text with `TODO OAK-TASK2` comments.
+Restore all of them to proper `{@link}` in this task:
+
+| File | Links to restore |
+|------|-----------------|
+| `Cache.java` | `{@link CacheBuilder}`, `{@link CacheBuilder#recordStats()}` |
+| `CacheLoader.java` | `{@link CacheBuilder#build(CacheLoader)}` |
+| `Weigher.java` | `{@link CacheBuilder#weigher(Weigher)}`, `{@link CacheBuilder#maximumWeight(long)}` |
+| `EvictionListener.java` | `{@link CacheBuilder#removalListener(EvictionListener)}` |
+| `LoadingCache.java` | `{@link CacheBuilder#build(CacheLoader)}` |
+
+Remove all `<!-- TODO OAK-TASK2: ... -->` HTML comments after restoring the links.
+
+### Acceptance criteria
+- All existing `oak-core-spi` tests pass
+- New focused unit tests cover:
+  - `CacheBuilderTest`
+  - `build()` creates a Caffeine-backed manual cache
+  - `build()` returns a manual `Cache` that does not implement `LoadingCache`
+  - `build(CacheLoader)` creates a Caffeine-backed loading cache
+  - `weigher` and `evictionListener` wiring
+  - `build(CacheLoader)` produces `LoadingCache`; checked loader failure surfaces as `CompletionException`
+  - runtime loader failures propagate directly
+  - `Cache.get(key, mappingFunction)` uses Caffeine's `Function` contract and propagates runtime failures directly
+  - `LoadingCache.refresh(key)` returns a non-null `CompletableFuture`
+  - `initialCapacity` is accepted and wired through to Caffeine without error
+  - negative `initialCapacity` is rejected before cache construction
+  - invalid builder combinations are rejected consistently before cache construction
+  - `CacheStatsAdapter` bridges `CacheStatsSnapshot` back to Guava shim `CacheStats`
+  - `stats()` returns non-null `CacheStatsSnapshot` with correct counts
+  - `CaffeineCacheAdapterTest`
+  - Caffeine removal-cause mapping, stats snapshot conversion, and iterable invalidation
+  - `LirsCacheAdapterTest`
+  - LIRS removal-cause mapping, checked/runtime/error exception translation, and stats snapshot conversion
+  - `LirsLoadingCacheAdapterTest`
+  - loading LIRS get/refresh behavior and checked/runtime loader failure translation
+  - `CacheLIRSOakAdapterTest`
+  - `CacheLIRS.asOakCache()` succeeds only for loading caches and rejects manual caches
+- No `TODO OAK-TASK2` comments remain in any file
+- No consumer module is changed; existing call sites still compile
+
+### Compatibility note for downstream tasks
+For OAK-12149 through OAK-12160, the Oak cache API follows the Caffeine cache contract.
+Migration in those tasks must update manual cache loads from `Callable` to
+`Function`, and callers of `loadingCache.get(key)` must stop relying on checked
+`ExecutionException`.
+
+---
+
+## TASK-3 — Migrate oak-blob-cloud to Oak Cache API [oak-blob-cloud] — [OAK-12149](https://issues.apache.org/jira/browse/OAK-12149)
+
+**Depends on:** OAK-12148
+**Independent of:** OAK-12150, OAK-12151, OAK-12152, OAK-12153, OAK-12154, OAK-12155, OAK-12156, OAK-12157, OAK-12158, OAK-12159, OAK-12160
+
+### What changes
+- `oak-blob-cloud/.../s3/S3Backend.java` — replace `CacheBuilder.newBuilder()...build()` with `CacheBuilder.newBuilder()...build()`; replace `Cache<DataIdentifier, URI>` field with `Cache<DataIdentifier, URI>`; remove Guava shim cache imports
+
+### Exception handling migration
+- Callers of `cache.get(key, callable)` must switch to `cache.get(key, k -> ...)`
+- Callers of `loadingCache.get(key)` must stop catching checked `ExecutionException`; runtime failures propagate directly and checked loader failures surface as `CompletionException`
+
+### Acceptance criteria
+- No `org.apache.jackrabbit.guava.common.cache` imports in `oak-blob-cloud/src/` (main and test)
+- `S3Backend` cache tests pass (presigned URI caching, expiry, hit/miss)
+
+---
+
+## TASK-4 — Migrate oak-blob-cloud-azure to Oak Cache API [oak-blob-cloud-azure] — [OAK-12150](https://issues.apache.org/jira/browse/OAK-12150)
+
+**Depends on:** OAK-12148
+**Independent of:** OAK-12149, OAK-12151, OAK-12152, OAK-12153, OAK-12154, OAK-12155, OAK-12156, OAK-12157, OAK-12158, OAK-12159, OAK-12160
+
+### What changes
+- `oak-blob-cloud-azure/.../AzureBlobStoreBackend.java` — replace `CacheBuilder.newBuilder()` with `CacheBuilder`; replace `Cache<String, URI>` with `Cache<String, URI>`; remove Guava shim cache imports
+- `oak-blob-cloud-azure/.../v8/AzureBlobStoreBackendV8.java` — same changes
+
+### Exception handling migration
+- Callers of `cache.get(key, callable)` must switch to `cache.get(key, k -> ...)`
+- Callers of `loadingCache.get(key)` must stop catching checked `ExecutionException`; runtime failures propagate directly and checked loader failures surface as `CompletionException`
+
+### Acceptance criteria
+- No `org.apache.jackrabbit.guava.common.cache` imports in `oak-blob-cloud-azure/src/` (main and test)
+- Azure backend cache tests pass
+
+---
+
+## TASK-5 — Migrate oak-blob to Oak Cache API [oak-blob] — [OAK-12151](https://issues.apache.org/jira/browse/OAK-12151)
+
+**Depends on:** OAK-12148
+**Independent of:** OAK-12149, OAK-12150, OAK-12152, OAK-12153, OAK-12154, OAK-12155, OAK-12156, OAK-12157, OAK-12158, OAK-12159, OAK-12160
+
+### What changes
+- `oak-blob/.../split/BlobIdSet.java` — replace `CacheBuilder.newBuilder()` with `CacheBuilder`; replace `Cache<String, Boolean>` with `Cache<String, Boolean>`; remove Guava shim cache imports
+
+### Exception handling migration
+- Callers of `cache.get(key, callable)` must switch to `cache.get(key, k -> ...)`
+- Callers of `loadingCache.get(key)` must stop catching checked `ExecutionException`; runtime failures propagate directly and checked loader failures surface as `CompletionException`
+
+### Acceptance criteria
+- No `org.apache.jackrabbit.guava.common.cache` imports in `oak-blob/src/` (main and test)
+- `BlobIdSet` membership and bounded-cache tests pass
+
+---
+
+## TASK-6 — Migrate oak-search-elastic to Oak Cache API [oak-search-elastic] — [OAK-12152](https://issues.apache.org/jira/browse/OAK-12152)
+
+**Depends on:** OAK-12148
+**Independent of:** OAK-12149, OAK-12150, OAK-12151, OAK-12153, OAK-12154, OAK-12155, OAK-12156, OAK-12157, OAK-12158, OAK-12159, OAK-12160
+
+### What changes
+- `oak-search-elastic/.../ElasticIndexStatistics.java` — replace `CacheBuilder.newBuilder()` with `CacheBuilder`; replace `LoadingCache` fields with `LoadingCache`; replace `CacheLoader` with `CacheLoader<K,V>` passed to `CacheBuilder.build(loader)`; remove Guava shim cache imports
+
+### Exception handling migration
+- Callers of `cache.get(key, callable)` must switch to `cache.get(key, k -> ...)`
+- Callers of `loadingCache.get(key)` must stop catching checked `ExecutionException`; runtime failures propagate directly and checked loader failures surface as `CompletionException`
+
+### CacheBuilder ticker API (added to `oak-core-spi`)
+- `ticker(Supplier<Long> ticker)` — raw nanosecond supplier
+- `ticker(Clock clock)` — convenience overload; delegates to the `Supplier<Long>` overload via `() -> TimeUnit.MILLISECONDS.toNanos(clock.millis())`
+
+### Acceptance criteria
+- No `org.apache.jackrabbit.guava.common.cache` imports in `oak-search-elastic/src/` (main and test)
+- `ElasticIndexStatisticsTest` passes covering expiry, refresh, and loader failure behavior
+- Both `ticker(Supplier<Long>)` and `ticker(Clock)` present on `CacheBuilder`
+
+---
+
+## TASK-7 — Migrate oak-search to Oak Cache API [oak-search] — [OAK-12153](https://issues.apache.org/jira/browse/OAK-12153)
+
+**Depends on:** OAK-12148
+**Independent of:** OAK-12149, OAK-12150, OAK-12151, OAK-12152, OAK-12154, OAK-12155, OAK-12156, OAK-12157, OAK-12158, OAK-12159, OAK-12160
+
+### What changes
+- `oak-search/.../ExtractedTextCache.java` — replace `CacheBuilder.newBuilder()` with `CacheBuilder`; replace `Cache<String,String>` with `Cache<String,String>`; replace local `EmpiricalWeigher` inner class (Guava `Weigher`) with `Weigher` lambda; replace `new CacheStats(guavaCache, ...)` with `CacheStatsAdapter`; remove all Guava shim cache imports
+- `oak-lucene/pom.xml` — add `org/apache/jackrabbit/oak/cache/api/CacheStatsAdapter.class` to the `Embed-Dependency` inline list for `oak-core-spi`; fixes OSGi classloader split where `oak-lucene`'s inlined `AbstractCacheStats` was a different class than `oak-core-spi` bundle's `AbstractCacheStats` (the superclass of `CacheStatsAdapter`), causing `VerifyError` in `IndexVersionSelectionIT`
+
+**Return-type cascade** — `ExtractedTextCache.getCacheStats()` changes from `CacheStats` to
+`AbstractCacheStats`. All callers across all modules must be updated in the same PR:
+- `oak-lucene/.../LuceneIndexProviderService.java` — `CacheStats` → `AbstractCacheStats`
+- `oak-run-commons/.../DocumentStoreIndexerBase.java` — `CacheStats` → `AbstractCacheStats`
+
+Run `grep -rn "getCacheStats()"` at the repo root before closing to confirm no caller is missed.
+
+### Exception handling migration
+- Callers of `cache.get(key, callable)` must switch to `cache.get(key, k -> ...)`
+- Callers of `loadingCache.get(key)` must stop catching checked `ExecutionException`; runtime failures propagate directly and checked loader failures surface as `CompletionException`
+
+### Acceptance criteria
+- No `org.apache.jackrabbit.guava.common.cache` imports in `oak-search/src/` (main and test)
+- `ExtractedTextCache` cache tests pass, including stats reporting
+- `DocumentStoreIndexerBase` compiles cleanly in `oak-run-commons`
+
+---
+
+## TASK-8 — Migrate oak-store-document cache infrastructure [oak-store-document] — [OAK-12154](https://issues.apache.org/jira/browse/OAK-12154)
+
+**Depends on:** OAK-12148
+**Independent of:** OAK-12149, OAK-12150, OAK-12151, OAK-12152, OAK-12153, OAK-12155, OAK-12156, OAK-12157, OAK-12158, OAK-12159, OAK-12160
+
+### What changes
+- `DocumentNodeStoreBuilder.java` — replace `CacheLIRS.newBuilder()` calls with `CacheBuilder` for Caffeine-backed caches
+- `cache/NodeDocumentCache.java` — `Cache` types to `Cache`; `asMap()` calls unchanged (method exists on `Cache`)
+- `cache/ForwardingListener.java` — `RemovalCause` to `EvictionCause`; update to use `EvictionListener`
+- `persistentCache/EvictionListener.java` — `RemovalCause` to `EvictionCause`
+- `CachingCommitValueResolver.java` — `Cache` to `Cache`
+- `CacheStats` construction sites — replace with stats obtained from `Cache` via `CacheStatsAdapter`
+- `BranchTest.java` — update `Cache` import from Guava shim to Oak API (`org.apache.jackrabbit.oak.cache.api.Cache`)
+
+### Exception handling migration
+- Callers of `cache.get(key, callable)` must switch to `cache.get(key, k -> ...)`
+- Callers of `loadingCache.get(key)` must stop catching checked `ExecutionException`; runtime failures propagate directly and checked loader failures surface as `CompletionException`
+
+### Acceptance criteria
+- `NodeDocumentCacheTest`, `CacheChangesTrackerTest`, `AsyncCacheTest`, `DisableCacheTest`, `BranchTest` pass
+- Checked loader failures surface as `CompletionException` on the Oak-visible API
+- Synchronous eviction callback timing preserved
+
+---
+
+## TASK-9 — Migrate oak-store-document diff caches [oak-store-document] — [OAK-12155](https://issues.apache.org/jira/browse/OAK-12155)
+
+**Depends on:** OAK-12148
+**Independent of:** OAK-12149, OAK-12150, OAK-12151, OAK-12152, OAK-12153, OAK-12154, OAK-12156, OAK-12157, OAK-12158, OAK-12159, OAK-12160
+
+### What changes
+- `MemoryDiffCache.java` — `Cache` to `Cache`; replace Guava/CacheLIRS builder with `CacheBuilder`
+- `LocalDiffCache.java` — `Cache` to `Cache`; replace builder
+- `TieredDiffCache.java` — `Cache` to `Cache`; update type references
+
+### Exception handling migration
+- Callers of `cache.get(key, callable)` must switch to `cache.get(key, k -> ...)`
+- Callers of `loadingCache.get(key)` must stop catching checked `ExecutionException`; runtime failures propagate directly and checked loader failures surface as `CompletionException`
+
+### Acceptance criteria
+- `MemoryDiffCacheTest`, `LocalDiffCacheTest` pass
+- Diff cache eviction behavior unchanged
+
+---
+
+## TASK-10 — Migrate oak-store-document persistent cache and stores [oak-store-document] — [OAK-12156](https://issues.apache.org/jira/browse/OAK-12156)
+
+**Depends on:** OAK-12148
+**Independent of:** OAK-12149, OAK-12150, OAK-12151, OAK-12152, OAK-12153, OAK-12154, OAK-12155, OAK-12157, OAK-12158, OAK-12159, OAK-12160
+
+### What changes
+- `persistentCache/NodeCache.java` — `Cache` to `Cache`
+- `persistentCache/PersistentCache.java` — `Cache` to `Cache`
+- `DocumentNodeStore.java` — change `Cache` types to `Cache`
+- `NodeDocument.java` — update cache type references
+- `MongoDocumentStore.java` — remove direct Caffeine/Guava cache references
+- `RDBDocumentStore.java` — remove direct Caffeine/Guava cache references
+- `MemoryDocumentStore.java` — update if it references cache types
+- `JournalDiffLoader.java` — update if it references cache types
+- Various test classes — update to use `Cache` types
+- **`oak-run-commons/.../DocumentNodeStoreHelper.java`** — cross-module return-type cascade: `DocumentNodeStore.getNodeCache()` return type changed in this task, so this caller must be updated in the same PR (per migration rule 2). Change `import org.apache.jackrabbit.guava.common.cache.Cache` → `import org.apache.jackrabbit.oak.cache.api.Cache`.
+- **`oak-benchmarks/.../PersistentCacheTest.java`** — second-level cascade: calls `DocumentNodeStoreHelper.getNodesCache()`, whose return type also changed (see above). Same import fix required.
+
+### Exception handling migration
+- Callers of `cache.get(key, callable)` must switch to `cache.get(key, k -> ...)`
+- Callers of `loadingCache.get(key)` must stop catching checked `ExecutionException`; runtime failures propagate directly and checked loader failures surface as `CompletionException`
+
+### OSGi wiring fix (discovered during Task 10)
+`DocumentNodeStoreBuilder.buildCache()` originally called `LirsCacheAdapter.toOakCause(cause)`
+inside the LIRS eviction callback. `LirsCacheAdapter` is in `org.apache.jackrabbit.oak.cache.impl.lirs`,
+which is **not exported** by `oak-core-spi`. This caused `oak-store-document` to fail OSGi
+bundle resolution (state INSTALLED, not ACTIVE), which in turn caused `OSGiIT.bundleStates`
+and `OSGiIT.testLeaseFailureHandlerIsExported` to fail.
+
+**Fix:** `toOakCause(RemovalCause)` was moved to `CacheLIRS` (package `org.apache.jackrabbit.oak.cache`,
+which IS exported). `LirsCacheAdapter.toOakCause()` now delegates to `CacheLIRS.toOakCause()`.
+`DocumentNodeStoreBuilder` calls `CacheLIRS.toOakCause(cause)` — no `impl.lirs` import.
+
+Adding `toOakCause()` to `CacheLIRS` triggered the OSGi baseline check (migration rule 5):
+the `org.apache.jackrabbit.oak.cache` package version must be bumped in `package-info.java`.
+
+### Acceptance criteria
+- No `org.apache.jackrabbit.guava.common.cache` imports in `oak-store-document/src/` (main and test)
+- No `org.apache.jackrabbit.oak.cache.impl` imports in `oak-store-document/src/main/java` (migration rule 4)
+- Persistent cache eviction behavior unchanged
+- `persistentCache.CacheTest`, `persistentCache.NodeCacheTest` pass
+- `OSGiIT.bundleStates` passes: `oak-store-document` bundle reaches ACTIVE state
+
+---
+
+## TASK-11 — Migrate oak-segment-tar Guava-shim caches [oak-segment-tar] — [OAK-12157](https://issues.apache.org/jira/browse/OAK-12157)
+
+**Depends on:** OAK-12148
+**Independent of:** OAK-12149, OAK-12150, OAK-12151, OAK-12152, OAK-12153, OAK-12154, OAK-12155, OAK-12156, OAK-12158, OAK-12159, OAK-12160
+
+### What changes
+- `SegmentCache.java` — `CacheBuilder.newBuilder()` (Guava shim) to `CacheBuilder`; `Cache` to `Cache`; Guava `RemovalCause` to `EvictionCause`; inner `Stats` class updated to convert `CacheStatsSnapshot` → Guava shim `CacheStats` in `getCurrentStats()` (Guava return type kept until OAK-12162)
+- `RecordCache.java` — `CacheBuilder.newBuilder()` (Guava shim) to `CacheBuilder`; `Cache` to `Cache`; Guava `Weigher` to `Weigher`
+- `CacheWeights.java` — `Weigher` to `Weigher`
+- `CachingSegmentReader.java` — update cache type references
+- `PriorityCacheTest.java` — `Weigher` import changed from Guava shim to Oak API (cascade from `CacheWeights.java`; full `PriorityCache` migration deferred to OAK-12158)
+
+### Exception handling migration
+- Callers of `cache.get(key, callable)` must switch to `cache.get(key, k -> ...)`
+- Callers of `loadingCache.get(key)` must stop catching checked `ExecutionException`; runtime failures propagate directly and checked loader failures surface as `CompletionException`
+
+### Acceptance criteria
+- `SegmentCacheTest` passes
+- Segment unload timing and eviction callback timing unchanged
+
+---
+
+## TASK-12 — Migrate oak-segment-tar CacheLIRS-based caches [oak-segment-tar] — [OAK-12158](https://issues.apache.org/jira/browse/OAK-12158)
+
+**Depends on:** OAK-12148
+**Independent of:** OAK-12149, OAK-12150, OAK-12151, OAK-12152, OAK-12153, OAK-12154, OAK-12155, OAK-12156, OAK-12157, OAK-12159, OAK-12160
+
+### What changes
+- `ReaderCache.java` — keep the `CacheLIRS<CacheKey, T>` instance; call `CacheLIRS.asOakCache()` to obtain a `Cache<CacheKey, T>` view; retain the `CacheLIRS` reference for `getStats()` (unchanged — still uses the CacheLIRS-specific `CacheStats(cache, name, weigher, maxMemory)` constructor); all call sites switch to Oak API methods (`getIfPresent`, `put`, `invalidateAll`)
+- `WriterCacheManager.java` — update cache type references if any reference Guava shim cache builder types directly
+- `PriorityCache.java` — update if it references Guava shim cache types directly
+
+### Acceptance criteria
+- No `org.apache.jackrabbit.guava.common.cache.CacheBuilder` / `Cache` / `Weigher` / `RemovalListener` imports in `oak-segment-tar/src/` (main and test); Guava `CacheStats` shim import allowed in `getStats()` implementations until OAK-12162
+- `PriorityCacheTest`, `ConcurrentPriorityCacheTest`, `ReaderCacheTest` pass
+- Memoization and eviction behavior unchanged (CacheLIRS remains the backing implementation)
+
+---
+
+## TASK-13 — Migrate oak-blob-plugins to Oak Cache API [oak-blob-plugins] — [OAK-12159](https://issues.apache.org/jira/browse/OAK-12159)
+
+**Depends on:** OAK-12148
+**Independent of:** OAK-12149, OAK-12150, OAK-12151, OAK-12152, OAK-12153, OAK-12154, OAK-12155, OAK-12156, OAK-12157, OAK-12158, OAK-12160
+
+### What changes
+- `FileCache.java` — `CacheLIRS.newBuilder()` to `CacheBuilder`; `Cache` to `Cache`; `CacheLIRS.EvictionCallback` to `EvictionListener`; `CacheStatsSnapshot` to stats from `CacheBuilder`
+- `UploadStagingCache.java` — update cache types
+- `CompositeDataStoreCache.java` — update cache types
+- `AbstractSharedCachingDataStore.java` — update cache types
+- `CachingBlobStore.java` — update cache types
+- `DataStoreCacheUpgradeUtils.java` — update cache types
+
+### Exception handling migration
+- Callers of `cache.get(key, callable)` must switch to `cache.get(key, k -> ...)`
+- Callers of `loadingCache.get(key)` must stop catching checked `ExecutionException`; runtime failures propagate directly and checked loader failures surface as `CompletionException`
+
+### Acceptance criteria
+- No `org.apache.jackrabbit.guava.common.cache` imports in `oak-blob-plugins/src/` (main and test)
+- No `CacheLIRS` references in `oak-blob-plugins/src/` (main and test)
+- File cache eviction/deletion behavior unchanged
+- All blob-plugins cache tests pass
+
+---
+
+## TASK-14 — Migrate oak-run-commons and remaining modules [oak-run-commons] — [OAK-12160](https://issues.apache.org/jira/browse/OAK-12160)
+
+**Depends on:** OAK-12148
+**Independent of:** OAK-12149, OAK-12150, OAK-12151, OAK-12152, OAK-12153, OAK-12154, OAK-12155, OAK-12156, OAK-12157, OAK-12158, OAK-12159
+
+### What changes
+- `oak-run-commons/.../DocumentNodeStoreHelper.java` — **migrated in OAK-12156** (cross-module return-type cascade from `DocumentNodeStore.getNodeCache()`)
+- `oak-run-commons/.../DocumentStoreIndexerBase.java` — **migrated in OAK-12153** (cross-module return-type cascade from `ExtractedTextCache.getCacheStats()`)
+- Scan for any other modules with residual Caffeine/Guava cache imports and migrate them
+
+### Exception handling migration
+- Callers of `cache.get(key, callable)` must switch to `cache.get(key, k -> ...)`
+- Callers of `loadingCache.get(key)` must stop catching checked `ExecutionException`; runtime failures propagate directly and checked loader failures surface as `CompletionException`
+
+### Acceptance criteria
+- No direct Caffeine or Guava cache usage in any module's `src/` (main or test) except `oak-core-spi`
+- `DocumentNodeStoreHelper` tests pass
+
+---
+
+## TASK-15 — OSGi integration verification [oak-it-osgi] — [OAK-12161](https://issues.apache.org/jira/browse/OAK-12161)
+
+**Depends on:** OAK-12149, OAK-12150, OAK-12151, OAK-12152, OAK-12153, OAK-12154, OAK-12155, OAK-12156, OAK-12157, OAK-12158, OAK-12159, OAK-12160
+**Independent of:** none
+
+### What changes
+- Verify all OSGi bundle manifests: consumer bundles must not import `com.github.benmanes.caffeine.cache` or `org.apache.jackrabbit.guava.common.cache`
+- Remove Caffeine from `Import-Package` of consumer bundles if still present
+- Verify `oak-core-spi` is the only bundle importing Caffeine packages
+- Run OSGi integration tests (`oak-it-osgi`)
+
+**Known limitation (OAK-3598):** `oak-lucene` selectively inlines `AbstractCacheStats.class`, `CacheStats.class`, and (after OAK-12153) `CacheStatsAdapter.class` from `oak-core-spi`. The rest of `org.apache.jackrabbit.oak.cache.api` (`Cache`, `Weigher`, `CacheBuilder`) is not auto-added to `Import-Package` by bnd due to the split-package heuristic. This means `CacheStatsAdapter` methods that resolve `Cache`/`Weigher` at runtime will fail in OSGi if `maxWeight > 0`. The `IndexVersionSelectionIT` test is safe because `LuceneIndexEditorProvider` defaults to `maxWeight = 0`. The full fix requires OAK-3598 (remove selective inlining, add proper `Import-Package`).
+
+### Acceptance criteria
+- `mvn verify -pl oak-it-osgi -PintegrationTesting` passes
+- No consumer bundle imports Caffeine packages
+
+---
+
+## TASK-16 — Final cleanup and deprecation [oak-core-spi] — [OAK-12162](https://issues.apache.org/jira/browse/OAK-12162)
+
+**Depends on:** OAK-12161
+**Independent of:** none
+
+> **This task is a cleanup gate.** `CacheBuilder` already produces only Caffeine-backed
+> caches. `CacheLIRS` is **not removed** — it stays as-is; callers that still need it
+> continue to use `CacheLIRS.newBuilder()` and expose the result via `CacheLIRS.asOakCache()`.
+> What changes here is removing transitional shims and decoupling `AbstractCacheStats` from Guava.
+> Execute this task only after OAK-12149 through OAK-12160 are all merged.
+
+### What changes
+- `AbstractCacheStats.java` — change `getCurrentStats()` return type from Guava shim `CacheStats` to `CacheStatsSnapshot`; rewrite internal `lastSnapshot` field and `stats()` method to use `CacheStatsSnapshot` arithmetic
+- `CacheStats.java` — update `getCurrentStats()` to return `CacheStatsSnapshot` (converting from its held Guava snapshot)
+- `CacheStatsAdapter.java` — update `getCurrentStats()` to return `CacheStatsSnapshot` directly (drop Guava conversion shim)
+- `GuavaCompatibleEmpiricalWeigher` — remove the temporary Guava-compatibility bridge introduced during the migration
+- `RecordCacheStats.java`, `SegmentCache.Stats`, `SegmentCacheStats.java` — update `getCurrentStats()` to return `CacheStatsSnapshot` directly (drop Guava conversion shims added in OAK-12157/OAK-12158)
+- Mark old `CacheStats` constructor (`Cache<?,?>` Guava shim) as `@Deprecated(forRemoval = true)`
+- **`CacheLIRS` is NOT removed.** It stays as-is; callers that need LIRS continue using `CacheLIRS.newBuilder()` and `CacheLIRS.asOakCache()`.
+- **`LirsCacheAdapter` and `LirsLoadingCacheAdapter`** — remove only if a full-repo grep confirms no module outside `oak-core-spi` calls `CacheLIRS.asOakCache()`. If callers remain, keep the adapters.
+- Grep: confirm no module outside `oak-core-spi` imports `com.github.benmanes.caffeine.cache` or `org.apache.jackrabbit.guava.common.cache`
+- Remove any Guava cache shim re-exports if they still exist
+
+**Return-type cascade** — `AbstractCacheStats.getCurrentStats()` changes from Guava shim
+`CacheStats` to `CacheStatsSnapshot`. Every override and every direct call site across all
+modules must be updated in the same PR. Before starting, enumerate all callers:
+```bash
+grep -rn "getCurrentStats()" $(git rev-parse --show-toplevel)
+```
+Known overrides that must be updated (accumulated across OAK-12149 through OAK-12162):
+- `oak-core-spi/.../CacheStats.java` — override
+- `oak-core-spi/.../CacheStatsAdapter.java` — override
+- `oak-segment-tar/.../RecordCacheStats.java` — override (shim added in OAK-12158)
+- `oak-segment-tar/.../SegmentCache.Stats` — override (shim added in OAK-12157)
+- `oak-segment-tar/.../SegmentCacheStats.java` — override (shim added in OAK-12158)
+- Any other `AbstractCacheStats` subclass introduced in OAK-12149 through OAK-12160
+
+All callers of `getCurrentStats()` that store the result as `CacheStats` must also be updated
+to `CacheStatsSnapshot`.
+
+### Acceptance criteria
+- `mvn clean install -DskipTests` succeeds
+- `mvn clean install` succeeds (full test suite)
+- `AbstractCacheStats.getCurrentStats()` returns `CacheStatsSnapshot`; no Guava types in `AbstractCacheStats` or its subclasses
+- No Caffeine or Guava cache types in any public API surface outside `oak-core-spi`
+- `CacheLIRS` remains intact; `LirsCacheAdapter`/`LirsLoadingCacheAdapter` removed only if no consumer calls `asOakCache()` (verify before deleting)
+- `CacheBuilder` has no `lirs` code path — Caffeine is the sole implementation created by the builder
+- OSGi integration tests pass

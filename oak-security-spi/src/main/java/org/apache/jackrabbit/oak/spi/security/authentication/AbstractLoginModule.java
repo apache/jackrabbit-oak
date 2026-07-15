@@ -1,0 +1,624 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.jackrabbit.oak.spi.security.authentication;
+
+import java.io.IOException;
+import java.security.Principal;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+import javax.jcr.Credentials;
+import javax.jcr.NoSuchWorkspaceException;
+import javax.security.auth.DestroyFailedException;
+import javax.security.auth.Destroyable;
+import javax.security.auth.Subject;
+import javax.security.auth.callback.Callback;
+import javax.security.auth.callback.CallbackHandler;
+import javax.security.auth.callback.UnsupportedCallbackException;
+import javax.security.auth.login.LoginException;
+import javax.security.auth.spi.LoginModule;
+
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.api.AuthInfo;
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.callback.CredentialsCallback;
+import org.apache.jackrabbit.oak.spi.security.authentication.callback.PrincipalProviderCallback;
+import org.apache.jackrabbit.oak.spi.security.authentication.callback.RepositoryCallback;
+import org.apache.jackrabbit.oak.spi.security.authentication.callback.UserManagerCallback;
+import org.apache.jackrabbit.oak.spi.security.authentication.callback.WhiteboardCallback;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import org.osgi.annotation.versioning.ProviderType;
+
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+
+/**
+ * Abstract implementation of the {@link LoginModule} interface that can act
+ * as base class for login modules that aim to authenticate subjects against
+ * information stored in the content repository.
+ * <p>
+ * <h2>LoginModule Methods</h2>
+ * This base class provides a simple implementation for the following methods
+ * of the {@code LoginModule} interface:
+ * <p>
+ * <ul>
+ * <li>{@link LoginModule#initialize(Subject, CallbackHandler, Map, Map) Initialize}:
+ * Initialization of this abstract module sets the following protected instance
+ * fields:
+ * <ul>
+ * <li>subject: The subject to be authenticated,
+ * <li>callbackHandler: The callback handler passed to the login module,
+ * <li>shareState: The map used to share state information with other login modules,
+ * <li>options: The configuration options of this login module as specified
+ * in the {@link javax.security.auth.login.Configuration}.
+ * </ul>
+ * <li>{@link LoginModule#logout() Logout}:
+ * If the authenticated subject is not empty this logout implementation
+ * attempts to clear both principals and public credentials and returns
+ * {@code true}.
+ * <li>{@link LoginModule#abort() Abort}: Clears the state of this login
+ * module by setting all private instance variables created in phase 1 or 2
+ * to {@code null}. Subclasses are in charge of releasing their own state
+ * information by either overriding {@link #clearState()}.
+ * </ul>
+ * <p>
+ * <h2>Utility Methods</h2>
+ * The following methods are provided in addition:
+ * <p>
+ * <ul>
+ * <li>{@link #clearState()}: Clears all private state information that has
+ * be created during login. This method in called in {@link #abort()} and
+ * subclasses are expected to override this method.
+ * <li>{@link #getSupportedCredentials()}: Abstract method used by
+ * {@link #getCredentials()} that reveals which credential implementations
+ * are supported by the {@code LoginModule}.
+ * <li>{@link #getCredentials()}: Tries to retrieve valid (supported)
+ * Credentials in the following order:
+ * <ol>
+ * <li>using a {@link CredentialsCallback},
+ * <li>looking for a {@link #SHARED_KEY_CREDENTIALS} entry in the shared
+ * state (see also {@link #getSharedCredentials()} and finally by
+ * <li>searching for valid credentials in the subject.
+ * </ol>
+ * <li>{@link #getSharedCredentials()}: This method returns credentials
+ * passed to the login module with the share state. The key to share credentials
+ * with a another module extending from this base class is
+ * {@link #SHARED_KEY_CREDENTIALS}. Note, that this method does not verify
+ * if the credentials provided by the shared state are
+ * {@link #getSupportedCredentials() supported}.
+ * <li>{@link #getSharedLoginName()}: If the shared state contains an entry
+ * for {@link #SHARED_KEY_LOGIN_NAME} this method returns the value as login name.
+ * <li>{@link #getSecurityProvider()}: Returns the configured security
+ * provider or {@code null}.
+ * <li>{@link #getRoot()}: Provides access to the latest state of the
+ * repository in order to retrieve user or principal information required to
+ * authenticate the subject as well as to write back information during
+ * {@link #commit()}.
+ * <li>{@link #getUserManager()}: Returns an instance of the configured
+ * {@link UserManager} or {@code null}.
+ * <li>{@link #getPrincipalProvider()}: Returns an instance of the configured
+ * principal provider or {@code null}.
+ * <li>{@link #getPrincipals(String)}: Utility that returns all principals
+ * associated with a given user id. This method might be be called after
+ * successful authentication in order to be able to populate the subject
+ * during {@link #commit()}. The implementation is a shortcut for calling
+ * {@link PrincipalProvider#getPrincipals(String) getPrincipals(String userId}
+ * on the provider exposed by {@link #getPrincipalProvider()}
+ * </ul>
+ */
+@ProviderType
+public abstract class AbstractLoginModule implements LoginModule {
+
+    /**
+     * logger instance
+     */
+    private static final Logger log = LoggerFactory.getLogger(AbstractLoginModule.class);
+
+    /**
+     * Key of the sharedState entry referring to validated Credentials that is
+     * shared between multiple login modules.
+     */
+    public static final String SHARED_KEY_CREDENTIALS = AuthenticationConstants.SHARED_KEY_CREDENTIALS;
+
+    /**
+     * Key of the sharedState entry referring to a valid login ID that is shared
+     * between multiple login modules.
+     */
+    public static final String SHARED_KEY_LOGIN_NAME = AuthenticationConstants.SHARED_KEY_LOGIN_NAME;
+
+    /**
+     * Key of the sharedState entry referring to public attributes that are shared
+     * between multiple login modules.
+     */
+    public static final String SHARED_KEY_ATTRIBUTES = AuthenticationConstants.SHARED_KEY_ATTRIBUTES;
+
+    /**
+     * Key of the sharedState entry referring to pre authenticated login information that is shared
+     * between multiple login modules.
+     */
+    public static final String SHARED_KEY_PRE_AUTH_LOGIN = AuthenticationConstants.SHARED_KEY_PRE_AUTH_LOGIN;
+
+    protected Subject subject;
+    protected CallbackHandler callbackHandler;
+    protected Map sharedState;
+    protected ConfigurationParameters options;
+
+    private SecurityProvider securityProvider;
+    private LoginModuleMonitor loginModuleMonitor;
+    private Whiteboard whiteboard;
+
+    private ContentSession systemSession;
+    private Root root;
+
+    //--------------------------------------------------------< LoginModule >---
+    @Override
+    public void initialize(Subject subject, CallbackHandler callbackHandler, Map<String, ?> sharedState, Map<String, ?> options) {
+        this.subject = subject;
+        this.callbackHandler = callbackHandler;
+        this.sharedState = sharedState;
+        this.options = (options == null) ? ConfigurationParameters.EMPTY : ConfigurationParameters.of(options);
+    }
+
+    /**
+     * Besteffort default implementation of {@link LoginModule#logout()}, which removes all principals and all public
+     * credentials of type {@link Credentials} and {@link AuthInfo} from the subject.
+     * It will return {@code false}, if either principal set or credentials set is empty.
+     *
+     * Note, that this implementation is not able to only remove those principals/credentials that have been added
+     * by {@code this} very login module instance. Therefore subclasses should overwrite this method to provide a fully
+     * compliant solution of {@link #logout()}. They may however take advantage of {@link #logout(Set, Set)}
+     * in order to simplify the implementation of a logout that is compatible with the {@link LoginModule#logout()}
+     * contract incorporating the additional recommendations highlighted at
+     * <a href="https://docs.oracle.com/en/java/javase/13/security/java-authentication-and-authorization-service-jaas-loginmodule-developers-guide1.html#GUID-E9C5810B-ADB6-4454-869D-B269ECA8145F__LOGINMODULE.LOGOUTMETHOD-21144F6A">JAAS LoginModule Dev Guide</a>
+     *
+     * @return {@code true} if neither principals nor public credentials of type {@link Credentials} or {@link AuthInfo}
+     * stored in the {@link Subject} are empty; {@code false} otherwise
+     * @throws LoginException if the subject is readonly and destroying {@link Destroyable} credentials fails
+     * with {@link DestroyFailedException}.
+     */
+    @Override
+    public boolean logout() throws LoginException {
+        boolean success = false;
+        Set<Object> builder = new LinkedHashSet<>(subject.getPublicCredentials(Credentials.class));
+        builder.addAll(subject.getPublicCredentials(AuthInfo.class));
+        Set<Object> creds = Collections.unmodifiableSet(builder);
+
+        if (!subject.getPrincipals().isEmpty() && !creds.isEmpty()) {
+            // clear subject if not readonly
+            if (!subject.isReadOnly()) {
+                subject.getPrincipals().clear();
+                subject.getPublicCredentials().removeAll(creds);
+            } else {
+                destroyCredentials(creds);
+            }
+            success = true;
+        }
+        return success;
+    }
+
+    @Override
+    public boolean abort() throws LoginException {
+        clearState();
+        return true;
+    }
+
+    //--------------------------------------------------------------------------
+
+    /**
+     * Clear state information that has been created during {@link #login()}.
+     */
+    protected void clearState() {
+        securityProvider = null;
+        closeSystemSession();
+    }
+
+    /**
+     * Close the system session acquired upon {@link #getRoot()} and reset the associated root field.
+     * This method should be used instead of {@link #clearState()}, if {@link #login()} and {@link #commit()} were
+     * successfully completed but the system session is not needed for a successful {@link #logout()}
+     */
+    protected void closeSystemSession() {
+        if (systemSession != null) {
+            try {
+                systemSession.close();
+            } catch (IOException e) {
+                onError();
+                log.error(e.getMessage(), e);
+            }
+            systemSession = null;
+            root = null;
+        }
+    }
+
+    /**
+     * General logout-helper that will return {@code false} if both {@code credentials} and {@code principals} are {@code null}.
+     * Note, that this implementation will only throw {@code LoginException} if the {@code subject} is marked readonly
+     * and destroying {@link Destroyable} credentials fails.
+     *
+     * @param credentials The set of credentials extracted by this instance during login/commit to be removed from {@link Subject#getPublicCredentials()}
+     * @param principals A set of principals extracted by this instance during login/commit to be removed from {@link Subject#getPrincipals()}
+     * @return {@code true} if either the credential set or the principal set is not {@code null}, {@code false} otherwise.
+     * @throws LoginException If the subject is readonly and an error occurs while destroying any of the given credentials.
+     * @see <a href="https://docs.oracle.com/en/java/javase/13/security/java-authentication-and-authorization-service-jaas-loginmodule-developers-guide1.html#GUID-E9C5810B-ADB6-4454-869D-B269ECA8145F__LOGINMODULE.LOGOUTMETHOD-21144F6A">JAASLMDevGuide</a>
+     */
+    protected boolean logout(@Nullable Set<Object> credentials, @Nullable Set<? extends Principal> principals) throws LoginException {
+        if (credentials != null || principals != null) {
+            if (!subject.isReadOnly()) {
+                if (credentials != null) {
+                    subject.getPublicCredentials().removeAll(credentials);
+                }
+                if (principals != null) {
+                    subject.getPrincipals().removeAll(principals);
+                }
+            } else if (credentials != null) {
+                destroyCredentials(credentials);
+            }
+            return true;
+        } else {
+            // this login module didn't add credentials/authinfo/principals to the subject upon commit
+            // -> logout of this LoginModule should be ignored
+            return false;
+        }
+    }
+
+    private static void destroyCredentials(@NotNull Iterable<Object> credentials) throws LoginException {
+        for (Object cred : credentials) {
+            if (cred instanceof Destroyable) {
+                try {
+                    ((Destroyable) cred).destroy();
+                } catch (DestroyFailedException e) {
+                    throw new LoginException(e.getMessage());
+                }
+            } else {
+                log.debug("Unable to destroy credentials ({}) of read-only subject.", credentials.getClass().getName());
+            }
+        }
+    }
+
+    /**
+     * @return A set of supported credential classes.
+     */
+    @NotNull
+    protected abstract Set<Class> getSupportedCredentials();
+
+    /**
+     * Tries to retrieve valid (supported) Credentials:
+     * <ol>
+     * <li>using a {@link CredentialsCallback},</li>
+     * <li>looking for a {@link #SHARED_KEY_CREDENTIALS} entry in the
+     * shared state (see also {@link #getSharedCredentials()} and finally by</li>
+     * <li>searching for valid credentials in the subject.</li>
+     * </ol>
+     *
+     * @return Valid (supported) credentials or {@code null}.
+     */
+    @Nullable
+    protected Credentials getCredentials() {
+        Set<Class> supported = getSupportedCredentials();
+        if (callbackHandler != null) {
+            log.debug("Login: retrieving Credentials using callback.");
+            try {
+                CredentialsCallback callback = new CredentialsCallback();
+                callbackHandler.handle(new Callback[]{callback});
+                Credentials creds = callback.getCredentials();
+                if (creds != null && supported.contains(creds.getClass())) {
+                    log.debug("Login: Credentials '{}' obtained from callback", creds);
+                    return creds;
+                } else {
+                    log.debug("Login: No supported credentials obtained from callback; trying shared state.");
+                }
+            } catch (UnsupportedCallbackException | IOException e) {
+                onError();
+                log.error(e.getMessage(), e);
+            }
+        }
+
+        Credentials creds = getSharedCredentials();
+        if (creds != null && supported.contains(creds.getClass())) {
+            log.debug("Login: Credentials obtained from shared state.");
+            return creds;
+        } else {
+            log.debug("Login: No supported credentials found in shared state; looking for credentials in subject.");
+            for (Class clz : getSupportedCredentials()) {
+                Set<Credentials> cds = subject.getPublicCredentials(clz);
+                if (!cds.isEmpty()) {
+                    log.debug("Login: Credentials found in subject.");
+                    return cds.iterator().next();
+                }
+            }
+        }
+
+        log.debug("No credentials found.");
+        return null;
+    }
+
+    /**
+     * @return The credentials passed to this login module with the shared state.
+     * @see #SHARED_KEY_CREDENTIALS
+     */
+    @Nullable
+    protected Credentials getSharedCredentials() {
+        Credentials shared = null;
+        if (sharedState.containsKey(SHARED_KEY_CREDENTIALS)) {
+            Object sc = sharedState.get(SHARED_KEY_CREDENTIALS);
+            if (sc instanceof Credentials) {
+                shared = (Credentials) sc;
+            } else {
+                log.debug("Login: Invalid value for share state entry {}. Credentials expected.", SHARED_KEY_CREDENTIALS);
+            }
+        }
+
+        return shared;
+    }
+
+    /**
+     * @return The login name passed to this login module with the shared state.
+     * @see #SHARED_KEY_LOGIN_NAME
+     */
+    @Nullable
+    protected String getSharedLoginName() {
+        if (sharedState.containsKey(SHARED_KEY_LOGIN_NAME)) {
+            return sharedState.get(SHARED_KEY_LOGIN_NAME).toString();
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * @return The pre authenticated login or {@code null}
+     * @see #SHARED_KEY_PRE_AUTH_LOGIN
+     */
+    @Nullable
+    protected PreAuthenticatedLogin getSharedPreAuthLogin() {
+        Object login = sharedState.get(SHARED_KEY_PRE_AUTH_LOGIN);
+        if (login instanceof PreAuthenticatedLogin) {
+            return (PreAuthenticatedLogin) login;
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Tries to obtain the {@code SecurityProvider} object from the callback
+     * handler using a new SecurityProviderCallback and keeps the value as
+     * private field. If the callback handler isn't able to handle the
+     * SecurityProviderCallback this method returns {@code null}.
+     *
+     * @return The {@code SecurityProvider} associated with this
+     *         {@code LoginModule} or {@code null}.
+     */
+    @Nullable
+    protected SecurityProvider getSecurityProvider() {
+        if (securityProvider == null && callbackHandler != null) {
+            RepositoryCallback rcb = new RepositoryCallback();
+            try {
+                callbackHandler.handle(new Callback[]{rcb});
+                securityProvider = rcb.getSecurityProvider();
+            } catch (IOException | UnsupportedCallbackException e) {
+                onError();
+                log.error(e.getMessage(), e);
+            }
+        }
+        return securityProvider;
+    }
+
+    /**
+     * Tries to obtain the {@code Whiteboard} object from the callback
+     * handler using a new WhiteboardCallback and keeps the value as
+     * private field. If the callback handler isn't able to handle the
+     * WhiteboardCallback this method returns {@code null}.
+     *
+     * @return The {@code Whiteboard} associated with this
+     *         {@code LoginModule} or {@code null}.
+     */
+    @Nullable
+    protected Whiteboard getWhiteboard() {
+        if (whiteboard == null && callbackHandler != null) {
+            WhiteboardCallback cb = new WhiteboardCallback();
+            try {
+                callbackHandler.handle(new Callback[]{cb});
+                whiteboard = cb.getWhiteboard();
+            } catch (IOException | UnsupportedCallbackException e) {
+                onError();
+                log.error(e.getMessage(), e);
+            }
+        }
+        return whiteboard;
+    }
+
+    /**
+     * Tries to obtain a {@code Root} object from the callback handler using
+     * a new RepositoryCallback and keeps the value as private field.
+     * If the callback handler isn't able to handle the RepositoryCallback
+     * this method returns {@code null}.
+     *
+     * @return The {@code Root} associated with this {@code LoginModule} or
+     *         {@code null}.
+     */
+    @Nullable
+    protected Root getRoot() {
+        if (root == null && callbackHandler != null) {
+            try {
+                final RepositoryCallback rcb = new RepositoryCallback();
+                callbackHandler.handle(new Callback[]{rcb});
+
+                final ContentRepository repository = rcb.getContentRepository();
+                if (repository != null) {
+                    systemSession = Java23Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
+                        @Override
+                        public ContentSession run() throws LoginException, NoSuchWorkspaceException {
+                            return repository.login(null, rcb.getWorkspaceName());
+                        }
+                    });
+                    root = systemSession.getLatestRoot();
+                } else {
+                    log.error("Unable to retrieve the Root via RepositoryCallback; ContentRepository not available.");
+                }
+            } catch (IOException | UnsupportedCallbackException | PrivilegedActionException e) {
+                onError();
+                log.error(e.getMessage(), e);
+            }
+        }
+        return root;
+    }
+
+    /**
+     * Retrieves the {@link UserManager} that should be used to handle
+     * this authentication. If no user manager has been configure this
+     * method returns {@code null}.
+     *
+     * @return A instance of {@code UserManager} or {@code null}.
+     */
+    @Nullable
+    protected UserManager getUserManager() {
+        UserManager userManager = null;
+        SecurityProvider sp = getSecurityProvider();
+        Root r = getRoot();
+        if (r != null && sp != null) {
+            UserConfiguration uc = sp.getConfiguration(UserConfiguration.class);
+            userManager = uc.getUserManager(r, NamePathMapper.DEFAULT);
+        }
+
+        if (userManager == null && callbackHandler != null) {
+            try {
+                UserManagerCallback userCallBack = new UserManagerCallback();
+                callbackHandler.handle(new Callback[]{userCallBack});
+                userManager = userCallBack.getUserManager();
+            } catch (IOException | UnsupportedCallbackException e) {
+                onError();
+                log.error(e.getMessage(), e);
+            }
+        }
+
+        return userManager;
+    }
+
+    /**
+     * Retrieves the {@link PrincipalProvider} that should be used to handle
+     * this authentication. If no principal provider has been configure this
+     * method returns {@code null}.
+     *
+     * @return A instance of {@code PrincipalProvider} or {@code null}.
+     */
+    @Nullable
+    protected PrincipalProvider getPrincipalProvider() {
+        PrincipalProvider principalProvider = null;
+        SecurityProvider sp = getSecurityProvider();
+        Root r = getRoot();
+        if (r != null && sp != null) {
+            PrincipalConfiguration pc = sp.getConfiguration(PrincipalConfiguration.class);
+            principalProvider = pc.getPrincipalProvider(r, NamePathMapper.DEFAULT);
+        }
+
+        if (principalProvider == null && callbackHandler != null) {
+            try {
+                PrincipalProviderCallback principalCallBack = new PrincipalProviderCallback();
+                callbackHandler.handle(new Callback[]{principalCallBack});
+                principalProvider = principalCallBack.getPrincipalProvider();
+            } catch (IOException | UnsupportedCallbackException e) {
+                onError();
+                log.error(e.getMessage(), e);
+            }
+        }
+        return principalProvider;
+    }
+
+    /**
+     * Retrieves all principals associated with the specified {@code userId} for
+     * the configured principal provider.
+     *
+     * @param userId The id of the user.
+     * @return The set of principals associated with the given {@code userId}.
+     * @see #getPrincipalProvider()
+     */
+    @NotNull
+    protected Set<? extends Principal> getPrincipals(@NotNull String userId) {
+        PrincipalProvider principalProvider = getPrincipalProvider();
+        if (principalProvider == null) {
+            log.debug("Cannot retrieve principals. No principal provider configured.");
+            return Collections.emptySet();
+        } else {
+            Stopwatch watch = Stopwatch.createStarted();
+            Set<? extends Principal> principals = principalProvider.getPrincipals(userId);
+            getLoginModuleMonitor().principalsCollected(watch.elapsed(NANOSECONDS), principals.size());
+            return principals;
+        }
+    }
+
+    @NotNull
+    protected Set<? extends Principal> getPrincipals(@NotNull Principal userPrincipal) {
+        PrincipalProvider principalProvider = getPrincipalProvider();
+        if (principalProvider == null) {
+            log.debug("Cannot retrieve principals. No principal provider configured.");
+            return Collections.emptySet();
+        } else {
+            Stopwatch watch = Stopwatch.createStarted();
+            Set<Principal> principals = new HashSet<>();
+            principals.add(userPrincipal);
+            principals.addAll(principalProvider.getMembershipPrincipals(userPrincipal));
+            getLoginModuleMonitor().principalsCollected(watch.elapsed(NANOSECONDS), principals.size());
+            return principals;
+        }
+    }
+
+    protected static void setAuthInfo(@NotNull AuthInfo authInfo, @NotNull Subject subject) {
+        Set<AuthInfo> ais = subject.getPublicCredentials(AuthInfo.class);
+        if (!ais.isEmpty()) {
+            subject.getPublicCredentials().removeAll(ais);
+        }
+        subject.getPublicCredentials().add(authInfo);
+    }
+
+    @NotNull
+    protected LoginModuleMonitor getLoginModuleMonitor() {
+        if (loginModuleMonitor == null && callbackHandler != null) {
+            RepositoryCallback rcb = new RepositoryCallback();
+            try {
+                callbackHandler.handle(new Callback[] { rcb });
+                loginModuleMonitor = rcb.getLoginModuleMonitor();
+            } catch (IOException | UnsupportedCallbackException e) {
+                log.error(e.getMessage(), e);
+            }
+        }
+        if (loginModuleMonitor == null) {
+            loginModuleMonitor = LoginModuleMonitor.NOOP;
+        }
+        return loginModuleMonitor;
+    }
+
+    protected void onError() {
+        getLoginModuleMonitor().loginError();
+    }
+}

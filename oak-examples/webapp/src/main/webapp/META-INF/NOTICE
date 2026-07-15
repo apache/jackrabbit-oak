@@ -1,0 +1,41 @@
+Apache Jackrabbit
+Copyright 2010 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+Based on source code originally developed by
+Day Software (http://www.day.com/).
+
+This product includes software from the following contributions:
+
+Original BZip2 classes contributed by Keiron Liddle
+<keiron@aftexsw.com>, Aftex Software to the Apache Ant project
+
+Original Tar classes from contributors of the Apache Ant project
+
+Original Zip classes from contributors of the Apache Ant project
+
+Original CPIO classes contributed by Markus Kuss and the jRPM project
+(jrpm.sourceforge.net)
+
+Portions of Derby were originally developed by International Business
+Machines Corporation and are licensed to the Apache Software Foundation
+under the "Software Grant and Corporate Contribution License Agreement",
+informally known as the "Derby CLA". The following copyright notice(s)
+were affixed to portions of the code with which this file is now or was
+at one time distributed and are placed here unaltered.
+
+    (C) Copyright 1997,2004 International Business Machines Corporation.
+    All rights reserved.
+
+    (C) Copyright IBM Corp. 2003. 
+
+The JDBC apis for small devices and JDBC3 (under java/stubs/jsr169 and
+java/stubs/jdbc3) were produced by trimming sources supplied by the
+Apache Harmony project. The following notice covers the Harmony sources:
+
+    Portions of Harmony were originally developed by
+    Intel Corporation and are licensed to the Apache Software
+    Foundation under the "Software Grant and Corporate Contribution
+    License Agreement", informally known as the "Intel Harmony CLA".

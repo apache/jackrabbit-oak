@@ -1,0 +1,414 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.jackrabbit.oak.plugins.document.mongo;
+
+import com.mongodb.BasicDBObject;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.jackrabbit.oak.plugins.document.Collection;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
+import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.Path;
+import org.apache.jackrabbit.oak.plugins.document.Revision;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.bson.BSONException;
+import org.bson.BsonDocument;
+import org.bson.Document;
+import org.bson.RawBsonDocument;
+import org.junit.After;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.slf4j.event.Level;
+
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+
+import static java.util.Collections.singletonList;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+public class MongoDBExceptionTest {
+
+    private MongoDocumentStore store;
+
+    private String exceptionMsg;
+
+    private MongoTestClient client;
+
+    @BeforeClass
+    public static void checkMongoAvailable() {
+        Assume.assumeTrue(MongoUtils.isAvailable());
+    }
+
+    @Before
+    public void before() {
+        MongoUtils.dropCollections(MongoUtils.DB);
+        client = new MongoTestClient(MongoUtils.URL);
+        store = new MongoDocumentStore(client, client.getDatabase(MongoUtils.DB),
+                new DocumentMK.Builder());
+    }
+
+    @After
+    public void after() {
+        MongoUtils.dropCollections(MongoUtils.DB);
+    }
+
+    @Test
+    public void idInExceptionMessage() {
+        String id = Utils.getIdFromPath("/foo");
+        UpdateOp insert = new UpdateOp(id, true);
+        assertTrue(store.create(Collection.NODES, singletonList(insert)));
+
+        UpdateOp op = new UpdateOp(id, false);
+        NodeDocument.setModified(op, new Revision(System.currentTimeMillis(), 0, 1));
+        exceptionMsg = "findAndUpdate failed";
+        setExceptionMsg();
+        try {
+            store.findAndUpdate(Collection.NODES, op);
+            fail("DocumentStoreException expected");
+        } catch (DocumentStoreException e) {
+            assertTrue(e.getMessage().contains(exceptionMsg));
+            assertTrue("Exception message does not contain id: '" + e.getMessage() + "'",
+                    e.getMessage().contains(id));
+        }
+
+        exceptionMsg = "createOrUpdate failed";
+        setExceptionMsg();
+        try {
+            store.createOrUpdate(Collection.NODES, op);
+            fail("DocumentStoreException expected");
+        } catch (DocumentStoreException e) {
+            assertTrue(e.getMessage().contains(exceptionMsg));
+            assertTrue("Exception message does not contain id: '" + e.getMessage() + "'",
+                    e.getMessage().contains(id));
+        }
+
+        exceptionMsg = "createOrUpdate (multiple) failed";
+        setExceptionMsg();
+        try {
+            store.createOrUpdate(Collection.NODES, singletonList(op));
+            fail("DocumentStoreException expected");
+        } catch (DocumentStoreException e) {
+            assertTrue(e.getMessage().contains(exceptionMsg));
+            assertTrue("Exception message does not contain id: '" + e.getMessage() + "'",
+                    e.getMessage().contains(id));
+        }
+
+        exceptionMsg = "find failed";
+        setExceptionMsg();
+        try {
+            store.find(Collection.NODES, id);
+            fail("DocumentStoreException expected");
+        } catch (DocumentStoreException e) {
+            assertThat(e.getMessage(), containsString(exceptionMsg));
+            assertTrue("Exception message does not contain id: '" + e.getMessage() + "'",
+                    e.getMessage().contains(id));
+        }
+
+        Path foo = Path.fromString("/foo");
+        String fromKey = Utils.getKeyLowerLimit(foo);
+        String toKey = Utils.getKeyUpperLimit(foo);
+        exceptionMsg = "query failed";
+        setExceptionMsg();
+        try {
+            store.query(Collection.NODES, fromKey, toKey, 100);
+            fail("DocumentStoreException expected");
+        } catch (DocumentStoreException e) {
+            assertThat(e.getMessage(), containsString(exceptionMsg));
+            assertTrue("Exception message does not contain id: '" + e.getMessage() + "'",
+                    e.getMessage().contains(fromKey));
+            assertTrue("Exception message does not contain id: '" + e.getMessage() + "'",
+                    e.getMessage().contains(toKey));
+        }
+    }
+
+    @Test
+    public void createOrUpdate16MBDoc() {
+        LogCustomizer customizer = LogCustomizer.forLogger(MongoDocumentStore.class.getName()).create();
+        customizer.starting();
+        String id = "/foo";
+        UpdateOp updateOp = new UpdateOp(id, true);
+        updateOp = create16MBPropAllASCII(updateOp);
+        exceptionMsg = "Document to upsert is larger than 16777216";
+        try {
+            store.createOrUpdate(Collection.NODES, updateOp);
+            fail("DocumentStoreException expected");
+        } catch (DocumentStoreException e) {
+            assertThat(e.getMessage(), containsString(exceptionMsg));
+            String log = customizer.getLogs().toString();
+            assertTrue("Message doesn't contain the id", log.contains(id));
+        }
+        customizer.finished();
+    }
+
+    // the difference to createOrUpdate16MBDoc is that multiple updates happen in one batch
+    @Test
+    public void createOrUpdate16MBBatchWithMultiDocs() {
+        LogCustomizer log = LogCustomizer.forLogger(MongoDocumentStore.class.getName()).
+                enable(Level.ERROR).
+                matchesRegex("bulkUpdate.*biggest update.*approximate.*").
+                create();
+
+        try {
+            log.starting();
+            List<String> ids = new ArrayList<>();
+            List<UpdateOp> updateOps = new ArrayList<>();
+
+            String idOfReallyBig = "foo-really-big";
+
+            {
+                String id = "/foo-1MB";
+                ids.add(id);
+                UpdateOp updateOp = new UpdateOp(id, true);
+                updateOp = create1MBProp(updateOp);
+                updateOps.add(updateOp);
+            }
+            {
+                String id = idOfReallyBig;
+                ids.add(id);
+                UpdateOp updateOp = new UpdateOp(id, true);
+                updateOp.set("big", RandomStringUtils.insecure().next(1024 * 1024 * 17));
+                updateOps.add(updateOp);
+            }
+            {
+                String id = "/foo-small";
+                ids.add(id);
+                UpdateOp updateOp = new UpdateOp(id, true);
+                updateOps.add(updateOp);
+            }
+
+            store.remove(Collection.NODES, ids);
+
+            try {
+                store.createOrUpdate(Collection.NODES, updateOps);
+                fail("createOrUpdate(many with one >16MB) should have failed");
+            } catch (BSONException expected) {
+                // currently expected but incorrect -> OAK-12113
+                List<String> messages = log.getLogs();
+                assertEquals("only 1 message expected, but got: " + messages.size(),
+                        1, messages.size());
+                String message = messages.get(0);
+                assertTrue("log message should contain id " + idOfReallyBig + "/foo-really.big, got: " +  message,
+                        message.contains(idOfReallyBig));
+            }
+
+        } finally {
+            log.finished();
+        }
+    }
+
+    @Test
+    public void update16MBDoc() {
+
+        String docName = "/foo";
+        UpdateOp updateOp = new UpdateOp(docName, true);
+        updateOp = create1MBProp(updateOp);
+        store.createOrUpdate(Collection.NODES, updateOp);
+        updateOp = create16MBPropAllASCII(updateOp);
+        exceptionMsg = "Resulting document after update is larger than 16777216";
+        try {
+            store.createOrUpdate(Collection.NODES, updateOp);
+            fail("DocumentStoreException expected");
+        } catch (DocumentStoreException e) {
+            assertThat(e.getMessage(), containsString(exceptionMsg));
+            assertThat(e.getMessage(), containsString(docName));
+        }
+    }
+
+    @Test
+    public void findAndModifyLarge() {
+        // check that exceptions for large request payloads get logged
+
+        LogCustomizer customizer = LogCustomizer.forLogger(MongoDocumentStore.class.getName()).create();
+        customizer.starting();
+
+        String docName = "/foogrowingdoc";
+        int i = 0;
+
+        StringBuilder pvalue = new StringBuilder();
+
+        store.createOrUpdate(Collection.NODES, new UpdateOp(docName,true));
+        UpdateOp setprop = new UpdateOp(docName, true);
+        setprop.set("long", pvalue.toString());
+        store.findAndUpdate(Collection.NODES, setprop);
+
+        try {
+            for (i = 0; i < 32; i++) {
+                pvalue.append(create1MBContentLotsNonASCII());
+            }
+            UpdateOp updateOp = new UpdateOp(docName, true);
+            updateOp.set("long", pvalue.toString());
+            store.findAndUpdate(Collection.NODES, updateOp);
+            fail("should not get here");
+        } catch (DocumentStoreException dseExpected) {
+            assertTrue("exception cause should be instance of " + BSONException.class.getName(),
+                    dseExpected.getCause() instanceof BSONException);
+            String log = customizer.getLogs().toString();
+            assertTrue("Should contain id /foogrowingdoc, got: " + log, log.contains("/foogrowingdoc"));
+        } finally {
+            customizer.finished();
+        }
+
+    }
+
+    @Test
+    public void multiCreateOrUpdate16MBDoc() {
+
+        List<UpdateOp> updateOps = new ArrayList<>();
+        LogCustomizer customizer = LogCustomizer.forLogger(MongoDocumentStore.class.getName()).create();
+        customizer.starting();
+        String id1 = "/test";
+        String id2 = "/foo";
+
+        UpdateOp op = new UpdateOp(id1, true);
+        op = create1MBProp(op);
+
+        store.createOrUpdate(Collection.NODES, op);
+
+        UpdateOp op1 = new UpdateOp(id2, true);
+        op1 = create16MBPropAllASCII(op1);
+
+        // Updating both doc with 16MB
+        op = create16MBPropAllASCII(op);
+        updateOps.add(op);
+        updateOps.add(op1);
+        exceptionMsg = "Resulting document after update is larger than 16777216";
+
+        try {
+            store.createOrUpdate(Collection.NODES, updateOps);
+            fail("DocumentStoreException expected");
+        } catch (DocumentStoreException e) {
+            assertThat(e.getMessage(), containsString(exceptionMsg));
+            String log = customizer.getLogs().toString();
+            assertTrue("Message doesn't contain the id", log.contains(id1));
+        }
+        customizer.finished();
+    }
+
+    @Test
+    public void create16MBDoc() {
+
+        List<UpdateOp> updateOps = new ArrayList<>();
+        LogCustomizer customizer = LogCustomizer.forLogger(MongoDocumentStore.class.getName()).create();
+        customizer.starting();
+        String id1 = "/test";
+        String id2 = "/foo";
+        UpdateOp op1 = new UpdateOp(id1, true);
+        op1 = create1MBProp(op1);
+
+        UpdateOp op2 = new UpdateOp(id2, false);
+        op2 = create1MBProp(op2);
+        op2 = create16MBPropAllASCII(op2);
+
+        updateOps.add(op1);
+        updateOps.add(op2);
+        assertFalse(store.create(Collection.NODES, updateOps));
+        String log = customizer.getLogs().toString();
+        assertTrue("Message doesn't contain the id", log.contains(id2));
+    }
+
+    @Test
+    public void findAndUpdate16MBDoc() {
+        String id = "/foo";
+        UpdateOp op = new UpdateOp(id, true);
+        op = create1MBProp(op);
+        store.createOrUpdate(Collection.NODES, op);
+        op = create16MBPropAllASCII(op);
+        exceptionMsg = "Resulting document after update is larger than 16777216";
+        try {
+            store.findAndUpdate(Collection.NODES, op);
+            fail("DocumentStoreException expected");
+        } catch (DocumentStoreException e) {
+            assertThat(e.getMessage(), containsString(exceptionMsg));
+            assertThat(e.getMessage(), containsString(id));
+        }
+    }
+
+    @Test
+    public void assertBSONCompressionAllASCII() {
+        BasicDBObject x = new BasicDBObject();
+        x.put("test", create1MBContentAllASCII());
+        Document doc = Document.parse(x.toJson());
+        BsonDocument bsonDoc = doc.toBsonDocument();
+        RawBsonDocument raw = RawBsonDocument.parse(bsonDoc.toJson());
+        int size = raw.getByteBuffer().remaining();
+        // expect serialization be roughly as source, as UTF-8 of ASCII preserves length
+        int expectedMin = 1012 * 1024;
+        assertTrue("size less than expected: " + size + ", but is: " + expectedMin,  size > expectedMin);
+        int expectedMax = 1036 * 1024;
+        assertTrue("size greater than expected: " + size + ", but is: " + expectedMax,  size < expectedMax);
+    }
+
+    @Test
+    public void assertBSONCompressionLotsNonASCII() {
+        BasicDBObject x = new BasicDBObject();
+        String content = create1MBContentLotsNonASCII();
+        x.put("test", content);
+        int sizeutf8length = content.getBytes(StandardCharsets.UTF_8).length;
+        Document doc = Document.parse(x.toJson());
+        BsonDocument bsonDoc = doc.toBsonDocument();
+        RawBsonDocument raw = RawBsonDocument.parse(bsonDoc.toJson());
+        int size = raw.getByteBuffer().remaining();
+        // expect serialization be close to the UTF-8 representation length
+        int expectedMin = sizeutf8length / 10 * 9;
+        assertTrue("size less than expected: " + size + ", but is: " + expectedMin,  size > expectedMin);
+        int expectedMax = sizeutf8length / 10 * 11;
+        assertTrue("size greater than expected: " + size + ", but is: " + expectedMax,  size < expectedMax);
+    }
+
+    private void setExceptionMsg() {
+        client.setExceptionBeforeUpdate(exceptionMsg);
+        client.setExceptionBeforeQuery(exceptionMsg);
+    }
+
+    private UpdateOp create1MBProp(UpdateOp op) {
+        // create a 1 MB property
+        String content = create1MBContentAllASCII();
+        op.set("property0", content);
+        return op;
+    }
+
+    private UpdateOp create16MBPropAllASCII(UpdateOp op) {
+        // create a 1 MB property
+        String content = create1MBContentAllASCII();
+
+        //create 16MB property
+        for (int i = 0; i < 16; i++) {
+            op.set("property" + i, content);
+        }
+
+        return op;
+    }
+
+    private String create1MBContentAllASCII() {
+        return RandomStringUtils.insecure().nextAlphanumeric(1024 * 1024);
+    }
+
+    private String create1MBContentLotsNonASCII() {
+        return RandomStringUtils.insecure().next(1024 * 1024);
+    }
+}

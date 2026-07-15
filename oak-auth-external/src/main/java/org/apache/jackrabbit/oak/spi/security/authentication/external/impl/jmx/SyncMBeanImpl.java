@@ -1,0 +1,162 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
+
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Implementation of the {@link SynchronizationMBean} interface.
+ */
+public class SyncMBeanImpl implements SynchronizationMBean {
+
+    private static final Logger log = LoggerFactory.getLogger(SyncMBeanImpl.class);
+
+    private final ContentRepository repository;
+
+    private final SecurityProvider securityProvider;
+
+    private final SyncManager syncManager;
+
+    private final String syncName;
+
+    private final ExternalIdentityProviderManager idpManager;
+
+    private final String idpName;
+
+    public SyncMBeanImpl(@NotNull ContentRepository repository, @NotNull SecurityProvider securityProvider,
+                         @NotNull SyncManager syncManager, @NotNull String syncName,
+                         @NotNull ExternalIdentityProviderManager idpManager, @NotNull String idpName) {
+        this.repository = repository;
+        this.securityProvider = securityProvider;
+        this.syncManager = syncManager;
+        this.syncName = syncName;
+        this.idpManager = idpManager;
+        this.idpName = idpName;
+    }
+
+    @NotNull
+    private Delegatee getDelegatee() {
+        SyncHandler handler = syncManager.getSyncHandler(syncName);
+        if (handler == null) {
+            log.error("No sync manager available for name {}.", syncName);
+            throw new IllegalArgumentException("No sync manager available for name " + syncName);
+        }
+        ExternalIdentityProvider idp = idpManager.getProvider(idpName);
+        if (idp == null) {
+            log.error("No idp available for name {}", idpName);
+            throw new IllegalArgumentException("No idp manager available for name " + idpName);
+        }
+        return Delegatee.createInstance(repository, securityProvider, handler, idp);
+    }
+
+    //-----------------------------------------------< SynchronizationMBean >---
+    @NotNull
+    @Override
+    public String getSyncHandlerName() {
+        return syncName;
+    }
+
+    @NotNull
+    @Override
+    public String getIDPName() {
+        return idpName;
+    }
+
+    @NotNull
+    @Override
+    public String[] syncUsers(@NotNull String[] userIds, boolean purge) {
+        Delegatee delegatee = getDelegatee();
+        try {
+            return delegatee.syncUsers(userIds, purge);
+        } finally {
+            delegatee.close();
+        }
+    }
+
+    @NotNull
+    @Override
+    public String[] syncAllUsers(boolean purge) {
+        Delegatee delegatee = getDelegatee();
+        try {
+            return delegatee.syncAllUsers(purge);
+        } finally {
+            delegatee.close();
+        }
+    }
+
+    @NotNull
+    @Override
+    public String[] syncExternalUsers(@NotNull String[] externalIds) {
+        Delegatee delegatee = getDelegatee();
+        try {
+            return delegatee.syncExternalUsers(externalIds);
+        } finally {
+            delegatee.close();
+        }
+    }
+
+    @NotNull
+    @Override
+    public String[] syncAllExternalUsers() {
+        Delegatee delegatee = getDelegatee();
+        try {
+            return delegatee.syncAllExternalUsers();
+        } finally {
+            delegatee.close();
+        }
+    }
+
+    @NotNull
+    @Override
+    public String[] listOrphanedUsers() {
+        Delegatee delegatee = getDelegatee();
+        try {
+            return delegatee.listOrphanedUsers();
+        } finally {
+            delegatee.close();
+        }
+    }
+
+    @NotNull
+    @Override
+    public String[] purgeOrphanedUsers() {
+        Delegatee delegatee = getDelegatee();
+        try {
+            return delegatee.purgeOrphanedUsers();
+        } finally {
+            delegatee.close();
+        }
+    }
+
+    @Override
+    public @NotNull String[] convertToDynamicMembership() {
+        Delegatee delegatee = getDelegatee();
+        try {
+            return delegatee.convertToDynamicMembership();
+        } finally {
+            delegatee.close();
+        }
+    }
+}

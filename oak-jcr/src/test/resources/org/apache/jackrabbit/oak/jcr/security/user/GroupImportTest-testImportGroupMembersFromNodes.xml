@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one or more
+    contributor license agreements.  See the NOTICE file distributed with
+    this work for additional information regarding copyright ownership.
+    The ASF licenses this file to You under the Apache License, Version 2.0
+    (the "License"); you may not use this file except in compliance with
+    the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+ -->
+<sv:node sv:name="s" xmlns:jcr="http://www.jcp.org/jcr/1.0" xmlns:sv="http://www.jcp.org/jcr/sv/1.0" xmlns:rep="internal">
+    <sv:property sv:name="jcr:primaryType" sv:type="Name">
+        <sv:value>rep:AuthorizableFolder</sv:value>
+    </sv:property>
+    <sv:property sv:name="jcr:created" sv:type="Date">
+        <sv:value>2010-08-17T18:22:20.086+02:00</sv:value>
+    </sv:property>
+    <sv:property sv:name="jcr:createdBy" sv:type="String">
+        <sv:value>admin</sv:value>
+    </sv:property>
+    <sv:node sv:name="sh">
+        <sv:property sv:name="jcr:primaryType" sv:type="Name">
+            <sv:value>rep:AuthorizableFolder</sv:value>
+        </sv:property>
+        <sv:property sv:name="jcr:created" sv:type="Date">
+            <sv:value>2010-08-17T18:22:20.086+02:00</sv:value>
+        </sv:property>
+        <sv:property sv:name="jcr:createdBy" sv:type="String">
+            <sv:value>admin</sv:value>
+        </sv:property>
+        <sv:node sv:name="shrimps">
+            <sv:property sv:name="jcr:primaryType" sv:type="Name">
+                <sv:value>rep:Group</sv:value>
+            </sv:property>
+            <sv:property sv:name="jcr:uuid" sv:type="String">
+                <sv:value>08429aec-6f09-30db-8c83-1a2a57fc760c</sv:value>
+            </sv:property>
+            <sv:property sv:name="jcr:created" sv:type="Date">
+                <sv:value>2010-08-17T18:22:20.086+02:00</sv:value>
+            </sv:property>
+            <sv:property sv:name="jcr:createdBy" sv:type="String">
+                <sv:value>admin</sv:value>
+            </sv:property>
+            <sv:property sv:name="rep:principalName" sv:type="String">
+                <sv:value>shrimps</sv:value>
+            </sv:property>
+            <sv:node sv:name="rep:members">
+                <sv:property sv:name="jcr:primaryType" sv:type="Name">
+                    <sv:value>rep:Members</sv:value>
+                </sv:property>
+                <sv:node sv:name="adi">
+                    <sv:property sv:name="jcr:primaryType" sv:type="Name">
+                        <sv:value>rep:Members</sv:value>
+                    </sv:property>
+                    <sv:node sv:name="adi">
+                        <sv:property sv:name="jcr:primaryType" sv:type="Name">
+                            <sv:value>rep:Members</sv:value>
+                        </sv:property>
+                        <sv:property sv:name="adi" sv:type="WeakReference">
+                            <sv:value>c46335eb-267e-3e1c-9e5b-017acb4cd799</sv:value>
+                        </sv:property>
+                        <sv:property sv:name="admin" sv:type="WeakReference">
+                            <sv:value>21232f29-7a57-35a7-8389-4a0e4a801fc3</sv:value>
+                        </sv:property>
+                    </sv:node>
+                    <sv:node sv:name="angi">
+                        <sv:property sv:name="jcr:primaryType" sv:type="Name">
+                            <sv:value>rep:Members</sv:value>
+                        </sv:property>
+                        <sv:property sv:name="angi" sv:type="WeakReference">
+                            <sv:value>a468b64f-b1df-377c-b325-20d97aaa1ad9</sv:value>
+                        </sv:property>
+                        <sv:property sv:name="anonymous" sv:type="WeakReference">
+                            <sv:value>294de355-7d9d-30b3-92d8-a1e6aab028cf</sv:value>
+                        </sv:property>
+                        <sv:property sv:name="cati" sv:type="WeakReference">
+                            <sv:value>f08910b6-41c8-3cb9-a648-1dddd14b132d</sv:value>
+                        </sv:property>
+                    </sv:node>
+                </sv:node>
+                <sv:node sv:name="debbi">
+                    <sv:property sv:name="jcr:primaryType" sv:type="Name">
+                        <sv:value>rep:Members</sv:value>
+                    </sv:property>
+                    <sv:node sv:name="debbi">
+                        <sv:property sv:name="jcr:primaryType" sv:type="Name">
+                            <sv:value>rep:Members</sv:value>
+                        </sv:property>
+                        <sv:property sv:name="debbi" sv:type="WeakReference">
+                            <sv:value>d53bedf9-ebb8-3117-a8b8-162d32b4bee2</sv:value>
+                        </sv:property>
+                        <sv:property sv:name="eddi" sv:type="WeakReference">
+                            <sv:value>1795fa1a-3d20-3a64-996e-eaaeb520a01e</sv:value>
+                        </sv:property>
+                        <sv:property sv:name="gabi" sv:type="WeakReference">
+                            <sv:value>a0d499c7-5105-3663-8611-a32779a57104</sv:value>
+                        </sv:property>
+                        <sv:property sv:name="hansi" sv:type="WeakReference">
+                            <sv:value>9ea4d671-8ed1-399a-8401-59487a14d00a</sv:value>
+                        </sv:property>
+                    </sv:node>
+                    <sv:node sv:name="hari">
+                        <sv:property sv:name="jcr:primaryType" sv:type="Name">
+                            <sv:value>rep:Members</sv:value>
+                        </sv:property>
+                        <sv:property sv:name="hari" sv:type="WeakReference">
+                            <sv:value>a9bcf1e4-d7b9-3a22-a297-5c812d938889</sv:value>
+                        </sv:property>
+                        <sv:property sv:name="lisi" sv:type="WeakReference">
+                            <sv:value>dc3a8f16-70d6-3bea-a9b7-b65048a0ac40</sv:value>
+                        </sv:property>
+                    </sv:node>
+                    <sv:node sv:name="luzi">
+                        <sv:property sv:name="jcr:primaryType" sv:type="Name">
+                            <sv:value>rep:Members</sv:value>
+                        </sv:property>
+                        <sv:property sv:name="luzi" sv:type="WeakReference">
+                            <sv:value>9ec299fd-3461-3f1a-9749-92a76f2516eb</sv:value>
+                        </sv:property>
+                        <sv:property sv:name="pipi" sv:type="WeakReference">
+                            <sv:value>16d5d24f-5b09-3199-9bd4-e5f57bf11237</sv:value>
+                        </sv:property>
+                        <sv:property sv:name="susi" sv:type="WeakReference">
+                            <sv:value>536931d8-0dec-318c-b3db-9612bdd004d4</sv:value>
+                        </sv:property>
+                    </sv:node>
+                </sv:node>
+            </sv:node>
+        </sv:node>
+    </sv:node>
+</sv:node>

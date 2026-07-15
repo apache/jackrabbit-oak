@@ -1,0 +1,155 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+package org.apache.jackrabbit.oak.plugins.index.importer;
+
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.Clock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Lock implementation for clustered scenario. The locking is done
+ * by setting the lease time for the lane to distant future which
+ * prevent AsyncIndexUpdate from  running.
+ */
+public class ClusterNodeStoreLock implements AsyncIndexerLock<ClusteredLockToken> {
+    /**
+     * Use a long lease time to ensure that async indexer does not start
+     * in between the import process which can take some time.
+     * For a very large repository (about 2 billion nodes) the longest
+     * index import can take 2.5 hours. 6 hours has then a safety margin of 100%
+     * above that. A diff of 6 hours is typically OK with the document node store,
+     * but beyond that it gets harder.
+     */
+    private static final long LOCK_TIMEOUT = TimeUnit.HOURS.toMillis(6);
+    // retry for at most 2 minutes
+    private static final long MAX_RETRY_TIME = 2 * 60 * 1000;
+    private final Logger log = LoggerFactory.getLogger(getClass());
+    private final NodeStore nodeStore;
+    private final Clock clock;
+
+    public ClusterNodeStoreLock(NodeStore nodeStore){
+        this(nodeStore, Clock.SIMPLE);
+    }
+
+    public ClusterNodeStoreLock(NodeStore nodeStore, Clock clock) {
+        this.nodeStore = nodeStore;
+        this.clock = clock;
+    }
+
+    @Override
+    public ClusteredLockToken lock(String asyncIndexerLane) throws CommitFailedException {
+        return retryIfNeeded(() -> tryLock(asyncIndexerLane));
+    }
+
+    private ClusteredLockToken tryLock(String asyncIndexerLane) throws CommitFailedException {
+        NodeBuilder builder = nodeStore.getRoot().builder();
+        NodeBuilder async = builder.child(":async");
+
+        String leaseName = AsyncIndexUpdate.leasify(asyncIndexerLane);
+        long leaseEndTime = clock.getTime() + LOCK_TIMEOUT;
+
+        if (async.hasProperty(leaseName)){
+            log.info("AsyncIndexer found to be running currently. Lease update would cause its" +
+                    "commit to fail. Such a failure should be ignored");
+        }
+
+        async.setProperty(leaseName, leaseEndTime);
+        async.setProperty(lockName(asyncIndexerLane), true);
+        NodeStoreUtils.mergeWithConcurrentCheck(nodeStore, builder);
+
+        log.info("Acquired the lock for async indexer lane [{}]", asyncIndexerLane);
+
+        return new ClusteredLockToken(asyncIndexerLane, leaseEndTime);
+    }
+    
+    private <T> T retryIfNeeded(Callable<T> r) throws CommitFailedException {
+        // Attempt few times if merge failure due to current running indexer cycle
+        int backOffMaxMillis = 1;
+        long start = System.currentTimeMillis();
+        while (true) {
+            try {
+                return r.call();
+            } catch (Exception e) {
+                log.info("Commit failed, retrying: " + e);
+                long time = System.currentTimeMillis() - start;
+                if (time > MAX_RETRY_TIME) {
+                    if (e instanceof CommitFailedException) {
+                        throw (CommitFailedException) e;
+                    }
+                    log.error("Unexpected failure retrying", e);
+                    throw new CommitFailedException(CommitFailedException.UNSUPPORTED, 2, e.getMessage(), e);
+                }
+                int sleep = (int) (backOffMaxMillis * Math.random());
+                backOffMaxMillis *= 2;
+                log.info("Wait " + sleep + " ms");
+                try {
+                    Thread.sleep(sleep);
+                } catch (InterruptedException e1) {
+                    // ignore
+                }
+            }
+        }
+    }
+
+    @Override
+    public void unlock(ClusteredLockToken token) throws CommitFailedException {
+        retryIfNeeded(() -> tryUnlock(token));        
+    }
+    
+    private Void tryUnlock(ClusteredLockToken token) throws CommitFailedException {
+        String leaseName = AsyncIndexUpdate.leasify(token.laneName);
+
+        NodeBuilder builder = nodeStore.getRoot().builder();
+        NodeBuilder async = builder.child(":async");
+        async.removeProperty(leaseName);
+        async.removeProperty(lockName(token.laneName));
+        NodeStoreUtils.mergeWithConcurrentCheck(nodeStore, builder);
+        log.info("Remove the lock for async indexer lane [{}]", token.laneName);
+        return null;
+    }
+
+    public boolean isLocked(String asyncIndexerLane) {
+        NodeState async = nodeStore.getRoot().getChildNode(":async");
+        String leaseName = lockName(asyncIndexerLane);
+        return async.hasProperty(leaseName);
+    }
+
+    private static String lockName(String asyncIndexerLane) {
+        return asyncIndexerLane + "-lock";
+    }
+}
+
+class ClusteredLockToken implements AsyncIndexerLock.LockToken {
+    final String laneName;
+    final long timeout;
+
+    ClusteredLockToken(String laneName, long timeout) {
+        this.laneName = laneName;
+        this.timeout = timeout;
+    }
+}

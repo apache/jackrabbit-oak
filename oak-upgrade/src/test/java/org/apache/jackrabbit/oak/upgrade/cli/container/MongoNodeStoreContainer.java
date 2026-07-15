@@ -1,0 +1,112 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.jackrabbit.oak.upgrade.cli.container;
+
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.apache.jackrabbit.oak.commons.pio.Closer;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.upgrade.cli.node.MongoFactory;
+import org.bson.Document;
+import org.junit.Assume;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.mongodb.ConnectionString;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+
+public class MongoNodeStoreContainer implements NodeStoreContainer {
+
+    private static Boolean mongoAvailable;
+
+    private static final Logger LOG = LoggerFactory.getLogger(MongoNodeStoreContainer.class);
+
+    private static final String MONGO_URI = System.getProperty("oak.mongo.uri",
+            "mongodb://localhost:27017/oak-migration");
+
+    private static final AtomicInteger DATABASE_SUFFIX = new AtomicInteger(1);
+
+    private final MongoFactory mongoFactory;
+
+    private final BlobStoreContainer blob;
+
+    private final String mongoUri;
+
+    private Closer closer;
+
+    public MongoNodeStoreContainer() throws IOException {
+        this(new DummyBlobStoreContainer());
+    }
+
+    public MongoNodeStoreContainer(BlobStoreContainer blob) throws IOException {
+        Assume.assumeTrue(isMongoAvailable());
+        this.mongoUri = String.format("%s-%d", MONGO_URI, DATABASE_SUFFIX.getAndIncrement());
+        this.mongoFactory = new MongoFactory(mongoUri, 2, false);
+        this.blob = blob;
+        clean();
+    }
+
+    public static boolean isMongoAvailable() {
+        if (mongoAvailable != null) {
+            return mongoAvailable;
+        }
+
+        mongoAvailable = testMongoAvailability();
+        return mongoAvailable;
+    }
+
+    private static boolean testMongoAvailability() {
+        try (MongoClient mongo = MongoClients.create(
+                new ConnectionString(MONGO_URI + "?connectTimeoutMS=3000"))) {
+            // Use the ping command: https://www.mongodb.com/docs/v6.0/reference/command/ping/
+            mongo.getDatabase("admin").runCommand(new Document("ping", 1));
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    @Override
+    public NodeStore open() throws IOException {
+        this.closer = Closer.create();
+        return mongoFactory.create(blob.open(), closer);
+    }
+
+    @Override
+    public void close() {
+        try {
+            closer.close();
+        } catch (IOException e) {
+            LOG.error("Can't close document node store", e);
+        }
+    }
+
+    @Override
+    public void clean() throws IOException {
+        ConnectionString uri = new ConnectionString(mongoUri);
+        MongoClient client = MongoClients.create(uri);
+        client.getDatabase(uri.getDatabase()).drop();
+        blob.clean();
+    }
+
+    @Override
+    public String getDescription() {
+        return mongoUri;
+    }
+}

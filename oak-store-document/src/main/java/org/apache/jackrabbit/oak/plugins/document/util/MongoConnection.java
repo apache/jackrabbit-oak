@@ -1,0 +1,398 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.jackrabbit.oak.plugins.document.util;
+
+import java.util.Objects;
+import java.util.Set;
+import java.util.StringJoiner;
+import java.util.concurrent.TimeUnit;
+
+import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.MongoClientSettings.Builder;
+import com.mongodb.MongoException;
+import com.mongodb.ReadConcern;
+import com.mongodb.ReadConcernLevel;
+import com.mongodb.WriteConcern;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.connection.ClusterSettings;
+import com.mongodb.connection.ClusterDescription;
+import com.mongodb.connection.ClusterType;
+import com.mongodb.connection.ConnectionPoolSettings;
+import com.mongodb.connection.ServerSettings;
+import com.mongodb.connection.SocketSettings;
+
+import static java.util.Objects.requireNonNull;
+
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService;
+
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * The {@code MongoConnection} abstracts connection to the {@code MongoDB}.
+ */
+public class MongoConnection {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MongoConnection.class);
+
+    public static final String MONGODB_PREFIX = "mongodb://";
+
+    private static final Set<ReadConcernLevel> REPLICA_RC = Set.of(ReadConcernLevel.MAJORITY, ReadConcernLevel.LINEARIZABLE);
+    private final ConnectionString mongoURI;
+    private final MongoClient mongo;
+
+    // MongoDB cluster description timeout configuration
+    private static final String PROP_CLUSTER_DESCRIPTION_TIMEOUT_MS = "oak.mongo.clusterDescriptionTimeoutMs";
+    private static final String PROP_CLUSTER_DESCRIPTION_INTERVAL_MS = "oak.mongo.clusterDescriptionIntervalMs";
+    private static final long DEFAULT_CLUSTER_DESCRIPTION_TIMEOUT_MS = 5000L;
+    private static final long DEFAULT_CLUSTER_DESCRIPTION_INTERVAL_MS = 100L;
+
+    /**
+     * Constructs a new connection using the specified MongoDB connection string.
+     * See also http://docs.mongodb.org/manual/reference/connection-string/
+     *
+     * @param uri the MongoDB URI
+     * @throws MongoException if there are failures
+     */
+    public MongoConnection(String uri) throws MongoException {
+        this(uri, MongoConnection.getDefaultBuilder());
+    }
+
+    /**
+     * Constructs a new connection using the specified MongoDB connection
+     * String. The default client options are taken from the provided builder.
+     *
+     * @param uri the connection URI.
+     * @param builder the client option defaults.
+     * @throws MongoException if there are failures
+     */
+    public MongoConnection(String uri, MongoClientSettings.Builder builder)
+            throws MongoException {
+        mongoURI = new ConnectionString(uri);
+        builder.applyConnectionString(mongoURI);
+        MongoClientSettings settings = builder.build();
+        mongo = MongoClients.create(settings);
+    }
+
+    /**
+     * Constructs a new {@code MongoConnection}.
+     *
+     * @param host The host address.
+     * @param port The port.
+     * @param database The database name.
+     * @throws MongoException if there are failures
+     */
+    public MongoConnection(String host, int port, String database)
+            throws MongoException {
+        this("mongodb://" + host + ":" + port + "/" + database);
+    }
+
+    /**
+     * Constructs a new {@code MongoConnection}.
+     *
+     * @param uri the connection URI.
+     * @param client the already connected client.
+     */
+    public MongoConnection(String uri, MongoClient client) {
+        Builder defaultBuilder = MongoConnection.getDefaultBuilder();
+        mongoURI = new ConnectionString(uri);
+        defaultBuilder.applyConnectionString(mongoURI);
+        MongoClientSettings settings = defaultBuilder.build();
+        mongo = MongoClients.create(settings);
+    }
+
+    /**
+     *
+     * @return the {@link ConnectionString} for this connection
+     */
+    public ConnectionString getMongoURI() {
+        return mongoURI;
+    }
+
+    /**
+     * @return the {@link MongoClient} for this connection.
+     */
+    public MongoClient getMongoClient() {
+        return mongo;
+    }
+
+    /**
+     * Returns the {@link MongoDatabase} as passed in the URI of the
+     * constructor.
+     *
+     * @return the {@link MongoDatabase}.
+     */
+    public MongoDatabase getDatabase() {
+        return mongo.getDatabase(mongoURI.getDatabase());
+    }
+
+    /**
+     * Returns the {@link MongoDatabase} with the given name.
+     *
+     * @return The {@link MongoDatabase}.
+     */
+    public MongoDatabase getDatabase(@NotNull String name) {
+        return mongo.getDatabase(name);
+    }
+
+    /**
+     * @return the database name specified in the URI.
+     */
+    public String getDBName() {
+        return mongoURI.getDatabase();
+    }
+
+    /**
+     * Closes the underlying Mongo instance
+     */
+    public void close() {
+        mongo.close();
+    }
+
+    //--------------------------------------< Utility Methods >
+
+    /**
+     * Constructs a builder with default options set. These can be overridden later
+     *
+     * @return builder with default options set
+     */
+    public static MongoClientSettings.Builder getDefaultBuilder() {
+        return MongoClientSettings.builder()
+                .applicationName("MongoConnection for Oak DocumentMK")
+                // Apply default connection pool settings
+                .applyToConnectionPoolSettings(poolBuilder -> poolBuilder
+                        .maxSize(DocumentNodeStoreService.DEFAULT_MONGO_MAX_POOL_SIZE)
+                        .minSize(DocumentNodeStoreService.DEFAULT_MONGO_MIN_POOL_SIZE)
+                        .maxConnecting(DocumentNodeStoreService.DEFAULT_MONGO_MAX_CONNECTING)
+                        .maxConnectionIdleTime(DocumentNodeStoreService.DEFAULT_MONGO_MAX_IDLE_TIME_MILLIS, TimeUnit.MILLISECONDS)
+                        .maxConnectionLifeTime(DocumentNodeStoreService.DEFAULT_MONGO_MAX_LIFE_TIME_MILLIS, TimeUnit.MILLISECONDS)
+                        .maxWaitTime(DocumentNodeStoreService.DEFAULT_MONGO_WAIT_QUEUE_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+                // Apply default socket settings
+                .applyToSocketSettings(socketBuilder -> socketBuilder
+                        .connectTimeout(DocumentNodeStoreService.DEFAULT_MONGO_CONNECT_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+                        .readTimeout(DocumentNodeStoreService.DEFAULT_MONGO_READ_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+                // Apply default server settings
+                .applyToServerSettings(serverBuilder -> serverBuilder
+                        .heartbeatFrequency(DocumentNodeStoreService.DEFAULT_MONGO_HEARTBEAT_FREQUENCY_MILLIS, TimeUnit.MILLISECONDS)
+                        .minHeartbeatFrequency(DocumentNodeStoreService.DEFAULT_MONGO_MIN_HEARTBEAT_FREQUENCY_MILLIS, TimeUnit.MILLISECONDS))
+                // Apply default cluster settings
+                .applyToClusterSettings(clusterBuilder -> clusterBuilder
+                        .serverSelectionTimeout(DocumentNodeStoreService.DEFAULT_MONGO_SERVER_SELECTION_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS));
+    }
+
+    public static String toString(MongoClientSettings settings) {
+        ConnectionPoolSettings poolSettings = settings.getConnectionPoolSettings();
+        SocketSettings socketSettings = settings.getSocketSettings();
+        ServerSettings serverSettings = settings.getServerSettings();
+        ClusterSettings clusterSettings = settings.getClusterSettings();
+
+        return new StringJoiner(", ", MongoClientSettings.class.getSimpleName() + "[", "]")
+                // Connection Pool Settings
+                .add("pool.maxSize=" + poolSettings.getMaxSize())
+                .add("pool.minSize=" + poolSettings.getMinSize())
+                .add("pool.maxConnecting=" + poolSettings.getMaxConnecting())
+                .add("pool.maxIdleTime=" + poolSettings.getMaxConnectionIdleTime(TimeUnit.MILLISECONDS))
+                .add("pool.maxLifeTime=" + poolSettings.getMaxConnectionLifeTime(TimeUnit.MILLISECONDS))
+                .add("pool.maxWaitTime=" + poolSettings.getMaxWaitTime(TimeUnit.MILLISECONDS))
+                // Socket Settings
+                .add("socket.connectTimeout=" + socketSettings.getConnectTimeout(TimeUnit.MILLISECONDS))
+                .add("socket.readTimeout=" + socketSettings.getReadTimeout(TimeUnit.MILLISECONDS))
+                // Server Settings
+                .add("server.heartbeatFreq=" + serverSettings.getHeartbeatFrequency(TimeUnit.MILLISECONDS))
+                .add("server.minHeartbeatFreq=" + serverSettings.getMinHeartbeatFrequency(TimeUnit.MILLISECONDS))
+                // Cluster Settings
+                .add("cluster.serverSelectionTimeout=" + clusterSettings.getServerSelectionTimeout(TimeUnit.MILLISECONDS))
+                // Connection Settings
+                .add("readPreference=" + settings.getReadPreference().getName())
+                .add("writeConcern=" + settings.getWriteConcern())
+                .toString();
+    }
+
+    /**
+     * Returns {@code true} if the given {@code uri} has a write concern set.
+     * @param uri the URI to check.
+     * @return {@code true} if the URI has a write concern set, {@code false}
+     *      otherwise.
+     */
+    public static boolean hasWriteConcern(@NotNull String uri) {
+        ConnectionString connectionString = new ConnectionString(requireNonNull(uri));
+        return connectionString.getWriteConcern() != null;
+    }
+
+    /**
+     * Returns {@code true} if the given {@code uri} has a read concern set.
+     * @param uri the URI to check.
+     * @return {@code true} if the URI has a read concern set, {@code false}
+     *      otherwise.
+     */
+    public static boolean hasReadConcern(@NotNull String uri) {
+        ConnectionString connectionString = new ConnectionString(requireNonNull(uri));
+        MongoClientSettings.Builder builder = MongoClientSettings.builder()
+                .applyConnectionString(connectionString);
+        MongoClientSettings settings = builder.build();
+        return readConcernLevel(settings.getReadConcern()) != null;
+    }
+
+    /**
+     * Returns the default write concern depending on MongoDB deployment.
+     * <ul>
+     *     <li>{@link WriteConcern#MAJORITY}: for a MongoDB replica set</li>
+     *     <li>{@link WriteConcern#ACKNOWLEDGED}: for single MongoDB instance</li>
+     * </ul>
+     *
+     * @param client the connection to MongoDB.
+     * @return the default write concern to use for Oak.
+     */
+    public static WriteConcern getDefaultWriteConcern(@NotNull MongoClient client) {
+        long timeoutMs = Long.getLong(PROP_CLUSTER_DESCRIPTION_TIMEOUT_MS, DEFAULT_CLUSTER_DESCRIPTION_TIMEOUT_MS);
+        long intervalMs = Long.getLong(PROP_CLUSTER_DESCRIPTION_INTERVAL_MS, DEFAULT_CLUSTER_DESCRIPTION_INTERVAL_MS);
+        
+        // If timeout is 0, disable the retry functionality and use immediate detection
+        if (timeoutMs == 0) {
+            WriteConcern w;
+            ClusterDescription clusterDescription = client.getClusterDescription();
+            if (clusterDescription.getType() == ClusterType.REPLICA_SET) {
+                w = WriteConcern.MAJORITY;
+            } else {
+                w = WriteConcern.ACKNOWLEDGED;
+            }
+            return w;
+        }
+        
+        long startTime = System.currentTimeMillis();
+        long endTime = startTime + timeoutMs;
+        int attempts = 0;
+        
+        while (System.currentTimeMillis() < endTime) {
+            attempts++;
+            ClusterDescription clusterDescription = client.getClusterDescription();
+            
+            if (clusterDescription.getType() == ClusterType.REPLICA_SET || 
+                clusterDescription.getType() == ClusterType.SHARDED) {
+                return WriteConcern.MAJORITY;
+            } else if (clusterDescription.getType() == ClusterType.STANDALONE) {
+                return WriteConcern.ACKNOWLEDGED;
+            }
+            
+            try {
+                Thread.sleep(intervalMs);
+            } catch (InterruptedException e) {}
+        }
+        
+        // In case of timeout, default to ACKNOWLEDGED
+        LOG.warn("Cluster description timeout after {}ms ({} attempts). Defaulting to ACKNOWLEDGED write concern.", 
+                timeoutMs, attempts);
+        return WriteConcern.ACKNOWLEDGED;
+    }
+
+    /**
+     * Returns the default read concern depending on MongoDB deployment.
+     * <ul>
+     *     <li>{@link ReadConcern#MAJORITY}: for a MongoDB replica set with w=majority</li>
+     *     <li>{@link ReadConcern#LOCAL}: for other cases</li>
+     * </ul>
+     *
+     * @param db the connection to MongoDB.
+     * @return the default write concern to use for Oak.
+     */
+    public static ReadConcern getDefaultReadConcern(@NotNull MongoClient client,
+                                                    @NotNull MongoDatabase db) {
+        ReadConcern r;
+        ClusterDescription clusterDescription = requireNonNull(client).getClusterDescription();
+        if (clusterDescription.getType() == ClusterType.REPLICA_SET && isMajorityWriteConcern(db)) {
+            r = ReadConcern.MAJORITY;
+        } else {
+            r = ReadConcern.LOCAL;
+        }
+        return r;
+    }
+
+    /**
+     * Returns true if the majority write concern is used for the given DB.
+     *
+     * @param db the connection to MongoDB.
+     * @return true if the majority write concern has been configured; false otherwise
+     */
+    public static boolean isMajorityWriteConcern(@NotNull MongoDatabase db) {
+        return WriteConcern.MAJORITY.getWString().equals(db.getWriteConcern().getWObject());
+    }
+
+    /**
+     * Returns {@code true} if the given write concern is sufficient for Oak. On
+     * a replica set Oak expects at least w=2. For a single MongoDB node
+     * deployment w=1 is sufficient.
+     *
+     * @param client the client.
+     * @param wc the write concern.
+     * @return whether the write concern is sufficient.
+     */
+    public static boolean isSufficientWriteConcern(@NotNull MongoClient client,
+                                                   @NotNull WriteConcern wc) {
+        Object wObj = requireNonNull(wc).getWObject();
+        int w;
+        if (wObj instanceof Number) {
+            w = ((Number) wObj).intValue();
+        } else if (wObj == null) {
+            // default acknowledged
+            w = 1;
+        } else if (WriteConcern.MAJORITY.getWString().equals(wObj)) {
+            // majority in a replica set means at least w=2
+            w = 2;
+        } else {
+            throw new IllegalArgumentException(
+                    "Unknown write concern: " + wc);
+        }
+        ClusterDescription clusterDescription = client.getClusterDescription();
+        if (clusterDescription.getType() == ClusterType.REPLICA_SET) {
+            return w >= 2;
+        } else {
+            return w >= 1;
+        }
+    }
+
+    /**
+     * Returns {@code true} if the given read concern is sufficient for Oak. On
+     * a replica set Oak expects majority or linear. For a single MongoDB node
+     * deployment local is sufficient.
+     *
+     * @param client the client.
+     * @param rc the read concern.
+     * @return whether the read concern is sufficient.
+     */
+    public static boolean isSufficientReadConcern(@NotNull MongoClient client,
+                                                  @NotNull ReadConcern rc) {
+        ReadConcernLevel r = readConcernLevel(requireNonNull(rc));
+        ClusterDescription clusterDescription = client.getClusterDescription();
+        if (clusterDescription.getType() != ClusterType.REPLICA_SET) {
+            return true;
+        } else {
+            return Objects.nonNull(r) && REPLICA_RC.contains(r);
+        }
+    }
+
+    public static ReadConcernLevel readConcernLevel(ReadConcern readConcern) {
+        if (readConcern.isServerDefault()) {
+            return null;
+        } else {
+            return ReadConcernLevel.fromString(readConcern.asDocument().getString("level").getValue());
+        }
+    }
+}

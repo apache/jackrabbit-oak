@@ -1,0 +1,90 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.jackrabbit.oak.plugins.index;
+
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+/**
+ * Aggregation of a list of editor providers into a single provider.
+ */
+public class CompositeIndexEditorProvider implements IndexEditorProvider {
+
+    @NotNull
+    public static IndexEditorProvider compose(IndexEditorProvider... providers) {
+        switch (providers.length) {
+            case 0:
+                return (type, builder, root, callback) -> null;
+            case 1:
+                return providers[0];
+            default:
+                return new CompositeIndexEditorProvider(providers);
+        }
+    }
+
+    @NotNull
+    public static IndexEditorProvider compose(@NotNull List<IndexEditorProvider> providers) {
+        switch (providers.size()) {
+            case 0:
+                return (type, builder, root, callback) -> null;
+            case 1:
+                return providers.iterator().next();
+            default:
+                return new CompositeIndexEditorProvider(providers);
+        }
+    }
+
+    private final List<IndexEditorProvider> providers;
+
+    private CompositeIndexEditorProvider(List<IndexEditorProvider> providers) {
+        this.providers = providers;
+    }
+
+    public CompositeIndexEditorProvider(IndexEditorProvider... providers) {
+        this(Arrays.asList(providers));
+    }
+
+    @Override
+    public Editor getIndexEditor(
+            @NotNull String type, @NotNull NodeBuilder builder, @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
+            throws CommitFailedException {
+        List<Editor> indexes = new ArrayList<>(providers.size());
+        for (IndexEditorProvider provider : providers) {
+            Editor e = provider.getIndexEditor(type, builder, root, callback);
+            if (e != null) {
+                indexes.add(e);
+            }
+        }
+        return CompositeEditor.compose(indexes);
+    }
+
+    @Override
+    public void close() throws IOException {
+        for (IndexEditorProvider provider : providers) {
+            provider.close();
+        }
+    }
+}

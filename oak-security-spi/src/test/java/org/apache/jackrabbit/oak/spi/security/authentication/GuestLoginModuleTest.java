@@ -1,0 +1,194 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.jackrabbit.oak.spi.security.authentication;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import javax.jcr.Credentials;
+import javax.jcr.GuestCredentials;
+import javax.jcr.SimpleCredentials;
+import javax.security.auth.Subject;
+import javax.security.auth.callback.Callback;
+import javax.security.auth.callback.CallbackHandler;
+import javax.security.auth.callback.UnsupportedCallbackException;
+import javax.security.auth.login.LoginException;
+import javax.security.auth.spi.LoginModule;
+
+import org.apache.jackrabbit.oak.spi.security.authentication.callback.CredentialsCallback;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.junit.Test;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+/**
+ * GuestLoginModuleTest...
+ */
+public class GuestLoginModuleTest {
+
+    private final Subject subject = new Subject();
+    private final Map<String, ?> sharedState = new HashMap<>();
+    private final LoginModule guestLoginModule = new GuestLoginModule();
+
+    @Test
+    public void testNullLogin() throws LoginException {
+        CallbackHandler cbh = new TestCallbackHandler(null);
+        guestLoginModule.initialize(subject, cbh, sharedState, Collections.emptyMap());
+
+        assertTrue(guestLoginModule.login());
+        Object sharedCreds = sharedState.get(AbstractLoginModule.SHARED_KEY_CREDENTIALS);
+        assertNotNull(sharedCreds);
+        assertTrue(sharedCreds instanceof GuestCredentials);
+
+        assertTrue(guestLoginModule.commit());
+        assertFalse(subject.getPrincipals(EveryonePrincipal.class).isEmpty());
+        assertFalse(subject.getPublicCredentials(GuestCredentials.class).isEmpty());
+
+        assertTrue(guestLoginModule.logout());
+    }
+
+    @Test
+    public void testNullLoginReadOnlySubject() throws LoginException {
+        CallbackHandler cbh = new TestCallbackHandler(null);
+        Subject readOnly = new Subject(true, Collections.emptySet(), Collections.emptySet(), Collections.emptySet());
+        guestLoginModule.initialize(readOnly, cbh, sharedState, Collections.emptyMap());
+
+        assertTrue(guestLoginModule.login());
+        Object sharedCreds = sharedState.get(AbstractLoginModule.SHARED_KEY_CREDENTIALS);
+        assertNotNull(sharedCreds);
+        assertTrue(sharedCreds instanceof GuestCredentials);
+
+        assertTrue(guestLoginModule.commit());
+        assertTrue(subject.getPrincipals(EveryonePrincipal.class).isEmpty());
+        assertTrue(subject.getPublicCredentials(GuestCredentials.class).isEmpty());
+
+        // subject is readonly and credentials cannot be destroyed => ignored
+        assertTrue(guestLoginModule.logout());
+    }
+
+    @Test
+    public void testGuestCredentials() throws LoginException {
+        CallbackHandler cbh = new TestCallbackHandler(new GuestCredentials());
+        guestLoginModule.initialize(subject, cbh, sharedState, Collections.emptyMap());
+
+        assertFalse(guestLoginModule.login());
+        assertFalse(sharedState.containsKey(AbstractLoginModule.SHARED_KEY_CREDENTIALS));
+
+        assertFalse(guestLoginModule.commit());
+        assertTrue(subject.getPrincipals().isEmpty());
+        assertTrue(subject.getPublicCredentials().isEmpty());
+
+        assertFalse(guestLoginModule.logout());
+    }
+
+    @Test
+    public void testSimpleCredentials() throws LoginException {
+        CallbackHandler cbh = new TestCallbackHandler(new SimpleCredentials("test", new char[0]));
+        guestLoginModule.initialize(subject, cbh, sharedState, Collections.emptyMap());
+
+        assertFalse(guestLoginModule.login());
+        assertFalse(sharedState.containsKey(AbstractLoginModule.SHARED_KEY_CREDENTIALS));
+
+        assertFalse(guestLoginModule.commit());
+        assertTrue(subject.getPrincipals().isEmpty());
+        assertTrue(subject.getPublicCredentials().isEmpty());
+
+        assertFalse(guestLoginModule.logout());
+    }
+
+    @Test
+    public void testThrowingCallbackhandler() throws LoginException {
+        CallbackHandler cbh = new ThrowingCallbackHandler(true);
+        guestLoginModule.initialize(subject, cbh, sharedState, Collections.emptyMap());
+
+        assertFalse(guestLoginModule.login());
+        assertFalse(sharedState.containsKey(AbstractLoginModule.SHARED_KEY_CREDENTIALS));
+
+        assertFalse(guestLoginModule.commit());
+        assertTrue(subject.getPublicCredentials(GuestCredentials.class).isEmpty());
+
+        assertFalse(guestLoginModule.logout());
+    }
+
+    @Test
+    public void testThrowingCallbackhandler2() throws LoginException {
+        CallbackHandler cbh = new ThrowingCallbackHandler(false);
+        guestLoginModule.initialize(subject, cbh, sharedState, Collections.emptyMap());
+
+        assertFalse(guestLoginModule.login());
+        assertFalse(sharedState.containsKey(AbstractLoginModule.SHARED_KEY_CREDENTIALS));
+
+        assertFalse(guestLoginModule.commit());
+        assertTrue(subject.getPublicCredentials(GuestCredentials.class).isEmpty());
+
+        assertFalse(guestLoginModule.logout());
+    }
+
+    @Test
+    public void testMissingCallbackhandler() throws LoginException {
+        guestLoginModule.initialize(subject, null, sharedState, Collections.emptyMap());
+
+        assertFalse(guestLoginModule.login());
+        assertFalse(sharedState.containsKey(AbstractLoginModule.SHARED_KEY_CREDENTIALS));
+    }
+
+    @Test
+    public void testAbort() throws LoginException {
+        assertTrue(guestLoginModule.abort());
+    }
+
+    @Test
+    public void testLogout() throws LoginException {
+        assertFalse(guestLoginModule.logout());
+    }
+
+    @Test
+    public void testCommitWithReadOnlySubject() throws Exception {
+        subject.setReadOnly();
+        CallbackHandler cbh = new TestCallbackHandler(null);
+        guestLoginModule.initialize(subject, cbh, sharedState, Collections.emptyMap());
+
+        assertTrue(guestLoginModule.login());
+        assertTrue(guestLoginModule.commit());
+
+        assertTrue(subject.getPublicCredentials().isEmpty());
+        assertTrue(subject.getPrincipals().isEmpty());
+    }
+
+    //--------------------------------------------------------------------------
+
+    private static class TestCallbackHandler implements CallbackHandler {
+
+        private final Credentials creds;
+
+        private TestCallbackHandler(Credentials creds) {
+            this.creds = creds;
+        }
+        @Override
+        public void handle(Callback[] callbacks) throws UnsupportedCallbackException {
+            for (Callback callback : callbacks) {
+                if (callback instanceof CredentialsCallback) {
+                    ((CredentialsCallback) callback).setCredentials(creds);
+                } else {
+                    throw new UnsupportedCallbackException(callback);
+                }
+            }
+        }
+    }
+}

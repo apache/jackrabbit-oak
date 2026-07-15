@@ -1,0 +1,829 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# AFFIXES DU DICTIONNAIRE ORTHOGRAPHIQUE FRANÇAIS “CLASSIQUE” v7.5
+# par Olivier R. -- licence MPL 2.0
+# Pour améliorer le dictionnaire, allez sur https://grammalecte.net/
+
+
+
+SET UTF-8
+
+WORDCHARS -’'1234567890.
+
+
+TRY esntiarulodcpmévqfgbhàxèjyêMILzACçôîPâùJFSûBVœRDGNETHXkïOwKWYUëQÉZŒüãÎáöóÈíæÅñäśńÿ
+
+
+MAP 25
+MAP aàâäAÀÂÄ
+MAP eéèêëEÉÈÊË
+MAP iîïyIÎÏY
+MAP oôöOÔÖ
+MAP uùûüUÙÛÜ
+MAP cçCÇ
+MAP bB
+MAP dD
+MAP fF
+MAP gG
+MAP hH
+MAP jJ
+MAP kK
+MAP lL
+MAP mM
+MAP nN
+MAP pP
+MAP qQ
+MAP rR
+MAP sS
+MAP tT
+MAP vV
+MAP wW
+MAP xX
+MAP zZ
+
+REP 110
+REP a â
+REP â a
+REP e é
+REP é e
+REP e ê
+REP ê e
+REP e è
+REP è e
+REP i î
+REP î i
+REP o ô
+REP ô o
+REP u û
+REP û u
+REP A Â
+REP Â A
+REP E É
+REP É E
+REP E Ê
+REP Ê E
+REP E È
+REP È E
+REP I Î
+REP Î I
+REP O Ô
+REP Ô O
+REP U Û
+REP Û U
+REP ^Ca$ Ça
+REP ^l l'
+REP ^d d'
+REP ^n n'
+REP ^s s'
+REP ^j j'
+REP ^m m'
+REP ^t t'
+REP ^c c'
+REP f ph
+REP ph f
+REP c qu
+REP qu c
+REP k qu
+REP qu k
+REP x ct
+REP ct x
+REP bb b
+REP b bb
+REP cc c
+REP c cc
+REP ff f
+REP f ff
+REP ll l
+REP l ll
+REP mm m
+REP m mm
+REP nn n
+REP n nn
+REP pp p
+REP p pp
+REP rr r
+REP r rr
+REP ss s
+REP s ss
+REP ss c
+REP c ss
+REP ss ç
+REP ç ss
+REP tt t
+REP t tt
+REP œ oe
+REP oe œ
+REP æ ae
+REP ae æ
+REP ai é
+REP é ai
+REP ai è
+REP è ai
+REP ai ê
+REP ê ai
+REP ei é
+REP é ei
+REP ei è
+REP è ei
+REP ei ê
+REP ê ei
+REP o au
+REP au o
+REP o eau
+REP eau o
+REP ett èt
+REP èt ett
+REP ell èl
+REP èl ell
+REP t th
+REP th t
+REP ième$ e
+REP ème$ e
+REP è$ e
+REP mn$ min
+REP ogue$ ogiste
+REP ogiste$ ogue
+REP disez$ dites
+REP fesez$ faites
+REP faisez$ faites
+REP puit puits
+REP sanctionnable punissable
+REP questionnable discutable
+REP antitartre détartrant
+REP email courriel
+REP construirent construisirent
+
+
+
+
+KEY azertyuiop|qsdfghjklmù|wxcvbn|aéz|yèu|iço|oàp|aqz|zse|edr|rft|tgy|yhu|uji|iko|olpm|qws|sxd|dcf|fvg|gbh|hnj
+
+ICONV 42
+ICONV ’ '
+ICONV ʼ '
+ICONV ﬃ ffi
+ICONV ﬄ ffl
+ICONV ﬀ ff
+ICONV ﬅ ft
+ICONV ﬁ fi
+ICONV ﬂ fl
+ICONV ﬆ st
+ICONV ſ s
+ICONV à à
+ICONV â â
+ICONV ä ä
+ICONV é é
+ICONV è è
+ICONV ê ê
+ICONV ë ë
+ICONV î î
+ICONV ï ï
+ICONV ô ô
+ICONV ö ö
+ICONV ù ù
+ICONV û û
+ICONV ü ü
+ICONV ÿ ÿ
+ICONV ç ç
+ICONV À À
+ICONV Â Â
+ICONV Ä Ä
+ICONV É É
+ICONV È È
+ICONV Ê Ê
+ICONV Ë Ë
+ICONV Î Î
+ICONV Ï Ï
+ICONV Ô Ô
+ICONV Ö Ö
+ICONV Ù Ù
+ICONV Û Û
+ICONV Ü Ü
+ICONV Ÿ Ÿ
+ICONV Ç Ç
+
+OCONV 1
+OCONV ' ’
+
+
+
+FLAG long
+
+FULLSTRIP
+
+NEEDAFFIX ()
+
+FORBIDDENWORD {}
+
+CIRCUMFIX **
+
+KEEPCASE ||
+
+NOSUGGEST --
+
+
+
+BREAK 7
+BREAK -
+BREAK .
+BREAK ·
+BREAK ^‘
+BREAK ^'
+BREAK '$
+BREAK ’$
+
+
+
+
+
+
+PFX L' Y 34
+PFX L' 0 l' .
+PFX L' a l'A a
+PFX L' à l'À à
+PFX L' â l'Â â
+PFX L' e l'E e
+PFX L' é l'É é
+PFX L' è l'È è
+PFX L' ê l'Ê ê
+PFX L' i l'I i
+PFX L' î l'Î î
+PFX L' o l'O o
+PFX L' ô l'Ô ô
+PFX L' u l'U u
+PFX L' y l'Y y
+PFX L' h l'H h
+PFX L' œ l'Œ œ
+PFX L' æ l'Æ æ
+PFX L' 0 L' .
+PFX L' a L'A a
+PFX L' à L'À à
+PFX L' â L'Â â
+PFX L' e L'E e
+PFX L' é L'É é
+PFX L' è L'È è
+PFX L' ê L'Ê ê
+PFX L' i L'I i
+PFX L' î L'Î î
+PFX L' o L'O o
+PFX L' ô L'Ô ô
+PFX L' u L'U u
+PFX L' y L'Y y
+PFX L' h L'H h
+PFX L' œ L'Œ œ
+PFX L' æ L'Æ æ
+
+PFX D' Y 34
+PFX D' 0 d' .
+PFX D' a d'A a
+PFX D' à d'À à
+PFX D' â d'Â â
+PFX D' e d'E e
+PFX D' é d'É é
+PFX D' è d'È è
+PFX D' ê d'Ê ê
+PFX D' i d'I i
+PFX D' î d'Î î
+PFX D' o d'O o
+PFX D' ô d'Ô ô
+PFX D' u d'U u
+PFX D' y d'Y y
+PFX D' h d'H h
+PFX D' œ d'Œ œ
+PFX D' æ d'Æ æ
+PFX D' 0 D' .
+PFX D' a D'A a
+PFX D' à D'À à
+PFX D' â D'Â â
+PFX D' e D'E e
+PFX D' é D'É é
+PFX D' è D'È è
+PFX D' ê D'Ê ê
+PFX D' i D'I i
+PFX D' î D'Î î
+PFX D' o D'O o
+PFX D' ô D'Ô ô
+PFX D' u D'U u
+PFX D' y D'Y y
+PFX D' h D'H h
+PFX D' œ D'Œ œ
+PFX D' æ D'Æ æ
+
+PFX Q' Y 34
+PFX Q' 0 qu' .
+PFX Q' a qu'A a
+PFX Q' à qu'À à
+PFX Q' â qu'Â â
+PFX Q' e qu'E e
+PFX Q' é qu'É é
+PFX Q' è qu'È è
+PFX Q' ê qu'Ê ê
+PFX Q' i qu'I i
+PFX Q' î qu'Î î
+PFX Q' o qu'O o
+PFX Q' ô qu'Ô ô
+PFX Q' u qu'U u
+PFX Q' y qu'Y y
+PFX Q' h qu'H h
+PFX Q' œ qu'Œ œ
+PFX Q' æ qu'Æ æ
+PFX Q' 0 Qu' .
+PFX Q' a Qu'A a
+PFX Q' à Qu'À à
+PFX Q' â Qu'Â â
+PFX Q' e Qu'E e
+PFX Q' é Qu'É é
+PFX Q' è Qu'È è
+PFX Q' ê Qu'Ê ê
+PFX Q' i Qu'I i
+PFX Q' î Qu'Î î
+PFX Q' o Qu'O o
+PFX Q' ô Qu'Ô ô
+PFX Q' u Qu'U u
+PFX Q' y Qu'Y y
+PFX Q' h Qu'H h
+PFX Q' œ Qu'Œ œ
+PFX Q' æ Qu'Æ æ
+
+PFX Q* Y 6
+PFX Q* 0 quoiqu' .
+PFX Q* 0 puisqu' .
+PFX Q* 0 lorsqu' .
+PFX Q* 0 Quoiqu' .
+PFX Q* 0 Puisqu' .
+PFX Q* 0 Lorsqu' .
+
+PFX Qj Y 1
+PFX Qj 0 jusqu' .
+
+PFX Si Y 1
+PFX Si 0 s' i[le]
+
+SFX S. Y 2
+SFX S. 0 0/L'D'Q' [^sxz]
+SFX S. 0 s/D'Q' [^sxz]
+
+SFX S= Y 1
+SFX S= 0 s/L'D'Q' [^sxz]
+
+SFX X. Y 4
+SFX X. 0 0/L'D'Q' [ul]
+SFX X. 0 x/D'Q' [aeoœ]u
+SFX X. l ux/D'Q' al
+SFX X. il ux/D'Q' ail
+
+SFX A. Y 11
+SFX A. 0 0/L'D'Q' [^sxz]
+SFX A. 0 0/L'D'Q' [sxz]
+SFX A. 0 s/D'Q' [^sxz]
+SFX A. an en/D'Q' an
+SFX A. f ves/D'Q' f
+SFX A. h hes/D'Q' h
+SFX A. s ses/D'Q' s
+SFX A. x xes/D'Q' x
+SFX A. y ies/D'Q' y
+SFX A. zz zzes/D'Q' zz
+SFX A. z zzes/D'Q' [^z]z
+
+SFX I. Y 9
+SFX I. 0 0/L'D'Q' [^sxz]
+SFX I. 0 0/L'D'Q' [sxz]
+SFX I. 0 s/D'Q' [^sxz]
+SFX I. a e/D'Q' a
+SFX I. e i/D'Q' e
+SFX I. en ina/D'Q' en
+SFX I. o i/D'Q' o
+SFX I. um a/D'Q' um
+SFX I. us i/D'Q' us
+
+SFX F. Y 33
+SFX F. 0 0/L'D'Q' [^sxz]
+SFX F. 0 s/D'Q' [^sxz]
+SFX F. 0 0/L'D'Q' [sxz]
+SFX F. 0 e/L'D'Q' [éiïudhlsz]
+SFX F. 0 es/D'Q' [éiïudhlsz]
+SFX F. 0 e/L'D'Q' [^e][knmrt]
+SFX F. 0 es/D'Q' [^e][knmrt]
+SFX F. ec èche/L'D'Q' sec
+SFX F. ec èches/D'Q' sec
+SFX F. ef ève/L'D'Q' ef
+SFX F. ef èves/D'Q' ef
+SFX F. ète étesse/L'D'Q' ète
+SFX F. ète étesses/D'Q' ète
+SFX F. f ve/L'D'Q' [iïu]f
+SFX F. f ves/D'Q' [iïu]f
+SFX F. 0 e/L'D'Q' of
+SFX F. 0 es/D'Q' of
+SFX F. ek èke/L'D'Q' ek
+SFX F. ek èkes/D'Q' ek
+SFX F. en ène/L'D'Q' en
+SFX F. en ènes/D'Q' en
+SFX F. er ère/L'D'Q' er
+SFX F. er ères/D'Q' er
+SFX F. et ète/L'D'Q' et
+SFX F. et ètes/D'Q' et
+SFX F. c que/L'D'Q' [iru]c
+SFX F. c ques/D'Q' [iru]c
+SFX F. 0 que/L'D'Q' grec
+SFX F. 0 ques/D'Q' grec
+SFX F. 0 he/L'D'Q' blanc
+SFX F. 0 hes/D'Q' blanc
+SFX F. 0 ue/L'D'Q' long
+SFX F. 0 ues/D'Q' long
+
+SFX Fs Y 4
+SFX Fs 0 0/L'D'Q' eur
+SFX Fs 0 s/D'Q' eur
+SFX Fs r se/L'D'Q' eur
+SFX Fs r ses/D'Q' eur
+
+SFX Fc Y 4
+SFX Fc 0 0/L'D'Q' [td]eur
+SFX Fc 0 s/D'Q' [td]eur
+SFX Fc eur rice/L'D'Q' [td]eur
+SFX Fc eur rices/D'Q' [td]eur
+
+SFX Fe Y 4
+SFX Fe 0 0/L'D'Q' eur
+SFX Fe 0 s/D'Q' eur
+SFX Fe eur eresse/L'D'Q' eur
+SFX Fe eur eresses/D'Q' eur
+
+SFX Gs Y 2
+SFX Gs r se/L'D'Q' eur
+SFX Gs r ses/D'Q' eur
+
+SFX Gc Y 2
+SFX Gc eur rice/L'D'Q' [td]eur
+SFX Gc eur rices/D'Q' [td]eur
+
+SFX Ge Y 2
+SFX Ge eur eresse/L'D'Q' eur
+SFX Ge eur eresses/D'Q' eur
+
+SFX Go Y 2
+SFX Go eur oresse/L'D'Q' teur
+SFX Go eur oresses/D'Q' teur
+
+SFX F+ Y 19
+SFX F+ 0 0/L'D'Q' [^sxz]
+SFX F+ 0 s/D'Q' [^sxz]
+SFX F+ 0 0/L'D'Q' [sxz]
+SFX F+ 0 sse/L'D'Q' e
+SFX F+ 0 sses/D'Q' e
+SFX F+ 0 fe/L'D'Q' f
+SFX F+ 0 fes/D'Q' f
+SFX F+ 0 le/L'D'Q' l
+SFX F+ 0 les/D'Q' l
+SFX F+ 0 ne/L'D'Q' n
+SFX F+ 0 nes/D'Q' n
+SFX F+ 0 se/L'D'Q' s
+SFX F+ 0 ses/D'Q' s
+SFX F+ 0 te/L'D'Q' t
+SFX F+ 0 tes/D'Q' t
+SFX F+ u l/L'D'Q' [mf]ou
+SFX F+ u ls/D'Q' [mf]ou
+SFX F+ u lle/L'D'Q' [mf]ou
+SFX F+ u lles/D'Q' [mf]ou
+
+SFX Fx Y 21
+SFX Fx 0 0/L'D'Q' foufou
+SFX Fx 0 s/D'Q' foufou
+SFX Fx ufou folle/L'D'Q' foufou
+SFX Fx ufou folles/D'Q' foufou
+SFX Fx 0 0/L'D'Q' frais
+SFX Fx is îche/L'D'Q' frais
+SFX Fx is îches/D'Q' frais
+SFX Fx 0 0/L'D'Q' pignouf
+SFX Fx 0 s/D'Q' pignouf
+SFX Fx 0 e/L'D'Q' pignouf
+SFX Fx 0 es/D'Q' pignouf
+SFX Fx 0 0/L'D'Q' in
+SFX Fx 0 s/D'Q' in
+SFX Fx in igne/L'D'Q' in
+SFX Fx in ignes/D'Q' in
+SFX Fx 0 e/L'D'Q' malin
+SFX Fx 0 es/D'Q' malin
+SFX Fx 0 0/L'D'Q' gu
+SFX Fx 0 s/D'Q' gu
+SFX Fx 0 ë/L'D'Q' gu
+SFX Fx 0 ës/D'Q' gu
+
+SFX W. Y 10
+SFX W. 0 0/L'D'Q' [lu]
+SFX W. l ux/D'Q' al
+SFX W. l le/L'D'Q' al
+SFX W. l les/D'Q' al
+SFX W. 0 x/D'Q' eau
+SFX W. au lle/L'D'Q' eau
+SFX W. au lles/D'Q' eau
+SFX W. 0 0/L'D'Q' ux
+SFX W. x se/L'D'Q' ux
+SFX W. x ses/D'Q' ux
+
+SFX Wx Y 16
+SFX Wx 0 0/L'D'Q' ux
+SFX Wx x sse/L'D'Q' faux
+SFX Wx x sses/D'Q' faux
+SFX Wx x ce/L'D'Q' doux
+SFX Wx x ces/D'Q' doux
+SFX Wx x sse/L'D'Q' roux
+SFX Wx x sses/D'Q' roux
+SFX Wx eux eil/L'D'Q' vieux
+SFX Wx eux eille/L'D'Q' vieux
+SFX Wx eux eilles/D'Q' vieux
+SFX Wx 0 0/L'D'Q' eau
+SFX Wx 0 x/D'Q' eau
+SFX Wx au l/L'D'Q' eau
+SFX Wx au ls/D'Q' eau
+SFX Wx au lle/L'D'Q' eau
+SFX Wx au lles/D'Q' eau
+
+PFX Um Y 29
+PFX Um 0 0/S. .
+PFX Um 0 l' [aàâeèéêiîoôuyœæ]
+PFX Um 0 d'/S. [aàâeèéêiîoôuyœæ]
+PFX Um 0 yotta/S. .
+PFX Um 0 zetta/S. .
+PFX Um 0 exa/S. .
+PFX Um 0 l'exa .
+PFX Um 0 d'exa/S. .
+PFX Um 0 peta/S. .
+PFX Um 0 téra/S. .
+PFX Um 0 giga/S. .
+PFX Um 0 méga/S. .
+PFX Um 0 kilo/S. .
+PFX Um 0 hecto/S. .
+PFX Um 0 l'hecto .
+PFX Um 0 d'hecto/S. .
+PFX Um 0 déca/S. .
+PFX Um 0 déci/S. .
+PFX Um 0 centi/S. .
+PFX Um 0 milli/S. .
+PFX Um 0 micro/S. .
+PFX Um 0 nano/S. .
+PFX Um 0 pico/S. .
+PFX Um 0 femto/S. .
+PFX Um 0 atto/S. .
+PFX Um 0 l'atto .
+PFX Um 0 d'atto/S. .
+PFX Um 0 zepto/S. .
+PFX Um 0 yocto/S. .
+
+PFX Ui Y 28
+PFX Ui 0 l' [aàâeèéêiîoôuyœæ]
+PFX Ui 0 d' [aàâeèéêiîoôuyœæ]
+PFX Ui 0 yotta .
+PFX Ui 0 zetta .
+PFX Ui 0 exa .
+PFX Ui 0 l'exa .
+PFX Ui 0 d'exa .
+PFX Ui 0 peta .
+PFX Ui 0 téra .
+PFX Ui 0 giga .
+PFX Ui 0 méga .
+PFX Ui 0 kilo .
+PFX Ui 0 hecto .
+PFX Ui 0 l'hecto .
+PFX Ui 0 d'hecto .
+PFX Ui 0 déca .
+PFX Ui 0 déci .
+PFX Ui 0 centi .
+PFX Ui 0 milli .
+PFX Ui 0 micro .
+PFX Ui 0 nano .
+PFX Ui 0 pico .
+PFX Ui 0 femto .
+PFX Ui 0 atto .
+PFX Ui 0 l'atto .
+PFX Ui 0 d'atto .
+PFX Ui 0 zepto .
+PFX Ui 0 yocto .
+
+PFX U. N 20
+PFX U. 0 Y .
+PFX U. 0 Z .
+PFX U. 0 E .
+PFX U. 0 P .
+PFX U. 0 T .
+PFX U. 0 G .
+PFX U. 0 M .
+PFX U. 0 k .
+PFX U. 0 h .
+PFX U. 0 da .
+PFX U. 0 d .
+PFX U. 0 c .
+PFX U. 0 m .
+PFX U. 0 µ .
+PFX U. 0 n .
+PFX U. 0 p .
+PFX U. 0 f .
+PFX U. 0 a .
+PFX U. 0 z .
+PFX U. 0 y .
+
+PFX n' Y 1
+PFX n' 0 n' .
+
+PFX q' Y 1
+PFX q' 0 qu' .
+
+PFX d' Y 1
+PFX d' 0 d' .
+
+PFX j' Y 1
+PFX j' 0 j' .
+
+PFX c' Y 2
+PFX c' 0 c' .
+PFX c' 0 ç' .
+
+PFX l' Y 1
+PFX l' 0 l' .
+
+PFX m' Y 1
+PFX m' 0 m' .
+
+PFX t' Y 1
+PFX t' 0 t' .
+
+PFX s' Y 1
+PFX s' 0 s' .
+
+SFX d0 Y 98
+SFX d0 er er/n'q'd'l'm't's' er
+SFX d0 er ant/n'q'd'l'm't's' er
+SFX d0 eter ette/j'n'q'l'm't's' jeter
+SFX d0 eter ette/j'n'q'l'm't's' [^j]eter
+SFX d0 eler elle/j'n'q'l'm't's' ppeler
+SFX d0 eler elle/j'n'q'l'm't's' [^p].eler
+SFX d0 eler elle/j'n'q'l'm't's' épeler
+SFX d0 eter ettes/n'q'l'm't' jeter
+SFX d0 eter ettes/n'q'l'm't' [^j]eter
+SFX d0 eler elles/n'q'l'm't' ppeler
+SFX d0 eler elles/n'q'l'm't' [^p].eler
+SFX d0 eler elles/n'q'l'm't' épeler
+SFX d0 er ons/n'q'l't' er
+SFX d0 er ez/n'q'l'm' er
+SFX d0 eter ettent/n'q'l'm't's' jeter
+SFX d0 eter ettent/n'q'l'm't's' [^j]eter
+SFX d0 eler ellent/n'q'l'm't's' ppeler
+SFX d0 eler ellent/n'q'l'm't's' [^p].eler
+SFX d0 eler ellent/n'q'l'm't's' épeler
+SFX d0 er ais/j'n'q'l'm't' er
+SFX d0 er ait/n'q'l'm't's' er
+SFX d0 er ions/n'q'l't' er
+SFX d0 er iez/n'q'l'm' er
+SFX d0 er aient/n'q'l'm't's' er
+SFX d0 er ai/j'n'q'l'm't' er
+SFX d0 er as/n'q'l'm't' er
+SFX d0 er a/n'q'l'm't's' er
+SFX d0 er âmes/n'q'l't' er
+SFX d0 er âtes/n'q'l'm' er
+SFX d0 er èrent/n'q'l'm't's' er
+SFX d0 eter etterai/j'n'q'l'm't' jeter
+SFX d0 eter etterai/j'n'q'l'm't' [^j]eter
+SFX d0 eler ellerai/j'n'q'l'm't' ppeler
+SFX d0 eler ellerai/j'n'q'l'm't' [^p].eler
+SFX d0 eler ellerai/j'n'q'l'm't' épeler
+SFX d0 eter etteras/n'q'l'm't' jeter
+SFX d0 eter etteras/n'q'l'm't' [^j]eter
+SFX d0 eler elleras/n'q'l'm't' ppeler
+SFX d0 eler elleras/n'q'l'm't' [^p].eler
+SFX d0 eler elleras/n'q'l'm't' épeler
+SFX d0 eter ettera/n'q'l'm't's' jeter
+SFX d0 eter ettera/n'q'l'm't's' [^j]eter
+SFX d0 eler ellera/n'q'l'm't's' ppeler
+SFX d0 eler ellera/n'q'l'm't's' [^p].eler
+SFX d0 eler ellera/n'q'l'm't's' épeler
+SFX d0 eter etterons/n'q'l't' jeter
+SFX d0 eter etterons/n'q'l't' [^j]eter
+SFX d0 eler ellerons/n'q'l't' ppeler
+SFX d0 eler ellerons/n'q'l't' [^p].eler
+SFX d0 eler ellerons/n'q'l't' épeler
+SFX d0 eter etterez/n'q'l'm' jeter
+SFX d0 eter etterez/n'q'l'm' [^j]eter
+SFX d0 eler ellerez/n'q'l'm' ppeler
+SFX d0 eler ellerez/n'q'l'm' [^p].eler
+SFX d0 eler ellerez/n'q'l'm' épeler
+SFX d0 eter etteront/n'q'l'm't's' jeter
+SFX d0 eter etteront/n'q'l'm't's' [^j]eter
+SFX d0 eler elleront/n'q'l'm't's' ppeler
+SFX d0 eler elleront/n'q'l'm't's' [^p].eler
+SFX d0 eler elleront/n'q'l'm't's' épeler
+SFX d0 eter etterais/j'n'q'l'm't' jeter
+SFX d0 eter etterais/j'n'q'l'm't' [^j]eter
+SFX d0 eler ellerais/j'n'q'l'm't' ppeler
+SFX d0 eler ellerais/j'n'q'l'm't' [^p].eler
+SFX d0 eler ellerais/j'n'q'l'm't' épeler
+SFX d0 eter etterait/n'q'l'm't's' jeter
+SFX d0 eter etterait/n'q'l'm't's' [^j]eter
+SFX d0 eler ellerait/n'q'l'm't's' ppeler
+SFX d0 eler ellerait/n'q'l'm't's' [^p].eler
+SFX d0 eler ellerait/n'q'l'm't's' épeler
+SFX d0 eter etterions/n'q'l't' jeter
+SFX d0 eter etterions/n'q'l't' [^j]eter
+SFX d0 eler ellerions/n'q'l't' ppeler
+SFX d0 eler ellerions/n'q'l't' [^p].eler
+SFX d0 eler ellerions/n'q'l't' épeler
+SFX d0 eter etteriez/n'q'l'm' jeter
+SFX d0 eter etteriez/n'q'l'm' [^j]eter
+SFX d0 eler elleriez/n'q'l'm' ppeler
+SFX d0 eler elleriez/n'q'l'm' [^p].eler
+SFX d0 eler elleriez/n'q'l'm' épeler
+SFX d0 eter etteraient/n'q'l'm't's' jeter
+SFX d0 eter etteraient/n'q'l'm't's' [^j]eter
+SFX d0 eler elleraient/n'q'l'm't's' ppeler
+SFX d0 eler elleraient/n'q'l'm't's' [^p].eler
+SFX d0 eler elleraient/n'q'l'm't's' épeler
+SFX d0 er asse/j'n'q'l'm't' er
+SFX d0 er asses/n'q'l'm't' er
+SFX d0 er ât/n'q'l'm't's' er
+SFX d0 er assions/n'q'l't' er
+SFX d0 er assiez/n'q'l'm' er
+SFX d0 er assent/n'q'l'm't's' er
+SFX d0 eter ette/n'l'm't' jeter
+SFX d0 eter ette/n'l'm't' [^j]eter
+SFX d0 eler elle/n'l'm't' ppeler
+SFX d0 eler elle/n'l'm't' [^p].eler
+SFX d0 eler elle/n'l'm't' épeler
+SFX d0 er ons/n'l't' er
+SFX d0 er ez/n'l'm' er
+
+SFX aG Y 19
+SFX aG er er/n'q'd'l'm't's' er
+SFX aG er ant/n'q'd'l'm't's' er
+SFX aG mber mbé/d'q' mber
+SFX aG lter lté/d'q' lter
+SFX aG lter ltés/d'q' lter
+SFX aG lter ltée/d'q' lter
+SFX aG lter ltées/d'q' lter
+SFX aG er e/n'q'l'm't's' er
+SFX aG er ent/n'q'l'm't's' er
+SFX aG er ait/n'q'l'm't's' er
+SFX aG er aient/n'q'l'm't's' er
+SFX aG er a/n'q'l'm't's' er
+SFX aG er èrent/n'q'l'm't's' er
+SFX aG er era/n'q'l'm't's' er
+SFX aG er eront/n'q'l'm't's' er
+SFX aG er erait/n'q'l'm't's' er
+SFX aG er eraient/n'q'l'm't's' er
+SFX aG er ât/n'q'l'm't's' er
+SFX aG er assent/n'q'l'm't's' er
+
+SFX aH Y 39
+SFX aH er er/n'q'd'l'm't's' gger
+SFX aH er ant/n'q'd'l'm't's' gger
+SFX aH er é/q' gger
+SFX aH er e/j'n'q'l'm't's' gger
+SFX aH er es/n'q'l'm't' gger
+SFX aH er ons/n'q'l't' gger
+SFX aH er ez/n'q'l'm' gger
+SFX aH er ent/n'q'l'm't's' gger
+SFX aH er ais/j'n'q'l'm't' gger
+SFX aH er ait/n'q'l'm't's' gger
+SFX aH er ions/n'q'l't' gger
+SFX aH er iez/n'q'l'm' gger
+SFX aH er aient/n'q'l'm't's' gger
+SFX aH er ai/j'n'q'l'm't' gger
+SFX aH er as/n'q'l'm't' gger
+SFX aH er a/n'q'l'm't's' gger
+SFX aH er âmes/n'q'l't' gger
+SFX aH er âtes/n'q'l'm' gger
+SFX aH er èrent/n'q'l'm't's' gger
+SFX aH er erai/j'n'q'l'm't' gger
+SFX aH er eras/n'q'l'm't' gger
+SFX aH er era/n'q'l'm't's' gger
+SFX aH er erons/n'q'l't' gger
+SFX aH er erez/n'q'l'm' gger
+SFX aH er eront/n'q'l'm't's' gger
+SFX aH er erais/j'n'q'l'm't' gger
+SFX aH er erait/n'q'l'm't's' gger
+SFX aH er erions/n'q'l't' gger
+SFX aH er eriez/n'q'l'm' gger
+SFX aH er eraient/n'q'l'm't's' gger
+SFX aH er asse/j'n'q'l'm't' gger
+SFX aH er asses/n'q'l'm't' gger
+SFX aH er ât/n'q'l'm't's' gger
+SFX aH er assions/n'q'l't' gger
+SFX aH er assiez/n'q'l'm' gger
+SFX aH er assent/n'q'l'm't's' gger
+SFX aH er e/n'l'm't' gger
+SFX aH er ons/n'l't' gger
+SFX aH er ez/n'l'm' gger
+
+SFX p+ Y 8
+SFX p+ er é/L'D'Q' er
+SFX p+ er és/D'Q' er
+SFX p+ er ée/L'D'Q' er
+SFX p+ er ées/D'Q' er
+SFX p+ ir i/L'D'Q' ir
+SFX p+ ir is/D'Q' ir
+SFX p+ ir ie/L'D'Q' ir
+SFX p+ ir ies/D'Q' ir
+
+SFX p. Y 2
+SFX p. er é/d'q' er
+SFX p. ir i/d'q' ir

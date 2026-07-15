@@ -1,0 +1,164 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.jackrabbit.oak.plugins.blob.datastore;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.apache.commons.collections4.FluentIterable;
+import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
+import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+
+/**
+ * Utility class for {@link SharedDataStore}.
+ */
+public class SharedDataStoreUtils {
+    /**
+     * Checks if the blob store shared.
+     *
+     * @param blobStore the blob store
+     * @return true if shared
+     */
+    public static boolean isShared(BlobStore blobStore) {
+        return (blobStore instanceof SharedDataStore)
+            && (((SharedDataStore) blobStore).getType() == SharedDataStore.Type.SHARED);
+    }
+
+    /**
+     * Gets the earliest record of the available reference records.
+     * 
+     * @param recs the recs
+     * @return the earliest record
+     */
+    public static DataRecord getEarliestRecord(List<DataRecord> recs) {
+        return Collections.min(recs, Comparator.comparing(DataRecord::getLastModified, Comparator.naturalOrder()));
+    }
+
+    /**
+     * Repositories from which marked references not available.
+     * 
+     * @param repos the repos
+     * @param refs the refs
+     * @return the sets the sets whose references not available
+     */
+    public static Set<String> refsNotAvailableFromRepos(List<DataRecord> repos,
+            List<DataRecord> refs) {
+        return SetUtils.difference(
+                StreamUtils.toStream(
+                        FluentIterable.of(repos)).collect(
+                                Collectors.toMap(
+                                        input -> SharedStoreRecordType.REPOSITORY.getIdFromName(input.getIdentifier().toString()),
+                                        e -> e,
+                                        (oldValue, newValue) -> {
+                                            throw new IllegalArgumentException("Duplicate key found: " + SharedStoreRecordType.REPOSITORY.getIdFromName(newValue.getIdentifier().toString()));
+                                            },
+                                        LinkedHashMap::new))
+                        .keySet(),
+                StreamUtils.toStream(
+                        FluentIterable.of(refs)).collect(
+                                Collectors.groupingBy(
+                                        input -> SharedStoreRecordType.REFERENCES.getIdFromName(input.getIdentifier().toString()),
+                                        LinkedHashMap::new,
+                                        Collectors.toList()))
+                        .keySet());
+    }
+
+    /**
+     * Repositories from which marked references older than retention time are not available.
+     *
+     * @param repos the repos
+     * @param refs the refs
+     * @param referenceTime the retention time
+     * @return the sets the sets whose references not available
+     */
+    public static Set<String> refsNotOld(List<DataRecord> repos,
+        List<DataRecord> refs, long referenceTime) {
+
+        // Filter records older than the retention time and group by the repository id
+        Set<String> qualifyingRefs = refs.stream()
+            .filter(dataRecord -> dataRecord.getLastModified() < referenceTime)
+            .collect(Collectors
+                .groupingBy(input -> SharedStoreRecordType.MARKED_START_MARKER.getIdFromName(input.getIdentifier().toString()),
+                            Collectors.mapping(java.util.function.Function.identity(), Collectors.toList())))
+            .keySet();
+
+        Set<String> repoIds =
+            repos.stream()
+                .map(dataRecord -> SharedStoreRecordType.REPOSITORY.getIdFromName(dataRecord.getIdentifier().toString()))
+                .collect(Collectors.toSet());
+
+        repoIds.removeAll(qualifyingRefs);
+        return repoIds;
+    }
+
+    /**
+     * Encapsulates the different type of records at the data store root.
+     */
+    public enum SharedStoreRecordType {
+        REFERENCES("references"),
+        REPOSITORY("repository"),
+        MARKED_START_MARKER("markedTimestamp"),
+        BLOBREFERENCES("blob");
+
+        private final String type;
+
+        SharedStoreRecordType(String type) {
+            this.type = type;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public String getIdFromName(String name) {
+            return Arrays.stream(name.split(DELIM, 2))
+                    .skip(1)
+                    .findFirst()
+                    .map(s -> s.split("_", 2)[0])
+                    .orElse(null);
+        }
+
+        public String getNameFromId(String id) {
+            return String.join(DELIM, getType(), id);
+        }
+
+        /**
+         * Creates name from id and prefix. The format returned is of the form
+         * references-id_prefix.
+         *
+         * @param id
+         * @param prefix
+         * @return
+         */
+        public String getNameFromIdPrefix(String id, String prefix) {
+            return String.join("_",
+                String.join(DELIM, getType(), id),
+                prefix);
+        }
+
+        static final String DELIM = "-";
+    }
+}
+

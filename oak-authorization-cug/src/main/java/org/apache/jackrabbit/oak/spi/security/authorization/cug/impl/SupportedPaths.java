@@ -1,0 +1,99 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
+
+import java.util.Set;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.jetbrains.annotations.NotNull;
+
+class SupportedPaths {
+
+    private final String[] paths;
+    private final String[] altPaths;
+
+    private final boolean includesRootPath;
+
+    SupportedPaths(@NotNull Set<String> supportedPaths) {
+        this.paths = supportedPaths.toArray(new String[0]);
+        altPaths = new String[supportedPaths.size()];
+
+        boolean foundRootPath = false;
+        int i = 0;
+        for (String p : supportedPaths) {
+            if (PathUtils.denotesRoot(p)) {
+                foundRootPath = true;
+            } else {
+                altPaths[i++] = p + '/';
+            }
+        }
+        includesRootPath = foundRootPath;
+    }
+
+    /**
+     * Test if the specified {@code path} is contained in any of the configured
+     * supported paths for CUGs.
+     *
+     * @param path An absolute path.
+     * @return {@code true} if the specified {@code path} is equal to or a
+     * descendant of one of the configured supported paths.
+     */
+    boolean includes(@NotNull String path) {
+        if (paths.length == 0) {
+            return false;
+        }
+        if (includesRootPath) {
+            return true;
+        }
+        for (String p : altPaths) {
+            if (path.startsWith(p)) {
+                return true;
+            }
+        }
+        for (String p : paths) {
+            if (path.equals(p)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Tests if further evaluation below {@code path} is required as one of the
+     * configured supported paths is a descendant (e.g. there might be CUGs
+     * in the subtree although the specified {@code path} does not directly
+     * support CUGs.
+     *
+     * @param path An absolute path
+     * @return {@code true} if there exists a configured supported path that is
+     * a descendant of the given {@code path}.
+     */
+    boolean mayContainCug(@NotNull String path) {
+        if (paths.length == 0) {
+            return false;
+        }
+        if (includesRootPath || PathUtils.denotesRoot(path)) {
+            return true;
+        }
+        String path2 = path + '/';
+        for (String sp : paths) {
+            if (sp.startsWith(path2)) {
+                return true;
+            }
+        }
+        return false;
+    }
+}

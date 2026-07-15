@@ -1,0 +1,1102 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.jackrabbit.oak;
+
+import static java.util.Objects.requireNonNull;
+import static java.util.Collections.emptyMap;
+import static org.apache.jackrabbit.oak.spi.toggle.Feature.newFeature;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
+
+import javax.jcr.NoSuchWorkspaceException;
+import javax.management.JMException;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import javax.management.StandardMBean;
+import javax.security.auth.login.LoginException;
+
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Descriptors;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
+import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
+import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
+import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
+import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
+import org.apache.jackrabbit.oak.management.RepositoryManager;
+import org.apache.jackrabbit.oak.plugins.atomic.AtomicCounterEditorProvider;
+import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
+import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
+import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexMBeanRegistration;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
+import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounterMBean;
+import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounterOld;
+import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.OrderedPropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindex;
+import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindexMBean;
+import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
+import org.apache.jackrabbit.oak.plugins.itemsave.ItemSaveValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
+import org.apache.jackrabbit.oak.plugins.observation.ChangeCollectorProvider;
+import org.apache.jackrabbit.oak.plugins.version.VersionHook;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.query.stats.QueryStatsMBean;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
+import org.apache.jackrabbit.oak.spi.commit.CompositeConflictHandler;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandlers;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.Observable;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.commit.ResetCommitAttributeHook;
+import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
+import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
+import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
+import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProviderAware;
+import org.apache.jackrabbit.oak.spi.query.QueryLimits;
+import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.state.Clusterable;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
+import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
+import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
+import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
+import org.apache.jackrabbit.oak.spi.descriptors.AggregatingDescriptors;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Builder class for constructing {@link ContentRepository} instances with
+ * a set of specified plugin components. This class acts as a public facade
+ * that hides the internal implementation classes and the details of how
+ * they get instantiated and wired together.
+ *
+ * @since Oak 0.6
+ */
+public class Oak {
+    private static final Logger LOG = LoggerFactory.getLogger(Oak.class);
+
+    /**
+     * Constant for the default workspace name
+     */
+    public static final String DEFAULT_WORKSPACE_NAME = "default";
+
+    private final NodeStore store;
+
+    private final List<RepositoryInitializer> initializers = new ArrayList<>();
+
+    private AnnotatedQueryEngineSettings queryEngineSettings = new AnnotatedQueryEngineSettings();
+
+    private final List<QueryIndexProvider> queryIndexProviders = new ArrayList<>();
+
+    private final List<IndexEditorProvider> indexEditorProviders = new ArrayList<>();
+
+    private final List<CommitHook> commitHooks = new ArrayList<>();
+
+    private final List<Observer> observers = new ArrayList<>();
+
+    private List<EditorProvider> editorProviders = new ArrayList<>();
+
+    private CompositeConflictHandler conflictHandler;
+
+    private SecurityProvider securityProvider;
+
+    private ScheduledExecutorService scheduledExecutor;
+
+    private Executor executor;
+
+    private final Closer closer = Closer.create();
+
+    private ContentRepository contentRepository;
+
+    private Clusterable clusterable;
+
+    /**
+     * Default {@code ScheduledExecutorService} used for scheduling background tasks.
+     * This default spawns up to 32 background thread on an as need basis. Idle
+     * threads are pruned after one minute.
+     * @return  fresh ScheduledExecutorService
+     */
+    public static ScheduledExecutorService defaultScheduledExecutor() {
+        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(32, new ThreadFactory() {
+            private final AtomicInteger counter = new AtomicInteger();
+
+            @Override
+            public Thread newThread(@NotNull Runnable r) {
+                Thread thread = new Thread(r, createName());
+                thread.setDaemon(true);
+                return thread;
+            }
+
+            private String createName() {
+                return "oak-scheduled-executor-" + counter.getAndIncrement();
+            }
+        });
+        executor.setKeepAliveTime(1, TimeUnit.MINUTES);
+        executor.allowCoreThreadTimeOut(true);
+        return executor;
+    }
+
+    /**
+     * Default {@code ExecutorService} used for scheduling concurrent tasks.
+     * This default spawns as many threads as required with a priority of
+     * {@code Thread.MIN_PRIORITY}. Idle threads are pruned after one minute.
+     * @return  fresh ExecutorService
+     */
+    public static ExecutorService defaultExecutorService() {
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS,
+                new SynchronousQueue<Runnable>(), new ThreadFactory() {
+            private final AtomicInteger counter = new AtomicInteger();
+
+            @Override
+            public Thread newThread(@NotNull Runnable r) {
+                Thread thread = new Thread(r, createName());
+                thread.setDaemon(true);
+                thread.setPriority(Thread.MIN_PRIORITY);
+                return thread;
+            }
+
+            private String createName() {
+                return "oak-executor-" + counter.getAndIncrement();
+            }
+        });
+        executor.setKeepAliveTime(1, TimeUnit.MINUTES);
+        executor.allowCoreThreadTimeOut(true);
+        return executor;
+    }
+
+    private synchronized ScheduledExecutorService getScheduledExecutor() {
+        if (scheduledExecutor == null) {
+            scheduledExecutor = defaultScheduledExecutor();
+            closer.register(new ExecutorCloser(scheduledExecutor));
+        }
+        return scheduledExecutor;
+    }
+
+    private synchronized Executor getExecutor() {
+        if (executor == null) {
+            ExecutorService executorService = defaultExecutorService();
+            executor = executorService;
+            closer.register(new ExecutorCloser(executorService));
+        }
+        return executor;
+    }
+
+    private MBeanServer mbeanServer;
+
+    private String defaultWorkspaceName = DEFAULT_WORKSPACE_NAME;
+
+    @SuppressWarnings("unchecked")
+    private static <T> T getValue(
+            Map<?, ?> properties, String name, Class<T> type, T def) {
+        Object value = properties.get(name);
+        if (type.isInstance(value)) {
+            return (T) value;
+        } else {
+            return def;
+        }
+    }
+
+    private static <T> T getValue(
+            Map<?, ?> properties, String name, Class<T> type) {
+        return getValue(properties, name, type, null);
+    }
+
+    private Whiteboard whiteboard = new DefaultWhiteboard() {
+        @Override
+        public <T> Registration register(
+                final Class<T> type, T service, Map<?, ?> properties) {
+            final Registration registration =
+                    super.register(type, service, properties);
+
+            final Closer observerSubscription = Closer.create();
+            Future<?> future = null;
+            if (type == Runnable.class) {
+                Runnable runnable = (Runnable) service;
+                Long period = getValue(properties, "scheduler.period", Long.class);
+                if (period != null) {
+                    Boolean concurrent = getValue(
+                            properties, "scheduler.concurrent",
+                            Boolean.class, Boolean.FALSE);
+                    if (concurrent) {
+                        future = getScheduledExecutor().scheduleAtFixedRate(
+                                runnable, period, period, TimeUnit.SECONDS);
+                    } else {
+                        future = getScheduledExecutor().scheduleWithFixedDelay(
+                                runnable, period, period, TimeUnit.SECONDS);
+                    }
+                }
+            } else if (type == Observer.class && store instanceof Observable) {
+                observerSubscription.register(((Observable) store).addObserver((Observer) service));
+            }
+
+            ObjectName objectName = null;
+            Object name = properties.get("jmx.objectname");
+            if (mbeanServer != null && name != null) {
+                try {
+                    if (name instanceof ObjectName) {
+                        objectName = (ObjectName) name;
+                    } else {
+                        objectName = new ObjectName(String.valueOf(name));
+                    }
+
+                    if (type.getName().equals(service.getClass().getName().concat("MBean"))
+                            || service instanceof StandardMBean){
+                        mbeanServer.registerMBean(service, objectName);
+                    } else {
+                        //Wrap the MBean in std MBean
+                        mbeanServer.registerMBean(new StandardMBean(service, type), objectName);
+                    }
+
+                } catch (JMException e) {
+                    LOG.warn("Unexpected exception while registering MBean of type [{}] " +
+                            "against name [{}]", type, objectName, e);
+                }
+            }
+
+            final Future<?> f = future;
+            final ObjectName on = objectName;
+            return new Registration() {
+                @Override
+                public void unregister() {
+                    if (f != null) {
+                        f.cancel(false);
+                    }
+                    if (on != null) {
+                        try {
+                            mbeanServer.unregisterMBean(on);
+                        } catch (JMException e) {
+                            LOG.warn("Unexpected exception while unregistering MBean of type {} " +
+                                    "against name {} ", type, on, e);
+                        }
+                    }
+                    try {
+                        observerSubscription.close();
+                    } catch (IOException e) {
+                        LOG.warn("Unexpected IOException while unsubscribing observer", e);
+                    }
+
+                    registration.unregister();
+                }
+            };
+        }
+    };
+
+    /**
+     * Map containing the (names -> delayInSecods) of the background indexing
+     * tasks that need to be started with this repository. A {@code null} value
+     * means no background tasks will run.
+     */
+    private Map<String, Long> asyncTasks;
+
+    private boolean failOnMissingIndexProvider;
+
+    public Oak(NodeStore store) {
+        this.store = requireNonNull(store);
+    }
+
+    public Oak() {
+        this(new MemoryNodeStore());
+        // this(new DocumentMK.Builder().open());
+        // this(new LogWrapper(new DocumentMK.Builder().open()));
+    }
+
+    /**
+     * Define the current repository as being a {@link Clusterable} one.
+     *
+     * @param c
+     * @return
+     */
+    @NotNull
+    public Oak with(@NotNull Clusterable c) {
+        this.clusterable = requireNonNull(c);
+        return this;
+    }
+
+    /**
+     * Sets the default workspace name that should be used in case of login
+     * with {@code null} workspace name. If this method has not been called
+     * some internal default value will be used.
+     *
+     * @param defaultWorkspaceName The name of the default workspace.
+     * @return this builder.
+     */
+    @NotNull
+    public Oak with(@NotNull String defaultWorkspaceName) {
+        this.defaultWorkspaceName = requireNonNull(defaultWorkspaceName);
+        return this;
+    }
+
+    @NotNull
+    public Oak with(@NotNull RepositoryInitializer initializer) {
+        initializers.add(requireNonNull(initializer));
+        return this;
+    }
+
+    @NotNull
+    public Oak with(@NotNull QueryLimits settings) {
+        this.queryEngineSettings.setFailTraversal(settings.getFailTraversal());
+        this.queryEngineSettings.setFullTextComparisonWithoutIndex(settings.getFullTextComparisonWithoutIndex());
+        this.queryEngineSettings.setLimitInMemory(settings.getLimitInMemory());
+        this.queryEngineSettings.setLimitReads(settings.getLimitReads());
+        this.queryEngineSettings.setStrictPathRestriction(settings.getStrictPathRestriction());
+        this.queryEngineSettings.setInferenceEnabled(settings.isInferenceEnabled());
+        return this;
+    }
+
+    /**
+     * Associates the given query index provider with the repository to
+     * be created.
+     *
+     * @param provider query index provider
+     * @return this builder
+     */
+    @NotNull
+    public Oak with(@NotNull QueryIndexProvider provider) {
+        queryIndexProviders.add(requireNonNull(provider));
+        return this;
+    }
+
+    /**
+     * Associates the given index hook provider with the repository to
+     * be created.
+     *
+     * @param provider index hook provider
+     * @return this builder
+     */
+    @NotNull
+    public Oak with(@NotNull IndexEditorProvider provider) {
+        indexEditorProviders.add(requireNonNull(provider));
+        return this;
+    }
+
+    /**
+     * Associates the given commit hook with the repository to be created.
+     *
+     * @param hook commit hook
+     * @return this builder
+     */
+    @NotNull
+    public Oak with(@NotNull CommitHook hook) {
+        requireNonNull(hook);
+        withEditorHook();
+        commitHooks.add(hook);
+        return this;
+    }
+
+    /**
+     * Turns all currently tracked editors to an editor commit hook and
+     * associates that hook with the repository to be created. This way
+     * a sequence of {@code with()} calls that alternates between editors
+     * and other commit hooks will have all the editors in the correct
+     * order while still being able to leverage the performance gains of
+     * multiple editors iterating over the changes simultaneously.
+     */
+    private void withEditorHook() {
+        if (!editorProviders.isEmpty()) {
+            commitHooks.add(new EditorHook(
+                    CompositeEditorProvider.compose(editorProviders)));
+            editorProviders = new ArrayList<>();
+        }
+    }
+
+    /**
+     * Associates the given editor provider with the repository to be created.
+     *
+     * @param provider editor provider
+     * @return this builder
+     */
+    @NotNull
+    public Oak with(@NotNull EditorProvider provider) {
+        editorProviders.add(requireNonNull(provider));
+        return this;
+    }
+
+    /**
+     * Associates the given editor with the repository to be created.
+     *
+     * @param editor editor
+     * @return this builder
+     */
+    @NotNull
+    public Oak with(@NotNull final Editor editor) {
+        requireNonNull(editor);
+        return with(new EditorProvider() {
+            @Override @NotNull
+            public Editor getRootEditor(
+                    NodeState before, NodeState after,
+                    NodeBuilder builder, CommitInfo info) {
+                return editor;
+            }
+        });
+    }
+
+    @NotNull
+    public Oak with(@NotNull SecurityProvider securityProvider) {
+        this.securityProvider = requireNonNull(securityProvider);
+        return this;
+    }
+
+    /**
+     * Associates the given conflict handler with the repository to be created.
+     *
+     * @param conflictHandler conflict handler
+     * @return this builder
+     * @deprecated Use {@link #with(ThreeWayConflictHandler)} instead
+     */
+    @Deprecated
+    @NotNull
+    public Oak with(@NotNull ConflictHandler conflictHandler) {
+        return with(ConflictHandlers.wrap(conflictHandler));
+    }
+
+    @NotNull
+    public Oak with(@NotNull ThreeWayConflictHandler conflictHandler) {
+        requireNonNull(conflictHandler);
+        withEditorHook();
+
+        if (this.conflictHandler == null) {
+            if (conflictHandler instanceof CompositeConflictHandler) {
+                this.conflictHandler = (CompositeConflictHandler) conflictHandler;
+            } else {
+                this.conflictHandler = new CompositeConflictHandler();
+                this.conflictHandler.addHandler(conflictHandler);
+            }
+            commitHooks.add(new ConflictHook(conflictHandler));
+        } else {
+            this.conflictHandler.addHandler(conflictHandler);
+        }
+        return this;
+    }
+
+    @NotNull
+    public Oak with(@NotNull ScheduledExecutorService scheduledExecutor) {
+        this.scheduledExecutor = requireNonNull(scheduledExecutor);
+        return this;
+    }
+
+    @NotNull
+    public Oak with(@NotNull Executor executor) {
+        this.executor = requireNonNull(executor);
+        return this;
+    }
+
+    @NotNull
+    public Oak with(@NotNull MBeanServer mbeanServer) {
+        this.mbeanServer = requireNonNull(mbeanServer);
+        return this;
+    }
+
+    @NotNull
+    public Oak with(@NotNull Whiteboard whiteboard) {
+        this.whiteboard = requireNonNull(whiteboard);
+        QueryEngineSettings whiteboardSettings = WhiteboardUtils.getService(whiteboard, QueryEngineSettings.class);
+        if (whiteboardSettings != null) {
+            queryEngineSettings = new AnnotatedQueryEngineSettings(whiteboardSettings);
+        }
+        StatisticsProvider statisticsProvider = WhiteboardUtils.getService(whiteboard, StatisticsProvider.class);
+        if (statisticsProvider != null) {
+            QueryEngineSettings newSettings = new QueryEngineSettings(statisticsProvider);
+            newSettings.setFullTextComparisonWithoutIndex(queryEngineSettings.settings.getFullTextComparisonWithoutIndex());
+            newSettings.setFailTraversal(queryEngineSettings.getFailTraversal());
+            newSettings.setFastQuerySize(queryEngineSettings.isFastQuerySize());
+            newSettings.setLimitInMemory(queryEngineSettings.getLimitInMemory());
+            newSettings.setLimitReads(queryEngineSettings.getLimitReads());
+            queryEngineSettings = new AnnotatedQueryEngineSettings(newSettings);
+        }
+
+        if (queryEngineSettings != null) {
+            Feature sortUnionQueryLegacyModeFeature = newFeature(QueryEngineSettings.FT_SORT_UNION_QUERY_LEGACY_MODE, whiteboard);
+            LOG.info("Registered sort union query legacy mode feature: " + QueryEngineSettings.FT_SORT_UNION_QUERY_LEGACY_MODE);
+            closer.register(sortUnionQueryLegacyModeFeature);
+            queryEngineSettings.setSortUnionQueryLegacyModeFeature(sortUnionQueryLegacyModeFeature);
+            Feature optimizeXPathUnion = newFeature(QueryEngineSettings.FT_OPTIMIZE_XPATH_UNION, whiteboard);
+            LOG.info("Registered optimize XPath union feature: " + QueryEngineSettings.FT_OPTIMIZE_XPATH_UNION);
+            closer.register(optimizeXPathUnion);
+            queryEngineSettings.setOptimizeXPathUnion(optimizeXPathUnion);
+            Feature ignoreLimitInIndexSelection = newFeature(QueryEngineSettings.FT_IGNORE_LIMIT_IN_INDEX_SELECTION, whiteboard);
+            LOG.info("Registered ignore limit in index selection feature: " + QueryEngineSettings.FT_IGNORE_LIMIT_IN_INDEX_SELECTION);
+            closer.register(ignoreLimitInIndexSelection);
+            queryEngineSettings.setIgnoreLimitInIndexSelectionFeature(ignoreLimitInIndexSelection);
+        }
+
+        return this;
+    }
+
+    @NotNull
+    public Oak with(@NotNull Observer observer) {
+        observers.add(requireNonNull(observer));
+        return this;
+    }
+
+    /**
+     * <p>
+     * Enable the asynchronous (background) indexing behavior.
+     * <p>
+     * Please note that when enabling the background indexer, you need to take
+     * care of calling
+     * <code>#shutdown</code> on the <code>executor</code> provided for this Oak instance.
+     * @deprecated Use {@link Oak#withAsyncIndexing(String, long)} instead
+     */
+    @Deprecated
+    public Oak withAsyncIndexing() {
+        return withAsyncIndexing("async", 5);
+    }
+
+    public Oak withFailOnMissingIndexProvider(){
+        failOnMissingIndexProvider = true;
+        return this;
+    }
+
+    public Oak withAtomicCounter() {
+        return with(new AtomicCounterEditorProvider(
+            new Supplier<Clusterable>() {
+                @Override
+                public Clusterable get() {
+                    return clusterable;
+                }
+            },
+            new Supplier<ScheduledExecutorService>() {
+                @Override
+                public ScheduledExecutorService get() {
+                    return scheduledExecutor;
+                }
+            },
+            new Supplier<NodeStore>() {
+                @Override
+                public NodeStore get() {
+                    return store;
+                }
+            },
+            new Supplier<Whiteboard>() {
+                @Override
+                public Whiteboard get() {
+                    return whiteboard;
+                }
+            }));
+    }
+
+    /**
+     * <p>
+     * Enable the asynchronous (background) indexing behavior for the provided
+     * task name.
+     * <p>
+     * Please note that when enabling the background indexer, you need to take
+     * care of calling
+     * <code>#shutdown</code> on the <code>executor</code> provided for this Oak instance.
+     */
+    public Oak withAsyncIndexing(@NotNull String name, long delayInSeconds) {
+        if (this.asyncTasks == null) {
+            asyncTasks = new HashMap<String, Long>();
+        }
+        Validate.checkState(delayInSeconds > 0, "delayInSeconds value must be > 0");
+        asyncTasks.put(AsyncIndexUpdate.checkValidName(name), delayInSeconds);
+        return this;
+    }
+
+    @NotNull
+    public Whiteboard getWhiteboard() {
+        return this.whiteboard;
+    }
+
+    /**
+     * Returns the content repository instance created with the given
+     * configuration. If the repository doesn't exist yet, a new instance will
+     * be created and returned for each subsequent call of this method.
+     *
+     * @return content repository
+     */
+    public ContentRepository createContentRepository() {
+        if (contentRepository == null) {
+            try {
+                contentRepository = createNewContentRepository();
+            } catch ( RuntimeException e ) {
+                IOUtils.closeQuietly(closer);
+                throw e;
+            }
+        }
+
+        return contentRepository;
+    }
+
+    private void initialContent(IndexEditorProvider indexEditors, QueryIndexProvider indexProvider) {
+        List<CommitHook> initHooks = new ArrayList<CommitHook>(commitHooks);
+        initHooks.add(0, ResetCommitAttributeHook.INSTANCE);
+        initHooks.add(new EditorHook(new IndexUpdateProvider(indexEditors)));
+
+        CommitHook initHook = CompositeHook.compose(initHooks);
+        if (!initializers.isEmpty()) {
+            OakInitializer.initialize(store, new CompositeInitializer(initializers), initHook);
+        }
+
+        // FIXME: OAK-810 move to proper workspace initialization
+        // initialize default workspace
+        Iterable<WorkspaceInitializer> workspaceInitializers = IterableUtils.transform(securityProvider.getConfigurations(),
+                sc -> {
+                        WorkspaceInitializer wi = sc.getWorkspaceInitializer();
+                        if (wi instanceof QueryIndexProviderAware) {
+                            ((QueryIndexProviderAware) wi).setQueryIndexProvider(indexProvider);
+                        }
+                        return wi;
+                    });
+        OakInitializer.initialize(workspaceInitializers, store, defaultWorkspaceName, initHook);
+    }
+
+    private ContentRepository createNewContentRepository() {
+        if (securityProvider instanceof WhiteboardAware) {
+            ((WhiteboardAware) securityProvider).setWhiteboard(whiteboard);
+        }
+        for (SecurityConfiguration sc : securityProvider.getConfigurations()) {
+            RepositoryInitializer ri = sc.getRepositoryInitializer();
+            if (ri != RepositoryInitializer.DEFAULT) {
+                initializers.add(ri);
+            }
+            for (ThreeWayConflictHandler tch : sc.getConflictHandlers()) {
+                with(tch);
+            }
+        }
+
+        final RepoStateCheckHook repoStateCheckHook = new RepoStateCheckHook();
+        closer.register(repoStateCheckHook);
+        final List<Registration> regs = new ArrayList<>();
+        closer.register( () -> new CompositeRegistration(regs).unregister() );
+        regs.add(whiteboard.register(Executor.class, getExecutor(), Collections.emptyMap()));
+
+        IndexEditorProvider indexEditors = CompositeIndexEditorProvider.compose(indexEditorProviders);
+        QueryIndexProvider indexProvider = CompositeQueryIndexProvider.compose(queryIndexProviders);
+
+        // force serialize editors
+        withEditorHook();
+        commitHooks.add(repoStateCheckHook);
+
+        initialContent(indexEditors, indexProvider);
+
+        if (asyncTasks != null) {
+            IndexMBeanRegistration indexRegistration = new IndexMBeanRegistration(
+                    whiteboard);
+            regs.add(indexRegistration);
+            for (Entry<String, Long> t : asyncTasks.entrySet()) {
+                AsyncIndexUpdate task = new AsyncIndexUpdate(t.getKey(), store,
+                        indexEditors);
+                indexRegistration.registerAsyncIndexer(task, t.getValue());
+                closer.register(task);
+            }
+
+            PropertyIndexAsyncReindex asyncPI = new PropertyIndexAsyncReindex(
+                    new AsyncIndexUpdate(IndexConstants.ASYNC_REINDEX_VALUE,
+                            store, indexEditors, true), getExecutor());
+            regs.add(registerMBean(whiteboard,
+                    PropertyIndexAsyncReindexMBean.class, asyncPI,
+                    PropertyIndexAsyncReindexMBean.TYPE, "async"));
+        }
+
+        if (NodeCounter.USE_OLD_COUNTER) {
+            regs.add(registerMBean(whiteboard, NodeCounterMBean.class,
+                    new NodeCounterOld(store), NodeCounterMBean.TYPE, "nodeCounter"));
+        } else {
+            NodeCounter nc = new NodeCounter(store);
+            // register both backwards-compatibly
+            regs.add(registerMBean(whiteboard, NodeCounterMBean.class,
+                    nc, NodeCounterMBean.TYPE, "nodeCounter"));
+            // and using org.apache.jackrabbit.oak.api.jmx.NodeCounterMBean, with a different name
+            regs.add(registerMBean(whiteboard, org.apache.jackrabbit.oak.api.jmx.NodeCounterMBean.class,
+                    nc, NodeCounterMBean.TYPE, "nodeCounter2"));
+        }
+
+        regs.add(registerMBean(whiteboard, QueryEngineSettingsMBean.class,
+                queryEngineSettings, QueryEngineSettingsMBean.TYPE, "settings"));
+
+        regs.add(registerMBean(whiteboard, QueryStatsMBean.class,
+                queryEngineSettings.getQueryStats(), QueryStatsMBean.TYPE, "Oak Query Statistics (Extended)"));
+
+        queryEngineSettings.unwrap().getQueryValidator().init(store);
+
+        // add index hooks later to prevent the OakInitializer to do excessive indexing
+        commitHooks.add(new EditorHook(new IndexUpdateProvider(indexEditors, failOnMissingIndexProvider)));
+
+        // Register observer last to prevent sending events while initialising
+        for (Observer observer : observers) {
+            regs.add(whiteboard.register(Observer.class, observer, emptyMap()));
+        }
+
+        RepositoryManager repositoryManager = new RepositoryManager(whiteboard);
+        regs.add(registerMBean(whiteboard, RepositoryManagementMBean.class, repositoryManager,
+                RepositoryManagementMBean.TYPE, repositoryManager.getName()));
+
+        CommitHook composite = CompositeHook.compose(commitHooks);
+        regs.add(whiteboard.register(CommitHook.class, composite, Collections.emptyMap()));
+
+        final Tracker<Descriptors> t = whiteboard.track(Descriptors.class);
+
+        return new ContentRepositoryImpl(
+                store,
+                composite,
+                defaultWorkspaceName,
+                queryEngineSettings.unwrap(),
+                indexProvider,
+                securityProvider,
+                new AggregatingDescriptors(t),
+                newFeature("FT_CLASSIC_MOVE_OAK-10147", whiteboard)) {
+            @Override
+            public void close() throws IOException {
+                super.close();
+                closer.close();
+            }
+        };
+    }
+
+    /**
+     * Creates a content repository with the given configuration
+     * and logs in to the default workspace with no credentials,
+     * returning the resulting content session.
+     * <p>
+     * This method exists mostly as a convenience for one-off tests,
+     * as there's no way to create other sessions for accessing the
+     * same repository.
+     * <p>
+     * There is typically no need to explicitly close the returned
+     * session unless the repository has explicitly been configured
+     * to reserve some resources until all sessions have been closed.
+     * The repository will be garbage collected once the session is no
+     * longer used.
+     *
+     * @return content session
+     */
+    public ContentSession createContentSession() {
+        try {
+            return createContentRepository().login(null, null);
+        } catch (NoSuchWorkspaceException e) {
+            throw new IllegalStateException("Default workspace not found", e);
+        } catch (LoginException e) {
+            throw new IllegalStateException("Anonymous login not allowed", e);
+        }
+    }
+
+    /**
+     * Creates a content repository with the given configuration
+     * and returns a {@link Root} instance after logging in to the
+     * default workspace with no credentials.
+     * <p>
+     * This method exists mostly as a convenience for one-off tests, as
+     * the returned root is the only way to access the session or the
+     * repository.
+     * <p>
+     * Note that since there is no way to close the underlying content
+     * session, this method should only be used when no components that
+     * require sessions to be closed have been configured. The repository
+     * and the session will be garbage collected once the root is no longer
+     * used.
+     *
+     * @return root instance
+     */
+    public Root createRoot() {
+        return createContentSession().getLatestRoot();
+    }
+
+    /**
+     * CommitHook to ensure that commit only go through till repository is not
+     * closed. Once repository is closed the commits would be failed
+     */
+    private static class RepoStateCheckHook implements CommitHook, Closeable {
+        private volatile boolean closed;
+
+        @NotNull
+        @Override
+        public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) throws CommitFailedException {
+            if (closed){
+                throw new CommitFailedException(
+                        CommitFailedException.OAK, 2, "ContentRepository closed");
+            }
+            return after;
+        }
+
+        @Override
+        public void close() throws IOException {
+            this.closed = true;
+        }
+    }
+
+    /**
+     * Settings of the query engine. This instance is an AnnotatedStandardMBean.
+     */
+    private static final class AnnotatedQueryEngineSettings extends AnnotatedStandardMBean implements QueryEngineSettingsMBean {
+
+        private final QueryEngineSettings settings;
+
+        /**
+         * Create a new query engine settings object. Creating the object is
+         * relatively slow, and at runtime, as few such objects as possible should
+         * be created (ideally, only one per Oak instance). Creating new instances
+         * also means they can not be configured using JMX, as one would expect.
+         */
+        private AnnotatedQueryEngineSettings(QueryEngineSettings settings) {
+            super(QueryEngineSettingsMBean.class);
+            this.settings = settings;
+        }
+
+        /**
+         * Create a new query engine settings object. Creating the object is
+         * relatively slow, and at runtime, as few such objects as possible should
+         * be created (ideally, only one per Oak instance). Creating new instances
+         * also means they can not be configured using JMX, as one would expect.
+         */
+        private AnnotatedQueryEngineSettings() {
+            this(new QueryEngineSettings());
+        }
+
+        @Override
+        public long getLimitInMemory() {
+            return settings.getLimitInMemory();
+        }
+
+        @Override
+        public void setLimitInMemory(long limitInMemory) {
+            settings.setLimitInMemory(limitInMemory);
+        }
+
+        @Override
+        public long getLimitReads() {
+            return settings.getLimitReads();
+        }
+
+        @Override
+        public void setLimitReads(long limitReads) {
+            settings.setLimitReads(limitReads);
+        }
+
+        @Override
+        public int getPrefetchCount() {
+            return settings.getPrefetchCount();
+        }
+
+        @Override
+        public void setPrefetchCount(int prefetchCount) {
+            settings.setPrefetchCount(prefetchCount);
+        }
+
+        @Override
+        public String getAutoOptionsMappingJson() {
+            return settings.getAutoOptionsMappingJson();
+        }
+
+        @Override
+        public void setAutoOptionsMappingJson(String json) {
+            settings.setAutoOptionsMappingJson(json);
+        }
+
+        @Override
+        public boolean getFailTraversal() {
+            return settings.getFailTraversal();
+        }
+
+        @Override
+        public void setFailTraversal(boolean failQueriesWithoutIndex) {
+            settings.setFailTraversal(failQueriesWithoutIndex);
+        }
+
+        @Override
+        public boolean isInferenceEnabled() {
+            return settings.isInferenceEnabled();
+        }
+
+        @Override
+        public void setInferenceEnabled(boolean isInferenceEnabled) {
+            settings.setInferenceEnabled(isInferenceEnabled);
+        }
+
+        @Override
+        public boolean isFastQuerySize() {
+            return settings.isFastQuerySize();
+        }
+
+        @Override
+        public void setFastQuerySize(boolean fastQuerySize) {
+            settings.setFastQuerySize(fastQuerySize);
+        }
+
+        public String getStrictPathRestriction() {
+            return settings.getStrictPathRestriction();
+        }
+
+        public void setStrictPathRestriction(String strictPathRestriction) {
+            settings.setStrictPathRestriction(strictPathRestriction);
+        }
+
+        public void setPrefetchFeature(@Nullable Feature prefetch) {
+            settings.setPrefetchFeature(prefetch);
+        }
+
+        public void setSortUnionQueryLegacyModeFeature(@Nullable Feature feature) {
+            settings.setSortUnionQueryLegacyModeFeature(feature);
+        }
+
+        public void setOptimizeXPathUnion(@Nullable Feature feature) {
+            settings.setOptimizeXPathUnion(feature);
+        }
+
+        public void setIgnoreLimitInIndexSelectionFeature(@Nullable Feature feature) {
+            settings.setIgnoreLimitInIndexSelectionFeature(feature);
+        }
+
+        @Override
+        public void setQueryValidatorPattern(String key, String pattern, String comment, boolean failQuery) {
+            settings.getQueryValidator().setPattern(key, pattern, comment, failQuery);
+        }
+
+        @Override
+        public String getQueryValidatorJson() {
+            return settings.getQueryValidator().getJson();
+        }
+
+        public QueryStatsMBean getQueryStats() {
+            return settings.getQueryStats();
+        }
+
+        public QueryEngineSettings unwrap() {
+            return settings;
+        }
+
+        @Override
+        public String toString() {
+            return settings.toString();
+        }
+
+        void setFullTextComparisonWithoutIndex(boolean fullTextComparisonWithoutIndex) {
+            this.settings.setFullTextComparisonWithoutIndex(fullTextComparisonWithoutIndex);
+        }
+
+        public void setIgnoredClassNamesInCallTrace(@NotNull String[] packageNames) {
+            settings.setIgnoredClassNamesInCallTrace(packageNames);
+        }
+
+        public @NotNull String[] getIgnoredClassNamesInCallTrace() {
+            return settings.getIgnoredClassNamesInCallTrace();
+        }
+    }
+
+    public static class OakDefaultComponents {
+
+        /**
+         * @deprecated create a new instance of {@link OakDefaultComponents} instead.
+         */
+        @Deprecated
+        public static final OakDefaultComponents INSTANCE = new OakDefaultComponents();
+
+        private final Iterable<CommitHook> commitHooks = List.of(new VersionHook());
+
+        private  final Iterable<RepositoryInitializer> repositoryInitializers = List
+                .of(new InitialContent());
+
+        private  final Iterable<EditorProvider> editorProviders = List.of(
+                new ItemSaveValidatorProvider(), new NameValidatorProvider(), new NamespaceEditorProvider(),
+                new TypeEditorProvider(), new ConflictValidatorProvider(), new ChangeCollectorProvider());
+
+        private  final Iterable<IndexEditorProvider> indexEditorProviders = List.of(
+                new ReferenceEditorProvider(), new PropertyIndexEditorProvider(), new NodeCounterEditorProvider(),
+                new OrderedPropertyIndexEditorProvider());
+
+        private  final Iterable<QueryIndexProvider> queryIndexProviders = List
+                .of(new ReferenceIndexProvider(), new PropertyIndexProvider(), new NodeTypeIndexProvider());
+
+        private  final SecurityProvider securityProvider = SecurityProviderBuilder.newBuilder().build();
+
+        public OakDefaultComponents() {
+        }
+
+        public Iterable<CommitHook> commitHooks() {
+            return commitHooks;
+        }
+
+        public Iterable<RepositoryInitializer> repositoryInitializers() {
+            return repositoryInitializers;
+        }
+
+        public Iterable<EditorProvider> editorProviders() {
+            return editorProviders;
+        }
+
+        public Iterable<IndexEditorProvider> indexEditorProviders() {
+            return indexEditorProviders;
+        }
+
+        public Iterable<QueryIndexProvider> queryIndexProviders() {
+            return queryIndexProviders;
+        }
+
+        public SecurityProvider securityProvider() {
+            return securityProvider;
+        }
+    }
+
+}
