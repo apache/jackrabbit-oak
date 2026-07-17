@@ -66,7 +66,7 @@
     <derby.version>10.16.1.1</derby.version>
     <!-- DO NOT upgrade to non-LTS versions of jackson; see https://github.com/FasterXML/jackson/wiki/Jackson-Releases -->
     <jackson.version>2.19.4</jackson.version>
-    <testcontainers.version>2.0.3</testcontainers.version>
+    <testcontainers.version>2.0.5</testcontainers.version>
     <pax-exam.version>4.14.0</pax-exam.version>
     <pax-url.version>2.6.17</pax-url.version>
     <groovy.version>3.0.25</groovy.version>
