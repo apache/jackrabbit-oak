@@ -180,7 +180,8 @@ Toggles are disabled by default and can be enabled without redeployment.
 - Query engine toggles (`FT_OAK-11949`, `FT_OAK-12007`) registered in `oak-core/.../Oak.java`
 - Document store toggles (throttling, merge lock) in
   `oak-store-document/.../DocumentNodeStoreBuilder.java` (embedded verification and full GC are
-  controlled only via OSGi `embeddedVerificationEnabled` and `fullGCEnabled`, not runtime toggles)
+  controlled only via OSGi `embeddedVerificationEnabled` and `fullGCEnabled`, not runtime toggles;
+  child-order property cleanup is always enabled and has no toggle at all)
 - Some features also support a system property fallback (e.g., `oak.classicMove`)
 
 ## Code Conventions
