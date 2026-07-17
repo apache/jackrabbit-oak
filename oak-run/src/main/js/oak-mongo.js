@@ -352,22 +352,31 @@ var oak = (function(global){
     };
 
     /**
-     * Removes the complete subtree rooted at the given path, deleting leaf nodes first and then parents.
+     * Removes the subtree rooted at the given path, deleting leaf nodes first and then parents.
      * This ensures that if the operation is interrupted, parent nodes remain available for resuming.
      *
      * @memberof oak
      * @method removeDescendantsAndSelfWithLeavesFirst
      * @param {string} path the path of the subtree to remove.
+     * @param {boolean} [removeRoot=false] whether to remove the root node at path.
      * @returns {Object} Object with deletedCount property
+     * @throws {Error} if path is "/".
      */
-    api.removeDescendantsAndSelfWithLeavesFirst = function(path) {
-        var count = 0;
-        var depth = pathDepth(path);
-        var prefix = path + "/";
-        var escapedPrefix = escapeForRegExp(prefix);
+    api.removeDescendantsAndSelfWithLeavesFirst = function(path, removeRoot) {
+        if (removeRoot === undefined) {
+            removeRoot = false;
+        }
+        if (path === "/") {
+            throw new Error("Deleting root path '/' is forbidden.");
+        }
+        let count = 0;
+        let depth = pathDepth(path);
+        let prefix = path + "/";
+        let escapedPrefix = escapeForRegExp(prefix);
 
         // check if root exists
-        var rootExists = db.nodes.findOne({_id: depth + ":" + path}) !== null;
+        let rootExists = db.nodes.findOne({_id: depth + ":" + path}, {_id: 1}) !== null
+                || db.nodes.findOne(longPathQuery(path), {_id: 1}) !== null;
         print("Checked root existence at depth " + depth + ": " + (rootExists ? "found" : "not found"));
         if (!rootExists) {
             return {deletedCount: 0};
@@ -375,19 +384,19 @@ var oak = (function(global){
 
         // Check each depth level one at a time, until no more nodes are found.
         // The process stops automatically when there are no nodes at the next depth
-        var maxDepth = depth;
-        var currentDepth = depth + 1;
+        let maxDepth = depth;
+        let currentDepth = depth + 1;
 
         while (true) {
             // Check regular nodes at this depth
-            var hasRegularNodes = db.nodes.findOne({
+            let hasRegularNodes = db.nodes.findOne({
                 _id: new RegExp("^" + currentDepth + ":" + escapedPrefix)
             }, {_id: 1}) !== null;
             print("Checked regular nodes at depth " + currentDepth + ": " + (hasRegularNodes ? "found" : "not found"));
 
             // Check long path nodes at this depth
-            var hasLongPathNodes = db.nodes.findOne({
-                _id: currentDepth + ":h",
+            let hasLongPathNodes = db.nodes.findOne({
+                _id: new RegExp("^" + currentDepth + ":h"),
                 _path: new RegExp("^" + escapedPrefix)
             }, {_id: 1}) !== null;
             print("Checked long path nodes at depth " + currentDepth + ": " + (hasLongPathNodes ? "found" : "not found"));
@@ -405,24 +414,26 @@ var oak = (function(global){
 
         // If maxDepth equals depth, only root exists
         if (maxDepth === depth) {
-            var rootResult = db.nodes.deleteMany({_id: depth + ":" + path});
+            if (!removeRoot) {
+                return {deletedCount: 0};
+            }
+            let rootResult = db.nodes.deleteMany({_id: depth + ":" + path});
             print("Deleted root regular nodes at depth " + depth + ": " + rootResult.deletedCount + " nodes");
-            var longPathResult = db.nodes.deleteMany(longPathQuery(path));
+            let longPathResult = db.nodes.deleteMany(longPathQuery(path));
             print("Deleted root long path nodes at depth " + depth + ": " + longPathResult.deletedCount + " nodes");
             return {deletedCount: rootResult.deletedCount + longPathResult.deletedCount};
         }
 
         // Delete from deepest level to root (children only, excludes root)
-        for (var d = maxDepth; d > depth; d--) {
-            var bulkOps = [];
+        for (let d = maxDepth; d > depth; d--) {
+            let bulkOps = [];
 
             // Add bulk operations for this depth level
-            bulkOps.push({ deleteMany: { filter: longPathFilter(d, prefix)}});
-            bulkOps.push({ deleteMany: { filter: {_id: pathFilter(d, prefix)}}});
+            bulkOps.push({ deleteMany: { filter: longPathFilter(d, prefix)}}, {deleteMany: {filter: {_id: pathFilter(d, prefix)}}});
 
             // Execute bulk operations for this depth level
             if (bulkOps.length > 0) {
-                var bulkResult = db.nodes.bulkWrite(bulkOps, {
+                let bulkResult = db.nodes.bulkWrite(bulkOps, {
                     ordered: false,           // Allow parallel execution
                     writeConcern: {w: 1}       // Adjust based on consistency needs
                 });
@@ -432,12 +443,14 @@ var oak = (function(global){
         }
 
         // now remove root
-        var rootBulkOps = [];
-        rootBulkOps.push({ deleteMany: { filter: longPathQuery(path)}});
-        rootBulkOps.push({ deleteMany: { filter: {_id: depth + ":" + path}}});
+        if (!removeRoot) {
+            return {deletedCount: count};
+        }
+        let rootBulkOps = [];
+        rootBulkOps.push({ deleteMany: { filter: longPathQuery(path)}}, {deleteMany: {filter: {_id: depth + ":" + path}}});
 
         if (rootBulkOps.length > 0) {
-            var rootBulkResult = db.nodes.bulkWrite(rootBulkOps, {
+            let rootBulkResult = db.nodes.bulkWrite(rootBulkOps, {
                 ordered: false,           // Allow parallel execution
                 writeConcern: {w: 1}       // Adjust based on consistency needs
             });
