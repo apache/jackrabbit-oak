@@ -119,8 +119,27 @@ public class AeronClusterTuningIntrospectionTest {
         resetSourceRegistry();
     }
 
+    @Test
+    public void effectiveValuesUseStandaloneRuntimeTopologyWhenOsgiSnapshotIsEmpty() {
+        System.setProperty("consensus.enabled", "true");
+        System.setProperty("aeron.cluster.nodeId", "2");
+        System.setProperty("consensus.self.url", "http://localhost:8094");
+        System.setProperty("consensus.peers", "http://localhost:8090,http://localhost:8092");
+
+        Map<String, Object> values = AeronClusterTuningIntrospection.effectiveValues();
+
+        assertEquals(true, values.get("enabled"));
+        assertEquals(2, values.get("node_id"));
+        assertEquals(true, values.get("self_url_configured"));
+        assertEquals(2, values.get("peer_urls_count"));
+    }
+
     private static void clearProperties() {
         System.clearProperty(AeronClusterTopology.PORT_BASE_PROPERTY);
+        System.clearProperty("consensus.enabled");
+        System.clearProperty("aeron.cluster.nodeId");
+        System.clearProperty("consensus.self.url");
+        System.clearProperty("consensus.peers");
         System.clearProperty("oak.cluster.environment");
         System.clearProperty("oak.cluster.session.timeout.minutes");
         System.clearProperty("oak.cluster.media.driver.timeout.ms");

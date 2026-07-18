@@ -24,11 +24,13 @@ import io.aeron.cluster.service.ClusteredService;
 import io.aeron.logbuffer.Header;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.IdleStrategy;
-import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.consensus.config.BlockchainConfig;
+import org.apache.jackrabbit.oak.segment.consensus.eth.BeaconChainClient;
 import org.apache.jackrabbit.oak.segment.consensus.leader.ValidatorRole;
 import org.apache.jackrabbit.oak.segment.consensus.service.MutationAuditMetadata;
-import org.apache.jackrabbit.oak.segment.consensus.eth.BeaconChainClient;
 import org.apache.jackrabbit.oak.segment.consensus.util.SegmentReplicator;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.http.server.util.JsonParser;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -239,7 +241,8 @@ public class AeronConsensusEngine implements ClusteredService {
     private final int reconnectMaxAttempts;
     
     // ✅ ADR 025: Replication lag monitoring
-    private volatile long leaderLogPosition = 0; // Track leader's position for lag calculation
+    private volatile long leaderLogPosition = -1; // Track leader's position for lag calculation
+    private volatile long leaderLogPositionObservedAtMs = 0L;
     
     // Track validator join times (for probation, if needed)
     private final Map<String, Long> validatorJoinTimes = new ConcurrentHashMap<>();
@@ -654,14 +657,19 @@ public class AeronConsensusEngine implements ClusteredService {
      * @param beaconApiUrl Beacon Chain API URL (e.g., https://beaconcha.in/api)
      */
     public void initializeEthereumIntegration(String beaconApiUrl) {
-        log.info("Initializing Ethereum integration - Beacon API: {}, Current epoch: {}", beaconApiUrl, currentEthereumEpoch);
-        
         this.beaconClient = new BeaconChainClient(beaconApiUrl);
-        
-        // Start unified epoch polling (single source of truth)
+        if (beaconClient.getNetworkMode() == BlockchainConfig.Mode.MOCK) {
+            log.info("Initializing Ethereum epoch integration - mode=MOCK, source=local-clock, "
+                + "externalNetworkPolling=false, currentEpoch={}", currentEthereumEpoch);
+        } else {
+            log.info("Initializing Ethereum epoch integration - mode={}, Beacon API: {}, currentEpoch={}",
+                beaconClient.getNetworkMode(), beaconApiUrl, currentEthereumEpoch);
+        }
+
+        // Start unified epoch refresh (single source of truth)
         beaconClient.startBackgroundPolling();
-        
-        log.info("Ethereum integration initialized with unified epoch polling");
+
+        log.info("Ethereum epoch integration initialized with unified refresh scheduling");
     }
     
     /**
@@ -676,6 +684,14 @@ public class AeronConsensusEngine implements ClusteredService {
             return (int) beaconClient.getCachedFinalizedEpoch();
         }
         return currentEthereumEpoch; // Fallback to old cached value
+    }
+
+    /**
+     * Return the process-owned Beacon client so queue services can share the
+     * same cache and polling lifecycle.
+     */
+    public BeaconChainClient getBeaconClient() {
+        return beaconClient;
     }
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1792,17 +1808,8 @@ public class AeronConsensusEngine implements ClusteredService {
         }
         
         int memberId = cluster != null ? cluster.memberId() : -1;
-        long timestamp = cluster != null ? cluster.time() : System.currentTimeMillis();
-        
-        // Record leadership change
-        LeadershipChange change = new LeadershipChange(
-            timestamp,
-            newRole,
-            previousRole,
-            getCurrentTerm(), // ✅ ADR 025: Use native leadershipTermId()
-            memberId,
-            selfUrl
-        );
+        long timestamp = System.currentTimeMillis();
+        long clusterTime = cluster != null ? cluster.time() : -1L;
 
         // ✅ ADR 025: Track term on role change (Aeron doesn't expose leadershipTermId on Cluster interface)
         if (newRole == Cluster.Role.LEADER && previousRole != Cluster.Role.LEADER) {
@@ -1812,6 +1819,16 @@ public class AeronConsensusEngine implements ClusteredService {
         if (newRole == Cluster.Role.FOLLOWER) {
             refreshLeaderTermIfNeeded(true);
         }
+
+        LeadershipChange change = new LeadershipChange(
+            timestamp,
+            clusterTime,
+            newRole,
+            previousRole,
+            getCurrentTerm(),
+            memberId,
+            selfUrl
+        );
         
         if (leaderTracker != null) {
             leaderTracker.recordChange(
@@ -1820,7 +1837,8 @@ public class AeronConsensusEngine implements ClusteredService {
                 change.term,
                 change.memberId,
                 change.memberUrl,
-                change.timestamp
+                change.timestamp,
+                change.clusterTime
             );
             leaderTracker.invalidateCache();
             log.debug("Leadership history: {} total changes", leaderTracker.getLeadershipHistory(0).size());
@@ -2261,12 +2279,19 @@ public class AeronConsensusEngine implements ClusteredService {
             );
             String response = reader.lines().collect(java.util.stream.Collectors.joining());
             reader.close();
-            java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("\"term\"\\s*:\\s*(\\d+)").matcher(response);
-            if (matcher.find()) {
-                int leaderTerm = Integer.parseInt(matcher.group(1));
+            String leaderTermValue = JsonParser.extractField(response, "term");
+            if (leaderTermValue != null) {
+                int leaderTerm = Integer.parseInt(leaderTermValue);
                 if (leaderTerm > currentTerm) {
                     currentTerm = leaderTerm;
                     log.info("Synced term from leader: {}", currentTerm);
+                }
+            }
+            String leaderLogPositionValue = JsonParser.extractField(response, "logPosition");
+            if (leaderLogPositionValue != null) {
+                long observedLeaderLogPosition = Long.parseLong(leaderLogPositionValue);
+                if (observedLeaderLogPosition >= 0) {
+                    updateLeaderLogPosition(observedLeaderLogPosition);
                 }
             }
         } catch (Exception e) {
@@ -2402,7 +2427,15 @@ public class AeronConsensusEngine implements ClusteredService {
     private void recordLeadershipChange(Cluster.Role newRole, Cluster.Role previousRole, 
                                         int term, int memberId, String memberUrl) {
         if (leaderTracker != null) {
-            leaderTracker.recordChange(newRole, previousRole, term, memberId, memberUrl, System.currentTimeMillis());
+            leaderTracker.recordChange(
+                newRole,
+                previousRole,
+                term,
+                memberId,
+                memberUrl,
+                System.currentTimeMillis(),
+                cluster != null ? cluster.time() : -1L
+            );
         }
     }
     
@@ -2463,6 +2496,7 @@ public class AeronConsensusEngine implements ClusteredService {
         backgroundCoordinator.scheduleLeaderDiscovery(cluster, leaderDiscoveryService, leaderUrl -> {
             this.currentLeader = leaderUrl;
             log.info("Discovered leader via LeaderDiscoveryService: {}", leaderUrl);
+            refreshLeaderTermIfNeeded(true);
         });
     }
 
@@ -2766,7 +2800,10 @@ public class AeronConsensusEngine implements ClusteredService {
      * @param position Leader's current log position
      */
     public void updateLeaderLogPosition(long position) {
-        this.leaderLogPosition = position;
+        if (position >= 0) {
+            this.leaderLogPosition = position;
+            this.leaderLogPositionObservedAtMs = System.currentTimeMillis();
+        }
     }
     
     /**
@@ -2775,14 +2812,14 @@ public class AeronConsensusEngine implements ClusteredService {
      * <p>Calculates how far behind this follower is from the leader's log position.
      * Useful for monitoring cluster health and detecting slow followers.
      * 
-     * @return Number of messages behind leader, or 0 if leader or lag unknown
+     * @return Number of messages behind leader, or -1 if the leader position is unknown
      */
     public long getReplicationLag() {
         if (cluster == null || cluster.role() == Cluster.Role.LEADER) {
             return 0; // Leaders have no lag
         }
         
-        if (leaderLogPosition == 0) {
+        if (!hasFreshLeaderLogPosition()) {
             return -1; // Leader position unknown (haven't received heartbeat yet)
         }
         
@@ -2799,7 +2836,29 @@ public class AeronConsensusEngine implements ClusteredService {
         if (cluster == null) {
             return null;
         }
-        return clusterStateView.buildReplicationLagStatus(cluster, leaderLogPosition, getReplicationLag());
+        if (cluster.role() == Cluster.Role.FOLLOWER) {
+            refreshLeaderTermIfNeeded(false);
+        }
+        long effectiveLeaderLogPosition = cluster.role() == Cluster.Role.LEADER
+            ? cluster.logPosition()
+            : leaderLogPosition;
+        java.util.Map<String, Object> status = clusterStateView.buildReplicationLagStatus(
+            cluster,
+            effectiveLeaderLogPosition,
+            getReplicationLag()
+        );
+        status.put("measurementAgeMs", cluster.role() == Cluster.Role.LEADER
+            ? 0L
+            : hasFreshLeaderLogPosition()
+                ? Math.max(0L, System.currentTimeMillis() - leaderLogPositionObservedAtMs)
+                : null);
+        return status;
+    }
+
+    private boolean hasFreshLeaderLogPosition() {
+        return leaderLogPosition >= 0
+            && leaderLogPositionObservedAtMs > 0
+            && (System.currentTimeMillis() - leaderLogPositionObservedAtMs) <= (LEADER_TERM_TTL_MS * 2L);
     }
     
     private void markHeartbeat() {

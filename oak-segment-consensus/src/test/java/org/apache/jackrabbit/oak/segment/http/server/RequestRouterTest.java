@@ -1570,7 +1570,31 @@ public class RequestRouterTest {
 
             verify(response).setStatus(HttpServletResponse.SC_OK);
             assertTrue(body.toString().contains("\"latestHead\": \"fallback-file-head\""));
-            assertTrue(body.toString().contains("\"committedHead\": \"fallback-file-head\""));
+            assertTrue(body.toString().contains("\"committedHead\": null"));
+        });
+    }
+
+    @Test
+    public void testHeadRouteDoesNotPromoteLatestAeronHeadToCommitted() throws Exception {
+        withRoutingProperties(true, () -> {
+            ServerContext context = newContextWithHead("file-head");
+            AeronConsensusEngine engine = mock(AeronConsensusEngine.class);
+            when(engine.getLatestHead()).thenReturn("latest-aeron-head");
+            when(engine.getCommittedHead()).thenReturn(null);
+            when(engine.getLatestEpochSeen()).thenReturn(12);
+            when(engine.getLastCommittedEpoch()).thenReturn(-1);
+            context.aeronConsensusEngine = engine;
+            RequestRouter router = new RequestRouter(context);
+            HttpServletResponse response = responseWithBody();
+
+            router.route(request("GET", "/v1/head"), response);
+
+            verify(response).setStatus(HttpServletResponse.SC_OK);
+            assertTrue(body.toString().contains("\"latestHead\": \"latest-aeron-head\""));
+            assertTrue(body.toString().contains("\"committedHead\": null"));
+            assertFalse(body.toString().contains("\"committedHead\": \"latest-aeron-head\""));
+            assertTrue(body.toString().contains("\"latestEpochSeen\": 12"));
+            assertFalse(body.toString().contains("\"committedEpoch\""));
         });
     }
 

@@ -98,9 +98,14 @@ final class ConsensusServicesInitializer {
 
         RaftAppendCallback raftCallback = createRaftAppendCallback(aeronEngine);
         BackpressureManager backpressureManager = resolveBackpressureManager(aeronEngine);
-        BeaconChainClient beaconClient = beaconChainClientFactory.create(beaconApiUrl);
-        beaconClient.startBackgroundPolling();
-        log.info("✅ Beacon Chain client initialized (tracking Ethereum epochs from {})", beaconApiUrl);
+        BeaconChainClient beaconClient = aeronEngine != null ? aeronEngine.getBeaconClient() : null;
+        if (beaconClient == null) {
+            beaconClient = beaconChainClientFactory.create(beaconApiUrl);
+            beaconClient.startBackgroundPolling();
+            log.info("✅ Beacon Chain client initialized (tracking Ethereum epochs from {})", beaconApiUrl);
+        } else {
+            log.info("✅ Reusing Aeron engine Beacon Chain client for proposal queue epoch telemetry");
+        }
 
         String proposalPersistenceDir = runtimeConfigReader.readString(
             "oak.proposal.persistence.dir",

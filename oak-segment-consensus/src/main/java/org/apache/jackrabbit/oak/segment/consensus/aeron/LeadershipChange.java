@@ -23,6 +23,7 @@ import io.aeron.cluster.service.Cluster;
  */
 public class LeadershipChange {
     public final long timestamp;
+    public final long clusterTime;
     public final Cluster.Role newRole;
     public final Cluster.Role previousRole;
     public final int term;
@@ -31,7 +32,14 @@ public class LeadershipChange {
 
     public LeadershipChange(long timestamp, Cluster.Role newRole, Cluster.Role previousRole,
                             int term, int memberId, String memberUrl) {
+        this(timestamp, -1L, newRole, previousRole, term, memberId, memberUrl);
+    }
+
+    public LeadershipChange(long timestamp, long clusterTime,
+                            Cluster.Role newRole, Cluster.Role previousRole,
+                            int term, int memberId, String memberUrl) {
         this.timestamp = timestamp;
+        this.clusterTime = clusterTime;
         this.newRole = newRole;
         this.previousRole = previousRole;
         this.term = term;

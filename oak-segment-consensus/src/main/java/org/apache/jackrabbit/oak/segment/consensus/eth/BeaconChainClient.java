@@ -29,8 +29,9 @@ import org.slf4j.LoggerFactory;
 /**
  * Caches and polls Ethereum Beacon Chain epoch data.
  *
- * <p>Epoch fetching is delegated to a {@link FallbackBeaconChainProvider} that
- * tries providers in priority order (local beacon node → beaconcha.in) with
+ * <p>Epoch fetching is delegated to a {@link FallbackBeaconChainProvider}.
+ * Mock mode uses a local clock-backed provider. Chain-backed modes try
+ * providers in priority order (local beacon node → beaconcha.in) with
  * per-provider circuit breakers (ADR 081 Track 6a).
  *
  * <p>The public API and the package-private test constructor are preserved from
@@ -59,27 +60,28 @@ public class BeaconChainClient {
     /**
      * Production constructor. Reads {@code BEACON_LOCAL_NODE_URL} /
      * {@code beacon.local.node.url} for an optional higher-priority local
-     * beacon node; falls back to the beaconcha.in endpoint derived from
-     * the current blockchain mode.
+     * beacon node in chain-backed modes. Mock mode never performs Beacon HTTP.
      *
      * @param beaconApiUrl ignored — mode-specific URL is derived internally;
      *                     parameter kept for binary compatibility with
      *                     {@code ConsensusServicesInitializer.BeaconChainClientFactory}
      */
     public BeaconChainClient(String beaconApiUrl) {
-        this(BlockchainConfig.getInstance().getMode(),
-            FallbackBeaconChainProvider.buildDefault(
-                modeToApiUrl(BlockchainConfig.getInstance().getMode()),
-                RuntimeConfigValueResolver.readString(
-                    "beacon.local.node.url", "BEACON_LOCAL_NODE_URL", "")));
+        this(BlockchainConfig.getInstance().getMode());
+    }
+
+    private BeaconChainClient(BlockchainConfig.Mode mode) {
+        this(mode, buildDefaultProvider(mode));
     }
 
     /** Package-private: used by tests to inject a mock {@link HttpFetcher}. */
     BeaconChainClient(BlockchainConfig.Mode mode, HttpFetcher fetcher) {
-        this(mode, new FallbackBeaconChainProvider(
-            new CircuitBreakingBeaconProvider(
-                new BeaconchainDotInProvider(modeToApiUrl(mode), fetcher),
-                Integer.MAX_VALUE, Long.MAX_VALUE))); // never open in tests
+        this(mode, mode == BlockchainConfig.Mode.MOCK
+            ? buildMockProvider()
+            : new FallbackBeaconChainProvider(
+                new CircuitBreakingBeaconProvider(
+                    new BeaconchainDotInProvider(modeToApiUrl(mode), fetcher),
+                    Integer.MAX_VALUE, Long.MAX_VALUE))); // never open in tests
     }
 
     BeaconChainClient(BlockchainConfig.Mode mode, FallbackBeaconChainProvider provider) {
@@ -109,8 +111,8 @@ public class BeaconChainClient {
             }
         }, POLL_INTERVAL_MS, POLL_INTERVAL_MS, TimeUnit.MILLISECONDS);
 
-        log.info("Beacon Chain polling started (interval={}s, providers={})",
-            POLL_INTERVAL_MS / 1000, provider.getProviderNames());
+        log.info("Epoch refresh scheduled (interval={}s, providers={}, externalNetworkPolling={})",
+            POLL_INTERVAL_MS / 1000, provider.getProviderNames(), networkMode != BlockchainConfig.Mode.MOCK);
     }
 
     public void stopBackgroundPolling() {
@@ -196,6 +198,8 @@ public class BeaconChainClient {
         h.put("timeSinceUpdateMs", System.currentTimeMillis() - lastUpdateTime);
         h.put("lastError",         lastError);
         h.put("chainContext",      networkMode == BlockchainConfig.Mode.MAINNET ? "mainnet" : "sepolia");
+        h.put("epochSource",       networkMode == BlockchainConfig.Mode.MOCK ? "local-clock" : "beacon-provider");
+        h.put("externalNetworkPolling", networkMode != BlockchainConfig.Mode.MOCK);
         return h;
     }
 
@@ -243,5 +247,19 @@ public class BeaconChainClient {
         return mode == BlockchainConfig.Mode.MAINNET
             ? BeaconchainDotInProvider.MAINNET_BASE
             : BeaconchainDotInProvider.SEPOLIA_BASE;
+    }
+
+    private static FallbackBeaconChainProvider buildDefaultProvider(BlockchainConfig.Mode mode) {
+        if (mode == BlockchainConfig.Mode.MOCK) {
+            return buildMockProvider();
+        }
+        return FallbackBeaconChainProvider.buildDefault(
+            modeToApiUrl(mode),
+            RuntimeConfigValueResolver.readString(
+                "beacon.local.node.url", "BEACON_LOCAL_NODE_URL", ""));
+    }
+
+    private static FallbackBeaconChainProvider buildMockProvider() {
+        return new FallbackBeaconChainProvider(new ClockBeaconChainProvider());
     }
 }

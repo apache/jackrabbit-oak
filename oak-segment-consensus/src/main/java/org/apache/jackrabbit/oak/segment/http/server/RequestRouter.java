@@ -504,13 +504,12 @@ public class RequestRouter implements AutoCloseable {
                     latestHead = context.fileStore.getHead().getRecordId().toString10();
                 }
                 
-                // Use latestHead as committedHead fallback if no committedHead set
-                if (committedHead == null || committedHead.isEmpty()) {
-                    committedHead = latestHead;
-                }
-                
                 json.append("  \"latestHead\": \"").append(FormatUtils.escapeJson(latestHead)).append("\",\n");
-                json.append("  \"committedHead\": \"").append(FormatUtils.escapeJson(committedHead)).append("\"");
+                if (committedHead == null || committedHead.isEmpty()) {
+                    json.append("  \"committedHead\": null");
+                } else {
+                    json.append("  \"committedHead\": \"").append(FormatUtils.escapeJson(committedHead)).append("\"");
+                }
                 
                 if (latestEpochSeen >= 0) {
                     json.append(",\n  \"latestEpochSeen\": ").append(latestEpochSeen);

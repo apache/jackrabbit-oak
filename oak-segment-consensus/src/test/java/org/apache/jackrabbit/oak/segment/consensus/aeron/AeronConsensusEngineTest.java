@@ -244,7 +244,9 @@ public class AeronConsensusEngineTest {
         assertEquals(1, history.size());
         assertEquals(Cluster.Role.LEADER, history.get(0).newRole);
         assertEquals(7, history.get(0).memberId);
-        assertEquals(12345L, history.get(0).timestamp);
+        assertEquals(1, history.get(0).term);
+        assertTrue(history.get(0).timestamp > 0L);
+        assertEquals(12345L, history.get(0).clusterTime);
     }
 
     @Test
@@ -501,7 +503,7 @@ public class AeronConsensusEngineTest {
 
         HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
         server.createContext("/v1/aeron/cluster-state", exchange -> {
-            byte[] payload = "{\"term\":7}".getBytes(StandardCharsets.UTF_8);
+            byte[] payload = "{\"term\":7,\"logPosition\":300}".getBytes(StandardCharsets.UTF_8);
             exchange.sendResponseHeaders(200, payload.length);
             exchange.getResponseBody().write(payload);
             exchange.close();
@@ -517,9 +519,30 @@ public class AeronConsensusEngineTest {
             method.invoke(engine, true);
 
             assertEquals(7, engine.getCurrentTerm());
+            assertEquals(300L, engine.getReplicationLagStatus().get("leaderLogPosition"));
+            assertEquals(300L, engine.getReplicationLagStatus().get("replicationLag"));
         } finally {
             server.stop(0);
         }
+    }
+
+    @Test
+    public void replicationLagTreatsObservedZeroPositionAsValid() throws Exception {
+        AeronConsensusEngine engine = createEngine();
+        Cluster cluster = mock(Cluster.class);
+        when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
+        when(cluster.logPosition()).thenReturn(0L);
+        setField(engine, "cluster", cluster);
+        setField(engine, "lastLeaderTermFetchMs", System.currentTimeMillis());
+
+        engine.updateLeaderLogPosition(0L);
+
+        Map<String, Object> status = engine.getReplicationLagStatus();
+        assertEquals(Boolean.TRUE, status.get("measurementAvailable"));
+        assertEquals("HEALTHY", status.get("healthStatus"));
+        assertEquals(0L, status.get("leaderLogPosition"));
+        assertEquals(0L, status.get("replicationLag"));
+        assertTrue(((Number) status.get("measurementAgeMs")).longValue() >= 0L);
     }
 
     @Test

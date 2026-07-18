@@ -49,7 +49,22 @@ public final class RateLimiterTuningIntrospection {
     }
 
     public static String source() {
-        return RateLimiterTuningSourceRegistry.getSource();
+        String registeredSource = RateLimiterTuningSourceRegistry.getSource();
+        if (!"system-properties".equals(registeredSource)) {
+            return registeredSource;
+        }
+        return hasSystemPropertyOverride() ? "system-properties" : "defaults";
+    }
+
+    private static boolean hasSystemPropertyOverride() {
+        return System.getProperty(RateLimiter.PROP_ENABLED) != null
+            || System.getProperty(RateLimiter.PROP_REQUESTS_PER_SECOND) != null
+            || System.getProperty(RateLimiter.PROP_BURST_SIZE) != null
+            || System.getProperty(RateLimiter.PROP_GLOBAL_RPS) != null
+            || System.getProperty(RateLimiter.PROP_WRITE_RPS) != null
+            || System.getProperty(RateLimiter.PROP_WARN_LOGGING_ENABLED) != null
+            || System.getProperty(RateLimiter.PROP_WARN_LOG_INTERVAL_MS) != null
+            || System.getProperty(RateLimiter.PROP_WARN_LOG_SAMPLE_SIZE) != null;
     }
 
     private static int readInt(String key, int defaultValue) {

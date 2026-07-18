@@ -63,7 +63,25 @@ public class AeronLeaderTracker {
                              int memberId,
                              String memberUrl,
                              long timestamp) {
-        leadershipHistory.add(new LeadershipChange(timestamp, newRole, previousRole, term, memberId, memberUrl));
+        recordChange(newRole, previousRole, term, memberId, memberUrl, timestamp, -1L);
+    }
+
+    public void recordChange(Cluster.Role newRole,
+                             Cluster.Role previousRole,
+                             int term,
+                             int memberId,
+                             String memberUrl,
+                             long timestamp,
+                             long clusterTime) {
+        leadershipHistory.add(new LeadershipChange(
+            timestamp,
+            clusterTime,
+            newRole,
+            previousRole,
+            term,
+            memberId,
+            memberUrl
+        ));
         if (leadershipHistory.size() > MAX_HISTORY_ENTRIES) {
             leadershipHistory.remove(0);
         }

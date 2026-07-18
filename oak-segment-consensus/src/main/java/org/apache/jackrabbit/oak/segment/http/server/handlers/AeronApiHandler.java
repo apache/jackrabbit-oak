@@ -405,12 +405,14 @@ public class AeronApiHandler {
             context.aeronConsensusEngine.getLeadershipHistory(limit);
         
         Map<String, Object> history = new HashMap<>();
+        history.put("contractVersion", "aeron.leadership-history.v2");
         List<Map<String, Object>> entries = new ArrayList<>();
         
         for (org.apache.jackrabbit.oak.segment.consensus.aeron.LeadershipChange change : changes) {
             Map<String, Object> entry = new HashMap<>();
             entry.put("timestamp", change.timestamp);
-            entry.put("clusterTime", change.timestamp); // Aeron cluster time
+            entry.put("observedAtMs", change.timestamp);
+            entry.put("clusterTime", change.clusterTime);
             entry.put("term", change.term);
             entry.put("memberId", change.memberId);
             entry.put("memberUrl", change.memberUrl);
@@ -656,7 +658,10 @@ public class AeronApiHandler {
      * - leaderLogPosition: Leader's log position
      * - replicationLag: Number of messages behind leader
      * - lagThreshold: Alert threshold (1000 messages)
-     * - healthy: Whether lag is within acceptable range
+     * - measurementAvailable: Whether the leader position is known locally
+     * - measurementAgeMs: Age of the observed leader position
+     * - healthStatus: HEALTHY, LAGGING, or UNKNOWN
+     * - healthy: Whether measured lag is acceptable, or null when unavailable
      */
     public void handleReplicationLag(HttpServletResponse response) throws IOException {
         if (context.aeronConsensusEngine == null) {

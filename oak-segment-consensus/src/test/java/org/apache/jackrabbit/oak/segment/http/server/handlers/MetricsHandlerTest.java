@@ -168,8 +168,8 @@ public class MetricsHandlerTest {
     public void testHandlePrometheusMetricsExportsDynamicGaugeValues() throws Exception {
         Path storeDir = Files.createTempDirectory("metrics-handler");
         try {
-            Files.write(storeDir.resolve("00000a.tar"), new byte[] {1, 2, 3});
-            Files.write(storeDir.resolve("00001a.tar"), new byte[] {4});
+            Files.write(storeDir.resolve("data00000a.tar"), new byte[] {1, 2, 3});
+            Files.write(storeDir.resolve("data00001a.tar"), new byte[] {4});
             Files.createDirectories(storeDir.resolve("nested"));
             Files.write(storeDir.resolve("nested").resolve("notes.txt"), new byte[] {5, 6});
 
@@ -198,12 +198,13 @@ public class MetricsHandlerTest {
             context.aeronPrometheusMetrics = prometheusMetrics;
 
             MetricsHandler handler = new MetricsHandler(
-                engine,
+                null,
                 storeDir,
                 Collections.singletonMap("c1", new Object()),
                 Map.of("v1", new Object(), "v2", new Object()),
                 context
             );
+            context.setAeronConsensusEngine(engine);
 
             handler.handlePrometheusMetrics(response);
 
@@ -212,9 +213,11 @@ public class MetricsHandlerTest {
             verify(prometheusMetrics).updateGaugeValues();
 
             String metrics = body.toString();
+            assertTrue(metrics.contains("oak_consensus_is_leader 1.0"));
+            assertTrue(metrics.contains("oak_consensus_leader_epoch 17.0"));
             assertTrue(metrics.contains("oak_validators_reachable 4.0"));
             assertTrue(metrics.contains("oak_segments_stored_total 2.0"));
-            assertTrue(metrics.contains("oak_segments_disk_usage_bytes 6.0"));
+            assertTrue(metrics.contains("oak_segments_disk_usage_bytes 4.0"));
             assertTrue(metrics.contains("oak_active_connections 3.0"));
             assertTrue(metrics.contains("oak_mediadriver_crash_count 3.0"));
             assertTrue(metrics.contains("oak_mediadriver_has_crashed 1.0"));

@@ -30,10 +30,16 @@ public final class AeronClusterTuningIntrospection {
     public static Map<String, Object> effectiveValues() {
         Map<String, Object> values = new LinkedHashMap<>();
         AeronClusterRuntimeRegistry.Snapshot snapshot = AeronClusterRuntimeRegistry.snapshot();
-        values.put("enabled", snapshot.enabled);
-        values.put("node_id", snapshot.nodeId);
-        values.put("self_url_configured", snapshot.selfUrl != null);
-        values.put("peer_urls_count", snapshot.peerUrls.size());
+        String effectiveSelfUrl = snapshot.selfUrl != null
+            ? snapshot.selfUrl
+            : trimToNull(readString("consensus.self.url", null));
+        int effectivePeerCount = snapshot.peerUrls.isEmpty()
+            ? countConfiguredValues(readString("consensus.peers", ""))
+            : snapshot.peerUrls.size();
+        values.put("enabled", readBoolean("consensus.enabled", snapshot.enabled));
+        values.put("node_id", readInt("aeron.cluster.nodeId", snapshot.nodeId));
+        values.put("self_url_configured", effectiveSelfUrl != null);
+        values.put("peer_urls_count", effectivePeerCount);
         values.put("observe_elections", snapshot.observeElections);
         values.put("log_cluster_state_details", snapshot.logClusterStateDetails);
         values.put("cluster_base_port", readInt(AeronClusterTopology.PORT_BASE_PROPERTY, AeronClusterTopology.getPortBase()));
@@ -98,5 +104,26 @@ public final class AeronClusterTuningIntrospection {
             return defaultValue;
         }
         return raw;
+    }
+
+    private static int countConfiguredValues(String csv) {
+        if (csv == null || csv.trim().isEmpty()) {
+            return 0;
+        }
+        int count = 0;
+        for (String value : csv.split(",")) {
+            if (!value.trim().isEmpty()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

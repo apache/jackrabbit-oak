@@ -134,8 +134,14 @@ public class AeronClusterStateViewTest {
         Map<String, Object> unknown = view.buildReplicationLagStatus(cluster, 0L, -1L);
 
         assertEquals(Boolean.TRUE, healthy.get("healthy"));
+        assertEquals(Boolean.TRUE, healthy.get("measurementAvailable"));
+        assertEquals("HEALTHY", healthy.get("healthStatus"));
         assertFalse(healthy.containsKey("reason"));
-        assertEquals(Boolean.FALSE, unknown.get("healthy"));
+        assertEquals(null, unknown.get("healthy"));
+        assertEquals(null, unknown.get("leaderLogPosition"));
+        assertEquals(null, unknown.get("replicationLag"));
+        assertEquals(Boolean.FALSE, unknown.get("measurementAvailable"));
+        assertEquals("UNKNOWN", unknown.get("healthStatus"));
         assertEquals("leader_log_position_unknown", unknown.get("reason"));
     }
 

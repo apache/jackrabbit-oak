@@ -288,7 +288,7 @@ public class ConsensusMetrics {
      */
     public static final Gauge segmentsStoredTotal = Gauge.build()
             .name("oak_segments_stored_total")
-            .help("Total number of segments stored on this validator")
+            .help("Number of Oak TAR segment-store files on this validator")
             .register();
     
     /**
@@ -296,7 +296,7 @@ public class ConsensusMetrics {
      */
     public static final Gauge segmentsDiskUsageBytes = Gauge.build()
             .name("oak_segments_disk_usage_bytes")
-            .help("Total disk space used by segment storage")
+            .help("Logical bytes in Oak TAR segment files; excludes Aeron runtime files and filesystem allocation overhead")
             .register();
     
     /**

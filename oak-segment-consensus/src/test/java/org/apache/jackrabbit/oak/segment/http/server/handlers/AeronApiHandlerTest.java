@@ -372,6 +372,7 @@ public class AeronApiHandlerTest {
         when(engine.getLeadershipHistory(100)).thenReturn(Arrays.asList(
             new LeadershipChange(
                 1234L,
+                5678L,
                 Cluster.Role.LEADER,
                 Cluster.Role.FOLLOWER,
                 7,
@@ -387,9 +388,13 @@ public class AeronApiHandlerTest {
         verify(engine).getLeadershipHistory(100);
         verify(response).setStatus(HttpServletResponse.SC_OK);
         String json = body.toString();
+        assertTrue(json.contains("\"contractVersion\":\"aeron.leadership-history.v2\""));
         assertTrue(json.contains("\"limit\":100"));
         assertTrue(json.contains("\"totalEntries\":1"));
         assertTrue(json.contains("\"memberUrl\":\"http://validator-2:8090\""));
+        assertTrue(json.contains("\"timestamp\":1234"));
+        assertTrue(json.contains("\"observedAtMs\":1234"));
+        assertTrue(json.contains("\"clusterTime\":5678"));
         assertTrue(json.contains("\"isLeaderRotation\":true"));
     }
 

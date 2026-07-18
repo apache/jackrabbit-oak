@@ -51,17 +51,26 @@ public class BeaconChainClientTest {
     }
 
     @Test
-    public void testConstructsInMockModeAndReportsSepoliaBackedHealth() {
-        BeaconChainClient client = clientWithFinalizedEpoch(BlockchainConfig.Mode.MOCK, 12345L);
+    public void testConstructsInMockModeWithoutBeaconHttp() {
+        AtomicInteger fetchCount = new AtomicInteger();
+        BeaconChainClient client = new BeaconChainClient(BlockchainConfig.Mode.MOCK, endpoint -> {
+            fetchCount.incrementAndGet();
+            throw new AssertionError("Mock mode must not fetch " + endpoint);
+        });
 
         Map<String, Object> health = client.getHealthStatus();
 
         assertEquals(BlockchainConfig.Mode.MOCK, client.getNetworkMode());
-        assertEquals(12347L, client.getCachedCurrentEpoch());
-        assertEquals(12345L, client.getCachedFinalizedEpoch());
+        assertTrue(client.getCachedCurrentEpoch() >= 2L);
+        assertTrue(client.getCachedFinalizedEpoch() >= 0L);
         assertTrue(client.isEpochDataFresh());
+        assertEquals(0, fetchCount.get());
         assertEquals("MOCK", health.get("mode"));
         assertEquals("sepolia", health.get("chainContext"));
+        assertEquals("local-clock", health.get("epochSource"));
+        assertEquals(false, health.get("externalNetworkPolling"));
+        assertTrue(String.valueOf(health.get("providers")).contains("local-clock(sepolia)"));
+        assertFalse(String.valueOf(health.get("providers")).contains("beaconcha.in"));
         assertNotNull(health.get("providers"));
         assertNull(health.get("mockEpochOffset"));
         assertNull(health.get("mockEpochDurationMs"));
@@ -69,7 +78,9 @@ public class BeaconChainClientTest {
 
     @Test
     public void testMockEpochControlsAreDisabled() {
-        BeaconChainClient client = clientWithFinalizedEpoch(BlockchainConfig.Mode.MOCK, 222L);
+        BeaconChainClient client = new BeaconChainClient(BlockchainConfig.Mode.MOCK, endpoint -> {
+            throw new AssertionError("Mock mode must not fetch " + endpoint);
+        });
         long initialCurrent = client.getCachedCurrentEpoch();
         long initialFinalized = client.getCachedFinalizedEpoch();
 
@@ -83,7 +94,7 @@ public class BeaconChainClientTest {
     @Test
     public void testUsesLatestEndpointFallbackWhenFinalizedEndpointFails() {
         AtomicInteger fetchCount = new AtomicInteger();
-        BeaconChainClient client = new BeaconChainClient(BlockchainConfig.Mode.MOCK, endpoint -> {
+        BeaconChainClient client = new BeaconChainClient(BlockchainConfig.Mode.SEPOLIA, endpoint -> {
             fetchCount.incrementAndGet();
             if (endpoint.endsWith("/epoch/finalized")) {
                 throw new IllegalStateException("forced-finalized-failure");
@@ -101,7 +112,7 @@ public class BeaconChainClientTest {
 
     @Test
     public void testStaleEpochDataDetectedAndFreshnessCheckThrows() throws Exception {
-        BeaconChainClient client = clientWithFinalizedEpoch(BlockchainConfig.Mode.MOCK, 200L);
+        BeaconChainClient client = clientWithFinalizedEpoch(BlockchainConfig.Mode.SEPOLIA, 200L);
 
         setField(client, "lastUpdateTime", System.currentTimeMillis() - 301000L);
 
@@ -116,7 +127,7 @@ public class BeaconChainClientTest {
 
     @Test
     public void testEpochDetailsAndLatestFinalizedEpochReflectCachedState() throws Exception {
-        BeaconChainClient client = clientWithFinalizedEpoch(BlockchainConfig.Mode.MOCK, 88L);
+        BeaconChainClient client = clientWithFinalizedEpoch(BlockchainConfig.Mode.SEPOLIA, 88L);
 
         long currentEpoch = client.getCachedCurrentEpoch();
         long finalizedEpoch = client.getCachedFinalizedEpoch();
@@ -136,7 +147,7 @@ public class BeaconChainClientTest {
 
     @Test
     public void testBackgroundPollingIsIdempotentAndStopClearsExecutor() throws Exception {
-        BeaconChainClient client = clientWithFinalizedEpoch(BlockchainConfig.Mode.MOCK, 300L);
+        BeaconChainClient client = clientWithFinalizedEpoch(BlockchainConfig.Mode.SEPOLIA, 300L);
 
         try {
             client.startBackgroundPolling();

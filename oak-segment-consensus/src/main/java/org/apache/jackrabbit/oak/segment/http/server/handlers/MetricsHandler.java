@@ -88,21 +88,22 @@ public class MetricsHandler {
     }
 
     private Map<String, Object> buildConsensusMetrics() {
-        if (aeronConsensusEngine == null) {
+        AeronConsensusEngine engine = currentAeronConsensusEngine();
+        if (engine == null) {
             return null;
         }
 
         Map<String, Object> consensus = new LinkedHashMap<>();
-        consensus.put("role", aeronConsensusEngine.getCurrentRole().name());
-        consensus.put("isLeader", aeronConsensusEngine.isLeader());
-        consensus.put("currentEpoch", aeronConsensusEngine.getCurrentEpoch());
-        consensus.put("currentTerm", aeronConsensusEngine.getCurrentTerm());
-        consensus.put("reachableValidators", aeronConsensusEngine.getReachableValidatorCount());
-        consensus.put("totalMembers", aeronConsensusEngine.getTotalMemberCount());
-        consensus.put("quorumSize", aeronConsensusEngine.getQuorumSize());
-        consensus.put("heartbeatAgeMs", aeronConsensusEngine.getHeartbeatAgeMs());
-        consensus.put("healthy", aeronConsensusEngine.isClusterHealthy());
-        String unhealthyReason = aeronConsensusEngine.getUnhealthyReason();
+        consensus.put("role", engine.getCurrentRole().name());
+        consensus.put("isLeader", engine.isLeader());
+        consensus.put("currentEpoch", engine.getCurrentEpoch());
+        consensus.put("currentTerm", engine.getCurrentTerm());
+        consensus.put("reachableValidators", engine.getReachableValidatorCount());
+        consensus.put("totalMembers", engine.getTotalMemberCount());
+        consensus.put("quorumSize", engine.getQuorumSize());
+        consensus.put("heartbeatAgeMs", engine.getHeartbeatAgeMs());
+        consensus.put("healthy", engine.isClusterHealthy());
+        String unhealthyReason = engine.getUnhealthyReason();
         if (unhealthyReason != null) {
             consensus.put("unhealthyReason", unhealthyReason);
         }
@@ -110,11 +111,12 @@ public class MetricsHandler {
     }
 
     private Map<String, Object> buildReplicationMetrics() {
-        if (aeronConsensusEngine == null) {
+        AeronConsensusEngine engine = currentAeronConsensusEngine();
+        if (engine == null) {
             return null;
         }
 
-        Map<String, Object> status = aeronConsensusEngine.getReplicationLagStatus();
+        Map<String, Object> status = engine.getReplicationLagStatus();
         if (status == null) {
             return null;
         }
@@ -125,6 +127,9 @@ public class MetricsHandler {
         replication.put("leaderLogPosition", status.get("leaderLogPosition"));
         replication.put("replicationLag", status.get("replicationLag"));
         replication.put("lagThreshold", status.get("lagThreshold"));
+        replication.put("measurementAvailable", status.get("measurementAvailable"));
+        replication.put("measurementAgeMs", status.get("measurementAgeMs"));
+        replication.put("healthStatus", status.get("healthStatus"));
         replication.put("healthy", status.get("healthy"));
         if (status.get("reason") != null) {
             replication.put("reason", status.get("reason"));
@@ -172,42 +177,38 @@ public class MetricsHandler {
      */
     private void updateDynamicMetrics() {
         // Update leader status - check Aeron first, then Leader
-        if (aeronConsensusEngine != null) {
+        AeronConsensusEngine engine = currentAeronConsensusEngine();
+        if (engine != null) {
             ConsensusMetrics.updateLeaderStatus(
-                aeronConsensusEngine.isLeader(),
-                aeronConsensusEngine.getCurrentEpoch()
+                engine.isLeader(),
+                engine.getCurrentEpoch()
             );
-            ConsensusMetrics.validatorsReachable.set(aeronConsensusEngine.getReachableValidatorCount());
+            ConsensusMetrics.validatorsReachable.set(engine.getReachableValidatorCount());
             ConsensusMetrics.timeSinceLastHeartbeat.set(
-                (System.currentTimeMillis() - aeronConsensusEngine.getLastHeartbeatTime()) / 1000.0
+                (System.currentTimeMillis() - engine.getLastHeartbeatTime()) / 1000.0
             );
         }
         
         // Update storage metrics
         try {
             // Count TAR files directly in storeDirectory (Oak's segment files are here)
-            if (Files.exists(storeDirectory)) {
-                long segmentCount;
+            if (storeDirectory != null && Files.exists(storeDirectory)) {
+                java.util.List<java.nio.file.Path> tarFiles;
                 try (java.util.stream.Stream<java.nio.file.Path> segmentFiles = Files.list(storeDirectory)) {
-                    segmentCount = segmentFiles
-                        .filter(p -> p.toString().endsWith(".tar"))
-                        .count();
-                }
-                ConsensusMetrics.segmentsStoredTotal.set(segmentCount);
-                
-                long diskUsage;
-                try (java.util.stream.Stream<java.nio.file.Path> storeFiles = Files.walk(storeDirectory)) {
-                    diskUsage = storeFiles
+                    tarFiles = segmentFiles
                         .filter(Files::isRegularFile)
-                        .mapToLong(p -> {
-                            try {
-                                return Files.size(p);
-                            } catch (IOException e) {
-                                return 0;
-                            }
-                        })
-                        .sum();
+                        .filter(MetricsHandler::isOakTarFile)
+                        .collect(java.util.stream.Collectors.toList());
                 }
+                ConsensusMetrics.segmentsStoredTotal.set(tarFiles.size());
+
+                long diskUsage = tarFiles.stream().mapToLong(p -> {
+                    try {
+                        return Files.size(p);
+                    } catch (IOException e) {
+                        return 0L;
+                    }
+                }).sum();
                 ConsensusMetrics.segmentsDiskUsageBytes.set(diskUsage);
             }
         } catch (IOException e) {
@@ -253,5 +254,17 @@ public class MetricsHandler {
                 log.debug("Failed to update Aeron Prometheus metrics: {}", e.getMessage());
             }
         }
+    }
+
+    private AeronConsensusEngine currentAeronConsensusEngine() {
+        if (context != null && context.aeronConsensusEngine != null) {
+            return context.aeronConsensusEngine;
+        }
+        return aeronConsensusEngine;
+    }
+
+    private static boolean isOakTarFile(Path path) {
+        String name = path.getFileName().toString();
+        return name.startsWith("data") && name.endsWith(".tar");
     }
 }

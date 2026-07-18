@@ -112,13 +112,16 @@ final class AeronClusterStateView {
 
     Map<String, Object> buildReplicationLagStatus(Cluster cluster, long leaderLogPosition, long lag) {
         Map<String, Object> status = new HashMap<>();
+        boolean measurementAvailable = lag >= 0;
         status.put("role", cluster.role().name());
         status.put("myLogPosition", cluster.logPosition());
-        status.put("leaderLogPosition", leaderLogPosition);
-        status.put("replicationLag", lag);
+        status.put("leaderLogPosition", measurementAvailable ? leaderLogPosition : null);
+        status.put("replicationLag", measurementAvailable ? lag : null);
         status.put("lagThreshold", 1000L);
-        status.put("healthy", lag >= 0 && lag < 1000);
-        if (lag < 0) {
+        status.put("measurementAvailable", measurementAvailable);
+        status.put("healthStatus", measurementAvailable ? (lag < 1000 ? "HEALTHY" : "LAGGING") : "UNKNOWN");
+        status.put("healthy", measurementAvailable ? lag < 1000 : null);
+        if (!measurementAvailable) {
             status.put("reason", "leader_log_position_unknown");
         }
         return status;

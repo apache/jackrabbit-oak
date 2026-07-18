@@ -840,6 +840,9 @@ public class HealthHandler {
         replication.put("leaderLogPosition", status.get("leaderLogPosition"));
         replication.put("replicationLag", status.get("replicationLag"));
         replication.put("lagThreshold", status.get("lagThreshold"));
+        replication.put("measurementAvailable", status.get("measurementAvailable"));
+        replication.put("measurementAgeMs", status.get("measurementAgeMs"));
+        replication.put("healthStatus", status.get("healthStatus"));
         replication.put("healthy", status.get("healthy"));
         if (status.get("reason") != null) {
             replication.put("reason", status.get("reason"));

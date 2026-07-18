@@ -48,6 +48,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -70,6 +71,7 @@ public class ConsensusServicesInitializerTest {
         ValidatorEarningsTracker earningsTracker = mock(ValidatorEarningsTracker.class);
         BackpressureManager backpressureManager = new BackpressureManager();
         when(testContext.aeronEngine.getBackpressureManager()).thenReturn(backpressureManager);
+        when(testContext.aeronEngine.getBeaconClient()).thenReturn(beaconClient);
 
         RecordingProposalQueueManagerFactory proposalFactory =
             new RecordingProposalQueueManagerFactory(proposalQueueManager);
@@ -96,7 +98,7 @@ public class ConsensusServicesInitializerTest {
         );
 
         verify(evmBridge).start();
-        verify(beaconClient).startBackgroundPolling();
+        verify(beaconClient, never()).startBackgroundPolling();
         verify(proposalQueueManager).start();
         verify(testContext.httpServer).registerSelfValidator(testContext.walletAddress);
 

@@ -532,7 +532,7 @@ public class OsgiConfigApiHandler {
             "rateLimiterTuning.enabled",
             "boolean",
             true,
-            "runtime-readable",
+            "startup-only",
             "safe",
             "Enable HTTP rate limiting",
             RateLimiter.PROP_ENABLED));
@@ -540,7 +540,7 @@ public class OsgiConfigApiHandler {
             "rateLimiterTuning.requests_per_second",
             "int",
             100,
-            "runtime-readable",
+            "startup-only",
             "guarded",
             "Per-client request budget",
             RateLimiter.PROP_REQUESTS_PER_SECOND));
@@ -548,7 +548,7 @@ public class OsgiConfigApiHandler {
             "rateLimiterTuning.write_rps",
             "int",
             10,
-            "runtime-readable",
+            "startup-only",
             "guarded",
             "Per-wallet write budget",
             RateLimiter.PROP_WRITE_RPS));
@@ -556,7 +556,7 @@ public class OsgiConfigApiHandler {
             "rateLimiterTuning.burst_size",
             "int",
             200,
-            "runtime-readable",
+            "startup-only",
             "guarded",
             "Per-client burst size",
             RateLimiter.PROP_BURST_SIZE));
@@ -564,7 +564,7 @@ public class OsgiConfigApiHandler {
             "rateLimiterTuning.global_rps",
             "int",
             1000,
-            "runtime-readable",
+            "startup-only",
             "guarded",
             "Global request budget",
             RateLimiter.PROP_GLOBAL_RPS));
@@ -572,7 +572,7 @@ public class OsgiConfigApiHandler {
             "rateLimiterTuning.warn_logging_enabled",
             "boolean",
             true,
-            "runtime-readable",
+            "startup-only",
             "safe",
             "Enable throttling warning logs",
             RateLimiter.PROP_WARN_LOGGING_ENABLED));
@@ -580,7 +580,7 @@ public class OsgiConfigApiHandler {
             "rateLimiterTuning.warn_log_interval_ms",
             "long",
             30000L,
-            "runtime-readable",
+            "startup-only",
             "safe",
             "Warning log rate-limit interval",
             RateLimiter.PROP_WARN_LOG_INTERVAL_MS));
@@ -588,7 +588,7 @@ public class OsgiConfigApiHandler {
             "rateLimiterTuning.warn_log_sample_size",
             "int",
             250,
-            "runtime-readable",
+            "startup-only",
             "safe",
             "Minimum throttles before warning log",
             RateLimiter.PROP_WARN_LOG_SAMPLE_SIZE));
