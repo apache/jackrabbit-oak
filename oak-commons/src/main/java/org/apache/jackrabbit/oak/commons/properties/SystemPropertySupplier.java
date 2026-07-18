@@ -99,18 +99,18 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
     /**
      * Specify logging level to use for "success" message (defaults to "INFO")
      */
-    public SystemPropertySupplier<T> logSuccessAs(String successLogLevel) {
-        String newLevel;
-        switch (Objects.requireNonNull(successLogLevel)) {
+    public SystemPropertySupplier<T> logSuccessAs(String desiredLogLevel) {
+        String newLevel = this.successLogLevel;
+        switch (Objects.requireNonNull(desiredLogLevel)) {
             case "DEBUG":
             case "ERROR":
             case "INFO":
             case "TRACE":
             case "WARN":
-                newLevel = successLogLevel;
+                newLevel = desiredLogLevel;
                 break;
             default:
-                throw new IllegalArgumentException("unsupported log level: " + successLogLevel);
+                LOG.error("for {}: invalid log level '{}', keeping previous value of '{}'.", propName, desiredLogLevel, successLogLevel);
         }
         this.successLogLevel = newLevel;
         return this;
