@@ -39,7 +39,6 @@ import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
 import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
-import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
@@ -128,7 +127,6 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private String loggingPrefix;
     private LeaseCheckMode leaseCheck = ClusterNodeInfo.DEFAULT_LEASE_CHECK_MODE; // OAK-2739 is enabled by default also for non-osgi
     private boolean isReadOnlyMode = false;
-    private Feature prefetchFeature;
     private Feature docStoreThrottlingFeature;
     private Feature noChildOrderCleanupFeature;
     private Feature cancelInvalidationFeature;
@@ -462,16 +460,6 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public boolean getReadOnlyMode() {
         return isReadOnlyMode;
-    }
-
-    public T setPrefetchFeature(@Nullable Feature prefetch) {
-        this.prefetchFeature = prefetch;
-        return thisBuilder();
-    }
-
-    @Nullable
-    public Feature getPrefetchFeature() {
-        return prefetchFeature;
     }
 
     public T setDocStoreThrottlingFeature(@Nullable Feature docStoreThrottling) {
