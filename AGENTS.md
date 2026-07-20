@@ -259,3 +259,10 @@ via the Apache RAT plugin. Use this exact header:
   quick iteration
 - OSGi baseline checks may fail if you change an **exported** public API (see **OSGi exports
   and baseline** above) — this is intentional to prevent accidental breaking changes
+
+## Security
+
+Security model: [SECURITY.md](./SECURITY.md)
+
+Agents that scan this repository should consult `SECURITY.md` and the
+threat model it links (`THREAT_MODEL.md`) before reporting issues.
