@@ -190,7 +190,7 @@ public class AzureDataStoreWrapperIT {
      * A blob written via the v12 SDK must have a "lastModified" metadata key; its absence causes getLastModified() to fall back to the Azure server timestamp, which can make deleteAllOlderThan() GC the blob prematurely.
      */
     @Test
-    public void v12_writeBlob_hasLastModifiedMetadata() throws DataStoreException, IOException {
+    public void v12_writeBlob_hasLastModifiedMetadata() throws DataStoreException {
         byte[] payload = new byte[32 * 1024];
         Arrays.fill(payload, (byte) 'x');
 

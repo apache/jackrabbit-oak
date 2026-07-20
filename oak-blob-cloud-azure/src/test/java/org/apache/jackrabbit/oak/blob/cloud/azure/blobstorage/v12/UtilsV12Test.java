@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12;
 
+import com.azure.storage.common.policy.RequestRetryOptions;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -107,30 +108,28 @@ public class UtilsV12Test {
     }
 
     @Test
-    public void computeProxyOptions_hostAndPortSet_returnsProxyOptions() {
-        Properties p = new Properties();
-        p.setProperty(AzureConstantsV12.PROXY_HOST, "proxy.example.com");
-        p.setProperty(AzureConstantsV12.PROXY_PORT, "8080");
-        assertNotNull(UtilsV12.computeProxyOptions(p));
+    public void computeProxyOptions_strings_hostAndPortSet_returnsProxyOptions() {
+        assertNotNull(UtilsV12.computeProxyOptions("proxy.example.com", "8080"));
     }
 
     @Test
-    public void computeProxyOptions_noHostOrPort_returnsNull() {
-        assertNull(UtilsV12.computeProxyOptions(new Properties()));
+    public void computeProxyOptions_strings_nullHost_returnsNull() {
+        assertNull(UtilsV12.computeProxyOptions(null, "8080"));
     }
 
     @Test
-    public void computeProxyOptions_hostWithoutPort_returnsNull() {
-        Properties p = new Properties();
-        p.setProperty(AzureConstantsV12.PROXY_HOST, "proxy.example.com");
-        assertNull(UtilsV12.computeProxyOptions(p));
+    public void computeProxyOptions_strings_nullPort_returnsNull() {
+        assertNull(UtilsV12.computeProxyOptions("proxy.example.com", null));
     }
 
     @Test
-    public void computeProxyOptions_portWithoutHost_returnsNull() {
-        Properties p = new Properties();
-        p.setProperty(AzureConstantsV12.PROXY_PORT, "8080");
-        assertNull(UtilsV12.computeProxyOptions(p));
+    public void computeProxyOptions_strings_emptyHost_returnsNull() {
+        assertNull(UtilsV12.computeProxyOptions("", "8080"));
+    }
+
+    @Test
+    public void computeProxyOptions_strings_bothNull_returnsNull() {
+        assertNull(UtilsV12.computeProxyOptions(null, null));
     }
 
     /**
@@ -155,6 +154,19 @@ public class UtilsV12Test {
     @Test
     public void getRetryOptions_positiveCount_returnsNonNull() {
         assertNotNull(UtilsV12.getRetryOptions("3", null, null));
+    }
+
+    /**
+     * A secondary location alone (no explicit retry count) must not silently disable
+     * secondary-location failover — options should still be built, using the SDK's default
+     * retry count, with the secondary host set.
+     */
+    @Test
+    public void getRetryOptions_negativeCountWithSecondaryLocation_returnsOptionsWithSecondaryHost() {
+        RequestRetryOptions options = UtilsV12.getRetryOptions("-1", null, "https://account-secondary.blob.core.windows.net");
+        assertNotNull(options);
+        assertEquals("https://account-secondary.blob.core.windows.net", options.getSecondaryHost());
+        assertEquals(4, options.getMaxTries());
     }
 
     @Test(expected = IOException.class)
