@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.commons.properties;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
@@ -24,6 +25,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
+
+import java.util.concurrent.atomic.AtomicReference;
 
 public class SystemPropertySupplierTest {
 
@@ -146,5 +149,35 @@ public class SystemPropertySupplierTest {
                 usingSystemPropertyReader(y -> "2").
                 logSuccessAs("AWESOME").get();
         assertEquals(2 , x);
+    }
+
+    @Test
+    public void testCheckPropAvailable() {
+        // use "validateWith" to keep access to raw value (which might be null)
+
+        AtomicReference<Object> raw = new AtomicReference<>();
+        int x;
+
+        x = SystemPropertySupplier.
+                create("foo", 123).
+                validateWith(n -> {
+                    raw.set(n);
+                    return true;
+                }).
+                get();
+        assertEquals(123, x);
+        assertNull(raw.get());
+
+        x = SystemPropertySupplier.
+                create("foo", 123).
+                usingSystemPropertyReader(y -> "1234").
+                validateWith(n -> {
+                    raw.set(n);
+                    return true;
+                }).
+                get();
+
+        assertEquals(1234, x);
+        assertEquals(1234, raw.get());
     }
 }
