@@ -26,7 +26,9 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
  * {@link AzureDataStoreWrapper} owns the {@code AzureDataStore} PID. Use
  * {@link AzureDataStoreWrapper} instead.
  *
- * @deprecated
+ * @deprecated superseded by {@link AzureDataStoreWrapper}, which replaces the dual-service
+ * (v8/v12) OSGi architecture with a single FT-aware component that can toggle between SDK
+ * versions at runtime without restart; retained only for binary compatibility.
  */
 @Deprecated(since = "2.3", forRemoval = true)
 public class AzureDataStoreService extends AbstractAzureDataStoreService {

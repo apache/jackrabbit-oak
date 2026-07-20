@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12;
 
+import com.azure.storage.common.policy.RequestRetryOptions;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -153,6 +154,19 @@ public class UtilsV12Test {
     @Test
     public void getRetryOptions_positiveCount_returnsNonNull() {
         assertNotNull(UtilsV12.getRetryOptions("3", null, null));
+    }
+
+    /**
+     * A secondary location alone (no explicit retry count) must not silently disable
+     * secondary-location failover — options should still be built, using the SDK's default
+     * retry count, with the secondary host set.
+     */
+    @Test
+    public void getRetryOptions_negativeCountWithSecondaryLocation_returnsOptionsWithSecondaryHost() {
+        RequestRetryOptions options = UtilsV12.getRetryOptions("-1", null, "https://account-secondary.blob.core.windows.net");
+        assertNotNull(options);
+        assertEquals("https://account-secondary.blob.core.windows.net", options.getSecondaryHost());
+        assertEquals(4, options.getMaxTries());
     }
 
     @Test(expected = IOException.class)

@@ -58,7 +58,16 @@ final class UtilsV12 {
     public static RequestRetryOptions getRetryOptions(final String maxRequestRetryCount, Integer requestTimeout, String secondaryLocation) {
         int retries = PropertiesUtil.toInteger(maxRequestRetryCount, -1);
         if (retries < 0) {
-            return null;
+            if (secondaryLocation == null) {
+                // No retry count and no secondary location configured — let the SDK apply its own defaults.
+                return null;
+            }
+            // Secondary-location failover was explicitly enabled even though no retry count was
+            // configured. Build options with the SDK's default retry count (maxTries=null → 4) so
+            // the secondary host still takes effect instead of being silently dropped.
+            return new RequestRetryOptions(RetryPolicyType.EXPONENTIAL, null,
+                    requestTimeout, null, null,
+                    secondaryLocation);
         }
 
         if (retries == 0) {

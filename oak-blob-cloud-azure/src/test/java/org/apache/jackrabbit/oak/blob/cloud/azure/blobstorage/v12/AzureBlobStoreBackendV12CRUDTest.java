@@ -409,6 +409,42 @@ public class AzureBlobStoreBackendV12CRUDTest {
         verify(container).exists();
     }
 
+    // 7 days, the hard limit of an Azure user delegation key's lifetime.
+    private static final int DELEGATION_KEY_LIFETIME_SECONDS = 7 * 24 * 60 * 60;
+
+    @Test
+    public void init_presignedExpiryExceedsDelegationKeyLifetime_withServicePrincipal_capsToMax() throws Exception {
+        when(container.exists()).thenReturn(true);
+        Properties p = baseInitProps();
+        p.setProperty(AzureConstantsV12.AZURE_TENANT_ID, "tenant");
+        p.setProperty(AzureConstantsV12.AZURE_CLIENT_ID, "client");
+        p.setProperty(AzureConstantsV12.AZURE_CLIENT_SECRET, "secret");
+        p.setProperty(AzureConstantsV12.PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS, String.valueOf(DELEGATION_KEY_LIFETIME_SECONDS + 100_000));
+        p.setProperty(AzureConstantsV12.PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS, String.valueOf(DELEGATION_KEY_LIFETIME_SECONDS + 100_000));
+        backend.setProperties(p);
+
+        backend.init();
+
+        assertEquals(DELEGATION_KEY_LIFETIME_SECONDS, backend.getHttpUploadURIExpirySeconds());
+        assertEquals(DELEGATION_KEY_LIFETIME_SECONDS, backend.getHttpDownloadURIExpirySeconds());
+    }
+
+    @Test
+    public void init_presignedExpiryExceedsDelegationKeyLifetime_withoutServicePrincipal_notCapped() throws Exception {
+        when(container.exists()).thenReturn(true);
+        Properties p = baseInitProps();
+        int uncappedExpiry = DELEGATION_KEY_LIFETIME_SECONDS + 100_000;
+        p.setProperty(AzureConstantsV12.PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS, String.valueOf(uncappedExpiry));
+        p.setProperty(AzureConstantsV12.PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS, String.valueOf(uncappedExpiry));
+        backend.setProperties(p);
+
+        backend.init();
+
+        // No service-principal auth configured — SAS is not signed with a delegation key, so no cap applies.
+        assertEquals(uncappedExpiry, backend.getHttpUploadURIExpirySeconds());
+        assertEquals(uncappedExpiry, backend.getHttpDownloadURIExpirySeconds());
+    }
+
     // --- getAllIdentifiers / getAllRecords (list-based) ---
 
     @SuppressWarnings("unchecked")

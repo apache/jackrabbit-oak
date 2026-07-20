@@ -287,11 +287,11 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
     private void initPresignedURIConfig() {
         String putExpiry = properties.getProperty(AzureConstantsV12.PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS);
         if (putExpiry != null) {
-            this.setHttpUploadURIExpirySeconds(Integer.parseInt(putExpiry));
+            this.setHttpUploadURIExpirySeconds(capToDelegationKeyLifetime(Integer.parseInt(putExpiry)));
         }
         String getExpiry = properties.getProperty(AzureConstantsV12.PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS);
         if (getExpiry != null) {
-            this.setHttpDownloadURIExpirySeconds(Integer.parseInt(getExpiry));
+            this.setHttpDownloadURIExpirySeconds(capToDelegationKeyLifetime(Integer.parseInt(getExpiry)));
             String cacheMaxSize = properties.getProperty(AzureConstantsV12.PRESIGNED_HTTP_DOWNLOAD_URI_CACHE_MAX_SIZE);
             if (cacheMaxSize != null) {
                 this.setHttpDownloadURICacheSize(Integer.parseInt(cacheMaxSize));
@@ -301,6 +301,25 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
         }
         uploadDomainOverride = properties.getProperty(AzureConstantsV12.PRESIGNED_HTTP_UPLOAD_URI_DOMAIN_OVERRIDE, null);
         downloadDomainOverride = properties.getProperty(AzureConstantsV12.PRESIGNED_HTTP_DOWNLOAD_URI_DOMAIN_OVERRIDE, null);
+    }
+
+    /**
+     * When presigned URIs are signed with a user delegation key (service-principal auth), the SAS
+     * expiry can never exceed the key's lifetime — Azure caps that at 7 days
+     * ({@link AzureBlobContainerProviderV12#DELEGATION_KEY_LIFETIME}). A configured expiry beyond
+     * that would defeat the delegation-key cache (never hits) and the SAS would silently stop
+     * working before its stated expiry. Cap it here and warn instead of failing silently later.
+     */
+    private int capToDelegationKeyLifetime(int configuredExpirySeconds) {
+        long maxSeconds = AzureBlobContainerProviderV12.DELEGATION_KEY_LIFETIME.getSeconds();
+        if (azureBlobContainerProvider.authenticateViaServicePrincipal() && configuredExpirySeconds > maxSeconds) {
+            LOG.warn("Configured presigned URI expiry of {}s exceeds the {}s maximum lifetime of an Azure " +
+                            "user delegation key; capping to {}s to avoid a SAS URI that silently stops working " +
+                            "before its stated expiry.",
+                    configuredExpirySeconds, maxSeconds, maxSeconds);
+            return (int) maxSeconds;
+        }
+        return configuredExpirySeconds;
     }
 
     private void initReferenceKey() throws DataStoreException {
@@ -653,6 +672,11 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
         httpDownloadURIExpirySeconds = seconds;
     }
 
+    // Package-private for test assertions on capped/parsed config values.
+    int getHttpDownloadURIExpirySeconds() {
+        return httpDownloadURIExpirySeconds;
+    }
+
     protected void setHttpDownloadURICacheSize(int maxSize) {
         // max size 0 or smaller is used to turn off the cache
         if (maxSize > 0) {
@@ -729,6 +753,11 @@ class AzureBlobStoreBackendV12 extends AbstractSharedBackend {
 
     protected void setHttpUploadURIExpirySeconds(int seconds) {
         httpUploadURIExpirySeconds = seconds;
+    }
+
+    // Package-private for test assertions on capped/parsed config values.
+    int getHttpUploadURIExpirySeconds() {
+        return httpUploadURIExpirySeconds;
     }
 
     private DataIdentifier generateSafeRandomIdentifier() {

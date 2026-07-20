@@ -78,7 +78,9 @@ class AzureBlobContainerProviderV12 {
     final AtomicReference<CachedDelegationKey> cachedDelegationKey = new AtomicReference<>();
 
     // Request keys for the full 7-day window so they cover any SAS expiry we'd generate.
-    private static final Duration DELEGATION_KEY_LIFETIME = Duration.ofDays(7);
+    // Also the hard upper bound Azure allows for a user delegation key's lifetime — package-private
+    // so callers can validate configured presigned-URI expiries against it (see AzureBlobStoreBackendV12).
+    static final Duration DELEGATION_KEY_LIFETIME = Duration.ofDays(7);
     // Renew early enough to cover clock skew between this host and Azure.
     private static final Duration DELEGATION_KEY_RENEWAL_BUFFER = Duration.ofSeconds(60);
 
@@ -286,7 +288,9 @@ class AzureBlobContainerProviderV12 {
         log.debug("AzureBlobContainerProviderV12 closed; cached Azure clients released");
     }
 
-    private boolean authenticateViaServicePrincipal() {
+    // Package-private: AzureBlobStoreBackendV12 needs this to know whether presigned URIs will be
+    // signed with a user delegation key (and are therefore bounded by DELEGATION_KEY_LIFETIME).
+    boolean authenticateViaServicePrincipal() {
         return StringUtils.isBlank(azureConnectionString) &&
                 StringUtils.isNoneBlank(accountName, tenantId, clientId, clientSecret);
     }
