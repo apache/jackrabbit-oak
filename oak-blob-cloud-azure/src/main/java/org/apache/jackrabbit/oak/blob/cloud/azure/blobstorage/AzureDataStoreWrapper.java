@@ -18,15 +18,25 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12.AzureDataStoreV12;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractDataStoreService;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.*;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.TypedDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions;
+import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
 import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
+import org.apache.jackrabbit.oak.spi.blob.data.MultiDataStoreAware;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -40,9 +50,15 @@ import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.InputStream;
 import java.net.URI;
-import java.util.*;
+import java.util.Dictionary;
+import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 
 /**
@@ -51,7 +67,7 @@ import java.util.*;
  * chosen implementation under the legacy v8 PID so consumers bound to that PID keep working.
  *
  * <p>Replaces the old dual-service architecture (AzureDataStoreService + AzureDataStoreServiceV12
- * + AzureSDKConditionGate) that caused deadlocks during OSGi service swap on FT toggle.
+ * + AzureSDKConditionGate) that caused deadlocks during runtime OSGi service swap.
  */
 @Component(
         name = AzureDataStoreWrapper.NAME,
@@ -62,6 +78,9 @@ public class AzureDataStoreWrapper extends AbstractDataStoreService {
 
     private static final Logger log = LoggerFactory.getLogger(AzureDataStoreWrapper.class);
 
+    // Intentionally set to the legacy v8 PID rather than this class's own FQN.
+    // Existing OSGi configurations reference the v8 PID, so reusing it here means
+    // no config migration is required when switching to this wrapper.
     public static final String NAME = "org.apache.jackrabbit.oak.plugins.blob.datastore.AzureDataStore";
 
     // Same name for now; kept as separate constants so they can diverge if the sources need different keys later.
@@ -74,7 +93,7 @@ public class AzureDataStoreWrapper extends AbstractDataStoreService {
     private StatisticsProvider statisticsProvider;
     private ServiceRegistration<AbstractSharedCachingDataStore> delegateReg;
 
-    static ServiceRegistration<AbstractSharedCachingDataStore> registerService(ComponentContext context, AbstractSharedCachingDataStore service) {
+    static ServiceRegistration<AbstractSharedCachingDataStore> registerDataStoreService(ComponentContext context, AbstractSharedCachingDataStore service) {
         Dictionary<String, Object> delegateProps = new Hashtable<>();
         // Use the v8 PID so consumers bound to "org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore"
         // still receive this service without needing a config change.
@@ -90,12 +109,13 @@ public class AzureDataStoreWrapper extends AbstractDataStoreService {
      */
     static boolean getUseV12Value(Map<String, Object> config) {
         if (System.getProperty(JVM_PROPERTY_V12_ENABLED) != null) {
-            boolean useV12 = Boolean.getBoolean(JVM_PROPERTY_V12_ENABLED);
-            log.info("Azure SDK v12 flag: JVM property {}={}", JVM_PROPERTY_V12_ENABLED, useV12);
-            return useV12;
+            return SystemPropertySupplier.create(JVM_PROPERTY_V12_ENABLED, false)
+                    .loggingTo(log)
+                    .formatSetMessage((name, useV12) -> "Azure SDK v12 flag: JVM property " + name + "=" + useV12)
+                    .get();
         }
         String envVar = System.getenv(ENV_VAR_V12_ENABLED);
-        if (envVar != null) {
+        if (StringUtils.isNotBlank(envVar)) {
             boolean useV12 = Boolean.parseBoolean(envVar);
             log.info("Azure SDK v12 flag: environment variable {}={}", ENV_VAR_V12_ENABLED, useV12);
             return useV12;
@@ -105,7 +125,7 @@ public class AzureDataStoreWrapper extends AbstractDataStoreService {
             log.info("Azure SDK v12 flag: OSGi config {}={}", OSGI_CONFIG_V12_ENABLED, useV12);
             return useV12;
         }
-        log.info("Azure SDK v12 flag: not configured, using default (false)");
+        log.info("Azure SDK v12 flag: not configured, falling back to v8");
         return false;
     }
 
@@ -141,9 +161,9 @@ public class AzureDataStoreWrapper extends AbstractDataStoreService {
         }
         activeImpl.setStatisticsProvider(getStatisticsProvider());
         // Registers activeImpl separately as AbstractSharedCachingDataStore so consumers
-        // bound to that type (e.g. oak-repository-service) get the concrete store directly,
+        // bound to that type get the concrete store directly,
         // not just the DataStore view the base class exposes.
-        delegateReg = registerService(context, activeImpl);
+        delegateReg = registerDataStoreService(context, activeImpl);
 
         return new DelegatingDataStore();
     }
@@ -172,7 +192,8 @@ public class AzureDataStoreWrapper extends AbstractDataStoreService {
 
     @Override
     protected String[] getDescription() {
-        return new String[]{"type=AzureBlob"};
+        String sdkVersion = (activeImpl instanceof AzureDataStoreV12) ? "v12" : "v8";
+        return new String[]{"type=AzureBlob", "sdkVersion=" + sdkVersion};
     }
 
     // -- Inner DelegatingDataStore (returned from createDataStore) -------
@@ -185,7 +206,12 @@ public class AzureDataStoreWrapper extends AbstractDataStoreService {
      * Returning activeImpl directly would hand ownership to the base class and prevent the
      * separate registration. This delegate keeps the two registrations independent.
      */
-    class DelegatingDataStore implements DataStore, ConfigurableDataRecordAccessProvider {
+    // Must be public: AbstractDataStoreService.createDataStore() reflects into this via
+    // PropertiesUtil.populate() (org.apache.jackrabbit.oak.commons, a different package) to set
+    // bean properties like cacheSize. A package-private class fails that reflective access even
+    // though the setter methods themselves are public.
+    public class DelegatingDataStore implements DataStore, ConfigurableDataRecordAccessProvider,
+            SharedDataStore, MultiDataStoreAware, TypedDataStore {
 
         @Override
         public void init(String homeDir) throws DataStoreException {
@@ -296,6 +322,86 @@ public class AzureDataStoreWrapper extends AbstractDataStoreService {
         public URI getDownloadURI(@NotNull DataIdentifier identifier,
                                   @NotNull DataRecordDownloadOptions downloadOptions) {
             return provider().getDownloadURI(identifier, downloadOptions);
+        }
+
+        // -- SharedDataStore --
+
+        @Override
+        public void addMetadataRecord(InputStream stream, String name) throws DataStoreException {
+            activeImpl.addMetadataRecord(stream, name);
+        }
+
+        @Override
+        public void addMetadataRecord(File f, String name) throws DataStoreException {
+            activeImpl.addMetadataRecord(f, name);
+        }
+
+        @Override
+        public DataRecord getMetadataRecord(String name) {
+            return activeImpl.getMetadataRecord(name);
+        }
+
+        @Override
+        public boolean metadataRecordExists(String name) {
+            return activeImpl.metadataRecordExists(name);
+        }
+
+        @Override
+        public List<DataRecord> getAllMetadataRecords(String prefix) {
+            return activeImpl.getAllMetadataRecords(prefix);
+        }
+
+        @Override
+        public boolean deleteMetadataRecord(String name) {
+            return activeImpl.deleteMetadataRecord(name);
+        }
+
+        @Override
+        public void deleteAllMetadataRecords(String prefix) {
+            activeImpl.deleteAllMetadataRecords(prefix);
+        }
+
+        @Override
+        public Iterator<DataRecord> getAllRecords() throws DataStoreException {
+            return activeImpl.getAllRecords();
+        }
+
+        @Override
+        public DataRecord getRecordForId(DataIdentifier id) throws DataStoreException {
+            return activeImpl.getRecordForId(id);
+        }
+
+        @Override
+        public SharedDataStore.Type getType() {
+            return activeImpl.getType();
+        }
+
+        // -- MultiDataStoreAware --
+
+        @Override
+        public void deleteRecord(DataIdentifier identifier) throws DataStoreException {
+            activeImpl.deleteRecord(identifier);
+        }
+
+        // -- TypedDataStore --
+
+        @Override
+        public DataRecord addRecord(InputStream input, BlobOptions options) throws DataStoreException {
+            return activeImpl.addRecord(input, options);
+        }
+
+        // -- Cache-layer setters forwarded so PropertiesUtil.populate() can inject them --
+
+        public void setPath(String path) {
+            activeImpl.setPath(path);
+        }
+
+        public void setCacheSize(long cacheSize) {
+            activeImpl.setCacheSize(cacheSize);
+        }
+
+        public void setUploadThreads(int uploadThreads) {
+            activeImpl.setUploadThreads(uploadThreads);
         }
     }
 }
