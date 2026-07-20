@@ -36,8 +36,9 @@ import org.osgi.service.component.ComponentContext;
  * Kept for binary compatibility with existing callers. Use {@link AzureDataStoreWrapper} instead.
  *
  * @deprecated superseded by {@link AzureDataStoreWrapper}, which replaces the dual-service
- * (v8/v12) OSGi architecture with a single FT-aware component that can toggle between SDK
- * versions at runtime without restart; retained only for binary compatibility.
+ * (v8/v12) OSGi architecture with a single component that selects the SDK version at activation
+ * time via JVM property, environment variable, or OSGi configuration; retained only for binary
+ * compatibility.
  */
 @Deprecated(since = "2.3", forRemoval = true)
 public abstract class AbstractAzureDataStoreService extends AbstractDataStoreService {
