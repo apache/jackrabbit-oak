@@ -211,11 +211,11 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
 
         if (Boolean.class.isAssignableFrom(clazz)) {
             return v -> (U) Boolean.valueOf(v);
-        } else if (defaultValue instanceof Integer) {
+        } else if (Integer.class.isAssignableFrom(clazz)) {
             return v -> (U) Integer.valueOf(v);
-        } else if (defaultValue instanceof Long) {
+        } else if (Long.class.isAssignableFrom(clazz)) {
             return v -> (U) Long.valueOf(v);
-        } else if (defaultValue instanceof String) {
+        } else if (String.class.isAssignableFrom(clazz)) {
             return v -> (U) v;
         } else {
             log.error("Unsupported property type {}, falling back to String", clazz);
