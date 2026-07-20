@@ -137,4 +137,14 @@ public class SystemPropertySupplierTest {
         } catch (IllegalArgumentException expected) {
         }
     }
+
+    @Test
+    public void testUnsupportedLogLevel() {
+        // should not throw:
+        int x = SystemPropertySupplier.
+                create("foo", 0).
+                usingSystemPropertyReader(y -> "2").
+                logSuccessAs("AWESOME").get();
+        assertEquals(2 , x);
+    }
 }
