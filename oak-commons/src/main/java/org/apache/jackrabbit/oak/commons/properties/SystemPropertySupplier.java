@@ -205,21 +205,21 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
     }
 
     @SuppressWarnings("unchecked")
-    private <T> Function<String, T> getValueParser(T defaultValue, Class<T> type) {
+    private <U> Function<String, U> getValueParser(T defaultValue, Class<U> type) {
         // Only one of the parameters can be null.
         Class<?> clazz = (defaultValue != null) ? defaultValue.getClass() : type;
 
         if (Boolean.class.isAssignableFrom(clazz)) {
-            return v -> (T) Boolean.valueOf(v);
+            return v -> (U) Boolean.valueOf(v);
         } else if (defaultValue instanceof Integer) {
-            return v -> (T) Integer.valueOf(v);
+            return v -> (U) Integer.valueOf(v);
         } else if (defaultValue instanceof Long) {
-            return v -> (T) Long.valueOf(v);
+            return v -> (U) Long.valueOf(v);
         } else if (defaultValue instanceof String) {
-            return v -> (T) v;
+            return v -> (U) v;
         } else {
             log.error("Unsupported property type {}, falling back to String", clazz);
-            return v -> (T) v;
+            return v -> (U) v;
         }
     }
 }
