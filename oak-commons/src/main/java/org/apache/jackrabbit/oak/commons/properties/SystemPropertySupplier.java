@@ -23,6 +23,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,17 +59,30 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
     private BiFunction<String, T, String> setMessageFormatter = (a, b) -> String.format("System property %s found to be '%s'", a,
             hideValue ? HIDDEN_REPLACEMENT : b);
 
-    private SystemPropertySupplier(@NotNull String propName, @NotNull T defaultValue) {
+    private SystemPropertySupplier(@NotNull String propName, @Nullable T defaultValue, @Nullable Class<T> clazz) {
+        if (defaultValue == null && clazz == null) {
+            // Due to the create methods, we'll never get here. For now.
+            throw new NullPointerException("defaultValue and clazz can't be null");
+        }
         this.propName = Objects.requireNonNull(propName, "propertyName must be non-null");
-        this.defaultValue = Objects.requireNonNull(defaultValue, "defaultValue must be non-null");
-        this.parser = getValueParser(defaultValue);
+        this.defaultValue = defaultValue;
+        this.parser = getValueParser(defaultValue, clazz);
     }
 
     /**
      * Create it for a given property name and default value.
      */
     public static <U> SystemPropertySupplier<U> create(@NotNull String propName, @NotNull U defaultValue) {
-        return new SystemPropertySupplier<>(propName, defaultValue);
+        return new SystemPropertySupplier<>(propName,
+                Objects.requireNonNull(defaultValue, "defaultValue must not be null"), null);
+    }
+
+    /**
+     * Create it for a given property name and no default value (but expected {@linkplain Class}).
+     */
+    public static <U> SystemPropertySupplier<U> create(@NotNull String propName, @NotNull Class<U> clazz) {
+        return new SystemPropertySupplier<>(propName, null,
+                Objects.requireNonNull(clazz, "clazz must not be null"));
     }
 
     /**
@@ -191,8 +205,11 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
     }
 
     @SuppressWarnings("unchecked")
-    private static <T> Function<String, T> getValueParser(T defaultValue) {
-        if (defaultValue instanceof Boolean) {
+    private <T> Function<String, T> getValueParser(T defaultValue, Class<T> type) {
+        // Only one of the parameters can be null.
+        Class<?> clazz = (defaultValue != null) ? defaultValue.getClass() : type;
+
+        if (Boolean.class.isAssignableFrom(clazz)) {
             return v -> (T) Boolean.valueOf(v);
         } else if (defaultValue instanceof Integer) {
             return v -> (T) Integer.valueOf(v);
@@ -201,8 +218,8 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
         } else if (defaultValue instanceof String) {
             return v -> (T) v;
         } else {
-            throw new IllegalArgumentException(
-                    String.format("expects a defaultValue of Boolean, Integer, Long, or String, but got: %s", defaultValue.getClass()));
+            log.error("Unsupported property type {}, falling back to String", clazz);
+            return v -> (T) v;
         }
     }
 }
