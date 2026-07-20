@@ -18,7 +18,9 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12;
 
+import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.specialized.BlockBlobClient;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
 import org.junit.Test;
 
@@ -35,7 +37,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for AzureBlobStoreBackendV12.
@@ -178,23 +183,16 @@ public class AzureBlobStoreBackendV12Test {
     static class FailingUploadBackend extends AzureBlobStoreBackendV12 {
         @Override
         protected BlobContainerClient getAzureContainer() throws DataStoreException {
-            com.azure.storage.blob.BlobContainerClient mock =
-                    org.mockito.Mockito.mock(com.azure.storage.blob.BlobContainerClient.class);
-            com.azure.storage.blob.BlobClient blobClient =
-                    org.mockito.Mockito.mock(com.azure.storage.blob.BlobClient.class);
-            com.azure.storage.blob.specialized.BlockBlobClient blockBlobClient =
-                    org.mockito.Mockito.mock(com.azure.storage.blob.specialized.BlockBlobClient.class);
-            org.mockito.Mockito.when(mock.getBlobClient(org.mockito.ArgumentMatchers.anyString()))
-                    .thenReturn(blobClient);
-            org.mockito.Mockito.when(blobClient.getBlockBlobClient()).thenReturn(blockBlobClient);
-            org.mockito.Mockito.when(blockBlobClient.exists()).thenReturn(false);
-            org.mockito.Mockito.when(blobClient.uploadFromFileWithResponse(
-                            org.mockito.ArgumentMatchers.any(),
-                            org.mockito.ArgumentMatchers.any(),
-                            org.mockito.ArgumentMatchers.any()))
+            BlobContainerClient container = mock(BlobContainerClient.class);
+            BlobClient blobClient = mock(BlobClient.class);
+            BlockBlobClient blockBlobClient = mock(BlockBlobClient.class);
+            when(container.getBlobClient(anyString())).thenReturn(blobClient);
+            when(blobClient.getBlockBlobClient()).thenReturn(blockBlobClient);
+            when(blockBlobClient.exists()).thenReturn(false);
+            when(blobClient.uploadFromFileWithResponse(any(), any(), any()))
                     .thenThrow(new IllegalArgumentException("blockSize must be <= 4000 MiB"));
-            org.mockito.Mockito.when(blockBlobClient.getContainerClient()).thenReturn(mock);
-            return mock;
+            when(blockBlobClient.getContainerClient()).thenReturn(container);
+            return container;
         }
     }
 }

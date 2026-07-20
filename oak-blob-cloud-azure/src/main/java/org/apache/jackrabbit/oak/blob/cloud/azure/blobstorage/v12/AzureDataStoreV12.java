@@ -19,7 +19,11 @@
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12;
 
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.*;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;

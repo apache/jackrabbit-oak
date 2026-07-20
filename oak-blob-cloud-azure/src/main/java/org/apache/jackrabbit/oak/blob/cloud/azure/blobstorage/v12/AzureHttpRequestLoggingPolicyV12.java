@@ -43,6 +43,10 @@ import java.util.concurrent.TimeUnit;
  */
 class AzureHttpRequestLoggingPolicyV12 implements HttpPipelinePolicy {
 
+    // Stateless after construction — verboseEnabled is read once from system property.
+    // Share one instance across all SDK client builders rather than allocating per build.
+    static final AzureHttpRequestLoggingPolicyV12 INSTANCE = new AzureHttpRequestLoggingPolicyV12();
+
     private static final Logger log = LoggerFactory.getLogger(AzureHttpRequestLoggingPolicyV12.class);
 
     private static final String AZURE_SDK_VERBOSE_LOGGING_ENABLED = "blob.azure.v12.http.verbose.enabled";
@@ -55,9 +59,13 @@ class AzureHttpRequestLoggingPolicyV12 implements HttpPipelinePolicy {
 
         return next.process().flatMap(httpResponse -> {
             if (verboseEnabled) {
+                // Redact SAS token signature — the sig= value grants storage access and must not
+                // appear in log files. Other SAS params (se, sp, sv) are left intact for debugging.
+                String url = context.getHttpRequest().getUrl().toString();
+                String safeUrl = url.replaceAll("sig=[^&]*", "sig=[redacted]");
                 log.info("HTTP Blob Request: {} {} {} {} ms",
                         context.getHttpRequest().getHttpMethod(),
-                        context.getHttpRequest().getUrl(),
+                        safeUrl,
                         httpResponse.getStatusCode(),
                         stopwatch.elapsed(TimeUnit.MILLISECONDS));
             }
