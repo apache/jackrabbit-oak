@@ -99,14 +99,19 @@ public class TokenCleanupTest extends AbstractTokenTest {
     @Test
     public void testBatchSizeLimitsCleanup() throws Exception {
         int batchSize = 3;
+        // create more expired tokens than the batch size
+        int expiredCount = batchSize + 2;
+        // keep the cleanup threshold above the number of expired tokens so that
+        // cleanup is not triggered while the expired tokens are being created;
+        // this guarantees a single cleanup run during the extras loop below and
+        // makes the batch-size assertion deterministic.
+        int threshold = expiredCount + 1;
         TokenProviderImpl tp = createTokenProvider(root,
                 ConfigurationParameters.of(
-                        TokenProviderImpl.PARAM_TOKEN_CLEANUP_THRESHOLD, 5,
+                        TokenProviderImpl.PARAM_TOKEN_CLEANUP_THRESHOLD, threshold,
                         TokenProviderImpl.PARAM_TOKEN_CLEANUP_BATCH_SIZE, batchSize),
                 getUserConfiguration(), SimpleCredentialsSupport.getInstance());
 
-        // create more expired tokens than the batch size
-        int expiredCount = batchSize + 2;
         for (int i = 0; i < expiredCount; i++) {
             TokenInfo info = tp.createToken(userId, Map.of(TokenProvider.PARAM_TOKEN_EXPIRATION, 2));
             if (info != null) {
