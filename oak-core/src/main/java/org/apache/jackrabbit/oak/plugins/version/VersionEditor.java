@@ -303,16 +303,29 @@ class VersionEditor implements Editor {
         return identifier;
     }
 
-    private static void throwCheckedIn(String msg)
+    private void throwCheckedIn(String msg)
             throws CommitFailedException {
         throw new CommitFailedException(CommitFailedException.VERSION,
-                VersionExceptionCode.NODE_CHECKED_IN.ordinal(), msg);
+                VersionExceptionCode.NODE_CHECKED_IN.ordinal(),
+                msg + " at " + getPath());
     }
 
-    private static void throwProtected(String name)
+    /**
+     * @return the absolute path of the node this editor is processing,
+     *         reconstructed from the parent chain.
+     */
+    private String getPath() {
+        if (parent == null) {
+            return "/";
+        }
+        String parentPath = parent.getPath();
+        return parentPath.equals("/") ? "/" + name : parentPath + "/" + name;
+    }
+
+    private void throwProtected(String name)
             throws CommitFailedException {
         throw new CommitFailedException(CommitFailedException.CONSTRAINT, 100,
-                "Property is protected: " + name);
+                "Property is protected: " + name + " at " + getPath());
     }
 
     private boolean isIgnoreOnOPV() throws CommitFailedException {
