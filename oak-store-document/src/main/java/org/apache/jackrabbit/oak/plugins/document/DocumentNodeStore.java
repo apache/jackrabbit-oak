@@ -558,8 +558,6 @@ public final class DocumentNodeStore
 
     private final Feature cancelInvalidationFeature;
 
-    private final Feature noChildOrderCleanupFeature;
-
     private Boolean cancelInvalidationLogged;
 
     private CacheWarming cacheWarming;
@@ -636,7 +634,6 @@ public final class DocumentNodeStore
         }
 
         this.cancelInvalidationFeature = builder.getCancelInvalidationFeature();
-        this.noChildOrderCleanupFeature = builder.getNoChildOrderCleanupFeature();
         this.avoidMergeLock = isAvoidMergeLockEnabled(builder);
         this.cacheWarming = new CacheWarming(s);
 
@@ -871,10 +868,6 @@ public final class DocumentNodeStore
         }
     }
 
-
-    public boolean isChildOrderCleanupEnabled() {
-        return noChildOrderCleanupFeature == null || !noChildOrderCleanupFeature.isEnabled();
-    }
 
     public void dispose() {
         LOG.info("Starting disposal of DocumentNodeStore with clusterNodeId: {} ({})", clusterId,

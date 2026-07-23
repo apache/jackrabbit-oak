@@ -202,8 +202,6 @@ public class DocumentNodeStoreService {
      */
     private static final String FT_NAME_DOC_STORE_THROTTLING = "FT_THROTTLING_OAK-9909";
 
-    private static final String FT_NAME_DOC_STORE_NOCOCLEANUP = "FT_NOCOCLEANUP_OAK-10660";
-
     /**
      * Feature toggle name to enable invalidation on cancel (due to a merge collision)
      */
@@ -263,7 +261,6 @@ public class DocumentNodeStoreService {
     private ObserverTracker observerTracker;
     private JournalPropertyHandlerFactory journalPropertyHandlerFactory = new JournalPropertyHandlerFactory();
     private Feature docStoreThrottlingFeature;
-    private Feature noChildOrderCleanupFeature;
     private Feature cancelInvalidationFeature;
     private Feature docStoreAvoidMergeLockFeature;
     private Feature prevNoPropCacheFeature;
@@ -300,7 +297,6 @@ public class DocumentNodeStoreService {
         customBlobStore = this.config.customBlobStore();
         documentStoreType = DocumentStoreType.fromString(this.config.documentStoreType());
         docStoreThrottlingFeature = Feature.newFeature(FT_NAME_DOC_STORE_THROTTLING, whiteboard);
-        noChildOrderCleanupFeature = Feature.newFeature(FT_NAME_DOC_STORE_NOCOCLEANUP, whiteboard);
         cancelInvalidationFeature = Feature.newFeature(FT_NAME_CANCEL_INVALIDATION, whiteboard);
         docStoreAvoidMergeLockFeature = Feature.newFeature(FT_NAME_AVOID_MERGE_LOCK, whiteboard);
         prevNoPropCacheFeature = Feature.newFeature(FT_NAME_PREV_NO_PROP_CACHE, whiteboard);
@@ -535,7 +531,6 @@ public class DocumentNodeStoreService {
                 setJournalPropertyHandlerFactory(journalPropertyHandlerFactory).
                 setLeaseCheckMode(ClusterNodeInfo.DEFAULT_LEASE_CHECK_DISABLED ? LeaseCheckMode.DISABLED : LeaseCheckMode.valueOf(config.leaseCheckMode())).
                 setDocStoreThrottlingFeature(docStoreThrottlingFeature).
-                setNoChildOrderCleanupFeature(noChildOrderCleanupFeature).
                 setCancelInvalidationFeature(cancelInvalidationFeature).
                 setDocStoreAvoidMergeLockFeature(docStoreAvoidMergeLockFeature).
                 setPrevNoPropCacheFeature(prevNoPropCacheFeature).

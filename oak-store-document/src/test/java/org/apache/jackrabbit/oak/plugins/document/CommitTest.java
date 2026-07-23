@@ -19,6 +19,11 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.List;
+import java.util.Map;
+
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -27,10 +32,12 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.persistToBranch;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -164,5 +171,37 @@ public class CommitTest {
         } finally {
             ns.canceled(c);
         }
+    }
+
+    // OAK-12316
+    @Test
+    public void childOrderCleanupAlwaysEnabled() throws Exception {
+        DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
+
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo");
+        merge(ns, builder);
+
+        // set :childOrder twice within the same local branch, persisting each
+        // change as its own branch commit; the first branch commit's
+        // :childOrder entry is only removed once the second branch commit
+        // applies
+        NodeBuilder branchBuilder = ns.getRoot().builder();
+        branchBuilder.child("foo").setProperty(":childOrder", List.of("a", "b"), Type.NAMES);
+        persistToBranch(branchBuilder);
+        branchBuilder.child("foo").setProperty(":childOrder", List.of("b", "a"), Type.NAMES);
+        persistToBranch(branchBuilder);
+
+        merge(ns, branchBuilder);
+
+        // there is no more FT_NOCOCLEANUP_OAK-10660 toggle to disable this
+        // cleanup, so the first branch commit's :childOrder entry must have
+        // been removed by the second, leaving only the latest revision
+        NodeDocument doc = ns.getDocumentStore().find(Collection.NODES,
+                Utils.getIdFromPath("/foo"), 0);
+        assertNotNull(doc);
+        Map<Revision, String> childOrderRevisions = doc.getLocalMap(":childOrder");
+        assertEquals("Only the latest :childOrder revision must remain",
+                1, childOrderRevisions.size());
     }
 }
