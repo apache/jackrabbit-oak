@@ -21,13 +21,13 @@ package org.apache.jackrabbit.oak.query.ast;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.query.SQL2Parser;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
@@ -44,15 +44,18 @@ public class PropertyValueImpl extends DynamicOperandImpl {
     private SelectorImpl selector;
 
     public PropertyValueImpl(String selectorName, String propertyName) {
-        this(selectorName, propertyName, null);
+        this(null, selectorName, propertyName, PropertyType.UNDEFINED);
     }
 
-    public PropertyValueImpl(String selectorName, String propertyName, String propertyType) {
+    public PropertyValueImpl(String selectorName, String propertyName, int propertyType) {
+        this(null, selectorName, propertyName, propertyType);
+    }
+
+    public PropertyValueImpl(SelectorImpl selector, String selectorName, String propertyName, int propertyType) {
+        this.selector = selector;
         this.selectorName = selectorName;
         this.propertyName = propertyName;
-        this.propertyType = propertyType == null ?
-                PropertyType.UNDEFINED :
-                SQL2Parser.getPropertyTypeFromName(propertyType);
+        this.propertyType = propertyType;
     }
 
     public String getSelectorName() {
@@ -93,7 +96,7 @@ public class PropertyValueImpl extends DynamicOperandImpl {
         if (propertyName.equals("*")) {
             return null;
         }
-        return new PropertyExistenceImpl(selector, selectorName, propertyName);
+        return new PropertyExistenceImpl(this);
     }
     
     @Override
@@ -114,6 +117,10 @@ public class PropertyValueImpl extends DynamicOperandImpl {
 
     public void bindSelector(SourceImpl source) {
         selector = source.getExistingSelector(selectorName);
+    }
+
+    SelectorImpl getSelector() {
+        return selector;
     }
 
     @Override
@@ -166,13 +173,13 @@ public class PropertyValueImpl extends DynamicOperandImpl {
     }
     
     @Override
-    int getPropertyType() {
+    public int getPropertyType() {
         return propertyType;
     }
     
     @Override
     public PropertyValueImpl createCopy() {
-        return new PropertyValueImpl(selectorName, propertyName);
+        return new PropertyValueImpl(selector, selectorName, propertyName, propertyType);
     }
 
     @Override
@@ -198,4 +205,22 @@ public class PropertyValueImpl extends DynamicOperandImpl {
         return normalizePropertyName(propertyName);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        } else if (!(o instanceof PropertyValueImpl)) {
+            return false;
+        }
+        PropertyValueImpl other = (PropertyValueImpl) o;
+        return propertyType == other.propertyType
+                && Objects.equals(selectorName, other.selectorName)
+                && Objects.equals(propertyName, other.propertyName)
+                && Objects.equals(selector, other.selector);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(selectorName, propertyName, propertyType, selector);
+    }
 }

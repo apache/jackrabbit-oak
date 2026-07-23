@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextParser;
 import org.apache.jackrabbit.oak.spi.query.fulltext.VectorQuery;
 
+import javax.jcr.PropertyType;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Set;
@@ -103,7 +104,8 @@ public class FullTextSearchImpl extends ConstraintImpl {
         } else {
             fullName = propertyName;
         }
-        return Collections.singleton(new PropertyExistenceImpl(selector, selectorName, fullName));
+        PropertyValueImpl propertyValue = new PropertyValueImpl(selector, selectorName, fullName, PropertyType.UNDEFINED);
+        return Collections.singleton(new PropertyExistenceImpl(propertyValue));
     }
 
     @Override

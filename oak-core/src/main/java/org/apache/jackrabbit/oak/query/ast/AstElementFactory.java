@@ -18,10 +18,13 @@ import static java.util.Objects.requireNonNull;
 import java.util.ArrayList;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.query.SQL2Parser;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.jcr.PropertyType;
 
 /**
  * A factory for syntax tree elements.
@@ -146,12 +149,12 @@ public class AstElementFactory {
         return new OrImpl(constraint1, constraint2);
     }
 
-    public PropertyExistenceImpl propertyExistence(String selectorName, String propertyName) {
-        return new PropertyExistenceImpl(selectorName, propertyName);
+    public PropertyExistenceImpl propertyExistence(PropertyValueImpl propertyValue) {
+        return new PropertyExistenceImpl(propertyValue);
     }
 
-    public PropertyInexistenceImpl propertyInexistence(String selectorName, String propertyName) {
-        return new PropertyInexistenceImpl(selectorName, propertyName);
+    public PropertyInexistenceImpl propertyInexistence(PropertyValueImpl propertyValue) {
+        return new PropertyInexistenceImpl(propertyValue);
     }
 
     public PropertyValueImpl propertyValue(String selectorName, String propertyName) {
@@ -159,7 +162,7 @@ public class AstElementFactory {
     }
 
     public PropertyValueImpl propertyValue(String selectorName, String propertyName, String propertyType) {
-        return new PropertyValueImpl(selectorName, propertyName, propertyType);
+        return new PropertyValueImpl(selectorName, propertyName, SQL2Parser.getPropertyTypeFromName(propertyType));
     }
 
     public SameNodeImpl sameNode(String selectorName, String path) {

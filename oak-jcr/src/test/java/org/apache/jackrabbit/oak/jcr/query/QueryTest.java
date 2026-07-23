@@ -364,6 +364,27 @@ public class QueryTest extends AbstractRepositoryTest {
     }
 
     @Test
+    public void propertyInexistenceWithType() throws Exception {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+
+        Node test = root.addNode("test");
+        test.addNode("a", "oak:Unstructured").setProperty("test", new String[]{"2025-10-14T20:32:01.481Z", "foo"});
+        test.addNode("b", "oak:Unstructured").setProperty("test", Calendar.getInstance());
+        test.addNode("c", "oak:Unstructured").setProperty("test", "/a/b/c");
+        test.addNode("d", "oak:Unstructured").setProperty("test", 42L);
+        session.save();
+
+        String nodeList = getNodeList(session,
+                "select [jcr:path] " +
+                        "from [nt:base] " +
+                        "where property([test], 'String') is null " +
+                        "and [test] is not null " +
+                        "order by [jcr:path]", Query.JCR_SQL2);
+        assertEquals("/test/b, /test/d", nodeList);
+    }
+
+    @Test
     public void twoSelectors() throws Exception {
         Session session = getAdminSession();
         Node root = session.getRootNode();

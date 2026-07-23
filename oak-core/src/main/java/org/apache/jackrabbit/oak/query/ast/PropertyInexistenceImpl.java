@@ -19,8 +19,12 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 
+import javax.jcr.PropertyType;
+
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -35,28 +39,20 @@ public class PropertyInexistenceImpl extends ConstraintImpl {
     //OAK-6838
     private final boolean USE_OLD_INEXISTENCE_CHECK = Boolean.getBoolean("oak.useOldInexistenceCheck");
 
-    private final String selectorName;
-    private final String propertyName;
-    private SelectorImpl selector;
+    private final PropertyValueImpl propertyValue;
 
-    public PropertyInexistenceImpl(SelectorImpl selector, String selectorName, String propertyName) {
-        this.selector = selector;
-        this.selectorName = selectorName;
-        this.propertyName = propertyName;
-    }
-    
-    public PropertyInexistenceImpl(String selectorName, String propertyName) {
-        this.selectorName = selectorName;
-        this.propertyName = propertyName;
+    public PropertyInexistenceImpl(PropertyValueImpl propertyValue) {
+        this.propertyValue = propertyValue;
     }
 
     @Override
     public boolean evaluate() {
+        String propertyName = propertyValue.getPropertyName();
         boolean isRelative = propertyName.indexOf('/') >= 0;
         if (!isRelative) {
-            return selector.currentProperty(propertyName) == null;
+            return propertyValue.currentProperty() == null;
         }
-        Tree t = selector.currentTree();
+        Tree t = propertyValue.getSelector().currentTree();
         if (t == null) {
             return true;
         }
@@ -77,20 +73,29 @@ public class PropertyInexistenceImpl extends ConstraintImpl {
         }
 
         if (USE_OLD_INEXISTENCE_CHECK) {
-            return t != null && t.exists() && !t.hasProperty(name);
+            return t != null && t.exists() && !hasProperty(t, name);
         } else {
-            return t == null || !t.exists() || !t.hasProperty(name);
+            return t == null || !t.exists() || !hasProperty(t, name);
         }
+    }
+
+    private boolean hasProperty(Tree t, String name) {
+        PropertyState p = t.getProperty(name);
+        if (p == null) {
+            return false;
+        }
+        int requiredPropertyType = propertyValue.getPropertyType();
+        return requiredPropertyType == PropertyType.UNDEFINED || requiredPropertyType == p.getType().tag();
     }
 
     @Override
     public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
         return Collections.emptySet();
     }
-    
+
     @Override
     public Set<SelectorImpl> getSelectors() {
-        return Collections.singleton(selector);
+        return propertyValue.getSelectors();
     }
 
     @Override
@@ -100,11 +105,11 @@ public class PropertyInexistenceImpl extends ConstraintImpl {
 
     @Override
     public String toString() {
-        return quote(selectorName) + '.' + quote(propertyName) + " is null";
+        return propertyValue + " is null";
     }
 
     public void bindSelector(SourceImpl source) {
-        selector = source.getExistingSelector(selectorName);
+        propertyValue.bindSelector(source);
     }
 
     @Override
@@ -118,13 +123,10 @@ public class PropertyInexistenceImpl extends ConstraintImpl {
         // must not result in the index to check for
         // "b.y is null", because that would alter the
         // result
-        if (selector.isOuterJoinRightHandSide()) {
+        if (propertyValue.getSelector().isOuterJoinRightHandSide()) {
             return;
         }
-        if (f.getSelector().equals(selector)) {
-            String pn = normalizePropertyName(propertyName);
-            f.restrictProperty(pn, Operator.EQUAL, null);
-        }        
+        propertyValue.restrict(f, Operator.EQUAL, null);
     }
 
     @Override
@@ -136,44 +138,33 @@ public class PropertyInexistenceImpl extends ConstraintImpl {
             // for example in:
             // "select * from a left outer join b on a.x = b.y
             // where b.y is null"
-            // must not check for "b.y is null" too early, 
+            // must not check for "b.y is null" too early,
             // because that would alter the result
             return;
         }
-        if (s.equals(selector)) {
+        if (propertyValue.canRestrictSelector(s)) {
             s.restrictSelector(this);
         }
     }
-    
+
     @Override
     public int hashCode() {
-        String pn = normalizePropertyName(propertyName);
-        return ((selectorName == null) ? 0 : selectorName.hashCode()) * 31 +
-                ((pn == null) ? 0 : pn.hashCode());
+        return Objects.hash(getClass().getName(), propertyValue);
     }
 
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
             return true;
-        } else if (obj == null || getClass() != obj.getClass()) {
+        } else if (!(obj instanceof PropertyInexistenceImpl)) {
             return false;
         }
         PropertyInexistenceImpl other = (PropertyInexistenceImpl) obj;
-        if (!equalsStrings(selectorName, other.selectorName)) {
-            return false;
-        }
-        String pn = normalizePropertyName(propertyName);
-        String pn2 = normalizePropertyName(other.propertyName);
-        return equalsStrings(pn, pn2);
-    }
-    
-    private static boolean equalsStrings(String a, String b) {
-        return a == null || b == null ? a == b : a.equals(b);
+        return propertyValue.equals(other.propertyValue);
     }
 
     @Override
     public AstElement copyOf() {
-        return new PropertyInexistenceImpl(selectorName, propertyName);
+        return new PropertyInexistenceImpl(propertyValue.createCopy());
     }
 }

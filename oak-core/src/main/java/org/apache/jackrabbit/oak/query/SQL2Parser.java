@@ -543,11 +543,11 @@ public class SQL2Parser {
     }
 
     private PropertyExistenceImpl getPropertyExistence(PropertyValueImpl p) throws ParseException {
-        return factory.propertyExistence(p.getSelectorName(), p.getPropertyName());
+        return factory.propertyExistence(p);
     }
     
     private PropertyInexistenceImpl getPropertyInexistence(PropertyValueImpl p) throws ParseException {
-        return factory.propertyInexistence(p.getSelectorName(), p.getPropertyName());
+        return factory.propertyInexistence(p);
     }
 
     private ConstraintImpl parseConditionFunctionIf(String functionName) throws ParseException {

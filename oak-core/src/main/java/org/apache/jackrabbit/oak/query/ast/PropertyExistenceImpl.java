@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -28,34 +29,25 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
  */
 public class PropertyExistenceImpl extends ConstraintImpl {
 
-    private final String selectorName;
-    private final String propertyName;
-    private SelectorImpl selector;
+    private final PropertyValueImpl propertyValue;
 
-    public PropertyExistenceImpl(SelectorImpl selector, String selectorName, String propertyName) {
-        this.selector = selector;
-        this.selectorName = selectorName;
-        this.propertyName = propertyName;
-    }
-    
-    public PropertyExistenceImpl(String selectorName, String propertyName) {
-        this.selectorName = selectorName;
-        this.propertyName = propertyName;
+    public PropertyExistenceImpl(PropertyValueImpl propertyValue) {
+        this.propertyValue = propertyValue;
     }
 
     @Override
     public boolean evaluate() {
-        return selector.currentProperty(propertyName) != null;
+        return propertyValue.currentProperty() != null;
     }
 
     @Override
     public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
         return Collections.singleton(this);
     }
-    
+
     @Override
     public Set<SelectorImpl> getSelectors() {
-        return Collections.singleton(selector);
+        return propertyValue.getSelectors();
     }
 
     @Override
@@ -65,57 +57,43 @@ public class PropertyExistenceImpl extends ConstraintImpl {
 
     @Override
     public String toString() {
-        return quote(selectorName) + '.' + quote(propertyName) + " is not null";
+        return propertyValue + " is not null";
     }
 
     public void bindSelector(SourceImpl source) {
-        selector = source.getExistingSelector(selectorName);
+        propertyValue.bindSelector(source);
     }
 
     @Override
     public void restrict(FilterImpl f) {
-        if (f.getSelector().equals(selector)) {
-            String pn = normalizePropertyName(propertyName);
-            f.restrictProperty(pn, Operator.NOT_EQUAL, null);
-        }
+        propertyValue.restrict(f, Operator.NOT_EQUAL, null);
     }
 
     @Override
     public void restrictPushDown(SelectorImpl s) {
-        if (s.equals(selector)) {
+        if (propertyValue.canRestrictSelector(s)) {
             s.restrictSelector(this);
         }
     }
-    
+
     @Override
     public int hashCode() {
-        String pn = normalizePropertyName(propertyName);
-        return ((selectorName == null) ? 0 : selectorName.hashCode()) * 31 +
-                ((pn == null) ? 0 : pn.hashCode());
+        return Objects.hash(getClass().getName(), propertyValue);
     }
 
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
             return true;
-        } else if (obj == null || getClass() != obj.getClass()) {
+        } else if (!(obj instanceof PropertyExistenceImpl)) {
             return false;
         }
         PropertyExistenceImpl other = (PropertyExistenceImpl) obj;
-        if (!equalsStrings(selectorName, other.selectorName)) {
-            return false;
-        }
-        String pn = normalizePropertyName(propertyName);
-        String pn2 = normalizePropertyName(other.propertyName);
-        return equalsStrings(pn, pn2);
-    }
-    
-    private static boolean equalsStrings(String a, String b) {
-        return a == null || b == null ? a == b : a.equals(b);
+        return propertyValue.equals(other.propertyValue);
     }
 
     @Override
     public AstElement copyOf() {
-        return new PropertyExistenceImpl(selectorName, propertyName);
+        return new PropertyExistenceImpl(propertyValue.createCopy());
     }
 }

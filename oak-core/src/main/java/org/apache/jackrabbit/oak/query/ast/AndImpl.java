@@ -99,7 +99,7 @@ public class AndImpl extends ConstraintImpl {
 
     @Override
     public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
-        Set<PropertyExistenceImpl> result = new HashSet<>();
+        Set<PropertyExistenceImpl> result = new LinkedHashSet<>();
         for (ConstraintImpl constraint : constraints) {
             result.addAll(constraint.getPropertyExistenceConditions());
         }

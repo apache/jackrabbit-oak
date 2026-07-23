@@ -152,11 +152,11 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
     public void restrictPushDown(SelectorImpl s) {
         // both properties may not be null
         if (s.equals(selector1)) {
-            PropertyExistenceImpl ex = new PropertyExistenceImpl(s.getSelectorName(), property1Name);
+            PropertyExistenceImpl ex = new PropertyExistenceImpl(new PropertyValueImpl(s.getSelectorName(), property1Name));
             ex.bindSelector(s);
             s.restrictSelector(ex);
         } else if (s.equals(selector2)) {
-            PropertyExistenceImpl ex = new PropertyExistenceImpl(s.getSelectorName(), property2Name);
+            PropertyExistenceImpl ex = new PropertyExistenceImpl(new PropertyValueImpl(s.getSelectorName(), property2Name));
             ex.bindSelector(s);
             s.restrictSelector(ex);
         }
