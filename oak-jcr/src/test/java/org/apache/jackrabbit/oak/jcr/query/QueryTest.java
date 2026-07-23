@@ -33,6 +33,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.HashSet;
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -341,6 +342,25 @@ public class QueryTest extends AbstractRepositoryTest {
                 "from [nt:base] " +
                 "where path() >= '/test/b' " +
                 "order by path() desc", Query.JCR_SQL2));
+    }
+
+    @Test
+    public void propertyExistenceWithType() throws Exception {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+
+        Node test = root.addNode("test");
+        test.addNode("a", "oak:Unstructured").setProperty("test", new String[]{"2025-10-14T20:32:01.481Z", "foo"});
+        test.addNode("b", "oak:Unstructured").setProperty("test", Calendar.getInstance());
+        test.addNode("c", "oak:Unstructured").setProperty("test", "/a/b/c");
+        session.save();
+
+        String nodeList = getNodeList(session,
+                "select [jcr:path] " +
+                        "from [nt:base] " +
+                        "where property([test], 'String') is not null " +
+                        "order by first([test])", Query.JCR_SQL2);
+        assertEquals("/test/c, /test/a", nodeList);
     }
 
     @Test
