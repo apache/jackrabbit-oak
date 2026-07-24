@@ -81,6 +81,17 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
 
     /**
      * Specify a validation expression.
+     * <p>
+     * Can also be used to expose the raw value (or it's absence) when needed:
+     * <pre>
+     *   AtomicReference&lt;Object> raw = new AtomicReference<>();
+     *   ...
+     *   validateWith(n -> {
+     *                     raw.set(n);
+     *                     return true;
+     *                 }).
+     *  // raw will be null if system property is not set
+     * </pre>
      */
     public SystemPropertySupplier<T> validateWith(@NotNull Predicate<T> validator) {
         this.validator = Objects.requireNonNull(validator);
