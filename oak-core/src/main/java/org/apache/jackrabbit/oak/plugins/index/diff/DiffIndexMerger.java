@@ -88,7 +88,7 @@ public class DiffIndexMerger {
 
     // set of properties that are allowed to be changed if the property already exists
     private static final Set<String> ALLOW_CHANGING_IN_EXISTING_PROPERTY = Set.of(
-            "boost", "weight");
+            "boost", "weight", "secure");
 
     // set of properties that allow multi-valued string that might be merged
     private static final Set<String> MERGE_MULTI_VALUES_STRINGS = Set.of(
