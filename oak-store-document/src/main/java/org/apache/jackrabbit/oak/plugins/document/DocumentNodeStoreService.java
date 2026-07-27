@@ -251,6 +251,10 @@ public class DocumentNodeStoreService {
     private Closer closer;
     private WhiteboardExecutor executor;
 
+    // volatile is intentional: these fields are written in bind/unbind methods (outside the
+    // registrationLock) and read inside synchronized(registrationLock) blocks. The volatile
+    // keyword establishes the required happens-before relationship between the unsynchronized
+    // write and the subsequent synchronized read, ensuring visibility across threads.
     private volatile BlobStore blobStore;
 
     private volatile DataSource dataSource;
@@ -267,7 +271,7 @@ public class DocumentNodeStoreService {
     private Feature cancelInvalidationFeature;
     private Feature docStoreAvoidMergeLockFeature;
     private Feature prevNoPropCacheFeature;
-    private volatile ComponentContext context;
+    private ComponentContext context;
     private Whiteboard whiteboard;
     private long deactivationTimestamp = 0;
 
@@ -761,6 +765,8 @@ public class DocumentNodeStoreService {
     }
 
 
+    // volatile for the same reason as blobStore/dataSource above: written in activate() before
+    // the registrationLock is acquired, and read inside synchronized(registrationLock) blocks.
     private volatile DocumentStoreType documentStoreType;
 
     @Reference(name = "blobDataSource",
