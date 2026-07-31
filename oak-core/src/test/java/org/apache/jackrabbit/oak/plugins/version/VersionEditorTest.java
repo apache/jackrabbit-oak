@@ -117,8 +117,8 @@ public class VersionEditorTest extends AbstractSecurityTest {
             assertEquals(100, e.getCode());
             assertTrue("Message should mention the protected property and the node path, but was: "
                             + e.getMessage(),
-                    e.getMessage().endsWith("Property is protected: "
-                            + JcrConstants.JCR_VERSIONHISTORY + " at /a/b"));
+                    e.getMessage().endsWith("Property is protected: '"
+                            + JcrConstants.JCR_VERSIONHISTORY + "' at '/a/b'"));
         }
     }
 
@@ -130,7 +130,7 @@ public class VersionEditorTest extends AbstractSecurityTest {
             assertEquals(CommitFailedException.VERSION, e.getType());
             assertEquals(VersionExceptionCode.NODE_CHECKED_IN.ordinal(), e.getCode());
             assertTrue("Message should end with the node path, but was: " + e.getMessage(),
-                    e.getMessage().endsWith(" at " + expectedPath));
+                    e.getMessage().endsWith(" at '" + expectedPath + "'"));
         }
     }
 }

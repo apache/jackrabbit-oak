@@ -307,7 +307,7 @@ class VersionEditor implements Editor {
             throws CommitFailedException {
         throw new CommitFailedException(CommitFailedException.VERSION,
                 VersionExceptionCode.NODE_CHECKED_IN.ordinal(),
-                msg + " at " + getPath());
+                msg + " at '" + getPath() + "'");
     }
 
     /**
@@ -325,7 +325,7 @@ class VersionEditor implements Editor {
     private void throwProtected(String name)
             throws CommitFailedException {
         throw new CommitFailedException(CommitFailedException.CONSTRAINT, 100,
-                "Property is protected: " + name + " at " + getPath());
+                "Property is protected: '" + name + "' at '" + getPath() + "'");
     }
 
     private boolean isIgnoreOnOPV() throws CommitFailedException {
