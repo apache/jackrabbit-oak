@@ -24,8 +24,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.PropertyType;
-
 /**
  * A factory for syntax tree elements.
  */
