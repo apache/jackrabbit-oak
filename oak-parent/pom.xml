@@ -63,7 +63,7 @@
     <logback.version>1.2.13</logback.version>
     <h2.version>2.1.214</h2.version>
     <tika.version>1.28.5</tika.version>
-    <derby.version>10.16.1.1</derby.version>
+    <derby.version>10.17.1.0</derby.version>
     <!-- DO NOT upgrade to non-LTS versions of jackson; see https://github.com/FasterXML/jackson/wiki/Jackson-Releases -->
     <jackson.version>2.19.4</jackson.version>
     <testcontainers.version>2.0.5</testcontainers.version>
