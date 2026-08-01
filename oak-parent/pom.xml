@@ -1118,7 +1118,7 @@
         <dependency>
           <groupId>com.mysql</groupId>
           <artifactId>mysql-connector-j</artifactId>
-          <version>9.1.0</version>
+          <version>9.2.0</version>
           <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
           <scope>compile</scope>
         </dependency>
