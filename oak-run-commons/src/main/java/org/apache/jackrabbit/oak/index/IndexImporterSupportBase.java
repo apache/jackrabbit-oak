@@ -41,13 +41,16 @@ public abstract class IndexImporterSupportBase {
 
     public void importIndex(File importDir) throws IOException, CommitFailedException {
         try (IndexEditorProvider providers = createIndexEditorProvider()) {
+            // Offline import has no LaunchDarkly to read the legacy toggle from; oak-run always
+            // uses the new import flow (never the legacy one).
             IndexImporter importer = new IndexImporter(
                     nodeStore,
                     importDir,
                     providers,
                     createLock(),
                     indexHelper.getStatisticsProvider(),
-                    indexHelper.getIndexReporter());
+                    indexHelper.getIndexReporter(),
+                    false);
             addImportProviders(importer);
             importer.importIndex();
         }
