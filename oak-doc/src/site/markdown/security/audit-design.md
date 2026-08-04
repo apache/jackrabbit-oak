@@ -144,13 +144,30 @@ Package `org.apache.jackrabbit.oak.spi.audit` holds the domain-neutral SPI:
 | Type | Role |
 |---|---|
 | `AuditEvent` | Event interface: domain, type, timestamp, payload. Static factory `AuditEvent.of(...)`. Publishes the three reserved key names as `COMMIT_SESSION_ID`, `COMMIT_USER_ID`, `COMMIT_TIMESTAMP`, and the `isCommitAttested(event)` predicate over them. |
-| `AuditDomain` / `AuditType` | Value types wrapping the domain and type strings, created via `of(name)`. Validated on construction, so a blank or malformed name fails at the producer rather than at the consumer. |
+| `AuditDomain` / `AuditType` | Value types wrapping the domain and type strings, created via `of(name)` and validated there. |
 | `AuditEventListener` | Consumer SPI: `onEvents(List<AuditEvent>)`, scoped to one domain via `getDomain()`, ordered by `getRank()`. |
 | `AuditEventEmitter` | OSGi service surface for fire-and-forget emission from any bundle. |
 | `AuditEvents` | Static facade: `record(root, event)` and `dispatch(event)`, routing to the installed `Sink`; `isEnabled()` / `isEnabledFor(domain)` gates. |
 | `AuditEvents.Sink` | SPI implemented by the pipeline. `AuditPipeline` installs a `BufferSink`. |
 | `AuditBufferLifecycle` | Session lifecycle callouts: drain on refresh and on commit failure. |
 | `AuditConfiguration` | Typed handle on pipeline state (`isActive()`, `NOOP`). |
+
+Domain and type are value types rather than bare strings so the constraint
+on them has somewhere to live. A listener that persists events into the
+repository wants to build a path from the domain, so a domain has to be
+usable as a JCR node name. `AuditDomain.of(...)` and `AuditType.of(...)`
+enforce that: the name must be non-blank, must pass `JcrNameParser` (which
+rules out `/`, `[`, `]`, `|` and `*`), and must contain no colon and no
+whitespace. The colon is rejected rather than escaped because in JCR it
+denotes a namespace prefix, which means nothing for a flat audit
+identifier; whitespace is rejected because it has no place in one either.
+
+Validating in the factory puts the failure at the producer that supplied
+the bad name, rather than at whichever listener later tried to build a path
+out of it. Both types are final, with `equals`/`hashCode` over the wrapped
+string, so the registry can route on them and `name()` gives listeners the
+raw value back. Neither is an enum: the set of domains is open, and
+consumer bundles define their own.
 
 `AuditConfiguration.isActive()` returns `true` when the feature toggle is
 enabled and at least one listener is registered. The two predicates AND

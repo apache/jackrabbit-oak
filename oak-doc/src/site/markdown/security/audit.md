@@ -82,13 +82,17 @@ public interface AuditEvent {
   `AuditDomain.of("...")`; the SPI imposes no schema.
 - **Type**: stable identifier within the domain, as an `AuditType`, e.g.
   `AuditType.of("membership.added")`. Consumers dispatch on it.
-
-`AuditDomain` and `AuditType` are validated value types rather than bare
-strings, so a blank or malformed name fails where the event is built instead of
-silently reaching listeners. Both expose `name()` for the underlying string.
 - **Timestamp**: milliseconds since epoch at event construction time.
 - **Payload**: open map of supplementary data. Consumers MUST tolerate missing
   keys; producers MAY add keys without versioning.
+
+`AuditDomain` and `AuditType` wrap their names rather than passing plain
+strings around, and both validate in `of(...)`: a name must be non-blank and
+usable as a JCR node name, with no colon and no whitespace. That keeps a
+domain safe to use as a path element for listeners that persist events into
+the repository, and it means a bad name fails at the producer instead of
+reaching a listener. Call `name()` for the underlying string. The
+[design document](audit-design.html#SPI_layout) has the full rules.
 
 The public SPI keeps only the `AuditEvent` interface. Concrete events are
 built with the static factory `AuditEvent.of(domain, type, payload)`, and
