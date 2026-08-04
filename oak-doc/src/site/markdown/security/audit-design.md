@@ -43,9 +43,10 @@ There are two delivery paths:
 - **Commit-attached.** Oak-internal capture sites (e.g. `UserManagerImpl`)
   call `AuditEvents.record(root, event)`. Events land in a per-session
   `ThreadLocal` buffer (`AuditBuffer`), and a `NodeStore` `Observer`
-  (`AuditDrainObserver`) drains and dispatches them after the commit that
-  follows, explicit or implicit, durably persists. At drain time each event
-  is decorated with `commit.sessionId`, `commit.userId`, and
+  (`AuditDrainObserver`) drains and dispatches them once the following
+  commit has durably persisted, whether the caller issued that commit
+  explicitly or an operation issued it on their behalf. At drain time each
+  event is decorated with `commit.sessionId`, `commit.userId`, and
   `commit.timestamp` payload entries; a failed commit drops the buffer.
 - **Fire-and-forget.** Any OSGi bundle resolves `AuditEventEmitter` via
   `@Reference` and calls `emit(event)`. The event is dispatched synchronously

@@ -30,13 +30,17 @@ The SPI is small: an event type, a listener interface, and an emitter service.
 It does not prescribe transport, persistence, or out-of-process delivery.
 Those are listener concerns.
 
+A *capture site* is a place in Oak's own code that records an audit event.
+Today the only ones are in the user-management implementation, on group
+membership add and remove.
+
 Two producer paths feed a single listener registry:
 
 - A **commit-attached** path used by Oak-internal capture sites, currently
   group membership changes in the user-management implementation. Events are
-  buffered for the duration of a session write, drained on successful
-  `Root.commit()`, and decorated with commit metadata before dispatch. Events
-  are dropped if the commit fails.
+  buffered for the duration of a session write, drained on the commit that
+  follows, and decorated with commit metadata before dispatch. Events are
+  dropped if the commit fails.
 - A **fire-and-forget** path exposed to any OSGi bundle through the
   [AuditEventEmitter] service. Events are dispatched immediately on the
   calling thread. They are not tied to a commit and are not buffered.
@@ -50,7 +54,7 @@ bundle-emitted custom events through one entry point.
 
 | Module | Role |
 |---|---|
-| `oak-core-spi`     | Domain-neutral SPI: [AuditEvent], [AuditEventListener], [AuditEventEmitter], the `AuditEvents` static facade, and [AuditConfiguration] (typed handle on the pipeline's runtime state). |
+| `oak-core-spi`     | Domain-neutral SPI: [AuditEvent], [AuditEventListener], [AuditEventEmitter], the [AuditEvents] static facade, and [AuditConfiguration] (typed handle on the pipeline's runtime state). |
 | `oak-security-spi` | Security-domain constants: `SecurityAuditDomain.NAME` (the `"oak.security"` domain string) and per-sub-domain type-string classes such as `UserAuditTypes` in the `spi.security.user` package. |
 | `oak-core`         | Pipeline implementation: listener registry, commit-attached buffer, the observer that drains it on commit success, the emitter, and the configuration component. |
 
@@ -134,13 +138,17 @@ fails, the buffered events are discarded.
 The dispatch sequence:
 
 1. A capture site appends an event to the per-session buffer.
-2. The session calls `Root.commit()`; commit hooks and validators run; the
+2. The session reaches `Root.commit()`; commit hooks and validators run; the
    merge persists durably.
 3. An `Observer` registered by the audit configuration fires on the commit
    thread, drains the buffer for the originating session, and decorates each
    event with `commit.sessionId`, `commit.userId`, and `commit.timestamp`.
 4. The registry sorts listeners by rank, filters by domain, and invokes each
    matching listener's `onEvents(List<AuditEvent>)`.
+
+Step 2 does not require an explicit `Session.save()`. Operations that commit
+on their own, such as `Workspace.move` or `VersionManager.checkin`, reach
+`Root.commit()` too and drain the buffer the same way.
 
 Because dispatch happens after durable persistence, a delivered event implies
 the corresponding write actually landed. A failed commit never produces an
@@ -499,4 +507,5 @@ Recommended consumer-side discipline:
 [AuditEvent]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/audit/AuditEvent.html
 [AuditEventListener]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/audit/AuditEventListener.html
 [AuditEventEmitter]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/audit/AuditEventEmitter.html
+[AuditEvents]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/audit/AuditEvents.html
 [AuditConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/audit/AuditConfiguration.html
