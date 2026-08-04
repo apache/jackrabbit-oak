@@ -33,15 +33,20 @@ The audit pipeline transports structured `AuditEvent`s from producers to
 bundle-registered `AuditEventListener` consumers, gated by a feature toggle
 and a per-domain listener registry.
 
+A *capture site* is a place in Oak's own code that records an audit event.
+Today the only ones are in `UserManagerImpl`, on group membership add and
+remove. The term is used throughout this document for that kind of call
+site, as distinct from a bundle emitting its own events.
+
 There are two delivery paths:
 
 - **Commit-attached.** Oak-internal capture sites (e.g. `UserManagerImpl`)
   call `AuditEvents.record(root, event)`. Events land in a per-session
   `ThreadLocal` buffer (`AuditBuffer`), and a `NodeStore` `Observer`
-  (`AuditDrainObserver`) drains and dispatches them after the surrounding
-  `Root.commit()` durably persists. At drain time each event is decorated
-  with `commit.sessionId`, `commit.userId`, and `commit.timestamp` payload
-  entries; a failed commit drops the buffer.
+  (`AuditDrainObserver`) drains and dispatches them after the commit that
+  follows, explicit or implicit, durably persists. At drain time each event
+  is decorated with `commit.sessionId`, `commit.userId`, and
+  `commit.timestamp` payload entries; a failed commit drops the buffer.
 - **Fire-and-forget.** Any OSGi bundle resolves `AuditEventEmitter` via
   `@Reference` and calls `emit(event)`. The event is dispatched synchronously
   on the calling thread: no buffering, no commit boundary, no payload
@@ -96,13 +101,29 @@ through `ChangeDispatcher`; `MemoryNodeStore` iterates its registered
 observers directly from `setRoot`. Either way the notification completes
 before `merge` returns.
 
+The drain hangs off the commit, not off the API call that produced the event,
+so operations that persist without an explicit `Session.save()` are covered
+too. The buffer is keyed by `CommitInfo.getSessionId()`, which
+`MutableRoot.commit` fills from the `ContentSession`, and anything reaching
+`MutableRoot.commit` drains it. That covers the commits issued internally by
+`Workspace.move` and by `VersionManager.checkin` / `checkout`, none of which
+require a `Session.save()` from the caller. `Workspace.move` builds a fresh
+`MutableRoot` from `ContentSession.getLatestRoot()`, but it is the same
+`ContentSession`, so the buffer key still matches. The one case with no drain
+is a write that never goes through `MutableRoot` at all, covered under
+Migration commits below.
+
 Two segment-store configurations are worth knowing about, because in both the
-commit-attached path silently produces nothing. `SegmentNodeStore.addObserver`
-returns a no-op handle unless change dispatch is enabled, and an observer
-attached through that handle is never notified. That applies to a
-cold-standby instance, where the primary store turns dispatch off, and to a
-store configured through `SegmentNodeStoreFactory`, where dispatch is off
-unless `dispatchChanges` is set explicitly.
+commit-attached path silently produces nothing in the segment store.
+`SegmentNodeStore.addObserver` returns a no-op handle unless change dispatch
+is enabled, and an observer attached through that handle is never notified.
+That applies to a cold-standby instance, where the primary store turns
+dispatch off, and to a store configured through `SegmentNodeStoreFactory`,
+where dispatch is off unless `dispatchChanges` is set explicitly. Neither
+caveat extends to the document or composite stores:
+`DocumentNodeStore.addObserver` always returns a live handle, and
+`DocumentNodeStore` dispatches through `ChangeDispatcher` in the `merge`
+path.
 
 Draining from an `Observer` rather than from a commit hook has two
 consequences worth spelling out. Events never transit the `CommitContext`,
@@ -121,10 +142,10 @@ Package `org.apache.jackrabbit.oak.spi.audit` holds the domain-neutral SPI:
 
 | Type | Role |
 |---|---|
-| `AuditEvent` | Event interface: domain, type, timestamp, payload. Static factory `AuditEvent.of(...)`. |
+| `AuditEvent` | Event interface: domain, type, timestamp, payload. Static factory `AuditEvent.of(...)`. Publishes the three reserved key names as `COMMIT_SESSION_ID`, `COMMIT_USER_ID`, `COMMIT_TIMESTAMP`. |
 | `AuditEventListener` | Consumer SPI: `onEvents(List<AuditEvent>)`, scoped to one domain via `getDomain()`, ordered by `getRank()`. |
 | `AuditEventEmitter` | OSGi service surface for fire-and-forget emission from any bundle. |
-| `AuditEvents` | Static facade: `record(root, event)` and `dispatch(event)`, routing to the installed `Sink`; `isEnabled()` / `isEnabledFor(domain)` gates. |
+| `AuditEvents` | Static facade: `record(root, event)` and `dispatch(event)`, routing to the installed `Sink`; `isEnabled()` / `isEnabledFor(domain)` gates; `hasCommitMetadata(event)` for the commit-attached check. |
 | `AuditEvents.Sink` | SPI implemented by the pipeline. `AuditConfigurationImpl` installs a `BufferSink`. |
 | `AuditBufferLifecycle` | Session lifecycle callouts: drain on refresh and on commit failure. |
 | `AuditConfiguration` | Typed handle on pipeline state (`isActive()`, `NOOP`). |
@@ -168,11 +189,64 @@ package-private classes next to their only callers, e.g.
 bar for casually forging Oak-attested events, but it is not a hard boundary:
 any bundle can call `AuditEvent.of(domain, type, payload)` directly.
 Listeners that need to distinguish Oak-attested commit-attached events from
-fire-and-forget emissions check for the three reserved `commit.*` payload
-keys, per the trust contract on `AuditEvent#getPayload()`.
+fire-and-forget emissions call `AuditEvents.hasCommitMetadata(event)`.
+
+The helper exists so listeners do not hardcode the key names or re-derive
+the rule. It is named for what it checks: all three reserved keys are
+present and non-null. Oak does not sign events, so a positive result means
+the event came through Oak's commit-attached dispatch, which is exactly the
+guarantee the trust contract on `AuditEvent#getPayload()` states, and no
+more. The key names themselves are public as `AuditEvent.COMMIT_SESSION_ID`,
+`COMMIT_USER_ID`, and `COMMIT_TIMESTAMP`, for listeners that read individual
+values rather than testing for attestation. Helper and constants both sit in
+`oak-core-spi`, so a listener bundle still depends on that module alone.
 
 <a name="implementation"></a>
 ### Implementation (oak-core)
+
+<a name="design_rules"></a>
+#### Design rules
+
+The rules the components below are built on:
+
+1. **Observers fire synchronously on the commit thread for local commits.**
+   Every production store notifies observers before `merge` returns, whether
+   through `ChangeDispatcher` or, as in `MemoryNodeStore`, by iterating its
+   observers directly. The per-thread buffer depends on this.
+2. **Observers fire after durable persistence, or not at all.** A failed
+   merge never reaches the observer, so a dispatched event always
+   corresponds to a persisted write.
+3. **External commits are ignored at observer entry.** One predicate covers
+   cluster sync, the `addObserver` replay, and external head movement.
+4. **The buffer key equals `CommitInfo.getSessionId()`.** `MutableRoot`
+   sets the commit info's session id from the `ContentSession`, which is the
+   same key the sink used at capture time.
+5. **`CompositeObserver` provides no per-observer isolation.** Hence the
+   outer `Throwable` barrier in `contentChanged`.
+6. **No ordering guarantee among observers.** Audit does not depend on
+   observer order; listener order within the audit dispatch is defined by
+   `getRank()`.
+7. **Never wrap the drain observer in `BackgroundObserver`.** Queue overflow
+   replaces the commit info with `CommitInfo.EMPTY_EXTERNAL`, losing the
+   session id and with it the buffered events.
+8. **Audit never masquerades as a commit failure.** The outer barrier
+   guarantees `contentChanged` returns normally no matter what the drain,
+   the decorator, or a listener does.
+9. **Lifecycle callouts are unconditional.** Gating them on the toggle or on
+   listener presence would let events captured while the toggle was on stay
+   in the buffer across a lifecycle transition, to be dispatched later
+   against an unrelated commit and stamped with that commit's metadata.
+
+Two consequences of the destructive `ThreadLocal` drain are worth noting.
+When a composite store causes the observer to be invoked twice for one
+merge, the first invocation drains the buffer and the second finds it empty
+and returns, so double-dispatch dedupes itself. And because `clearAll()`
+removes only the calling thread's `ThreadLocal` entry, disposing the
+pipeline while other threads hold sessions mid-flight leaves their staged
+events behind; that residue is bounded by the per-session cap and released
+when the thread is reused or discarded.
+
+#### Components
 
 | Component | Role |
 |---|---|
@@ -182,7 +256,15 @@ keys, per the trust contract on `AuditEvent#getPayload()`.
 | `CommitMetadataDecorator` | Stamps the three reserved `commit.*` entries at drain time (commit-attached) and strips caller-supplied values for the same keys at dispatch (fire-and-forget). |
 | `AuditEventEmitterImpl` | OSGi `@Component` implementing `AuditEventEmitter`; delegates to `AuditEvents.dispatch`. |
 | `WhiteboardAuditEventListenerRegistry` | Tracks `AuditEventListener` services on the Whiteboard. `getListeners()` returns them sorted by rank descending; `hasListenerFor(domain)` backs the pre-allocation gate. |
-| `AuditConfigurationImpl` | Pipeline owner: feature toggle, buffer, registry, sink, drain observer. Published as `AuditConfiguration`. |
+| `AuditMonitor` | Wraps the `StatisticsProvider`: per-domain event meter, per-listener timer and failure meter, dropped-event meter. Falls back to a no-op when no provider is bound. |
+| `AuditConfigurationImpl` | Pipeline owner: feature toggle, buffer, registry, sink, drain observer, monitor. Published as `AuditConfiguration`. |
+
+The monitor is resolved as an optional `@Reference` to `StatisticsProvider`
+and passed to the components that record: the buffer for dropped events, the
+dispatch path for the event meter and the per-listener timer. Recording sits
+inside the existing per-listener `Throwable` barrier, so a metrics failure
+cannot break a dispatch. The metric names and their operational meaning are
+listed under [Monitoring](audit.html#Monitoring).
 
 #### AuditDrainObserver
 
@@ -243,13 +325,9 @@ paths through `AuditBufferLifecycle` callouts:
 changes, so the audit events staged alongside them survive and are
 dispatched when the session eventually commits.
 
-The lifecycle callouts always fire; they are not gated on the toggle or on
-listener presence. Gating them would open a race: events captured while the
-toggle is on, a toggle flip to off, and a skipped drain on the next lifecycle
-transition would leave stale events in the buffer to be dispatched against a
-later commit with that commit's metadata. When no pipeline is installed the
-callout is one volatile read plus a virtual call into a no-op listener, so
-the always-fire shape costs nothing measurable.
+The lifecycle callouts always fire, for the reason given in design rule 9.
+The cost of that is negligible: when no pipeline is installed the callout is
+one volatile read plus a virtual call into a no-op listener.
 
 `AuditEvents.record(root, event)` requires that `root` is the `MutableRoot`
 of an active JCR session, since the lifecycle callouts above are what keep
@@ -372,46 +450,6 @@ for the session id, and returns. Either way migration mutations are not
 audited; if that is ever wanted, it is a capture-site addition, not a
 pipeline change.
 
-<a name="design_rules"></a>
-### Design rules
-
-The rules the implementation is built on, in one place:
-
-1. **Observers fire synchronously on the commit thread for local commits.**
-   Every production store notifies observers before `merge` returns, whether
-   through `ChangeDispatcher` or, as in `MemoryNodeStore`, by iterating its
-   observers directly. The per-thread buffer depends on this.
-2. **Observers fire after durable persistence, or not at all.** A failed
-   merge never reaches the observer, so a dispatched event always
-   corresponds to a persisted write.
-3. **External commits are ignored at observer entry.** One predicate covers
-   cluster sync, the `addObserver` replay, and external head movement.
-4. **The buffer key equals `CommitInfo.getSessionId()`.** `MutableRoot`
-   sets the commit info's session id from the `ContentSession`, which is the
-   same key the sink used at capture time.
-5. **`CompositeObserver` provides no per-observer isolation.** Hence the
-   outer `Throwable` barrier in `contentChanged`.
-6. **No ordering guarantee among observers.** Audit does not depend on
-   observer order; listener order within the audit dispatch is defined by
-   `getRank()`.
-7. **Never wrap the drain observer in `BackgroundObserver`.** Queue overflow
-   replaces the commit info with `CommitInfo.EMPTY_EXTERNAL`, losing the
-   session id and with it the buffered events.
-8. **Audit never masquerades as a commit failure.** The outer barrier
-   guarantees `contentChanged` returns normally no matter what the drain,
-   the decorator, or a listener does.
-9. **Lifecycle callouts are unconditional.** Gating them on pipeline state
-   opens the stale-event race described above.
-
-Two consequences of the destructive `ThreadLocal` drain are worth noting.
-When a composite store causes the observer to be invoked twice for one
-merge, the first invocation drains the buffer and the second finds it empty
-and returns, so double-dispatch dedupes itself. And because `clearAll()`
-removes only the calling thread's `ThreadLocal` entry, disposing the
-pipeline while other threads hold sessions mid-flight leaves their staged
-events behind; that residue is bounded by the per-session cap and released
-when the thread is reused or discarded.
-
 <a name="performance"></a>
 ### Performance characteristics
 
@@ -426,10 +464,11 @@ of a deployed-but-idle pipeline is the external-commit check plus an empty
 buffer lookup in the observer.
 
 With audit on, the per-event cost is the event allocation, a buffer append,
-the drain, three decorator entries, and the listener dispatch itself.
-Benchmarks in `oak-benchmarks` cover both shapes: the pipeline running with
-no capture site firing, and the full captured-event path. In both, the
-overhead sits below the resolution of the surrounding commit machinery, so
-turning audit on does not measurably change commit throughput. Listener work
-is on top of that and belongs to the listener; implementations that do I/O
-are expected to hand off to their own async executor.
+the drain, three decorator entries, the metric updates, and the listener
+dispatch itself. Benchmarks in `oak-benchmarks` cover both shapes: the
+pipeline running with no capture site firing, and the full captured-event
+path. In both, the overhead sits below the resolution of the surrounding
+commit machinery, so turning audit on does not measurably change commit
+throughput. Listener work is on top of that and belongs to the listener;
+implementations that do I/O are expected to hand off to their own async
+executor.

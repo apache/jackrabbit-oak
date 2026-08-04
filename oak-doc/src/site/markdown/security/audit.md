@@ -106,14 +106,19 @@ with three additional payload entries:
 | `commit.userId`    | acting user id (`CommitInfo.OAK_UNKNOWN`, i.e. `"oak:unknown"`, for system commits) | `CommitInfo.getUserId()` |
 | `commit.timestamp` | commit timestamp in milliseconds since epoch | `CommitInfo.getDate()` |
 
+The three key names are published as `AuditEvent.COMMIT_SESSION_ID`,
+`AuditEvent.COMMIT_USER_ID`, and `AuditEvent.COMMIT_TIMESTAMP`; use those
+rather than string literals.
+
 Events arriving through the fire-and-forget pipeline cannot carry these keys:
 Oak strips caller-supplied values for exactly these three at dispatch. For
 events delivered through Oak dispatch, their presence is therefore a reliable
 commit-attached signal. The Javadoc on `AuditEvent#getPayload()` is the
 normative statement of this contract. Consumers that need to tell the two
-sources apart inspect for `commit.sessionId`. The `commit.userId` value
-`"oak:unknown"` is a deliberate anonymity marker for system commits; listeners
-MUST NOT attempt to resolve it to a real user.
+sources apart call `AuditEvents.hasCommitMetadata(event)`, which returns
+`true` when all three keys are present and non-null. The `commit.userId`
+value `"oak:unknown"` is a deliberate anonymity marker for system commits;
+listeners MUST NOT attempt to resolve it to a real user.
 
 <a name="pipelines"></a>
 ### Pipelines
@@ -242,6 +247,33 @@ Note that audit is a top-level Oak concern, not a `SecurityConfiguration`:
 `SecurityProvider.getConfiguration(...)`. Use a `@Reference` to
 `AuditConfiguration`.
 
+<a name="monitoring"></a>
+### Monitoring
+
+The pipeline registers metrics through the `StatisticsProvider` it resolves at
+activation, so they surface via JMX or Sling Metrics like Oak's other metrics.
+Nothing is registered when no `StatisticsProvider` is bound.
+
+| Name | Type | Description |
+|---|---|---|
+| `security.audit.events;domain=<domain>` | Meter | Events dispatched, per domain. Counts events that reached at least one listener, so it excludes anything dropped at the toggle or the listener gate. |
+| `security.audit.listener.duration;listener=<class>` | Timer | Wall-clock duration of one `onEvents` call, per listener class. |
+| `security.audit.listener.failures;listener=<class>` | Meter | Dispatches that ended in a `Throwable` from the listener. |
+| `security.audit.events.dropped;domain=<domain>` | Meter | Events discarded because the originating session hit the per-session buffer cap. |
+
+The `domain=` and `listener=` suffixes follow Oak's `StatsProviderUtil`
+label convention, which Prometheus and similar systems split back into a
+metric name plus labels.
+
+The listener timer is worth an alert. Listeners run synchronously on the
+commit thread, so time spent in `onEvents` is added directly to commit
+latency for the writing session. A listener that starts doing I/O inline
+shows up here before it shows up as a user complaint.
+
+The dropped-events meter is the one that matters for a compliance trail: a
+non-zero value means a persisted write left no audit event behind. The same
+condition logs a WARN, but the meter is what you can alert on.
+
 <a name="user_api_semantics"></a>
 ### User-API-level audit, not a transaction log
 
@@ -273,6 +305,35 @@ derived index rebuilding) should use Oak's `NodeStore.addObserver(...)` /
 `NodeState` diff and capture mutations regardless of which API surface or
 commit hook produced them. The audit SPI and a `NodeStore` observer answer
 different questions; deploy the one that matches your use case.
+
+<a name="clustering"></a>
+### Clustering
+
+Audit events are node-local. A write on one cluster node produces events on
+that node only, dispatched to the listeners registered there. The drain
+observer ignores commits for which `CommitInfo.isExternal()` is `true`, and
+cluster sync from a peer node is exactly that, so the same write does not
+produce a second event when it reaches the other nodes.
+
+For a listener deployed on every node this gives the property you want: each
+audited write is delivered once, on the node that performed it. Aggregating
+into a single SIEM or compliance archive therefore needs the listener to tag
+events with the node they came from, since the SPI adds no node-identity
+payload key. `DocumentNodeStore.getClusterId()` is the per-node identifier;
+note that `ClusterRepositoryInfo.getId(...)` is not, since it returns one id
+shared by the whole cluster.
+
+Two consequences to plan for. A listener deployed on only some nodes sees
+only the writes performed on those nodes, which for a compliance trail is a
+silent gap rather than an error. And a node going down loses whatever its
+listeners had buffered in their own async queues, if they use one; the audit
+SPI dispatches synchronously and holds no cross-node state, so durability
+past the dispatch call belongs to the listener.
+
+Everything above applies to the document store, where clustering is
+supported. A segment-store cold-standby instance produces no commit-attached
+events at all, for the reason given under
+[Commit flow](audit-design.html#Commit_flow).
 
 <a name="emitting_events"></a>
 ### Emitting events from a bundle
@@ -350,9 +411,12 @@ public class SiemForwarder implements AuditEventListener {
     @Override
     public void onEvents(List<AuditEvent> events) {
         for (AuditEvent e : events) {
+            if (!AuditEvents.hasCommitMetadata(e)) {
+                continue;   // caller-asserted, not an Oak-attested write
+            }
             Map<String, Object> p = e.getPayload();
-            String sessionId = (String) p.get("commit.sessionId");
-            String userId    = (String) p.get("commit.userId");
+            String sessionId = (String) p.get(AuditEvent.COMMIT_SESSION_ID);
+            String userId    = (String) p.get(AuditEvent.COMMIT_USER_ID);
             siem.forward(e, sessionId, userId);
         }
     }
@@ -401,11 +465,12 @@ produced by the commit-attached pipeline carry the `commit.sessionId`,
 `commit.userId`, and `commit.timestamp` keys, unconditionally overwritten from
 the commit's `CommitInfo`. Fire-and-forget events cannot carry them, because
 Oak strips caller-supplied values for exactly these three keys before
-delivery. A SIEM forwarder that treats only the former as Oak-attested
-mutations is operating within the contract. The Javadoc on
-`AuditEvent#getPayload()` is the normative statement, including the boundaries
-of the attestation: it applies to Oak dispatch only and does not survive
-re-emission.
+delivery. `AuditEvents.hasCommitMetadata(event)` performs the check, so
+listeners need neither the key names nor the rule. A SIEM forwarder that
+treats only attested events as Oak-verified mutations is operating within the
+contract. The Javadoc on `AuditEvent#getPayload()` is the normative
+statement, including the boundaries of the attestation: it applies to Oak
+dispatch only and does not survive re-emission.
 
 The open surface is a deliberate trade-off. A reserved-domain registry or
 typed event subclasses would put Oak in the middle of every producer bundle's
@@ -417,9 +482,9 @@ Recommended consumer-side discipline:
 
 | Need | Approach |
 |---|---|
-| Distinguish Oak-attested mutations from caller-asserted events. | Inspect for `commit.sessionId` in the payload. Present implies commit-attached; anchor on the three reserved keys, not on the `commit.` prefix in general. |
+| Distinguish Oak-attested mutations from caller-asserted events. | Call `AuditEvents.hasCommitMetadata(event)`. It anchors on the three reserved keys, not on the `commit.` prefix in general. |
 | Restrict trusted producers. | Maintain a consumer-side allowlist of trusted domain prefixes and reject unknown domains. |
-| Compliance audit (Oak-verified writes only). | Subscribe to `"oak.security"` and filter for events carrying the three reserved `commit.*` keys. |
+| Compliance audit (Oak-verified writes only). | Subscribe to `"oak.security"` and keep only events for which `AuditEvents.hasCommitMetadata(event)` is `true`. |
 
 <a name="further_reading"></a>
 ### Further Reading
