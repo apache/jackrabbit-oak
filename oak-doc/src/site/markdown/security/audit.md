@@ -55,7 +55,7 @@ bundle-emitted custom events through one entry point.
 | Module | Role |
 |---|---|
 | `oak-core-spi`     | Domain-neutral SPI: [AuditEvent], [AuditEventListener], [AuditEventEmitter], the [AuditEvents] static facade, and [AuditConfiguration] (typed handle on the pipeline's runtime state). |
-| `oak-security-spi` | Security-domain constants: `SecurityAuditDomain.NAME` (the `"oak.security"` domain string) and per-sub-domain type-string classes such as `UserAuditTypes` in the `spi.security.user` package. |
+| `oak-security-spi` | Security-domain constants: `SecurityAuditDomain.DOMAIN` (the `"oak.security"` domain) and per-sub-domain vocabulary classes such as `UserAuditTypes` in the `spi.security.user` package. |
 | `oak-core`         | Pipeline implementation: listener registry, commit-attached buffer, the observer that drains it on commit success, the emitter, and the configuration component. |
 
 Consumer bundles depend on `oak-core-spi` only. Implementing a listener or
@@ -69,19 +69,23 @@ emitting events requires no dependency on `oak-core`, `oak-jcr`, or
 
 ```java
 public interface AuditEvent {
-    @NotNull String getDomain();
-    @NotNull String getType();
+    @NotNull AuditDomain getDomain();
+    @NotNull AuditType getType();
     long getTimestamp();
     @NotNull Map<String, Object> getPayload();
 }
 ```
 
-- **Domain**: namespace identifying the event source category. Oak's security
-  stack uses `"oak.security"` (defined by `SecurityAuditDomain.NAME`). Bundles
-  defining new event types choose their own domain string; the SPI imposes no
-  schema.
-- **Type**: stable identifier within the domain, e.g. `"membership.added"`.
-  Consumers dispatch on it.
+- **Domain**: namespace identifying the event source category, as an
+  `AuditDomain`. Oak's security stack uses `SecurityAuditDomain.DOMAIN`, which
+  wraps `"oak.security"`. Bundles defining new event types build their own with
+  `AuditDomain.of("...")`; the SPI imposes no schema.
+- **Type**: stable identifier within the domain, as an `AuditType`, e.g.
+  `AuditType.of("membership.added")`. Consumers dispatch on it.
+
+`AuditDomain` and `AuditType` are validated value types rather than bare
+strings, so a blank or malformed name fails where the event is built instead of
+silently reaching listeners. Both expose `name()` for the underlying string.
 - **Timestamp**: milliseconds since epoch at event construction time.
 - **Payload**: open map of supplementary data. Consumers MUST tolerate missing
   keys; producers MAY add keys without versioning.
@@ -106,9 +110,9 @@ with three additional payload entries:
 
 | Key | Value | Source |
 |---|---|---|
-| `commit.sessionId` | session identifier of the writing session | `CommitInfo.getSessionId()` |
-| `commit.userId`    | acting user id (`CommitInfo.OAK_UNKNOWN`, i.e. `"oak:unknown"`, for system commits) | `CommitInfo.getUserId()` |
-| `commit.timestamp` | commit timestamp in milliseconds since epoch | `CommitInfo.getDate()` |
+| `oak.commit.sessionId` | session identifier of the writing session | `CommitInfo.getSessionId()` |
+| `oak.commit.userId`    | acting user id (`CommitInfo.OAK_UNKNOWN`, i.e. `"oak:unknown"`, for system commits) | `CommitInfo.getUserId()` |
+| `oak.commit.timestamp` | commit timestamp in milliseconds since epoch | `CommitInfo.getDate()` |
 
 The three key names are published as `AuditEvent.COMMIT_SESSION_ID`,
 `AuditEvent.COMMIT_USER_ID`, and `AuditEvent.COMMIT_TIMESTAMP`; use those
@@ -119,8 +123,8 @@ Oak strips caller-supplied values for exactly these three at dispatch. For
 events delivered through Oak dispatch, their presence is therefore a reliable
 commit-attached signal. The Javadoc on `AuditEvent#getPayload()` is the
 normative statement of this contract. Consumers that need to tell the two
-sources apart call `AuditEvents.hasCommitMetadata(event)`, which returns
-`true` when all three keys are present and non-null. The `commit.userId`
+sources apart call `AuditEvent.isCommitAttested(event)`, which returns
+`true` when all three keys are present and non-null. The `oak.commit.userId`
 value `"oak:unknown"` is a deliberate anonymity marker for system commits;
 listeners MUST NOT attempt to resolve it to a real user.
 
@@ -142,7 +146,8 @@ The dispatch sequence:
    merge persists durably.
 3. An `Observer` registered by the audit configuration fires on the commit
    thread, drains the buffer for the originating session, and decorates each
-   event with `commit.sessionId`, `commit.userId`, and `commit.timestamp`.
+   event with `oak.commit.sessionId`, `oak.commit.userId`, and
+   `oak.commit.timestamp`.
 4. The registry sorts listeners by rank, filters by domain, and invokes each
    matching listener's `onEvents(List<AuditEvent>)`.
 
@@ -187,11 +192,11 @@ Properties:
   `onEvents` or from the `getDomain()` / `getRank()` accessors consulted
   during routing, are logged and swallowed; remaining listeners still run.
   `emit` never propagates a listener exception back to the caller.
-- **No payload decoration, but reserved keys are stripped.** No `commit.*`
+- **No payload decoration, but reserved keys are stripped.** No `oak.commit.*`
   keys are added; caller-supplied values for the three reserved attestation
-  keys (`commit.sessionId`, `commit.userId`, `commit.timestamp`) are removed
-  before delivery. Every other entry reaches listeners exactly as the caller
-  provided it.
+  keys (`oak.commit.sessionId`, `oak.commit.userId`,
+  `oak.commit.timestamp`) are removed before delivery. Every other entry
+  reaches listeners exactly as the caller provided it.
 
 <a name="configuration"></a>
 ### Configuration
@@ -209,7 +214,7 @@ Feature Toggles. For a worked example of locating this toggle and flipping
 it, see the embedded wiring snippet in
 [Audit Pipeline Design](audit-design.html).
 
-`AuditConfigurationImpl` in `oak-core` owns the pipeline and is published as
+`AuditPipeline` in `oak-core` owns the pipeline and is published as
 an OSGi service of type `AuditConfiguration`. It carries an OSGi
 object-class definition, so it appears in the Felix console alongside Oak's
 other components.
@@ -353,11 +358,13 @@ implementation is registered by `oak-core`.
 @Component
 public class ContentPublishAuditor {
 
+    private static final AuditDomain DOMAIN = AuditDomain.of("example.content");
+
     @Reference
     private AuditEventEmitter audit;
 
     public void onPublished(String path, String variant) {
-        if (audit.isEnabledFor("example.content")) {
+        if (audit.isEnabledFor(DOMAIN)) {
             audit.emit(new ContentPublishedEvent(path, variant));
         }
     }
@@ -373,6 +380,9 @@ A minimal event implementation:
 ```java
 class ContentPublishedEvent implements AuditEvent {
 
+    private static final AuditDomain DOMAIN = AuditDomain.of("example.content");
+    private static final AuditType TYPE = AuditType.of("content.published");
+
     private final String path;
     private final String variant;
     private final long timestamp = System.currentTimeMillis();
@@ -382,8 +392,8 @@ class ContentPublishedEvent implements AuditEvent {
         this.variant = variant;
     }
 
-    @Override public String getDomain()              { return "example.content"; }
-    @Override public String getType()                { return "content.published"; }
+    @Override public AuditDomain getDomain()          { return DOMAIN; }
+    @Override public AuditType getType()              { return TYPE; }
     @Override public long getTimestamp()             { return timestamp; }
     @Override public Map<String, Object> getPayload() {
         return Map.of("path", path, "variant", variant);
@@ -407,8 +417,8 @@ A listener is an OSGi component registered as a service of type
 public class SiemForwarder implements AuditEventListener {
 
     @Override
-    public String getDomain() {
-        return "oak.security";
+    public AuditDomain getDomain() {
+        return SecurityAuditDomain.DOMAIN;
     }
 
     @Override
@@ -419,7 +429,7 @@ public class SiemForwarder implements AuditEventListener {
     @Override
     public void onEvents(List<AuditEvent> events) {
         for (AuditEvent e : events) {
-            if (!AuditEvents.hasCommitMetadata(e)) {
+            if (!AuditEvent.isCommitAttested(e)) {
                 continue;   // caller-asserted, not an Oak-attested write
             }
             Map<String, Object> p = e.getPayload();
@@ -469,16 +479,16 @@ The fire-and-forget producer surface is open by design.
   the consumer side.
 
 The distinguishing signal is payload-based and enforced at dispatch: events
-produced by the commit-attached pipeline carry the `commit.sessionId`,
-`commit.userId`, and `commit.timestamp` keys, unconditionally overwritten from
-the commit's `CommitInfo`. Fire-and-forget events cannot carry them, because
-Oak strips caller-supplied values for exactly these three keys before
-delivery. `AuditEvents.hasCommitMetadata(event)` performs the check, so
-listeners need neither the key names nor the rule. A SIEM forwarder that
-treats only attested events as Oak-verified mutations is operating within the
-contract. The Javadoc on `AuditEvent#getPayload()` is the normative
-statement, including the boundaries of the attestation: it applies to Oak
-dispatch only and does not survive re-emission.
+produced by the commit-attached pipeline carry the `oak.commit.sessionId`,
+`oak.commit.userId`, and `oak.commit.timestamp` keys, unconditionally
+overwritten from the commit's `CommitInfo`. Fire-and-forget events cannot
+carry them, because Oak strips caller-supplied values for exactly these
+three keys before delivery. `AuditEvent.isCommitAttested(event)` does the
+check, so listeners need neither the key names nor the rule. A SIEM
+forwarder that treats only attested events as Oak-verified mutations is
+operating within the contract. The Javadoc on `AuditEvent#getPayload()` is
+the normative statement, including the boundaries of the attestation: it
+applies to Oak dispatch only and does not survive re-emission.
 
 The open surface is a deliberate trade-off. A reserved-domain registry or
 typed event subclasses would put Oak in the middle of every producer bundle's
@@ -490,9 +500,9 @@ Recommended consumer-side discipline:
 
 | Need | Approach |
 |---|---|
-| Distinguish Oak-attested mutations from caller-asserted events. | Call `AuditEvents.hasCommitMetadata(event)`. It anchors on the three reserved keys, not on the `commit.` prefix in general. |
+| Distinguish Oak-attested mutations from caller-asserted events. | Call `AuditEvent.isCommitAttested(event)`. It anchors on the three reserved keys, not on the `oak.commit.` prefix in general. |
 | Restrict trusted producers. | Maintain a consumer-side allowlist of trusted domain prefixes and reject unknown domains. |
-| Compliance audit (Oak-verified writes only). | Subscribe to `"oak.security"` and keep only events for which `AuditEvents.hasCommitMetadata(event)` is `true`. |
+| Compliance audit (Oak-verified writes only). | Subscribe to `"oak.security"` and keep only events for which `AuditEvent.isCommitAttested(event)` is `true`. |
 
 <a name="further_reading"></a>
 ### Further Reading

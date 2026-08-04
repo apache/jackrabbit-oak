@@ -46,12 +46,12 @@ There are two delivery paths:
   (`AuditDrainObserver`) drains and dispatches them once the following
   commit has durably persisted, whether the caller issued that commit
   explicitly or an operation issued it on their behalf. At drain time each
-  event is decorated with `commit.sessionId`, `commit.userId`, and
-  `commit.timestamp` payload entries; a failed commit drops the buffer.
+  event is decorated with `oak.commit.sessionId`, `oak.commit.userId`, and
+  `oak.commit.timestamp` payload entries; a failed commit drops the buffer.
 - **Fire-and-forget.** Any OSGi bundle resolves `AuditEventEmitter` via
   `@Reference` and calls `emit(event)`. The event is dispatched synchronously
   on the calling thread: no buffering, no commit boundary, no payload
-  decoration. Caller-supplied values for the three reserved `commit.*`
+  decoration. Caller-supplied values for the three reserved `oak.commit.*`
   attestation keys are stripped before delivery (the trust contract on
   `AuditEvent#getPayload()` is the normative statement).
 
@@ -62,7 +62,7 @@ masquerading as a commit failure, and an inner per-listener `Throwable`
 barrier on both paths keeps one misbehaving listener from stopping the
 others.
 
-Pipeline state is owned by `AuditConfigurationImpl` in `oak-core`, which
+Pipeline state is owned by `AuditPipeline` in `oak-core`, which
 holds the feature toggle, the buffer, the listener registry, the sink
 installed into the `AuditEvents` facade, and the singleton drain observer.
 It is registered as an OSGi service of type `AuditConfiguration`. Audit is a
@@ -81,9 +81,9 @@ On the commit-attached path, `BufferSink.record` gates on the feature toggle
 and on whether any listener is registered for the event's domain, so a
 capture site allocates nothing when audit is off. The observer runs on the
 commit thread once the merge has persisted, drains the buffer for that
-session, and stamps the three `commit.*` keys. On the fire-and-forget path,
+session, and stamps the three `oak.commit.*` keys. On the fire-and-forget path,
 `BufferSink.dispatch` applies the same toggle and listener gates, strips
-caller-supplied `commit.*` values, and dispatches inline.
+caller-supplied `oak.commit.*` values, and dispatches inline.
 
 The short-circuit order in the observer, and the exception barriers on both
 paths, are described under Implementation below.
@@ -143,11 +143,12 @@ Package `org.apache.jackrabbit.oak.spi.audit` holds the domain-neutral SPI:
 
 | Type | Role |
 |---|---|
-| `AuditEvent` | Event interface: domain, type, timestamp, payload. Static factory `AuditEvent.of(...)`. Publishes the three reserved key names as `COMMIT_SESSION_ID`, `COMMIT_USER_ID`, `COMMIT_TIMESTAMP`. |
+| `AuditEvent` | Event interface: domain, type, timestamp, payload. Static factory `AuditEvent.of(...)`. Publishes the three reserved key names as `COMMIT_SESSION_ID`, `COMMIT_USER_ID`, `COMMIT_TIMESTAMP`, and the `isCommitAttested(event)` predicate over them. |
+| `AuditDomain` / `AuditType` | Value types wrapping the domain and type strings, created via `of(name)`. Validated on construction, so a blank or malformed name fails at the producer rather than at the consumer. |
 | `AuditEventListener` | Consumer SPI: `onEvents(List<AuditEvent>)`, scoped to one domain via `getDomain()`, ordered by `getRank()`. |
 | `AuditEventEmitter` | OSGi service surface for fire-and-forget emission from any bundle. |
-| `AuditEvents` | Static facade: `record(root, event)` and `dispatch(event)`, routing to the installed `Sink`; `isEnabled()` / `isEnabledFor(domain)` gates; `hasCommitMetadata(event)` for the commit-attached check. |
-| `AuditEvents.Sink` | SPI implemented by the pipeline. `AuditConfigurationImpl` installs a `BufferSink`. |
+| `AuditEvents` | Static facade: `record(root, event)` and `dispatch(event)`, routing to the installed `Sink`; `isEnabled()` / `isEnabledFor(domain)` gates. |
+| `AuditEvents.Sink` | SPI implemented by the pipeline. `AuditPipeline` installs a `BufferSink`. |
 | `AuditBufferLifecycle` | Session lifecycle callouts: drain on refresh and on commit failure. |
 | `AuditConfiguration` | Typed handle on pipeline state (`isActive()`, `NOOP`). |
 
@@ -167,13 +168,13 @@ Multiplexing belongs at the listener layer.
 
 Security-domain constants live next to the SPI they describe:
 
-- `spi/security/audit/SecurityAuditDomain` holds the single domain string
-  `"oak.security"` shared by all events Oak's security stack emits. The
-  `oak.` prefix namespaces the domain so listeners in mixed deployments
-  (Sling, application bundles) can tell Oak's security events apart from
-  same-named domains defined by other layers.
+- `spi/security/audit/SecurityAuditDomain` holds `DOMAIN`, the single
+  `AuditDomain` wrapping `"oak.security"`, shared by all events Oak's security
+  stack emits. The `oak.` prefix namespaces the domain so listeners in mixed
+  deployments (Sling, application bundles) can tell Oak's security events
+  apart from same-named domains defined by other layers.
 - `spi/security/user/UserAuditTypes` holds the user-membership vocabulary:
-  type strings (`MEMBER_ADDED`, `MEMBER_REMOVED`) and payload keys
+  `AuditType` constants (`MEMBER_ADDED`, `MEMBER_REMOVED`) and payload keys
   (`PAYLOAD_GROUP_PATH`, `PAYLOAD_MEMBER_IDS`, `PAYLOAD_MEMBER_PATHS`,
   `PAYLOAD_MEMBERSHIP_SOURCE`, `PAYLOAD_IS_CONTENT_ID`,
   `PAYLOAD_FAILED_IDS`). A single and a bulk membership change share the
@@ -190,7 +191,7 @@ package-private classes next to their only callers, e.g.
 bar for casually forging Oak-attested events, but it is not a hard boundary:
 any bundle can call `AuditEvent.of(domain, type, payload)` directly.
 Listeners that need to distinguish Oak-attested commit-attached events from
-fire-and-forget emissions call `AuditEvents.hasCommitMetadata(event)`.
+fire-and-forget emissions call `AuditEvent.isCommitAttested(event)`.
 
 The helper exists so listeners do not hardcode the key names or re-derive
 the rule. It is named for what it checks: all three reserved keys are
@@ -252,20 +253,28 @@ when the thread is reused or discarded.
 | Component | Role |
 |---|---|
 | `AuditBuffer` | `ThreadLocal` per-session staging area, keyed by `ContentSession` id. Caps a session at 10,000 staged events: past that, further events are dropped and one WARN is logged for the session rather than one per event. The cap re-arms on the next drain, refresh, or commit failure, so it bounds the memory a single large or non-committing session can pin. |
-| `BufferSink` (inner class of `AuditConfigurationImpl`) | The installed `AuditEvents.Sink`. Gates on the feature toggle and listener presence, buffers on `record`, dispatches inline on `dispatch`. |
+| `BufferSink` (inner class of `AuditPipeline`) | The installed `AuditEvents.Sink`. Gates on the feature toggle and listener presence, buffers on `record`, dispatches inline on `dispatch`. |
 | `AuditDrainObserver` | `Observer` that drains the buffer on commit success. Carries the outer and inner `Throwable` barriers. |
-| `CommitMetadataDecorator` | Stamps the three reserved `commit.*` entries at drain time (commit-attached) and strips caller-supplied values for the same keys at dispatch (fire-and-forget). |
+| `CommitMetadataDecorator` | Stamps the three reserved `oak.commit.*` entries at drain time (commit-attached) and strips caller-supplied values for the same keys at dispatch (fire-and-forget). |
 | `AuditEventEmitterImpl` | OSGi `@Component` implementing `AuditEventEmitter`; delegates to `AuditEvents.dispatch`. |
 | `WhiteboardAuditEventListenerRegistry` | Tracks `AuditEventListener` services on the Whiteboard. `getListeners()` returns them sorted by rank descending; `hasListenerFor(domain)` backs the pre-allocation gate. |
 | `AuditMonitor` | Wraps the `StatisticsProvider`: per-domain event meter, per-listener timer and failure meter, dropped-event meter. Falls back to a no-op when no provider is bound. |
-| `AuditConfigurationImpl` | Pipeline owner: feature toggle, buffer, registry, sink, drain observer, monitor. Published as `AuditConfiguration`. |
+| `AuditPipeline` | Pipeline owner: feature toggle, buffer, registry, sink, drain observer, monitor. Published as `AuditConfiguration`. |
 
-The monitor is resolved as an optional `@Reference` to `StatisticsProvider`
-and passed to the components that record: the buffer for dropped events, the
-dispatch path for the event meter and the per-listener timer. Recording sits
-inside the existing per-listener `Throwable` barrier, so a metrics failure
-cannot break a dispatch. The metric names and their operational meaning are
-listed under [Monitoring](audit.html#Monitoring).
+`initialize` looks the `StatisticsProvider` up on the whiteboard rather than
+taking a DS `@Reference`, so the OSGi and embedded paths share one lookup.
+Deployments that publish no provider, which is the normal case for tests and
+embedded callers, get `AuditMonitor.NOOP` and record nothing. The monitor is
+passed to the components that record: the buffer for dropped events, and both
+dispatch paths for the event meter, the per-listener timer, and the failure
+meter. Recording sits inside the existing per-listener `Throwable` barrier, so
+a metrics failure cannot break a dispatch. The metric names and their
+operational meaning are listed under [Monitoring](audit.html#Monitoring).
+
+The event meter counts an event once per domain, when at least one listener
+consumed it. Both are deliberate: counting per listener would multiply the
+rate by the number of subscribers, and counting before the dispatch loop would
+include events whose listener unregistered between capture and drain.
 
 #### AuditDrainObserver
 
@@ -320,7 +329,7 @@ paths through `AuditBufferLifecycle` callouts:
 | `Root.commit()` succeeds | `AuditDrainObserver.contentChanged` |
 | `Root.commit()` fails (merge throws) | `MutableRoot.commit` finally block, via `AuditBufferLifecycle.onCommitFailed` |
 | `Root.refresh()` | `MutableRoot.refresh`, via `AuditBufferLifecycle.onRefresh` |
-| Pipeline shutdown while sessions are mid-flight | `AuditConfigurationImpl.dispose`, via `buffer.clearAll()` |
+| Pipeline shutdown while sessions are mid-flight | `AuditPipeline.dispose`, via `buffer.clearAll()` |
 
 `Root.rebase()` intentionally does not drain: rebase preserves transient
 changes, so the audit events staged alongside them survive and are
@@ -337,7 +346,7 @@ the buffer consistent. Non-JCR commits must not call it.
 <a name="osgi_wiring"></a>
 ### OSGi wiring
 
-`AuditConfigurationImpl` is declared as
+`AuditPipeline` is declared as
 `@Component(service = AuditConfiguration.class)`. It takes no reference to
 the `NodeStore` or to `Observable`. Instead it follows Oak's established
 observer-registration idiom (the same one the Lucene index observer uses):
@@ -372,7 +381,7 @@ sharing one buffer would double-dispatch.
 ### Embedded (non-OSGi) wiring
 
 Embedded callers (tests, `oak-run` tooling, custom embeds) wire the pipeline
-explicitly. Several of the types below, including `AuditConfigurationImpl`
+explicitly. Several of the types below, including `AuditPipeline`
 and `SecurityProviderBuilder`, live in packages oak-core does not export, so
 this path is available to code on a flat classpath rather than to a bundle
 running inside an OSGi framework; there, use the DS service instead.
@@ -381,7 +390,7 @@ running inside an OSGi framework; there, use the DS service instead.
 MemoryNodeStore store = new MemoryNodeStore();
 DefaultWhiteboard whiteboard = new DefaultWhiteboard();
 
-AuditConfigurationImpl audit = new AuditConfigurationImpl();
+AuditPipeline audit = new AuditPipeline();
 audit.initialize(whiteboard);         // toggle, registry, buffer, sink
 
 // The toggle is created disabled. Flip it on through the FeatureToggle
@@ -389,7 +398,7 @@ audit.initialize(whiteboard);         // toggle, registry, buffer, sink
 Tracker<FeatureToggle> toggles = whiteboard.track(FeatureToggle.class);
 try {
     for (FeatureToggle ft : toggles.getServices()) {
-        if (AuditConfigurationImpl.FEATURE_TOGGLE_NAME.equals(ft.getName())) {
+        if (AuditPipeline.FEATURE_TOGGLE_NAME.equals(ft.getName())) {
             ft.setEnabled(true);
         }
     }
