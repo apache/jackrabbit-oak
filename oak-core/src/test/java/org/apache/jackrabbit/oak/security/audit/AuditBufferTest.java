@@ -20,7 +20,9 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.apache.jackrabbit.oak.spi.audit.AuditDomain;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvent;
+import org.apache.jackrabbit.oak.spi.audit.AuditType;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,7 +47,7 @@ public class AuditBufferTest {
 
     private static final String SESSION = "session-1";
     private static final String OTHER_SESSION = "session-2";
-    private static final String DOMAIN = "test.domain";
+    private static final AuditDomain DOMAIN = AuditDomain.of("test.domain");
 
     private AuditBuffer buffer;
 
@@ -60,7 +62,7 @@ public class AuditBufferTest {
         buffer.clearAll();
     }
 
-    private static AuditEvent event(String type) {
+    private static AuditEvent event(AuditType type) {
         return AuditEvent.of(DOMAIN, type);
     }
 
@@ -68,13 +70,13 @@ public class AuditBufferTest {
 
     @Test
     public void recordThenPeekReturnsStagedEventsInOrder() {
-        buffer.record(SESSION, event("a"));
-        buffer.record(SESSION, event("b"));
+        buffer.record(SESSION, event(AuditType.of("a")));
+        buffer.record(SESSION, event(AuditType.of("b")));
 
         List<AuditEvent> staged = buffer.peek(SESSION);
         assertEquals(2, staged.size());
-        assertEquals("a", staged.get(0).getType());
-        assertEquals("b", staged.get(1).getType());
+        assertEquals("a", staged.get(0).getType().name());
+        assertEquals("b", staged.get(1).getType().name());
     }
 
     @Test
@@ -84,9 +86,9 @@ public class AuditBufferTest {
 
     @Test
     public void recordIsPerSession() {
-        buffer.record(SESSION, event("a"));
-        buffer.record(OTHER_SESSION, event("x"));
-        buffer.record(OTHER_SESSION, event("y"));
+        buffer.record(SESSION, event(AuditType.of("a")));
+        buffer.record(OTHER_SESSION, event(AuditType.of("x")));
+        buffer.record(OTHER_SESSION, event(AuditType.of("y")));
 
         assertEquals(1, buffer.peek(SESSION).size());
         assertEquals(2, buffer.peek(OTHER_SESSION).size());
@@ -99,23 +101,23 @@ public class AuditBufferTest {
      */
     @Test
     public void peekReturnsDefensiveCopy() {
-        buffer.record(SESSION, event("a"));
+        buffer.record(SESSION, event(AuditType.of("a")));
         List<AuditEvent> first = buffer.peek(SESSION);
 
         // The returned list is immutable (List.copyOf) — structural mutation throws.
-        assertThrows(UnsupportedOperationException.class, () -> first.add(event("injected")));
+        assertThrows(UnsupportedOperationException.class, () -> first.add(event(AuditType.of("injected"))));
 
         // And it is decoupled from the backing list: recording more does not
         // grow the previously-returned snapshot.
-        buffer.record(SESSION, event("b"));
+        buffer.record(SESSION, event(AuditType.of("b")));
         assertEquals("earlier peek snapshot must be decoupled", 1, first.size());
         assertEquals("buffer itself reflects the new event", 2, buffer.peek(SESSION).size());
     }
 
     @Test
     public void drainReturnsStagedEventsAndEmptiesSession() {
-        AuditEvent a = event("a");
-        AuditEvent b = event("b");
+        AuditEvent a = event(AuditType.of("a"));
+        AuditEvent b = event(AuditType.of("b"));
         buffer.record(SESSION, a);
         buffer.record(SESSION, b);
 
@@ -133,8 +135,8 @@ public class AuditBufferTest {
 
     @Test
     public void drainIsScopedToTheRequestedSession() {
-        buffer.record(SESSION, event("a"));
-        buffer.record(OTHER_SESSION, event("x"));
+        buffer.record(SESSION, event(AuditType.of("a")));
+        buffer.record(OTHER_SESSION, event(AuditType.of("x")));
 
         buffer.drain(SESSION);
         assertNull(buffer.peek(SESSION));
@@ -145,22 +147,22 @@ public class AuditBufferTest {
 
     @Test
     public void onRefreshDrainsSession() {
-        buffer.record(SESSION, event("a"));
+        buffer.record(SESSION, event(AuditType.of("a")));
         buffer.onRefresh(SESSION);
         assertNull(buffer.peek(SESSION));
     }
 
     @Test
     public void onCommitFailedDrainsSession() {
-        buffer.record(SESSION, event("a"));
+        buffer.record(SESSION, event(AuditType.of("a")));
         buffer.onCommitFailed(SESSION);
         assertNull(buffer.peek(SESSION));
     }
 
     @Test
     public void clearAllRemovesCurrentThreadEvents() {
-        buffer.record(SESSION, event("a"));
-        buffer.record(OTHER_SESSION, event("x"));
+        buffer.record(SESSION, event(AuditType.of("a")));
+        buffer.record(OTHER_SESSION, event(AuditType.of("x")));
         buffer.clearAll();
         assertNull(buffer.peek(SESSION));
         assertNull(buffer.peek(OTHER_SESSION));
@@ -180,7 +182,7 @@ public class AuditBufferTest {
         log.starting();
         try {
             for (int i = 0; i < AuditBuffer.MAX_EVENTS_PER_SESSION + 5; i++) {
-                buffer.record(SESSION, event("e" + i));
+                buffer.record(SESSION, event(AuditType.of("e" + i)));
             }
             assertEquals("buffer must be capped at the maximum",
                     AuditBuffer.MAX_EVENTS_PER_SESSION, buffer.peek(SESSION).size());
@@ -206,11 +208,11 @@ public class AuditBufferTest {
         log.starting();
         try {
             for (int i = 0; i <= AuditBuffer.MAX_EVENTS_PER_SESSION; i++) {
-                buffer.record(SESSION, event("first" + i));
+                buffer.record(SESSION, event(AuditType.of("first" + i)));
             }
             buffer.drain(SESSION);
             for (int i = 0; i <= AuditBuffer.MAX_EVENTS_PER_SESSION; i++) {
-                buffer.record(SESSION, event("second" + i));
+                buffer.record(SESSION, event(AuditType.of("second" + i)));
             }
             assertEquals("a fresh overflow episode after drain must WARN again",
                     2, log.getLogs().size());
@@ -229,7 +231,7 @@ public class AuditBufferTest {
      */
     @Test
     public void stagedEventsAreThreadConfined() throws InterruptedException {
-        buffer.record(SESSION, event("a"));
+        buffer.record(SESSION, event(AuditType.of("a")));
 
         AtomicReference<List<AuditEvent>> otherPeek = new AtomicReference<>();
         AtomicReference<List<AuditEvent>> otherDrain = new AtomicReference<>();

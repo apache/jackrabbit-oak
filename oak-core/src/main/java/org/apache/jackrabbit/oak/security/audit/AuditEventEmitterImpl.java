@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.audit;
 
+import org.apache.jackrabbit.oak.spi.audit.AuditDomain;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvent;
 import org.apache.jackrabbit.oak.spi.audit.AuditEventEmitter;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvents;
@@ -40,7 +41,7 @@ public class AuditEventEmitterImpl implements AuditEventEmitter {
     }
 
     @Override
-    public boolean isEnabledFor(@NotNull String domain) {
+    public boolean isEnabledFor(@NotNull AuditDomain domain) {
         return AuditEvents.isEnabledFor(domain);
     }
 }

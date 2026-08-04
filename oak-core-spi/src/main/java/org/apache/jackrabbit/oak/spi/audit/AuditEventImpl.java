@@ -22,7 +22,8 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * Package-private immutable {@link AuditEvent} backing the
- * {@link AuditEvent#of(String, String, Map) AuditEvent.of} static factories.
+ * {@link AuditEvent#of(AuditDomain, AuditType, Map) AuditEvent.of} static
+ * factories.
  * <p>
  * Not part of the SPI surface — consumers always see the bare
  * {@code AuditEvent} interface. Keeping the impl package-private is the
@@ -36,13 +37,13 @@ import org.jetbrains.annotations.NotNull;
  */
 final class AuditEventImpl implements AuditEvent {
 
-    private final String domain;
-    private final String type;
+    private final AuditDomain domain;
+    private final AuditType type;
     private final long timestamp;
     private final Map<String, Object> payload;
 
-    AuditEventImpl(@NotNull String domain,
-                   @NotNull String type,
+    AuditEventImpl(@NotNull AuditDomain domain,
+                   @NotNull AuditType type,
                    long timestamp,
                    @NotNull Map<String, Object> payload) {
         this.domain = domain;
@@ -53,13 +54,13 @@ final class AuditEventImpl implements AuditEvent {
 
     @NotNull
     @Override
-    public String getDomain() {
+    public AuditDomain getDomain() {
         return domain;
     }
 
     @NotNull
     @Override
-    public String getType() {
+    public AuditType getType() {
         return type;
     }
 

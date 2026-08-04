@@ -23,7 +23,9 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.apache.jackrabbit.oak.spi.audit.AuditDomain;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvent;
+import org.apache.jackrabbit.oak.spi.audit.AuditType;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
@@ -48,10 +50,10 @@ public class CommitMetadataDecoratorTest {
         CommitMetadataDecorator.STRIP_WARNED.set(false);
     }
 
-    private static AuditEvent original(@NotNull String domain, @NotNull String type, @NotNull Map<String, Object> payload) {
+    private static AuditEvent original(@NotNull AuditDomain domain, @NotNull AuditType type, @NotNull Map<String, Object> payload) {
         return new AuditEvent() {
-            @Override public @NotNull String getDomain() { return domain; }
-            @Override public @NotNull String getType() { return type; }
+            @Override public @NotNull AuditDomain getDomain() { return domain; }
+            @Override public @NotNull AuditType getType() { return type; }
             @Override public long getTimestamp() { return 12345L; }
             @Override public @NotNull Map<String, Object> getPayload() { return payload; }
         };
@@ -59,15 +61,15 @@ public class CommitMetadataDecoratorTest {
 
     @Test
     public void decoratesPayloadWithCommitMetadata() {
-        AuditEvent in = original("oak.security", "member.added", Map.of("group", "/g", "member", "/m"));
+        AuditEvent in = original(AuditDomain.of("oak.security"), AuditType.of("member.added"), Map.of("group", "/g", "member", "/m"));
         CommitInfo info = new CommitInfo("session-1", "alice", Map.of(), false);
         List<AuditEvent> out = CommitMetadataDecorator.decorate(List.of(in), info);
         assertEquals(1, out.size());
         AuditEvent decorated = out.get(0);
         Map<String, Object> p = decorated.getPayload();
-        assertEquals("session-1", p.get("commit.sessionId"));
-        assertEquals("alice", p.get("commit.userId"));
-        assertTrue(p.containsKey("commit.timestamp"));
+        assertEquals("session-1", p.get("oak.commit.sessionId"));
+        assertEquals("alice", p.get("oak.commit.userId"));
+        assertTrue(p.containsKey("oak.commit.timestamp"));
         // original payload entries preserved
         assertEquals("/g", p.get("group"));
         assertEquals("/m", p.get("member"));
@@ -85,34 +87,34 @@ public class CommitMetadataDecoratorTest {
 
     @Test
     public void preservesDomainTypeTimestamp() {
-        AuditEvent in = original("aem.content", "fragment.published", Map.of("path", "/p"));
+        AuditEvent in = original(AuditDomain.of("example.content"), AuditType.of("fragment.published"), Map.of("path", "/p"));
         CommitInfo info = new CommitInfo("s", "u", Map.of(), false);
         AuditEvent decorated = CommitMetadataDecorator.decorate(List.of(in), info).get(0);
-        assertEquals("aem.content", decorated.getDomain());
-        assertEquals("fragment.published", decorated.getType());
+        assertEquals("example.content", decorated.getDomain().name());
+        assertEquals("fragment.published", decorated.getType().name());
         assertEquals(12345L, decorated.getTimestamp());
     }
 
     @Test
     public void systemCommitUserIdIsOakUnknown() {
-        AuditEvent in = original("oak.security", "system.event", Map.of());
+        AuditEvent in = original(AuditDomain.of("oak.security"), AuditType.of("system.event"), Map.of());
         // CommitInfo with null userId resolves to OAK_UNKNOWN
         CommitInfo info = CommitInfo.EMPTY;
         AuditEvent decorated = CommitMetadataDecorator.decorate(List.of(in), info).get(0);
         // CommitInfo.OAK_UNKNOWN exposed via getUserId() for empty/system commits
-        assertEquals(CommitInfo.OAK_UNKNOWN, decorated.getPayload().get("commit.userId"));
+        assertEquals(CommitInfo.OAK_UNKNOWN, decorated.getPayload().get("oak.commit.userId"));
     }
 
     @Test
     public void preservesOrderOfEvents() {
-        AuditEvent a = original("oak.security", "a", Map.of());
-        AuditEvent b = original("oak.security", "b", Map.of());
-        AuditEvent c = original("oak.security", "c", Map.of());
+        AuditEvent a = original(AuditDomain.of("oak.security"), AuditType.of("a"), Map.of());
+        AuditEvent b = original(AuditDomain.of("oak.security"), AuditType.of("b"), Map.of());
+        AuditEvent c = original(AuditDomain.of("oak.security"), AuditType.of("c"), Map.of());
         CommitInfo info = new CommitInfo("s", "u", Map.of(), false);
         List<AuditEvent> out = CommitMetadataDecorator.decorate(asList(a, b, c), info);
-        assertEquals("a", out.get(0).getType());
-        assertEquals("b", out.get(1).getType());
-        assertEquals("c", out.get(2).getType());
+        assertEquals("a", out.get(0).getType().name());
+        assertEquals("b", out.get(1).getType().name());
+        assertEquals("c", out.get(2).getType().name());
     }
 
     //--------------------------------------------< overwrite invariant tests >---
@@ -130,7 +132,7 @@ public class CommitMetadataDecoratorTest {
 
     @Test
     public void decoratorOverwritesCallerProvidedSessionId() {
-        AuditEvent in = original("oak.security", "x",
+        AuditEvent in = original(AuditDomain.of("oak.security"), AuditType.of("x"),
                 Map.of(CommitMetadataDecorator.KEY_SESSION_ID, "spoofed-session"));
         CommitInfo info = new CommitInfo("real-session", "alice", Map.of(), false);
         AuditEvent decorated = CommitMetadataDecorator.decorate(List.of(in), info).get(0);
@@ -141,7 +143,7 @@ public class CommitMetadataDecoratorTest {
 
     @Test
     public void decoratorOverwritesCallerProvidedUserId() {
-        AuditEvent in = original("oak.security", "x",
+        AuditEvent in = original(AuditDomain.of("oak.security"), AuditType.of("x"),
                 Map.of(CommitMetadataDecorator.KEY_USER_ID, "admin"));
         CommitInfo info = new CommitInfo("s", "alice", Map.of(), false);
         AuditEvent decorated = CommitMetadataDecorator.decorate(List.of(in), info).get(0);
@@ -152,7 +154,7 @@ public class CommitMetadataDecoratorTest {
 
     @Test
     public void decoratorOverwritesCallerProvidedTimestamp() {
-        AuditEvent in = original("oak.security", "x",
+        AuditEvent in = original(AuditDomain.of("oak.security"), AuditType.of("x"),
                 Map.of(CommitMetadataDecorator.KEY_TIMESTAMP, 99999999L));
         // CommitInfo's date is set internally to System.currentTimeMillis()
         // at construction; we read the actual value via getDate() to
@@ -172,7 +174,7 @@ public class CommitMetadataDecoratorTest {
      */
     @Test
     public void decoratorOverwritesAcrossValueTypes() {
-        AuditEvent in = original("oak.security", "x",
+        AuditEvent in = original(AuditDomain.of("oak.security"), AuditType.of("x"),
                 Map.of(CommitMetadataDecorator.KEY_TIMESTAMP, "definitely-a-string-not-a-long"));
         CommitInfo info = new CommitInfo("s", "u", Map.of(), false);
         AuditEvent decorated = CommitMetadataDecorator.decorate(List.of(in), info).get(0);
@@ -197,7 +199,7 @@ public class CommitMetadataDecoratorTest {
      */
     @Test
     public void decoratorOverwritesAllThreeOakAttestedKeysSimultaneously() {
-        AuditEvent in = original("oak.security", "x", Map.of(
+        AuditEvent in = original(AuditDomain.of("oak.security"), AuditType.of("x"), Map.of(
                 CommitMetadataDecorator.KEY_SESSION_ID, "spoofed-session",
                 CommitMetadataDecorator.KEY_USER_ID, "spoofed-user",
                 CommitMetadataDecorator.KEY_TIMESTAMP, 1L));
@@ -222,7 +224,7 @@ public class CommitMetadataDecoratorTest {
      */
     @Test
     public void decoratorDoesNotProtectOtherCommitPrefixedKeys() {
-        AuditEvent in = original("oak.security", "x", Map.of("commit.custom", "caller-supplied"));
+        AuditEvent in = original(AuditDomain.of("oak.security"), AuditType.of("x"), Map.of("commit.custom", "caller-supplied"));
         CommitInfo info = new CommitInfo("s", "u", Map.of(), false);
         Map<String, Object> p = CommitMetadataDecorator.decorate(List.of(in), info).get(0).getPayload();
         // The three Oak-attested keys are added/overwritten...
@@ -242,7 +244,7 @@ public class CommitMetadataDecoratorTest {
      */
     @Test
     public void decoratorAddsCommitKeysWhenAbsent() {
-        AuditEvent in = original("oak.security", "x", Map.of());
+        AuditEvent in = original(AuditDomain.of("oak.security"), AuditType.of("x"), Map.of());
         CommitInfo info = new CommitInfo("s", "u", Map.of(), false);
         AuditEvent decorated = CommitMetadataDecorator.decorate(List.of(in), info).get(0);
         assertTrue(decorated.getPayload().containsKey(CommitMetadataDecorator.KEY_SESSION_ID));
@@ -254,7 +256,7 @@ public class CommitMetadataDecoratorTest {
 
     @Test
     public void decoratedPayloadIsUnmodifiable() {
-        AuditEvent in = original("oak.security", "x", Map.of("k", "v"));
+        AuditEvent in = original(AuditDomain.of("oak.security"), AuditType.of("x"), Map.of("k", "v"));
         CommitInfo info = new CommitInfo("s", "u", Map.of(), false);
         AuditEvent decorated = CommitMetadataDecorator.decorate(List.of(in), info).get(0);
         try {
@@ -274,7 +276,7 @@ public class CommitMetadataDecoratorTest {
 
     @Test
     public void stripRemovesAllThreeReservedKeysAndKeepsTheRest() {
-        AuditEvent in = original("oak.security", "x", Map.of(
+        AuditEvent in = original(AuditDomain.of("oak.security"), AuditType.of("x"), Map.of(
                 CommitMetadataDecorator.KEY_SESSION_ID, "forged-session",
                 CommitMetadataDecorator.KEY_USER_ID, "forged-user",
                 CommitMetadataDecorator.KEY_TIMESTAMP, 1L,
@@ -293,8 +295,8 @@ public class CommitMetadataDecoratorTest {
         // Domain/type/capture-timestamp survive: the wrapper delegates, it
         // does NOT rebuild via AuditEvent.of() (which would reset the
         // timestamp to wall-clock now).
-        assertEquals("oak.security", stripped.getDomain());
-        assertEquals("x", stripped.getType());
+        assertEquals("oak.security", stripped.getDomain().name());
+        assertEquals("x", stripped.getType().name());
         assertEquals(12345L, stripped.getTimestamp());
         // Input event untouched.
         assertEquals("forged-session", in.getPayload().get(CommitMetadataDecorator.KEY_SESSION_ID));
@@ -302,7 +304,7 @@ public class CommitMetadataDecoratorTest {
 
     @Test
     public void stripWithSingleReservedKeyStripsIt() {
-        AuditEvent in = original("oak.security", "x", Map.of(
+        AuditEvent in = original(AuditDomain.of("oak.security"), AuditType.of("x"), Map.of(
                 CommitMetadataDecorator.KEY_USER_ID, "forged-user",
                 "k", "v"));
         Map<String, Object> p = CommitMetadataDecorator.stripReservedCommitKeys(in).getPayload();
@@ -313,7 +315,7 @@ public class CommitMetadataDecoratorTest {
 
     @Test
     public void stripReturnsSameInstanceWhenNoReservedKeyPresent() {
-        AuditEvent in = original("oak.security", "x", Map.of("commit.custom", "passenger", "k", "v"));
+        AuditEvent in = original(AuditDomain.of("oak.security"), AuditType.of("x"), Map.of("commit.custom", "passenger", "k", "v"));
         assertSame("clean payloads must not be wrapped — concrete event type preserved",
                 in, CommitMetadataDecorator.stripReservedCommitKeys(in));
     }
@@ -331,9 +333,9 @@ public class CommitMetadataDecoratorTest {
                 .enable(Level.WARN).create();
         log.starting();
         try {
-            CommitMetadataDecorator.stripReservedCommitKeys(original("oak.security", "strip.warn.type",
+            CommitMetadataDecorator.stripReservedCommitKeys(original(AuditDomain.of("oak.security"), AuditType.of("strip.warn.type"),
                     Map.of(CommitMetadataDecorator.KEY_SESSION_ID, "forged-session-value", "k", "v")));
-            CommitMetadataDecorator.stripReservedCommitKeys(original("oak.security", "strip.other.type",
+            CommitMetadataDecorator.stripReservedCommitKeys(original(AuditDomain.of("oak.security"), AuditType.of("strip.other.type"),
                     Map.of(CommitMetadataDecorator.KEY_USER_ID, "forged-user-value")));
 
             List<String> logs = log.getLogs();
@@ -360,7 +362,7 @@ public class CommitMetadataDecoratorTest {
         mutable.put(CommitMetadataDecorator.KEY_SESSION_ID, "forged");
         mutable.put("k", "v");
         AuditEvent stripped = CommitMetadataDecorator.stripReservedCommitKeys(
-                original("oak.security", "x", mutable));
+                original(AuditDomain.of("oak.security"), AuditType.of("x"), mutable));
         try {
             stripped.getPayload().put("newkey", "newvalue");
             fail("stripped payload must be unmodifiable — caller mutation must throw");
@@ -382,8 +384,8 @@ public class CommitMetadataDecoratorTest {
     public void stripSnapshotsPayloadEagerlyFromSingleConsult() {
         AtomicInteger consults = new AtomicInteger();
         AuditEvent hostile = new AuditEvent() {
-            @Override public @NotNull String getDomain() { return "oak.security"; }
-            @Override public @NotNull String getType() { return "x"; }
+            @Override public @NotNull AuditDomain getDomain() { return AuditDomain.of("oak.security"); }
+            @Override public @NotNull AuditType getType() { return AuditType.of("x"); }
             @Override public long getTimestamp() { return 12345L; }
             @Override public @NotNull Map<String, Object> getPayload() {
                 if (consults.incrementAndGet() == 1) {

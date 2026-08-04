@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
  * <p>
  * The buffer also implements {@link AuditBufferLifecycle.Listener}; it is
  * installed via {@code AuditBufferLifecycle.install(this)} by
- * {@link AuditConfigurationImpl} on activation.
+ * {@link AuditPipeline} on activation.
  * <p>
  * <strong>Soft per-session cap.</strong> A single session must not be able
  * to accumulate an unbounded number of staged events (e.g. a very large
@@ -163,7 +163,7 @@ final class AuditBuffer implements AuditBufferLifecycle.Listener {
 
     /**
      * Drops all staged events for the <strong>current thread</strong>.
-     * Called by {@link AuditConfigurationImpl#deactivate} so the
+     * Called by {@link AuditPipeline#deactivate} so the
      * deactivator thread leaves no residue.
      * <p>
      * Note: this cannot reach across thread boundaries. ThreadLocal

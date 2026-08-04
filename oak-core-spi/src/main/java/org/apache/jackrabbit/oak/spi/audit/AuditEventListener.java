@@ -50,21 +50,23 @@ import org.osgi.annotation.versioning.ConsumerType;
  * Events delivered through this method may originate from either:
  * <ul>
  *   <li>Oak-internal capture sites tied to a successful
- *       {@code Root.commit()}. Such events carry {@code commit.sessionId},
- *       {@code commit.userId}, and {@code commit.timestamp} entries in
- *       their payload. {@code commit.userId} is {@code "oak:unknown"} for
- *       system commits and listeners <strong>MUST NOT</strong> attempt to
- *       resolve it to a real user identity.</li>
+ *       {@code Root.commit()}. Such events carry Oak's commit attestation:
+ *       {@link AuditEvent#COMMIT_SESSION_ID},
+ *       {@link AuditEvent#COMMIT_USER_ID} and
+ *       {@link AuditEvent#COMMIT_TIMESTAMP}. The user id is
+ *       {@code "oak:unknown"} for system commits and listeners
+ *       <strong>MUST NOT</strong> attempt to resolve it to a real user
+ *       identity.</li>
  *   <li>Any bundle calling {@link AuditEventEmitter#emit(AuditEvent)}.
  *       The accuracy of such events is the emitting bundle's responsibility;
  *       Oak does not verify them. They cannot carry the three reserved
- *       {@code commit.*} keys — Oak strips caller-supplied values for them
- *       before delivery. Other {@code commit.*}-prefixed keys are forwarded
- *       verbatim and are untrusted.</li>
+ *       attestation keys — Oak strips caller-supplied values for them
+ *       before delivery. Other {@code oak.commit.*}-prefixed keys are
+ *       forwarded verbatim and are untrusted.</li>
  * </ul>
- * Consumers that need to distinguish between the two sources can rely on
- * the presence of the {@code commit.sessionId} key — the normative
- * statement and the boundaries of this attestation are documented on
+ * Consumers that need to distinguish between the two sources should call
+ * {@link AuditEvent#isCommitAttested(AuditEvent)} — the normative statement
+ * and the boundaries of this attestation are documented on
  * {@link AuditEvent#getPayload()}.
  */
 @ConsumerType
@@ -79,10 +81,10 @@ public interface AuditEventListener {
      * listener is skipped for that dispatch — see the Throwable-isolation
      * note in the class Javadoc.
      *
-     * @return non-null domain name.
+     * @return non-null domain.
      */
     @NotNull
-    String getDomain();
+    AuditDomain getDomain();
 
     /**
      * Returns the dispatch rank for this listener — higher value is

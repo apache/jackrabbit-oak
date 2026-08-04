@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.audit;
 
+import org.apache.jackrabbit.oak.spi.audit.AuditDomain;
+
 /**
  * Domain constant for events produced by Oak security modules.
  * <p>
@@ -29,14 +31,13 @@ package org.apache.jackrabbit.oak.spi.security.audit;
 public final class SecurityAuditDomain {
 
     /**
-     * Domain name for events produced by Oak security modules
-     * (user management, ACLs, principal management, tokens, etc.).
-     * Namespaced with the {@code oak.} prefix so listeners hosted in
-     * mixed environments (Sling, AEM, third-party bundles) can
-     * disambiguate Oak's security events from same-named domains
-     * defined by other layers.
+     * Domain for events produced by Oak security modules (user management,
+     * ACLs, principal management, tokens, etc.). Namespaced with the
+     * {@code oak.} prefix so listeners hosted alongside other layers can
+     * tell Oak's security events apart from same-named domains defined
+     * elsewhere.
      */
-    public static final String NAME = "oak.security";
+    public static final AuditDomain DOMAIN = AuditDomain.of("oak.security");
 
     private SecurityAuditDomain() {
         // constants class

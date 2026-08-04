@@ -23,6 +23,7 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -33,8 +34,8 @@ public class AuditEventTest {
     public void defaultGetPayloadReturnsEmptyMap() {
         // Impl that does NOT override getPayload() — exercises the default method body.
         AuditEvent e = new AuditEvent() {
-            @Override public @NotNull String getDomain() { return "test"; }
-            @Override public @NotNull String getType() { return "t"; }
+            @Override public @NotNull AuditDomain getDomain() { return AuditDomain.of("test"); }
+            @Override public @NotNull AuditType getType() { return AuditType.of("t"); }
             @Override public long getTimestamp() { return 0L; }
         };
         assertEquals(Collections.emptyMap(), e.getPayload());
@@ -42,16 +43,19 @@ public class AuditEventTest {
 
     //---------------------------< static factory of(domain, type, payload) >---
 
+    private static final AuditDomain DOMAIN = AuditDomain.of("test.domain");
+    private static final AuditType TYPE = AuditType.of("t");
+
     @Test
     public void factoryWithPayloadReturnsEventWithSuppliedFields() {
         long before = System.currentTimeMillis();
-        AuditEvent e = AuditEvent.of("test.domain", "membership.added",
+        AuditEvent e = AuditEvent.of(DOMAIN, AuditType.of("membership.added"),
                 Map.of("groupPath", "/g", "memberPath", "/u"));
         long after = System.currentTimeMillis();
 
         assertNotNull(e);
-        assertEquals("test.domain", e.getDomain());
-        assertEquals("membership.added", e.getType());
+        assertEquals(DOMAIN, e.getDomain());
+        assertEquals(AuditType.of("membership.added"), e.getType());
         assertEquals(Map.of("groupPath", "/g", "memberPath", "/u"), e.getPayload());
         // Capture timestamp is taken inside of(...) — must fall within the
         // call window observed by the test thread.
@@ -61,50 +65,15 @@ public class AuditEventTest {
 
     @Test
     public void factoryWithoutPayloadReturnsEventWithEmptyPayload() {
-        AuditEvent e = AuditEvent.of("test.domain", "membership.removed");
-        assertEquals("test.domain", e.getDomain());
-        assertEquals("membership.removed", e.getType());
+        AuditEvent e = AuditEvent.of(DOMAIN, AuditType.of("membership.removed"));
+        assertEquals(DOMAIN, e.getDomain());
+        assertEquals(AuditType.of("membership.removed"), e.getType());
         assertEquals(Collections.emptyMap(), e.getPayload());
     }
 
     @Test
-    public void factoryRejectsBlankDomain() {
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> AuditEvent.of("", "type", Map.of()));
-        assertTrue(ex.getMessage().contains("domain"));
-    }
-
-    @Test
-    public void factoryRejectsWhitespaceDomain() {
-        // String.isBlank() — exercise the non-empty-but-blank path.
-        assertThrows(IllegalArgumentException.class,
-                () -> AuditEvent.of("   ", "type", Map.of()));
-    }
-
-    @Test
-    public void factoryRejectsBlankType() {
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> AuditEvent.of("test.domain", "", Map.of()));
-        assertTrue(ex.getMessage().contains("type"));
-    }
-
-    @Test
-    public void factoryRejectsWhitespaceType() {
-        assertThrows(IllegalArgumentException.class,
-                () -> AuditEvent.of("test.domain", " \t ", Map.of()));
-    }
-
-    @Test
-    public void noPayloadOverloadAlsoValidatesDomain() {
-        // The no-payload overload delegates to the 3-arg form; verify both
-        // validation branches still fire via this route.
-        assertThrows(IllegalArgumentException.class, () -> AuditEvent.of("", "type"));
-        assertThrows(IllegalArgumentException.class, () -> AuditEvent.of("test.domain", ""));
-    }
-
-    @Test
     public void factoryPayloadIsImmutable() {
-        AuditEvent e = AuditEvent.of("test.domain", "t", Map.of("k", "v"));
+        AuditEvent e = AuditEvent.of(DOMAIN, TYPE, Map.of("k", "v"));
         Map<String, Object> p = e.getPayload();
         assertThrows(UnsupportedOperationException.class, () -> p.put("k2", "v2"));
     }
@@ -115,10 +84,46 @@ public class AuditEventTest {
         // so we use HashMap to verify the defensive-copy semantics.
         java.util.Map<String, Object> mutable = new java.util.HashMap<>();
         mutable.put("k", "v");
-        AuditEvent e = AuditEvent.of("test.domain", "t", mutable);
+        AuditEvent e = AuditEvent.of(DOMAIN, TYPE, mutable);
 
         mutable.put("k2", "v2"); // mutate the source AFTER construction
         assertEquals("event payload must not reflect post-construction source mutation",
                 Map.of("k", "v"), e.getPayload());
+    }
+
+    //------------------------------------------< isCommitAttested(event) >---
+
+    @Test
+    public void isCommitAttestedTrueWhenAllThreeKeysPresent() {
+        AuditEvent e = AuditEvent.of(DOMAIN, TYPE, Map.of(
+                AuditEvent.COMMIT_SESSION_ID, "s",
+                AuditEvent.COMMIT_USER_ID, "u",
+                AuditEvent.COMMIT_TIMESTAMP, 1L));
+        assertTrue(AuditEvent.isCommitAttested(e));
+    }
+
+    @Test
+    public void isCommitAttestedFalseForPlainEvent() {
+        assertFalse(AuditEvent.isCommitAttested(AuditEvent.of(DOMAIN, TYPE)));
+    }
+
+    @Test
+    public void isCommitAttestedRequiresEveryKey() {
+        // A partial set must not pass: an emitter that supplies only some of
+        // the keys must never read as Oak-attested.
+        assertFalse(AuditEvent.isCommitAttested(AuditEvent.of(DOMAIN, TYPE,
+                Map.of(AuditEvent.COMMIT_SESSION_ID, "s"))));
+        assertFalse(AuditEvent.isCommitAttested(AuditEvent.of(DOMAIN, TYPE,
+                Map.of(AuditEvent.COMMIT_SESSION_ID, "s", AuditEvent.COMMIT_USER_ID, "u"))));
+        assertFalse(AuditEvent.isCommitAttested(AuditEvent.of(DOMAIN, TYPE,
+                Map.of(AuditEvent.COMMIT_USER_ID, "u", AuditEvent.COMMIT_TIMESTAMP, 1L))));
+    }
+
+    @Test
+    public void reservedKeysAreOakPrefixed() {
+        // Pins the wire names: renaming these is a consumer-visible change.
+        assertEquals("oak.commit.sessionId", AuditEvent.COMMIT_SESSION_ID);
+        assertEquals("oak.commit.userId", AuditEvent.COMMIT_USER_ID);
+        assertEquals("oak.commit.timestamp", AuditEvent.COMMIT_TIMESTAMP);
     }
 }

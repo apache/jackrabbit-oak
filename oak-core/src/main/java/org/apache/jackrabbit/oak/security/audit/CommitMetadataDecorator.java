@@ -24,7 +24,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.jackrabbit.oak.spi.audit.AuditDomain;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvent;
+import org.apache.jackrabbit.oak.spi.audit.AuditType;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -66,9 +68,13 @@ final class CommitMetadataDecorator {
 
     private static final Logger log = LoggerFactory.getLogger(CommitMetadataDecorator.class);
 
-    static final String KEY_SESSION_ID = "commit.sessionId";
-    static final String KEY_USER_ID = "commit.userId";
-    static final String KEY_TIMESTAMP = "commit.timestamp";
+    // Aliases for the reserved keys declared on the SPI. Single source of
+    // truth: the strip path here and AuditEvent.isCommitAttested must agree
+    // on the names, or a listener's attestation check silently diverges from
+    // what Oak actually stamps.
+    static final String KEY_SESSION_ID = AuditEvent.COMMIT_SESSION_ID;
+    static final String KEY_USER_ID = AuditEvent.COMMIT_USER_ID;
+    static final String KEY_TIMESTAMP = AuditEvent.COMMIT_TIMESTAMP;
 
     /**
      * One-shot latch for the strip WARN (package-private so tests can
@@ -182,8 +188,8 @@ final class CommitMetadataDecorator {
             this.payload = Collections.unmodifiableMap(merged);
         }
 
-        @Override public @NotNull String getDomain() { return delegate.getDomain(); }
-        @Override public @NotNull String getType() { return delegate.getType(); }
+        @Override public @NotNull AuditDomain getDomain() { return delegate.getDomain(); }
+        @Override public @NotNull AuditType getType() { return delegate.getType(); }
         @Override public long getTimestamp() { return delegate.getTimestamp(); }
         @Override public @NotNull Map<String, Object> getPayload() { return payload; }
     }
@@ -209,8 +215,8 @@ final class CommitMetadataDecorator {
             this.payload = Collections.unmodifiableMap(filtered);
         }
 
-        @Override public @NotNull String getDomain() { return delegate.getDomain(); }
-        @Override public @NotNull String getType() { return delegate.getType(); }
+        @Override public @NotNull AuditDomain getDomain() { return delegate.getDomain(); }
+        @Override public @NotNull AuditType getType() { return delegate.getType(); }
         @Override public long getTimestamp() { return delegate.getTimestamp(); }
         @Override public @NotNull Map<String, Object> getPayload() { return payload; }
     }

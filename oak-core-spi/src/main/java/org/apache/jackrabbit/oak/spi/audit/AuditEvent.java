@@ -30,44 +30,66 @@ import org.osgi.annotation.versioning.ProviderType;
  * <ul>
  *   <li>Oak-internal capture sites tied to a successful
  *       {@code Root.commit()}. The commit-attached drain step decorates
- *       payload with {@code commit.sessionId}, {@code commit.userId},
- *       and {@code commit.timestamp} entries before dispatch.</li>
+ *       payload with the three reserved attestation entries before
+ *       dispatch; use {@link #isCommitAttested(AuditEvent)} to test for
+ *       them rather than checking the keys by hand.</li>
  *   <li>Any bundle calling {@link AuditEventEmitter#emit(AuditEvent)}.
  *       Such events carry the payload provided by the caller, except that
  *       Oak strips caller-supplied values for the three reserved
- *       {@code commit.*} attestation keys before dispatch — see the trust
- *       contract on {@link #getPayload()}.</li>
+ *       attestation keys before dispatch — see the trust contract on
+ *       {@link #getPayload()}.</li>
  * </ul>
  * The {@link #getDomain()} value selects the listeners that receive this
  * event.
  * <p>
  * Most callers do not implement this interface directly: use the static
- * factory {@link #of(String, String, Map)} (or the no-payload overload
- * {@link #of(String, String)}) to construct an immutable event with the
- * current wall-clock timestamp. The package-private {@code AuditEventImpl}
- * backs these factories.
+ * factory {@link #of(AuditDomain, AuditType, Map)} (or the no-payload
+ * overload {@link #of(AuditDomain, AuditType)}) to construct an immutable
+ * event with the current wall-clock timestamp. The package-private
+ * {@code AuditEventImpl} backs these factories.
  */
 @ProviderType
 public interface AuditEvent {
+
+    /**
+     * Payload key carrying the id of the session whose commit produced this
+     * event. One of the three reserved attestation keys; see the trust
+     * contract on {@link #getPayload()} and {@link #isCommitAttested}.
+     */
+    String COMMIT_SESSION_ID = "oak.commit.sessionId";
+
+    /**
+     * Payload key carrying the user id of the commit that produced this
+     * event. {@code "oak:unknown"} for system commits, which listeners
+     * <strong>MUST NOT</strong> try to resolve to a real identity.
+     */
+    String COMMIT_USER_ID = "oak.commit.userId";
+
+    /**
+     * Payload key carrying the commit timestamp (millis since epoch), i.e.
+     * when the change became durable — as opposed to
+     * {@link #getTimestamp()}, which is when the event was captured.
+     */
+    String COMMIT_TIMESTAMP = "oak.commit.timestamp";
 
     /**
      * Returns the domain that owns this event. Listeners are domain-scoped:
      * an {@link AuditEventListener} only receives events whose
      * {@code getDomain()} matches its own {@link AuditEventListener#getDomain()}.
      *
-     * @return non-null domain name (e.g. {@code "oak.security"}, {@code "aem.content"}).
+     * @return non-null domain (e.g. {@code "oak.security"}).
      */
     @NotNull
-    String getDomain();
+    AuditDomain getDomain();
 
     /**
-     * Returns the event type identifier within the domain. Type strings are
-     * stable across releases for any given domain.
+     * Returns the event type within the domain. Types are stable across
+     * releases for any given domain.
      *
-     * @return non-null type identifier.
+     * @return non-null type.
      */
     @NotNull
-    String getType();
+    AuditType getType();
 
     /**
      * Returns the wall-clock timestamp (millis since epoch) captured at
@@ -94,15 +116,16 @@ public interface AuditEvent {
      * this to expose typed accessors and include their fields here.
      * <p>
      * For commit-attached events, Oak's drain path adds entries with the
-     * keys {@code commit.sessionId}, {@code commit.userId}, and
-     * {@code commit.timestamp} when the buffer is drained on commit
+     * keys {@code oak.commit.sessionId}, {@code oak.commit.userId}, and
+     * {@code oak.commit.timestamp} when the buffer is drained on commit
      * success. Oak does not <em>add</em> these entries on the fire-and-forget
      * path (see the trust contract below).
      * <p>
      * <strong>Trust contract</strong> (normative — other audit SPI and
      * implementation docs defer to this paragraph). For events delivered
-     * through Oak dispatch, the three reserved keys {@code commit.sessionId},
-     * {@code commit.userId} and {@code commit.timestamp} are Oak-attested:
+     * through Oak dispatch, the three reserved keys
+     * {@code oak.commit.sessionId}, {@code oak.commit.userId} and
+     * {@code oak.commit.timestamp} are Oak-attested:
      * <ul>
      *   <li>On the <em>commit-attached</em> path Oak <em>unconditionally
      *       overwrites</em> the three keys with the values from
@@ -113,12 +136,13 @@ public interface AuditEvent {
      *       {@code AuditEvents.dispatch}) Oak <em>strips</em> caller-supplied
      *       values for the same three keys before delivery.</li>
      * </ul>
-     * A listener may therefore treat the presence of any of the three keys
-     * in a dispatched payload as "commit-attached event, values supplied by
-     * Oak". Every other entry — including other {@code commit.*}-prefixed
-     * keys — is forwarded verbatim from the caller-supplied payload on both
-     * paths and is untrusted: anchor trust on the three reserved keys, never
-     * on the {@code commit.} prefix in general.
+     * A listener may therefore treat the presence of the three keys in a
+     * dispatched payload as "commit-attached event, values supplied by
+     * Oak". Use {@link #isCommitAttested(AuditEvent)} for that test rather
+     * than reading the keys directly. Every other entry — including other
+     * {@code oak.commit.*}-prefixed keys — is forwarded verbatim from the
+     * caller-supplied payload on both paths and is untrusted: anchor trust
+     * on the three reserved keys, never on the prefix in general.
      * <p>
      * Boundaries of the attestation:
      * <ul>
@@ -183,28 +207,43 @@ public interface AuditEvent {
      * for the producer-side responsibility under the open trust model.
      */
     @NotNull
-    static AuditEvent of(@NotNull String domain,
-                         @NotNull String type,
+    static AuditEvent of(@NotNull AuditDomain domain,
+                         @NotNull AuditType type,
                          @NotNull Map<String, Object> payload) {
-        if (domain.isBlank()) {
-            throw new IllegalArgumentException("domain must not be blank");
-        }
-        if (type.isBlank()) {
-            throw new IllegalArgumentException("type must not be blank");
-        }
         return new AuditEventImpl(domain, type, System.currentTimeMillis(), Map.copyOf(payload));
     }
 
     /**
      * Convenience overload for events with no payload.
      *
-     * @param domain non-blank domain identifier.
-     * @param type   non-blank event type identifier within {@code domain}.
+     * @param domain the event domain.
+     * @param type   the event type within {@code domain}.
      * @return non-null event instance with an empty payload.
-     * @throws IllegalArgumentException if {@code domain} or {@code type} is blank.
      */
     @NotNull
-    static AuditEvent of(@NotNull String domain, @NotNull String type) {
+    static AuditEvent of(@NotNull AuditDomain domain, @NotNull AuditType type) {
         return of(domain, type, Map.of());
+    }
+
+    /**
+     * Returns {@code true} when the event carries Oak's commit attestation,
+     * i.e. when it reached the listener through the commit-attached path
+     * after a successful {@code Root.commit()}.
+     * <p>
+     * This is the supported way to make that distinction. The attestation
+     * is carried by three reserved payload keys, but their names are an
+     * implementation detail: read them directly and the check silently
+     * breaks if they are ever renamed. The semantics — what the attestation
+     * does and does not guarantee — are documented on {@link #getPayload()}.
+     *
+     * @param event the event to test, non-null.
+     * @return {@code true} when all three reserved attestation entries are
+     *         present.
+     */
+    static boolean isCommitAttested(@NotNull AuditEvent event) {
+        Map<String, Object> payload = event.getPayload();
+        return payload.containsKey(COMMIT_SESSION_ID)
+                && payload.containsKey(COMMIT_USER_ID)
+                && payload.containsKey(COMMIT_TIMESTAMP);
     }
 }

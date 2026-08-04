@@ -30,8 +30,10 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.apache.jackrabbit.oak.spi.audit.AuditDomain;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvent;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvents;
+import org.apache.jackrabbit.oak.spi.audit.AuditType;
 import org.apache.jackrabbit.oak.spi.security.audit.SecurityAuditDomain;
 import org.apache.jackrabbit.oak.spi.security.user.UserAuditTypes;
 import org.jetbrains.annotations.NotNull;
@@ -81,7 +83,7 @@ public class UserManagerImplAuditTest extends AbstractSecurityTest {
             }
 
             @Override
-            public boolean isEnabledFor(@NotNull String domain) {
+            public boolean isEnabledFor(@NotNull AuditDomain domain) {
                 return true;
             }
 
@@ -111,7 +113,7 @@ public class UserManagerImplAuditTest extends AbstractSecurityTest {
             userMgr.onGroupUpdate(group, false, user);
             assertEquals(1, recordedEvents.size());
             AuditEvent e = recordedEvents.get(0);
-            assertEquals(SecurityAuditDomain.NAME, e.getDomain());
+            assertEquals(SecurityAuditDomain.DOMAIN, e.getDomain());
             assertEquals(UserAuditTypes.MEMBER_ADDED, e.getType());
             Map<String, Object> payload = e.getPayload();
             assertEquals(group.getPath(), payload.get(UserAuditTypes.PAYLOAD_GROUP_PATH));
@@ -132,7 +134,7 @@ public class UserManagerImplAuditTest extends AbstractSecurityTest {
             userMgr.onGroupUpdate(group, true, user);
             assertEquals(1, recordedEvents.size());
             AuditEvent e = recordedEvents.get(0);
-            assertEquals(SecurityAuditDomain.NAME, e.getDomain());
+            assertEquals(SecurityAuditDomain.DOMAIN, e.getDomain());
             assertEquals(UserAuditTypes.MEMBER_REMOVED, e.getType());
             Map<String, Object> payload = e.getPayload();
             assertEquals(group.getPath(), payload.get(UserAuditTypes.PAYLOAD_GROUP_PATH));
@@ -154,7 +156,7 @@ public class UserManagerImplAuditTest extends AbstractSecurityTest {
                     Collections.emptySet());
             assertEquals(1, recordedEvents.size());
             AuditEvent e = recordedEvents.get(0);
-            assertEquals(SecurityAuditDomain.NAME, e.getDomain());
+            assertEquals(SecurityAuditDomain.DOMAIN, e.getDomain());
             assertEquals(UserAuditTypes.MEMBER_ADDED, e.getType());
             Map<String, Object> payload = e.getPayload();
             assertEquals(group.getPath(), payload.get(UserAuditTypes.PAYLOAD_GROUP_PATH));
@@ -179,7 +181,7 @@ public class UserManagerImplAuditTest extends AbstractSecurityTest {
                     Collections.emptySet());
             assertEquals(1, recordedEvents.size());
             AuditEvent e = recordedEvents.get(0);
-            assertEquals(SecurityAuditDomain.NAME, e.getDomain());
+            assertEquals(SecurityAuditDomain.DOMAIN, e.getDomain());
             assertEquals(UserAuditTypes.MEMBER_REMOVED, e.getType());
             Map<String, Object> payload = e.getPayload();
             assertEquals(group.getPath(), payload.get(UserAuditTypes.PAYLOAD_GROUP_PATH));
@@ -197,7 +199,7 @@ public class UserManagerImplAuditTest extends AbstractSecurityTest {
         // Sink reports disabled — capture sites must short-circuit before record().
         AuditEvents.install(new AuditEvents.Sink() {
             @Override public boolean isEnabled() { return false; }
-            @Override public boolean isEnabledFor(@NotNull String domain) { return false; }
+            @Override public boolean isEnabledFor(@NotNull AuditDomain domain) { return false; }
             @Override public void record(@NotNull Root r, @NotNull AuditEvent event) {
                 recordedEvents.add(event);
             }
@@ -228,7 +230,7 @@ public class UserManagerImplAuditTest extends AbstractSecurityTest {
         // this test fails on such a regression.
         AuditEvents.install(new AuditEvents.Sink() {
             @Override public boolean isEnabled() { return true; }
-            @Override public boolean isEnabledFor(@NotNull String domain) { return false; }
+            @Override public boolean isEnabledFor(@NotNull AuditDomain domain) { return false; }
             @Override public void record(@NotNull Root r, @NotNull AuditEvent event) {
                 recordedEvents.add(event);
             }

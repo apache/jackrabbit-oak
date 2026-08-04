@@ -47,7 +47,7 @@ public final class AuditEvents {
          * least one listener is registered for the given domain. Used to
          * avoid event allocation when no consumer cares about the domain.
          */
-        boolean isEnabledFor(@NotNull String domain);
+        boolean isEnabledFor(@NotNull AuditDomain domain);
 
         /**
          * Commit-attached path. Buffers the event against the session
@@ -69,7 +69,7 @@ public final class AuditEvents {
 
     private static final Sink NOOP = new Sink() {
         @Override public boolean isEnabled() { return false; }
-        @Override public boolean isEnabledFor(@NotNull String domain) { return false; }
+        @Override public boolean isEnabledFor(@NotNull AuditDomain domain) { return false; }
         @Override public void record(@NotNull Root root, @NotNull AuditEvent event) { }
         @Override public void dispatch(@NotNull AuditEvent event) { }
     };
@@ -101,7 +101,7 @@ public final class AuditEvents {
         return sink.isEnabled();
     }
 
-    public static boolean isEnabledFor(@NotNull String domain) {
+    public static boolean isEnabledFor(@NotNull AuditDomain domain) {
         return sink.isEnabledFor(domain);
     }
 

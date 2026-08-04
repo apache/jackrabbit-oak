@@ -17,26 +17,27 @@
 package org.apache.jackrabbit.oak.spi.security.user;
 
 import org.apache.jackrabbit.oak.spi.audit.AuditEvent;
+import org.apache.jackrabbit.oak.spi.audit.AuditType;
 import org.apache.jackrabbit.oak.spi.security.audit.SecurityAuditDomain;
 
 /**
- * Stable type-string constants and payload keys for user-management audit
+ * Stable event types and payload keys for user-management audit
  * events. All events declared here share the
- * {@link SecurityAuditDomain#NAME oak.security} domain.
+ * {@link SecurityAuditDomain#DOMAIN oak.security} domain.
  * <p>
  * Listener bundles discriminate user-management events by combining
- * {@code event.getDomain().equals(SecurityAuditDomain.NAME)} with
+ * {@code event.getDomain().equals(SecurityAuditDomain.DOMAIN)} with
  * {@code event.getType().equals(UserAuditTypes.MEMBER_ADDED)} (or another
  * constant declared here).
  * <p>
- * A single membership add or remove and a bulk one share the same type
+ * A single membership add or remove and a bulk one share the same
  * string ({@link #MEMBER_ADDED} / {@link #MEMBER_REMOVED}); a bulk change is
  * simply an event whose {@link #PAYLOAD_MEMBER_IDS} list holds more than one
  * entry. Consumers that need a bulk/single flag derive it from the list size
  * rather than from a distinct type.
  * <p>
  * Future sub-domains under {@code oak.security} (ACL, principal, token)
- * declare their own type-string classes alongside their respective
+ * declare their own event-type classes alongside their respective
  * configuration packages.
  * <p>
  * <strong>Asymmetric exposure.</strong> This class is the read-side
@@ -66,14 +67,14 @@ public final class UserAuditTypes {
      * for single-member changes — {@link #PAYLOAD_MEMBER_PATHS}; bulk changes
      * additionally carry {@link #PAYLOAD_FAILED_IDS}.
      */
-    public static final String MEMBER_ADDED = "membership.added";
+    public static final AuditType MEMBER_ADDED = AuditType.of("membership.added");
 
     /**
      * Recorded when one or more authorizables are removed from a group.
      * Single and bulk removes share this type; discriminate by the size of
      * {@link #PAYLOAD_MEMBER_IDS}. Payload keys: same as {@link #MEMBER_ADDED}.
      */
-    public static final String MEMBER_REMOVED = "membership.removed";
+    public static final AuditType MEMBER_REMOVED = AuditType.of("membership.removed");
 
     // ── Payload keys ──────────────────────────────────────────────────
 

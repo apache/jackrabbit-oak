@@ -20,6 +20,7 @@ import java.lang.reflect.Constructor;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.spi.audit.AuditType;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -29,10 +30,10 @@ import static org.junit.Assert.assertNotNull;
 public class UserAuditTypesTest {
 
     @Test
-    public void allTypeStringsAreNonBlank() {
-        for (String value : typeStrings()) {
-            assertFalse("type string must not be blank: " + value, value.isBlank());
-        }
+    public void typeConstantsAreStable() {
+        // Pins the wire values: listener bundles match on them.
+        assertEquals("membership.added", UserAuditTypes.MEMBER_ADDED.name());
+        assertEquals("membership.removed", UserAuditTypes.MEMBER_REMOVED.name());
     }
 
     @Test
@@ -43,9 +44,9 @@ public class UserAuditTypesTest {
     }
 
     @Test
-    public void typeStringsAreUnique() {
-        List<String> values = typeStrings();
-        assertEquals("type strings must be unique",
+    public void typesAreUnique() {
+        List<AuditType> values = types();
+        assertEquals("types must be unique",
                 values.size(), Set.copyOf(values).size());
     }
 
@@ -65,7 +66,7 @@ public class UserAuditTypesTest {
         assertNotNull(ctor.newInstance());
     }
 
-    private static List<String> typeStrings() {
+    private static List<AuditType> types() {
         return List.of(
                 UserAuditTypes.MEMBER_ADDED,
                 UserAuditTypes.MEMBER_REMOVED);

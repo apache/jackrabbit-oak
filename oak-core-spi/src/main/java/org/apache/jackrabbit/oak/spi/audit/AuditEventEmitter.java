@@ -24,9 +24,11 @@ import org.osgi.annotation.versioning.ProviderType;
  * <pre>{@code
  * @Reference private AuditEventEmitter audit;
  *
+ * private static final AuditDomain MY_DOMAIN = AuditDomain.of("example.content");
+ *
  * void onSomething() {
- *     if (audit.isEnabledFor("aem.content")) {
- *         audit.emit(new MyEvent(...));
+ *     if (audit.isEnabledFor(MY_DOMAIN)) {
+ *         audit.emit(AuditEvent.of(MY_DOMAIN, MY_TYPE, payload));
  *     }
  * }
  * }</pre>
@@ -35,22 +37,25 @@ import org.osgi.annotation.versioning.ProviderType;
  * listeners registered for the event's domain. Not tied to any commit;
  * not buffered; not rolled back on failure.
  * <p>
- * Listeners are invoked under per-listener try/catch isolation — covering
- * the {@link AuditEventListener#getDomain()} routing lookup as well as
- * {@code onEvents()}: one listener throwing does not prevent others from
- * running. Any {@link Throwable} (including {@link RuntimeException} and
- * {@link Error} subclasses such as {@link LinkageError}) is logged at
+ * <strong>Oak guarantees per-listener isolation</strong> on this path, so
+ * callers can rely on it: Oak wraps each listener invocation — covering the
+ * {@link AuditEventListener#getDomain()} routing lookup as well as
+ * {@code onEvents()} — so one listener throwing does not prevent others
+ * from running. Any {@link Throwable} (including {@link RuntimeException}
+ * and {@link Error} subclasses such as {@link LinkageError}) is logged at
  * {@code WARN} and never propagates back to the caller. The barrier catches
  * {@code Throwable} rather than {@code RuntimeException} so JVM-level
  * failures from a misconfigured consumer bundle (missing transitive
  * dependency, {@link OutOfMemoryError}, etc.) cannot prevent other
- * listeners from receiving the event.
+ * listeners from receiving the event. Implementations of this interface
+ * are supplied by Oak ({@code @ProviderType}); the isolation is not
+ * something a consumer needs to provide or can opt out of.
  * <p>
  * <strong>Trust model:</strong> any bundle that resolves this service can
  * emit any event for any domain. The event payload reflects the emitting
  * bundle's claim; Oak does not verify it — except that caller-supplied
- * values for the three reserved {@code commit.*} attestation keys are
- * stripped before delivery. The normative statement is the trust contract
+ * values for the three reserved attestation keys are stripped before
+ * delivery. The normative statement is the trust contract
  * on {@link AuditEvent#getPayload()}; see {@link AuditEventListener} for
  * the listener-side view.
  */
@@ -72,5 +77,5 @@ public interface AuditEventEmitter {
      *
      * @param domain the domain to check, non-null.
      */
-    boolean isEnabledFor(@NotNull String domain);
+    boolean isEnabledFor(@NotNull AuditDomain domain);
 }

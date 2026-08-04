@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.jackrabbit.oak.spi.audit.AuditDomain;
 import org.apache.jackrabbit.oak.spi.audit.AuditEventListener;
 import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 import org.jetbrains.annotations.NotNull;
@@ -146,7 +147,7 @@ final class WhiteboardAuditEventListenerRegistry
      * @return {@code true} when at least one listener is registered for
      *         the domain.
      */
-    boolean hasListenerFor(@NotNull String domain) {
+    boolean hasListenerFor(@NotNull AuditDomain domain) {
         for (AuditEventListener listener : getServices()) {
             try {
                 if (domain.equals(listener.getDomain())) {

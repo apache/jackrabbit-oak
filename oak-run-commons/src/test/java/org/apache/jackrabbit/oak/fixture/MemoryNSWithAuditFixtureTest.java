@@ -59,7 +59,7 @@ public class MemoryNSWithAuditFixtureTest {
                 AuditEvents.isEnabled());
         assertTrue("Capture sites in UserManagerImpl gate on isEnabledFor('security'); "
                         + "must return true so audit-ON capture exercise the buffer path",
-                AuditEvents.isEnabledFor(SecurityAuditDomain.NAME));
+                AuditEvents.isEnabledFor(SecurityAuditDomain.DOMAIN));
     }
 
     @Test
@@ -71,7 +71,7 @@ public class MemoryNSWithAuditFixtureTest {
                 cluster.length == 2);
 
         assertTrue(AuditEvents.isEnabled());
-        assertTrue(AuditEvents.isEnabledFor(SecurityAuditDomain.NAME));
+        assertTrue(AuditEvents.isEnabledFor(SecurityAuditDomain.DOMAIN));
     }
 
     @Test
@@ -86,7 +86,7 @@ public class MemoryNSWithAuditFixtureTest {
         assertFalse("After tearDownCluster, AuditEvents must route to NOOP",
                 AuditEvents.isEnabled());
         assertFalse("Domain-scoped probe must also revert to NOOP",
-                AuditEvents.isEnabledFor(SecurityAuditDomain.NAME));
+                AuditEvents.isEnabledFor(SecurityAuditDomain.DOMAIN));
     }
 
     @Test

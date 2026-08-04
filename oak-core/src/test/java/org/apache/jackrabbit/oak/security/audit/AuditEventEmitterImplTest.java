@@ -21,8 +21,10 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.spi.audit.AuditDomain;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvent;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvents;
+import org.apache.jackrabbit.oak.spi.audit.AuditType;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
@@ -41,7 +43,7 @@ public class AuditEventEmitterImplTest {
         dispatched = new AtomicReference<>();
         AuditEvents.install(new AuditEvents.Sink() {
             @Override public boolean isEnabled() { return true; }
-            @Override public boolean isEnabledFor(@NotNull String domain) { return "yes".equals(domain); }
+            @Override public boolean isEnabledFor(@NotNull AuditDomain domain) { return "yes".equals(domain.name()); }
             @Override public void record(@NotNull Root root, @NotNull AuditEvent event) { /* unused */ }
             @Override public void dispatch(@NotNull AuditEvent event) { dispatched.set(event); }
         });
@@ -52,10 +54,10 @@ public class AuditEventEmitterImplTest {
         AuditEvents.install(null);
     }
 
-    private static AuditEvent fixedEvent(@NotNull String domain) {
+    private static AuditEvent fixedEvent(@NotNull AuditDomain domain) {
         return new AuditEvent() {
-            @Override public @NotNull String getDomain() { return domain; }
-            @Override public @NotNull String getType() { return "t"; }
+            @Override public @NotNull AuditDomain getDomain() { return domain; }
+            @Override public @NotNull AuditType getType() { return AuditType.of("t"); }
             @Override public long getTimestamp() { return 0L; }
             @Override public @NotNull Map<String, Object> getPayload() { return Collections.emptyMap(); }
         };
@@ -64,7 +66,7 @@ public class AuditEventEmitterImplTest {
     @Test
     public void emitRoutesToFacadeDispatch() {
         AuditEventEmitterImpl impl = new AuditEventEmitterImpl();
-        AuditEvent e = fixedEvent("yes");
+        AuditEvent e = fixedEvent(AuditDomain.of("yes"));
         impl.emit(e);
         assertSame(e, dispatched.get());
     }
@@ -72,7 +74,7 @@ public class AuditEventEmitterImplTest {
     @Test
     public void isEnabledForRoutesToFacade() {
         AuditEventEmitterImpl impl = new AuditEventEmitterImpl();
-        assertTrue(impl.isEnabledFor("yes"));
-        assertFalse(impl.isEnabledFor("no"));
+        assertTrue(impl.isEnabledFor(AuditDomain.of("yes")));
+        assertFalse(impl.isEnabledFor(AuditDomain.of("no")));
     }
 }

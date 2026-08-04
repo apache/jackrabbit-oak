@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.security.audit;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.jackrabbit.oak.spi.audit.AuditDomain;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvent;
 import org.apache.jackrabbit.oak.spi.audit.AuditEventListener;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
@@ -47,8 +48,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
- * Behavioural coverage for {@link AuditConfigurationImpl} — both the
- * {@link AuditConfigurationImpl#isActive() isActive()} reporter and the
+ * Behavioural coverage for {@link AuditPipeline} — both the
+ * {@link AuditPipeline#isActive() isActive()} reporter and the
  * lifecycle / drain-observer accessor surface.
  * <p>
  * Two test layers:
@@ -101,18 +102,18 @@ import static org.junit.Assert.fail;
  * InOrder test injects spies via the package-private fields exposed for
  * test access (production callers MUST NOT touch those fields).
  */
-public class AuditConfigurationImplTest {
+public class AuditPipelineLifecycleTest {
 
     @Rule
     public final OsgiContext osgiContext = new OsgiContext();
 
     private Whiteboard whiteboard;
-    private AuditConfigurationImpl config;
+    private AuditPipeline config;
 
     @Before
     public void setUp() {
         whiteboard = new DefaultWhiteboard();
-        config = new AuditConfigurationImpl();
+        config = new AuditPipeline();
     }
 
     @After
@@ -124,7 +125,7 @@ public class AuditConfigurationImplTest {
         //
         // Special-case the (g) misuse test: dispose() throws if
         // observerRegistration is still non-null. The test's local
-        // AuditConfigurationImpl instance is a different object — the
+        // AuditPipeline instance is a different object — the
         // @Before-created config is untouched and disposes cleanly.
         config.dispose();
     }
@@ -187,8 +188,8 @@ public class AuditConfigurationImplTest {
      */
     @Test
     public void activateRegistersObserverService() {
-        AuditConfigurationImpl audit = osgiContext.registerInjectActivateService(
-                new AuditConfigurationImpl());
+        AuditPipeline audit = osgiContext.registerInjectActivateService(
+                new AuditPipeline());
         try {
             Observer registered = osgiContext.getService(Observer.class);
             assertNotNull("@Activate must register an Observer service", registered);
@@ -207,8 +208,8 @@ public class AuditConfigurationImplTest {
      */
     @Test
     public void deactivateUnregistersObserverService() {
-        AuditConfigurationImpl audit = osgiContext.registerInjectActivateService(
-                new AuditConfigurationImpl());
+        AuditPipeline audit = osgiContext.registerInjectActivateService(
+                new AuditPipeline());
         assertNotNull("precondition: Observer service must be registered",
                 osgiContext.getService(Observer.class));
 
@@ -219,12 +220,12 @@ public class AuditConfigurationImplTest {
     }
 
     /**
-     * Case (c) — {@link AuditConfigurationImpl#getDrainObserver()} returns
+     * Case (c) — {@link AuditPipeline#getDrainObserver()} returns
      * a non-null {@link Observer} after {@code initialize(...)} ran.
      */
     @Test
     public void getDrainObserverReturnsObserverAfterInitialize() {
-        AuditConfigurationImpl audit = new AuditConfigurationImpl();
+        AuditPipeline audit = new AuditPipeline();
         try {
             audit.initialize(whiteboard);
             Observer observer = audit.getDrainObserver();
@@ -236,7 +237,7 @@ public class AuditConfigurationImplTest {
     }
 
     /**
-     * Case (d) — {@link AuditConfigurationImpl#getDrainObserver()} returns
+     * Case (d) — {@link AuditPipeline#getDrainObserver()} returns
      * the SAME instance on repeat calls (singleton invariant). Regression
      * guard against accidental factory revert: the
      * {@link AuditBuffer#drain(String)} contract is destructive, so two
@@ -246,7 +247,7 @@ public class AuditConfigurationImplTest {
      */
     @Test
     public void getDrainObserverReturnsSameInstanceOnRepeatCalls() {
-        AuditConfigurationImpl audit = new AuditConfigurationImpl();
+        AuditPipeline audit = new AuditPipeline();
         try {
             audit.initialize(whiteboard);
             Observer first = audit.getDrainObserver();
@@ -262,13 +263,13 @@ public class AuditConfigurationImplTest {
     }
 
     /**
-     * Case (e) — {@link AuditConfigurationImpl#getDrainObserver()} throws
+     * Case (e) — {@link AuditPipeline#getDrainObserver()} throws
      * {@link IllegalStateException} when called before
-     * {@link AuditConfigurationImpl#initialize(Whiteboard)}.
+     * {@link AuditPipeline#initialize(Whiteboard)}.
      */
     @Test
     public void getDrainObserverThrowsBeforeInitialize() {
-        AuditConfigurationImpl audit = new AuditConfigurationImpl();
+        AuditPipeline audit = new AuditPipeline();
         try {
             audit.getDrainObserver();
             fail("getDrainObserver() must throw IllegalStateException pre-initialize");
@@ -281,15 +282,15 @@ public class AuditConfigurationImplTest {
     }
 
     /**
-     * Case (f) — {@link AuditConfigurationImpl#getDrainObserver()} throws
+     * Case (f) — {@link AuditPipeline#getDrainObserver()} throws
      * {@link IllegalStateException} when called after
-     * {@link AuditConfigurationImpl#dispose()}. The singleton field is
+     * {@link AuditPipeline#dispose()}. The singleton field is
      * zeroed by {@code dispose()}'s step 5, so the same null-check that
      * pins case (e) covers this state too.
      */
     @Test
     public void getDrainObserverThrowsAfterDispose() {
-        AuditConfigurationImpl audit = new AuditConfigurationImpl();
+        AuditPipeline audit = new AuditPipeline();
         audit.initialize(whiteboard);
         // Confirm precondition — pre-dispose call must succeed.
         assertNotNull(audit.getDrainObserver());
@@ -307,7 +308,7 @@ public class AuditConfigurationImplTest {
     }
 
     /**
-     * Case (g) — {@link AuditConfigurationImpl#dispose()} throws
+     * Case (g) — {@link AuditPipeline#dispose()} throws
      * {@link IllegalStateException} when called with
      * {@code observerRegistration} still non-null. Defense-in-depth
      * precondition guard:
@@ -324,7 +325,7 @@ public class AuditConfigurationImplTest {
      */
     @Test
     public void disposeThrowsIfObserverRegistrationStillSet() {
-        AuditConfigurationImpl audit = new AuditConfigurationImpl();
+        AuditPipeline audit = new AuditPipeline();
         audit.initialize(whiteboard);
         // Simulate the OSGi misuse path: observerRegistration was set by
         // @Activate but @Deactivate's unregister step never ran. The field
@@ -343,7 +344,7 @@ public class AuditConfigurationImplTest {
             // any subsequent state) passes the precondition. Don't dispose
             // here; the misuse-case path already left fields half-initialized
             // and another dispose call would compound the test's leak. Letting
-            // the AuditConfigurationImpl instance go out of scope is enough —
+            // the AuditPipeline instance go out of scope is enough —
             // the static AuditEvents/AuditBufferLifecycle sinks need explicit
             // cleanup though.
             audit.observerRegistration = null;
@@ -365,7 +366,7 @@ public class AuditConfigurationImplTest {
      */
     @Test
     public void deactivateRunsTearDownStepsInOrder() {
-        AuditConfigurationImpl audit = new AuditConfigurationImpl();
+        AuditPipeline audit = new AuditPipeline();
         audit.initialize(whiteboard);
 
         // Replace internal collaborators with spies/mocks so InOrder can
@@ -401,14 +402,14 @@ public class AuditConfigurationImplTest {
 
     /**
      * Flips the FT_OAK-12331 feature toggle by locating the {@link FeatureToggle}
-     * service that {@link AuditConfigurationImpl#initialize(Whiteboard)
+     * service that {@link AuditPipeline#initialize(Whiteboard)
      * initialize} registered on the whiteboard.
      */
     private void setToggle(boolean enabled) {
         Tracker<FeatureToggle> tracker = whiteboard.track(FeatureToggle.class);
         try {
             for (FeatureToggle ft : tracker.getServices()) {
-                if (AuditConfigurationImpl.FEATURE_TOGGLE_NAME.equals(ft.getName())) {
+                if (AuditPipeline.FEATURE_TOGGLE_NAME.equals(ft.getName())) {
                     ft.setEnabled(enabled);
                 }
             }
@@ -421,8 +422,8 @@ public class AuditConfigurationImplTest {
         AuditEventListener listener = new AuditEventListener() {
             @NotNull
             @Override
-            public String getDomain() {
-                return "test.isActive.coverage";
+            public AuditDomain getDomain() {
+                return AuditDomain.of("test.isActive.coverage");
             }
 
             @Override

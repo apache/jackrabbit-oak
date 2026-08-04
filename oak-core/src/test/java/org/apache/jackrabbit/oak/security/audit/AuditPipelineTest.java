@@ -37,10 +37,12 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
+import org.apache.jackrabbit.oak.spi.audit.AuditDomain;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvent;
 import org.apache.jackrabbit.oak.spi.audit.AuditEventEmitter;
 import org.apache.jackrabbit.oak.spi.audit.AuditEventListener;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvents;
+import org.apache.jackrabbit.oak.spi.audit.AuditType;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -71,12 +73,12 @@ import static org.junit.Assert.fail;
 
 /**
  * End-to-end integration test exercising both audit pipelines through a
- * direct {@link AuditConfigurationImpl} install. Uses {@link MemoryNodeStore}
+ * direct {@link AuditPipeline} install. Uses {@link MemoryNodeStore}
  * for a real but in-process Oak instance.
  * <p>
  * Wiring path:
  * <ol>
- *   <li>{@link AuditConfigurationImpl#initialize(Whiteboard)} installs the
+ *   <li>{@link AuditPipeline#initialize(Whiteboard)} installs the
  *       audit feature toggle, listener registry, buffer and capture-time
  *       sink onto the whiteboard.</li>
  *   <li>{@code store.addObserver(audit.getDrainObserver())} attaches the
@@ -86,7 +88,7 @@ import static org.junit.Assert.fail;
  *       default anonymous-override whiteboard and bypasses the auto-attach
  *       at {@code Oak.java:300-302}.</li>
  *   <li>Teardown closes the {@code Observable.addObserver} {@code Closeable}
- *       and calls {@link AuditConfigurationImpl#dispose()} — the same code
+ *       and calls {@link AuditPipeline#dispose()} — the same code
  *       path that OSGi {@code @Deactivate} uses.</li>
  * </ol>
  * No test mirror of {@code BufferSink} or observer wiring exists in this
@@ -94,12 +96,12 @@ import static org.junit.Assert.fail;
  */
 public class AuditPipelineTest {
 
-    private static final String DOMAIN = "test.domain";
-    private static final String OTHER_DOMAIN = "other.domain";
-    private static final String FEATURE_TOGGLE_NAME = AuditConfigurationImpl.FEATURE_TOGGLE_NAME;
+    private static final AuditDomain DOMAIN = AuditDomain.of("test.domain");
+    private static final AuditDomain OTHER_DOMAIN = AuditDomain.of("other.domain");
+    private static final String FEATURE_TOGGLE_NAME = AuditPipeline.FEATURE_TOGGLE_NAME;
 
     private Whiteboard whiteboard;
-    private AuditConfigurationImpl auditConfig;
+    private AuditPipeline auditConfig;
     private Closeable drainObserverSubscription;
     private Registration listenerRegistration;
     private List<AuditEvent> received;
@@ -112,7 +114,7 @@ public class AuditPipelineTest {
         whiteboard = new DefaultWhiteboard();
         received = new CopyOnWriteArrayList<>();
 
-        auditConfig = new AuditConfigurationImpl();
+        auditConfig = new AuditPipeline();
         // initialize() installs sinks/registry/buffer/toggle; the drain Observer
         // is attached per-store below via Observable.addObserver(...).
         auditConfig.initialize(whiteboard);
@@ -126,7 +128,7 @@ public class AuditPipelineTest {
                 ConfigurationUtil.getDefaultConfiguration(ConfigurationParameters.EMPTY));
 
         // Flip the feature toggle ON via the FeatureToggle service the
-        // AuditConfigurationImpl.initialize() call registered on the
+        // AuditPipeline.initialize() call registered on the
         // whiteboard.
         setToggle(true);
 
@@ -134,7 +136,7 @@ public class AuditPipelineTest {
         // verification. Single listener tests use DOMAIN; multi-listener
         // tests register additional listeners inline.
         AuditEventListener listener = new AuditEventListener() {
-            @Override public @NotNull String getDomain() { return DOMAIN; }
+            @Override public @NotNull AuditDomain getDomain() { return DOMAIN; }
             @Override public void onEvents(@NotNull List<AuditEvent> events) {
                 received.addAll(events);
             }
@@ -193,12 +195,12 @@ public class AuditPipelineTest {
         }
     }
 
-    private static AuditEvent eventFor(@NotNull String domain,
-                                       @NotNull String type,
+    private static AuditEvent eventFor(@NotNull AuditDomain domain,
+                                       @NotNull AuditType type,
                                        @NotNull Map<String, Object> payload) {
         return new AuditEvent() {
-            @Override public @NotNull String getDomain() { return domain; }
-            @Override public @NotNull String getType() { return type; }
+            @Override public @NotNull AuditDomain getDomain() { return domain; }
+            @Override public @NotNull AuditType getType() { return type; }
             @Override public long getTimestamp() { return System.currentTimeMillis(); }
             @Override public @NotNull Map<String, Object> getPayload() { return payload; }
         };
@@ -212,19 +214,19 @@ public class AuditPipelineTest {
 
     @Test
     public void fireAndForgetEventCarriesNoCommitMetadata() {
-        emitter.emit(eventFor(DOMAIN, "forget", Map.of("key", "v")));
+        emitter.emit(eventFor(DOMAIN, AuditType.of("forget"), Map.of("key", "v")));
         assertEquals(1, received.size());
         AuditEvent e = received.get(0);
-        assertEquals("forget", e.getType());
+        assertEquals("forget", e.getType().name());
         assertFalse("fire-and-forget event must not carry commit.sessionId",
-                e.getPayload().containsKey("commit.sessionId"));
-        assertFalse(e.getPayload().containsKey("commit.userId"));
+                e.getPayload().containsKey("oak.commit.sessionId"));
+        assertFalse(e.getPayload().containsKey("oak.commit.userId"));
         assertEquals("v", e.getPayload().get("key"));
     }
 
     @Test
     public void emitNoListenerForDomainIsNoOp() {
-        emitter.emit(eventFor(OTHER_DOMAIN, "x", Map.of()));
+        emitter.emit(eventFor(OTHER_DOMAIN, AuditType.of("x"), Map.of()));
         assertTrue(received.isEmpty());
     }
 
@@ -233,18 +235,18 @@ public class AuditPipelineTest {
         try (ContentSession session = login()) {
             Root root = session.getLatestRoot();
             AuditEvents.record(
-                    root, eventFor(DOMAIN, "commit.type", Map.of("note", "v")));
+                    root, eventFor(DOMAIN, AuditType.of("commit.type"), Map.of("note", "v")));
             root.getTree("/").setProperty("scratch", "value");
             root.commit();
 
             assertEquals(1, received.size());
             AuditEvent e = received.get(0);
-            assertEquals("commit.type", e.getType());
+            assertEquals("commit.type", e.getType().name());
             Map<String, Object> p = e.getPayload();
             assertTrue("commit-attached event must carry commit.sessionId",
-                    p.containsKey("commit.sessionId"));
-            assertTrue(p.containsKey("commit.userId"));
-            assertTrue(p.containsKey("commit.timestamp"));
+                    p.containsKey("oak.commit.sessionId"));
+            assertTrue(p.containsKey("oak.commit.userId"));
+            assertTrue(p.containsKey("oak.commit.timestamp"));
             assertEquals("v", p.get("note"));
         }
     }
@@ -269,26 +271,26 @@ public class AuditPipelineTest {
      */
     @Test
     public void fireAndForgetStripsForgedCommitAttestationKeys() {
-        emitter.emit(eventFor(DOMAIN, "forged", Map.of(
-                "commit.sessionId", "forged-session",
-                "commit.userId", "forged-admin",
-                "commit.timestamp", 99999999L,
+        emitter.emit(eventFor(DOMAIN, AuditType.of("forged"), Map.of(
+                "oak.commit.sessionId", "forged-session",
+                "oak.commit.userId", "forged-admin",
+                "oak.commit.timestamp", 99999999L,
                 "commit.custom", "passenger",
                 "key", "v")));
 
         assertEquals(1, received.size());
         Map<String, Object> p = received.get(0).getPayload();
         assertFalse("forged commit.sessionId must be stripped on fire-and-forget dispatch",
-                p.containsKey("commit.sessionId"));
+                p.containsKey("oak.commit.sessionId"));
         assertFalse("forged commit.userId must be stripped on fire-and-forget dispatch",
-                p.containsKey("commit.userId"));
+                p.containsKey("oak.commit.userId"));
         assertFalse("forged commit.timestamp must be stripped on fire-and-forget dispatch",
-                p.containsKey("commit.timestamp"));
+                p.containsKey("oak.commit.timestamp"));
         assertEquals("non-reserved commit.* keys are forwarded verbatim (untrusted)",
                 "passenger", p.get("commit.custom"));
         assertEquals("ordinary payload entries are forwarded verbatim", "v", p.get("key"));
         assertEquals("domain must survive the strip", DOMAIN, received.get(0).getDomain());
-        assertEquals("type must survive the strip", "forged", received.get(0).getType());
+        assertEquals("type must survive the strip", "forged", received.get(0).getType().name());
     }
 
     /**
@@ -301,7 +303,7 @@ public class AuditPipelineTest {
      */
     @Test
     public void fireAndForgetCleanPayloadDispatchesSameEventInstance() {
-        AuditEvent clean = eventFor(DOMAIN, "clean", Map.of("key", "v"));
+        AuditEvent clean = eventFor(DOMAIN, AuditType.of("clean"), Map.of("key", "v"));
         emitter.emit(clean);
 
         assertEquals(1, received.size());
@@ -335,7 +337,7 @@ public class AuditPipelineTest {
             // Stage E1, then force commit failure via the trigger property.
             Root r1 = session.getLatestRoot();
             AuditEvents.record(
-                    r1, eventFor(DOMAIN, "discarded",
+                    r1, eventFor(DOMAIN, AuditType.of("discarded"),
                             Map.of("trace.id", "E1-from-failed-commit")));
             r1.getTree("/").setProperty("trigger-failure", "boom");
             try {
@@ -348,18 +350,18 @@ public class AuditPipelineTest {
             // Subsequent successful commit on the SAME session.
             Root r2 = session.getLatestRoot();
             AuditEvents.record(
-                    r2, eventFor(DOMAIN, "delivered",
+                    r2, eventFor(DOMAIN, AuditType.of("delivered"),
                             Map.of("trace.id", "E2-from-successful-commit")));
             r2.getTree("/").setProperty("scratch", "value");
             r2.commit();
 
             assertEquals("only E2 must be delivered", 1, received.size());
             AuditEvent d = received.get(0);
-            assertEquals("event type is E2's", "delivered", d.getType());
+            assertEquals("event type is E2's", "delivered", d.getType().name());
             assertEquals("payload is E2's, not E1's or merged",
                     "E2-from-successful-commit", d.getPayload().get("trace.id"));
             assertEquals("commit.sessionId decorates with current session",
-                    session.toString(), d.getPayload().get("commit.sessionId"));
+                    session.toString(), d.getPayload().get("oak.commit.sessionId"));
         } finally {
             observer2.close();
             if (repo2 instanceof Closeable) {
@@ -377,21 +379,21 @@ public class AuditPipelineTest {
         try (ContentSession session = login()) {
             Root r1 = session.getLatestRoot();
             AuditEvents.record(
-                    r1, eventFor(DOMAIN, "discarded",
+                    r1, eventFor(DOMAIN, AuditType.of("discarded"),
                             Map.of("trace.id", "E1-discarded-by-refresh")));
             r1.refresh();
 
             // After refresh, dispatch a fresh event and commit.
             Root r2 = session.getLatestRoot();
             AuditEvents.record(
-                    r2, eventFor(DOMAIN, "delivered",
+                    r2, eventFor(DOMAIN, AuditType.of("delivered"),
                             Map.of("trace.id", "E2-after-refresh")));
             r2.getTree("/").setProperty("scratch", "v");
             r2.commit();
 
             assertEquals("only E2 must be delivered", 1, received.size());
             AuditEvent d = received.get(0);
-            assertEquals("delivered", d.getType());
+            assertEquals("delivered", d.getType().name());
             assertEquals("E2-after-refresh", d.getPayload().get("trace.id"));
         }
     }
@@ -414,13 +416,13 @@ public class AuditPipelineTest {
         try (ContentSession session = login()) {
             Root r1 = session.getLatestRoot();
             AuditEvents.record(
-                    r1, eventFor(DOMAIN, "preserved",
+                    r1, eventFor(DOMAIN, AuditType.of("preserved"),
                             Map.of("trace.id", "E1-survives-rebase")));
             r1.rebase();
 
             Root r2 = session.getLatestRoot();
             AuditEvents.record(
-                    r2, eventFor(DOMAIN, "delivered",
+                    r2, eventFor(DOMAIN, AuditType.of("delivered"),
                             Map.of("trace.id", "E2-after-rebase")));
             r2.getTree("/").setProperty("scratch", "v");
             r2.commit();
@@ -440,7 +442,7 @@ public class AuditPipelineTest {
     // across a gate transition: the audit gate flips OFF between capture and
     // the lifecycle event, then ON again before the next commit. The gate
     // factors as {@code featureToggle.isEnabled() && registry.hasAnyListener()}
-    // (see {@code AuditConfigurationImpl.BufferSink.isEnabled}) so it can flip
+    // (see {@code AuditPipeline.BufferSink.isEnabled}) so it can flip
     // OFF via two functionally identical sources:
     //   1. Toggle flicker — {@code FT_OAK-12331} flipped off at runtime.
     //   2. Listener churn — the only registered listener deregisters.
@@ -470,7 +472,7 @@ public class AuditPipelineTest {
             // Capture E1 with gate=ON.
             Root r1 = session.getLatestRoot();
             AuditEvents.record(
-                    r1, eventFor(DOMAIN, "staged-by-r1",
+                    r1, eventFor(DOMAIN, AuditType.of("staged-by-r1"),
                             Map.of("trace.id", "E1-must-not-leak-via-toggle")));
 
             // Flip gate OFF via toggle.
@@ -486,7 +488,7 @@ public class AuditPipelineTest {
             // Capture E2 and commit on the SAME session.
             Root r2 = session.getLatestRoot();
             AuditEvents.record(
-                    r2, eventFor(DOMAIN, "delivered-by-r2",
+                    r2, eventFor(DOMAIN, AuditType.of("delivered-by-r2"),
                             Map.of("trace.id", "E2-current")));
             r2.getTree("/").setProperty("scratch", "v");
             r2.commit();
@@ -498,7 +500,7 @@ public class AuditPipelineTest {
             assertEquals("only E2 must be delivered; E1 must NOT survive the toggle-flicker",
                     1, received.size());
             AuditEvent d = received.get(0);
-            assertEquals("delivered-by-r2", d.getType());
+            assertEquals("delivered-by-r2", d.getType().name());
             assertEquals("E2-current", d.getPayload().get("trace.id"));
         }
     }
@@ -515,7 +517,7 @@ public class AuditPipelineTest {
         try (ContentSession session = login()) {
             Root r1 = session.getLatestRoot();
             AuditEvents.record(
-                    r1, eventFor(DOMAIN, "staged-by-r1",
+                    r1, eventFor(DOMAIN, AuditType.of("staged-by-r1"),
                             Map.of("trace.id", "E1-survives-rebase-toggle")));
 
             setToggle(false);
@@ -524,7 +526,7 @@ public class AuditPipelineTest {
 
             Root r2 = session.getLatestRoot();
             AuditEvents.record(
-                    r2, eventFor(DOMAIN, "delivered-by-r2",
+                    r2, eventFor(DOMAIN, AuditType.of("delivered-by-r2"),
                             Map.of("trace.id", "E2-current")));
             r2.getTree("/").setProperty("scratch", "v");
             r2.commit();
@@ -559,7 +561,7 @@ public class AuditPipelineTest {
             // Capture E1 with gate=ON.
             Root r1 = session.getLatestRoot();
             AuditEvents.record(
-                    r1, eventFor(DOMAIN, "staged-by-failed-r1",
+                    r1, eventFor(DOMAIN, AuditType.of("staged-by-failed-r1"),
                             Map.of("trace.id", "E1-must-not-leak-via-toggle-failure")));
 
             // Flip gate OFF, then trigger a deterministic commit failure.
@@ -579,7 +581,7 @@ public class AuditPipelineTest {
 
             Root r2 = session.getLatestRoot();
             AuditEvents.record(
-                    r2, eventFor(DOMAIN, "delivered-by-r2",
+                    r2, eventFor(DOMAIN, AuditType.of("delivered-by-r2"),
                             Map.of("trace.id", "E2-current")));
             r2.getTree("/").setProperty("scratch", "v");
             r2.commit();
@@ -610,7 +612,7 @@ public class AuditPipelineTest {
         try (ContentSession session = login()) {
             Root r1 = session.getLatestRoot();
             AuditEvents.record(
-                    r1, eventFor(DOMAIN, "staged-by-r1",
+                    r1, eventFor(DOMAIN, AuditType.of("staged-by-r1"),
                             Map.of("trace.id", "E1-must-not-leak-via-listener-churn")));
 
             // Flip gate OFF via listener deregistration.
@@ -623,7 +625,7 @@ public class AuditPipelineTest {
             // is observable downstream, not which listener instance sees it.
             listenerRegistration = whiteboard.register(AuditEventListener.class,
                     new AuditEventListener() {
-                        @Override public @NotNull String getDomain() { return DOMAIN; }
+                        @Override public @NotNull AuditDomain getDomain() { return DOMAIN; }
                         @Override public void onEvents(@NotNull List<AuditEvent> events) {
                             received.addAll(events);
                         }
@@ -631,7 +633,7 @@ public class AuditPipelineTest {
 
             Root r2 = session.getLatestRoot();
             AuditEvents.record(
-                    r2, eventFor(DOMAIN, "delivered-by-r2",
+                    r2, eventFor(DOMAIN, AuditType.of("delivered-by-r2"),
                             Map.of("trace.id", "E2-current")));
             r2.getTree("/").setProperty("scratch", "v");
             r2.commit();
@@ -654,14 +656,14 @@ public class AuditPipelineTest {
         try (ContentSession session = login()) {
             Root r1 = session.getLatestRoot();
             AuditEvents.record(
-                    r1, eventFor(DOMAIN, "staged-by-r1",
+                    r1, eventFor(DOMAIN, AuditType.of("staged-by-r1"),
                             Map.of("trace.id", "E1-survives-rebase-churn")));
 
             listenerRegistration.unregister();
             r1.rebase();
             listenerRegistration = whiteboard.register(AuditEventListener.class,
                     new AuditEventListener() {
-                        @Override public @NotNull String getDomain() { return DOMAIN; }
+                        @Override public @NotNull AuditDomain getDomain() { return DOMAIN; }
                         @Override public void onEvents(@NotNull List<AuditEvent> events) {
                             received.addAll(events);
                         }
@@ -669,7 +671,7 @@ public class AuditPipelineTest {
 
             Root r2 = session.getLatestRoot();
             AuditEvents.record(
-                    r2, eventFor(DOMAIN, "delivered-by-r2",
+                    r2, eventFor(DOMAIN, AuditType.of("delivered-by-r2"),
                             Map.of("trace.id", "E2-current")));
             r2.getTree("/").setProperty("scratch", "v");
             r2.commit();
@@ -699,7 +701,7 @@ public class AuditPipelineTest {
         try (ContentSession session = repo2.login(adminCredentials(), null)) {
             Root r1 = session.getLatestRoot();
             AuditEvents.record(
-                    r1, eventFor(DOMAIN, "staged-by-failed-r1",
+                    r1, eventFor(DOMAIN, AuditType.of("staged-by-failed-r1"),
                             Map.of("trace.id", "E1-must-not-leak-via-listener-churn-failure")));
 
             listenerRegistration.unregister();
@@ -712,7 +714,7 @@ public class AuditPipelineTest {
             }
             listenerRegistration = whiteboard.register(AuditEventListener.class,
                     new AuditEventListener() {
-                        @Override public @NotNull String getDomain() { return DOMAIN; }
+                        @Override public @NotNull AuditDomain getDomain() { return DOMAIN; }
                         @Override public void onEvents(@NotNull List<AuditEvent> events) {
                             received.addAll(events);
                         }
@@ -720,7 +722,7 @@ public class AuditPipelineTest {
 
             Root r2 = session.getLatestRoot();
             AuditEvents.record(
-                    r2, eventFor(DOMAIN, "delivered-by-r2",
+                    r2, eventFor(DOMAIN, AuditType.of("delivered-by-r2"),
                             Map.of("trace.id", "E2-current")));
             r2.getTree("/").setProperty("scratch", "v");
             r2.commit();
@@ -750,7 +752,7 @@ public class AuditPipelineTest {
         setToggle(false);
 
         // Fire-and-forget path:
-        emitter.emit(eventFor(DOMAIN, "forget", Map.of()));
+        emitter.emit(eventFor(DOMAIN, AuditType.of("forget"), Map.of()));
         assertTrue("fire-and-forget must short-circuit with toggle disabled",
                 received.isEmpty());
 
@@ -758,7 +760,7 @@ public class AuditPipelineTest {
         try (ContentSession session = login()) {
             Root root = session.getLatestRoot();
             AuditEvents.record(
-                    root, eventFor(DOMAIN, "commit.type", Map.of()));
+                    root, eventFor(DOMAIN, AuditType.of("commit.type"), Map.of()));
             root.getTree("/").setProperty("scratch", "v");
             root.commit();
             assertTrue("commit-attached must short-circuit with toggle disabled",
@@ -775,7 +777,7 @@ public class AuditPipelineTest {
     public void multipleEventsAcrossDomainsGroupedCorrectly() throws Exception {
         List<AuditEvent> otherReceived = new CopyOnWriteArrayList<>();
         AuditEventListener otherListener = new AuditEventListener() {
-            @Override public @NotNull String getDomain() { return OTHER_DOMAIN; }
+            @Override public @NotNull AuditDomain getDomain() { return OTHER_DOMAIN; }
             @Override public void onEvents(@NotNull List<AuditEvent> events) {
                 otherReceived.addAll(events);
             }
@@ -785,22 +787,22 @@ public class AuditPipelineTest {
         try (ContentSession session = login()) {
             Root root = session.getLatestRoot();
             AuditEvents.record(
-                    root, eventFor(DOMAIN, "a-1", Map.of()));
+                    root, eventFor(DOMAIN, AuditType.of("a-1"), Map.of()));
             AuditEvents.record(
-                    root, eventFor(OTHER_DOMAIN, "b-1", Map.of()));
+                    root, eventFor(OTHER_DOMAIN, AuditType.of("b-1"), Map.of()));
             AuditEvents.record(
-                    root, eventFor(DOMAIN, "a-2", Map.of()));
+                    root, eventFor(DOMAIN, AuditType.of("a-2"), Map.of()));
             root.getTree("/").setProperty("scratch", "v");
             root.commit();
 
             assertEquals("DOMAIN listener receives 2 events in capture order",
                     2, received.size());
-            assertEquals("a-1", received.get(0).getType());
-            assertEquals("a-2", received.get(1).getType());
+            assertEquals("a-1", received.get(0).getType().name());
+            assertEquals("a-2", received.get(1).getType().name());
 
             assertEquals("OTHER_DOMAIN listener receives 1 event",
                     1, otherReceived.size());
-            assertEquals("b-1", otherReceived.get(0).getType());
+            assertEquals("b-1", otherReceived.get(0).getType().name());
         } finally {
             otherReg.unregister();
         }
@@ -820,22 +822,22 @@ public class AuditPipelineTest {
             // Commit #1: record E1, commit.
             Root r1 = session.getLatestRoot();
             AuditEvents.record(
-                    r1, eventFor(DOMAIN, "e1", Map.of("trace.id", "E1")));
+                    r1, eventFor(DOMAIN, AuditType.of("e1"), Map.of("trace.id", "E1")));
             r1.getTree("/").setProperty("scratch1", "v");
             r1.commit();
 
             // Commit #2 on the same session: record E2, commit.
             Root r2 = session.getLatestRoot();
             AuditEvents.record(
-                    r2, eventFor(DOMAIN, "e2", Map.of("trace.id", "E2")));
+                    r2, eventFor(DOMAIN, AuditType.of("e2"), Map.of("trace.id", "E2")));
             r2.getTree("/").setProperty("scratch2", "v");
             r2.commit();
 
             // Exactly two deliveries — E1 first, then E2. If drain were
             // broken after commit#1, we'd see [E1, E1, E2] = 3 events.
             assertEquals("buffer must be drained between commits", 2, received.size());
-            assertEquals("first received is E1", "e1", received.get(0).getType());
-            assertEquals("second received is E2", "e2", received.get(1).getType());
+            assertEquals("first received is E1", "e1", received.get(0).getType().name());
+            assertEquals("second received is E2", "e2", received.get(1).getType().name());
             // The marker is the regression-guard: a re-dispatch would
             // duplicate "E1" at position 1, not produce a fresh "E2".
             assertNotEquals("position 1 must not be a stale E1",
@@ -853,14 +855,14 @@ public class AuditPipelineTest {
     public void listenerRuntimeExceptionDoesNotPreventOtherListeners() throws Exception {
         List<AuditEvent> bReceived = new CopyOnWriteArrayList<>();
         AuditEventListener throwingA = new AuditEventListener() {
-            @Override public @NotNull String getDomain() { return DOMAIN; }
+            @Override public @NotNull AuditDomain getDomain() { return DOMAIN; }
             @Override public int getRank() { return 10; } // dispatched first
             @Override public void onEvents(@NotNull List<AuditEvent> events) {
                 throw new RuntimeException("synthetic-A");
             }
         };
         AuditEventListener okB = new AuditEventListener() {
-            @Override public @NotNull String getDomain() { return DOMAIN; }
+            @Override public @NotNull AuditDomain getDomain() { return DOMAIN; }
             @Override public int getRank() { return 5; }
             @Override public void onEvents(@NotNull List<AuditEvent> events) {
                 bReceived.addAll(events);
@@ -871,7 +873,7 @@ public class AuditPipelineTest {
         try (ContentSession session = login()) {
             Root root = session.getLatestRoot();
             AuditEvents.record(
-                    root, eventFor(DOMAIN, "x", Map.of()));
+                    root, eventFor(DOMAIN, AuditType.of("x"), Map.of()));
             root.getTree("/").setProperty("scratch", "v");
             root.commit();
 
@@ -896,14 +898,14 @@ public class AuditPipelineTest {
     public void listenerNoClassDefFoundErrorIsIsolated() throws Exception {
         List<AuditEvent> bReceived = new CopyOnWriteArrayList<>();
         AuditEventListener throwingA = new AuditEventListener() {
-            @Override public @NotNull String getDomain() { return DOMAIN; }
+            @Override public @NotNull AuditDomain getDomain() { return DOMAIN; }
             @Override public int getRank() { return 10; }
             @Override public void onEvents(@NotNull List<AuditEvent> events) {
                 throw new NoClassDefFoundError("synthetic-A");
             }
         };
         AuditEventListener okB = new AuditEventListener() {
-            @Override public @NotNull String getDomain() { return DOMAIN; }
+            @Override public @NotNull AuditDomain getDomain() { return DOMAIN; }
             @Override public int getRank() { return 5; }
             @Override public void onEvents(@NotNull List<AuditEvent> events) {
                 bReceived.addAll(events);
@@ -914,7 +916,7 @@ public class AuditPipelineTest {
         try (ContentSession session = login()) {
             Root root = session.getLatestRoot();
             AuditEvents.record(
-                    root, eventFor(DOMAIN, "x", Map.of()));
+                    root, eventFor(DOMAIN, AuditType.of("x"), Map.of()));
             root.getTree("/").setProperty("scratch", "v");
             root.commit();
 
@@ -934,14 +936,14 @@ public class AuditPipelineTest {
     public void fireAndForgetListenerRuntimeExceptionDoesNotPreventOthers() {
         List<AuditEvent> bReceived = new CopyOnWriteArrayList<>();
         AuditEventListener throwingA = new AuditEventListener() {
-            @Override public @NotNull String getDomain() { return DOMAIN; }
+            @Override public @NotNull AuditDomain getDomain() { return DOMAIN; }
             @Override public int getRank() { return 10; }
             @Override public void onEvents(@NotNull List<AuditEvent> events) {
                 throw new RuntimeException("synthetic-A");
             }
         };
         AuditEventListener okB = new AuditEventListener() {
-            @Override public @NotNull String getDomain() { return DOMAIN; }
+            @Override public @NotNull AuditDomain getDomain() { return DOMAIN; }
             @Override public int getRank() { return 5; }
             @Override public void onEvents(@NotNull List<AuditEvent> events) {
                 bReceived.addAll(events);
@@ -950,7 +952,7 @@ public class AuditPipelineTest {
         Registration regA = whiteboard.register(AuditEventListener.class, throwingA, Map.of());
         Registration regB = whiteboard.register(AuditEventListener.class, okB, Map.of());
         try {
-            emitter.emit(eventFor(DOMAIN, "x", Map.of()));
+            emitter.emit(eventFor(DOMAIN, AuditType.of("x"), Map.of()));
             assertEquals("fire-and-forget: listener-B must receive despite A's RuntimeException",
                     1, bReceived.size());
         } finally {
@@ -966,14 +968,14 @@ public class AuditPipelineTest {
     public void fireAndForgetListenerNoClassDefFoundErrorIsIsolated() {
         List<AuditEvent> bReceived = new CopyOnWriteArrayList<>();
         AuditEventListener throwingA = new AuditEventListener() {
-            @Override public @NotNull String getDomain() { return DOMAIN; }
+            @Override public @NotNull AuditDomain getDomain() { return DOMAIN; }
             @Override public int getRank() { return 10; }
             @Override public void onEvents(@NotNull List<AuditEvent> events) {
                 throw new NoClassDefFoundError("synthetic-A");
             }
         };
         AuditEventListener okB = new AuditEventListener() {
-            @Override public @NotNull String getDomain() { return DOMAIN; }
+            @Override public @NotNull AuditDomain getDomain() { return DOMAIN; }
             @Override public int getRank() { return 5; }
             @Override public void onEvents(@NotNull List<AuditEvent> events) {
                 bReceived.addAll(events);
@@ -982,7 +984,7 @@ public class AuditPipelineTest {
         Registration regA = whiteboard.register(AuditEventListener.class, throwingA, Map.of());
         Registration regB = whiteboard.register(AuditEventListener.class, okB, Map.of());
         try {
-            emitter.emit(eventFor(DOMAIN, "x", Map.of()));
+            emitter.emit(eventFor(DOMAIN, AuditType.of("x"), Map.of()));
             assertEquals("fire-and-forget: listener-B must receive despite A's NoClassDefFoundError",
                     1, bReceived.size());
         } finally {
@@ -1003,7 +1005,7 @@ public class AuditPipelineTest {
     @Test
     public void fireAndForgetBrokenGetDomainListenerDoesNotThrowToEmitter() {
         AuditEventListener brokenDomain = new AuditEventListener() {
-            @Override public @NotNull String getDomain() {
+            @Override public @NotNull AuditDomain getDomain() {
                 throw new LinkageError("synthetic-getDomain");
             }
             @Override public int getRank() { return 10; } // consulted first
@@ -1013,7 +1015,7 @@ public class AuditPipelineTest {
         };
         Registration reg = whiteboard.register(AuditEventListener.class, brokenDomain, Map.of());
         try {
-            emitter.emit(eventFor(DOMAIN, "x", Map.of("key", "v")));
+            emitter.emit(eventFor(DOMAIN, AuditType.of("x"), Map.of("key", "v")));
             assertEquals("healthy listener must receive despite peer's broken getDomain()",
                     1, received.size());
         } finally {
@@ -1031,7 +1033,7 @@ public class AuditPipelineTest {
     @Test
     public void captureGateIsEnabledForToleratesBrokenListener() {
         AuditEventListener brokenDomain = new AuditEventListener() {
-            @Override public @NotNull String getDomain() {
+            @Override public @NotNull AuditDomain getDomain() {
                 throw new LinkageError("synthetic-getDomain");
             }
             @Override public void onEvents(@NotNull List<AuditEvent> events) {
@@ -1043,7 +1045,7 @@ public class AuditPipelineTest {
             // Unserved domain first — the full registry scan must consult
             // (and skip) the broken listener, never propagate its throw.
             assertFalse("gate must return false (not throw) for an unserved domain",
-                    emitter.isEnabledFor("no.such.domain"));
+                    emitter.isEnabledFor(AuditDomain.of("no.such.domain")));
             assertTrue("gate must find the healthy fixture listener despite the broken peer",
                     emitter.isEnabledFor(DOMAIN));
         } finally {
@@ -1087,13 +1089,13 @@ public class AuditPipelineTest {
             // surfaces only at dispatch.
             AtomicInteger calls = new AtomicInteger();
             AuditEvent counterPoison = new AuditEvent() {
-                @Override public @NotNull String getDomain() {
+                @Override public @NotNull AuditDomain getDomain() {
                     if (calls.incrementAndGet() <= 1) {
                         return DOMAIN;
                     }
                     throw new RuntimeException("synthetic-drain-time-poison");
                 }
-                @Override public @NotNull String getType() { return "poison.type"; }
+                @Override public @NotNull AuditType getType() { return AuditType.of("poison.type"); }
                 @Override public long getTimestamp() { return 0L; }
                 @Override public @NotNull Map<String, Object> getPayload() {
                     return Map.of();

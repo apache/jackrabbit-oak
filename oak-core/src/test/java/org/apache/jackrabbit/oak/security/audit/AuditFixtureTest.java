@@ -34,9 +34,11 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
+import org.apache.jackrabbit.oak.spi.audit.AuditDomain;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvent;
 import org.apache.jackrabbit.oak.spi.audit.AuditEventListener;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvents;
+import org.apache.jackrabbit.oak.spi.audit.AuditType;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -74,8 +76,8 @@ import static org.junit.Assert.assertEquals;
  * (asynchronous observation, MongoDB-backed, must be guarded behind a
  * Mongo-available check) variants belong in a module that already depends on
  * those stores — {@code oak-jcr} or {@code oak-it}. The audit wiring used
- * here is fully public ({@link AuditConfigurationImpl#initialize},
- * {@link AuditConfigurationImpl#getDrainObserver}, {@link AuditEvents},
+ * here is fully public ({@link AuditPipeline#initialize},
+ * {@link AuditPipeline#getDrainObserver}, {@link AuditEvents},
  * {@link AuditEventListener}), so this class can be lifted there as-is and
  * the extra fixtures added to {@link #fixtures()}. The DOCUMENT_NS row will
  * additionally need to await asynchronous dispatch (the drain observer is
@@ -85,8 +87,8 @@ import static org.junit.Assert.assertEquals;
 @RunWith(Parameterized.class)
 public class AuditFixtureTest {
 
-    private static final String DOMAIN = "test.domain";
-    private static final String FEATURE_TOGGLE_NAME = AuditConfigurationImpl.FEATURE_TOGGLE_NAME;
+    private static final AuditDomain DOMAIN = AuditDomain.of("test.domain");
+    private static final String FEATURE_TOGGLE_NAME = AuditPipeline.FEATURE_TOGGLE_NAME;
 
     /**
      * Supplies a fresh {@link NodeStore} for each test run of a fixture.
@@ -109,7 +111,7 @@ public class AuditFixtureTest {
     private final NodeStoreFactory storeFactory;
 
     private Whiteboard whiteboard;
-    private AuditConfigurationImpl auditConfig;
+    private AuditPipeline auditConfig;
     private Closeable drainObserverSubscription;
     private List<AuditEvent> received;
     private ContentRepository repository;
@@ -125,7 +127,7 @@ public class AuditFixtureTest {
         whiteboard = new DefaultWhiteboard();
         received = new CopyOnWriteArrayList<>();
 
-        auditConfig = new AuditConfigurationImpl();
+        auditConfig = new AuditPipeline();
         auditConfig.initialize(whiteboard);
         securityProvider = SecurityProviderBuilder.newBuilder()
                 .withWhiteboard(whiteboard)
@@ -137,7 +139,7 @@ public class AuditFixtureTest {
         setToggle(true);
 
         AuditEventListener listener = new AuditEventListener() {
-            @Override public @NotNull String getDomain() { return DOMAIN; }
+            @Override public @NotNull AuditDomain getDomain() { return DOMAIN; }
             @Override public void onEvents(@NotNull List<AuditEvent> events) {
                 received.addAll(events);
             }
@@ -190,10 +192,10 @@ public class AuditFixtureTest {
         return new SimpleCredentials("admin", "admin".toCharArray());
     }
 
-    private static AuditEvent eventFor(@NotNull String type, @NotNull Map<String, Object> payload) {
+    private static AuditEvent eventFor(@NotNull AuditType type, @NotNull Map<String, Object> payload) {
         return new AuditEvent() {
-            @Override public @NotNull String getDomain() { return DOMAIN; }
-            @Override public @NotNull String getType() { return type; }
+            @Override public @NotNull AuditDomain getDomain() { return DOMAIN; }
+            @Override public @NotNull AuditType getType() { return type; }
             @Override public long getTimestamp() { return System.currentTimeMillis(); }
             @Override public @NotNull Map<String, Object> getPayload() { return payload; }
         };
@@ -203,16 +205,16 @@ public class AuditFixtureTest {
     public void recordedEventReachesListenerWithCommitSessionId() throws Exception {
         try (ContentSession session = repository.login(adminCredentials(), null)) {
             Root root = session.getLatestRoot();
-            AuditEvents.record(root, eventFor("commit.type", Map.of("note", "v")));
+            AuditEvents.record(root, eventFor(AuditType.of("commit.type"), Map.of("note", "v")));
             root.getTree("/").setProperty("scratch", "value");
             root.commit();
 
             assertEquals("[" + fixtureName + "] exactly one event must reach the listener",
                     1, received.size());
             AuditEvent e = received.get(0);
-            assertEquals("commit.type", e.getType());
+            assertEquals("commit.type", e.getType().name());
             assertEquals("[" + fixtureName + "] commit.sessionId must match the committing session",
-                    session.toString(), e.getPayload().get("commit.sessionId"));
+                    session.toString(), e.getPayload().get("oak.commit.sessionId"));
             assertEquals("v", e.getPayload().get("note"));
         }
     }

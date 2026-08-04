@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.apache.jackrabbit.oak.spi.audit.AuditDomain;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvent;
 import org.apache.jackrabbit.oak.spi.audit.AuditEventListener;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
@@ -39,13 +40,13 @@ import static org.junit.Assert.fail;
 public class WhiteboardAuditEventListenerRegistryTest {
 
     private static final class StubListener implements AuditEventListener {
-        private final String domain;
+        private final AuditDomain domain;
         private final int rank;
-        StubListener(String domain, int rank) {
+        StubListener(AuditDomain domain, int rank) {
             this.domain = domain;
             this.rank = rank;
         }
-        @Override public @NotNull String getDomain() { return domain; }
+        @Override public @NotNull AuditDomain getDomain() { return domain; }
         @Override public int getRank() { return rank; }
         @Override public void onEvents(@NotNull List<AuditEvent> events) { /* not exercised here */ }
     }
@@ -58,7 +59,7 @@ public class WhiteboardAuditEventListenerRegistryTest {
         try {
             assertEquals(0, reg.getListeners().size());
             assertFalse(reg.hasAnyListener());
-            assertFalse(reg.hasListenerFor("oak.security"));
+            assertFalse(reg.hasListenerFor(AuditDomain.of("oak.security")));
         } finally {
             reg.stop();
         }
@@ -70,10 +71,10 @@ public class WhiteboardAuditEventListenerRegistryTest {
         WhiteboardAuditEventListenerRegistry reg = new WhiteboardAuditEventListenerRegistry();
         reg.start(wb);
         try {
-            wb.register(AuditEventListener.class, new StubListener("oak.security", 0), Map.of());
+            wb.register(AuditEventListener.class, new StubListener(AuditDomain.of("oak.security"), 0), Map.of());
             assertEquals(1, reg.getListeners().size());
             assertTrue(reg.hasAnyListener());
-            assertTrue(reg.hasListenerFor("oak.security"));
+            assertTrue(reg.hasListenerFor(AuditDomain.of("oak.security")));
         } finally {
             reg.stop();
         }
@@ -85,9 +86,9 @@ public class WhiteboardAuditEventListenerRegistryTest {
         WhiteboardAuditEventListenerRegistry reg = new WhiteboardAuditEventListenerRegistry();
         reg.start(wb);
         try {
-            wb.register(AuditEventListener.class, new StubListener("d", 1), Map.of());
-            wb.register(AuditEventListener.class, new StubListener("d", 10), Map.of());
-            wb.register(AuditEventListener.class, new StubListener("d", 5), Map.of());
+            wb.register(AuditEventListener.class, new StubListener(AuditDomain.of("d"), 1), Map.of());
+            wb.register(AuditEventListener.class, new StubListener(AuditDomain.of("d"), 10), Map.of());
+            wb.register(AuditEventListener.class, new StubListener(AuditDomain.of("d"), 5), Map.of());
             List<AuditEventListener> sorted = reg.getListeners();
             assertEquals(3, sorted.size());
             assertEquals(10, sorted.get(0).getRank());
@@ -111,12 +112,12 @@ public class WhiteboardAuditEventListenerRegistryTest {
         reg.start(wb);
         try {
             // First call when no listener for "oak.security" exists.
-            assertFalse(reg.hasListenerFor("oak.security"));
+            assertFalse(reg.hasListenerFor(AuditDomain.of("oak.security")));
             // Register and re-check — must observe the new registration.
-            wb.register(AuditEventListener.class, new StubListener("oak.security", 0), Map.of());
-            assertTrue(reg.hasListenerFor("oak.security"));
+            wb.register(AuditEventListener.class, new StubListener(AuditDomain.of("oak.security"), 0), Map.of());
+            assertTrue(reg.hasListenerFor(AuditDomain.of("oak.security")));
             // Different domain must still return false.
-            assertFalse(reg.hasListenerFor("aem.content"));
+            assertFalse(reg.hasListenerFor(AuditDomain.of("example.content")));
         } finally {
             reg.stop();
         }
@@ -145,11 +146,11 @@ public class WhiteboardAuditEventListenerRegistryTest {
         WhiteboardAuditEventListenerRegistry reg = new WhiteboardAuditEventListenerRegistry();
         reg.start(wb);
         try {
-            StubListener high = new StubListener("d", 10);
-            StubListener midA = new StubListener("d", 5);
-            StubListener midB = new StubListener("d", 5);
-            StubListener midC = new StubListener("d", 5);
-            StubListener low = new StubListener("d", 1);
+            StubListener high = new StubListener(AuditDomain.of("d"), 10);
+            StubListener midA = new StubListener(AuditDomain.of("d"), 5);
+            StubListener midB = new StubListener(AuditDomain.of("d"), 5);
+            StubListener midC = new StubListener(AuditDomain.of("d"), 5);
+            StubListener low = new StubListener(AuditDomain.of("d"), 1);
             wb.register(AuditEventListener.class, high, Map.of());
             wb.register(AuditEventListener.class, midA, Map.of());
             wb.register(AuditEventListener.class, midB, Map.of());
@@ -188,7 +189,7 @@ public class WhiteboardAuditEventListenerRegistryTest {
      * missing transitive dependency produces at first call).
      */
     private static final class ThrowingDomainListener implements AuditEventListener {
-        @Override public @NotNull String getDomain() {
+        @Override public @NotNull AuditDomain getDomain() {
             throw new LinkageError("synthetic-getDomain");
         }
         @Override public int getRank() { return 100; }
@@ -203,11 +204,11 @@ public class WhiteboardAuditEventListenerRegistryTest {
      * independently of the domain guard.
      */
     private static final class ThrowingRankListener implements AuditEventListener {
-        private final String domain;
-        ThrowingRankListener(String domain) {
+        private final AuditDomain domain;
+        ThrowingRankListener(AuditDomain domain) {
             this.domain = domain;
         }
-        @Override public @NotNull String getDomain() { return domain; }
+        @Override public @NotNull AuditDomain getDomain() { return domain; }
         @Override public int getRank() {
             throw new RuntimeException("synthetic-getRank");
         }
@@ -231,7 +232,7 @@ public class WhiteboardAuditEventListenerRegistryTest {
         try {
             wb.register(AuditEventListener.class, new ThrowingDomainListener(), Map.of());
             assertFalse("broken listener must be skipped, not propagated",
-                    reg.hasListenerFor("oak.security"));
+                    reg.hasListenerFor(AuditDomain.of("oak.security")));
         } finally {
             reg.stop();
         }
@@ -248,9 +249,9 @@ public class WhiteboardAuditEventListenerRegistryTest {
         reg.start(wb);
         try {
             wb.register(AuditEventListener.class, new ThrowingDomainListener(), Map.of());
-            wb.register(AuditEventListener.class, new StubListener("oak.security", 0), Map.of());
+            wb.register(AuditEventListener.class, new StubListener(AuditDomain.of("oak.security"), 0), Map.of());
             assertTrue("healthy listener must be found despite broken peer",
-                    reg.hasListenerFor("oak.security"));
+                    reg.hasListenerFor(AuditDomain.of("oak.security")));
         } finally {
             reg.stop();
         }
@@ -268,9 +269,9 @@ public class WhiteboardAuditEventListenerRegistryTest {
         WhiteboardAuditEventListenerRegistry reg = new WhiteboardAuditEventListenerRegistry();
         reg.start(wb);
         try {
-            wb.register(AuditEventListener.class, new ThrowingRankListener("d"), Map.of());
-            wb.register(AuditEventListener.class, new StubListener("d", 10), Map.of());
-            wb.register(AuditEventListener.class, new StubListener("d", 1), Map.of());
+            wb.register(AuditEventListener.class, new ThrowingRankListener(AuditDomain.of("d")), Map.of());
+            wb.register(AuditEventListener.class, new StubListener(AuditDomain.of("d"), 10), Map.of());
+            wb.register(AuditEventListener.class, new StubListener(AuditDomain.of("d"), 1), Map.of());
             List<AuditEventListener> out = reg.getListeners();
             assertEquals("broken-rank listener must be skipped", 2, out.size());
             assertEquals(10, out.get(0).getRank());
@@ -291,7 +292,7 @@ public class WhiteboardAuditEventListenerRegistryTest {
         WhiteboardAuditEventListenerRegistry reg = new WhiteboardAuditEventListenerRegistry();
         reg.start(wb);
         try {
-            wb.register(AuditEventListener.class, new ThrowingRankListener("d"), Map.of());
+            wb.register(AuditEventListener.class, new ThrowingRankListener(AuditDomain.of("d")), Map.of());
             assertTrue("a lone broken listener must be skipped, not returned",
                     reg.getListeners().isEmpty());
         } finally {
@@ -316,8 +317,8 @@ public class WhiteboardAuditEventListenerRegistryTest {
         logs.starting();
         try {
             wb.register(AuditEventListener.class, new ThrowingDomainListener(), Map.of());
-            reg.hasListenerFor("oak.security");
-            reg.hasListenerFor("oak.security");
+            reg.hasListenerFor(AuditDomain.of("oak.security"));
+            reg.hasListenerFor(AuditDomain.of("oak.security"));
             reg.getListeners();
             assertEquals("exactly one WARN per broken listener identity",
                     1, logs.getLogs().size());
@@ -337,11 +338,11 @@ public class WhiteboardAuditEventListenerRegistryTest {
         WhiteboardAuditEventListenerRegistry reg = new WhiteboardAuditEventListenerRegistry();
         reg.start(wb);
         try {
-            wb.register(AuditEventListener.class, new StubListener("d", 10), Map.of());
-            wb.register(AuditEventListener.class, new StubListener("d", 1), Map.of());
+            wb.register(AuditEventListener.class, new StubListener(AuditDomain.of("d"), 10), Map.of());
+            wb.register(AuditEventListener.class, new StubListener(AuditDomain.of("d"), 1), Map.of());
             List<AuditEventListener> out = reg.getListeners();
             try {
-                out.add(new StubListener("d", 0));
+                out.add(new StubListener(AuditDomain.of("d"), 0));
                 fail("getListeners() must return an immutable list");
             } catch (UnsupportedOperationException expected) {
                 // contract honored
@@ -363,14 +364,14 @@ public class WhiteboardAuditEventListenerRegistryTest {
         reg.start(wb);
         try {
             Registration r = wb.register(AuditEventListener.class,
-                    new StubListener("oak.security", 0), Map.of());
+                    new StubListener(AuditDomain.of("oak.security"), 0), Map.of());
             assertEquals(1, reg.getListeners().size());
-            assertTrue(reg.hasListenerFor("oak.security"));
+            assertTrue(reg.hasListenerFor(AuditDomain.of("oak.security")));
 
             r.unregister();
 
             assertEquals(0, reg.getListeners().size());
-            assertFalse(reg.hasListenerFor("oak.security"));
+            assertFalse(reg.hasListenerFor(AuditDomain.of("oak.security")));
             assertFalse(reg.hasAnyListener());
         } finally {
             reg.stop();

@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.spi.audit.AuditEvent;
+import org.apache.jackrabbit.oak.spi.audit.AuditType;
 import org.apache.jackrabbit.oak.spi.security.audit.SecurityAuditDomain;
 import org.apache.jackrabbit.oak.spi.security.user.UserAuditTypes;
 import org.jetbrains.annotations.NotNull;
@@ -77,7 +78,7 @@ final class UserAuditEvents {
     }
 
     @NotNull
-    private static AuditEvent singleMember(@NotNull String type,
+    private static AuditEvent singleMember(@NotNull AuditType type,
                                            @NotNull String groupPath,
                                            @NotNull String memberId,
                                            @NotNull String memberPath) {
@@ -85,7 +86,7 @@ final class UserAuditEvents {
         // so isContentId is false. memberIds is present (schema-required) and
         // memberPaths carries the resolved node path.
         return AuditEvent.of(
-                SecurityAuditDomain.NAME,
+                SecurityAuditDomain.DOMAIN,
                 type,
                 Map.of(
                         UserAuditTypes.PAYLOAD_GROUP_PATH, groupPath,
@@ -154,7 +155,7 @@ final class UserAuditEvents {
     }
 
     @NotNull
-    private static AuditEvent bulkMembers(@NotNull String type,
+    private static AuditEvent bulkMembers(@NotNull AuditType type,
                                           @NotNull String groupPath,
                                           @NotNull Set<String> memberIds,
                                           boolean isContentId,
@@ -163,7 +164,7 @@ final class UserAuditEvents {
             throw new IllegalArgumentException("memberIds must not be empty");
         }
         return AuditEvent.of(
-                SecurityAuditDomain.NAME,
+                SecurityAuditDomain.DOMAIN,
                 type,
                 Map.of(
                         UserAuditTypes.PAYLOAD_GROUP_PATH, groupPath,

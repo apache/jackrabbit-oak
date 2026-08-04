@@ -22,7 +22,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.spi.audit.AuditDomain;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvent;
+import org.apache.jackrabbit.oak.spi.audit.AuditType;
 import org.apache.jackrabbit.oak.spi.security.audit.SecurityAuditDomain;
 import org.apache.jackrabbit.oak.spi.security.user.UserAuditTypes;
 import org.junit.Test;
@@ -44,7 +46,7 @@ public class UserAuditEventsTest {
         AuditEvent e = UserAuditEvents.memberAdded(GROUP, MEMBER_ID, MEMBER);
 
         assertNotNull(e);
-        assertEquals(SecurityAuditDomain.NAME, e.getDomain());
+        assertEquals(SecurityAuditDomain.DOMAIN, e.getDomain());
         assertEquals(UserAuditTypes.MEMBER_ADDED, e.getType());
         assertEquals(
                 Map.of(
@@ -60,7 +62,7 @@ public class UserAuditEventsTest {
     public void memberRemovedReturnsExpectedDomainTypeAndPayload() {
         AuditEvent e = UserAuditEvents.memberRemoved(GROUP, MEMBER_ID, MEMBER);
 
-        assertEquals(SecurityAuditDomain.NAME, e.getDomain());
+        assertEquals(SecurityAuditDomain.DOMAIN, e.getDomain());
         assertEquals(UserAuditTypes.MEMBER_REMOVED, e.getType());
         assertEquals(
                 Map.of(
@@ -80,7 +82,7 @@ public class UserAuditEventsTest {
         Set<String> failed = Set.of("bad-id");
         AuditEvent e = UserAuditEvents.membersAddedBulk(GROUP, members, false, failed);
 
-        assertEquals(SecurityAuditDomain.NAME, e.getDomain());
+        assertEquals(SecurityAuditDomain.DOMAIN, e.getDomain());
         assertEquals(UserAuditTypes.MEMBER_ADDED, e.getType());
         assertEquals(GROUP, e.getPayload().get(UserAuditTypes.PAYLOAD_GROUP_PATH));
         assertEquals(UserAuditTypes.MEMBERSHIP_SOURCE_STATIC,
@@ -137,7 +139,7 @@ public class UserAuditEventsTest {
         Set<String> failed = Set.of();
         AuditEvent e = UserAuditEvents.membersRemovedBulk(GROUP, members, true, failed);
 
-        assertEquals(SecurityAuditDomain.NAME, e.getDomain());
+        assertEquals(SecurityAuditDomain.DOMAIN, e.getDomain());
         assertEquals(UserAuditTypes.MEMBER_REMOVED, e.getType());
         assertEquals(GROUP, e.getPayload().get(UserAuditTypes.PAYLOAD_GROUP_PATH));
         assertEquals(Boolean.TRUE, e.getPayload().get(UserAuditTypes.PAYLOAD_IS_CONTENT_ID));

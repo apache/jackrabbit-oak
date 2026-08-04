@@ -41,7 +41,7 @@ import org.junit.Test;
  * mutate JVM-static state, so the tests defensively reset both in
  * {@link #before()} / {@link #after()} on top of the per-test
  * {@code fixture.tearDownCluster()} call (which calls
- * {@code AuditConfigurationImpl.dispose()} — the production path that
+ * {@code AuditPipeline.dispose()} — the production path that
  * NOOPs both façades). That keeps the OFF assertions honest even if a
  * prior test in the same JVM leaked state.
  */
@@ -97,7 +97,7 @@ public class OakFixturePropertyTest {
         assertFalse("default getMemoryNS(0) without the property must be audit-OFF",
                 AuditEvents.isEnabled());
         assertFalse("audit must remain OFF for every domain probe",
-                AuditEvents.isEnabledFor(SecurityAuditDomain.NAME));
+                AuditEvents.isEnabledFor(SecurityAuditDomain.DOMAIN));
     }
 
     /**
@@ -121,7 +121,7 @@ public class OakFixturePropertyTest {
                 AuditEvents.isEnabled());
         assertTrue("the security-domain listener must be live so capture sites in "
                         + "UserManagerImpl actually allocate / buffer / dispatch events",
-                AuditEvents.isEnabledFor(SecurityAuditDomain.NAME));
+                AuditEvents.isEnabledFor(SecurityAuditDomain.DOMAIN));
     }
 
     /**

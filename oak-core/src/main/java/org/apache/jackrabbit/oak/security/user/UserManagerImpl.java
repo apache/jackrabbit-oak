@@ -381,7 +381,7 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an error occurs.
      */
     void onGroupUpdate(@NotNull Group group, boolean isRemove, @NotNull Authorizable member) throws RepositoryException {
-        if (AuditEvents.isEnabledFor(SecurityAuditDomain.NAME)) {
+        if (AuditEvents.isEnabledFor(SecurityAuditDomain.DOMAIN)) {
             recordSingleMembershipAuditEvent(group, isRemove, member);
         }
         for (GroupAction action : filterGroupActions()) {
@@ -406,7 +406,7 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an error occurs.
      */
     void onGroupUpdate(@NotNull Group group, boolean isRemove, boolean isContentId, @NotNull Set<String> memberIds, @NotNull Set<String> failedIds) throws RepositoryException {
-        if (AuditEvents.isEnabledFor(SecurityAuditDomain.NAME)) {
+        if (AuditEvents.isEnabledFor(SecurityAuditDomain.DOMAIN)) {
             recordBulkMembershipAuditEvent(group, isRemove, isContentId, memberIds, failedIds);
         }
         for (GroupAction action : filterGroupActions()) {
@@ -439,7 +439,7 @@ public class UserManagerImpl implements UserManager {
             // Path resolution failed — drop the event rather than fail the
             // surrounding group update. It is an audit-completeness signal:
             // a successful membership change produced no audit event.
-            warnAuditPathResolutionFailed("failed to resolve path for group membership update", e);
+            warnAuditPathResolutionFailed("failed to resolve path for group membership update, not recording the audit event", e);
         }
     }
 
@@ -461,7 +461,7 @@ public class UserManagerImpl implements UserManager {
                     ? UserAuditEvents.membersRemovedBulk(groupPath, memberIds, isContentId, failedIds)
                     : UserAuditEvents.membersAddedBulk(groupPath, memberIds, isContentId, failedIds));
         } catch (RepositoryException e) {
-            warnAuditPathResolutionFailed("failed to resolve group path for bulk membership update", e);
+            warnAuditPathResolutionFailed("failed to resolve group path for bulk membership update, not recording audit event", e);
         }
     }
 

@@ -49,9 +49,10 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.security.audit.AuditConfigurationImpl;
+import org.apache.jackrabbit.oak.security.audit.AuditPipeline;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.segment.Segment;
+import org.apache.jackrabbit.oak.spi.audit.AuditDomain;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvent;
 import org.apache.jackrabbit.oak.spi.audit.AuditEventListener;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -107,7 +108,7 @@ public abstract class OakFixture {
      * every consumer that doesn't explicitly opt in.
      * <p>
      * When the property is set, the fixture wires an
-     * {@link AuditConfigurationImpl} on a fresh {@link DefaultWhiteboard},
+     * {@link AuditPipeline} on a fresh {@link DefaultWhiteboard},
      * flips the {@code FT_OAK-12331} feature toggle ON, registers a no-op
      * {@link AuditEventListener} for the {@code oak.security} domain so
      * Oak's security capture sites actually allocate / buffer / dispatch,
@@ -181,7 +182,7 @@ public abstract class OakFixture {
 
             private Whiteboard whiteboard;
             private SecurityProvider securityProvider;
-            private AuditConfigurationImpl auditConfig;
+            private AuditPipeline auditConfig;
             private final List<Closeable> drainObserverSubscriptions = new ArrayList<>();
 
             private synchronized void initAuditPipelineIfNeeded() {
@@ -189,7 +190,7 @@ public abstract class OakFixture {
                     return;
                 }
                 whiteboard = new DefaultWhiteboard();
-                auditConfig = new AuditConfigurationImpl();
+                auditConfig = new AuditPipeline();
                 auditConfig.initialize(whiteboard);
                 // Drain observer is attached per-store below via
                 // store.addObserver(...). Oak.with(Observer) auto-attaches only
@@ -202,7 +203,7 @@ public abstract class OakFixture {
                 Tracker<FeatureToggle> tracker = whiteboard.track(FeatureToggle.class);
                 try {
                     for (FeatureToggle ft : tracker.getServices()) {
-                        if (AuditConfigurationImpl.FEATURE_TOGGLE_NAME.equals(ft.getName())) {
+                        if (AuditPipeline.FEATURE_TOGGLE_NAME.equals(ft.getName())) {
                             ft.setEnabled(true);
                         }
                     }
@@ -211,7 +212,7 @@ public abstract class OakFixture {
                 }
 
                 whiteboard.register(AuditEventListener.class,
-                        new BenchmarkNoopListener(SecurityAuditDomain.NAME),
+                        new BenchmarkNoopListener(SecurityAuditDomain.DOMAIN),
                         Map.of());
             }
 
@@ -702,19 +703,19 @@ public abstract class OakFixture {
      * flips {@code AuditEvents.isEnabledFor(domain)} to {@code true} and
      * causes capture sites to allocate and buffer events — see the
      * {@code BufferSink.isEnabledFor} short-circuit in
-     * {@code AuditConfigurationImpl}.
+     * {@code AuditPipeline}.
      */
     private static final class BenchmarkNoopListener implements AuditEventListener {
 
-        private final String domain;
+        private final AuditDomain domain;
 
-        BenchmarkNoopListener(@NotNull String domain) {
+        BenchmarkNoopListener(@NotNull AuditDomain domain) {
             this.domain = domain;
         }
 
         @NotNull
         @Override
-        public String getDomain() {
+        public AuditDomain getDomain() {
             return domain;
         }
 

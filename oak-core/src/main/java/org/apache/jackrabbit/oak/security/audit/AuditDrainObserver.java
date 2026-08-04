@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.jackrabbit.oak.spi.audit.AuditDomain;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvent;
 import org.apache.jackrabbit.oak.spi.audit.AuditEventListener;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -164,14 +165,14 @@ final class AuditDrainObserver implements Observer {
             return;
         }
         List<AuditEvent> decorated = CommitMetadataDecorator.decorate(events, info);
-        Map<String, List<AuditEvent>> byDomain = groupByDomain(decorated);
+        Map<AuditDomain, List<AuditEvent>> byDomain = groupByDomain(decorated);
         for (AuditEventListener listener : listeners) {
             dispatchOne(listener, byDomain);
         }
     }
 
-    private static @NotNull Map<String, List<AuditEvent>> groupByDomain(@NotNull List<AuditEvent> events) {
-        Map<String, List<AuditEvent>> byDomain = new HashMap<>(4);
+    private static @NotNull Map<AuditDomain, List<AuditEvent>> groupByDomain(@NotNull List<AuditEvent> events) {
+        Map<AuditDomain, List<AuditEvent>> byDomain = new HashMap<>(4);
         for (AuditEvent event : events) {
             byDomain.computeIfAbsent(event.getDomain(), k -> new ArrayList<>(events.size())).add(event);
         }
@@ -179,7 +180,7 @@ final class AuditDrainObserver implements Observer {
     }
 
     private static void dispatchOne(@NotNull AuditEventListener listener,
-                                    @NotNull Map<String, List<AuditEvent>> byDomain) {
+                                    @NotNull Map<AuditDomain, List<AuditEvent>> byDomain) {
         // The getDomain() routing lookup sits INSIDE the barrier — it is
         // listener code just like onEvents(), and a throw escaping to the
         // outer barrier would starve every remaining listener.

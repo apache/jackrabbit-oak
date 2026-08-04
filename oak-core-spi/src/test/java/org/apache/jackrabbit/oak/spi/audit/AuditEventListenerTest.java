@@ -30,8 +30,8 @@ public class AuditEventListenerTest {
     public void defaultRankIsZero() {
         AuditEventListener listener = new AuditEventListener() {
             @Override
-            public @NotNull String getDomain() {
-                return "test";
+            public @NotNull AuditDomain getDomain() {
+                return AuditDomain.of("test");
             }
 
             @Override
@@ -49,8 +49,8 @@ public class AuditEventListenerTest {
         // with a non-empty list — passing emptyList would contradict the
         // documented contract.
         AuditEvent event = new AuditEvent() {
-            @Override public @NotNull String getDomain() { return "test"; }
-            @Override public @NotNull String getType() { return "t"; }
+            @Override public @NotNull AuditDomain getDomain() { return AuditDomain.of("test"); }
+            @Override public @NotNull AuditType getType() { return AuditType.of("t"); }
             @Override public long getTimestamp() { return 0L; }
         };
         List<AuditEvent> input = Collections.singletonList(event);
@@ -58,8 +58,8 @@ public class AuditEventListenerTest {
         final List<AuditEvent>[] received = new List[]{null};
         AuditEventListener listener = new AuditEventListener() {
             @Override
-            public @NotNull String getDomain() {
-                return "test";
+            public @NotNull AuditDomain getDomain() {
+                return AuditDomain.of("test");
             }
 
             @Override

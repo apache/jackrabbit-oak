@@ -29,15 +29,17 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.security.audit.AuditConfigurationImpl;
+import org.apache.jackrabbit.oak.security.audit.AuditPipeline;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
+import org.apache.jackrabbit.oak.spi.audit.AuditDomain;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvent;
 import org.apache.jackrabbit.oak.spi.audit.AuditEventListener;
+import org.apache.jackrabbit.oak.spi.audit.AuditType;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.audit.SecurityAuditDomain;
@@ -76,7 +78,7 @@ import static org.junit.Assert.assertTrue;
 public class AuditWiringTest {
 
     private Whiteboard whiteboard;
-    private AuditConfigurationImpl auditConfig;
+    private AuditPipeline auditConfig;
     private Closeable drainObserverSubscription;
     private List<AuditEvent> received;
     private ContentRepository repository;
@@ -87,7 +89,7 @@ public class AuditWiringTest {
         whiteboard = new DefaultWhiteboard();
         received = new CopyOnWriteArrayList<>();
 
-        auditConfig = new AuditConfigurationImpl();
+        auditConfig = new AuditPipeline();
         // initialize() installs sinks/registry/buffer/toggle. The drain Observer
         // is attached to the MemoryNodeStore directly below; we can't rely on
         // Oak.with(Observer)'s auto-attach because .with(whiteboard) replaces
@@ -105,7 +107,7 @@ public class AuditWiringTest {
 
         // Listener for the security domain — that's where the member-added event lands.
         AuditEventListener securityListener = new AuditEventListener() {
-            @Override public @NotNull String getDomain() { return SecurityAuditDomain.NAME; }
+            @Override public @NotNull AuditDomain getDomain() { return SecurityAuditDomain.DOMAIN; }
             @Override public void onEvents(@NotNull List<AuditEvent> events) {
                 received.addAll(events);
             }
@@ -142,7 +144,7 @@ public class AuditWiringTest {
         Tracker<FeatureToggle> toggleTracker = whiteboard.track(FeatureToggle.class);
         try {
             for (FeatureToggle ft : toggleTracker.getServices()) {
-                if (AuditConfigurationImpl.FEATURE_TOGGLE_NAME.equals(ft.getName())) {
+                if (AuditPipeline.FEATURE_TOGGLE_NAME.equals(ft.getName())) {
                     ft.setEnabled(enabled);
                 }
             }
@@ -199,17 +201,17 @@ public class AuditWiringTest {
             assertEquals("exactly one member-added audit event must arrive",
                     1, received.size());
             AuditEvent event = received.get(0);
-            assertEquals(SecurityAuditDomain.NAME, event.getDomain());
+            assertEquals(SecurityAuditDomain.DOMAIN, event.getDomain());
             assertEquals(UserAuditTypes.MEMBER_ADDED, event.getType());
 
             Map<String, Object> payload = event.getPayload();
             // Commit metadata decorated by AuditDrainObserver (via CommitMetadataDecorator).
             assertTrue("commit.sessionId must be decorated",
-                    payload.containsKey("commit.sessionId"));
+                    payload.containsKey("oak.commit.sessionId"));
             assertTrue("commit.userId must be decorated",
-                    payload.containsKey("commit.userId"));
+                    payload.containsKey("oak.commit.userId"));
             assertTrue("commit.timestamp must be decorated",
-                    payload.containsKey("commit.timestamp"));
+                    payload.containsKey("oak.commit.timestamp"));
             // Event-specific payload — values, not just key presence,
             // so a future refactor that left the keys but lost the values
             // (e.g. wrong getPath() variable in the capture site) is caught.
@@ -267,12 +269,12 @@ public class AuditWiringTest {
             assertEquals("exactly one member-removed audit event must arrive",
                     1, received.size());
             AuditEvent event = received.get(0);
-            assertEquals(SecurityAuditDomain.NAME, event.getDomain());
+            assertEquals(SecurityAuditDomain.DOMAIN, event.getDomain());
             assertEquals(UserAuditTypes.MEMBER_REMOVED, event.getType());
 
             Map<String, Object> payload = event.getPayload();
             assertTrue("commit.sessionId must be decorated",
-                    payload.containsKey("commit.sessionId"));
+                    payload.containsKey("oak.commit.sessionId"));
             assertEquals(groupPath, payload.get(UserAuditTypes.PAYLOAD_GROUP_PATH));
             assertEquals(List.of(memberId), payload.get(UserAuditTypes.PAYLOAD_MEMBER_IDS));
             assertEquals(List.of(memberPath), payload.get(UserAuditTypes.PAYLOAD_MEMBER_PATHS));

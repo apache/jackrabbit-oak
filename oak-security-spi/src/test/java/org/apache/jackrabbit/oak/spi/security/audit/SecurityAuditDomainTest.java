@@ -26,8 +26,9 @@ import static org.junit.Assert.assertNotNull;
 public class SecurityAuditDomainTest {
 
     @Test
-    public void nameConstantIsStable() {
-        assertEquals("oak.security", SecurityAuditDomain.NAME);
+    public void domainConstantIsStable() {
+        // Pins the wire value: listener bundles match on it.
+        assertEquals("oak.security", SecurityAuditDomain.DOMAIN.name());
     }
 
     @Test

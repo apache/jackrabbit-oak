@@ -36,10 +36,10 @@ public class AuditEventImplTest {
     @Test
     public void ctorStoresFields() {
         Map<String, Object> payload = Map.of("k", "v");
-        AuditEventImpl e = new AuditEventImpl("test.domain", "t", 42L, payload);
+        AuditEventImpl e = new AuditEventImpl(AuditDomain.of("test.domain"), AuditType.of("t"), 42L, payload);
 
-        assertEquals("test.domain", e.getDomain());
-        assertEquals("t", e.getType());
+        assertEquals(AuditDomain.of("test.domain"), e.getDomain());
+        assertEquals(AuditType.of("t"), e.getType());
         assertEquals(42L, e.getTimestamp());
         // Factory invariant: payload is stored by reference (already immutable).
         assertSame(payload, e.getPayload());
@@ -47,7 +47,7 @@ public class AuditEventImplTest {
 
     @Test
     public void ctorAcceptsEmptyPayload() {
-        AuditEventImpl e = new AuditEventImpl("test.domain", "t", 0L, Map.of());
+        AuditEventImpl e = new AuditEventImpl(AuditDomain.of("test.domain"), AuditType.of("t"), 0L, Map.of());
         assertEquals(Map.of(), e.getPayload());
     }
 
@@ -56,7 +56,7 @@ public class AuditEventImplTest {
         // AuditEventImpl trusts the caller to pass an immutable Map.
         // We exercise that the contract holds end-to-end by constructing
         // with Map.of() (immutable) and verifying mutation throws.
-        AuditEventImpl e = new AuditEventImpl("test.domain", "t", 0L, Map.of("k", "v"));
+        AuditEventImpl e = new AuditEventImpl(AuditDomain.of("test.domain"), AuditType.of("t"), 0L, Map.of("k", "v"));
         assertThrows(UnsupportedOperationException.class,
                 () -> e.getPayload().put("k2", "v2"));
     }

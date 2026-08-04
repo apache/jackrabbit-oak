@@ -25,8 +25,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.mockito.Mockito;
+import org.apache.jackrabbit.oak.spi.audit.AuditDomain;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvent;
 import org.apache.jackrabbit.oak.spi.audit.AuditEventListener;
+import org.apache.jackrabbit.oak.spi.audit.AuditType;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.toggle.Feature;
@@ -77,8 +79,8 @@ public class AuditDrainObserverTest {
     private static final String SESSION_ID = "test-session-1";
     private static final String USER_ID = "alice";
     private static final NodeState ROOT = EmptyNodeState.EMPTY_NODE;
-    private static final String DOMAIN_A = "test.domain.a";
-    private static final String DOMAIN_B = "test.domain.b";
+    private static final AuditDomain DOMAIN_A = AuditDomain.of("test.domain.a");
+    private static final AuditDomain DOMAIN_B = AuditDomain.of("test.domain.b");
 
     private DefaultWhiteboard whiteboard;
     private Feature featureToggle;
@@ -89,7 +91,7 @@ public class AuditDrainObserverTest {
     @Before
     public void setUp() {
         whiteboard = new DefaultWhiteboard();
-        featureToggle = Feature.newFeature(AuditConfigurationImpl.FEATURE_TOGGLE_NAME, whiteboard);
+        featureToggle = Feature.newFeature(AuditPipeline.FEATURE_TOGGLE_NAME, whiteboard);
         buffer = new AuditBuffer();
         registry = new WhiteboardAuditEventListenerRegistry();
         registry.start(whiteboard);
@@ -122,7 +124,7 @@ public class AuditDrainObserverTest {
     public void externalCommitShortCircuitsBeforeDrain() {
         setToggle(true);
         CapturingListener listener = registerCapturingListener(DOMAIN_A);
-        buffer.record(SESSION_ID, AuditEvent.of(DOMAIN_A, "type-1"));
+        buffer.record(SESSION_ID, AuditEvent.of(DOMAIN_A, AuditType.of("type-1")));
 
         observer.contentChanged(ROOT, externalCommit());
 
@@ -149,7 +151,7 @@ public class AuditDrainObserverTest {
         // Toggle defaults to disabled — explicit setToggle(false) for clarity.
         setToggle(false);
         CapturingListener listener = registerCapturingListener(DOMAIN_A);
-        buffer.record(SESSION_ID, AuditEvent.of(DOMAIN_A, "type-1"));
+        buffer.record(SESSION_ID, AuditEvent.of(DOMAIN_A, AuditType.of("type-1")));
 
         observer.contentChanged(ROOT, localCommit());
 
@@ -186,7 +188,7 @@ public class AuditDrainObserverTest {
     public void noListenersShortCircuitsAfterDrain() {
         setToggle(true);
         // No listener registered.
-        buffer.record(SESSION_ID, AuditEvent.of(DOMAIN_A, "type-1"));
+        buffer.record(SESSION_ID, AuditEvent.of(DOMAIN_A, AuditType.of("type-1")));
 
         observer.contentChanged(ROOT, localCommit());
 
@@ -212,20 +214,20 @@ public class AuditDrainObserverTest {
         CapturingListener listenerB = registerCapturingListener(DOMAIN_B);
 
         // Interleave A and B events to verify capture-order preservation.
-        buffer.record(SESSION_ID, AuditEvent.of(DOMAIN_A, "a-1"));
-        buffer.record(SESSION_ID, AuditEvent.of(DOMAIN_B, "b-1"));
-        buffer.record(SESSION_ID, AuditEvent.of(DOMAIN_A, "a-2"));
+        buffer.record(SESSION_ID, AuditEvent.of(DOMAIN_A, AuditType.of("a-1")));
+        buffer.record(SESSION_ID, AuditEvent.of(DOMAIN_B, AuditType.of("b-1")));
+        buffer.record(SESSION_ID, AuditEvent.of(DOMAIN_A, AuditType.of("a-2")));
 
         observer.contentChanged(ROOT, localCommit());
 
         assertEquals("listener-A must receive 2 events in capture order",
                 2, listenerA.received.size());
-        assertEquals("a-1", listenerA.received.get(0).getType());
-        assertEquals("a-2", listenerA.received.get(1).getType());
+        assertEquals("a-1", listenerA.received.get(0).getType().name());
+        assertEquals("a-2", listenerA.received.get(1).getType().name());
 
         assertEquals("listener-B must receive 1 event",
                 1, listenerB.received.size());
-        assertEquals("b-1", listenerB.received.get(0).getType());
+        assertEquals("b-1", listenerB.received.get(0).getType().name());
     }
 
     /**
@@ -240,14 +242,14 @@ public class AuditDrainObserverTest {
         setToggle(true);
         List<String> timeline = new ArrayList<>();
         AuditEventListener high = new AuditEventListener() {
-            @Override public @NotNull String getDomain() { return DOMAIN_A; }
+            @Override public @NotNull AuditDomain getDomain() { return DOMAIN_A; }
             @Override public int getRank() { return 100; }
             @Override public void onEvents(@NotNull List<AuditEvent> events) {
                 timeline.add("high");
             }
         };
         AuditEventListener low = new AuditEventListener() {
-            @Override public @NotNull String getDomain() { return DOMAIN_A; }
+            @Override public @NotNull AuditDomain getDomain() { return DOMAIN_A; }
             @Override public int getRank() { return 1; }
             @Override public void onEvents(@NotNull List<AuditEvent> events) {
                 timeline.add("low");
@@ -257,7 +259,7 @@ public class AuditDrainObserverTest {
         whiteboard.register(AuditEventListener.class, low, Map.of());
         whiteboard.register(AuditEventListener.class, high, Map.of());
 
-        buffer.record(SESSION_ID, AuditEvent.of(DOMAIN_A, "type-1"));
+        buffer.record(SESSION_ID, AuditEvent.of(DOMAIN_A, AuditType.of("type-1")));
         observer.contentChanged(ROOT, localCommit());
 
         assertEquals("both listeners must receive", List.of("high", "low"), timeline);
@@ -303,7 +305,7 @@ public class AuditDrainObserverTest {
     private void verifyListenerErrorIsolated(@NotNull Throwable thrown) {
         setToggle(true);
         AuditEventListener throwingFirst = new AuditEventListener() {
-            @Override public @NotNull String getDomain() { return DOMAIN_A; }
+            @Override public @NotNull AuditDomain getDomain() { return DOMAIN_A; }
             @Override public int getRank() { return 100; } // dispatched first
             @Override public void onEvents(@NotNull List<AuditEvent> events) {
                 rethrow(thrown);
@@ -312,7 +314,7 @@ public class AuditDrainObserverTest {
         whiteboard.register(AuditEventListener.class, throwingFirst, Map.of());
         CapturingListener okSecond = registerCapturingListener(DOMAIN_A);
 
-        buffer.record(SESSION_ID, AuditEvent.of(DOMAIN_A, "type-1"));
+        buffer.record(SESSION_ID, AuditEvent.of(DOMAIN_A, AuditType.of("type-1")));
         observer.contentChanged(ROOT, localCommit());
 
         assertEquals("second listener must receive despite first listener throwing "
@@ -333,7 +335,7 @@ public class AuditDrainObserverTest {
         setToggle(true);
         AtomicBoolean brokenInvoked = new AtomicBoolean();
         AuditEventListener brokenDomain = new AuditEventListener() {
-            @Override public @NotNull String getDomain() {
+            @Override public @NotNull AuditDomain getDomain() {
                 throw new LinkageError("synthetic-getDomain");
             }
             @Override public int getRank() { return 100; } // routed first
@@ -344,7 +346,7 @@ public class AuditDrainObserverTest {
         whiteboard.register(AuditEventListener.class, brokenDomain, Map.of());
         CapturingListener okSecond = registerCapturingListener(DOMAIN_A);
 
-        buffer.record(SESSION_ID, AuditEvent.of(DOMAIN_A, "type-1"));
+        buffer.record(SESSION_ID, AuditEvent.of(DOMAIN_A, AuditType.of("type-1")));
         observer.contentChanged(ROOT, localCommit());
 
         assertEquals("healthy listener must receive despite peer's broken getDomain()",
@@ -379,10 +381,10 @@ public class AuditDrainObserverTest {
         // The exception propagates out of doContentChanged into the outer
         // catch in contentChanged.
         AuditEvent poison = new AuditEvent() {
-            @Override public @NotNull String getDomain() {
+            @Override public @NotNull AuditDomain getDomain() {
                 throw new RuntimeException("synthetic-poisoned-event");
             }
-            @Override public @NotNull String getType() { return "type-poison"; }
+            @Override public @NotNull AuditType getType() { return AuditType.of("type-poison"); }
             @Override public long getTimestamp() { return 0L; }
         };
         buffer.record(SESSION_ID, poison);
@@ -483,12 +485,12 @@ public class AuditDrainObserverTest {
         setToggle(true);
         CapturingListener listener = registerCapturingListener(DOMAIN_A);
 
-        buffer.record(SESSION_ID, AuditEvent.of(DOMAIN_A, "type-1", Map.of("k", "v")));
+        buffer.record(SESSION_ID, AuditEvent.of(DOMAIN_A, AuditType.of("type-1"), Map.of("k", "v")));
         observer.contentChanged(ROOT, localCommit());
 
         assertEquals("listener must receive exactly one event", 1, listener.received.size());
         AuditEvent received = listener.received.get(0);
-        assertEquals("event type must round-trip", "type-1", received.getType());
+        assertEquals("event type must round-trip", "type-1", received.getType().name());
 
         Map<String, Object> payload = received.getPayload();
         // Original payload is preserved.
@@ -519,10 +521,10 @@ public class AuditDrainObserverTest {
         setToggle(true);
         AtomicReference<Throwable> caught = new AtomicReference<>();
         AuditEventListener mutating = new AuditEventListener() {
-            @Override public @NotNull String getDomain() { return DOMAIN_A; }
+            @Override public @NotNull AuditDomain getDomain() { return DOMAIN_A; }
             @Override public void onEvents(@NotNull List<AuditEvent> events) {
                 try {
-                    events.add(AuditEvent.of(DOMAIN_A, "injected"));
+                    events.add(AuditEvent.of(DOMAIN_A, AuditType.of("injected")));
                 } catch (Throwable t) {
                     caught.set(t);
                 }
@@ -530,7 +532,7 @@ public class AuditDrainObserverTest {
         };
         whiteboard.register(AuditEventListener.class, mutating, Map.of());
 
-        buffer.record(SESSION_ID, AuditEvent.of(DOMAIN_A, "type-1"));
+        buffer.record(SESSION_ID, AuditEvent.of(DOMAIN_A, AuditType.of("type-1")));
         observer.contentChanged(ROOT, localCommit());
 
         assertNotNull("listener's mutation attempt must have been rejected", caught.get());
@@ -560,7 +562,7 @@ public class AuditDrainObserverTest {
 
         // Commit #1: capture E1 with toggle ON, observer fires with toggle OFF.
         setToggle(true);
-        buffer.record(SESSION_ID, AuditEvent.of(DOMAIN_A, "E1", Map.of("trace.id", "E1")));
+        buffer.record(SESSION_ID, AuditEvent.of(DOMAIN_A, AuditType.of("E1"), Map.of("trace.id", "E1")));
         setToggle(false);
         observer.contentChanged(ROOT, localCommit());
 
@@ -570,13 +572,13 @@ public class AuditDrainObserverTest {
 
         // Commit #2: toggle back ON, capture E2, observer fires. Only E2.
         setToggle(true);
-        buffer.record(SESSION_ID, AuditEvent.of(DOMAIN_A, "E2", Map.of("trace.id", "E2")));
+        buffer.record(SESSION_ID, AuditEvent.of(DOMAIN_A, AuditType.of("E2"), Map.of("trace.id", "E2")));
         observer.contentChanged(ROOT, localCommit());
 
         assertEquals("exactly one event must be delivered on commit #2",
                 1, listener.received.size());
         assertEquals("delivered event must be E2, not the stale E1",
-                "E2", listener.received.get(0).getType());
+                "E2", listener.received.get(0).getType().name());
         assertEquals("E2", listener.received.get(0).getPayload().get("trace.id"));
     }
 
@@ -611,7 +613,7 @@ public class AuditDrainObserverTest {
         Tracker<FeatureToggle> tracker = whiteboard.track(FeatureToggle.class);
         try {
             for (FeatureToggle ft : tracker.getServices()) {
-                if (AuditConfigurationImpl.FEATURE_TOGGLE_NAME.equals(ft.getName())) {
+                if (AuditPipeline.FEATURE_TOGGLE_NAME.equals(ft.getName())) {
                     ft.setEnabled(enabled);
                 }
             }
@@ -620,7 +622,7 @@ public class AuditDrainObserverTest {
         }
     }
 
-    private CapturingListener registerCapturingListener(@NotNull String domain) {
+    private CapturingListener registerCapturingListener(@NotNull AuditDomain domain) {
         CapturingListener l = new CapturingListener(domain);
         whiteboard.register(AuditEventListener.class, l, Map.of());
         return l;
@@ -639,15 +641,15 @@ public class AuditDrainObserverTest {
 
     private static final class CapturingListener implements AuditEventListener {
 
-        private final String domain;
+        private final AuditDomain domain;
         final List<AuditEvent> received = new ArrayList<>();
 
-        CapturingListener(@NotNull String domain) {
+        CapturingListener(@NotNull AuditDomain domain) {
             this.domain = domain;
         }
 
         @Override
-        public @NotNull String getDomain() {
+        public @NotNull AuditDomain getDomain() {
             return domain;
         }
 

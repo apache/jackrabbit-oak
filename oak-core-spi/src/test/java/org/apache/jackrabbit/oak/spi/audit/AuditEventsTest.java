@@ -37,10 +37,10 @@ public class AuditEventsTest {
         AuditEvents.install(null);
     }
 
-    private static AuditEvent fixedEvent(@NotNull String domain) {
+    private static AuditEvent fixedEvent(@NotNull AuditDomain domain) {
         return new AuditEvent() {
-            @Override public @NotNull String getDomain() { return domain; }
-            @Override public @NotNull String getType() { return "t"; }
+            @Override public @NotNull AuditDomain getDomain() { return domain; }
+            @Override public @NotNull AuditType getType() { return AuditType.of("t"); }
             @Override public long getTimestamp() { return 0L; }
             @Override public @NotNull Map<String, Object> getPayload() { return Collections.emptyMap(); }
         };
@@ -49,9 +49,9 @@ public class AuditEventsTest {
     @Test
     public void facadeNoOpWhenNoSinkInstalled() {
         assertFalse(AuditEvents.isEnabled());
-        assertFalse(AuditEvents.isEnabledFor("test.domain"));
-        AuditEvents.record(mock(Root.class), fixedEvent("test.domain"));
-        AuditEvents.dispatch(fixedEvent("test.domain"));
+        assertFalse(AuditEvents.isEnabledFor(AuditDomain.of("test.domain")));
+        AuditEvents.record(mock(Root.class), fixedEvent(AuditDomain.of("test.domain")));
+        AuditEvents.dispatch(fixedEvent(AuditDomain.of("test.domain")));
         // no exception, no observable effect — verified by no sink installed
     }
 
@@ -60,11 +60,11 @@ public class AuditEventsTest {
         AtomicReference<AuditEvent> received = new AtomicReference<>();
         AuditEvents.install(new AuditEvents.Sink() {
             @Override public boolean isEnabled() { return true; }
-            @Override public boolean isEnabledFor(@NotNull String domain) { return true; }
+            @Override public boolean isEnabledFor(@NotNull AuditDomain domain) { return true; }
             @Override public void record(@NotNull Root root, @NotNull AuditEvent event) { received.set(event); }
             @Override public void dispatch(@NotNull AuditEvent event) { /* not used */ }
         });
-        AuditEvent e = fixedEvent("test.domain");
+        AuditEvent e = fixedEvent(AuditDomain.of("test.domain"));
         AuditEvents.record(mock(Root.class), e);
         assertSame(e, received.get());
     }
@@ -74,11 +74,11 @@ public class AuditEventsTest {
         AtomicReference<AuditEvent> received = new AtomicReference<>();
         AuditEvents.install(new AuditEvents.Sink() {
             @Override public boolean isEnabled() { return true; }
-            @Override public boolean isEnabledFor(@NotNull String domain) { return true; }
+            @Override public boolean isEnabledFor(@NotNull AuditDomain domain) { return true; }
             @Override public void record(@NotNull Root root, @NotNull AuditEvent event) { /* not used */ }
             @Override public void dispatch(@NotNull AuditEvent event) { received.set(event); }
         });
-        AuditEvent e = fixedEvent("aem.content");
+        AuditEvent e = fixedEvent(AuditDomain.of("example.content"));
         AuditEvents.dispatch(e);
         assertSame(e, received.get());
     }
@@ -87,7 +87,7 @@ public class AuditEventsTest {
     public void installNullResetsToNoOp() {
         AuditEvents.install(new AuditEvents.Sink() {
             @Override public boolean isEnabled() { return true; }
-            @Override public boolean isEnabledFor(@NotNull String domain) { return true; }
+            @Override public boolean isEnabledFor(@NotNull AuditDomain domain) { return true; }
             @Override public void record(@NotNull Root root, @NotNull AuditEvent event) { }
             @Override public void dispatch(@NotNull AuditEvent event) { }
         });
