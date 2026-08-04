@@ -19,8 +19,10 @@ package org.apache.jackrabbit.oak.security.audit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.spi.audit.AuditDomain;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvent;
@@ -30,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,13 +110,22 @@ final class AuditDrainObserver implements Observer {
     private final Feature featureToggle;
     private final AuditBuffer buffer;
     private final WhiteboardAuditEventListenerRegistry registry;
+    private final AuditMonitor monitor;
 
     AuditDrainObserver(@NotNull Feature featureToggle,
                        @NotNull AuditBuffer buffer,
                        @NotNull WhiteboardAuditEventListenerRegistry registry) {
+        this(featureToggle, buffer, registry, AuditMonitor.NOOP);
+    }
+
+    AuditDrainObserver(@NotNull Feature featureToggle,
+                       @NotNull AuditBuffer buffer,
+                       @NotNull WhiteboardAuditEventListenerRegistry registry,
+                       @NotNull AuditMonitor monitor) {
         this.featureToggle = featureToggle;
         this.buffer = buffer;
         this.registry = registry;
+        this.monitor = monitor;
     }
 
     @Override
@@ -166,8 +178,21 @@ final class AuditDrainObserver implements Observer {
         }
         List<AuditEvent> decorated = CommitMetadataDecorator.decorate(events, info);
         Map<AuditDomain, List<AuditEvent>> byDomain = groupByDomain(decorated);
+        // Domains that reached at least one listener. Collected during the
+        // loop rather than taken from byDomain.keySet(): a listener can
+        // unregister between capture and drain, leaving a domain in the map
+        // that nothing consumed. Counting those would overstate the dispatch
+        // rate. Counted once per domain, so N listeners on one domain do not
+        // multiply the count.
+        Set<AuditDomain> delivered = new HashSet<>(4);
         for (AuditEventListener listener : listeners) {
-            dispatchOne(listener, byDomain);
+            AuditDomain to = dispatchOne(listener, byDomain);
+            if (to != null) {
+                delivered.add(to);
+            }
+        }
+        for (AuditDomain domain : delivered) {
+            monitor.eventsDispatched(domain, byDomain.get(domain).size());
         }
     }
 
@@ -179,19 +204,33 @@ final class AuditDrainObserver implements Observer {
         return byDomain;
     }
 
-    private static void dispatchOne(@NotNull AuditEventListener listener,
-                                    @NotNull Map<AuditDomain, List<AuditEvent>> byDomain) {
+    /**
+     * @return the domain whose batch was handed to {@code listener}, or
+     *         {@code null} when the listener had nothing to consume or threw.
+     */
+    private @Nullable AuditDomain dispatchOne(@NotNull AuditEventListener listener,
+                                              @NotNull Map<AuditDomain, List<AuditEvent>> byDomain) {
         // The getDomain() routing lookup sits INSIDE the barrier — it is
         // listener code just like onEvents(), and a throw escaping to the
         // outer barrier would starve every remaining listener.
         try {
-            List<AuditEvent> forListener = byDomain.get(listener.getDomain());
+            AuditDomain domain = listener.getDomain();
+            List<AuditEvent> forListener = byDomain.get(domain);
             if (forListener == null || forListener.isEmpty()) {
-                return;
+                return null;
             }
-            // Hand each listener an immutable view so one misbehaving listener
-            // cannot mutate the per-domain list seen by its peers.
-            listener.onEvents(Collections.unmodifiableList(forListener));
+            // Timed inside the barrier so a listener that throws still records
+            // the time it burned first — a listener failing slowly is the case
+            // worth seeing, and it costs commit latency either way.
+            long startNanos = System.nanoTime();
+            try {
+                // Hand each listener an immutable view so one misbehaving listener
+                // cannot mutate the per-domain list seen by its peers.
+                listener.onEvents(Collections.unmodifiableList(forListener));
+            } finally {
+                monitor.listenerDuration(listener.getClass(), System.nanoTime() - startNanos);
+            }
+            return domain;
         } catch (Throwable t) {
             // Per-listener isolation: a misconfigured consumer bundle whose listener
             // throws e.g. LinkageError must not crash the commit-dispatch path for
@@ -200,8 +239,10 @@ final class AuditDrainObserver implements Observer {
             // channels. Do not narrow this catch to RuntimeException — listener
             // Throwables (any kind) must not escape into the dispatch loop. The log
             // must not re-invoke getDomain(): it may be exactly what threw.
+            monitor.listenerFailed(listener.getClass());
             log.warn("AuditEventListener {} threw {} during commit-attached dispatch; isolating from other listeners.",
                     listener.getClass().getName(), t.getClass().getSimpleName(), t);
+            return null;
         }
     }
 }

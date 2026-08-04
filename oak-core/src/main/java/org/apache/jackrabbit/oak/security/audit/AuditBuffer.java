@@ -70,6 +70,21 @@ final class AuditBuffer implements AuditBufferLifecycle.Listener {
     static final int MAX_EVENTS_PER_SESSION = 10_000;
 
     /**
+     * Records dropped events. The WARN below fires once per session slot,
+     * which keeps the log readable but makes the drop rate invisible; the
+     * meter is what an operator can alert on.
+     */
+    private final AuditMonitor monitor;
+
+    AuditBuffer() {
+        this(AuditMonitor.NOOP);
+    }
+
+    AuditBuffer(@NotNull AuditMonitor monitor) {
+        this.monitor = monitor;
+    }
+
+    /**
      * Thread-local map keyed by {@code sessionId}
      * ({@code ContentSession.toString()}). The inner {@link SessionBuffer}
      * is created lazily on the first {@link #record(String, AuditEvent)}
@@ -108,6 +123,7 @@ final class AuditBuffer implements AuditBufferLifecycle.Listener {
         // push a later (sensitive) event past the cap; bounded and self-healing
         // (the slot re-arms on the next drain/refresh).
         if (sb.events.size() >= MAX_EVENTS_PER_SESSION) {
+            monitor.eventDropped(event.getDomain());
             if (!sb.overflowWarned) {
                 sb.overflowWarned = true;
                 log.warn("Audit buffer for session {} reached the cap of {} staged events; " +

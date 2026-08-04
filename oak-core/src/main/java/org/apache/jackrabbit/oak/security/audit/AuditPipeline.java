@@ -31,6 +31,8 @@ import org.apache.jackrabbit.oak.spi.audit.AuditEvents;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
@@ -119,6 +121,13 @@ public class AuditPipeline implements AuditConfiguration {
     WhiteboardAuditEventListenerRegistry registry;
 
     /**
+     * Metrics sink, shared by the buffer, the drain observer, and the
+     * fire-and-forget path. {@link AuditMonitor#NOOP} when no
+     * {@link StatisticsProvider} is on the whiteboard.
+     */
+    AuditMonitor monitor = AuditMonitor.NOOP;
+
+    /**
      * Singleton {@link AuditDrainObserver} instance constructed by
      * {@link #initialize(Whiteboard)} and zeroed by {@link #dispose()}.
      * Exposed via {@link #getDrainObserver()} as an {@link Observer}.
@@ -203,15 +212,21 @@ public class AuditPipeline implements AuditConfiguration {
         registry = new WhiteboardAuditEventListenerRegistry();
         registry.start(whiteboard);
 
-        buffer = new AuditBuffer();
+        // Resolved off the whiteboard rather than as a DS @Reference so the
+        // OSGi and embedded paths share one lookup: initialize() is the only
+        // entry point either uses. Absent provider (the usual case for tests
+        // and embedded callers) yields the NOOP monitor.
+        monitor = new AuditMonitor(WhiteboardUtils.getService(whiteboard, StatisticsProvider.class));
+
+        buffer = new AuditBuffer(monitor);
         AuditBufferLifecycle.install(buffer);
 
-        AuditEvents.install(new BufferSink(featureToggle, registry, buffer));
+        AuditEvents.install(new BufferSink(featureToggle, registry, buffer, monitor));
 
         // Constructed last so the observer exists before activate() publishes
         // it as a service: ObserverTracker subscribes on a background thread
         // and can fire before activate() returns.
-        drainObserver = new AuditDrainObserver(featureToggle, buffer, registry);
+        drainObserver = new AuditDrainObserver(featureToggle, buffer, registry, monitor);
 
         // The pipeline is wired either way; the toggle decides whether events
         // are captured and dispatched. Say which, rather than printing a bare
@@ -379,6 +394,10 @@ public class AuditPipeline implements AuditConfiguration {
         // 5. Zero the cached singleton observer. Subsequent getDrainObserver()
         //    calls throw IllegalStateException — same contract as pre-init.
         drainObserver = null;
+        // 6. Back to NOOP rather than null: the field is read without a
+        //    null-check by anything still holding a reference to the torn-down
+        //    buffer or sink.
+        monitor = AuditMonitor.NOOP;
         log.info("Audit pipeline deactivated.");
     }
 
@@ -415,13 +434,16 @@ public class AuditPipeline implements AuditConfiguration {
         private final Feature toggle;
         private final WhiteboardAuditEventListenerRegistry registry;
         private final AuditBuffer buffer;
+        private final AuditMonitor monitor;
 
         BufferSink(@NotNull Feature toggle,
                    @NotNull WhiteboardAuditEventListenerRegistry registry,
-                   @NotNull AuditBuffer buffer) {
+                   @NotNull AuditBuffer buffer,
+                   @NotNull AuditMonitor monitor) {
             this.toggle = toggle;
             this.registry = registry;
             this.buffer = buffer;
+            this.monitor = monitor;
         }
 
         @Override
@@ -458,6 +480,7 @@ public class AuditPipeline implements AuditConfiguration {
             AuditEvent toDispatch = CommitMetadataDecorator.stripReservedCommitKeys(event);
             AuditDomain domain = toDispatch.getDomain();
             List<AuditEvent> single = Collections.singletonList(toDispatch);
+            boolean delivered = false;
             for (AuditEventListener listener : listeners) {
                 // The listener's getDomain() filter sits INSIDE the barrier —
                 // it is listener code just like onEvents(), and a throw here
@@ -468,8 +491,15 @@ public class AuditPipeline implements AuditConfiguration {
                     if (!domain.equals(listener.getDomain())) {
                         continue;
                     }
-                    listener.onEvents(single);
+                    long startNanos = System.nanoTime();
+                    try {
+                        listener.onEvents(single);
+                    } finally {
+                        monitor.listenerDuration(listener.getClass(), System.nanoTime() - startNanos);
+                    }
+                    delivered = true;
                 } catch (Throwable t) {
+                    monitor.listenerFailed(listener.getClass());
                     // Per-listener isolation: a misconfigured consumer bundle whose listener
                     // throws e.g. LinkageError must not fail the commit for unrelated work.
                     // JVM-level pathology (OutOfMemoryError) is caught here too but
@@ -480,6 +510,10 @@ public class AuditPipeline implements AuditConfiguration {
                     log.warn("AuditEventListener {} threw {} on fire-and-forget dispatch in domain '{}'; isolating from other listeners.",
                             listener.getClass().getName(), t.getClass().getSimpleName(), domain, t);
                 }
+            }
+            // One event, counted once, and only when something consumed it.
+            if (delivered) {
+                monitor.eventsDispatched(domain, 1);
             }
         }
     }
