@@ -1130,7 +1130,7 @@
         <dependency>
           <groupId>org.postgresql</groupId>
           <artifactId>postgresql</artifactId>
-          <version>42.7.7</version>
+          <version>42.7.13</version>
           <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
           <scope>compile</scope>
         </dependency>
