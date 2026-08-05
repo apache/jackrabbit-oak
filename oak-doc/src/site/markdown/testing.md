@@ -65,9 +65,9 @@ Even if a database is not installed locally, it still can be used using Docker.
 
 Here's an example how to configure PostgreSQL using Docker (assuming Docker is already installed):
 
-`docker run -p 8080:5432 --name oak-postgres -e POSTGRES_PASSWORD=geheim -e POSTGRES_DB=oak -d postgres:13-alpine`
+`docker run -p 8080:5432 --name oak-postgres -e POSTGRES_PASSWORD=geheim -e POSTGRES_DB=oak -d postgres:14-alpine`
 
-This pulls the docker image "postgres:13-alpine", specifies a system password and a database to be created, and maps the default PostgreSQL port (5432) to the local port 8080.
+This pulls the docker image "postgres:14-alpine", specifies a system password and a database to be created, and maps the default PostgreSQL port (5432) to the local port 8080.
 
 To run tests, the following parameters would be used:
 
