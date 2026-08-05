@@ -560,6 +560,74 @@ public class IndexImporterTest {
         }
     }
 
+    @Test
+    public void importExistingDisabledIndexMissingAsyncKeepsAsync() throws Exception {
+        // Reindex output (index-definitions.json + index dir) carries async=async
+        String checkpoint = importDataIncrementalUpdateBeforeSetupMethod();
+
+        // The on-disk index is a disabled definition that is missing the async property
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder idx = builder.child(INDEX_DEFINITIONS_NAME).child("fooIndex");
+        idx.setProperty(TYPE_PROPERTY_NAME, TYPE_DISABLED);
+        idx.removeProperty(ASYNC_PROPERTY_NAME);
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        IndexImporter importer = new IndexImporter(store, temporaryFolder.getRoot(), provider, NOOP_LOCK);
+        importer.addImporterProvider(getImporterProvider(checkpoint));
+        importer.importIndex();
+
+        NodeState result = store.getRoot().getChildNode("oak:index").getChildNode("fooIndex");
+        assertEquals("async", IndexImporter.getAsyncLaneName("/oak:index/fooIndex", result));
+    }
+
+    @Test
+    public void switchLanesTypeChangeToSyncDropsAsync() throws Exception {
+        NodeBuilder builder = store.getRoot().builder();
+        // incoming (dumped) definition is a sync property index without async
+        builder.child("idx-a").setProperty("type", "property");
+
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        createIndexDirs("/idx-a");
+
+        // on-disk the index is an async lucene index
+        builder.child("idx-a").setProperty("type", "lucene");
+        builder.child("idx-a").setProperty("async", "async");
+
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        IndexImporter importer = new IndexImporter(store, temporaryFolder.getRoot(), provider, NOOP_LOCK);
+        importer.switchLanes();
+
+        // incoming definition is sync, so the on-disk async must not be carried over as previous
+        NodeState idxa = NodeStateUtils.getNode(store.getRoot(), "/idx-a");
+        assertEquals(AsyncLaneSwitcher.ASYNC_PREVIOUS_NONE, idxa.getString(ASYNC_PREVIOUS));
+    }
+
+    @Test
+    public void switchLanesTypeChangeToSyncKeepsAsyncInLegacyFlow() throws Exception {
+        NodeBuilder builder = store.getRoot().builder();
+        // incoming (dumped) definition is a sync property index without async
+        builder.child("idx-a").setProperty("type", "property");
+
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        createIndexDirs("/idx-a");
+
+        // on-disk the index is an async lucene index
+        builder.child("idx-a").setProperty("type", "lucene");
+        builder.child("idx-a").setProperty("async", "async");
+
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // opt into the legacy flow (last arg true) to verify the pre-OAK-12307,
+        // elasticsearch-only behavior: a non-elasticsearch type change leaves the
+        // on-disk async in place. The default (no flag) uses the fix instead.
+        IndexImporter importer = new IndexImporter(store, temporaryFolder.getRoot(), provider, NOOP_LOCK, true);
+        importer.switchLanes();
+
+        NodeState idxa = NodeStateUtils.getNode(store.getRoot(), "/idx-a");
+        assertEquals("async", idxa.getString(ASYNC_PREVIOUS));
+    }
+
     private static FilterImpl createFilter(NodeState root, String nodeTypeName) {
         NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(root);
         NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);
