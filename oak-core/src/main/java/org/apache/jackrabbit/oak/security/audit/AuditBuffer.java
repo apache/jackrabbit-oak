@@ -24,13 +24,12 @@ import java.util.Map;
 import org.apache.jackrabbit.oak.spi.audit.AuditBufferLifecycle;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvent;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Per-thread, per-session staging area for audit events. Events captured
- * via {@link org.apache.jackrabbit.oak.spi.audit.AuditEvents#record}
+ * via {@link org.apache.jackrabbit.oak.spi.audit.AuditDispatch#record}
  * are appended to a session-scoped buffer held in a {@link ThreadLocal};
  * the buffer is allocated lazily on first {@code record} and is removed
  * when {@link #drain(String)} is called (i.e. on commit snapshot) or when
@@ -54,7 +53,7 @@ import org.slf4j.LoggerFactory;
  * the session's caller thread. Cross-thread invocation is not supported
  * — sessions are not thread-safe in Oak. Because the staging area is a
  * {@link ThreadLocal}, a drain issued from a thread other than the one
- * that captured simply sees an empty buffer (returns {@code null}); it
+ * that captured simply sees an empty buffer (returns an empty list); it
  * never observes or removes another thread's events.
  */
 final class AuditBuffer implements AuditBufferLifecycle.Listener {
@@ -137,44 +136,48 @@ final class AuditBuffer implements AuditBufferLifecycle.Listener {
     }
 
     /**
-     * Test-only inspector. Returns a <strong>defensive copy</strong> of the
-     * events staged for {@code sessionId} <strong>without</strong> removing
-     * them. Mutating the returned list does not affect the buffer. Production
-     * drain goes through {@link #drain(String)}.
+     * Test-only inspector. Returns the events staged for {@code sessionId}
+     * <strong>without</strong> removing them. Production drain goes through
+     * {@link #drain(String)}.
+     * <p>
+     * The returned list is an unmodifiable shallow copy: adding to or
+     * removing from it does not touch the buffer, but the {@link AuditEvent}
+     * instances are the staged ones, not clones. That is safe because events
+     * are immutable value types (see {@link AuditEvent#of}).
      *
      * @param sessionId session id, non-null.
-     * @return an immutable copy of the staged events, or {@code null} when
-     *         nothing was staged for the session on the current thread.
+     * @return the staged events, empty when nothing was staged for the
+     *         session on the current thread.
      */
-    @Nullable
+    @NotNull
     List<AuditEvent> peek(@NotNull String sessionId) {
         Map<String, SessionBuffer> bySession = tl.get();
         if (bySession == null) {
-            return null;
+            return List.of();
         }
         SessionBuffer sb = bySession.get(sessionId);
-        return (sb == null) ? null : List.copyOf(sb.events);
+        return (sb == null) ? List.of() : List.copyOf(sb.events);
     }
 
     /**
-     * Detaches and returns the staged events for {@code sessionId},
-     * leaving the buffer empty for that session.
+     * Detaches and returns the events staged for {@code sessionId}, leaving
+     * the buffer empty for that session.
      *
      * @param sessionId session id, non-null.
-     * @return the staged events, or {@code null} when nothing was
-     *         staged for the session on the current thread.
+     * @return the staged events, empty when nothing was staged for the
+     *         session on the current thread.
      */
-    @Nullable
+    @NotNull
     List<AuditEvent> drain(@NotNull String sessionId) {
         Map<String, SessionBuffer> bySession = tl.get();
         if (bySession == null) {
-            return null;
+            return List.of();
         }
         SessionBuffer drained = bySession.remove(sessionId);
         if (bySession.isEmpty()) {
             tl.remove();
         }
-        return (drained == null) ? null : drained.events;
+        return (drained == null) ? List.of() : drained.events;
     }
 
     /**
@@ -210,7 +213,7 @@ final class AuditBuffer implements AuditBufferLifecycle.Listener {
      * session slot (re-armed when the slot is recreated after a drain).
      */
     private static final class SessionBuffer {
-        final List<AuditEvent> events = new ArrayList<>(4);
+        final List<AuditEvent> events = new ArrayList<>();
         boolean overflowWarned;
     }
 }

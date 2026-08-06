@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.audit;
 import java.util.Collections;
 import java.util.Map;
 
+import org.apache.jackrabbit.oak.spi.audit.impl.AuditEventImpl;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
@@ -45,8 +46,8 @@ import org.osgi.annotation.versioning.ProviderType;
  * Most callers do not implement this interface directly: use the static
  * factory {@link #of(AuditDomain, AuditType, Map)} (or the no-payload
  * overload {@link #of(AuditDomain, AuditType)}) to construct an immutable
- * event with the current wall-clock timestamp. The package-private
- * {@code AuditEventImpl} backs these factories.
+ * event with the current wall-clock timestamp. The unexported
+ * {@code spi.audit.impl.AuditEventImpl} backs these factories.
  */
 @ProviderType
 public interface AuditEvent {
@@ -133,7 +134,7 @@ public interface AuditEvent {
      *       {@code CommitMetadataDecorator}).</li>
      *   <li>On the <em>fire-and-forget</em> path
      *       ({@link AuditEventEmitter#emit(AuditEvent)} /
-     *       {@code AuditEvents.dispatch}) Oak <em>strips</em> caller-supplied
+     *       {@code AuditDispatch.dispatch}) Oak <em>strips</em> caller-supplied
      *       values for the same three keys before delivery.</li>
      * </ul>
      * A listener may therefore treat the presence of the three keys in a

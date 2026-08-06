@@ -52,7 +52,7 @@ import org.slf4j.LoggerFactory;
  * a peer node, or the initial replay invocation at {@code addObserver()}
  * time with {@link CommitInfo#EMPTY_EXTERNAL}), the observer returns
  * immediately. External commits did not originate any local
- * {@code AuditEvents.record(...)} calls, so there is nothing in the
+ * {@code AuditDispatch.record(...)} calls, so there is nothing in the
  * per-session buffer to drain. Explicit short-circuit; cleaner than
  * relying on the buffer to return empty.
  * <p>
@@ -169,7 +169,7 @@ final class AuditDrainObserver implements Observer {
         // the class Javadoc. The early return below then discards the drained
         // events when there is nothing to dispatch OR the toggle is now off.
         List<AuditEvent> events = buffer.drain(sessionId);
-        if (events == null || events.isEmpty() || !featureToggle.isEnabled()) {
+        if (events.isEmpty() || !featureToggle.isEnabled()) {
             return;
         }
         List<AuditEventListener> listeners = registry.getListeners();

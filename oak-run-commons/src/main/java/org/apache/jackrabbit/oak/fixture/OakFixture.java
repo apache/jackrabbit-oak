@@ -700,7 +700,7 @@ public abstract class OakFixture {
      * Domain-scoped no-op listener used by the audit-enabled benchmark
      * fixture ({@link #getMemoryNSWithAudit(long)}). Returning a real
      * listener (rather than relying on the JVM-static NOOP sink) is what
-     * flips {@code AuditEvents.isEnabledFor(domain)} to {@code true} and
+     * flips {@code AuditDispatch.isEnabledFor(domain)} to {@code true} and
      * causes capture sites to allocate and buffer events — see the
      * {@code BufferSink.isEnabledFor} short-circuit in
      * {@code AuditPipeline}.

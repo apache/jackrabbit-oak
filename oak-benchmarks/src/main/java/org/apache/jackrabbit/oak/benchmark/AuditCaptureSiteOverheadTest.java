@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
  * by {@code 2 * pairsPerIteration}, is the per-event audit overhead
  * (allocation + path resolve + buffer record + drain + listener
  * dispatch). On the audit-OFF side capture sites short-circuit at
- * {@code AuditEvents.isEnabled()} returning false (NOOP sink) so the
+ * {@code AuditDispatch.isEnabled()} returning false (NOOP sink) so the
  * commit cost is the audit-free baseline.
  *
  * <p>Tunable via {@code -DpairsPerIteration=N} (default 50).

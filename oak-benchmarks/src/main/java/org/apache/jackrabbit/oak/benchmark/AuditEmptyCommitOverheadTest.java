@@ -25,7 +25,7 @@ import javax.jcr.Session;
  * pipeline wired but no audit capture site firing. Each iteration does
  * {@code commitsPerIteration} small {@code setProperty} + {@code save}
  * cycles on a fixed leaf node. No {@code UserManager} traffic, so no
- * {@code AuditEvents.record} calls happen — the only audit-attributable
+ * {@code AuditDispatch.record} calls happen — the only audit-attributable
  * work per commit is:
  * <ul>
  *   <li>{@code AuditBufferLifecycle.onRefresh(sessionId)} on each

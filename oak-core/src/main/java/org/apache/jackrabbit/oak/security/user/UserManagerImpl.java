@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.security.user.monitor.UserMonitor;
 import org.apache.jackrabbit.oak.security.user.query.UserQueryManager;
-import org.apache.jackrabbit.oak.spi.audit.AuditEvents;
+import org.apache.jackrabbit.oak.spi.audit.AuditDispatch;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.audit.SecurityAuditDomain;
@@ -381,7 +381,7 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an error occurs.
      */
     void onGroupUpdate(@NotNull Group group, boolean isRemove, @NotNull Authorizable member) throws RepositoryException {
-        if (AuditEvents.isEnabledFor(SecurityAuditDomain.DOMAIN)) {
+        if (AuditDispatch.isEnabledFor(SecurityAuditDomain.DOMAIN)) {
             recordSingleMembershipAuditEvent(group, isRemove, member);
         }
         for (GroupAction action : filterGroupActions()) {
@@ -406,7 +406,7 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an error occurs.
      */
     void onGroupUpdate(@NotNull Group group, boolean isRemove, boolean isContentId, @NotNull Set<String> memberIds, @NotNull Set<String> failedIds) throws RepositoryException {
-        if (AuditEvents.isEnabledFor(SecurityAuditDomain.DOMAIN)) {
+        if (AuditDispatch.isEnabledFor(SecurityAuditDomain.DOMAIN)) {
             recordBulkMembershipAuditEvent(group, isRemove, isContentId, memberIds, failedIds);
         }
         for (GroupAction action : filterGroupActions()) {
@@ -432,7 +432,7 @@ public class UserManagerImpl implements UserManager {
             String groupPath = group.getPath();
             String memberId = member.getID();
             String memberPath = member.getPath();
-            AuditEvents.record(root, isRemove
+            AuditDispatch.record(root, isRemove
                     ? UserAuditEvents.memberRemoved(groupPath, memberId, memberPath)
                     : UserAuditEvents.memberAdded(groupPath, memberId, memberPath));
         } catch (RepositoryException e) {
@@ -457,7 +457,7 @@ public class UserManagerImpl implements UserManager {
         }
         try {
             String groupPath = group.getPath();
-            AuditEvents.record(root, isRemove
+            AuditDispatch.record(root, isRemove
                     ? UserAuditEvents.membersRemovedBulk(groupPath, memberIds, isContentId, failedIds)
                     : UserAuditEvents.membersAddedBulk(groupPath, memberIds, isContentId, failedIds));
         } catch (RepositoryException e) {

@@ -52,11 +52,11 @@ public interface AuditConfiguration {
      * {@link AuditEventListener} is registered on the Whiteboard. The
      * two predicates AND together so a deployed-but-unused pipeline still
      * reports {@code false}, matching the no-allocation semantics
-     * documented at {@link AuditEvents#isEnabled()}.
+     * documented at {@link AuditDispatch#isEnabled()}.
      *
-     * <p>Equivalent in semantics to {@code AuditEvents.isEnabled()}, but
+     * <p>Equivalent in semantics to {@code AuditDispatch.isEnabled()}, but
      * reachable via the typed handle. Drift-prevention: both paths read
-     * through the volatile {@code AuditEvents.sink} (single source of
+     * through the volatile {@code AuditDispatch.sink} (single source of
      * truth). Any future divergence MUST be documented explicitly in
      * both Javadocs.
      *

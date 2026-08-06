@@ -30,11 +30,11 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
-public class AuditEventsTest {
+public class AuditDispatchTest {
 
     @After
     public void tearDown() {
-        AuditEvents.install(null);
+        AuditDispatch.install(null);
     }
 
     private static AuditEvent fixedEvent(@NotNull AuditDomain domain) {
@@ -48,51 +48,51 @@ public class AuditEventsTest {
 
     @Test
     public void facadeNoOpWhenNoSinkInstalled() {
-        assertFalse(AuditEvents.isEnabled());
-        assertFalse(AuditEvents.isEnabledFor(AuditDomain.of("test.domain")));
-        AuditEvents.record(mock(Root.class), fixedEvent(AuditDomain.of("test.domain")));
-        AuditEvents.dispatch(fixedEvent(AuditDomain.of("test.domain")));
+        assertFalse(AuditDispatch.isEnabled());
+        assertFalse(AuditDispatch.isEnabledFor(AuditDomain.of("test.domain")));
+        AuditDispatch.record(mock(Root.class), fixedEvent(AuditDomain.of("test.domain")));
+        AuditDispatch.dispatch(fixedEvent(AuditDomain.of("test.domain")));
         // no exception, no observable effect — verified by no sink installed
     }
 
     @Test
     public void recordRoutesThroughInstalledSink() {
         AtomicReference<AuditEvent> received = new AtomicReference<>();
-        AuditEvents.install(new AuditEvents.Sink() {
+        AuditDispatch.install(new AuditDispatch.Sink() {
             @Override public boolean isEnabled() { return true; }
             @Override public boolean isEnabledFor(@NotNull AuditDomain domain) { return true; }
             @Override public void record(@NotNull Root root, @NotNull AuditEvent event) { received.set(event); }
             @Override public void dispatch(@NotNull AuditEvent event) { /* not used */ }
         });
         AuditEvent e = fixedEvent(AuditDomain.of("test.domain"));
-        AuditEvents.record(mock(Root.class), e);
+        AuditDispatch.record(mock(Root.class), e);
         assertSame(e, received.get());
     }
 
     @Test
     public void dispatchRoutesThroughInstalledSink() {
         AtomicReference<AuditEvent> received = new AtomicReference<>();
-        AuditEvents.install(new AuditEvents.Sink() {
+        AuditDispatch.install(new AuditDispatch.Sink() {
             @Override public boolean isEnabled() { return true; }
             @Override public boolean isEnabledFor(@NotNull AuditDomain domain) { return true; }
             @Override public void record(@NotNull Root root, @NotNull AuditEvent event) { /* not used */ }
             @Override public void dispatch(@NotNull AuditEvent event) { received.set(event); }
         });
         AuditEvent e = fixedEvent(AuditDomain.of("example.content"));
-        AuditEvents.dispatch(e);
+        AuditDispatch.dispatch(e);
         assertSame(e, received.get());
     }
 
     @Test
     public void installNullResetsToNoOp() {
-        AuditEvents.install(new AuditEvents.Sink() {
+        AuditDispatch.install(new AuditDispatch.Sink() {
             @Override public boolean isEnabled() { return true; }
             @Override public boolean isEnabledFor(@NotNull AuditDomain domain) { return true; }
             @Override public void record(@NotNull Root root, @NotNull AuditEvent event) { }
             @Override public void dispatch(@NotNull AuditEvent event) { }
         });
-        assertTrue(AuditEvents.isEnabled());
-        AuditEvents.install(null);
-        assertFalse(AuditEvents.isEnabled());
+        assertTrue(AuditDispatch.isEnabled());
+        AuditDispatch.install(null);
+        assertFalse(AuditDispatch.isEnabled());
     }
 }

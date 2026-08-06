@@ -21,7 +21,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.spi.audit.AuditEvents;
+import org.apache.jackrabbit.oak.spi.audit.AuditDispatch;
 import org.apache.jackrabbit.oak.spi.security.audit.SecurityAuditDomain;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.After;
@@ -32,7 +32,7 @@ import org.junit.Test;
  * <p>
  * Phase 3 of the audit-SPI work measured the wrong shape because the
  * default {@code Oak-MemoryNS} fixture does not wire the audit pipeline
- * — capture sites silently routed to {@code AuditEvents.NOOP}. This test
+ * — capture sites silently routed to {@code AuditDispatch.NOOP}. This test
  * fails the build if the audit-enabled fixture ever regresses into the
  * same silent-audit-OFF state.
  */
@@ -55,11 +55,11 @@ public class MemoryNSWithAuditFixtureTest {
         assertNotNull(oak);
 
         assertTrue("FT_OAK-12331 toggle + a 'security'-domain listener must be live; "
-                        + "AuditEvents.isEnabled() must return true",
-                AuditEvents.isEnabled());
+                        + "AuditDispatch.isEnabled() must return true",
+                AuditDispatch.isEnabled());
         assertTrue("Capture sites in UserManagerImpl gate on isEnabledFor('security'); "
                         + "must return true so audit-ON capture exercise the buffer path",
-                AuditEvents.isEnabledFor(SecurityAuditDomain.DOMAIN));
+                AuditDispatch.isEnabledFor(SecurityAuditDomain.DOMAIN));
     }
 
     @Test
@@ -70,23 +70,23 @@ public class MemoryNSWithAuditFixtureTest {
         assertTrue("cluster must contain the requested number of Oak instances",
                 cluster.length == 2);
 
-        assertTrue(AuditEvents.isEnabled());
-        assertTrue(AuditEvents.isEnabledFor(SecurityAuditDomain.DOMAIN));
+        assertTrue(AuditDispatch.isEnabled());
+        assertTrue(AuditDispatch.isEnabledFor(SecurityAuditDomain.DOMAIN));
     }
 
     @Test
     public void tearDownClusterDisposesAuditPipeline() throws Exception {
         fixture = OakFixture.getMemoryNSWithAudit(0);
         fixture.getOak(0);
-        assertTrue(AuditEvents.isEnabled());
+        assertTrue(AuditDispatch.isEnabled());
 
         fixture.tearDownCluster();
         fixture = null;
 
-        assertFalse("After tearDownCluster, AuditEvents must route to NOOP",
-                AuditEvents.isEnabled());
+        assertFalse("After tearDownCluster, AuditDispatch must route to NOOP",
+                AuditDispatch.isEnabled());
         assertFalse("Domain-scoped probe must also revert to NOOP",
-                AuditEvents.isEnabledFor(SecurityAuditDomain.DOMAIN));
+                AuditDispatch.isEnabledFor(SecurityAuditDomain.DOMAIN));
     }
 
     @Test

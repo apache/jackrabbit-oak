@@ -29,7 +29,6 @@ import org.junit.Test;
 import org.slf4j.event.Level;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -81,7 +80,7 @@ public class AuditBufferTest {
 
     @Test
     public void peekReturnsNullWhenNothingStaged() {
-        assertNull(buffer.peek(SESSION));
+        assertTrue(buffer.peek(SESSION).isEmpty());
     }
 
     @Test
@@ -125,12 +124,12 @@ public class AuditBufferTest {
         assertEquals(2, drained.size());
         assertSame(a, drained.get(0));
         assertSame(b, drained.get(1));
-        assertNull("session must be empty after drain", buffer.peek(SESSION));
+        assertTrue("session must be empty after drain", buffer.peek(SESSION).isEmpty());
     }
 
     @Test
     public void drainReturnsNullWhenNothingStaged() {
-        assertNull(buffer.drain(SESSION));
+        assertTrue(buffer.drain(SESSION).isEmpty());
     }
 
     @Test
@@ -139,7 +138,7 @@ public class AuditBufferTest {
         buffer.record(OTHER_SESSION, event(AuditType.of("x")));
 
         buffer.drain(SESSION);
-        assertNull(buffer.peek(SESSION));
+        assertTrue(buffer.peek(SESSION).isEmpty());
         assertEquals("other session must be untouched", 1, buffer.peek(OTHER_SESSION).size());
     }
 
@@ -149,14 +148,14 @@ public class AuditBufferTest {
     public void onRefreshDrainsSession() {
         buffer.record(SESSION, event(AuditType.of("a")));
         buffer.onRefresh(SESSION);
-        assertNull(buffer.peek(SESSION));
+        assertTrue(buffer.peek(SESSION).isEmpty());
     }
 
     @Test
     public void onCommitFailedDrainsSession() {
         buffer.record(SESSION, event(AuditType.of("a")));
         buffer.onCommitFailed(SESSION);
-        assertNull(buffer.peek(SESSION));
+        assertTrue(buffer.peek(SESSION).isEmpty());
     }
 
     @Test
@@ -164,8 +163,8 @@ public class AuditBufferTest {
         buffer.record(SESSION, event(AuditType.of("a")));
         buffer.record(OTHER_SESSION, event(AuditType.of("x")));
         buffer.clearAll();
-        assertNull(buffer.peek(SESSION));
-        assertNull(buffer.peek(OTHER_SESSION));
+        assertTrue(buffer.peek(SESSION).isEmpty());
+        assertTrue(buffer.peek(OTHER_SESSION).isEmpty());
     }
 
     //--------------------------------------------------< soft per-session cap >---
@@ -242,8 +241,8 @@ public class AuditBufferTest {
         other.start();
         other.join();
 
-        assertNull("another thread must not observe this thread's events", otherPeek.get());
-        assertNull("drain from another thread must return null", otherDrain.get());
+        assertTrue("another thread must not observe this thread's events", otherPeek.get().isEmpty());
+        assertTrue("drain from another thread must return empty", otherDrain.get().isEmpty());
         // The wrong-thread drain must not have touched this thread's slot.
         assertEquals("this thread's events must survive a wrong-thread drain",
                 1, buffer.peek(SESSION).size());

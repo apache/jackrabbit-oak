@@ -14,10 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.audit;
+package org.apache.jackrabbit.oak.spi.audit.impl;
 
 import java.util.Map;
 
+import org.apache.jackrabbit.oak.spi.audit.AuditDomain;
+import org.apache.jackrabbit.oak.spi.audit.AuditType;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -25,11 +27,11 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 
 /**
- * Unit tests for the package-private {@link AuditEventImpl} value holder.
- * <p>
- * Co-located in the same package as the impl so we can construct it
- * directly (it is not exposed in the SPI). The factory paths are covered
- * by {@link AuditEventTest}; this class focuses on the ctor + getters.
+ * Unit tests for the {@link AuditEventImpl} value holder, which backs the
+ * {@code AuditEvent.of} factories without being part of the exported SPI.
+ * The factory paths are covered by
+ * {@code org.apache.jackrabbit.oak.spi.audit.AuditEventTest}; this class
+ * focuses on the ctor + getters.
  */
 public class AuditEventImplTest {
 

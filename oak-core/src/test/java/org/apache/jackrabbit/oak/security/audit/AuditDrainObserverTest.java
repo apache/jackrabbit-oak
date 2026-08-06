@@ -45,7 +45,6 @@ import org.slf4j.event.Level;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -157,8 +156,8 @@ public class AuditDrainObserverTest {
 
         assertTrue("toggle-off must not invoke listeners",
                 listener.received.isEmpty());
-        assertNull("toggle-off must STILL drain the buffer (no toggle-flicker leak)",
-                buffer.peek(SESSION_ID));
+        assertTrue("toggle-off must STILL drain the buffer (no toggle-flicker leak)",
+                buffer.peek(SESSION_ID).isEmpty());
     }
 
     /**
@@ -196,8 +195,8 @@ public class AuditDrainObserverTest {
         // prevent leaking into a subsequent commit. Otherwise a buffer-full
         // session could re-dispatch the same events the next time a listener
         // got registered.
-        assertNull("drain must run even when no listeners are registered",
-                buffer.peek(SESSION_ID));
+        assertTrue("drain must run even when no listeners are registered",
+                buffer.peek(SESSION_ID).isEmpty());
     }
 
     //----------------------------------------------------------< grouping >---
@@ -502,8 +501,8 @@ public class AuditDrainObserverTest {
                 payload.containsKey(CommitMetadataDecorator.KEY_TIMESTAMP));
 
         // Buffer drained — events no longer staged for this session.
-        assertNull("buffer must be drained on successful dispatch",
-                buffer.peek(SESSION_ID));
+        assertTrue("buffer must be drained on successful dispatch",
+                buffer.peek(SESSION_ID).isEmpty());
     }
 
     //------------------------------------< immutable dispatch list >---
@@ -567,8 +566,8 @@ public class AuditDrainObserverTest {
         observer.contentChanged(ROOT, localCommit());
 
         assertTrue("toggle-off observer-fire must not dispatch", listener.received.isEmpty());
-        assertNull("E1 must be drained (not stranded) during the toggle-off window",
-                buffer.peek(SESSION_ID));
+        assertTrue("E1 must be drained (not stranded) during the toggle-off window",
+                buffer.peek(SESSION_ID).isEmpty());
 
         // Commit #2: toggle back ON, capture E2, observer fires. Only E2.
         setToggle(true);

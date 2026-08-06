@@ -63,12 +63,12 @@ import static org.junit.Assert.assertTrue;
  * End-to-end integration test for the AUDIT-SPI production wiring path.
  * <p>
  * Unlike {@link AuditPipelineTest} which records events directly via
- * {@code AuditEvents.record}, this test exercises the path that real Oak
+ * {@code AuditDispatch.record}, this test exercises the path that real Oak
  * consumers traverse:
  * <ol>
  *   <li>JCR {@link UserManager#createGroup(String)} → {@link Group#addMember(org.apache.jackrabbit.api.security.user.Authorizable)}.</li>
  *   <li>{@code UserManagerImpl.recordSingleMembershipAuditEvent} →
- *       {@code AuditEvents.record(root, UserAuditEvents.memberAdded(...))}.</li>
+ *       {@code AuditDispatch.record(root, UserAuditEvents.memberAdded(...))}.</li>
  *   <li>{@code AuditDrainObserver} (fires on commit success) → the registered
  *       listener.</li>
  * </ol>
@@ -283,7 +283,7 @@ public class AuditWiringTest {
 
     /**
      * With the feature toggle disabled, the capture-site
-     * {@code AuditEvents.isEnabled()} check in
+     * {@code AuditDispatch.isEnabled()} check in
      * {@code UserManagerImpl.recordSingleMembershipAuditEvent} short-circuits;
      * no event is delivered even though the group update succeeds.
      */

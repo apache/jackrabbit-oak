@@ -41,7 +41,7 @@ import org.apache.jackrabbit.oak.spi.audit.AuditDomain;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvent;
 import org.apache.jackrabbit.oak.spi.audit.AuditEventEmitter;
 import org.apache.jackrabbit.oak.spi.audit.AuditEventListener;
-import org.apache.jackrabbit.oak.spi.audit.AuditEvents;
+import org.apache.jackrabbit.oak.spi.audit.AuditDispatch;
 import org.apache.jackrabbit.oak.spi.audit.AuditType;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
@@ -234,7 +234,7 @@ public class AuditPipelineTest {
     public void commitAttachedEventCarriesCommitMetadata() throws Exception {
         try (ContentSession session = login()) {
             Root root = session.getLatestRoot();
-            AuditEvents.record(
+            AuditDispatch.record(
                     root, eventFor(DOMAIN, AuditType.of("commit.type"), Map.of("note", "v")));
             root.getTree("/").setProperty("scratch", "value");
             root.commit();
@@ -336,7 +336,7 @@ public class AuditPipelineTest {
         try (ContentSession session = repo2.login(adminCredentials(), null)) {
             // Stage E1, then force commit failure via the trigger property.
             Root r1 = session.getLatestRoot();
-            AuditEvents.record(
+            AuditDispatch.record(
                     r1, eventFor(DOMAIN, AuditType.of("discarded"),
                             Map.of("trace.id", "E1-from-failed-commit")));
             r1.getTree("/").setProperty("trigger-failure", "boom");
@@ -349,7 +349,7 @@ public class AuditPipelineTest {
 
             // Subsequent successful commit on the SAME session.
             Root r2 = session.getLatestRoot();
-            AuditEvents.record(
+            AuditDispatch.record(
                     r2, eventFor(DOMAIN, AuditType.of("delivered"),
                             Map.of("trace.id", "E2-from-successful-commit")));
             r2.getTree("/").setProperty("scratch", "value");
@@ -378,14 +378,14 @@ public class AuditPipelineTest {
     public void refreshDiscardsStagedEvents() throws Exception {
         try (ContentSession session = login()) {
             Root r1 = session.getLatestRoot();
-            AuditEvents.record(
+            AuditDispatch.record(
                     r1, eventFor(DOMAIN, AuditType.of("discarded"),
                             Map.of("trace.id", "E1-discarded-by-refresh")));
             r1.refresh();
 
             // After refresh, dispatch a fresh event and commit.
             Root r2 = session.getLatestRoot();
-            AuditEvents.record(
+            AuditDispatch.record(
                     r2, eventFor(DOMAIN, AuditType.of("delivered"),
                             Map.of("trace.id", "E2-after-refresh")));
             r2.getTree("/").setProperty("scratch", "v");
@@ -415,13 +415,13 @@ public class AuditPipelineTest {
     public void rebasePreservesStagedEvents() throws Exception {
         try (ContentSession session = login()) {
             Root r1 = session.getLatestRoot();
-            AuditEvents.record(
+            AuditDispatch.record(
                     r1, eventFor(DOMAIN, AuditType.of("preserved"),
                             Map.of("trace.id", "E1-survives-rebase")));
             r1.rebase();
 
             Root r2 = session.getLatestRoot();
-            AuditEvents.record(
+            AuditDispatch.record(
                     r2, eventFor(DOMAIN, AuditType.of("delivered"),
                             Map.of("trace.id", "E2-after-rebase")));
             r2.getTree("/").setProperty("scratch", "v");
@@ -464,14 +464,14 @@ public class AuditPipelineTest {
      * {@code MutableRoot.refresh()} ALWAYS calling
      * {@code AuditBufferLifecycle.onRefresh(sessionId)} — without the
      * gate that an earlier iteration added on
-     * {@code AuditEvents.isEnabled()}.
+     * {@code AuditDispatch.isEnabled()}.
      */
     @Test
     public void refreshDiscardsStagedEventsAcrossToggleFlicker() throws Exception {
         try (ContentSession session = login()) {
             // Capture E1 with gate=ON.
             Root r1 = session.getLatestRoot();
-            AuditEvents.record(
+            AuditDispatch.record(
                     r1, eventFor(DOMAIN, AuditType.of("staged-by-r1"),
                             Map.of("trace.id", "E1-must-not-leak-via-toggle")));
 
@@ -487,7 +487,7 @@ public class AuditPipelineTest {
 
             // Capture E2 and commit on the SAME session.
             Root r2 = session.getLatestRoot();
-            AuditEvents.record(
+            AuditDispatch.record(
                     r2, eventFor(DOMAIN, AuditType.of("delivered-by-r2"),
                             Map.of("trace.id", "E2-current")));
             r2.getTree("/").setProperty("scratch", "v");
@@ -516,7 +516,7 @@ public class AuditPipelineTest {
     public void rebasePreservesStagedEventsAcrossToggleFlicker() throws Exception {
         try (ContentSession session = login()) {
             Root r1 = session.getLatestRoot();
-            AuditEvents.record(
+            AuditDispatch.record(
                     r1, eventFor(DOMAIN, AuditType.of("staged-by-r1"),
                             Map.of("trace.id", "E1-survives-rebase-toggle")));
 
@@ -525,7 +525,7 @@ public class AuditPipelineTest {
             setToggle(true);
 
             Root r2 = session.getLatestRoot();
-            AuditEvents.record(
+            AuditDispatch.record(
                     r2, eventFor(DOMAIN, AuditType.of("delivered-by-r2"),
                             Map.of("trace.id", "E2-current")));
             r2.getTree("/").setProperty("scratch", "v");
@@ -560,7 +560,7 @@ public class AuditPipelineTest {
         try (ContentSession session = repo2.login(adminCredentials(), null)) {
             // Capture E1 with gate=ON.
             Root r1 = session.getLatestRoot();
-            AuditEvents.record(
+            AuditDispatch.record(
                     r1, eventFor(DOMAIN, AuditType.of("staged-by-failed-r1"),
                             Map.of("trace.id", "E1-must-not-leak-via-toggle-failure")));
 
@@ -580,7 +580,7 @@ public class AuditPipelineTest {
             setToggle(true);
 
             Root r2 = session.getLatestRoot();
-            AuditEvents.record(
+            AuditDispatch.record(
                     r2, eventFor(DOMAIN, AuditType.of("delivered-by-r2"),
                             Map.of("trace.id", "E2-current")));
             r2.getTree("/").setProperty("scratch", "v");
@@ -601,7 +601,7 @@ public class AuditPipelineTest {
     /**
      * Listener-churn variant of {@link #refreshDiscardsStagedEventsAcrossToggleFlicker}.
      * The sole registered listener deregisters between capture and
-     * refresh, flipping {@code AuditEvents.isEnabled()} via the
+     * refresh, flipping {@code AuditDispatch.isEnabled()} via the
      * {@code registry.hasAnyListener()} factor. A fresh listener
      * re-registers (writing to the same {@code received} collection)
      * before the next commit. Verifies the gate-OFF source doesn't
@@ -611,7 +611,7 @@ public class AuditPipelineTest {
     public void refreshDiscardsStagedEventsAcrossListenerChurn() throws Exception {
         try (ContentSession session = login()) {
             Root r1 = session.getLatestRoot();
-            AuditEvents.record(
+            AuditDispatch.record(
                     r1, eventFor(DOMAIN, AuditType.of("staged-by-r1"),
                             Map.of("trace.id", "E1-must-not-leak-via-listener-churn")));
 
@@ -632,7 +632,7 @@ public class AuditPipelineTest {
                     }, Map.of());
 
             Root r2 = session.getLatestRoot();
-            AuditEvents.record(
+            AuditDispatch.record(
                     r2, eventFor(DOMAIN, AuditType.of("delivered-by-r2"),
                             Map.of("trace.id", "E2-current")));
             r2.getTree("/").setProperty("scratch", "v");
@@ -655,7 +655,7 @@ public class AuditPipelineTest {
     public void rebasePreservesStagedEventsAcrossListenerChurn() throws Exception {
         try (ContentSession session = login()) {
             Root r1 = session.getLatestRoot();
-            AuditEvents.record(
+            AuditDispatch.record(
                     r1, eventFor(DOMAIN, AuditType.of("staged-by-r1"),
                             Map.of("trace.id", "E1-survives-rebase-churn")));
 
@@ -670,7 +670,7 @@ public class AuditPipelineTest {
                     }, Map.of());
 
             Root r2 = session.getLatestRoot();
-            AuditEvents.record(
+            AuditDispatch.record(
                     r2, eventFor(DOMAIN, AuditType.of("delivered-by-r2"),
                             Map.of("trace.id", "E2-current")));
             r2.getTree("/").setProperty("scratch", "v");
@@ -700,7 +700,7 @@ public class AuditPipelineTest {
                 .createContentRepository();
         try (ContentSession session = repo2.login(adminCredentials(), null)) {
             Root r1 = session.getLatestRoot();
-            AuditEvents.record(
+            AuditDispatch.record(
                     r1, eventFor(DOMAIN, AuditType.of("staged-by-failed-r1"),
                             Map.of("trace.id", "E1-must-not-leak-via-listener-churn-failure")));
 
@@ -721,7 +721,7 @@ public class AuditPipelineTest {
                     }, Map.of());
 
             Root r2 = session.getLatestRoot();
-            AuditEvents.record(
+            AuditDispatch.record(
                     r2, eventFor(DOMAIN, AuditType.of("delivered-by-r2"),
                             Map.of("trace.id", "E2-current")));
             r2.getTree("/").setProperty("scratch", "v");
@@ -759,7 +759,7 @@ public class AuditPipelineTest {
         // Commit-attached path:
         try (ContentSession session = login()) {
             Root root = session.getLatestRoot();
-            AuditEvents.record(
+            AuditDispatch.record(
                     root, eventFor(DOMAIN, AuditType.of("commit.type"), Map.of()));
             root.getTree("/").setProperty("scratch", "v");
             root.commit();
@@ -786,11 +786,11 @@ public class AuditPipelineTest {
                 otherListener, Map.of());
         try (ContentSession session = login()) {
             Root root = session.getLatestRoot();
-            AuditEvents.record(
+            AuditDispatch.record(
                     root, eventFor(DOMAIN, AuditType.of("a-1"), Map.of()));
-            AuditEvents.record(
+            AuditDispatch.record(
                     root, eventFor(OTHER_DOMAIN, AuditType.of("b-1"), Map.of()));
-            AuditEvents.record(
+            AuditDispatch.record(
                     root, eventFor(DOMAIN, AuditType.of("a-2"), Map.of()));
             root.getTree("/").setProperty("scratch", "v");
             root.commit();
@@ -821,14 +821,14 @@ public class AuditPipelineTest {
         try (ContentSession session = login()) {
             // Commit #1: record E1, commit.
             Root r1 = session.getLatestRoot();
-            AuditEvents.record(
+            AuditDispatch.record(
                     r1, eventFor(DOMAIN, AuditType.of("e1"), Map.of("trace.id", "E1")));
             r1.getTree("/").setProperty("scratch1", "v");
             r1.commit();
 
             // Commit #2 on the same session: record E2, commit.
             Root r2 = session.getLatestRoot();
-            AuditEvents.record(
+            AuditDispatch.record(
                     r2, eventFor(DOMAIN, AuditType.of("e2"), Map.of("trace.id", "E2")));
             r2.getTree("/").setProperty("scratch2", "v");
             r2.commit();
@@ -872,7 +872,7 @@ public class AuditPipelineTest {
         Registration regB = whiteboard.register(AuditEventListener.class, okB, Map.of());
         try (ContentSession session = login()) {
             Root root = session.getLatestRoot();
-            AuditEvents.record(
+            AuditDispatch.record(
                     root, eventFor(DOMAIN, AuditType.of("x"), Map.of()));
             root.getTree("/").setProperty("scratch", "v");
             root.commit();
@@ -915,7 +915,7 @@ public class AuditPipelineTest {
         Registration regB = whiteboard.register(AuditEventListener.class, okB, Map.of());
         try (ContentSession session = login()) {
             Root root = session.getLatestRoot();
-            AuditEvents.record(
+            AuditDispatch.record(
                     root, eventFor(DOMAIN, AuditType.of("x"), Map.of()));
             root.getTree("/").setProperty("scratch", "v");
             root.commit();
@@ -1104,7 +1104,7 @@ public class AuditPipelineTest {
 
             try (ContentSession session = login()) {
                 Root root = session.getLatestRoot();
-                AuditEvents.record(root, counterPoison);
+                AuditDispatch.record(root, counterPoison);
                 root.getTree("/").setProperty("scratch-masquerade", "v");
 
                 // The CORE assertion — Root.commit() MUST return normally.
@@ -1139,7 +1139,7 @@ public class AuditPipelineTest {
      * {@code :569} use — drive {@code NodeStore.merge(...)} directly with
      * {@link CommitInfo#EMPTY}, bypassing {@code MutableRoot}. None of the
      * capture sites ({@code UserManagerImpl.recordSingleMembershipAuditEvent},
-     * fire-and-forget {@link AuditEvents#dispatch}) are reached by such
+     * fire-and-forget {@link AuditDispatch#dispatch}) are reached by such
      * commits, so the per-session buffer remains empty for the migration's
      * synthetic {@code CommitInfo.OAK_UNKNOWN} session id.
      * <p>

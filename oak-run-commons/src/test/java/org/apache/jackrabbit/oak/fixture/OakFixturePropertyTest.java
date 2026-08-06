@@ -22,7 +22,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.spi.audit.AuditBufferLifecycle;
-import org.apache.jackrabbit.oak.spi.audit.AuditEvents;
+import org.apache.jackrabbit.oak.spi.audit.AuditDispatch;
 import org.apache.jackrabbit.oak.spi.security.audit.SecurityAuditDomain;
 import org.junit.After;
 import org.junit.Before;
@@ -37,7 +37,7 @@ import org.junit.Test;
  * branch that lets existing benchmarks opt into audit without switching
  * methods.
  * <p>
- * Both {@link AuditEvents#install} and {@link AuditBufferLifecycle#install}
+ * Both {@link AuditDispatch#install} and {@link AuditBufferLifecycle#install}
  * mutate JVM-static state, so the tests defensively reset both in
  * {@link #before()} / {@link #after()} on top of the per-test
  * {@code fixture.tearDownCluster()} call (which calls
@@ -56,7 +56,7 @@ public class OakFixturePropertyTest {
         System.clearProperty(OakFixture.AUDIT_ENABLED_PROPERTY);
         // Hermetic baseline: NOOP both global façades before each test,
         // regardless of any upstream test's cleanup quality.
-        AuditEvents.install(null);
+        AuditDispatch.install(null);
         AuditBufferLifecycle.install(null);
     }
 
@@ -77,7 +77,7 @@ public class OakFixturePropertyTest {
             }
             // Belt-and-braces: even if tearDownCluster() somehow left a
             // façade installed, force both back to NOOP.
-            AuditEvents.install(null);
+            AuditDispatch.install(null);
             AuditBufferLifecycle.install(null);
         }
     }
@@ -95,9 +95,9 @@ public class OakFixturePropertyTest {
         assertNotNull(oak);
 
         assertFalse("default getMemoryNS(0) without the property must be audit-OFF",
-                AuditEvents.isEnabled());
+                AuditDispatch.isEnabled());
         assertFalse("audit must remain OFF for every domain probe",
-                AuditEvents.isEnabledFor(SecurityAuditDomain.DOMAIN));
+                AuditDispatch.isEnabledFor(SecurityAuditDomain.DOMAIN));
     }
 
     /**
@@ -117,11 +117,11 @@ public class OakFixturePropertyTest {
         assertNotNull(oak);
 
         assertTrue("getMemoryNS(0) with -Doak.audit.enabled=true must wire the audit pipeline; "
-                        + "AuditEvents.isEnabled() must return true",
-                AuditEvents.isEnabled());
+                        + "AuditDispatch.isEnabled() must return true",
+                AuditDispatch.isEnabled());
         assertTrue("the security-domain listener must be live so capture sites in "
                         + "UserManagerImpl actually allocate / buffer / dispatch events",
-                AuditEvents.isEnabledFor(SecurityAuditDomain.DOMAIN));
+                AuditDispatch.isEnabledFor(SecurityAuditDomain.DOMAIN));
     }
 
     /**
@@ -139,7 +139,7 @@ public class OakFixturePropertyTest {
         assertNotNull(oak);
 
         assertFalse("getMemoryNS(0) with -Doak.audit.enabled=false must stay audit-OFF",
-                AuditEvents.isEnabled());
+                AuditDispatch.isEnabled());
     }
 
     /**
@@ -163,6 +163,6 @@ public class OakFixturePropertyTest {
 
         assertFalse("property mutation after construction must not retroactively "
                         + "enable audit on this fixture",
-                AuditEvents.isEnabled());
+                AuditDispatch.isEnabled());
     }
 }

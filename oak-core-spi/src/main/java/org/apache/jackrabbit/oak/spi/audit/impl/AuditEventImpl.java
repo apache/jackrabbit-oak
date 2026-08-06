@@ -14,38 +14,47 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.audit;
+package org.apache.jackrabbit.oak.spi.audit.impl;
 
 import java.util.Map;
 
+import org.apache.jackrabbit.oak.spi.audit.AuditDomain;
+import org.apache.jackrabbit.oak.spi.audit.AuditEvent;
+import org.apache.jackrabbit.oak.spi.audit.AuditType;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Package-private immutable {@link AuditEvent} backing the
+ * Immutable {@link AuditEvent} backing the
  * {@link AuditEvent#of(AuditDomain, AuditType, Map) AuditEvent.of} static
  * factories.
  * <p>
- * Not part of the SPI surface — consumers always see the bare
- * {@code AuditEvent} interface. Keeping the impl package-private is the
- * core of item 3 (drop typed event hierarchy): consumers cannot
- * {@code instanceof}-check or downcast; discrimination is via
+ * Not part of the SPI surface. This package is deliberately left out of the
+ * bundle's {@code Export-Package}, so the class is unreachable outside
+ * {@code oak-core-spi} despite being {@code public} — it has to be public
+ * for {@code AuditEvent.of} in the parent package to construct it. Sitting
+ * outside the exported package also keeps edits here from moving that
+ * package's baseline version, which BND computes per package rather than
+ * per class.
+ * <p>
+ * Consumers always see the bare {@code AuditEvent} interface: they cannot
+ * {@code instanceof}-check or downcast, and discriminate via
  * {@link AuditEvent#getDomain()} + {@link AuditEvent#getType()}.
  * <p>
  * The {@code payload} Map is expected to already be immutable (the factory
  * runs {@link Map#copyOf} before constructing the impl); the constructor
  * stores it by reference.
  */
-final class AuditEventImpl implements AuditEvent {
+public final class AuditEventImpl implements AuditEvent {
 
     private final AuditDomain domain;
     private final AuditType type;
     private final long timestamp;
     private final Map<String, Object> payload;
 
-    AuditEventImpl(@NotNull AuditDomain domain,
-                   @NotNull AuditType type,
-                   long timestamp,
-                   @NotNull Map<String, Object> payload) {
+    public AuditEventImpl(@NotNull AuditDomain domain,
+                          @NotNull AuditType type,
+                          long timestamp,
+                          @NotNull Map<String, Object> payload) {
         this.domain = domain;
         this.type = type;
         this.timestamp = timestamp;

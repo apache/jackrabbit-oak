@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.spi.audit.AuditConfiguration;
 import org.apache.jackrabbit.oak.spi.audit.AuditDomain;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvent;
 import org.apache.jackrabbit.oak.spi.audit.AuditEventListener;
-import org.apache.jackrabbit.oak.spi.audit.AuditEvents;
+import org.apache.jackrabbit.oak.spi.audit.AuditDispatch;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
  *     <li>Registers a {@link Feature} toggle gating capture and dispatch.</li>
  *     <li>Installs a per-session buffer ({@link AuditBuffer}) into
  *     {@link AuditBufferLifecycle}.</li>
- *     <li>Installs the {@link AuditEvents} sink that routes capture-site
+ *     <li>Installs the {@link AuditDispatch} sink that routes capture-site
  *     calls into the buffer.</li>
  *     <li>Tracks {@code AuditEventListener} services on the Whiteboard
  *     via {@link WhiteboardAuditEventListenerRegistry}.</li>
@@ -69,7 +69,7 @@ import org.slf4j.LoggerFactory;
  * {@link #initialize(Whiteboard)} returns, and stays wired until
  * {@link #dispose()}. The feature toggle decides whether capture and dispatch
  * actually do anything: with it disabled, capture is a no-op and the observer
- * short-circuits (see {@link AuditEvents#isEnabled()} and
+ * short-circuits (see {@link AuditDispatch#isEnabled()} and
  * {@link AuditDrainObserver#contentChanged}). {@link #isActive()} is narrower
  * still — it reports {@code true} only when the toggle is enabled
  * <strong>and</strong> at least one listener is registered, so a wired
@@ -103,8 +103,8 @@ public class AuditPipeline implements AuditConfiguration {
     // they are mutated only by initialize(Whiteboard) and dispose(), which
     // the contract specifies must each run exactly once and on the same
     // thread; reads happen either
-    //   (a) on that same thread — the static AuditEvents.record / dispatch
-    //       facade reads through the AuditEvents.sink field (itself volatile,
+    //   (a) on that same thread — the static AuditDispatch.record / dispatch
+    //       facade reads through the AuditDispatch.sink field (itself volatile,
     //       providing the publication barrier), and getDrainObserver() is
     //       called by activate() on the SCR thread AFTER initialize() on the
     //       SCR thread; or
@@ -188,13 +188,13 @@ public class AuditPipeline implements AuditConfiguration {
      * <strong>Must be called exactly once per instance.</strong> Calling
      * it more than once orphans the previous {@code Feature} toggle and
      * registry tracker, and silently overwrites the static
-     * {@link AuditEvents} / {@link AuditBufferLifecycle} sinks. To rewire,
+     * {@link AuditDispatch} / {@link AuditBufferLifecycle} sinks. To rewire,
      * call {@link #dispose()} first.
      * <p>
      * <strong>Activation ordering rationale.</strong>
      * {@link AuditBufferLifecycle#install AuditBufferLifecycle.install(buffer)}
      * runs before
-     * {@link AuditEvents#install AuditEvents.install(BufferSink)} so that any
+     * {@link AuditDispatch#install AuditDispatch.install(BufferSink)} so that any
      * concurrent capture arriving in the install window goes through the
      * NOOP sink (no buffer write) rather than through a live {@code BufferSink}
      * with an orphaned lifecycle handle. The inverse ordering would minimize
@@ -221,7 +221,7 @@ public class AuditPipeline implements AuditConfiguration {
         buffer = new AuditBuffer(monitor);
         AuditBufferLifecycle.install(buffer);
 
-        AuditEvents.install(new BufferSink(featureToggle, registry, buffer, monitor));
+        AuditDispatch.install(new BufferSink(featureToggle, registry, buffer, monitor));
 
         // Constructed last so the observer exists before activate() publishes
         // it as a service: ObserverTracker subscribes on a background thread
@@ -343,7 +343,7 @@ public class AuditPipeline implements AuditConfiguration {
                             "direct callers must unregister first.");
         }
 
-        // 1. Close the feature toggle FIRST. AuditEvents.isEnabled()
+        // 1. Close the feature toggle FIRST. AuditDispatch.isEnabled()
         //    immediately returns false, so any new capture-site call
         //    that races with deactivation short-circuits before reaching
         //    the buffer (which we're about to dismantle).
@@ -366,13 +366,13 @@ public class AuditPipeline implements AuditConfiguration {
                 registry = null;
             }
         }
-        // 3. Route AuditEvents/AuditBufferLifecycle to NOOP. Now even
+        // 3. Route AuditDispatch/AuditBufferLifecycle to NOOP. Now even
         //    callers that already passed the isEnabled() gate land on
         //    no-ops.
         try {
-            AuditEvents.install(null);
+            AuditDispatch.install(null);
         } catch (RuntimeException e) {
-            log.warn("Audit deactivate: AuditEvents.install(null) failed; continuing.", e);
+            log.warn("Audit deactivate: AuditDispatch.install(null) failed; continuing.", e);
         }
         try {
             AuditBufferLifecycle.install(null);
@@ -404,9 +404,9 @@ public class AuditPipeline implements AuditConfiguration {
     //------------------------------------------------< AuditConfiguration >---
 
     /**
-     * Delegates to {@link AuditEvents#isEnabled()} — the single source of
+     * Delegates to {@link AuditDispatch#isEnabled()} — the single source of
      * truth for "is the audit pipeline up?". The static
-     * {@code AuditEvents.sink} field is {@code volatile}, so any thread
+     * {@code AuditDispatch.sink} field is {@code volatile}, so any thread
      * reading {@code isActive()} sees a JMM-safe value without depending
      * on the OSGi activation publication barrier.
      * <p>
@@ -418,18 +418,18 @@ public class AuditPipeline implements AuditConfiguration {
      */
     @Override
     public boolean isActive() {
-        return AuditEvents.isEnabled();
+        return AuditDispatch.isEnabled();
     }
 
     //-----------------------------------------------------------< internal >---
     /**
-     * Composite gate exposed to capture sites via {@link AuditEvents}.
+     * Composite gate exposed to capture sites via {@link AuditDispatch}.
      * Both predicates ({@link Feature#isEnabled()} and
      * {@link WhiteboardAuditEventListenerRegistry#hasAnyListener()}) are
      * single volatile reads; together they keep the disabled path free
      * of allocation.
      */
-    private static final class BufferSink implements AuditEvents.Sink {
+    private static final class BufferSink implements AuditDispatch.Sink {
 
         private final Feature toggle;
         private final WhiteboardAuditEventListenerRegistry registry;

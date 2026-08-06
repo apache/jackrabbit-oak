@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.audit.AuditDomain;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvent;
 import org.apache.jackrabbit.oak.spi.audit.AuditEventListener;
-import org.apache.jackrabbit.oak.spi.audit.AuditEvents;
+import org.apache.jackrabbit.oak.spi.audit.AuditDispatch;
 import org.apache.jackrabbit.oak.spi.audit.AuditType;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -77,7 +77,7 @@ import static org.junit.Assert.assertEquals;
  * Mongo-available check) variants belong in a module that already depends on
  * those stores — {@code oak-jcr} or {@code oak-it}. The audit wiring used
  * here is fully public ({@link AuditPipeline#initialize},
- * {@link AuditPipeline#getDrainObserver}, {@link AuditEvents},
+ * {@link AuditPipeline#getDrainObserver}, {@link AuditDispatch},
  * {@link AuditEventListener}), so this class can be lifted there as-is and
  * the extra fixtures added to {@link #fixtures()}. The DOCUMENT_NS row will
  * additionally need to await asynchronous dispatch (the drain observer is
@@ -205,7 +205,7 @@ public class AuditFixtureTest {
     public void recordedEventReachesListenerWithCommitSessionId() throws Exception {
         try (ContentSession session = repository.login(adminCredentials(), null)) {
             Root root = session.getLatestRoot();
-            AuditEvents.record(root, eventFor(AuditType.of("commit.type"), Map.of("note", "v")));
+            AuditDispatch.record(root, eventFor(AuditType.of("commit.type"), Map.of("note", "v")));
             root.getTree("/").setProperty("scratch", "value");
             root.commit();
 

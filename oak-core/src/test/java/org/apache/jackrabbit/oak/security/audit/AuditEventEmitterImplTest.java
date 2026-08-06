@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.audit.AuditDomain;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvent;
-import org.apache.jackrabbit.oak.spi.audit.AuditEvents;
+import org.apache.jackrabbit.oak.spi.audit.AuditDispatch;
 import org.apache.jackrabbit.oak.spi.audit.AuditType;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
@@ -41,7 +41,7 @@ public class AuditEventEmitterImplTest {
     @Before
     public void installSink() {
         dispatched = new AtomicReference<>();
-        AuditEvents.install(new AuditEvents.Sink() {
+        AuditDispatch.install(new AuditDispatch.Sink() {
             @Override public boolean isEnabled() { return true; }
             @Override public boolean isEnabledFor(@NotNull AuditDomain domain) { return "yes".equals(domain.name()); }
             @Override public void record(@NotNull Root root, @NotNull AuditEvent event) { /* unused */ }
@@ -51,7 +51,7 @@ public class AuditEventEmitterImplTest {
 
     @After
     public void tearDown() {
-        AuditEvents.install(null);
+        AuditDispatch.install(null);
     }
 
     private static AuditEvent fixedEvent(@NotNull AuditDomain domain) {

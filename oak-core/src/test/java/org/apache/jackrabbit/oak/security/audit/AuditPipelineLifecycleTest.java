@@ -118,7 +118,7 @@ public class AuditPipelineLifecycleTest {
 
     @After
     public void tearDown() {
-        // Always dispose to reset the static AuditEvents.sink to NOOP — keeps
+        // Always dispose to reset the static AuditDispatch.sink to NOOP — keeps
         // tests isolated from each other even though they share the static
         // façade. Safe to call even if initialize() was never invoked
         // (each step in dispose() guards against null state).
@@ -345,7 +345,7 @@ public class AuditPipelineLifecycleTest {
             // here; the misuse-case path already left fields half-initialized
             // and another dispose call would compound the test's leak. Letting
             // the AuditPipeline instance go out of scope is enough —
-            // the static AuditEvents/AuditBufferLifecycle sinks need explicit
+            // the static AuditDispatch/AuditBufferLifecycle sinks need explicit
             // cleanup though.
             audit.observerRegistration = null;
             audit.dispose();

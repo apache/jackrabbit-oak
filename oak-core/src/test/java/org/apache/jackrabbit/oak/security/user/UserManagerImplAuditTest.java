@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.spi.audit.AuditDomain;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvent;
-import org.apache.jackrabbit.oak.spi.audit.AuditEvents;
+import org.apache.jackrabbit.oak.spi.audit.AuditDispatch;
 import org.apache.jackrabbit.oak.spi.audit.AuditType;
 import org.apache.jackrabbit.oak.spi.security.audit.SecurityAuditDomain;
 import org.apache.jackrabbit.oak.spi.security.user.UserAuditTypes;
@@ -57,7 +57,7 @@ import static org.junit.Assert.assertTrue;
  * not satisfy the unit-test coverage gate that applies to
  * {@code org.apache.jackrabbit.oak.security.user}.
  * <p>
- * This test installs a stub {@link AuditEvents.Sink} so the capture sites
+ * This test installs a stub {@link AuditDispatch.Sink} so the capture sites
  * exercise their on-path branches (toggle-on, isRemove true/false, single
  * vs bulk, RepositoryException catch) directly. No commit hooks needed.
  * <p>
@@ -76,7 +76,7 @@ public class UserManagerImplAuditTest extends AbstractSecurityTest {
     @Before
     public void installStubSink() {
         recordedEvents.clear();
-        AuditEvents.install(new AuditEvents.Sink() {
+        AuditDispatch.install(new AuditDispatch.Sink() {
             @Override
             public boolean isEnabled() {
                 return true;
@@ -101,7 +101,7 @@ public class UserManagerImplAuditTest extends AbstractSecurityTest {
 
     @After
     public void resetSink() {
-        AuditEvents.install(null);
+        AuditDispatch.install(null);
     }
 
     @Test
@@ -197,7 +197,7 @@ public class UserManagerImplAuditTest extends AbstractSecurityTest {
     @Test
     public void auditDisabledShortCircuitsCapture() throws Exception {
         // Sink reports disabled — capture sites must short-circuit before record().
-        AuditEvents.install(new AuditEvents.Sink() {
+        AuditDispatch.install(new AuditDispatch.Sink() {
             @Override public boolean isEnabled() { return false; }
             @Override public boolean isEnabledFor(@NotNull AuditDomain domain) { return false; }
             @Override public void record(@NotNull Root r, @NotNull AuditEvent event) {
@@ -228,7 +228,7 @@ public class UserManagerImplAuditTest extends AbstractSecurityTest {
         // skip entirely — no event built, no path resolution, no record().
         // Reverting the guard to the coarse isEnabled() would capture here, so
         // this test fails on such a regression.
-        AuditEvents.install(new AuditEvents.Sink() {
+        AuditDispatch.install(new AuditDispatch.Sink() {
             @Override public boolean isEnabled() { return true; }
             @Override public boolean isEnabledFor(@NotNull AuditDomain domain) { return false; }
             @Override public void record(@NotNull Root r, @NotNull AuditEvent event) {

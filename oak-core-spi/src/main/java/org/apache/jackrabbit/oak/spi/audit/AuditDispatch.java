@@ -27,7 +27,7 @@ import org.jetbrains.annotations.Nullable;
  * when no module is deployed (or the feature toggle is off) it short-circuits
  * with zero allocation.
  */
-public final class AuditEvents {
+public final class AuditDispatch {
 
     /**
      * Sink contract implemented by the audit module. Installed via
@@ -76,7 +76,7 @@ public final class AuditEvents {
 
     private static volatile Sink sink = NOOP;
 
-    private AuditEvents() {
+    private AuditDispatch() {
         // utility class
     }
 

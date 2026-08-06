@@ -19,13 +19,13 @@ package org.apache.jackrabbit.oak.security.audit;
 import org.apache.jackrabbit.oak.spi.audit.AuditDomain;
 import org.apache.jackrabbit.oak.spi.audit.AuditEvent;
 import org.apache.jackrabbit.oak.spi.audit.AuditEventEmitter;
-import org.apache.jackrabbit.oak.spi.audit.AuditEvents;
+import org.apache.jackrabbit.oak.spi.audit.AuditDispatch;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Component;
 
 /**
  * OSGi service implementation of {@link AuditEventEmitter}. Thin wrapper
- * around the static {@link AuditEvents} façade so consumer bundles do not
+ * around the static {@link AuditDispatch} façade so consumer bundles do not
  * need to know about the façade.
  * <p>
  * A single instance is registered per OSGi container at activation of
@@ -37,11 +37,11 @@ public class AuditEventEmitterImpl implements AuditEventEmitter {
 
     @Override
     public void emit(@NotNull AuditEvent event) {
-        AuditEvents.dispatch(event);
+        AuditDispatch.dispatch(event);
     }
 
     @Override
     public boolean isEnabledFor(@NotNull AuditDomain domain) {
-        return AuditEvents.isEnabledFor(domain);
+        return AuditDispatch.isEnabledFor(domain);
     }
 }
