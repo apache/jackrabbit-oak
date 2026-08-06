@@ -152,6 +152,7 @@
                 http://jackrabbit.apache.org/oak/
               </Bundle-DocURL>
               <Bundle-Vendor>The Apache Software Foundation</Bundle-Vendor>
+              <Bundle-SCM>url=${project.scm.url}, connection=${project.scm.connection}, developerConnection=${project.scm.developerConnection}, tag=${project.scm.tag}</Bundle-SCM>
               <!-- Don't default to bundle version for packages without explicit export version.
                    See FELIX-5172 -->
               <_nodefaultversion>true</_nodefaultversion>
