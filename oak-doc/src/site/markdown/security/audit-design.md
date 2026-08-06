@@ -41,7 +41,7 @@ site, as distinct from a bundle emitting its own events.
 There are two delivery paths:
 
 - **Commit-attached.** Oak-internal capture sites (e.g. `UserManagerImpl`)
-  call `AuditEvents.record(root, event)`. Events land in a per-session
+  call `AuditDispatch.record(root, event)`. Events land in a per-session
   `ThreadLocal` buffer (`AuditBuffer`), and a `NodeStore` `Observer`
   (`AuditDrainObserver`) drains and dispatches them once the following
   commit has durably persisted, whether the caller issued that commit
@@ -64,7 +64,7 @@ others.
 
 Pipeline state is owned by `AuditPipeline` in `oak-core`, which
 holds the feature toggle, the buffer, the listener registry, the sink
-installed into the `AuditEvents` facade, and the singleton drain observer.
+installed into the `AuditDispatch` facade, and the singleton drain observer.
 It is registered as an OSGi service of type `AuditConfiguration`. Audit is a
 top-level Oak concern, not a `SecurityConfiguration`.
 
@@ -147,10 +147,19 @@ Package `org.apache.jackrabbit.oak.spi.audit` holds the domain-neutral SPI:
 | `AuditDomain` / `AuditType` | Value types wrapping the domain and type strings, created via `of(name)` and validated there. |
 | `AuditEventListener` | Consumer SPI: `onEvents(List<AuditEvent>)`, scoped to one domain via `getDomain()`, ordered by `getRank()`. |
 | `AuditEventEmitter` | OSGi service surface for fire-and-forget emission from any bundle. |
-| `AuditEvents` | Static facade: `record(root, event)` and `dispatch(event)`, routing to the installed `Sink`; `isEnabled()` / `isEnabledFor(domain)` gates. |
-| `AuditEvents.Sink` | SPI implemented by the pipeline. `AuditPipeline` installs a `BufferSink`. |
+| `AuditDispatch` | Static facade: `record(root, event)` and `dispatch(event)`, routing to the installed `Sink`; `isEnabled()` / `isEnabledFor(domain)` gates. |
+| `AuditDispatch.Sink` | SPI implemented by the pipeline. `AuditPipeline` installs a `BufferSink`. |
 | `AuditBufferLifecycle` | Session lifecycle callouts: drain on refresh and on commit failure. |
 | `AuditConfiguration` | Typed handle on pipeline state (`isActive()`, `NOOP`). |
+
+One class in the package is not part of the SPI: `AuditEventImpl`, the
+immutable holder behind `AuditEvent.of(...)`. It lives in
+`org.apache.jackrabbit.oak.spi.audit.impl`, which is absent from the
+bundle's `Export-Package`, so it is unreachable outside `oak-core-spi`
+despite being `public`. It has to be public because the factory that builds
+it sits on the interface in the parent package. Keeping it out of the
+exported package also keeps edits to it from moving that package's baseline
+version, which BND computes per package rather than per class.
 
 Domain and type are value types rather than bare strings so the constraint
 on them has somewhere to live. A listener that persists events into the
@@ -172,7 +181,7 @@ consumer bundles define their own.
 `AuditConfiguration.isActive()` returns `true` when the feature toggle is
 enabled and at least one listener is registered. The two predicates AND
 together so a deployed-but-unused pipeline reports `false`, matching the
-no-allocation semantics of `AuditEvents.isEnabled()`. Both read the same
+no-allocation semantics of `AuditDispatch.isEnabled()`. Both read the same
 volatile sink state, so they cannot drift apart. The interface ships a
 `NOOP` constant for callers that want a guaranteed-non-null handle.
 
@@ -270,10 +279,10 @@ when the thread is reused or discarded.
 | Component | Role |
 |---|---|
 | `AuditBuffer` | `ThreadLocal` per-session staging area, keyed by `ContentSession` id. Caps a session at 10,000 staged events: past that, further events are dropped and one WARN is logged for the session rather than one per event. The cap re-arms on the next drain, refresh, or commit failure, so it bounds the memory a single large or non-committing session can pin. |
-| `BufferSink` (inner class of `AuditPipeline`) | The installed `AuditEvents.Sink`. Gates on the feature toggle and listener presence, buffers on `record`, dispatches inline on `dispatch`. |
+| `BufferSink` (inner class of `AuditPipeline`) | The installed `AuditDispatch.Sink`. Gates on the feature toggle and listener presence, buffers on `record`, dispatches inline on `dispatch`. |
 | `AuditDrainObserver` | `Observer` that drains the buffer on commit success. Carries the outer and inner `Throwable` barriers. |
 | `CommitMetadataDecorator` | Stamps the three reserved `oak.commit.*` entries at drain time (commit-attached) and strips caller-supplied values for the same keys at dispatch (fire-and-forget). |
-| `AuditEventEmitterImpl` | OSGi `@Component` implementing `AuditEventEmitter`; delegates to `AuditEvents.dispatch`. |
+| `AuditEventEmitterImpl` | OSGi `@Component` implementing `AuditEventEmitter`; delegates to `AuditDispatch.dispatch`. |
 | `WhiteboardAuditEventListenerRegistry` | Tracks `AuditEventListener` services on the Whiteboard. `getListeners()` returns them sorted by rank descending; `hasListenerFor(domain)` backs the pre-allocation gate. |
 | `AuditMonitor` | Wraps the `StatisticsProvider`: per-domain event meter, per-listener timer and failure meter, dropped-event meter. Falls back to a no-op when no provider is bound. |
 | `AuditPipeline` | Pipeline owner: feature toggle, buffer, registry, sink, drain observer, monitor. Published as `AuditConfiguration`. |
@@ -356,7 +365,7 @@ The lifecycle callouts always fire, for the reason given in design rule 9.
 The cost of that is negligible: when no pipeline is installed the callout is
 one volatile read plus a virtual call into a no-op listener.
 
-`AuditEvents.record(root, event)` requires that `root` is the `MutableRoot`
+`AuditDispatch.record(root, event)` requires that `root` is the `MutableRoot`
 of an active JCR session, since the lifecycle callouts above are what keep
 the buffer consistent. Non-JCR commits must not call it.
 
@@ -481,7 +490,7 @@ pipeline change.
 ### Performance characteristics
 
 With audit off (toggle disabled, or no listener registered for the domain),
-capture sites short-circuit at `AuditEvents.isEnabledFor(domain)` before
+capture sites short-circuit at `AuditDispatch.isEnabledFor(domain)` before
 constructing an event: no allocation, no buffer touch. The check is a
 volatile read of the installed sink and the toggle, and, when the toggle is
 on, a linear scan of the registered listeners comparing each `getDomain()`

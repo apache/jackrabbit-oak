@@ -54,7 +54,7 @@ bundle-emitted custom events through one entry point.
 
 | Module | Role |
 |---|---|
-| `oak-core-spi`     | Domain-neutral SPI: [AuditEvent], [AuditEventListener], [AuditEventEmitter], the [AuditEvents] static facade, and [AuditConfiguration] (typed handle on the pipeline's runtime state). |
+| `oak-core-spi`     | Domain-neutral SPI: [AuditEvent], [AuditEventListener], [AuditEventEmitter], the [AuditDispatch] static facade, and [AuditConfiguration] (typed handle on the pipeline's runtime state). |
 | `oak-security-spi` | Security-domain constants: `SecurityAuditDomain.DOMAIN` (the `"oak.security"` domain) and per-sub-domain vocabulary classes such as `UserAuditTypes` in the `spi.security.user` package. |
 | `oak-core`         | Pipeline implementation: listener registry, commit-attached buffer, the observer that drains it on commit success, the emitter, and the configuration component. |
 
@@ -249,13 +249,13 @@ public class MyComponent {
 ```
 
 `AuditConfiguration` is published as an OSGi service only. Embedded callers
-(tests, `oak-run` tools) use `AuditEvents.isEnabled()` on the static facade
+(tests, `oak-run` tools) use `AuditDispatch.isEnabled()` on the static facade
 instead, which evaluates the same two conditions.
 
 `isActive()` returns `true` when the audit feature toggle is enabled AND at
 least one `AuditEventListener` is registered on the Whiteboard. A
 deployed-but-unused pipeline (toggle ON, no listener registered) reports
-`false`, matching the no-allocation semantics of `AuditEvents.isEnabled()`.
+`false`, matching the no-allocation semantics of `AuditDispatch.isEnabled()`.
 The NOOP `AuditConfiguration`, returned when no implementation is bound at
 all, reports `false`.
 
@@ -521,5 +521,5 @@ Recommended consumer-side discipline:
 [AuditEvent]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/audit/AuditEvent.html
 [AuditEventListener]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/audit/AuditEventListener.html
 [AuditEventEmitter]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/audit/AuditEventEmitter.html
-[AuditEvents]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/audit/AuditEvents.html
+[AuditDispatch]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/audit/AuditDispatch.html
 [AuditConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/audit/AuditConfiguration.html
