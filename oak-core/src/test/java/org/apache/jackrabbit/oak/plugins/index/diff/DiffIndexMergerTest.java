@@ -132,7 +132,10 @@ public class DiffIndexMergerTest {
                     }
                 }
                 """, true);
-
+        // we can not just move back to /oak:index/damAssetLucene-12, because
+        // that index has a lower version and so is then not use for queries.
+        // we need to explicitly create a new version.
+        // once damAssetLucene-13 is rolled out, then no "-custom-" is created however
         getMerger().merge(newImageLuceneDefinitions, repositoryDefinitions, null);
         assertEquals("""
                 {
@@ -256,8 +259,10 @@ public class DiffIndexMergerTest {
     }
 
     @Test
-    public void firstCustomizationAsJson() {
+    public void firstOptimizerCustomization() {
         JsonObject newImageLuceneDefinitions = JsonObject.fromJson("{}", true);
+        // notice the the diff.index.optimizer is already stored in the repo,
+        // and so does not need to appear in the newImageLuceneDefinitions
         JsonObject repositoryDefinitions = JsonObject.fromJson("""
                 {
                     "/oak:index/damAssetLucene-12": {
@@ -356,6 +361,8 @@ public class DiffIndexMergerTest {
                     }
                 }
                 """, true);
+        // notice the the diff.index is not yet stored in the repo,
+        // and so _does_ need to appear in the newImageLuceneDefinitions
         JsonObject newImageLuceneDefinitions = JsonObject.fromJson("""
                 {
                     "/oak:index/damAssetLucene-12": {
