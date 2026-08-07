@@ -34,8 +34,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * {@code ServiceTracker} to detect any {@link SyncHandler} that has
@@ -46,10 +48,30 @@ final class SyncConfigTracker extends ServiceTracker {
     private static final Logger log = LoggerFactory.getLogger(SyncConfigTracker.class);
 
     private final SyncHandlerMappingTracker mappingTracker;
-    
+
+    // maintained from addingService/removedService instead of calling getServiceReferences() on
+    // every read, which would otherwise contend on the shared ServiceTracker$Tracked monitor on
+    // every first PermissionProvider resolution for every session
+    private final List<ServiceReference> references = new CopyOnWriteArrayList<>();
+
     SyncConfigTracker(@NotNull BundleContext context, @NotNull SyncHandlerMappingTracker mappingTracker) {
         super(context, OsgiUtil.getFilter(SyncHandler.class, Collections.singletonMap(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, Boolean.TRUE.toString())), null);
         this.mappingTracker = mappingTracker;
+    }
+
+    @Override
+    public Object addingService(ServiceReference reference) {
+        Object service = super.addingService(reference);
+        if (service != null) {
+            references.add(reference);
+        }
+        return service;
+    }
+
+    @Override
+    public void removedService(ServiceReference reference, Object service) {
+        references.remove(reference);
+        super.removedService(reference, service);
     }
 
     /**
@@ -90,7 +112,7 @@ final class SyncConfigTracker extends ServiceTracker {
             return Collections.emptySet();
         }
 
-        ServiceReference[] serviceReferences = getServiceReferences();
+        ServiceReference[] serviceReferences = getReferences();
         Set<String> idpNames = new HashSet<>(serviceReferences.length);
         for (ServiceReference ref : serviceReferences) {
             if (PropertiesUtil.toBoolean(ref.getProperty(DefaultSyncConfigImpl.PARAM_GROUP_DYNAMIC_GROUPS), DefaultSyncConfigImpl.PARAM_GROUP_DYNAMIC_GROUPS_DEFAULT)) {
@@ -163,7 +185,6 @@ final class SyncConfigTracker extends ServiceTracker {
     
     @NotNull
     private ServiceReference[] getReferences() {
-        ServiceReference[] refs = getServiceReferences();
-        return (refs == null) ? new ServiceReference[0] : refs;
+        return references.toArray(new ServiceReference[0]);
     }
 }
