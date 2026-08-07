@@ -212,6 +212,10 @@ class StandbyClient implements AutoCloseable {
                     p.addLast(new GetBlobResponseHandler(blobQueue));
                     p.addLast(new GetReferencesResponseHandler(referencesQueue));
 
+                    // to clean temp files
+
+                    p.addLast(new StandbyTemporaryFileCleaner(builder.spoolFolder));
+
                     // Exception handler
 
                     p.addLast(new ExceptionHandler(clientId));
