@@ -88,7 +88,7 @@ public class DiffIndexMerger {
 
     // set of properties that are allowed to be changed if the property already exists
     private static final Set<String> ALLOW_CHANGING_IN_EXISTING_PROPERTY = Set.of(
-            "boost", "weight");
+            "boost", "weight", "secure");
 
     // set of properties that allow multi-valued string that might be merged
     private static final Set<String> MERGE_MULTI_VALUES_STRINGS = Set.of(
@@ -161,6 +161,64 @@ public class DiffIndexMerger {
             return;
         }
         mergeDiff(newImageLuceneDefinitions, combined);
+    }
+
+    /**
+     * Remove "diff.index" and/or "diff.index.optimizer" from
+     * newImageLuceneDefinitions, if their content is unchanged compared to what
+     * is already stored in the writable repository. This avoids writing (and
+     * later re-committing, see ReindexCmd) an index definition that didn't
+     * actually change.
+     *
+     * @param newImageLuceneDefinitions
+     *        the new Lucene definitions
+     *        (input + output)
+     * @param repositoryNodeStore
+     *        the writable repository, or null if not available
+     *        (eg. in dry-run mode or tests)
+     */
+    public void removeUnchangedDiffIndexEntries(JsonObject newImageLuceneDefinitions, NodeStore repositoryNodeStore) {
+        if (repositoryNodeStore == null) {
+            // can't compare, so keep the entries as-is
+            return;
+        }
+        removeIfUnchanged(newImageLuceneDefinitions, repositoryNodeStore, DIFF_INDEX);
+        removeIfUnchanged(newImageLuceneDefinitions, repositoryNodeStore, DIFF_INDEX_OPTIMIZER);
+    }
+
+    private void removeIfUnchanged(JsonObject newImageLuceneDefinitions, NodeStore repositoryNodeStore, String name) {
+        String path = "/oak:index/" + name;
+        JsonObject newEntry = newImageLuceneDefinitions.getChildren().get(path);
+        if (newEntry == null) {
+            return;
+        }
+        Map<String, JsonObject> currentInRepo = readDiffIndex(repositoryNodeStore, name);
+        JsonObject currentEntry = currentInRepo.get(path);
+        if (currentEntry == null) {
+            // nothing stored yet in the repository: keep the new entry
+            return;
+        }
+        JsonObject cleanedNewEntry = cleanedAndNormalized(newEntry);
+        if (isSameIgnorePropertyOrder(cleanedNewEntry, currentEntry)) {
+            log("{} unchanged from repository, skipping", path);
+            newImageLuceneDefinitions.getChildren().remove(path);
+        }
+    }
+
+    /**
+     * Remove "diff.index" and "diff.index.optimizer" from the given
+     * definitions, if present. These are not real index definitions: they are
+     * processed and persisted only by the Lucene ReindexCmd (see
+     * ReindexCmd.storeIndexDiffInRepository), and must never be handed to any
+     * other pipeline (eg. the Elastic reindex/import jobs, which don't know
+     * how to handle a "lucene"-typed index definition and would fail).
+     *
+     * @param definitions the definitions to remove the entries from (eg. the
+     *                    Elastic definitions)
+     */
+    public static void removeDiffIndexEntries(JsonObject definitions) {
+        definitions.getChildren().remove("/oak:index/" + DIFF_INDEX);
+        definitions.getChildren().remove("/oak:index/" + DIFF_INDEX_OPTIMIZER);
     }
 
     /**
@@ -276,6 +334,15 @@ public class DiffIndexMerger {
             // merged indexes always contain "-custom-". Other indexes may in theory contain that term,
             // but then they do not contain "mergeInfo".
             if (key.indexOf("-custom-") < 0 || !value.getProperties().containsKey("mergeInfo")) {
+                continue;
+            }
+            String type = JsonNodeUpdater.oakStringValue(value, "type");
+            if (type != null && "disabled".equals(type)) {
+                // ignore disabled indexes:
+                // only if the version that is in use contains the "mergeInfo" property,
+                // then simplified index management is currently used
+                // (otherwise we create a new merged info even for environments that no longer use it,
+                // if there are indexes that are not yet deleted)
                 continue;
             }
             String baseName = IndexName.parse(key.substring("/oak:index/".length())).getBaseName();
@@ -405,7 +472,6 @@ public class DiffIndexMerger {
         } else {
             merged = processMerge(indexName, latestProductIndex, indexDiff);
         }
-
         // compare to the latest version of the this index
         JsonObject latestIndexVersion = new JsonObject();
         if (latestCustomized == null) {
@@ -424,7 +490,10 @@ public class DiffIndexMerger {
         } else {
             String latestMergeChecksum = JsonNodeUpdater.oakStringValue(latestIndexVersion, "mergeChecksum");
             JsonObject latestDef = cleanedAndNormalized(switchToLuceneIfNeeded(latestIndexVersion));
-            if (isSameIgnorePropertyOrder(mergedDef, latestDef)) {
+            if (latestMergeChecksum == null && latestCustomized != null) {
+                log("mergeChecksum is missing in the old customized version, so this is a migration: {}", indexName);
+                // continue
+            } else if (isSameIgnorePropertyOrder(mergedDef, latestDef)) {
                 // normal case: no change
                 // (even if checksums do not match: checksums might be missing or manipulated)
                 log("Latest index matches");
@@ -448,9 +517,15 @@ public class DiffIndexMerger {
             // a new merged index definition
             if (latestProduct == null) {
                 // fully custom index: increment version
-                key = prefix + indexName +
-                        "-" + latestCustomized.getProductVersion() +
-                        "-custom-" + (latestCustomized.getCustomerVersion() + 1);
+                if (latestCustomized == null) {
+                    // in reality, this would mean latestIndexVersion,
+                    // but the additional protection can't hurt
+                    key = prefix + indexName + "-1-custom-1";
+                } else {
+                    key = prefix + indexName +
+                            "-" + latestCustomized.getProductVersion() +
+                            "-custom-" + (latestCustomized.getCustomerVersion() + 1);
+                }
             } else {
                 // customized OOTB index: use the latest product as the base
                 int productVersion = latestProduct.getProductVersion();
@@ -466,14 +541,22 @@ public class DiffIndexMerger {
                 }
             }
         }
+        if (merged == null) {
+            // this is only a theoretical case (doesn't happen with the current code)
+            // but the additional protection can't hurt
+            logAndCollectWarn("Logic error: no merged index " + indexName);
+            return false;
+        }
         merged.getProperties().put("mergeInfo", JsopBuilder.encode(MERGE_INFO));
         merged.getProperties().put("mergeChecksum", JsopBuilder.encode(mergeChecksum));
         merged.getProperties().put("merges", "[" + JsopBuilder.encode("/oak:index/" + indexName) + "]");
         merged.getProperties().remove("reindexCount");
         merged.getProperties().remove("reindex");
-        if (!deleteCopiesOutOfTheBoxIndex && indexDiff.toString().equals("{}")) {
-            merged.getProperties().put("type", "\"disabled\"");
-            merged.getProperties().put("mergeComment", "\"This index is superseded and can be removed\"");
+        if (indexDiff != null && indexDiff.toString().equals("{}")) {
+            if (!deleteCopiesOutOfTheBoxIndex && !deleteCreatesDummyIndex) {
+                merged.getProperties().put("type", "\"disabled\"");
+                merged.getProperties().put("mergeComment", "\"This index is superseded and can be removed\"");
+            }
         }
         newImageLuceneDefinitions.getChildren().put(key, merged);
         return true;
@@ -802,7 +885,7 @@ public class DiffIndexMerger {
             }
             mergeInto(indexName, path + "/" + targetChildName, diff.getChildren().get(c), target.getChildren().get(targetChildName), childIsNew);
         }
-        if (target.getProperties().isEmpty() && target.getChildren().isEmpty()) {
+        if (path.isEmpty() && target.getProperties().isEmpty() && target.getChildren().isEmpty()) {
             if (deleteCreatesDummyIndex) {
                 // dummy index
                 target.getProperties().put("async", "\"async\"");
