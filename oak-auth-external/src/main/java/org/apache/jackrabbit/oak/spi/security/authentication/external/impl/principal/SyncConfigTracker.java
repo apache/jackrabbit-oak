@@ -41,7 +41,7 @@ import java.util.Set;
  * {@code ServiceTracker} to detect any {@link SyncHandler} that has
  * dynamic membership enabled.
  */
-final class SyncConfigTracker extends ServiceTracker {
+final class SyncConfigTracker extends ServiceTracker<SyncHandler, SyncHandler> {
 
     private static final Logger log = LoggerFactory.getLogger(SyncConfigTracker.class);
 
@@ -56,7 +56,7 @@ final class SyncConfigTracker extends ServiceTracker {
      * @return {@code true} if dynamic membership is enabled for at least one registered sync-handler; {@code false} otherwise.
      */
     boolean isEnabled() {
-        return getReferences().length > 0;
+        return getServiceReference() != null;
     }
 
     /**
@@ -67,7 +67,7 @@ final class SyncConfigTracker extends ServiceTracker {
         if (!isEnabled()) {
             return false;
         }
-        for (ServiceReference ref : getReferences()) {
+        for (ServiceReference<SyncHandler> ref : getReferences()) {
             if (PropertiesUtil.toBoolean(ref.getProperty(DefaultSyncConfigImpl.PARAM_GROUP_DYNAMIC_GROUPS), DefaultSyncConfigImpl.PARAM_GROUP_DYNAMIC_GROUPS_DEFAULT)) {
                 return true;
             }
@@ -90,9 +90,9 @@ final class SyncConfigTracker extends ServiceTracker {
             return Collections.emptySet();
         }
 
-        ServiceReference[] serviceReferences = getServiceReferences();
+        ServiceReference<SyncHandler>[] serviceReferences = getServiceReferences();
         Set<String> idpNames = new HashSet<>(serviceReferences.length);
-        for (ServiceReference ref : serviceReferences) {
+        for (ServiceReference<SyncHandler> ref : serviceReferences) {
             if (PropertiesUtil.toBoolean(ref.getProperty(DefaultSyncConfigImpl.PARAM_GROUP_DYNAMIC_GROUPS), DefaultSyncConfigImpl.PARAM_GROUP_DYNAMIC_GROUPS_DEFAULT)) {
                 String syncHandlerName = PropertiesUtil.toString(ref.getProperty(DefaultSyncConfigImpl.PARAM_NAME), DefaultSyncConfigImpl.PARAM_NAME_DEFAULT);
                 for (String idpName : mappingTracker.getIdpNames(syncHandlerName)) {
@@ -106,7 +106,7 @@ final class SyncConfigTracker extends ServiceTracker {
     @NotNull
     Map<String, String[]> getAutoMembership() {
         Map<String, String[]> autoMembership = new HashMap<>();
-        for (ServiceReference ref : getReferences()) {
+        for (ServiceReference<SyncHandler> ref : getReferences()) {
             String syncHandlerName = PropertiesUtil.toString(ref.getProperty(DefaultSyncConfigImpl.PARAM_NAME), DefaultSyncConfigImpl.PARAM_NAME_DEFAULT);
             String[] userAuthMembership = PropertiesUtil.toStringArray(ref.getProperty(DefaultSyncConfigImpl.PARAM_USER_AUTO_MEMBERSHIP), new String[0]);
             String[] groupAuthMembership = PropertiesUtil.toStringArray(ref.getProperty(DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP), new String[0]);
@@ -119,7 +119,7 @@ final class SyncConfigTracker extends ServiceTracker {
     @NotNull
     Map<String, String[]> getGroupAutoMembership() {
         Map<String, String[]> autoMembership = new HashMap<>();
-        for (ServiceReference ref : getReferences()) {
+        for (ServiceReference<SyncHandler> ref : getReferences()) {
             String syncHandlerName = PropertiesUtil.toString(ref.getProperty(DefaultSyncConfigImpl.PARAM_NAME), DefaultSyncConfigImpl.PARAM_NAME_DEFAULT);
             String[] groupAuthMembership = PropertiesUtil.toStringArray(ref.getProperty(DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP), new String[0]);
             populateMap(syncHandlerName, groupAuthMembership, autoMembership);
@@ -143,7 +143,7 @@ final class SyncConfigTracker extends ServiceTracker {
     @NotNull 
     Map<String, AutoMembershipConfig> getAutoMembershipConfig() {
         Map<String, AutoMembershipConfig> amMap = new HashMap<>();
-        for (ServiceReference ref : getReferences()) {
+        for (ServiceReference<SyncHandler> ref : getReferences()) {
             String syncHandlerName = PropertiesUtil.toString(ref.getProperty(DefaultSyncConfigImpl.PARAM_NAME), DefaultSyncConfigImpl.PARAM_NAME_DEFAULT);
             Object shService = getService(ref);
             if (shService instanceof AutoMembershipAware) {
@@ -160,10 +160,11 @@ final class SyncConfigTracker extends ServiceTracker {
         }
         return amMap;
     }
-    
+
     @NotNull
-    private ServiceReference[] getReferences() {
-        ServiceReference[] refs = getServiceReferences();
-        return (refs == null) ? new ServiceReference[0] : refs;
+    @SuppressWarnings("unchecked")
+    private ServiceReference<SyncHandler>[] getReferences() {
+        ServiceReference<SyncHandler>[] refs = getServiceReferences();
+        return (refs == null) ? (ServiceReference<SyncHandler>[]) new ServiceReference[0] : refs;
     }
 }
