@@ -81,6 +81,17 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
 
     /**
      * Specify a validation expression.
+     * <p>
+     * Can also be used to expose the raw value (or it's absence) when needed:
+     * <pre>
+     *   AtomicReference&lt;Object> raw = new AtomicReference<>();
+     *   ...
+     *   validateWith(n -> {
+     *                     raw.set(n);
+     *                     return true;
+     *                 }).
+     *  // raw will be null if system property is not set
+     * </pre>
      */
     public SystemPropertySupplier<T> validateWith(@NotNull Predicate<T> validator) {
         this.validator = Objects.requireNonNull(validator);
@@ -99,18 +110,18 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
     /**
      * Specify logging level to use for "success" message (defaults to "INFO")
      */
-    public SystemPropertySupplier<T> logSuccessAs(String successLogLevel) {
-        String newLevel;
-        switch (Objects.requireNonNull(successLogLevel)) {
+    public SystemPropertySupplier<T> logSuccessAs(String desiredLogLevel) {
+        String newLevel = this.successLogLevel;
+        switch (Objects.requireNonNull(desiredLogLevel)) {
             case "DEBUG":
             case "ERROR":
             case "INFO":
             case "TRACE":
             case "WARN":
-                newLevel = successLogLevel;
+                newLevel = desiredLogLevel;
                 break;
             default:
-                throw new IllegalArgumentException("unsupported log level: " + successLogLevel);
+                LOG.error("for {}: invalid log level '{}', keeping previous value of '{}'.", propName, desiredLogLevel, successLogLevel);
         }
         this.successLogLevel = newLevel;
         return this;

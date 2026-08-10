@@ -178,9 +178,10 @@ Toggles are disabled by default and can be enabled without redeployment.
 
 **Examples in the codebase:**
 - Query engine toggles (`FT_OAK-11949`, `FT_OAK-12007`) registered in `oak-core/.../Oak.java`
-- Document store toggles (throttling, full GC) in
-  `oak-store-document/.../DocumentNodeStoreBuilder.java` (embedded verification is OSGi
-  `embeddedVerificationEnabled` config only, not a runtime toggle)
+- Document store toggles (throttling, merge lock) in
+  `oak-store-document/.../DocumentNodeStoreBuilder.java` (embedded verification and full GC are
+  controlled only via OSGi `embeddedVerificationEnabled` and `fullGCEnabled`, not runtime toggles;
+  child-order property cleanup is always enabled and has no toggle at all)
 - Some features also support a system property fallback (e.g., `oak.classicMove`)
 
 ## Code Conventions
@@ -259,3 +260,10 @@ via the Apache RAT plugin. Use this exact header:
   quick iteration
 - OSGi baseline checks may fail if you change an **exported** public API (see **OSGi exports
   and baseline** above) — this is intentional to prevent accidental breaking changes
+
+## Security
+
+Security model: [SECURITY.md](./SECURITY.md)
+
+Agents that scan this repository should consult `SECURITY.md` and the
+threat model it links (`THREAT_MODEL.md`) before reporting issues.

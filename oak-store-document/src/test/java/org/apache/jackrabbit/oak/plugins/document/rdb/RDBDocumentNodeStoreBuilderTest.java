@@ -91,15 +91,6 @@ public class RDBDocumentNodeStoreBuilderTest {
     }
 
     @Test
-    public void fullFGCFeatureToggleDisabled() {
-        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
-        Feature docStoreFullGCFeature = mock(Feature.class);
-        when(docStoreFullGCFeature.isEnabled()).thenReturn(true);
-        builder.setDocStoreFullGCFeature(docStoreFullGCFeature);
-        assertNull(builder.getDocStoreFullGCFeature());
-    }
-
-    @Test
     public void embeddedVerificationDisabled() {
         RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
         builder.setEmbeddedVerificationEnabled(true);

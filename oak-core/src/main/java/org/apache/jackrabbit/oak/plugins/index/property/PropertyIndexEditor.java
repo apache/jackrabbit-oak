@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -42,6 +43,7 @@ import javax.jcr.PropertyType;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
+import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
@@ -53,7 +55,9 @@ import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,6 +70,9 @@ import org.slf4j.LoggerFactory;
 class PropertyIndexEditor implements IndexEditor {
 
     private static final Logger log = LoggerFactory.getLogger(PropertyIndexEditor.class);
+
+    private static final String MISSING_PROPERTY_NAMES_SENTINEL = "propertyNamesIsMissing";
+    private static final Set<String> WARNED_INDEX_PATHS = ConcurrentHashMap.newKeySet();
 
     /** Parent editor, or {@code null} if this is the root editor. */
     private final PropertyIndexEditor parent;
@@ -119,7 +126,8 @@ class PropertyIndexEditor implements IndexEditor {
     private final MountInfoProvider mountInfoProvider;
 
     public PropertyIndexEditor(NodeBuilder definition, NodeState root,
-                               IndexUpdateCallback updateCallback, MountInfoProvider mountInfoProvider) {
+                               IndexUpdateCallback updateCallback, MountInfoProvider mountInfoProvider,
+                               @Nullable Feature feature) {
         this.parent = null;
         this.name = null;
         this.path = "/";
@@ -132,7 +140,18 @@ class PropertyIndexEditor implements IndexEditor {
 
         // get property names
         PropertyState names = definition.getProperty(PROPERTY_NAMES);
-        if (names.count() == 1) { 
+        if (names == null && feature != null && feature.isEnabled()) {
+            String indexPath = (updateCallback instanceof ContextAwareCallback)
+                    ? ((ContextAwareCallback) updateCallback).getIndexingContext().getIndexPath()
+                    : null;
+            String warnKey = indexPath != null ? indexPath : "(unknown index path)";
+            if (WARNED_INDEX_PATHS.add(warnKey)) {
+                log.warn("Property index definition at {} is missing required property '{}'. " +
+                         "Falling back to a no-op sentinel; please fix the index definition.",
+                         warnKey, PROPERTY_NAMES);
+            }
+            this.propertyNames = singleton(MISSING_PROPERTY_NAMES_SENTINEL);
+        } else if (names.count() == 1) {
             // OAK-1273: optimize for the common case
             this.propertyNames = singleton(names.getValue(NAME, 0));
         } else {

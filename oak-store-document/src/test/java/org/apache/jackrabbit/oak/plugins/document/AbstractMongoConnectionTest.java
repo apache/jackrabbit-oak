@@ -76,9 +76,14 @@ public abstract class AbstractMongoConnectionTest extends DocumentMKTestBase {
 
     @After
     public void tearDownConnection() throws Exception {
-        String dbName = mongoConnection.getDBName();
+        String dbName = null;
+        if (mongoConnection != null) {
+            dbName = mongoConnection.getDBName();
+        }
         mk.dispose();
-        MongoUtils.dropCollections(dbName);
+        if (dbName != null) {
+            MongoUtils.dropCollections(dbName);
+        }
         Revision.resetClockToDefault();
         ClusterNodeInfo.resetClockToDefault();
     }

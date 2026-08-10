@@ -194,11 +194,15 @@ public abstract class AbstractRepositoryFactoryTest {
             EventServiceListener listener = new EventServiceListener(eventTypes, bundleContext, serviceFilter);
 
             bundleContext.addServiceListener(listener);
-            closure.run();
-            if (!listener.getLatch().await(timeout, timeUnit)) {
-                throw new AssertionError("Exceeded timeout waiting for service event matching " +
-                        "[eventTypes: " + eventTypes + ", filter: " + serviceFilter + "], " +
-                        "got " + listener.events.size() + " non matching events: [" + listener.events + "]");
+            try {
+                closure.run();
+                if (!listener.getLatch().await(timeout, timeUnit)) {
+                    throw new AssertionError("Exceeded timeout waiting for service event matching " +
+                            "[eventTypes: " + eventTypes + ", filter: " + serviceFilter + "], " +
+                            "got " + listener.events.size() + " non matching events: [" + listener.events + "]");
+                }
+            } finally {
+                bundleContext.removeServiceListener(listener);
             }
         } catch (Exception e) {
             throw new RuntimeException(e);

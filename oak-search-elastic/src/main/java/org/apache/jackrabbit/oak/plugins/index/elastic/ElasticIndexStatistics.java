@@ -22,7 +22,9 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 
 import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
@@ -33,6 +35,8 @@ import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.TestOnly;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import co.elastic.clients.elasticsearch._types.Bytes;
 import co.elastic.clients.elasticsearch.cat.indices.IndicesRecord;
@@ -53,6 +57,17 @@ import co.elastic.clients.elasticsearch.core.CountRequest;
  */
 public class ElasticIndexStatistics implements IndexStatistics {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ElasticIndexStatistics.class);
+
+    public static final String FT_OAK_12248 = "FT_OAK-12248";
+    /**
+     * When {@code true}, a 404 from Elasticsearch (alias not found) is treated as an expected
+     * empty-index condition: statistics return 0, the query returns an empty cursor, and INFO is
+     * logged instead of ERROR. Requires OAK-12249 lazy provisioning to be meaningful.
+     * Disabled by default.
+     */
+    public static final AtomicBoolean FT_OAK_12248_ENABLE = new AtomicBoolean(false);
+
     private static final String MAX_SIZE = "oak.elastic.statsMaxSize";
     private static final Long MAX_SIZE_DEFAULT = 10000L;
     private static final String EXPIRE_SECONDS = "oak.elastic.statsExpireSeconds";
@@ -64,7 +79,6 @@ public class ElasticIndexStatistics implements IndexStatistics {
     private final ElasticIndexDefinition indexDefinition;
     private final LoadingCache<StatsRequestDescriptor, Integer> countCache;
     private final LoadingCache<StatsRequestDescriptor, StatsResponse> statsCache;
-
     ElasticIndexStatistics(@NotNull ElasticConnection elasticConnection,
                            @NotNull ElasticIndexDefinition indexDefinition) {
         this(elasticConnection, indexDefinition, null, null);
@@ -89,7 +103,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
      */
     @Override
     public int numDocs() {
-        return countCache.get(new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias()));
+        return getOrRefetchDocCount(null, null);
     }
 
     /**
@@ -98,10 +112,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
      */
     @Override
     public int getDocCountFor(String field) {
-        String elasticField = ElasticIndexUtils.fieldName(field);
-        return countCache.get(
-                new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias(), elasticField, null)
-        );
+        return getOrRefetchDocCount(ElasticIndexUtils.fieldName(field), null);
     }
 
     /**
@@ -109,9 +120,11 @@ public class ElasticIndexStatistics implements IndexStatistics {
      * {@code ElasticIndexDefinition}.
      */
     public int getDocCountFor(Query query) {
-        return countCache.get(
-                new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias(), null, query)
-        );
+        return getOrRefetchDocCount(null, query);
+    }
+
+    private int getOrRefetchDocCount(@Nullable String field, @Nullable Query query) {
+        return countCache.get(new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias(), field, query));
     }
 
     /**
@@ -119,9 +132,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
      * {@code ElasticIndexDefinition}.
      */
     public long primaryStoreSize() {
-        return statsCache.get(
-                new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias())
-        ).primaryStoreSize;
+        return getOrRefetchStats().primaryStoreSize;
     }
 
     /**
@@ -129,18 +140,14 @@ public class ElasticIndexStatistics implements IndexStatistics {
      * primary shards and replica shards.
      */
     public long storeSize() {
-        return statsCache.get(
-                new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias())
-        ).storeSize;
+        return getOrRefetchStats().storeSize;
     }
 
     /**
      * Returns the creation date for the remote index bound to the {@code ElasticIndexDefinition}.
      */
     public long creationDate() {
-        return statsCache.get(
-                new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias())
-        ).creationDate;
+        return getOrRefetchStats().creationDate;
     }
 
     /**
@@ -148,9 +155,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
      * {@code ElasticIndexDefinition}. This document count includes hidden nested documents.
      */
     public int luceneNumDocs() {
-        return statsCache.get(
-                new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias())
-        ).luceneDocsCount;
+        return getOrRefetchStats().luceneDocsCount;
     }
 
     /**
@@ -158,9 +163,11 @@ public class ElasticIndexStatistics implements IndexStatistics {
      * {@code ElasticIndexDefinition}. This document count includes hidden nested documents.
      */
     public int luceneNumDeletedDocs() {
-        return statsCache.get(
-                new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias())
-        ).luceneDocsDeleted;
+        return getOrRefetchStats().luceneDocsDeleted;
+    }
+
+    private StatsResponse getOrRefetchStats() {
+        return statsCache.get(new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias()));
     }
 
     static LoadingCache<StatsRequestDescriptor, Integer> setupCountCache(long maxSize, long expireSeconds, long refreshSeconds, @Nullable Clock clock) {
@@ -195,7 +202,15 @@ public class ElasticIndexStatistics implements IndexStatistics {
 
         @Override
         public @NotNull Integer load(@NotNull StatsRequestDescriptor countRequestDescriptor) throws IOException {
-            return count(countRequestDescriptor);
+            try {
+                return count(countRequestDescriptor);
+            } catch (ElasticsearchException ee) {
+                if (ee.status() == 404 && FT_OAK_12248_ENABLE.get()) {
+                    LOG.info("ES alias not found for index {} — treating as empty (OAK-12248)", countRequestDescriptor.index);
+                    return 0;
+                }
+                throw ee;
+            }
         }
 
         private int count(StatsRequestDescriptor crd) throws IOException {
@@ -216,7 +231,15 @@ public class ElasticIndexStatistics implements IndexStatistics {
 
         @Override
         public @NotNull StatsResponse load(@NotNull StatsRequestDescriptor countRequestDescriptor) throws IOException {
-            return stats(countRequestDescriptor);
+            try {
+                return stats(countRequestDescriptor);
+            } catch (ElasticsearchException ee) {
+                if (ee.status() == 404 && FT_OAK_12248_ENABLE.get()) {
+                    LOG.info("ES alias not found for index {} — returning empty stats (OAK-12248)", countRequestDescriptor.index);
+                    return StatsResponse.NO_ALIAS_STATS;
+                }
+                throw ee;
+            }
         }
 
         private StatsResponse stats(StatsRequestDescriptor crd) throws IOException {
@@ -291,6 +314,8 @@ public class ElasticIndexStatistics implements IndexStatistics {
     }
 
     static class StatsResponse {
+
+        static final StatsResponse NO_ALIAS_STATS = new StatsResponse(0, 0, -1, 0, 0);
 
         final long storeSize;
         final long primaryStoreSize;

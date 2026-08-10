@@ -170,7 +170,7 @@ public class PersistentCacheStatsTest {
         HashMap<UUID, Buffer> segments = new HashMap<>();
 
         public PersistentCacheImpl() {
-            segmentCacheStats = new SegmentCacheStats("stats", () -> maximumWeight, () -> elementCount.get(), () -> currentWeight.get(), () -> evictionCount.get());
+            segmentCacheStats = new SegmentCacheStats("stats", () -> maximumWeight, () -> elementCount.get(), () -> currentWeight.get(), () -> evictionCount.get(), () -> 0L);
         }
 
         long maximumWeight = Long.MAX_VALUE;
@@ -179,7 +179,7 @@ public class PersistentCacheStatsTest {
         AtomicLong evictionCount = new AtomicLong();
 
         void AbstractPersistentCache() {
-            segmentCacheStats = new SegmentCacheStats("stats", () -> maximumWeight, () -> elementCount.get(), () -> currentWeight.get(), () -> evictionCount.get());
+            segmentCacheStats = new SegmentCacheStats("stats", () -> maximumWeight, () -> elementCount.get(), () -> currentWeight.get(), () -> evictionCount.get(), () -> 0L);
         }
 
         @Override

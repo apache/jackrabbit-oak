@@ -224,11 +224,14 @@ For example, as per default, only those BLOBs which have been created 24 hours i
   minimum. This is to ensure that the NodeStore(s) have had the time to flush out its internal data structures to 
   persistence and the references to recently added blobs are accounted.
 
-blobTrackSnapshotIntervalInSecs (long) - 43200
+blobTrackSnapshotIntervalInSecs (long) - 0
 : The blob ids cached/tracked locally are synchronized with the DataStore at this interval. Any additions and 
 deletions will be visible to other cluster nodes or repositories connected to the shared DatStore after this. This 
 should be less than the blobGcMaxAgeInSecs parameter above and the frequency of blob gc. See [Blob 
 tracker][blobtracker].
+A value of `0` disables blob ID tracking entirely. This has been the default for both SegmentNodeStore and
+DocumentNodeStore since Oak 2.4.0.
+To enable tracking, set this to a positive value (e.g. `43200` for 12 hours).
 
 <a name="document-node-store"></a>
 #### DocumentNodeStore
@@ -260,7 +263,7 @@ docChildrenCachePercentage | 0 (was 3 until 1.5.6) | Percentage of `cache` alloc
 cacheSegmentCount | 16 | The number of segments in the LIRS cache | 1.0.15, 1.2.3, 1.3.0
 cacheStackMoveDistance | 16 | The delay to move entries to the head of the queue in the LIRS cache | 1.0.15, 1.2.3, 1.3.0
 sharedDSRepoId | "" | Custom SharedDataStore repositoryId. Used when custom blobstore configured. Should be unique among the repositories sharing the datastore. | 1.2.11
-blobTrackSnapshotIntervalInSecs | 43200 (12 hrs) | The blob ids cached/tracked locally are synchronized with the DataStore at this interval. Any additions and deletions will be visible to other cluster nodes or repositories connected to the shared DatStore after this. This should be less than the blobGcMaxAgeInSecs parameter above and the frequency of blob gc. See [Blob tracker][blobtracker]. | 1.5.6 
+blobTrackSnapshotIntervalInSecs | 0 | The blob ids cached/tracked locally are synchronized with the DataStore at this interval. Any additions and deletions will be visible to other cluster nodes or repositories connected to the shared DatStore after this. This should be less than the blobGcMaxAgeInSecs parameter above and the frequency of blob gc. A value of `0` disables blob ID tracking (default since Oak 2.4.0). See [Blob tracker][blobtracker]. | 1.5.6 
 updateLimit | 100000 | The number of updates kept in memory until changes are written to a branch in the DocumentStore | 1.7.0  
 leaseCheckMode | STRICT | The lease check mode. `STRICT` is the default and will stop the DocumentNodeStore as soon as the lease expires. `LENIENT` will give the background lease update a chance to renew the lease even when the lease expired. This mode is only recommended for development, e.g. when debugging an application and the lease may expire when the JVM is stopped at a breakpoint. | 1.9.6
 documentStoreType | MONGO | Set to "RDB" for `RDBDocumentStore`; will require a configured Sling DataSource called `oak`. | 1.0
@@ -366,6 +369,10 @@ s3Region
 
 s3EndPoint
 : S3 rest API endpoint. Can help reduce latency of redirection from standard endpoint if a different region configured.
+
+pathStyleAccess
+: Default - `false`
+: Set to `true` to use path-style S3 requests (`http://endpoint/bucket/key`) instead of virtual-host-style requests. This is useful for S3-compatible endpoints that do not support bucket names in the host. Note: always enabled automatically when the remote storage mode is GCP; the property has no effect in that case.
 
 connectionTimeout
 : S3 connection timeout. See [AWS S3 documentation](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/section-client-configuration.html).
@@ -499,6 +506,40 @@ in both config file and framework properties then framework property takes prece
 
 For example by default Sling sets **repository.home** to _${sling.home}/repository_. So this value
 need not be specified in config files
+
+#### Feature Toggles
+
+The **Feature Toggle** mechanism enables the safe rollout, testing, and management of internal repository features.
+It allows new functionality, experimental logic, or performance optimizations to be shielded behind conditional
+switches that can be controlled at runtime without requiring a repository restart.
+
+##### Core Architecture
+
+The `org.apache.jackrabbit.oak.spi.toggle.FeatureToggle` class encapsulates the concept
+of a named boolean flag. The code behind the toggle  normally only needs access to the
+boolean; the name is used to identify the correct `FeatureToggle` and to change the value
+of the boolean flag. The boolean is represented by java's `AtomicBoolean` class.
+
+`FeatureToggle` instances are meant to be registered with a **Whiteboard**, Oak's internal
+service registry abstraction. This allows `FeatureToggle` instances to be discovered by
+third party code. E.g. in order to enable/disable the toggle using its `#setEnabled(boolean)`
+method.
+
+* **Registration:** Components register a `FeatureToggle` instance into the Whiteboard with
+* a unique name.
+* **Consumption:** Dependent repository logic usually only needs access to the
+* `AtomicBoolean` instance, which allows to keep implementations agnostic of the
+* `FeatureToggle` API.
+
+**Note:** Code that already has direct access to the `AtomicBoolean` or to the `FeatureToggle`
+instance - such as test cases - does not require a lookup via the `Whiteboard`.
+
+##### Key Benefits
+
+* **Trunk-Based Development:** New architectural changes can be merged into the main codebase while staying safely dormant.
+* **Runtime Control:** Allows administrators to dynamically enable or disable features (like new indexing behaviors or garbage collection routines) instantly.
+* **Risk Mitigation:** Acts as an immediate "kill switch" to revert to legacy, stable behavior.
+
 
 [1]: http://docs.mongodb.org/manual/reference/connection-string/
 [2]: http://jackrabbit.apache.org/api/2.4/org/apache/jackrabbit/core/data/FileDataStore.html

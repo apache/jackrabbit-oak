@@ -23,20 +23,20 @@
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>37</version>
+    <version>39</version>
     <relativePath />
   </parent>
 
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>2.3-SNAPSHOT</version>
+  <version>2.5-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
     <!-- build time stamp: should be updated prior to a release -->
     <!-- see https://maven.apache.org/guides/mini/guide-reproducible-builds.html -->
-    <project.build.outputTimestamp>1779909456</project.build.outputTimestamp>
+    <project.build.outputTimestamp>1783617994</project.build.outputTimestamp>
     <minimalMavenBuildVersion>3.6.1</minimalMavenBuildVersion><!-- due to https://issues.apache.org/jira/browse/MNG-6059 -->
     <test.opts.memory>-Xmx512m</test.opts.memory>
     <test.opts>${test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
@@ -48,7 +48,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.22.3</jackrabbit.version>
+    <jackrabbit.version>2.22.4</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
@@ -57,21 +57,22 @@
     <mongo.version>3.6</mongo.version>
     <segment.db>SegmentMK</segment.db>
     <lucene.version>4.7.2</lucene.version>
-    <mongo.driver.version>5.2.1</mongo.driver.version>
+    <mongo.driver.version>5.3.1</mongo.driver.version>
     <slf4j.api.version>1.7.36</slf4j.api.version>
     <slf4j.version>1.7.36</slf4j.version> <!-- sync with logback version -->
     <logback.version>1.2.13</logback.version>
     <h2.version>2.1.214</h2.version>
     <tika.version>1.28.5</tika.version>
     <derby.version>10.16.1.1</derby.version>
+    <!-- DO NOT upgrade to non-LTS versions of jackson; see https://github.com/FasterXML/jackson/wiki/Jackson-Releases -->
     <jackson.version>2.22.1</jackson.version>
     <jackson.annotations.version>2.22</jackson.annotations.version> <!-- not aligned with jackson anymore -->
-    <testcontainers.version>1.21.4</testcontainers.version>
+    <testcontainers.version>2.0.5</testcontainers.version>
     <pax-exam.version>4.14.0</pax-exam.version>
     <pax-url.version>2.6.17</pax-url.version>
     <groovy.version>3.0.25</groovy.version>
-    <netty.version>4.1.135.Final</netty.version>
-    <aws.sdk.version>2.34.9</aws.sdk.version>
+    <netty.version>4.1.136.Final</netty.version>
+    <aws.sdk.version>2.36.3</aws.sdk.version>
     <!-- determines the bytecode version (i.e. the minimum JRE required to run the build artifact) -->
     <javaTargetVersion>17</javaTargetVersion>
     <maven.compiler.release>${javaTargetVersion}</maven.compiler.release>
@@ -132,7 +133,6 @@
             <links>
               <link>https://s.apache.org/jcr-2.0-javadoc/</link>
               <link>https://jackrabbit.apache.org/api/2.20/</link>
-              <link>http://www.slf4j.org/apidocs/</link>
             </links>
             <!-- workaround for https://issues.apache.org/jira/browse/OAK-8517 -->
       	    <excludePackageNames>org.apache.jackrabbit.oak.plugins.index.*</excludePackageNames>
@@ -153,6 +153,7 @@
                 http://jackrabbit.apache.org/oak/
               </Bundle-DocURL>
               <Bundle-Vendor>The Apache Software Foundation</Bundle-Vendor>
+              <Bundle-SCM>url=${project.scm.url}, connection=${project.scm.connection}, developerConnection=${project.scm.developerConnection}, tag=${project.scm.tag}</Bundle-SCM>
               <!-- Don't default to bundle version for packages without explicit export version.
                    See FELIX-5172 -->
               <_nodefaultversion>true</_nodefaultversion>
@@ -645,7 +646,7 @@
       <dependency>
         <groupId>com.google.code.gson</groupId>
         <artifactId>gson</artifactId>
-        <version>2.13.2</version>
+        <version>2.14.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -665,12 +666,12 @@
       <dependency>
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
-        <version>2.20.0</version>
+        <version>2.21.0</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
-        <version>1.19.0</version>
+        <version>1.21.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -680,12 +681,12 @@
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-jdbc</artifactId>
-        <version>9.0.118</version>
+        <version>9.0.120</version>
       </dependency>
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-juli</artifactId>
-        <version>9.0.118</version>
+        <version>9.0.120</version>
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
@@ -700,7 +701,7 @@
       <dependency>
         <groupId>io.dropwizard.metrics</groupId>
         <artifactId>metrics-core</artifactId>
-        <version>3.2.3</version>
+        <version>3.2.6</version>
       </dependency>
       <dependency>
         <groupId>com.github.ben-manes.caffeine</groupId>
@@ -752,11 +753,6 @@
         <artifactId>httpcore-osgi</artifactId>
         <version>4.4.16</version>
      </dependency>
-      <dependency>
-        <groupId>org.apache.httpcomponents</groupId>
-        <artifactId>httpmime</artifactId>
-        <version>4.5.14</version>
-      </dependency>
       <!-- Testcontainers dependency -->
       <dependency>
         <groupId>org.testcontainers</groupId>
@@ -922,7 +918,7 @@
       <dependency>
         <groupId>org.apache.felix</groupId>
         <artifactId>org.apache.felix.framework</artifactId>
-        <version>7.0.3</version>
+        <version>7.0.5</version>
         <scope>test</scope>
       </dependency>
       <dependency>
@@ -1119,7 +1115,7 @@
         <dependency>
           <groupId>com.mysql</groupId>
           <artifactId>mysql-connector-j</artifactId>
-          <version>9.1.0</version>
+          <version>9.2.0</version>
           <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
           <scope>compile</scope>
         </dependency>
@@ -1131,7 +1127,7 @@
         <dependency>
           <groupId>org.postgresql</groupId>
           <artifactId>postgresql</artifactId>
-          <version>42.7.7</version>
+          <version>42.7.13</version>
           <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
           <scope>compile</scope>
         </dependency>

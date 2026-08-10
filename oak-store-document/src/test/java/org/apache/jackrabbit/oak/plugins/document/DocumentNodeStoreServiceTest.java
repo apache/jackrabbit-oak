@@ -166,6 +166,21 @@ public class DocumentNodeStoreServiceTest {
     }
 
     @Test
+    public void continuousRGCInvalidExpressionFallsBackToDefault() throws Exception {
+        Map<String, Object> config = newConfig(repoHome);
+        // 'L' is only valid in day-of-month/day-of-week fields; quartz 2.4.1 now
+        // rejects it here at parse time instead of failing later at runtime
+        config.put("versionGCExpression", "L * * * * ?");
+        MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
+        MockOsgi.activate(service, context.bundleContext());
+        boolean jobScheduled = false;
+        for (Runnable r : context.getServices(Runnable.class, "(scheduler.expression=\\*/5 \\* \\* \\* \\* ?)")) {
+            jobScheduled |= r.getClass().equals(DocumentNodeStoreService.RevisionGCJob.class);
+        }
+        assertTrue(jobScheduled);
+    }
+
+    @Test
     public void continuousRGCJobAsSupplier() throws Exception {
         Map<String, Object> config = newConfig(repoHome);
         MockOsgi.setConfigForPid(context.bundleContext(), PID, config);

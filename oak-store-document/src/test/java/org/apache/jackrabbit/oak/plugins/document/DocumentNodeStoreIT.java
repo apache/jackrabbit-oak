@@ -264,6 +264,7 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
                 }
             }
             ns1.runBackgroundOperations();
+            ns1.renewClusterIdLease();
         }
 
         // create /a as some initial content
