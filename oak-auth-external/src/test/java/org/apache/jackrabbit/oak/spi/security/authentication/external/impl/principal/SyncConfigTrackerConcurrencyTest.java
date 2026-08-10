@@ -16,33 +16,44 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.ValueFactory;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
 
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_NAME;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
+import static org.junit.Assume.assumeTrue;
 
 /**
  * Reproduces the contention behind OAK-12341: many session threads resolving a
@@ -63,8 +74,9 @@ import static org.mockito.Mockito.mock;
  */
 public class SyncConfigTrackerConcurrencyTest {
 
+    private static final Logger LOG = LoggerFactory.getLogger(SyncConfigTrackerConcurrencyTest.class);
+
     private static final int THREAD_COUNT = Math.max(16, Runtime.getRuntime().availableProcessors() * 4);
-    private static final long SAMPLE_MILLIS = 1500;
     private static final int MATCHING_SYNC_HANDLER_COUNT = 5;
 
     @Rule
@@ -84,12 +96,13 @@ public class SyncConfigTrackerConcurrencyTest {
         // register several SyncHandlers with dynamic membership enabled, mirroring a deployment
         // with multiple IDPs, so the ServiceTracker actually has more than one reference to
         // fetch/copy on every getServiceReferences() call
+        SyncHandler syncHandlerInstance = new MockSyncHandler();
         for (int i = 0; i < MATCHING_SYNC_HANDLER_COUNT; i++) {
-            context.registerService(SyncHandler.class, mock(SyncHandler.class),
+            context.registerService(SyncHandler.class, syncHandlerInstance,
                     Map.of(PARAM_NAME, "sh" + i, PARAM_USER_DYNAMIC_MEMBERSHIP, true));
         }
         // registered but never tracked: doesn't match the tracker's dynamic-membership filter
-        context.registerService(SyncHandler.class, mock(SyncHandler.class),
+        context.registerService(SyncHandler.class, syncHandlerInstance,
                 Map.of(PARAM_NAME, "sh-disabled", PARAM_USER_DYNAMIC_MEMBERSHIP, false));
 
         assertTrue(tracker.isEnabled());
@@ -110,9 +123,10 @@ public class SyncConfigTrackerConcurrencyTest {
      */
     @Test
     public void concurrentGetServiceReferencesBlocksReaders() throws Exception {
-        boolean blockedOnTracked = sampleForBlockingOnTrackedMonitor(tracker::getServiceReferences);
+        long blockedMs = sampleForBlockingOnTrackedMonitor(tracker::getServiceReferences);
+        LOG.info("Contended threads were blocked for {}ms", blockedMs);
         assertTrue("expected concurrent ServiceTracker.getServiceReferences() callers to contend on "
-                + "the shared Tracked monitor, as observed in the OAK-12341 thread dump", blockedOnTracked);
+                + "the shared Tracked monitor, as observed in the OAK-12341 thread dump", blockedMs > 0);
     }
 
     /**
@@ -123,57 +137,90 @@ public class SyncConfigTrackerConcurrencyTest {
      */
     @Test
     public void concurrentIsEnabledDoesNotBlockReaders() throws Exception {
-        boolean blockedOnTracked = sampleForBlockingOnTrackedMonitor(tracker::isEnabled);
-        assertFalse("expected isEnabled() to no longer contend on the ServiceTracker$Tracked monitor "
-                + "once service references are cached (OAK-12341)", blockedOnTracked);
+        long blockedMs = sampleForBlockingOnTrackedMonitor(tracker::isEnabled);
+        LOG.info("Contended threads were blocked for {}ms", blockedMs);
+        assertEquals("expected isEnabled() to no longer contend on the ServiceTracker$Tracked monitor "
+                + "once service references are cached (OAK-12341)", 0, blockedMs);
     }
 
     /**
-     * Runs {@code action} on {@link #THREAD_COUNT} threads in a tight loop for
-     * {@link #SAMPLE_MILLIS} and polls {@link ThreadMXBean} throughout, returning {@code true} as
+     * Runs {@code action} on {@link #THREAD_COUNT} threads in a tight loop
+     * and polls the {@link ThreadMXBean} of all worker threads up to 1000
+     * times
+     * throughout, returning {@code true} as
      * soon as any thread is observed {@code BLOCKED} while waiting to lock a
      * {@code ServiceTracker$Tracked} instance held by another thread.
      */
-    @SuppressWarnings("deprecation") // Thread.threadId() replacement requires Java 19+; this module targets 17
-    private boolean sampleForBlockingOnTrackedMonitor(Runnable action) throws Exception {
-        ExecutorService pool = Executors.newFixedThreadPool(THREAD_COUNT);
-        CountDownLatch started = new CountDownLatch(THREAD_COUNT);
+    private long sampleForBlockingOnTrackedMonitor(Runnable action) throws Exception {
+        ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+        assumeTrue("JVM supporting thread contention monitoring required",
+                threadMXBean.isThreadContentionMonitoringSupported());
+        threadMXBean.setThreadContentionMonitoringEnabled(true);
+
+        ExecutorService pool = new ThreadPoolExecutor(
+                THREAD_COUNT, THREAD_COUNT,
+                0L, TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<>(THREAD_COUNT * 2),
+                new ThreadPoolExecutor.CallerRunsPolicy());
+        Set<Long> threadIds = ConcurrentHashMap.newKeySet();
+        CountDownLatch allThreadsStarted = new CountDownLatch(THREAD_COUNT);
         AtomicBoolean stop = new AtomicBoolean(false);
-        List<Long> threadIds = new CopyOnWriteArrayList<>();
-        List<Future<?>> futures = new ArrayList<>();
 
         try {
-            for (int i = 0; i < THREAD_COUNT; i++) {
-                futures.add(pool.submit(() -> {
-                    threadIds.add(Thread.currentThread().getId());
-                    started.countDown();
-                    while (!stop.get()) {
+            pool.execute(() -> {
+                while (!stop.get()) {
+                    pool.execute(() -> {
+                        threadIds.add(Thread.currentThread().getId());
+                        allThreadsStarted.countDown();
                         action.run();
-                    }
-                }));
-            }
-            assertTrue("worker threads did not start in time", started.await(10, TimeUnit.SECONDS));
-
-            ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
-            long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(SAMPLE_MILLIS);
-            boolean blocked = false;
-            while (!blocked && System.nanoTime() < deadline) {
-                for (Long tid : threadIds) {
-                    ThreadInfo info = threadMXBean.getThreadInfo(tid);
-                    if (info != null && info.getThreadState() == Thread.State.BLOCKED
-                            && info.getLockName() != null && info.getLockName().contains("ServiceTracker$Tracked")) {
-                        blocked = true;
-                        break;
-                    }
+                    });
                 }
+            });
+
+            assertTrue("worker threads did not start in time", allThreadsStarted.await(10, TimeUnit.SECONDS));
+
+            long[] threads = threadIds.stream().mapToLong(Long::longValue).toArray();
+            long blockedMs = 0;
+            for (int i = 0; i < 1000; i++) {
+                ThreadInfo[] threadInfo = threadMXBean.getThreadInfo(threads);
+                blockedMs += Stream.of(threadInfo)
+                        .filter(Objects::nonNull)
+                        .filter(info -> info.getThreadState() == Thread.State.BLOCKED)
+                        .filter(info -> info.getLockName() != null && info.getLockName().contains("ServiceTracker$Tracked"))
+                        .mapToLong(ThreadInfo::getBlockedTime)
+                        .sum();
             }
-            return blocked;
+            return blockedMs;
         } finally {
             stop.set(true);
-            for (Future<?> f : futures) {
-                f.get(10, TimeUnit.SECONDS);
-            }
-            pool.shutdown();
+            pool.shutdownNow();
+        }
+    }
+
+    private static class MockSyncHandler implements SyncHandler {
+        @Override
+        public @NotNull String getName() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public @NotNull SyncContext createContext(@NotNull ExternalIdentityProvider idp, @NotNull UserManager userManager, @NotNull ValueFactory valueFactory) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public @Nullable SyncedIdentity findIdentity(@NotNull UserManager userManager, @NotNull String id) throws RepositoryException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean requiresSync(@NotNull SyncedIdentity identity) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public @NotNull Iterator<SyncedIdentity> listIdentities(@NotNull UserManager userManager) throws RepositoryException {
+            throw new UnsupportedOperationException();
         }
     }
 }
