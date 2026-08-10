@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -31,8 +32,17 @@ import java.util.List;
 /**
  * Aggregation of a list of editor providers into a single provider.
  */
-public class CompositeIndexEditorProvider implements IndexEditorProvider {
+public class CompositeIndexEditorProvider implements IndexEditorProvider, CatchUpCapable {
 
+    /**
+     * Returns an {@link IndexEditorProvider} that aggregates the given providers.
+     *
+     * @implNote When called with a single provider, returns that provider directly.
+     * When called with zero providers, returns a no-op lambda. In both cases the
+     * returned object is not guaranteed to implement {@link CatchUpCapable}. Callers
+     * that require catch-up support should always supply at least two providers so
+     * that the composite wrapper is returned.
+     */
     @NotNull
     public static IndexEditorProvider compose(IndexEditorProvider... providers) {
         switch (providers.length) {
@@ -45,6 +55,15 @@ public class CompositeIndexEditorProvider implements IndexEditorProvider {
         }
     }
 
+    /**
+     * Returns an {@link IndexEditorProvider} that aggregates the given providers.
+     *
+     * @implNote When called with a single provider, returns that provider directly.
+     * When called with zero providers, returns a no-op lambda. In both cases the
+     * returned object is not guaranteed to implement {@link CatchUpCapable}. Callers
+     * that require catch-up support should always supply at least two providers so
+     * that the composite wrapper is returned.
+     */
     @NotNull
     public static IndexEditorProvider compose(@NotNull List<IndexEditorProvider> providers) {
         switch (providers.size()) {
