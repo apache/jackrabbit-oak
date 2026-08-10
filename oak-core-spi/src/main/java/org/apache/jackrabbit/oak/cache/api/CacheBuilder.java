@@ -18,16 +18,13 @@ package org.apache.jackrabbit.oak.cache.api;
 
 import java.time.Clock;
 import java.time.Duration;
-import java.util.concurrent.Executor;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 
+import org.apache.jackrabbit.oak.cache.impl.CacheMaintenanceExecutor;
 import org.apache.jackrabbit.oak.cache.impl.caffeine.CaffeineCacheAdapter;
 import org.apache.jackrabbit.oak.cache.impl.caffeine.CaffeineLoadingCacheAdapter;
 import org.jetbrains.annotations.NotNull;
@@ -66,34 +63,15 @@ public final class CacheBuilder<K, V> {
      * read when a cache is built, so flipping it only affects caches built afterwards - Oak's
      * long-lived caches are built during startup and keep the setting they were built with.
      * <p>
-     * Caches configured with {@link #refreshAfterWrite(Duration)} ignore the toggle and always use
-     * the maintenance executor, because Caffeine shares one executor between maintenance and
-     * refresh and a synchronous refresh would run the loader (potentially a remote call) on the
-     * calling thread.
+     * Caches configured with {@link #refreshAfterWrite(Duration)} ignore this toggle and always run
+     * maintenance inline. Caffeine shares one executor between maintenance and refresh, and a
+     * refresh loader may make a remote call (e.g. {@code ElasticIndexStatistics}); dispatching that
+     * onto {@link org.apache.jackrabbit.oak.cache.impl.CacheMaintenanceExecutor} would let a single
+     * slow remote call occupy one of its few threads and delay maintenance for every other cache
+     * sharing the pool, including {@code SegmentCache}. Keeping refresh inline confines that cost to
+     * the thread that triggered the refresh instead of the shared pool.
      */
     public static final AtomicBoolean FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED = new AtomicBoolean(true);
-
-    private static final String MAINTENANCE_THREAD_PREFIX = "oak-cache-maintenance-";
-
-    /**
-     * Number of maintenance threads shared by all Oak caches, between 2 and 4.
-     * <p>
-     * Caffeine keeps at most one maintenance task per cache in flight, so the concurrency needed is
-     * bounded by the number of caches draining at the same instant - roughly the dozen
-     * {@code CacheBuilder} consumers - not by request throughput. Hence a small count that does not
-     * scale with core count, so the pool never competes with request threads on a large machine.
-     * The floor of 2 keeps a blocking {@link #refreshAfterWrite(Duration)} reload from starving
-     * plain eviction work.
-     */
-    private static final int MAINTENANCE_THREADS =
-            Math.max(2, Math.min(4, Runtime.getRuntime().availableProcessors() / 4));
-
-    /**
-     * Bound on queued maintenance tasks: deep enough to absorb a burst, shallow enough that a
-     * wedged pool falls back to {@link ThreadPoolExecutor.CallerRunsPolicy} instead of queueing
-     * without bound.
-     */
-    private static final int MAINTENANCE_QUEUE_CAPACITY = 1024;
 
     private long maximumWeight = -1;
     private long maximumSize = -1;
@@ -315,11 +293,14 @@ public final class CacheBuilder<K, V> {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private Caffeine<K, V> configureCaffeineBuilder() {
         Caffeine caffeineBuilder = Caffeine.newBuilder();
-        // Caffeine uses one executor for both maintenance and refresh work. Keeping refresh
-        // asynchronous outranks the escape hatch: a synchronous reload would run the loader's
-        // remote call on the calling thread.
-        boolean inline = !FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.get() && refreshAfterWrite == null;
-        caffeineBuilder = caffeineBuilder.executor(inline ? Runnable::run : maintenanceExecutor());
+        // Caffeine uses one executor for both maintenance and refresh work, so a refreshing cache
+        // cannot be moved onto the shared maintenance pool without also moving its refresh loader
+        // there. Refresh loaders may make remote calls (e.g. ElasticIndexStatistics), and the shared
+        // pool has only a few threads - one slow remote call would delay maintenance for every other
+        // cache sharing it, including SegmentCache. Refreshing caches therefore always run inline,
+        // regardless of the toggle, confining that cost to the triggering thread instead of the pool.
+        boolean inline = !FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.get() || refreshAfterWrite != null;
+        caffeineBuilder = caffeineBuilder.executor(inline ? Runnable::run : CacheMaintenanceExecutor.get());
         if (initialCapacity >= 0) {
             caffeineBuilder = caffeineBuilder.initialCapacity(initialCapacity);
         }
@@ -360,60 +341,6 @@ public final class CacheBuilder<K, V> {
             caffeineBuilder = caffeineBuilder.ticker(t::get);
         }
         return (Caffeine<K, V>) caffeineBuilder;
-    }
-
-    /**
-     * The executor Caffeine runs cache maintenance on.
-     * <p>
-     * Oak owns this pool rather than letting Caffeine fall back to
-     * {@link java.util.concurrent.ForkJoinPool#commonPool()}, for three reasons:
-     * <ul>
-     *   <li><em>Liveness.</em> The common pool is configurable to zero workers
-     *       ({@code -Djava.util.concurrent.ForkJoinPool.common.parallelism=0}), in which case
-     *       {@code execute(Runnable)} tasks are queued and never run - eviction would stop and
-     *       removal listeners would never fire, silently. The bounded queue plus
-     *       {@link ThreadPoolExecutor.CallerRunsPolicy} here guarantees maintenance always runs
-     *       eventually, degrading to the pre-OAK-12290 inline behaviour rather than stalling.</li>
-     *   <li><em>Isolation.</em> The common pool is shared with every {@code parallelStream()} in
-     *       the JVM, including the hosting application's. A saturated common pool would delay
-     *       segment-cache weight accounting and, once Caffeine's write buffer fills, push
-     *       maintenance back onto request threads - reintroducing the very lock contention
-     *       OAK-12290 is about.</li>
-     *   <li><em>Diagnosability.</em> Named daemon threads make cache maintenance identifiable in a
-     *       thread dump, which is how OAK-12290 and SKYOPS-149400 were diagnosed in the first
-     *       place. This also matches Oak's existing convention of never using the common pool
-     *       (see {@code ForkJoinUtils#submitInCustomPool}).</li>
-     * </ul>
-     */
-    private static Executor maintenanceExecutor() {
-        return MaintenanceExecutorHolder.EXECUTOR;
-    }
-
-    /**
-     * Lazy holder so the pool is only created once a cache is actually built.
-     */
-    private static final class MaintenanceExecutorHolder {
-
-        private static final Executor EXECUTOR = newMaintenanceExecutor();
-
-        private static Executor newMaintenanceExecutor() {
-            AtomicInteger threadCounter = new AtomicInteger();
-            ThreadPoolExecutor executor = new ThreadPoolExecutor(
-                    MAINTENANCE_THREADS, MAINTENANCE_THREADS,
-                    60, TimeUnit.SECONDS,
-                    new LinkedBlockingQueue<>(MAINTENANCE_QUEUE_CAPACITY),
-                    runnable -> {
-                        Thread thread = new Thread(runnable,
-                                MAINTENANCE_THREAD_PREFIX + threadCounter.incrementAndGet());
-                        // Daemon: the pool is process-wide and never shut down, and no maintenance
-                        // task is required to complete for a clean exit.
-                        thread.setDaemon(true);
-                        return thread;
-                    },
-                    new ThreadPoolExecutor.CallerRunsPolicy());
-            executor.allowCoreThreadTimeOut(true);
-            return executor;
-        }
     }
 
     private void validateConfiguration(boolean loadingCache) {

@@ -165,12 +165,48 @@ public class CacheBuilderMaintenanceTest {
     }
 
     /**
-     * Refresh stays asynchronous even with the toggle off: Caffeine shares one executor between
-     * maintenance and refresh, so an inline executor would run the loader - for
-     * {@code ElasticIndexStatistics} a remote call - on the querying thread.
+     * Refresh stays inline regardless of the toggle: Caffeine shares one executor between
+     * maintenance and refresh, and a refresh loader may make a remote call (e.g.
+     * {@code ElasticIndexStatistics}). Dispatching that onto the shared maintenance pool would let
+     * one slow remote call occupy one of its few threads and delay maintenance for every other
+     * cache sharing it, including {@code SegmentCache}. Keeping refresh inline confines that cost
+     * to the triggering thread instead of the pool.
      */
     @Test
-    public void toggleDisabledKeepsRefreshOffCallerThread() throws InterruptedException {
+    public void refreshRunsOnCallerThreadRegardlessOfToggle() throws InterruptedException {
+        AtomicReference<Thread> reloadThread = new AtomicReference<>();
+        CountDownLatch reloaded = new CountDownLatch(1);
+        CountDownLatch firstLoadDone = new CountDownLatch(1);
+
+        LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumSize(10)
+                .refreshAfterWrite(Duration.ofMillis(1))
+                .build(key -> {
+                    if (firstLoadDone.getCount() == 0) {
+                        reloadThread.set(Thread.currentThread());
+                        reloaded.countDown();
+                    }
+                    return "v";
+                });
+
+        cache.get("k");
+        firstLoadDone.countDown();
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
+        Thread callingThread = null;
+        while (reloaded.getCount() > 0 && System.nanoTime() < deadline) {
+            Thread.sleep(5);
+            callingThread = Thread.currentThread();
+            cache.get("k");
+        }
+
+        Assert.assertTrue("refresh never ran", reloaded.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+        Assert.assertSame("refresh must run on the thread that triggered it, never the shared pool",
+                callingThread, reloadThread.get());
+    }
+
+    /** Same guarantee with the toggle explicitly off, since refresh ignores it either way. */
+    @Test
+    public void refreshRunsOnCallerThreadWithToggleDisabled() throws InterruptedException {
         CacheBuilder.FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.set(false);
 
         AtomicReference<Thread> reloadThread = new AtomicReference<>();
@@ -190,15 +226,41 @@ public class CacheBuilderMaintenanceTest {
 
         cache.get("k");
         firstLoadDone.countDown();
-        // trigger the refresh; the returning get() must not have performed the reload itself
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
+        Thread callingThread = null;
         while (reloaded.getCount() > 0 && System.nanoTime() < deadline) {
             Thread.sleep(5);
+            callingThread = Thread.currentThread();
             cache.get("k");
         }
 
         Assert.assertTrue("refresh never ran", reloaded.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
-        Assert.assertNotSame("refresh must stay off the calling thread even with the toggle off",
-                Thread.currentThread(), reloadThread.get());
+        Assert.assertSame("refresh must run on the thread that triggered it, never the shared pool",
+                callingThread, reloadThread.get());
+    }
+
+    /**
+     * A refreshing cache's own eviction/removal notification must also stay inline - it shares the
+     * same executor setting as refresh, and there is no separate knob for the two.
+     */
+    @Test
+    public void refreshingCacheEvictionAlsoRunsOnCallerThread() {
+        AtomicReference<Thread> evictionThread = new AtomicReference<>();
+
+        LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumSize(1)
+                .refreshAfterWrite(Duration.ofHours(1))
+                .evictionListener((k, v, cause) -> {
+                    if (cause == EvictionCause.SIZE) {
+                        evictionThread.set(Thread.currentThread());
+                    }
+                })
+                .build(key -> "v");
+
+        cache.get("k1");
+        cache.get("k2");
+
+        Assert.assertSame("eviction on a refreshing cache must run inline, not on the shared pool",
+                Thread.currentThread(), evictionThread.get());
     }
 }

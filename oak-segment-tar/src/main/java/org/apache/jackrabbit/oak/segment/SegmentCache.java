@@ -164,14 +164,18 @@ public abstract class SegmentCache {
         }
 
         /**
-         * Removal handler called whenever an item is evicted from the cache.
+         * Removal handler called whenever an item is evicted from the cache. Runs asynchronously
+         * (see {@link CacheBuilder}), so {@code value} may already have been superseded by a
+         * concurrent {@link SegmentId#loaded(Segment) reload} by the time this runs - clearing the
+         * memoised segment unconditionally would then discard that fresher value instead of the
+         * one actually being removed, see {@link SegmentId#unloadIfCurrent(Segment)}.
          */
         private void onRemove(@NotNull SegmentId key, Segment value, @NotNull EvictionCause cause) {
             stats.evictionCount.incrementAndGet();
             if (value != null) {
                 stats.currentWeight.addAndGet(-segmentWeight(value));
+                key.unloadIfCurrent(value);
             }
-            key.unloaded();
         }
 
         @Override
@@ -232,6 +236,13 @@ public abstract class SegmentCache {
         @Override
         public void clear() {
             cache.invalidateAll();
+            // Removal notifications run asynchronously (see CacheBuilder), so without this the
+            // Segment objects invalidated above can still be strongly reachable via SegmentId's L1
+            // memoisation when DefaultCleanupStrategy calls System.gc() right after clear() - the
+            // GC hint would then find little to reclaim. cleanUp() forces pending maintenance
+            // (including these removal notifications) to run before returning; clear() is only
+            // called during GC, never a hot path, so the inline cost here is acceptable.
+            cache.cleanUp();
         }
 
         @Override

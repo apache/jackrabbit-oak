@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.segment;
 import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 import static org.apache.jackrabbit.oak.segment.SegmentStore.EMPTY_STORE;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -45,6 +47,22 @@ public class SegmentId implements Comparable<SegmentId> {
 
     /** Logger instance */
     private static final Logger log = LoggerFactory.getLogger(SegmentId.class);
+
+    /**
+     * Handle for compare-and-clear access to {@link #segment} from {@link #unloadIfCurrent(Segment)}.
+     * The removal notification that triggers an unload runs asynchronously and may therefore fire
+     * after {@code segment} has already been refreshed by a concurrent load; a plain write there
+     * would silently discard that fresher value. Reads and normal writes ({@link #getSegment()},
+     * {@link #loaded(Segment)}) are unaffected and keep using the plain volatile field.
+     */
+    private static final VarHandle SEGMENT;
+    static {
+        try {
+            SEGMENT = MethodHandles.lookup().findVarHandle(SegmentId.class, "segment", Segment.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
+        }
+    }
 
     /**
      * Checks whether this is a data segment identifier.
@@ -219,6 +237,23 @@ public class SegmentId implements Comparable<SegmentId> {
      */
     void unloaded() {
         this.segment = null;
+    }
+
+    /**
+     * Like {@link #unloaded()}, but only clears the memoised segment if it is still {@code expected}.
+     * Callers that receive a removal notification asynchronously (e.g. a cache's removal listener
+     * dispatched on a separate executor) must use this instead of {@link #unloaded()}: by the time
+     * the notification runs, {@code expected} may already have been superseded by a concurrent
+     * {@link #loaded(Segment)} call, and unconditionally clearing the field would discard that
+     * fresher value and strand this id on the slow lookup path in {@link #getSegment()} until the
+     * next miss.
+     *
+     * @param expected the segment that was removed; the field is left untouched if it no longer
+     *                 holds this value
+     * @return {@code true} if {@code expected} was still memoised and has now been cleared
+     */
+    boolean unloadIfCurrent(@NotNull Segment expected) {
+        return SEGMENT.compareAndSet(this, expected, null);
     }
 
     /**

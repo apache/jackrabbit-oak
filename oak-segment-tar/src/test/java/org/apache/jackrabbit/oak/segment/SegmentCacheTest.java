@@ -29,6 +29,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.lang.reflect.Method;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -36,6 +37,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BooleanSupplier;
 
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
+import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.junit.Before;
 import org.junit.Test;
@@ -173,6 +175,55 @@ public class SegmentCacheTest {
             return segment3;
         }));
         assertFalse(cached.get());
+    }
+
+    /**
+     * A removal notification can legitimately arrive after the same id has already been reloaded:
+     * Caffeine's own {@code RemovalListener} contract states the notification "does not always
+     * signify that the key is now absent ... as it may have already been re-added", and
+     * {@code SegmentCache}'s removal handler runs asynchronously (see {@link CacheBuilder}), which
+     * is exactly when that can happen. {@code onRemove} must therefore only clear the id's
+     * memoised segment if it still holds the value being removed, not whatever happens to be
+     * memoised by the time the notification runs.
+     *
+     * <p>The notification is delivered by calling the cache's actual {@code onRemove} handler
+     * directly (via reflection, since it is private) instead of waiting for Caffeine's real,
+     * unpredictably-timed asynchronous dispatch. This keeps the test deterministic: it exercises
+     * the exact same production code with the exact arguments the race scenario requires, without
+     * depending on background-thread scheduling that a busy CI machine could delay past any fixed
+     * timeout in either direction.
+     */
+    @Test
+    public void staleRemovalNotificationDoesNotClobberFresherReload() throws ReflectiveOperationException {
+        cache.putSegment(segment1);
+        assertEquals(segment1, id1.getSegment());
+
+        Segment reloadedSegment1 = mock(Segment.class);
+        when(reloadedSegment1.getSegmentId()).thenReturn(id1);
+        when(reloadedSegment1.estimateMemoryUsage()).thenReturn(1);
+
+        // Simulate a concurrent reload of the same id landing before the stale removal
+        // notification for the *original* segment1 eviction is processed - matching the ordering
+        // SegmentCache.putSegment()/getSegment() always maintain (loaded() runs before the cache
+        // operation that can trigger the corresponding removal notification).
+        id1.loaded(reloadedSegment1);
+
+        // Deliver the removal notification for the *original* segment1 directly.
+        invokeOnRemove(cache, id1, segment1, EvictionCause.SIZE);
+
+        // The notification is for the old segment1, but id1 has already moved on to
+        // reloadedSegment1 by the time it is delivered - it must not clear that fresher
+        // memoisation.
+        assertEquals("a stale removal notification must not clobber a fresher reload of the same id",
+                reloadedSegment1, id1.getSegment());
+    }
+
+    private static void invokeOnRemove(SegmentCache cache, SegmentId key, Segment value, EvictionCause cause)
+            throws ReflectiveOperationException {
+        Method onRemove = cache.getClass()
+                .getDeclaredMethod("onRemove", SegmentId.class, Segment.class, EvictionCause.class);
+        onRemove.setAccessible(true);
+        onRemove.invoke(cache, key, value, cause);
     }
 
     /**
