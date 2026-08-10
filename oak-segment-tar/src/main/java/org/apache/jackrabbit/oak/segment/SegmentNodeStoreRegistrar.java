@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.api.jmx.FileStoreBackupRestoreMBean;
 import org.apache.jackrabbit.oak.backup.impl.FileStoreBackupRestoreImpl;
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGC;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGCMBean;
@@ -280,6 +281,12 @@ class SegmentNodeStoreRegistrar {
         // OAK-12214: bug-fix toggle (default on) so L2 eviction policy sees L1 memoised hits
         registerCloseable(cfg.getWhiteboard().register(FeatureToggle.class,
                 new FeatureToggle(SegmentCache.FT_OAK_12214, SegmentCache.FT_OAK_12214_PROPAGATE_L1_HITS_TO_L2_ENABLED),
+                Collections.emptyMap()));
+
+        // OAK-12290: bug-fix toggle (default on) so Caffeine maintenance never runs inline
+        // on request, indexer or writer threads while holding the eviction lock
+        registerCloseable(cfg.getWhiteboard().register(FeatureToggle.class,
+                new FeatureToggle(CacheBuilder.FT_OAK_12290, CacheBuilder.FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED),
                 Collections.emptyMap()));
 
         // Listen for Executor services on the whiteboard

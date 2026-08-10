@@ -31,7 +31,9 @@ import static org.mockito.Mockito.when;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BooleanSupplier;
 
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
@@ -124,7 +126,7 @@ public class SegmentCacheTest {
         cache.clear();
 
         // Check eviction cleared memoisation
-        expect(SegmentNotFoundException.class, id1::getSegment);
+        awaitUnloaded(id1);
 
         // Check that segment1 was evicted and needs reloading through the node store
         AtomicBoolean cached = new AtomicBoolean(true);
@@ -144,7 +146,7 @@ public class SegmentCacheTest {
         cache.putSegment(segment3);
 
         // Check eviction cleared memoisation
-        expect(SegmentNotFoundException.class, id3::getSegment);
+        awaitUnloaded(id3);
 
         // Check that segment3 was evicted inside put because of its size and needs
         // reloading through the node store
@@ -161,7 +163,7 @@ public class SegmentCacheTest {
         cache.getSegment(id3, () -> segment3);
 
         // Check eviction cleared memoisation
-        expect(SegmentNotFoundException.class, id3::getSegment);
+        awaitUnloaded(id3);
 
         // Check that segment3 was evicted inside put because of its size and needs
         // reloading through the node store
@@ -314,13 +316,13 @@ public class SegmentCacheTest {
         assertEquals(0, stats.getEvictionCount());
 
         cache.clear();
+        awaitEviction(stats, 1);
         assertEquals(0, stats.getElementCount());
         assertEquals(1, stats.getLoadCount());
         assertEquals(0, stats.estimateCurrentWeight());
         assertEquals(1, stats.getHitCount());
         assertEquals(1, stats.getMissCount());
         assertEquals(2, stats.getRequestCount());
-        assertEquals(1, stats.getEvictionCount());
 
         stats.resetStats();
         assertEquals(0, stats.getElementCount());
@@ -333,13 +335,13 @@ public class SegmentCacheTest {
 
         // Eviction during put
         cache.getSegment(id3, () -> segment3);
+        awaitEviction(stats, 1);
         assertEquals(0, stats.getElementCount());
         assertEquals(1, stats.getLoadCount());
         assertEquals(0, stats.estimateCurrentWeight());
         assertEquals(0, stats.getHitCount());
         assertEquals(1, stats.getMissCount());
         assertEquals(1, stats.getRequestCount());
-        assertEquals(1, stats.getEvictionCount());
     }
 
     @Test
@@ -391,20 +393,41 @@ public class SegmentCacheTest {
         assertEquals(0, stats.getEvictionCount());
     }
 
-    private static void expect(Class<? extends Throwable> exceptionType, Callable<?> thunk) {
-        try {
-            thunk.call();
-        } catch (Throwable e) {
-            if (!exceptionType.isAssignableFrom(e.getClass())) {
-                throw new AssertionError(
-                        "Unexpected exception: " + e.getClass().getSimpleName() + ". " +
-                                "Expected: " + exceptionType.getSimpleName(), e);
-            } else {
+    /**
+     * Waits until {@code id} is no longer memoised in L1. Since OAK-12290 the eviction callback
+     * that clears the memoised segment runs on Caffeine's executor, so it may lag the write that
+     * triggered the eviction.
+     */
+    private static void awaitUnloaded(SegmentId id) {
+        await(() -> {
+            try {
+                id.getSegment();
+                return false;
+            } catch (SegmentNotFoundException e) {
+                return true;
+            }
+        }, id + " should have been unloaded");
+    }
+
+    /**
+     * Waits until the asynchronous eviction callback has fully run: the eviction count reaches
+     * {@code expectedEvictions} and the weight it releases has been subtracted.
+     */
+    private static void awaitEviction(AbstractCacheStats stats, long expectedEvictions) {
+        await(() -> stats.getEvictionCount() == expectedEvictions && stats.estimateCurrentWeight() == 0,
+                "expected " + expectedEvictions + " evictions and zero weight, got "
+                        + stats.getEvictionCount() + " evictions and weight " + stats.estimateCurrentWeight());
+    }
+
+    private static void await(BooleanSupplier condition, String message) {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        while (System.nanoTime() < deadline) {
+            if (condition.getAsBoolean()) {
                 return;
             }
+            Thread.yield();
         }
-        throw new AssertionError("Expected exception " +
-                exceptionType.getSimpleName() + " not thrown");
+        fail(message);
     }
 
     private static Segment failToLoad(SegmentId id) {

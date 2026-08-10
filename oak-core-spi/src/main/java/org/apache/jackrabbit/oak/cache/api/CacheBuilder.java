@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.cache.api;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -43,6 +44,27 @@ import org.jetbrains.annotations.NotNull;
  * @param <V> the type of cache values
  */
 public final class CacheBuilder<K, V> {
+
+    /**
+     * Feature toggle name for {@link #FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED}.
+     */
+    public static final String FT_OAK_12290 = "FT_OAK-12290";
+
+    /**
+     * Whether Caffeine runs cache maintenance (eviction, removal notification, buffer drains)
+     * on its own executor instead of the calling thread. Defaults to {@code true} as a
+     * <strong>bug-fix</strong> toggle: inline maintenance made request, indexer and writer
+     * threads hold Caffeine's eviction lock for the duration of the maintenance work, which
+     * caused lock contention (OAK-12290) and, when a lock holder died, a wedged JVM
+     * (SKYOPS-149400).
+     * <p>
+     * The value is read when a cache is built, so caches created at startup keep the setting
+     * they were built with. Set {@code -Doak.cache.asyncMaintenance=false} to restore the
+     * previous synchronous behaviour for all caches; the toggle is also registered on the OSGi
+     * Whiteboard under {@link #FT_OAK_12290} so caches built later can be switched at runtime.
+     */
+    public static final AtomicBoolean FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED =
+            new AtomicBoolean(!"false".equalsIgnoreCase(System.getProperty("oak.cache.asyncMaintenance")));
 
     private long maximumWeight = -1;
     private long maximumSize = -1;
@@ -255,9 +277,9 @@ public final class CacheBuilder<K, V> {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private Caffeine<K, V> configureCaffeineBuilder() {
         Caffeine caffeineBuilder = Caffeine.newBuilder();
-        if (refreshAfterWrite == null) {
-            // Caffeine uses one executor for both maintenance and refresh work.
-            // Run maintenance on the caller thread unless refresh must stay asynchronous.
+        if (!FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.get()) {
+            // Caffeine uses one executor for both maintenance and refresh work, so refresh
+            // becomes synchronous too when maintenance is forced onto the caller thread.
             caffeineBuilder = caffeineBuilder.executor(Runnable::run);
         }
         if (initialCapacity >= 0) {
