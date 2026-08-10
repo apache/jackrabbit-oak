@@ -42,13 +42,8 @@ public final class CacheMaintenanceExecutor {
     private static final String THREAD_PREFIX = "oak-cache-maintenance-";
 
     /**
-     * Number of maintenance threads shared by all Oak caches, between 2 and 4.
-     * <p>
-     * Caffeine keeps at most one maintenance task per cache in flight, so the concurrency needed is
-     * bounded by the number of caches draining at the same instant - roughly the dozen
-     * {@code CacheBuilder} consumers - not by request throughput. Hence a small count that does not
-     * scale with core count, so the pool never competes with request threads on a large machine.
-     * The floor of 2 keeps a blocking refresh reload from starving plain eviction work.
+     * Number of maintenance threads shared by all Oak caches, between 2 and 4. Caffeine keeps at
+     * most one maintenance task per cache in flight, so this doesn't need to scale with core count.
      */
     private static final int THREADS = Math.max(2, Math.min(4, Runtime.getRuntime().availableProcessors() / 4));
 
@@ -101,10 +96,8 @@ public final class CacheMaintenanceExecutor {
     }
 
     /**
-     * Falls back to {@link ThreadPoolExecutor.CallerRunsPolicy} behaviour, but also logs (at most
-     * once a minute) that the pool is saturated. A one-off activation is expected under a burst
-     * (e.g. invalidating a large cache); sustained activation means the pool is undersized for
-     * the load it is carrying.
+     * {@link ThreadPoolExecutor.CallerRunsPolicy} that also logs, at most once a minute, that the
+     * pool is saturated.
      */
     private static final class LoggingCallerRunsPolicy implements RejectedExecutionHandler {
 

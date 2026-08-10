@@ -165,10 +165,8 @@ public abstract class SegmentCache {
 
         /**
          * Removal handler called whenever an item is evicted from the cache. Runs asynchronously
-         * (see {@link CacheBuilder}), so {@code value} may already have been superseded by a
-         * concurrent {@link SegmentId#loaded(Segment) reload} by the time this runs - clearing the
-         * memoised segment unconditionally would then discard that fresher value instead of the
-         * one actually being removed, see {@link SegmentId#unloadIfCurrent(Segment)}.
+         * (see {@link CacheBuilder}), so it uses {@link SegmentId#unloadIfCurrent(Segment)} to avoid
+         * clobbering a fresher, concurrently loaded segment.
          */
         private void onRemove(@NotNull SegmentId key, Segment value, @NotNull EvictionCause cause) {
             stats.evictionCount.incrementAndGet();
@@ -236,10 +234,8 @@ public abstract class SegmentCache {
         @Override
         public void clear() {
             cache.invalidateAll();
-            // cleanUp() doesn't wait for the async removal-listener callbacks (unloadIfCurrent()),
-            // so some segments may stay reachable via SegmentId briefly after this returns, limiting
-            // what the following System.gc() hint reclaims. Best-effort only; FileReaper still
-            // deletes files safely regardless.
+            // Best-effort: cleanUp() doesn't wait for async removal callbacks, so some segments may
+            // stay reachable briefly, limiting what the following System.gc() hint reclaims.
             cache.cleanUp();
         }
 

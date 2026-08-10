@@ -24,12 +24,9 @@ import org.jetbrains.annotations.Nullable;
  *
  * <p>Register via {@link CacheBuilder#evictionListener(EvictionListener)}.</p>
  *
- * <p>The callback runs on the cache's maintenance executor, not on the thread that triggered the
- * removal, so it may lag behind the triggering operation and may observe a key that has already
- * been re-inserted. Listeners that maintain external accounting must therefore be written to
- * tolerate reordering against concurrent writes, or drain pending work with
- * {@link Cache#cleanUp()} before reading that accounting. Removals are still reported exactly
- * once per removed mapping.</p>
+ * <p>The callback runs on the cache's maintenance executor, not on the triggering thread, so it
+ * may lag behind and observe a key that was already re-inserted. Use {@link Cache#cleanUp()} to
+ * drain pending callbacks before relying on external accounting they maintain.</p>
  *
  * <p><b>Warning:</b> it is unsafe to call cache methods from within the listener.
  * Some implementations hold internal locks during the callback.</p>

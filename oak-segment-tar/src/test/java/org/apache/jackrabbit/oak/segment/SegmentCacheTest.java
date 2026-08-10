@@ -179,20 +179,11 @@ public class SegmentCacheTest {
     }
 
     /**
-     * A removal notification can legitimately arrive after the same id has already been reloaded:
-     * Caffeine's own {@code RemovalListener} contract states the notification "does not always
-     * signify that the key is now absent ... as it may have already been re-added", and
-     * {@code SegmentCache}'s removal handler runs asynchronously (see {@link CacheBuilder}), which
-     * is exactly when that can happen. {@code onRemove} must therefore only clear the id's
-     * memoised segment if it still holds the value being removed, not whatever happens to be
-     * memoised by the time the notification runs.
+     * A stale removal notification for an evicted segment must not clobber a fresher reload of
+     * the same id that raced ahead of it (runs asynchronously, see {@link CacheBuilder}).
      *
-     * <p>The notification is delivered by calling the cache's actual {@code onRemove} handler
-     * directly (via reflection, since it is private) instead of waiting for Caffeine's real,
-     * unpredictably-timed asynchronous dispatch. This keeps the test deterministic: it exercises
-     * the exact same production code with the exact arguments the race scenario requires, without
-     * depending on background-thread scheduling that a busy CI machine could delay past any fixed
-     * timeout in either direction.
+     * <p>The notification is delivered directly via reflection instead of waiting for Caffeine's
+     * real async dispatch, keeping the test deterministic.
      */
     @Test
     public void staleRemovalNotificationDoesNotClobberFresherReload() throws ReflectiveOperationException {
@@ -203,18 +194,10 @@ public class SegmentCacheTest {
         when(reloadedSegment1.getSegmentId()).thenReturn(id1);
         when(reloadedSegment1.estimateMemoryUsage()).thenReturn(1);
 
-        // Simulate a concurrent reload of the same id landing before the stale removal
-        // notification for the *original* segment1 eviction is processed - matching the ordering
-        // SegmentCache.putSegment()/getSegment() always maintain (loaded() runs before the cache
-        // operation that can trigger the corresponding removal notification).
+        // Reload lands before the stale removal notification for the original segment1 is delivered.
         id1.loaded(reloadedSegment1);
-
-        // Deliver the removal notification for the *original* segment1 directly.
         invokeOnRemove(cache, id1, segment1, EvictionCause.SIZE);
 
-        // The notification is for the old segment1, but id1 has already moved on to
-        // reloadedSegment1 by the time it is delivered - it must not clear that fresher
-        // memoisation.
         assertEquals("a stale removal notification must not clobber a fresher reload of the same id",
                 reloadedSegment1, id1.getSegment());
     }
@@ -445,11 +428,7 @@ public class SegmentCacheTest {
         assertEquals(0, stats.getEvictionCount());
     }
 
-    /**
-     * Waits until {@code id} is no longer memoised in L1. Since OAK-12290 the eviction callback
-     * that clears the memoised segment runs on Caffeine's executor, so it may lag the write that
-     * triggered the eviction.
-     */
+    /** Waits until {@code id} is no longer memoised in L1 (eviction runs asynchronously). */
     private static void awaitUnloaded(SegmentId id) {
         await(() -> {
             try {
@@ -477,9 +456,7 @@ public class SegmentCacheTest {
             if (condition.getAsBoolean()) {
                 return;
             }
-            // Thread.yield() is a no-op on some JVMs/platforms, which would busy-spin here and
-            // starve the maintenance thread this loop is waiting on. LockSupport.parkNanos()
-            // reliably yields the CPU instead.
+            // Thread.yield() can be a no-op and busy-spin here; parkNanos() reliably yields.
             LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1));
         }
         fail(message);

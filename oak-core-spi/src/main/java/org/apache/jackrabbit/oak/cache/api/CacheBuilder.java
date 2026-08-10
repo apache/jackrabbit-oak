@@ -52,16 +52,10 @@ public final class CacheBuilder<K, V> {
     public static final String FT_OAK_12290 = "FT_OAK-12290";
 
     /**
-     * Whether Caffeine runs cache maintenance (eviction, removal notification, buffer drains)
-     * on Oak's maintenance executor instead of the calling thread. Defaults to {@code true}.
-     * <p>
-     * The toggle is registered on the OSGi Whiteboard under {@link #FT_OAK_12290}. Its value is
-     * read when a cache is built, so flipping it only affects caches built afterwards - Oak's
-     * long-lived caches are built during startup and keep the setting they were built with.
-     * <p>
-     * Caches configured with {@link #refreshAfterWrite(Duration)} ignore this toggle and always run
-     * maintenance inline, since Caffeine shares one executor between maintenance and refresh and a
-     * refresh loader may make a remote call.
+     * Whether Caffeine runs cache maintenance on Oak's maintenance executor instead of the
+     * calling thread. Defaults to {@code true}. Read when a cache is built, so flipping it only
+     * affects caches built afterwards. Ignored by caches with {@link #refreshAfterWrite(Duration)},
+     * which always run maintenance inline.
      */
     public static final AtomicBoolean FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED = new AtomicBoolean(true);
 
@@ -133,10 +127,8 @@ public final class CacheBuilder<K, V> {
      * Sets the maximum number of entries the cache may hold.
      * May not be combined with {@link #maximumWeight(long)}.
      *
-     * <p>The bound is enforced by maintenance running on the cache's executor, so an entry can
-     * still be served by a read that immediately follows the write which exceeded the bound. This
-     * matters mostly for a bound of {@code 0}: call {@link Cache#cleanUp()} first if a test or
-     * caller needs the entry to be gone. Steady-state memory use stays bounded.</p>
+     * <p>The bound is enforced asynchronously - a read that immediately follows the write which
+     * exceeded it may still see the entry. Call {@link Cache#cleanUp()} to force pending maintenance.</p>
      *
      * @param maximumSize the maximum entry count (must be non-negative)
      * @return this builder
@@ -285,12 +277,9 @@ public final class CacheBuilder<K, V> {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private Caffeine<K, V> configureCaffeineBuilder() {
         Caffeine caffeineBuilder = Caffeine.newBuilder();
-        // Caffeine uses one executor for both maintenance and refresh work, so a refreshing cache
-        // cannot be moved onto the shared maintenance pool without also moving its refresh loader
-        // there. Refresh loaders may make remote calls (e.g. ElasticIndexStatistics), and the shared
-        // pool has only a few threads - one slow remote call would delay maintenance for every other
-        // cache sharing it, including SegmentCache. Refreshing caches therefore always run inline,
-        // regardless of the toggle, confining that cost to the triggering thread instead of the pool.
+        // Caffeine uses one executor for both maintenance and refresh; a refresh loader may make a
+        // remote call, which would delay maintenance for every other cache sharing the pool. So
+        // refreshing caches always run inline, regardless of the toggle.
         boolean inline = !FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.get() || refreshAfterWrite != null;
         caffeineBuilder = caffeineBuilder.executor(inline ? Runnable::run : CacheMaintenanceExecutor.get());
         if (initialCapacity >= 0) {

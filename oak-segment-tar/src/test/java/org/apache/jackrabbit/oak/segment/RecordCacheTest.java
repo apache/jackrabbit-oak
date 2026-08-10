@@ -139,12 +139,7 @@ public class RecordCacheTest {
         }
     }
 
-    /**
-     * Since OAK-12290 the underlying cache's eviction callback - which decrements
-     * {@link RecordCache#estimateCurrentWeight()} - runs asynchronously, so the weight may
-     * transiently overshoot the weight of what {@code put()} actually retains until the callback
-     * catches up.
-     */
+    /** The eviction callback that decrements {@link RecordCache#estimateCurrentWeight()} runs asynchronously. */
     @Test
     public void weightConvergesAfterAsyncEviction() {
         RecordCache<String> cache = newRecordCache(1);

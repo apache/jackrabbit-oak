@@ -48,13 +48,7 @@ public class SegmentId implements Comparable<SegmentId> {
     /** Logger instance */
     private static final Logger log = LoggerFactory.getLogger(SegmentId.class);
 
-    /**
-     * Handle for compare-and-clear access to {@link #segment} from {@link #unloadIfCurrent(Segment)}.
-     * The removal notification that triggers an unload runs asynchronously and may therefore fire
-     * after {@code segment} has already been refreshed by a concurrent load; a plain write there
-     * would silently discard that fresher value. Reads and normal writes ({@link #getSegment()},
-     * {@link #loaded(Segment)}) are unaffected and keep using the plain volatile field.
-     */
+    /** Handle for the compare-and-clear used by {@link #unloadIfCurrent(Segment)}. */
     private static final VarHandle SEGMENT;
     static {
         try {
@@ -240,13 +234,9 @@ public class SegmentId implements Comparable<SegmentId> {
     }
 
     /**
-     * Like {@link #unloaded()}, but only clears the memoised segment if it is still {@code expected}.
-     * Callers that receive a removal notification asynchronously (e.g. a cache's removal listener
-     * dispatched on a separate executor) must use this instead of {@link #unloaded()}: by the time
-     * the notification runs, {@code expected} may already have been superseded by a concurrent
-     * {@link #loaded(Segment)} call, and unconditionally clearing the field would discard that
-     * fresher value and strand this id on the slow lookup path in {@link #getSegment()} until the
-     * next miss.
+     * Like {@link #unloaded()}, but only clears the memoised segment if it is still
+     * {@code expected}. Use this for asynchronous removal notifications, where {@code expected}
+     * may already have been superseded by a concurrent {@link #loaded(Segment)}.
      *
      * @param expected the segment that was removed; the field is left untouched if it no longer
      *                 holds this value

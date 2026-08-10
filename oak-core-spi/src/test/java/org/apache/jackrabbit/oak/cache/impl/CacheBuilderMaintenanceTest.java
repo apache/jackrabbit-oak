@@ -32,9 +32,7 @@ import org.junit.Test;
 
 /**
  * Tests that Caffeine cache maintenance (eviction, removal notification) is dispatched
- * off the calling thread. Running it inline lets a request, indexer or writer thread hold
- * Caffeine's eviction lock for the duration of the maintenance work, which caused the
- * lock contention described in OAK-12290.
+ * off the calling thread, per OAK-12290.
  */
 public class CacheBuilderMaintenanceTest {
 
@@ -164,14 +162,7 @@ public class CacheBuilderMaintenanceTest {
                 threadName.get().startsWith("oak-cache-maintenance-"));
     }
 
-    /**
-     * Refresh stays inline regardless of the toggle: Caffeine shares one executor between
-     * maintenance and refresh, and a refresh loader may make a remote call (e.g.
-     * {@code ElasticIndexStatistics}). Dispatching that onto the shared maintenance pool would let
-     * one slow remote call occupy one of its few threads and delay maintenance for every other
-     * cache sharing it, including {@code SegmentCache}. Keeping refresh inline confines that cost
-     * to the triggering thread instead of the pool.
-     */
+    /** Refresh stays inline regardless of the toggle (see {@link CacheBuilder}). */
     @Test
     public void refreshRunsOnCallerThreadRegardlessOfToggle() throws InterruptedException {
         AtomicReference<Thread> reloadThread = new AtomicReference<>();
