@@ -236,12 +236,10 @@ public abstract class SegmentCache {
         @Override
         public void clear() {
             cache.invalidateAll();
-            // Removal notifications run asynchronously (see CacheBuilder), so without this the
-            // Segment objects invalidated above can still be strongly reachable via SegmentId's L1
-            // memoisation when DefaultCleanupStrategy calls System.gc() right after clear() - the
-            // GC hint would then find little to reclaim. cleanUp() forces pending maintenance
-            // (including these removal notifications) to run before returning; clear() is only
-            // called during GC, never a hot path, so the inline cost here is acceptable.
+            // cleanUp() doesn't wait for the async removal-listener callbacks (unloadIfCurrent()),
+            // so some segments may stay reachable via SegmentId briefly after this returns, limiting
+            // what the following System.gc() hint reclaims. Best-effort only; FileReaper still
+            // deletes files safely regardless.
             cache.cleanUp();
         }
 
