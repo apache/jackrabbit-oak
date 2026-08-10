@@ -18,37 +18,26 @@ package org.apache.jackrabbit.oak.cache.impl;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The process-wide pool Caffeine-backed Oak caches run their maintenance (eviction, removal
- * notification, buffer drains) on.
- * <p>
- * Oak owns this pool rather than letting Caffeine fall back to
- * {@link java.util.concurrent.ForkJoinPool#commonPool()}, for three reasons:
- * <ul>
- *   <li><em>Liveness.</em> The common pool is configurable to zero workers
- *       ({@code -Djava.util.concurrent.ForkJoinPool.common.parallelism=0}), in which case
- *       {@code execute(Runnable)} tasks are queued and never run - eviction would stop and
- *       removal listeners would never fire, silently. The bounded queue plus
- *       {@link ThreadPoolExecutor.CallerRunsPolicy} here guarantees maintenance always runs
- *       eventually, degrading to the pre-OAK-12290 inline behaviour rather than stalling.</li>
- *   <li><em>Isolation.</em> The common pool is shared with every {@code parallelStream()} in
- *       the JVM, including the hosting application's. A saturated common pool would delay
- *       segment-cache weight accounting and, once Caffeine's write buffer fills, push
- *       maintenance back onto request threads - reintroducing the very lock contention
- *       OAK-12290 is about.</li>
- *   <li><em>Diagnosability.</em> Named daemon threads make cache maintenance identifiable in a
- *       thread dump, which is how OAK-12290 and SKYOPS-149400 were diagnosed in the first
- *       place. This also matches Oak's existing convention of never using the common pool
- *       (see {@code ForkJoinUtils#submitInCustomPool}).</li>
- * </ul>
+ * notification, buffer drains) on, instead of {@link java.util.concurrent.ForkJoinPool#commonPool()}.
  */
 public final class CacheMaintenanceExecutor {
+
+    private static final Logger LOG = LoggerFactory.getLogger(CacheMaintenanceExecutor.class);
+
+    private static final Thread.UncaughtExceptionHandler UNCAUGHT_EXCEPTION_HANDLER = (t, e) ->
+            LOG.warn("Uncaught exception in thread {}", t.getName(), e);
 
     private static final String THREAD_PREFIX = "oak-cache-maintenance-";
 
@@ -102,11 +91,38 @@ public final class CacheMaintenanceExecutor {
                         // Daemon: the pool is process-wide and never shut down, and no maintenance
                         // task is required to complete for a clean exit.
                         thread.setDaemon(true);
+                        thread.setUncaughtExceptionHandler(UNCAUGHT_EXCEPTION_HANDLER);
                         return thread;
                     },
-                    new ThreadPoolExecutor.CallerRunsPolicy());
+                    new LoggingCallerRunsPolicy());
             executor.allowCoreThreadTimeOut(true);
             return executor;
+        }
+    }
+
+    /**
+     * Falls back to {@link ThreadPoolExecutor.CallerRunsPolicy} behaviour, but also logs (at most
+     * once a minute) that the pool is saturated. A one-off activation is expected under a burst
+     * (e.g. invalidating a large cache); sustained activation means the pool is undersized for
+     * the load it is carrying.
+     */
+    private static final class LoggingCallerRunsPolicy implements RejectedExecutionHandler {
+
+        private static final long LOG_INTERVAL_NANOS = TimeUnit.MINUTES.toNanos(1);
+
+        private final AtomicLong nextLogNanos = new AtomicLong();
+
+        @Override
+        public void rejectedExecution(@NotNull Runnable task, @NotNull ThreadPoolExecutor executor) {
+            long now = System.nanoTime();
+            long next = nextLogNanos.get();
+            if (now >= next && nextLogNanos.compareAndSet(next, now + LOG_INTERVAL_NANOS)) {
+                LOG.warn("Cache maintenance pool exhausted ({} threads, {}-deep queue full); running "
+                        + "maintenance inline on the calling thread instead. Expected under a burst; "
+                        + "sustained occurrence means the pool is undersized for the load.",
+                        THREADS, QUEUE_CAPACITY);
+            }
+            task.run();
         }
     }
 }

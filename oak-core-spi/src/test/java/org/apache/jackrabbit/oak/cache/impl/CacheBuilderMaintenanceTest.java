@@ -34,7 +34,7 @@ import org.junit.Test;
  * Tests that Caffeine cache maintenance (eviction, removal notification) is dispatched
  * off the calling thread. Running it inline lets a request, indexer or writer thread hold
  * Caffeine's eviction lock for the duration of the maintenance work, which caused the
- * lock contention of OAK-12290 and the wedged JVM of SKYOPS-149400.
+ * lock contention described in OAK-12290.
  */
 public class CacheBuilderMaintenanceTest {
 
@@ -83,7 +83,7 @@ public class CacheBuilderMaintenanceTest {
     /**
      * A slow maintenance callback must not stall the writer. With inline maintenance the
      * writer runs the callback itself while holding the eviction lock, so {@code put()}
-     * cannot return until the callback finishes - the wedge seen in SKYOPS-149400.
+     * cannot return until the callback finishes.
      */
     @Test(timeout = TIMEOUT_SECONDS * 1000)
     public void slowMaintenanceDoesNotBlockCallerThread() throws InterruptedException {
@@ -262,5 +262,30 @@ public class CacheBuilderMaintenanceTest {
 
         Assert.assertSame("eviction on a refreshing cache must run inline, not on the shared pool",
                 Thread.currentThread(), evictionThread.get());
+    }
+
+    /** Overwriting an existing key must notify the listener with {@link EvictionCause#REPLACED}, asynchronously. */
+    @Test
+    public void replacingAnEntryNotifiesListenerOffCallerThread() throws InterruptedException {
+        AtomicReference<Thread> notificationThread = new AtomicReference<>();
+        AtomicReference<EvictionCause> notifiedCause = new AtomicReference<>();
+        CountDownLatch notified = new CountDownLatch(1);
+
+        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumSize(10)
+                .evictionListener((k, v, cause) -> {
+                    notificationThread.set(Thread.currentThread());
+                    notifiedCause.set(cause);
+                    notified.countDown();
+                })
+                .build();
+
+        cache.put("k1", "v1");
+        cache.put("k1", "v2");
+
+        Assert.assertTrue("replacement was never notified", notified.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+        Assert.assertEquals(EvictionCause.REPLACED, notifiedCause.get());
+        Assert.assertNotSame("replacement notification must not run on the calling thread",
+                Thread.currentThread(), notificationThread.get());
     }
 }

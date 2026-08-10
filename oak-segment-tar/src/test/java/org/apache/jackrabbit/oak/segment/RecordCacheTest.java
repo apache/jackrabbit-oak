@@ -23,6 +23,7 @@ import static org.apache.jackrabbit.oak.segment.RecordCache.newRecordCache;
 import static org.apache.jackrabbit.oak.segment.TestUtils.newRecordId;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -37,6 +38,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.junit.Test;
@@ -136,4 +139,31 @@ public class RecordCacheTest {
         }
     }
 
+    /**
+     * Since OAK-12290 the underlying cache's eviction callback - which decrements
+     * {@link RecordCache#estimateCurrentWeight()} - runs asynchronously, so the weight may
+     * transiently overshoot the weight of what {@code put()} actually retains until the callback
+     * catches up.
+     */
+    @Test
+    public void weightConvergesAfterAsyncEviction() {
+        RecordCache<String> cache = newRecordCache(1);
+
+        cache.put("key-0", newRecordId(idProvider, rnd));
+        // Evicts "key-0": the weigher is a no-op (weight 1 per entry), so only one entry survives.
+        cache.put("key-1", newRecordId(idProvider, rnd));
+
+        awaitWeight(cache, 1);
+    }
+
+    private static void awaitWeight(RecordCache<String> cache, long expectedWeight) {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        while (System.nanoTime() < deadline) {
+            if (cache.estimateCurrentWeight() == expectedWeight) {
+                return;
+            }
+            LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1));
+        }
+        fail("expected weight " + expectedWeight + ", got " + cache.estimateCurrentWeight());
+    }
 }

@@ -53,23 +53,15 @@ public final class CacheBuilder<K, V> {
 
     /**
      * Whether Caffeine runs cache maintenance (eviction, removal notification, buffer drains)
-     * on Oak's maintenance executor instead of the calling thread. Defaults to {@code true} as a
-     * <strong>bug-fix</strong> toggle: inline maintenance made request, indexer and writer
-     * threads hold Caffeine's eviction lock for the duration of the maintenance work, which
-     * caused lock contention (OAK-12290) and, when a lock holder died, a wedged JVM
-     * (SKYOPS-149400).
+     * on Oak's maintenance executor instead of the calling thread. Defaults to {@code true}.
      * <p>
      * The toggle is registered on the OSGi Whiteboard under {@link #FT_OAK_12290}. Its value is
      * read when a cache is built, so flipping it only affects caches built afterwards - Oak's
      * long-lived caches are built during startup and keep the setting they were built with.
      * <p>
      * Caches configured with {@link #refreshAfterWrite(Duration)} ignore this toggle and always run
-     * maintenance inline. Caffeine shares one executor between maintenance and refresh, and a
-     * refresh loader may make a remote call (e.g. {@code ElasticIndexStatistics}); dispatching that
-     * onto {@link org.apache.jackrabbit.oak.cache.impl.CacheMaintenanceExecutor} would let a single
-     * slow remote call occupy one of its few threads and delay maintenance for every other cache
-     * sharing the pool, including {@code SegmentCache}. Keeping refresh inline confines that cost to
-     * the thread that triggered the refresh instead of the shared pool.
+     * maintenance inline, since Caffeine shares one executor between maintenance and refresh and a
+     * refresh loader may make a remote call.
      */
     public static final AtomicBoolean FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED = new AtomicBoolean(true);
 
@@ -318,12 +310,9 @@ public final class CacheBuilder<K, V> {
         }
         if (evictionListener != null) {
             EvictionListener<? super K, ? super V> listener = evictionListener;
-            // Deliberately removalListener and not evictionListener: Caffeine invokes the latter
-            // inside the map's atomic removal, holding the bin lock for the key. Oak's listeners do
-            // real work there - NodeCache.evicted() enqueues a persistent-cache write under its own
-            // monitor - so that would reintroduce exactly the kind of lock coupling OAK-12290 is
-            // about. removalListener runs on the maintenance executor instead; listeners must
-            // therefore tolerate lagging behind the write that caused the removal.
+            // Caffeine's evictionListener runs inline while holding an internal lock; Oak listeners
+            // do real work (e.g. persistent-cache writes) that must not run there. removalListener
+            // runs on the maintenance executor instead.
             caffeineBuilder = caffeineBuilder.removalListener(
                     (k, v, cause) -> listener.onEviction((K) k, (V) v, CaffeineCacheAdapter.toOakCause(cause)));
         }

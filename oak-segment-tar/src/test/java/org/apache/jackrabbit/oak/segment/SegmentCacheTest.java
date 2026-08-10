@@ -34,6 +34,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.LockSupport;
 import java.util.function.BooleanSupplier;
 
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
@@ -476,7 +477,10 @@ public class SegmentCacheTest {
             if (condition.getAsBoolean()) {
                 return;
             }
-            Thread.yield();
+            // Thread.yield() is a no-op on some JVMs/platforms, which would busy-spin here and
+            // starve the maintenance thread this loop is waiting on. LockSupport.parkNanos()
+            // reliably yields the CPU instead.
+            LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1));
         }
         fail(message);
     }
