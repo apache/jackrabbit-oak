@@ -255,6 +255,54 @@ public class CacheBuilderMaintenanceTest {
                 Thread.currentThread(), evictionThread.get());
     }
 
+    /**
+     * A zero-capacity cache (built with {@code maximumSize(0)}) is used elsewhere as a
+     * "disable caching" idiom: callers write a value and immediately expect a read to miss.
+     * With async maintenance that guarantee would depend on a background thread having already
+     * run, so eviction must stay inline regardless of the toggle.
+     */
+    @Test
+    public void zeroMaximumSizeEvictsSynchronously() {
+        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumSize(0)
+                .build();
+
+        cache.put("k1", "v1");
+
+        Assert.assertNull("a zero-capacity cache must not retain the entry past the put() call",
+                cache.getIfPresent("k1"));
+    }
+
+    /** Same guarantee for {@code maximumWeight(0)}, the weight-based equivalent of {@link #zeroMaximumSizeEvictsSynchronously()}. */
+    @Test
+    public void zeroMaximumWeightEvictsSynchronously() {
+        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumWeight(0)
+                .weigher((k, v) -> 1)
+                .build();
+
+        cache.put("k1", "v1");
+
+        Assert.assertNull("a zero-weight cache must not retain the entry past the put() call",
+                cache.getIfPresent("k1"));
+    }
+
+    /** The eviction listener of a zero-capacity cache must also run inline, for the same reason. */
+    @Test
+    public void zeroMaximumSizeEvictionNotificationRunsOnCallerThread() {
+        AtomicReference<Thread> evictionThread = new AtomicReference<>();
+
+        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumSize(0)
+                .evictionListener((k, v, cause) -> evictionThread.set(Thread.currentThread()))
+                .build();
+
+        cache.put("k1", "v1");
+
+        Assert.assertSame("eviction on a zero-capacity cache must run inline, not on the shared pool",
+                Thread.currentThread(), evictionThread.get());
+    }
+
     /** Overwriting an existing key must notify the listener with {@link EvictionCause#REPLACED}, asynchronously. */
     @Test
     public void replacingAnEntryNotifiesListenerOffCallerThread() throws InterruptedException {

@@ -55,7 +55,9 @@ public final class CacheBuilder<K, V> {
      * Whether Caffeine runs cache maintenance on Oak's maintenance executor instead of the
      * calling thread. Defaults to {@code true}. Read when a cache is built, so flipping it only
      * affects caches built afterwards. Ignored by caches with {@link #refreshAfterWrite(Duration)},
-     * which always run maintenance inline.
+     * which always run maintenance inline, and by zero-capacity caches (see
+     * {@link #maximumWeight(long)}, {@link #maximumSize(long)}), which are a "disable caching"
+     * idiom that depends on eviction being immediate.
      */
     public static final AtomicBoolean FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED = new AtomicBoolean(true);
 
@@ -90,9 +92,11 @@ public final class CacheBuilder<K, V> {
      * Must be used together with {@link #weigher(Weigher)} and may not be
      * combined with {@link #maximumSize(long)}.
      *
-     * <p>As with {@link #maximumSize(long)}, the bound is enforced asynchronously - a read that
-     * immediately follows the write which exceeded the weight may still see the entry. Call
-     * {@link Cache#cleanUp()} to force pending maintenance.</p>
+     * <p>As with {@link #maximumSize(long)}, a positive bound is enforced asynchronously - a read
+     * that immediately follows the write which exceeded the weight may still see the entry. Call
+     * {@link Cache#cleanUp()} to force pending maintenance. A weight of {@code 0} is handled
+     * synchronously, since it is used as a "disable caching" idiom that requires immediate
+     * eviction.</p>
      *
      * @param maximumWeight the maximum weight (must be non-negative)
      * @return this builder
@@ -127,8 +131,10 @@ public final class CacheBuilder<K, V> {
      * Sets the maximum number of entries the cache may hold.
      * May not be combined with {@link #maximumWeight(long)}.
      *
-     * <p>The bound is enforced asynchronously - a read that immediately follows the write which
-     * exceeded it may still see the entry. Call {@link Cache#cleanUp()} to force pending maintenance.</p>
+     * <p>A positive bound is enforced asynchronously - a read that immediately follows the write
+     * which exceeded it may still see the entry. Call {@link Cache#cleanUp()} to force pending
+     * maintenance. A size of {@code 0} is handled synchronously, since it is used as a
+     * "disable caching" idiom that requires immediate eviction.</p>
      *
      * @param maximumSize the maximum entry count (must be non-negative)
      * @return this builder
@@ -279,8 +285,13 @@ public final class CacheBuilder<K, V> {
         Caffeine caffeineBuilder = Caffeine.newBuilder();
         // Caffeine uses one executor for both maintenance and refresh; a refresh loader may make a
         // remote call, which would delay maintenance for every other cache sharing the pool. So
-        // refreshing caches always run inline, regardless of the toggle.
-        boolean inline = !FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.get() || refreshAfterWrite != null;
+        // refreshing caches always run inline, regardless of the toggle. Zero-capacity caches are
+        // a "disable caching" idiom relied upon elsewhere for immediate eviction, so they also
+        // always run inline - otherwise a read immediately following a write could still observe
+        // the entry before background maintenance evicts it.
+        boolean zeroCapacity = maximumWeight == 0 || maximumSize == 0;
+        boolean inline = !FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.get() || refreshAfterWrite != null
+                || zeroCapacity;
         caffeineBuilder = caffeineBuilder.executor(inline ? Runnable::run : CacheMaintenanceExecutor.get());
         if (initialCapacity >= 0) {
             caffeineBuilder = caffeineBuilder.initialCapacity(initialCapacity);
