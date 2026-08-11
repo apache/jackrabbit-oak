@@ -752,7 +752,12 @@
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpcore-osgi</artifactId>
         <version>4.4.16</version>
-     </dependency>
+      </dependency>
+      <dependency>
+        <groupId>at.yawk.lz4</groupId>
+        <artifactId>lz4-java</artifactId>
+        <version>1.11.2</version>
+      </dependency>
       <!-- Testcontainers dependency -->
       <dependency>
         <groupId>org.testcontainers</groupId>
