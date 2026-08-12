@@ -232,7 +232,7 @@ public class ElasticDocument {
             boostToValues.forEach((boost, values) -> nestedDocs.add(
                     Map.of(
                             ElasticIndexHelper.DYNAMIC_BOOST_NESTED_VALUE,
-                            values.size() == 1 ? values.iterator().next() : new ArrayList<>(values),
+                            values.size() == 1 ? values.iterator().next() : values,
                             ElasticIndexHelper.DYNAMIC_BOOST_NESTED_BOOST, boost
                     )
             ));
