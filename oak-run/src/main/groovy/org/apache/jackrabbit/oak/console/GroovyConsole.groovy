@@ -26,18 +26,19 @@ import jline.console.history.FileHistory
 import org.apache.jackrabbit.oak.run.commons.Utils
 import org.apache.jackrabbit.oak.console.commands.*
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore
+import org.apache.groovy.groovysh.*
+import org.apache.groovy.groovysh.Command as ShellCommand
+import org.apache.groovy.groovysh.commands.*
 import org.codehaus.groovy.runtime.StackTraceUtils
-import org.codehaus.groovy.tools.shell.*
-import org.codehaus.groovy.tools.shell.Command as ShellCommand
-import org.codehaus.groovy.tools.shell.commands.*
 import org.codehaus.groovy.tools.shell.util.Logger
+import org.codehaus.groovy.tools.shell.IO
 import org.codehaus.groovy.tools.shell.util.Preferences
 import org.fusesource.jansi.Ansi
 import org.fusesource.jansi.AnsiConsole
 import org.fusesource.jansi.AnsiRenderer
 
 /**
- * Some part of logic is based on usage in org.codehaus.groovy.tools.shell.Main
+ * Some part of logic is based on usage in org.apache.groovy.tools.shell.Main
  */
 @CompileStatic
 class GroovyConsole {
@@ -175,7 +176,7 @@ class GroovyConsole {
                 throw new IllegalStateException("Error hook is not set")
             }
             if (cause instanceof MissingPropertyException) {
-                if (cause.type && cause.type.canonicalName == Interpreter.SCRIPT_FILENAME) {
+                if (cause.type && cause.type.canonicalName == "groovysh_evaluate") {
                     io.err.println("@|bold,red Unknown property|@: " + cause.property)
                     return
                 }
