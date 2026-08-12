@@ -20,6 +20,8 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.DynamicBoostCommonTest;
+import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticDocument;
+import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -82,6 +84,63 @@ public class ElasticDynamicBoostTest extends DynamicBoostCommonTest {
                     List.of("/test/asset1", "/test/asset2"));
             assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(title, 'blue-flower')",
                     List.of("/test/asset2", "/test/asset1"));
+        });
+    }
+
+    @After
+    public void resetDynamicBoostGroupingToggle() {
+        ElasticDocument.FT_OAK_12353_ENABLE.set(true);
+    }
+
+    /**
+     * Predicted tags sharing the same boost score are grouped into a single nested document
+     * (see {@link ElasticDocument#FT_OAK_12353_ENABLE}). This verifies that querying still
+     * matches on any of the grouped values, both with the grouping enabled (default) and
+     * disabled.
+     */
+    @Test
+    public void dynamicBoostQueriesGroupedValuesSharingSameBoostScore() throws Exception {
+        createAssetsIndexAndProperties(false, false);
+
+        Tree testParent = createNodeWithType(root.getTree("/"), "test", JcrConstants.NT_UNSTRUCTURED, "");
+
+        Tree predicted1 = createAssetNodeWithPredicted(testParent, "asset1", "flower with a lot of red and a bit of blue");
+        createPredictedTag(predicted1, "red", 5.0);
+        createPredictedTag(predicted1, "blue", 5.0);
+        createPredictedTag(predicted1, "green", 5.0);
+        createPredictedTag(predicted1, "special", 9.0);
+
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'red')]", XPATH, List.of("/test/asset1"));
+            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'blue')]", XPATH, List.of("/test/asset1"));
+            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'green')]", XPATH, List.of("/test/asset1"));
+            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'special')]", XPATH, List.of("/test/asset1"));
+        });
+    }
+
+    @Test
+    public void dynamicBoostQueriesValuesSharingSameBoostScoreWhenGroupingDisabled() throws Exception {
+        ElasticDocument.FT_OAK_12353_ENABLE.set(false);
+
+        createAssetsIndexAndProperties(false, false);
+
+        Tree testParent = createNodeWithType(root.getTree("/"), "test", JcrConstants.NT_UNSTRUCTURED, "");
+
+        Tree predicted1 = createAssetNodeWithPredicted(testParent, "asset1", "flower with a lot of red and a bit of blue");
+        createPredictedTag(predicted1, "red", 5.0);
+        createPredictedTag(predicted1, "blue", 5.0);
+        createPredictedTag(predicted1, "green", 5.0);
+        createPredictedTag(predicted1, "special", 9.0);
+
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'red')]", XPATH, List.of("/test/asset1"));
+            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'blue')]", XPATH, List.of("/test/asset1"));
+            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'green')]", XPATH, List.of("/test/asset1"));
+            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'special')]", XPATH, List.of("/test/asset1"));
         });
     }
 
