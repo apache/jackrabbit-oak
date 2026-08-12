@@ -34,6 +34,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.BooleanSupplier;
 
@@ -298,20 +299,28 @@ public class SegmentCacheTest {
                 assertEquals(hotSeg, hotId.getSegment());
             }
 
+            // Eviction runs on Caffeine's maintenance executor (see OAK-12290), so it may lag behind
+            // the write that triggered it. Keep churning until it catches up instead of assuming a
+            // fixed number of rounds is always enough.
             AtomicBoolean reloaded = new AtomicBoolean(false);
-            final int maxChurnRounds = 48;
-            for (int round = 0; round < maxChurnRounds && !reloaded.get(); round++) {
-                SegmentId probe = new SegmentId(EMPTY_STORE, 4000L + round, 0xa0000000000e0000L + round);
+            AtomicInteger round = new AtomicInteger(0);
+            await(() -> {
+                int i = round.getAndIncrement();
+                SegmentId probe = new SegmentId(EMPTY_STORE, 4000L + i, 0xa0000000000e0000L + i);
                 Segment probeSeg = mock(Segment.class);
                 when(probeSeg.getSegmentId()).thenReturn(probe);
                 when(probeSeg.estimateMemoryUsage()).thenReturn(64 * 1024);
-                smallCache.getSegment(probe, () -> probeSeg);
-                smallCache.getSegment(hotId, () -> {
-                    reloaded.set(true);
-                    return hotSeg;
-                });
-            }
-            assertTrue("hotId should have been evicted from L2 when notification is disabled", reloaded.get());
+                try {
+                    smallCache.getSegment(probe, () -> probeSeg);
+                    smallCache.getSegment(hotId, () -> {
+                        reloaded.set(true);
+                        return hotSeg;
+                    });
+                } catch (ExecutionException e) {
+                    throw new AssertionError(e);
+                }
+                return reloaded.get();
+            }, "hotId should have been evicted from L2 when notification is disabled");
         } finally {
             SegmentCache.FT_OAK_12214_PROPAGATE_L1_HITS_TO_L2_ENABLED.set(true);
         }
