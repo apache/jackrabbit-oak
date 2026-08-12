@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.cache.impl;
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -42,10 +43,17 @@ public final class CacheMaintenanceExecutor {
     private static final String THREAD_PREFIX = "oak-cache-maintenance-";
 
     /**
-     * Number of maintenance threads shared by all Oak caches, between 2 and 4. Caffeine keeps at
+     * The pool is process-wide, so its workers must not inherit an OSGi request thread's context
+     * class loader and keep a refreshed consumer bundle alive.
+     */
+    private static final ClassLoader THREAD_CONTEXT_CLASS_LOADER =
+            CacheMaintenanceExecutor.class.getClassLoader();
+
+    /**
+     * Number of maintenance threads shared by all Oak caches, between 2 and 8. Caffeine keeps at
      * most one maintenance task per cache in flight, so this doesn't need to scale with core count.
      */
-    private static final int THREADS = Math.max(2, Math.min(4, Runtime.getRuntime().availableProcessors() / 4));
+    private static final int THREADS = Math.max(2, Math.min(8, Runtime.getRuntime().availableProcessors() - 1));
 
     /**
      * Bound on queued maintenance tasks: deep enough to absorb a burst, shallow enough that a
@@ -81,18 +89,24 @@ public final class CacheMaintenanceExecutor {
                     THREADS, THREADS,
                     60, TimeUnit.SECONDS,
                     new LinkedBlockingQueue<>(QUEUE_CAPACITY),
-                    runnable -> {
-                        Thread thread = new Thread(runnable, THREAD_PREFIX + threadCounter.incrementAndGet());
-                        // Daemon: the pool is process-wide and never shut down, and no maintenance
-                        // task is required to complete for a clean exit.
-                        thread.setDaemon(true);
-                        thread.setUncaughtExceptionHandler(UNCAUGHT_EXCEPTION_HANDLER);
-                        return thread;
-                    },
+                    newThreadFactory(threadCounter),
                     new LoggingCallerRunsPolicy());
             executor.allowCoreThreadTimeOut(true);
             return executor;
         }
+    }
+
+    static ThreadFactory newThreadFactory(AtomicInteger threadCounter) {
+        return runnable -> {
+            Thread thread = new Thread(runnable, THREAD_PREFIX + threadCounter.incrementAndGet());
+            // Do not keep a consumer bundle's class loader alive through this process-wide worker.
+            thread.setContextClassLoader(THREAD_CONTEXT_CLASS_LOADER);
+            // Daemon: the pool is process-wide and never shut down, and no maintenance task is
+            // required to complete for a clean exit.
+            thread.setDaemon(true);
+            thread.setUncaughtExceptionHandler(UNCAUGHT_EXCEPTION_HANDLER);
+            return thread;
+        };
     }
 
     /**
