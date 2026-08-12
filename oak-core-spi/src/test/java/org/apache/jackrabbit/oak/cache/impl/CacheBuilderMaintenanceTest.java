@@ -196,7 +196,7 @@ public class CacheBuilderMaintenanceTest {
         Assert.assertNotSame("refresh must not run on the thread that triggered it",
                 Thread.currentThread(), reloadThread.get());
         Assert.assertTrue("refresh ran on an unexpected thread: " + reloadThread.get().getName(),
-                reloadThread.get().getName().startsWith("oak-cache-maintenance-"));
+                reloadThread.get().getName().startsWith(CacheMaintenanceExecutor.THREAD_PREFIX));
     }
 
     /** Same guarantee with the toggle explicitly off, since refresh ignores it either way. */
