@@ -19,6 +19,9 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 import org.junit.After;
 import org.junit.Test;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -73,10 +76,10 @@ public class ElasticDocumentTest {
             Object boost = nestedDoc.get(ElasticIndexHelper.DYNAMIC_BOOST_NESTED_BOOST);
             Object nestedValue = nestedDoc.get(ElasticIndexHelper.DYNAMIC_BOOST_NESTED_VALUE);
             if (Double.valueOf(1.0).equals(boost)) {
-                assertTrue(nestedValue instanceof List);
+                assertTrue(nestedValue instanceof Collection);
                 @SuppressWarnings("unchecked")
-                List<String> values = (List<String>) nestedValue;
-                assertEquals(List.of("Replacement Cost", "Theft", "Alberta"), values);
+                Collection<String> values = (Collection<String>) nestedValue;
+                assertEquals(List.of("Replacement Cost", "Theft", "Alberta"), new ArrayList<>(values));
                 foundGrouped = true;
             } else if (Double.valueOf(0.988).equals(boost)) {
                 assertEquals("GENERAL INSURANCE COMPANY", nestedValue);
@@ -97,7 +100,18 @@ public class ElasticDocumentTest {
         assertTrue(value instanceof Map);
         @SuppressWarnings("unchecked")
         Map<String, Object> nestedDoc = (Map<String, Object>) value;
-        assertEquals(List.of("Replacement Cost", "Theft"), nestedDoc.get(ElasticIndexHelper.DYNAMIC_BOOST_NESTED_VALUE));
+        @SuppressWarnings("unchecked")
+        Collection<String> values = (Collection<String>) nestedDoc.get(ElasticIndexHelper.DYNAMIC_BOOST_NESTED_VALUE);
+        assertEquals(List.of("Replacement Cost", "Theft"), new ArrayList<>(values));
         assertEquals(1.0, nestedDoc.get(ElasticIndexHelper.DYNAMIC_BOOST_NESTED_BOOST));
+    }
+
+    @Test
+    public void ft_oak_12353_toggleShouldBeRemoved() {
+        // Time-bombed: if this test fails, the feature toggle FT_OAK-12353 and its guard in
+        // ElasticDocument#addDynamicBoostField/#getProperties should be removed — the grouping
+        // has been enabled by default in production long enough.
+        assertTrue("Feature toggle " + ElasticDocument.FT_OAK_12353 + " is overdue for removal",
+                LocalDate.now().isBefore(LocalDate.of(2027, 8, 12)));
     }
 }
