@@ -26,7 +26,9 @@ import org.jetbrains.annotations.Nullable;
  *
  * <p>The callback runs on the cache's maintenance executor, not on the triggering thread, so it
  * may lag behind and observe a key that was already re-inserted. Use {@link Cache#cleanUp()} to
- * drain pending callbacks before relying on external accounting they maintain.</p>
+ * drain pending callbacks before relying on external accounting they maintain. Exception: with
+ * {@link CacheBuilder#FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED} disabled, the callback runs
+ * synchronously on the triggering thread instead, as it always did before that toggle existed.</p>
  *
  * <p><b>Warning:</b> it is unsafe to call cache methods from within the listener.
  * Some implementations hold internal locks during the callback.</p>

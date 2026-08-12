@@ -145,8 +145,9 @@ public interface Cache<K, V> {
      * Performs any pending maintenance operations needed by the cache.
      *
      * <p>Applies pending evictions to the cache's internal state before returning, but does not
-     * wait for their {@link EvictionListener} callbacks, which still run asynchronously. The
-     * CacheLIRS implementation is a no-op.</p>
+     * wait for their {@link EvictionListener} callbacks, which still run asynchronously (unless
+     * async cache maintenance is disabled, in which case those callbacks already ran inline
+     * before this method was even called). The CacheLIRS implementation is a no-op.</p>
      */
     void cleanUp();
 
