@@ -299,9 +299,15 @@ public class SegmentCacheTest {
                 assertEquals(hotSeg, hotId.getSegment());
             }
 
-            // Eviction runs on Caffeine's maintenance executor (see OAK-12290), so it may lag behind
-            // the write that triggered it. Keep churning until it catches up instead of assuming a
-            // fixed number of rounds is always enough.
+            // hotId's L2 admission frequency is frozen at 1 (its initial load is the only L2 touch it
+            // ever gets, since L1 hits don't propagate here). Caffeine's W-TinyLFU only evicts hotId
+            // in favour of a new candidate once the candidate's frequency exceeds hotId's (see
+            // BoundedLocalCache#admit) - a same-frequency candidate loses ties and is discarded
+            // instead, which is exactly what a single-touch probe is. Relying on the adaptive
+            // hill-climbing to widen the window eventually is what made this flaky: it can need far
+            // more churn than fits in the timeout under a loaded CI host. Touch each probe twice via
+            // the L2 API directly (bypassing L1 memoisation) so its frequency reliably beats hotId's,
+            // guaranteeing admission/eviction deterministically instead of statistically.
             AtomicBoolean reloaded = new AtomicBoolean(false);
             AtomicInteger round = new AtomicInteger(0);
             await(() -> {
@@ -311,6 +317,7 @@ public class SegmentCacheTest {
                 when(probeSeg.getSegmentId()).thenReturn(probe);
                 when(probeSeg.estimateMemoryUsage()).thenReturn(64 * 1024);
                 try {
+                    smallCache.getSegment(probe, () -> probeSeg);
                     smallCache.getSegment(probe, () -> probeSeg);
                     smallCache.getSegment(hotId, () -> {
                         reloaded.set(true);

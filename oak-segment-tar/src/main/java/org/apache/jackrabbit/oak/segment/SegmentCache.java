@@ -165,14 +165,14 @@ public abstract class SegmentCache {
 
         /**
          * Removal handler called whenever an item is evicted from the cache. Runs asynchronously
-         * (see {@link CacheBuilder}), so it uses {@link SegmentId#unloadIfCurrent(Segment)} to avoid
+         * (see {@link CacheBuilder}), so it uses {@link SegmentId#compareAndUnload(Segment)} to avoid
          * clobbering a fresher, concurrently loaded segment.
          */
         private void onRemove(@NotNull SegmentId key, Segment value, @NotNull EvictionCause cause) {
             stats.evictionCount.incrementAndGet();
             if (value != null) {
                 stats.currentWeight.addAndGet(-segmentWeight(value));
-                key.unloadIfCurrent(value);
+                key.compareAndUnload(value);
             }
         }
 

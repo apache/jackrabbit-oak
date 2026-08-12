@@ -48,7 +48,7 @@ public class SegmentId implements Comparable<SegmentId> {
     /** Logger instance */
     private static final Logger log = LoggerFactory.getLogger(SegmentId.class);
 
-    /** Handle for the compare-and-clear used by {@link #unloadIfCurrent(Segment)}. */
+    /** Handle for the compare-and-clear used by {@link #compareAndUnload(Segment)}. */
     private static final VarHandle SEGMENT;
     static {
         try {
@@ -242,7 +242,7 @@ public class SegmentId implements Comparable<SegmentId> {
      *                 holds this value
      * @return {@code true} if {@code expected} was still memoised and has now been cleared
      */
-    boolean unloadIfCurrent(@NotNull Segment expected) {
+    boolean compareAndUnload(@NotNull Segment expected) {
         return SEGMENT.compareAndSet(this, expected, null);
     }
 

@@ -283,8 +283,7 @@ class SegmentNodeStoreRegistrar {
                 new FeatureToggle(SegmentCache.FT_OAK_12214, SegmentCache.FT_OAK_12214_PROPAGATE_L1_HITS_TO_L2_ENABLED),
                 Collections.emptyMap()));
 
-        // OAK-12290: bug-fix toggle (default on) so Caffeine maintenance never runs inline
-        // on request, indexer or writer threads while holding the eviction lock
+        // OAK-12290: bug-fix toggle (default on) so Caffeine maintenance never runs on calling thread
         registerCloseable(cfg.getWhiteboard().register(FeatureToggle.class,
                 new FeatureToggle(CacheBuilder.FT_OAK_12290, CacheBuilder.FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED),
                 Collections.emptyMap()));

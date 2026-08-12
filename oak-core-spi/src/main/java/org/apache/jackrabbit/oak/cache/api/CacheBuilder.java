@@ -286,18 +286,18 @@ public final class CacheBuilder<K, V> {
     private Caffeine<K, V> configureCaffeineBuilder() {
         Caffeine caffeineBuilder = Caffeine.newBuilder();
         // Caffeine uses one executor for both maintenance and refresh. A refresh loader may make a
-        // remote call; running it inline would block every caller thread that triggers a refresh on
+        // remote call; running it inSameThread would block every caller thread that triggers a refresh on
         // that call, which defeats the point of refreshAfterWrite (return the stale value, reload in
         // the background). So refreshing caches always run on Oak's maintenance executor, regardless
         // of the toggle - the tradeoff is that a slow reload can occupy one of the pool's threads for
         // longer, which is preferable to blocking callers. Zero-capacity caches are a "disable
-        // caching" idiom relied upon elsewhere for immediate eviction, so they always run inline -
+        // caching" idiom relied upon elsewhere for immediate eviction, so they always run inSameThread -
         // otherwise a read immediately following a write could still observe the entry before
         // background maintenance evicts it.
         boolean zeroCapacity = maximumWeight == 0 || maximumSize == 0;
-        boolean inline = zeroCapacity
+        boolean inSameThread = zeroCapacity
                 || (refreshAfterWrite == null && !FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.get());
-        caffeineBuilder = caffeineBuilder.executor(inline ? Runnable::run : CacheMaintenanceExecutor.get());
+        caffeineBuilder = caffeineBuilder.executor(inSameThread ? Runnable::run : CacheMaintenanceExecutor.get());
         if (initialCapacity >= 0) {
             caffeineBuilder = caffeineBuilder.initialCapacity(initialCapacity);
         }
@@ -315,7 +315,7 @@ public final class CacheBuilder<K, V> {
         }
         if (evictionListener != null) {
             EvictionListener<? super K, ? super V> listener = evictionListener;
-            // Caffeine's evictionListener runs inline while holding an internal lock; Oak listeners
+            // Caffeine's evictionListener runs inSameThread while holding an internal lock; Oak listeners
             // do real work (e.g. persistent-cache writes) that must not run there. removalListener
             // runs on the maintenance executor instead.
             caffeineBuilder = caffeineBuilder.removalListener(

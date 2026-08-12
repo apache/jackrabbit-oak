@@ -40,7 +40,7 @@ public final class CacheMaintenanceExecutor {
     private static final Thread.UncaughtExceptionHandler UNCAUGHT_EXCEPTION_HANDLER = (t, e) ->
             LOG.warn("Uncaught exception in thread {}", t.getName(), e);
 
-    private static final String THREAD_PREFIX = "oak-cache-maintenance-";
+    static final String THREAD_PREFIX = "oak-caffeine-maintenance-";
 
     /**
      * The pool is process-wide, so its workers must not inherit an OSGi request thread's context

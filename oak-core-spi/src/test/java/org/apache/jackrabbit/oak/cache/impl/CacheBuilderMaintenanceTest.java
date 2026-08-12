@@ -159,7 +159,7 @@ public class CacheBuilderMaintenanceTest {
         Assert.assertTrue("size-based eviction was never notified",
                 evicted.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
         Assert.assertTrue("maintenance ran on an unexpected thread: " + threadName.get(),
-                threadName.get().startsWith("oak-cache-maintenance-"));
+                threadName.get().startsWith(CacheMaintenanceExecutor.THREAD_PREFIX));
     }
 
     /**
