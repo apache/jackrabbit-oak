@@ -661,6 +661,40 @@ public class AsyncIndexUpdateTest {
         assertFalse(async.isFailing());
     }
 
+    @Test
+    public void forceModifiedCheckpointUsesShortLifetime() throws Exception {
+        // Capture the lifetime used for the "async-forceModified" checkpoint.
+        long[] forceModifiedLifetime = {-1};
+        MemoryNodeStore delegate = new MemoryNodeStore();
+        NodeStore store = new ProxyNodeStore() {
+            @Override
+            protected NodeStore getNodeStore() {
+                return delegate;
+            }
+
+            @Override
+            public String checkpoint(long lifetime, @NotNull Map<String, String> properties) {
+                if ("async-forceModified".equals(properties.get("name"))) {
+                    forceModifiedLifetime[0] = lifetime;
+                }
+                return super.checkpoint(lifetime, properties);
+            }
+        };
+        IndexEditorProvider provider = new PropertyIndexEditorProvider();
+
+        NodeBuilder builder = store.getRoot().builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, Set.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+        async.run();
+        async.getIndexStats().forceIndexLaneCatchup("CONFIRM");
+
+        assertEquals(TimeUnit.DAYS.toMillis(4), forceModifiedLifetime[0]);
+    }
+
     private void assertNoConflictMarker(NodeBuilder builder) {
         for (String name : builder.getChildNodeNames()) {
             if (name.equals(ConflictAnnotatingRebaseDiff.CONFLICT)) {
