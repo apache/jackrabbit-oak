@@ -55,9 +55,11 @@ public final class CacheBuilder<K, V> {
      * Whether Caffeine runs cache maintenance on Oak's maintenance executor instead of the
      * calling thread. Defaults to {@code true}. Read when a cache is built, so flipping it only
      * affects caches built afterwards. Ignored by caches with {@link #refreshAfterWrite(Duration)},
-     * which always run maintenance inline, and by zero-capacity caches (see
-     * {@link #maximumWeight(long)}, {@link #maximumSize(long)}), which are a "disable caching"
-     * idiom that depends on eviction being immediate.
+     * which always run their reload asynchronously on Oak's maintenance executor - regardless of
+     * this toggle - since a synchronous reload would block every caller on the loader's work (e.g.
+     * a remote call). Also ignored by zero-capacity caches (see {@link #maximumWeight(long)},
+     * {@link #maximumSize(long)}), which are a "disable caching" idiom that depends on eviction
+     * being immediate and therefore always run inline.
      */
     public static final AtomicBoolean FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED = new AtomicBoolean(true);
 
@@ -283,15 +285,18 @@ public final class CacheBuilder<K, V> {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private Caffeine<K, V> configureCaffeineBuilder() {
         Caffeine caffeineBuilder = Caffeine.newBuilder();
-        // Caffeine uses one executor for both maintenance and refresh; a refresh loader may make a
-        // remote call, which would delay maintenance for every other cache sharing the pool. So
-        // refreshing caches always run inline, regardless of the toggle. Zero-capacity caches are
-        // a "disable caching" idiom relied upon elsewhere for immediate eviction, so they also
-        // always run inline - otherwise a read immediately following a write could still observe
-        // the entry before background maintenance evicts it.
+        // Caffeine uses one executor for both maintenance and refresh. A refresh loader may make a
+        // remote call; running it inline would block every caller thread that triggers a refresh on
+        // that call, which defeats the point of refreshAfterWrite (return the stale value, reload in
+        // the background). So refreshing caches always run on Oak's maintenance executor, regardless
+        // of the toggle - the tradeoff is that a slow reload can occupy one of the pool's threads for
+        // longer, which is preferable to blocking callers. Zero-capacity caches are a "disable
+        // caching" idiom relied upon elsewhere for immediate eviction, so they always run inline -
+        // otherwise a read immediately following a write could still observe the entry before
+        // background maintenance evicts it.
         boolean zeroCapacity = maximumWeight == 0 || maximumSize == 0;
-        boolean inline = !FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.get() || refreshAfterWrite != null
-                || zeroCapacity;
+        boolean inline = zeroCapacity
+                || (refreshAfterWrite == null && !FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.get());
         caffeineBuilder = caffeineBuilder.executor(inline ? Runnable::run : CacheMaintenanceExecutor.get());
         if (initialCapacity >= 0) {
             caffeineBuilder = caffeineBuilder.initialCapacity(initialCapacity);

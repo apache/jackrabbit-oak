@@ -162,9 +162,13 @@ public class CacheBuilderMaintenanceTest {
                 threadName.get().startsWith("oak-cache-maintenance-"));
     }
 
-    /** Refresh stays inline regardless of the toggle (see {@link CacheBuilder}). */
+    /**
+     * A synchronous reload would block every caller that triggers a refresh on the loader's work
+     * (e.g. a remote call), defeating the point of {@code refreshAfterWrite}. Refresh must therefore
+     * always run off the caller thread, regardless of the toggle (see {@link CacheBuilder}).
+     */
     @Test
-    public void refreshRunsOnCallerThreadRegardlessOfToggle() throws InterruptedException {
+    public void refreshRunsOffCallerThreadRegardlessOfToggle() throws InterruptedException {
         AtomicReference<Thread> reloadThread = new AtomicReference<>();
         CountDownLatch reloaded = new CountDownLatch(1);
         CountDownLatch firstLoadDone = new CountDownLatch(1);
@@ -183,21 +187,21 @@ public class CacheBuilderMaintenanceTest {
         cache.get("k");
         firstLoadDone.countDown();
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
-        Thread callingThread = null;
         while (reloaded.getCount() > 0 && System.nanoTime() < deadline) {
             Thread.sleep(5);
-            callingThread = Thread.currentThread();
             cache.get("k");
         }
 
         Assert.assertTrue("refresh never ran", reloaded.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
-        Assert.assertSame("refresh must run on the thread that triggered it, never the shared pool",
-                callingThread, reloadThread.get());
+        Assert.assertNotSame("refresh must not run on the thread that triggered it",
+                Thread.currentThread(), reloadThread.get());
+        Assert.assertTrue("refresh ran on an unexpected thread: " + reloadThread.get().getName(),
+                reloadThread.get().getName().startsWith("oak-cache-maintenance-"));
     }
 
     /** Same guarantee with the toggle explicitly off, since refresh ignores it either way. */
     @Test
-    public void refreshRunsOnCallerThreadWithToggleDisabled() throws InterruptedException {
+    public void refreshRunsOffCallerThreadWithToggleDisabled() throws InterruptedException {
         CacheBuilder.FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.set(false);
 
         AtomicReference<Thread> reloadThread = new AtomicReference<>();
@@ -218,25 +222,24 @@ public class CacheBuilderMaintenanceTest {
         cache.get("k");
         firstLoadDone.countDown();
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
-        Thread callingThread = null;
         while (reloaded.getCount() > 0 && System.nanoTime() < deadline) {
             Thread.sleep(5);
-            callingThread = Thread.currentThread();
             cache.get("k");
         }
 
         Assert.assertTrue("refresh never ran", reloaded.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
-        Assert.assertSame("refresh must run on the thread that triggered it, never the shared pool",
-                callingThread, reloadThread.get());
+        Assert.assertNotSame("refresh must not run on the thread that triggered it",
+                Thread.currentThread(), reloadThread.get());
     }
 
     /**
-     * A refreshing cache's own eviction/removal notification must also stay inline - it shares the
-     * same executor setting as refresh, and there is no separate knob for the two.
+     * A refreshing cache's own eviction/removal notification must also run off the caller thread -
+     * it shares the same executor setting as refresh, and there is no separate knob for the two.
      */
     @Test
-    public void refreshingCacheEvictionAlsoRunsOnCallerThread() {
+    public void refreshingCacheEvictionRunsOffCallerThread() throws InterruptedException {
         AtomicReference<Thread> evictionThread = new AtomicReference<>();
+        CountDownLatch evicted = new CountDownLatch(1);
 
         LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                 .maximumSize(1)
@@ -244,6 +247,7 @@ public class CacheBuilderMaintenanceTest {
                 .evictionListener((k, v, cause) -> {
                     if (cause == EvictionCause.SIZE) {
                         evictionThread.set(Thread.currentThread());
+                        evicted.countDown();
                     }
                 })
                 .build(key -> "v");
@@ -251,7 +255,9 @@ public class CacheBuilderMaintenanceTest {
         cache.get("k1");
         cache.get("k2");
 
-        Assert.assertSame("eviction on a refreshing cache must run inline, not on the shared pool",
+        Assert.assertTrue("size-based eviction was never notified",
+                evicted.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+        Assert.assertNotSame("eviction on a refreshing cache must not run on the calling thread",
                 Thread.currentThread(), evictionThread.get());
     }
 
