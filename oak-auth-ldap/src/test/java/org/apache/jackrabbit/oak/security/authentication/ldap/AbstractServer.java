@@ -28,7 +28,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.BindException;
+import java.net.URL;
 import java.nio.file.Files;
+import java.security.Security;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -81,6 +83,9 @@ import org.slf4j.LoggerFactory;
 public abstract class AbstractServer {
 
     public static final String  EXAMPLE_DN = "dc=example,dc=com";
+    private static final String TLS_KEYSTORE_RESOURCE = "org/apache/jackrabbit/oak/security/authentication/ldap/apacheds-server.jks";
+    private static final String TLS_KEYSTORE_PASSWORD = "secret";
+    private static final String KEYSTORE_TYPE_PROPERTY = "keystore.type";
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractServer.class);
     private static final List<LdifEntry> EMPTY_LIST = Collections.unmodifiableList(new ArrayList<LdifEntry>(0));
@@ -104,6 +109,7 @@ public abstract class AbstractServer {
     protected LdapServer ldapServer;
     
     protected boolean enableSSL = false;
+    private String previousKeyStoreType;
 
     public AbstractServer(boolean enableSSL) {
         this.enableSSL = enableSSL;
@@ -230,7 +236,15 @@ public abstract class AbstractServer {
     protected void setupLdapServer() throws Exception {
         TcpTransport transport = new TcpTransport((port));
         transport.enableSSL(enableSSL);
-        
+
+        URL keyStoreUrl = AbstractServer.class.getClassLoader().getResource(TLS_KEYSTORE_RESOURCE);
+        if (keyStoreUrl == null) {
+            throw new IOException("Unable to locate test TLS keystore: " + TLS_KEYSTORE_RESOURCE);
+        }
+        previousKeyStoreType = Security.getProperty(KEYSTORE_TYPE_PROPERTY);
+        Security.setProperty(KEYSTORE_TYPE_PROPERTY, "jks");
+        ldapServer.setKeystoreFile(new File(keyStoreUrl.toURI()).getAbsolutePath());
+        ldapServer.setCertificatePassword(TLS_KEYSTORE_PASSWORD);
         ldapServer.setTransports(transport);
         ldapServer.setDirectoryService(directoryService);
         ldapServer.addExtendedOperationHandler(new StartTlsHandler());
@@ -449,5 +463,11 @@ public abstract class AbstractServer {
         if (cacheService != null) {
             cacheService.destroy();
         }
+        if (previousKeyStoreType == null) {
+            Security.setProperty(KEYSTORE_TYPE_PROPERTY, "pkcs12");
+        } else {
+            Security.setProperty(KEYSTORE_TYPE_PROPERTY, previousKeyStoreType);
+        }
+        previousKeyStoreType = null;
     }
 }
