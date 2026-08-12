@@ -309,6 +309,39 @@ public class CacheBuilderMaintenanceTest {
                 Thread.currentThread(), evictionThread.get());
     }
 
+    /**
+     * Zero-capacity takes priority over {@code refreshAfterWrite} in the inline decision: even a
+     * refreshing cache must evict synchronously once its capacity is zero, for the same
+     * "disable caching" reason as {@link #zeroMaximumSizeEvictsSynchronously()}.
+     */
+    @Test
+    public void zeroMaximumSizeEvictsSynchronouslyEvenWithRefreshAfterWrite() {
+        LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumSize(0)
+                .refreshAfterWrite(Duration.ofHours(1))
+                .build(key -> "v");
+
+        cache.get("k1");
+
+        Assert.assertNull("a zero-capacity refreshing cache must not retain the entry past the get() call",
+                cache.getIfPresent("k1"));
+    }
+
+    /** Zero-capacity stays inline even with the toggle explicitly off, since it never consults the toggle. */
+    @Test
+    public void zeroMaximumSizeEvictsSynchronouslyWithToggleDisabled() {
+        CacheBuilder.FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.set(false);
+
+        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumSize(0)
+                .build();
+
+        cache.put("k1", "v1");
+
+        Assert.assertNull("a zero-capacity cache must not retain the entry past the put() call",
+                cache.getIfPresent("k1"));
+    }
+
     /** Overwriting an existing key must notify the listener with {@link EvictionCause#REPLACED}, asynchronously. */
     @Test
     public void replacingAnEntryNotifiesListenerOffCallerThread() throws InterruptedException {
