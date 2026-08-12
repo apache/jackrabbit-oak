@@ -50,9 +50,10 @@ public class ElasticDocument {
      * single nested document per property, with {@code value} holding an array of the grouped
      * values, instead of one nested document per value. This reduces the number of nested
      * documents generated for properties with many dynamic-boost values that share a boost score.
-     * Default is {@code false} (feature disabled).
+     * Default is {@code true} (feature enabled); set to {@code false} via the feature toggle to
+     * revert to the pre-fix behaviour of one nested document per value.
      */
-    public static final AtomicBoolean FT_OAK_12353_ENABLE = new AtomicBoolean(false);
+    public static final AtomicBoolean FT_OAK_12353_ENABLE = new AtomicBoolean(true);
 
     @JsonProperty(FieldNames.PATH)
     public final String path;

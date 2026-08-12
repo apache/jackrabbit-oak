@@ -30,11 +30,13 @@ public class ElasticDocumentTest {
 
     @After
     public void resetToggle() {
-        ElasticDocument.FT_OAK_12353_ENABLE.set(false);
+        ElasticDocument.FT_OAK_12353_ENABLE.set(true);
     }
 
     @Test
-    public void dynamicBoostValuesAreNotGroupedByDefault() {
+    public void dynamicBoostValuesAreNotGroupedWhenToggleDisabled() {
+        ElasticDocument.FT_OAK_12353_ENABLE.set(false);
+
         ElasticDocument doc = new ElasticDocument("/test");
         doc.addDynamicBoostField("predictedTagsDynamicBoost", "Replacement Cost", 1.0);
         doc.addDynamicBoostField("predictedTagsDynamicBoost", "Theft", 1.0);
@@ -51,9 +53,7 @@ public class ElasticDocumentTest {
     }
 
     @Test
-    public void dynamicBoostValuesAreGroupedByBoostWhenToggleEnabled() {
-        ElasticDocument.FT_OAK_12353_ENABLE.set(true);
-
+    public void dynamicBoostValuesAreGroupedByBoostByDefault() {
         ElasticDocument doc = new ElasticDocument("/test");
         doc.addDynamicBoostField("predictedTagsDynamicBoost", "Replacement Cost", 1.0);
         doc.addDynamicBoostField("predictedTagsDynamicBoost", "Theft", 1.0);
@@ -89,8 +89,6 @@ public class ElasticDocumentTest {
 
     @Test
     public void singleDynamicBoostGroupIsNotWrappedInCollection() {
-        ElasticDocument.FT_OAK_12353_ENABLE.set(true);
-
         ElasticDocument doc = new ElasticDocument("/test");
         doc.addDynamicBoostField("predictedTagsDynamicBoost", "Replacement Cost", 1.0);
         doc.addDynamicBoostField("predictedTagsDynamicBoost", "Theft", 1.0);
