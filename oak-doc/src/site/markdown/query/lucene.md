@@ -503,6 +503,13 @@ type
   Mostly inferred from the indexed value. However in some cases where same property
   type is not used consistently across various nodes then it would recommended
   to specify the type explicitly.
+
+  Note: with `type=Date`, values that are not valid ISO-8601 dates are not indexed as dates, so
+  `order by` on the property gives the wrong order, or no results if the query relies on that
+  property to select nodes. For inconsistent values, leave `type` unset or use `type=String`;
+  string values sort lexicographically, which matches date order only for uniformly formatted
+  timestamps (same precision and zone, e.g. UTC `Z`).
+
   For binary properties, you do not need to index the property separately.
   Binary properties are automatically added to the fulltext index (but only there),
   if the following conditions are met:

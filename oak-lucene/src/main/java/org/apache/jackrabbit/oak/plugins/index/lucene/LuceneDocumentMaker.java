@@ -73,6 +73,10 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     private static final String LOG_KEY_IGNORING_FACET_PROPERTY = "Ignoring facet property";
     private static final String LOG_KEY_UNKNOWN = "Unknown";
 
+    private static final String ORDERED_CONVERT_WARN =
+            "[{}] Ignoring ordered value for property {} (type {}): not convertible to the declared "
+            + "type {} at {}. ORDER BY may return incorrect or no results - leave type unset or use type=String.";
+
     public LuceneDocumentMaker(IndexDefinition definition,
                                IndexDefinition.IndexingRule indexingRule,
                                String path) {
@@ -336,20 +340,16 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
             if (!LOG_SILENCER.silence(key)) {
                 if (key.equals(LOG_KEY_UNKNOWN)) {
                     // unknown error, log with stack trace
-                    LOG.warn(
-                            "[{}] Ignoring ordered property. Could not convert property {} of type {} to type {} for path {}",
+                    LOG.warn(ORDERED_CONVERT_WARN,
                             getIndexName(), pname,
                             Type.fromTag(property.getType().tag(), false),
                             Type.fromTag(tag, false), path, e);
                 } else {
                     // log without stack trace (as it is known)
-                    LOG.warn(
-                            "[{}] Ignoring ordered property. Could not convert property {} of type {} to type {} for path {}, message {}",
+                    LOG.warn(ORDERED_CONVERT_WARN + " Message: {}",
                             getIndexName(), pname,
                             Type.fromTag(property.getType().tag(), false),
                             Type.fromTag(tag, false), path, e.getMessage());
-
-
                 }
             }
         }
