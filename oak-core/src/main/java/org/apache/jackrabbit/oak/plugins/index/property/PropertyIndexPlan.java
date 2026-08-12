@@ -77,7 +77,13 @@ public class PropertyIndexPlan {
 
     private boolean matchesNodeTypes;
 
-    private final double cost;
+    /**
+     * The number of matching entries for the best-matching property found by
+     * the constructor's search loop, or {@code Double.POSITIVE_INFINITY} if
+     * none matched. {@link #getCostLegacy} and {@link #getCostConfigurable}
+     * both derive the final cost from this count.
+     */
+    private final double bestCount;
 
     private final Set<String> values;
 
@@ -113,7 +119,7 @@ public class PropertyIndexPlan {
 
         ValuePattern valuePattern = new ValuePattern(definition);
 
-        double bestCost = Double.POSITIVE_INFINITY;
+        double bestCount = Double.POSITIVE_INFINITY;
         Set<String> bestValues = emptySet();
         int bestDepth = 1;
 
@@ -168,22 +174,22 @@ public class PropertyIndexPlan {
                         }
                     }
                     values = PropertyIndexUtil.encode(values);
-                    double cost = strategies.isEmpty() ? MAX_COST : 0;
+                    double count = strategies.isEmpty() ? MAX_COST : 0;
                     for (IndexStoreStrategy strategy : strategies) {
-                        cost += strategy.count(filter, root, definition,
+                        count += strategy.count(filter, root, definition,
                                 values, MAX_COST);
                     }
-                    if (unique && cost <= 1) {
+                    if (unique && count <= 1) {
                         // for unique index, for the normal case
                         // (that is, for a regular lookup)
                         // no further reads are needed
-                        cost = 0;
+                        count = 0;
                     }
-                    if (cost < bestCost) {
+                    if (count < bestCount) {
                         bestDepth = depth;
                         bestValues = values;
-                        bestCost = cost;
-                        if (bestCost == 0) {
+                        bestCount = count;
+                        if (bestCount == 0) {
                             // shortcut: not possible to top this
                             break;
                         }
@@ -194,15 +200,45 @@ public class PropertyIndexPlan {
 
         this.depth = bestDepth;
         this.values = bestValues;
-        this.cost = COST_OVERHEAD + bestCost;
+        this.bestCount = bestCount;
     }
 
     String getName() {
         return name;
     }
 
+    /**
+     * Dispatches to {@link #getCostConfigurable} or {@link #getCostLegacy}
+     * depending on {@link PropertyIndexLookup#FT_OAK_12348_ENABLE}, evaluated
+     * once per plan (a new plan is built whenever the filter changes, so a
+     * toggle flip is picked up on the next query, not on this cached plan).
+     */
     double getCost() {
-        return cost;
+        return PropertyIndexLookup.FT_OAK_12348_ENABLE.get() ? getCostConfigurable() : getCostLegacy();
+    }
+
+    /**
+     * Original cost formula: {@code COST_OVERHEAD + bestCount}. Ignores
+     * {@code costPerEntry}/{@code costPerExecution} even if set on the index
+     * definition.
+     */
+    double getCostLegacy() {
+        return bestCount == Double.POSITIVE_INFINITY ? Double.POSITIVE_INFINITY : COST_OVERHEAD + bestCount;
+    }
+
+    /**
+     * {@code cost = costPerExecution + costPerEntry * bestCount}, both
+     * optionally configured on the index definition (OAK-12348). Defaults
+     * ({@code costPerEntry=1.0}, {@code costPerExecution=COST_OVERHEAD})
+     * reproduce {@link #getCostLegacy} exactly.
+     */
+    double getCostConfigurable() {
+        if (bestCount == Double.POSITIVE_INFINITY) {
+            return Double.POSITIVE_INFINITY;
+        }
+        double costPerEntry = IndexUtils.getOptionalValue(definition, IndexConstants.COST_PER_ENTRY, 1.0);
+        double costPerExecution = IndexUtils.getOptionalValue(definition, IndexConstants.COST_PER_EXECUTION, COST_OVERHEAD);
+        return costPerExecution + costPerEntry * bestCount;
     }
 
     Cursor execute() {
@@ -260,7 +296,7 @@ public class PropertyIndexPlan {
             }
         }
         buffer.append("\n");
-        buffer.append("    estimatedCost: ").append(cost).append("\n");
+        buffer.append("    estimatedCost: ").append(getCost()).append("\n");
         return buffer.toString();
     }
 

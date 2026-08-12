@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -35,6 +36,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
@@ -74,6 +76,24 @@ public class PropertyIndexLookup {
      * The maximum cost when the index can be used.
      */
     static final int MAX_COST = 100;
+
+    /**
+     * Feature toggle name for the configurable costPerEntry/costPerExecution
+     * cost formula (OAK-12348).
+     */
+    public static final String FT_OAK_12348 = "FT_OAK-12348";
+
+    /**
+     * When {@code true} (the default), {@link #getCost} reads {@code costPerEntry}/
+     * {@code costPerExecution} from the index definition ({@link #getCostConfigurable}).
+     * When {@code false}, {@link #getCost} uses the original hardcoded formula
+     * ({@link #getCostLegacy}) unconditionally, ignoring those properties even if
+     * set. Enabled by default: the new formula reproduces the legacy one exactly
+     * whenever {@code costPerEntry}/{@code costPerExecution} are absent, so this is
+     * a behavior-preserving default for anyone not using the new properties -- the
+     * toggle exists as an escape hatch, not as an opt-in gate.
+     */
+    public static final AtomicBoolean FT_OAK_12348_ENABLE = new AtomicBoolean(true);
 
     private final NodeState root;
 
@@ -135,7 +155,22 @@ public class PropertyIndexLookup {
                 definition, INDEX_CONTENT_NODE_NAME);
     }
 
+    /**
+     * Dispatches to {@link #getCostConfigurable} or {@link #getCostLegacy}
+     * depending on {@link #FT_OAK_12348_ENABLE}.
+     */
     public double getCost(Filter filter, String propertyName, PropertyValue value) {
+        return FT_OAK_12348_ENABLE.get()
+                ? getCostConfigurable(filter, propertyName, value)
+                : getCostLegacy(filter, propertyName, value);
+    }
+
+    /**
+     * Original cost formula: {@code COST_OVERHEAD + entryCount}. Ignores
+     * {@code costPerEntry}/{@code costPerExecution} even if set on the index
+     * definition.
+     */
+    public double getCostLegacy(Filter filter, String propertyName, PropertyValue value) {
         NodeState indexMeta = getIndexNode(root, propertyName, filter);
         if (indexMeta == null) {
             return Double.POSITIVE_INFINITY;
@@ -147,6 +182,31 @@ public class PropertyIndexLookup {
             cost += s.count(filter, root, indexMeta, encode(value, pattern), MAX_COST);
         }
         return cost;
+    }
+
+    /**
+     * {@code cost = costPerExecution + costPerEntry * entryCount}, both
+     * optionally configured on the index definition (OAK-12348). Defaults
+     * ({@code costPerEntry=1.0}, {@code costPerExecution=COST_OVERHEAD})
+     * reproduce {@link #getCostLegacy} exactly.
+     */
+    public double getCostConfigurable(Filter filter, String propertyName, PropertyValue value) {
+        NodeState indexMeta = getIndexNode(root, propertyName, filter);
+        if (indexMeta == null) {
+            return Double.POSITIVE_INFINITY;
+        }
+        Set<IndexStoreStrategy> strategies = getStrategies(indexMeta);
+        if (strategies.isEmpty()) {
+            return MAX_COST;
+        }
+        ValuePattern pattern = new ValuePattern(indexMeta);
+        double entryCount = 0;
+        for (IndexStoreStrategy s : strategies) {
+            entryCount += s.count(filter, root, indexMeta, encode(value, pattern), MAX_COST);
+        }
+        double costPerEntry = IndexUtils.getOptionalValue(indexMeta, IndexConstants.COST_PER_ENTRY, 1.0);
+        double costPerExecution = IndexUtils.getOptionalValue(indexMeta, IndexConstants.COST_PER_EXECUTION, COST_OVERHEAD);
+        return costPerExecution + costPerEntry * entryCount;
     }
 
     /**

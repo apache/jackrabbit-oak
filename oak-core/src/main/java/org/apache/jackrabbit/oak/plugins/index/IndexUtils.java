@@ -257,6 +257,24 @@ public final class IndexUtils {
     }
 
     /**
+     * Reads an optional double-valued property from an index definition node,
+     * falling back to a default when the property is absent. Mirrors the
+     * {@code getOptionalValue} helper oak-search's {@code IndexDefinition} uses
+     * for the same purpose ({@code costPerEntry}, {@code costPerExecution}, etc.)
+     * so index types outside oak-search (which cannot depend on it) can read
+     * the same kind of tunable index-definition properties.
+     *
+     * @param defn the index definition node
+     * @param propertyName the property name
+     * @param defaultValue the value to return if the property is not set
+     * @return the property's double value, or {@code defaultValue}
+     */
+    public static double getOptionalValue(NodeState defn, String propertyName, double defaultValue) {
+        PropertyState ps = defn.getProperty(propertyName);
+        return ps != null ? ps.getValue(Type.DOUBLE) : defaultValue;
+    }
+
+    /**
      * Retrieves the calling class and method from the call stack; this is determined by unwinding
      * the stack until it finds a combination of full qualified classname + method (separated by ".") which
      * do not start with any of the values provided by the ignoredJavaPackages parameters. If the provided

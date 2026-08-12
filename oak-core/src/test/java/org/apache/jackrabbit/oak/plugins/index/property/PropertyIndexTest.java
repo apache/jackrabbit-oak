@@ -258,6 +258,182 @@ public class PropertyIndexTest {
                 cost < traversal);
     }
 
+    /**
+     * Default cost (no costPerEntry/costPerExecution set) must stay exactly
+     * COST_OVERHEAD + entryCount regardless of the FT_OAK_12348 toggle position,
+     * both via {@link PropertyIndexLookup#getCost} and via {@link PropertyIndex#getCost}
+     * (which goes through {@link PropertyIndexPlan}). The toggle is enabled by
+     * default, so this is what a fresh install sees with no properties set.
+     */
+    @Test
+    public void costPerEntryAndCostPerExecutionDefaultUnchanged() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+
+        NodeBuilder builder = root.builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, Set.of("foo"), null)
+                .setProperty("entryCount", -1);
+        NodeState before = builder.getNodeState();
+
+        for (int i = 0; i < 5; i++) {
+            builder.child("n" + i).setProperty("foo", "x1");
+        }
+        NodeState after = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        FilterImpl f = createFilter(indexed, NT_BASE);
+        f.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
+
+        assertTrue("toggle must be on by default", PropertyIndexLookup.FT_OAK_12348_ENABLE.get());
+        assertEquals(7.0, lookup.getCost(f, "foo", PropertyValues.newString("x1")), 0.0);
+        assertEquals(7.0, pIndex.getCost(f, indexed), 0.0);
+
+        PropertyIndexLookup.FT_OAK_12348_ENABLE.set(false);
+        try {
+            assertEquals(7.0, lookup.getCost(f, "foo", PropertyValues.newString("x1")), 0.0);
+            assertEquals(7.0, pIndex.getCost(f, indexed), 0.0);
+        } finally {
+            PropertyIndexLookup.FT_OAK_12348_ENABLE.set(true);
+        }
+    }
+
+    /**
+     * Setting costPerEntry/costPerExecution on the index definition changes the
+     * cost by the documented formula, {@code cost = costPerExecution + costPerEntry * entryCount},
+     * by default -- FT_OAK_12348 is enabled out of the box. Disabling it (the
+     * escape hatch) must fall back to the legacy value.
+     */
+    @Test
+    public void costPerEntryAndCostPerExecutionOverride() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+
+        NodeBuilder builder = root.builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, Set.of("foo"), null)
+                .setProperty("entryCount", -1)
+                .setProperty(IndexConstants.COST_PER_ENTRY, 2.0)
+                .setProperty(IndexConstants.COST_PER_EXECUTION, 10.0);
+        NodeState before = builder.getNodeState();
+
+        for (int i = 0; i < 5; i++) {
+            builder.child("n" + i).setProperty("foo", "x1");
+        }
+        NodeState after = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        FilterImpl f = createFilter(indexed, NT_BASE);
+        f.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
+
+        // toggle on (default): override takes effect immediately, no opt-in needed
+        // -- 10.0 + 2.0 * 5 == 20.0 (legacy would have been 2.0 + 5 == 7.0).
+        assertTrue("toggle must be on by default", PropertyIndexLookup.FT_OAK_12348_ENABLE.get());
+        assertEquals(20.0, lookup.getCost(f, "foo", PropertyValues.newString("x1")), 0.0);
+        assertEquals(20.0, pIndex.getCost(f, indexed), 0.0);
+        // getCostLegacy() is callable directly regardless of the toggle, and still
+        // gives the old value -- proves the escape hatch's formula is intact.
+        assertEquals(7.0, lookup.getCostLegacy(f, "foo", PropertyValues.newString("x1")), 0.0);
+
+        PropertyIndexLookup.FT_OAK_12348_ENABLE.set(false);
+        try {
+            assertEquals(7.0, lookup.getCost(f, "foo", PropertyValues.newString("x1")), 0.0);
+            assertEquals(7.0, pIndex.getCost(f, indexed), 0.0);
+        } finally {
+            PropertyIndexLookup.FT_OAK_12348_ENABLE.set(true);
+        }
+    }
+
+    /**
+     * costPerEntry == 0 on an index that doesn't apply to the query must not turn
+     * POSITIVE_INFINITY into NaN (0 * Infinity == NaN in IEEE754) — an inapplicable
+     * index must never look "free". Exercises the default (enabled) toggle state.
+     */
+    @Test
+    public void costPerEntryZeroDoesNotCorruptInfinityCost() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+
+        NodeBuilder builder = root.builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, Set.of("foo"), null)
+                .setProperty("entryCount", -1)
+                .setProperty(IndexConstants.COST_PER_ENTRY, 0.0)
+                .setProperty(IndexConstants.COST_PER_EXECUTION, 0.0);
+        NodeState before = builder.getNodeState();
+        builder.child("n1").setProperty("foo", "x1");
+        NodeState after = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        // filter has no restriction on "foo" (or any other indexed property) at all,
+        // so no candidate property matches and PropertyIndexPlan's bestCost stays
+        // POSITIVE_INFINITY internally.
+        FilterImpl f = createFilter(indexed, NT_BASE);
+        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
+
+        assertTrue("toggle must be on by default", PropertyIndexLookup.FT_OAK_12348_ENABLE.get());
+        double cost = pIndex.getCost(f, indexed);
+        assertFalse("cost must not be NaN", Double.isNaN(cost));
+        assertEquals(Double.POSITIVE_INFINITY, cost, 0.0);
+    }
+
+    /**
+     * The unique-index short circuit zeroes the raw per-property strategy count
+     * ({@code bestCost}) for a normal unique lookup — it never made the *final*
+     * cost 0 even before this change (default final cost was always
+     * {@code COST_OVERHEAD + 0 == COST_OVERHEAD}, i.e. 2.0, never 0.0). So the
+     * invariant an override must preserve is: the entry-count contribution stays
+     * zero (a huge costPerEntry must not blow up the cost of a unique lookup),
+     * while costPerExecution still applies as the flat cost of the lookup itself.
+     */
+    @Test
+    public void uniqueIndexShortCircuitZeroesEntryCountContributionUnderOverride() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+
+        NodeBuilder builder = root.builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "uuidIndex",
+                true, true, Set.of("foo"), null)
+                .setProperty(IndexConstants.COST_PER_ENTRY, 1000.0)
+                .setProperty(IndexConstants.COST_PER_EXECUTION, 3.0);
+        NodeState before = builder.getNodeState();
+        builder.child("n1").setProperty("foo", "x1");
+        NodeState after = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        FilterImpl f = createFilter(indexed, NT_BASE);
+        f.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
+        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
+
+        assertTrue("toggle must be on by default", PropertyIndexLookup.FT_OAK_12348_ENABLE.get());
+        // 3.0 + 1000.0 * 0 == 3.0 -- the huge costPerEntry must not apply, since
+        // the short circuit means there is no per-entry contribution to multiply.
+        assertEquals(3.0, pIndex.getCost(f, indexed), 0.0);
+    }
+
+    /**
+     * Same scenario without any override: default final cost for a unique
+     * short-circuited lookup is COST_OVERHEAD (2.0), not 0.0 -- documents the
+     * baseline the override test above is relative to.
+     */
+    @Test
+    public void uniqueIndexShortCircuitDefaultCostIsOverheadNotZero() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+
+        NodeBuilder builder = root.builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "uuidIndex",
+                true, true, Set.of("foo"), null);
+        NodeState before = builder.getNodeState();
+        builder.child("n1").setProperty("foo", "x1");
+        NodeState after = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        FilterImpl f = createFilter(indexed, NT_BASE);
+        f.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
+        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
+        assertEquals(2.0, pIndex.getCost(f, indexed), 0.0);
+    }
+
     @Test
     public void testPropertyLookup() throws Exception {
         NodeState root = INITIAL_CONTENT;

@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.nodetype;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 
 import java.io.ByteArrayInputStream;
@@ -89,6 +90,57 @@ public class NodeTypeIndexTest {
         filter = createFilter(rootState, JcrConstants.NT_HIERARCHYNODE);
         assertEquals(7.0, index.getCost(filter, rootState), 0.0);
         checkCursor(index.query(filter, rootState), "/folder-1", "/folder-2", "/file-1");
+    }
+
+    /**
+     * NodeTypeIndex has no cost logic of its own: its cost is the sum of two
+     * {@code PropertyIndexLookup.getCost()} calls (jcr:primaryType, jcr:mixinTypes)
+     * against the single "nodetype" property index definition. Setting
+     * costPerEntry/costPerExecution on that definition must change the total,
+     * with no code changes needed in the nodetype package itself.
+     */
+    @Test
+    public void nodeTypeCostOverride() throws Exception {
+        NodeBuilder root = store.getRoot().builder();
+
+        // remove "rep:security" as it interferes with tests
+        root.getChildNode("rep:security").remove();
+
+        NodeBuilder nodetypeIndex = root.getChildNode("oak:index").getChildNode("nodetype");
+        // set "entryCount", so the node type index counts the nodes
+        // and the approximation is not used
+        nodetypeIndex.setProperty("entryCount", -1);
+        nodetypeIndex.setProperty(org.apache.jackrabbit.oak.plugins.index.IndexConstants.COST_PER_ENTRY, 3.0);
+        nodetypeIndex.setProperty(org.apache.jackrabbit.oak.plugins.index.IndexConstants.COST_PER_EXECUTION, 10.0);
+
+        addFolder(root, "folder-1");
+        addFolder(root, "folder-2");
+        addFile(root, "file-1");
+
+        store.merge(root, new EditorHook(new IndexUpdateProvider(
+                new PropertyIndexEditorProvider())), CommitInfo.EMPTY);
+
+        NodeState rootState = store.getRoot();
+        NodeTypeIndex index = new NodeTypeIndex(
+                Mounts.defaultMountInfoProvider());
+        FilterImpl filter;
+
+        // NodeTypeIndex has no toggle of its own -- it inherits whichever formula
+        // PropertyIndexLookup.getCost() is currently dispatching to, which is
+        // FT_OAK_12348_ENABLE, on by default -- no opt-in needed here.
+        assertTrue("toggle must be on by default",
+                org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup.FT_OAK_12348_ENABLE.get());
+
+        // default (see nodeType() above) is 2*COST_OVERHEAD(2) + entrySum;
+        // with the override it is 2*costPerExecution + costPerEntry*entrySum
+        filter = createFilter(rootState, JcrConstants.NT_FOLDER);
+        assertEquals(2 * 10.0 + 3.0 * 2, index.getCost(filter, rootState), 0.0);
+
+        filter = createFilter(rootState, JcrConstants.NT_FILE);
+        assertEquals(2 * 10.0 + 3.0 * 1, index.getCost(filter, rootState), 0.0);
+
+        filter = createFilter(rootState, JcrConstants.NT_HIERARCHYNODE);
+        assertEquals(2 * 10.0 + 3.0 * 3, index.getCost(filter, rootState), 0.0);
     }
 
     private static FilterImpl createFilter(NodeState root, String nodeTypeName) {
