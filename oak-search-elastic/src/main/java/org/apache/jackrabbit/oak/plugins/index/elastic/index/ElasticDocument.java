@@ -263,6 +263,9 @@ public class ElasticDocument {
         if (!dynamicProperties.isEmpty()) {
             buff.append("dynamicProperties:").append(dynamicProperties).append('\n');
         }
+        if (!dynamicBoostGroups.isEmpty()) {
+            buff.append("dynamicBoostGroups:").append(dynamicBoostGroups).append('\n');
+        }
         return buff.toString();
     }
 
