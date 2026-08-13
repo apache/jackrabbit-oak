@@ -24,9 +24,9 @@ import org.jetbrains.annotations.Nullable;
  *
  * <p>Register via {@link CacheBuilder#evictionListener(EvictionListener)}.</p>
  *
- * <p>The callback runs on the cache's maintenance executor, not on the triggering thread, so it
- * may lag behind and observe a key that was already re-inserted. Use {@link Cache#cleanUp()} to
- * drain pending callbacks before relying on external accounting they maintain. Exception: with
+ * <p>The callback may run asynchronously and lag behind, observing a key that was already
+ * re-inserted. Calling {@link Cache#cleanUp()} processes pending cache maintenance, but does not
+ * guarantee that callbacks have been invoked or completed when it returns. Exception: with
  * {@link CacheBuilder#FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED} disabled, the callback runs
  * synchronously on the triggering thread instead, as it always did before that toggle existed.</p>
  *
