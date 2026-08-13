@@ -137,13 +137,24 @@ public class CheckpointCompactor extends Compactor {
         }
 
         CompactedNodeState compacted = null;
+        // The previously processed super-root's *uncompacted* root, used as the diff base for the next
+        // super-root. It is in the same GC generation as the state being compacted, so MapRecord bucket
+        // pruning (record-id based) can skip unchanged subtrees. Using the compacted result here instead
+        // (a different, target generation) would defeat that pruning and force a full-tree traversal on
+        // every retry cycle.
+        NodeState previousAfterRoot = null;
         for (String path : superRoots) {
             NodeState afterSuperRoot = getDescendant(after, path, NodeState::getChildNode);
+            NodeState afterRoot = getRoot(afterSuperRoot);
 
-            NodeState baseRoot = requireNonNullElseGet(compacted, () -> getRoot(before));
+            // diff base: the previous uncompacted root (same generation as afterRoot); falls back to `before`
+            // for the first super-root. NOT `compacted`, which is in the target generation.
+            NodeState baseRoot = requireNonNullElseGet(previousAfterRoot, () -> getRoot(before));
+            // apply target: the previously compacted result, so the output stays fully compacted; falls back
+            // to `onto` for the first super-root.
             NodeState ontoRoot = requireNonNullElseGet(compacted, () -> getRoot(onto));
 
-            compacted = compactRootState(baseRoot, getRoot(afterSuperRoot), ontoRoot, hardCanceller, softCanceller);
+            compacted = compactRootState(baseRoot, afterRoot, ontoRoot, hardCanceller, softCanceller);
             if (compacted == null) {
                 // only happens for hard cancellation
                 return null;
@@ -157,6 +168,8 @@ public class CheckpointCompactor extends Compactor {
             if (path.startsWith(CHECKPOINTS + '/')) {
                 compactCheckpointMetadata(builder, afterSuperRoot);
             }
+
+            previousAfterRoot = afterRoot;
 
             if (isCancelled(softCanceller)) {
                 break;
