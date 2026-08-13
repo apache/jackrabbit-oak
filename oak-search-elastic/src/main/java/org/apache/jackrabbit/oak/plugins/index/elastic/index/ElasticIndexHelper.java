@@ -350,9 +350,13 @@ class ElasticIndexHelper {
             for (PropertyDefinition pd : indexDefinition.getDynamicBoostProperties()) {
                 builder.properties(ElasticIndexUtils.fieldName(pd.nodeName),
                         b1 -> b1.nested(
+                                // norms disabled: values sharing a boost score are grouped into a single nested
+                                // doc (see ElasticDocument#FT_OAK_12353), so field length varies by group size and
+                                // would otherwise skew BM25 length normalization; boost is applied explicitly via
+                                // field_value_factor, so length normalization on this field isn't meaningful anyway.
                                 b2 -> b2.properties(DYNAMIC_BOOST_NESTED_VALUE,
                                                 b3 -> b3.text(
-                                                        b4 -> b4.analyzer("oak_analyzer")))
+                                                        b4 -> b4.analyzer("oak_analyzer").norms(false)))
                                         .properties(DYNAMIC_BOOST_NESTED_BOOST,
                                                 b3 -> b3.double_(f -> f)
                                         )

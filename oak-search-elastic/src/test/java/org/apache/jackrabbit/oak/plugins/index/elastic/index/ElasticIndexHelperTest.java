@@ -60,6 +60,30 @@ public class ElasticIndexHelperTest {
     }
 
     @Test
+    public void dynamicBoostValueFieldHasNormsDisabled() {
+        IndexDefinitionBuilder builder = new ElasticIndexDefinitionBuilder();
+        IndexDefinitionBuilder.IndexRule indexRuleA = builder.indexRule("typeA");
+        indexRuleA.property("foo").type("String");
+        indexRuleA.property("predictedTagsDynamicBoost", "jcr:content/metadata/predictedTags/.*", true)
+                .getBuilderTree().setProperty(FulltextIndexConstants.PROP_DYNAMIC_BOOST, true);
+        NodeState nodeState = builder.build();
+
+        ElasticIndexDefinition definition =
+            new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
+        CreateIndexRequest request = ElasticIndexHelper.createIndexRequest("prefix.path", definition);
+
+        Property dynamicBoostField = request.mappings().properties()
+                .get(ElasticIndexUtils.fieldName("predictedTagsDynamicBoost"));
+        assertThat(dynamicBoostField, notNullValue());
+        assertThat(dynamicBoostField._kind(), is(Property.Kind.Nested));
+
+        Property valueField = dynamicBoostField.nested().properties().get(ElasticIndexHelper.DYNAMIC_BOOST_NESTED_VALUE);
+        assertThat(valueField, notNullValue());
+        assertThat(valueField._kind(), is(Property.Kind.Text));
+        assertEquals(false, valueField.text().norms());
+    }
+
+    @Test
     public void multiRulesWithSamePropertyNames() {
         IndexDefinitionBuilder builder = new ElasticIndexDefinitionBuilder();
         IndexDefinitionBuilder.IndexRule indexRuleA = builder.indexRule("typeA");
