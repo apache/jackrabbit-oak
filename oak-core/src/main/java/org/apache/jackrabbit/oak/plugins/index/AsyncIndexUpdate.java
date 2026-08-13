@@ -117,6 +117,11 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
     private static final long DEFAULT_LIFETIME = TimeUnit.DAYS.toMillis(100);
 
+    // Lifetime for the checkpoint created by forceIndexLaneCatchup. Shorter than
+    // DEFAULT_LIFETIME so the checkpoint is released on its own if it is not removed
+    // explicitly.
+    private static final long FORCE_MODIFIED_CHECKPOINT_LIFETIME = TimeUnit.DAYS.toMillis(4);
+
     private static final CommitFailedException INTERRUPTED = new CommitFailedException(
             "Async", 1, "Indexing stopped forcefully");
 
@@ -1257,7 +1262,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 // Release lease for the paused lane
                 this.releaseLeaseForPausedLane();
                 log.info("Released lease for paused lane [{}]", name);
-                String newReferenceCheckpoint = store.checkpoint(lifetime, Map.of(
+                String newReferenceCheckpoint = store.checkpoint(FORCE_MODIFIED_CHECKPOINT_LIFETIME, Map.of(
                         "creator", AsyncIndexUpdate.class.getSimpleName(),
                         "created", now(),
                         "thread", Thread.currentThread().getName(),
