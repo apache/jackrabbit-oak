@@ -38,6 +38,7 @@ import java.util.Set;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toFloats;
 
@@ -228,15 +229,14 @@ public class ElasticDocument {
         }
         Map<String, Object> merged = new LinkedHashMap<>(properties);
         dynamicBoostGroups.forEach((fieldName, boostToValues) -> {
-            Set<Object> nestedDocs = new LinkedHashSet<>();
-            boostToValues.forEach((boost, values) -> nestedDocs.add(
-                    Map.of(
+            Set<Object> nestedDocs = boostToValues.entrySet().stream()
+                    .map(entry -> Map.of(
                             ElasticIndexHelper.DYNAMIC_BOOST_NESTED_VALUE,
-                            values.size() == 1 ? values.iterator().next() : values,
-                            ElasticIndexHelper.DYNAMIC_BOOST_NESTED_BOOST, boost
-                    )
-            ));
-            merged.put(fieldName, nestedDocs.size() == 1 ? nestedDocs.iterator().next() : nestedDocs);
+                            entry.getValue().size() == 1 ? entry.getValue().iterator().next() : entry.getValue(),
+                            ElasticIndexHelper.DYNAMIC_BOOST_NESTED_BOOST, entry.getKey()
+                    ))
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+            merged.put(fieldName, nestedDocs);
         });
         return merged;
     }

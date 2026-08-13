@@ -91,22 +91,6 @@ public class ElasticDocumentTest {
     }
 
     @Test
-    public void singleDynamicBoostGroupIsNotWrappedInCollection() {
-        ElasticDocument doc = new ElasticDocument("/test");
-        doc.addDynamicBoostField("predictedTagsDynamicBoost", "Replacement Cost", 1.0);
-        doc.addDynamicBoostField("predictedTagsDynamicBoost", "Theft", 1.0);
-
-        Object value = doc.getProperties().get("predictedTagsDynamicBoost");
-        assertTrue(value instanceof Map);
-        @SuppressWarnings("unchecked")
-        Map<String, Object> nestedDoc = (Map<String, Object>) value;
-        @SuppressWarnings("unchecked")
-        Collection<String> values = (Collection<String>) nestedDoc.get(ElasticIndexHelper.DYNAMIC_BOOST_NESTED_VALUE);
-        assertEquals(List.of("Replacement Cost", "Theft"), new ArrayList<>(values));
-        assertEquals(1.0, nestedDoc.get(ElasticIndexHelper.DYNAMIC_BOOST_NESTED_BOOST));
-    }
-
-    @Test
     public void ft_oak_12353_toggleShouldBeRemoved() {
         // Time-bombed: if this test fails, the feature toggle FT_OAK-12353 and its guard in
         // ElasticDocument#addDynamicBoostField/#getProperties should be removed — the grouping
