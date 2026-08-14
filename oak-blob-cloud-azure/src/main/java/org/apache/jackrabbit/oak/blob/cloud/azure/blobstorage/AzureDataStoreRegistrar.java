@@ -70,13 +70,13 @@ import java.util.Properties;
  * + AzureSDKConditionGate) that caused deadlocks during runtime OSGi service swap.
  */
 @Component(
-        name = AzureDataStoreWrapper.NAME,
-        configurationPid = AzureDataStoreWrapper.NAME,
+        name = AzureDataStoreRegistrar.NAME,
+        configurationPid = AzureDataStoreRegistrar.NAME,
         configurationPolicy = ConfigurationPolicy.REQUIRE
 )
-public class AzureDataStoreWrapper extends AbstractDataStoreService {
+public class AzureDataStoreRegistrar extends AbstractDataStoreService {
 
-    private static final Logger log = LoggerFactory.getLogger(AzureDataStoreWrapper.class);
+    private static final Logger log = LoggerFactory.getLogger(AzureDataStoreRegistrar.class);
 
     // Intentionally set to the legacy v8 PID rather than this class's own FQN.
     // Existing OSGi configurations reference the v8 PID, so reusing it here means

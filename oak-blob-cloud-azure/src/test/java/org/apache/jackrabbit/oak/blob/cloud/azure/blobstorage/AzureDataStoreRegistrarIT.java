@@ -45,7 +45,7 @@ import static org.junit.Assert.*;
  * wrapper instances pointing at the same Azure container. Upload staging is disabled
  * (stagingSplitPercentage=0) so addRecord() writes synchronously to Azurite.
  */
-public class AzureDataStoreWrapperIT {
+public class AzureDataStoreRegistrarIT {
 
     @ClassRule
     public static final AzuriteDockerRule AZURITE = new AzuriteDockerRule();
@@ -53,8 +53,8 @@ public class AzureDataStoreWrapperIT {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
-    private AzureDataStoreWrapper.DelegatingDataStore dsV8;
-    private AzureDataStoreWrapper.DelegatingDataStore dsV12;
+    private AzureDataStoreRegistrar.DelegatingDataStore dsV8;
+    private AzureDataStoreRegistrar.DelegatingDataStore dsV12;
     private String containerName;
 
     // Azure backend stores blobs under "{first4}-{rest}" keys; must match to find the right blob.
@@ -71,14 +71,14 @@ public class AzureDataStoreWrapperIT {
         AzureDataStore v8 = new AzureDataStore();
         v8.setProperties(props);
         v8.setStagingSplitPercentage(0);
-        AzureDataStoreWrapper wrapperV8 = new AzureDataStoreWrapper();
+        AzureDataStoreRegistrar wrapperV8 = new AzureDataStoreRegistrar();
         wrapperV8.activeImpl = v8;
         dsV8 = wrapperV8.new DelegatingDataStore();
         dsV8.init(folder.newFolder().getAbsolutePath());
 
-        AbstractSharedCachingDataStore v12 = AzureDataStoreWrapper.createV12Store(props);
+        AbstractSharedCachingDataStore v12 = AzureDataStoreRegistrar.createV12Store(props);
         v12.setStagingSplitPercentage(0);
-        AzureDataStoreWrapper wrapperV12 = new AzureDataStoreWrapper();
+        AzureDataStoreRegistrar wrapperV12 = new AzureDataStoreRegistrar();
         wrapperV12.activeImpl = v12;
         dsV12 = wrapperV12.new DelegatingDataStore();
         dsV12.init(folder.newFolder().getAbsolutePath());
@@ -229,7 +229,7 @@ public class AzureDataStoreWrapperIT {
 
         for (int i = 0; i < backends; i++) {
             futures.add(pool.submit(() -> {
-                AbstractSharedCachingDataStore v12 = AzureDataStoreWrapper.createV12Store(props);
+                AbstractSharedCachingDataStore v12 = AzureDataStoreRegistrar.createV12Store(props);
                 v12.setStagingSplitPercentage(0);
                 java.io.File home = folder.newFolder();
                 ready.countDown();

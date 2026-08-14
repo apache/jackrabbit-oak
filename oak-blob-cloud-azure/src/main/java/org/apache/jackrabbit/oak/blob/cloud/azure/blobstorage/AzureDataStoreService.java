@@ -23,10 +23,10 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 /**
  * Kept for binary compatibility with existing callers. Not an active OSGi component —
- * {@link AzureDataStoreWrapper} owns the {@code AzureDataStore} PID. Use
- * {@link AzureDataStoreWrapper} instead.
+ * {@link AzureDataStoreRegistrar} owns the {@code AzureDataStore} PID. Use
+ * {@link AzureDataStoreRegistrar} instead.
  *
- * @deprecated superseded by {@link AzureDataStoreWrapper}, which replaces the dual-service
+ * @deprecated superseded by {@link AzureDataStoreRegistrar}, which replaces the dual-service
  * (v8/v12) OSGi architecture with a single component that selects the SDK version at activation
  * time via JVM property, environment variable, or OSGi configuration; retained only for binary
  * compatibility.

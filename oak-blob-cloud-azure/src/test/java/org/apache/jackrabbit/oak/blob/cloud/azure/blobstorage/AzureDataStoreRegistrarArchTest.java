@@ -28,7 +28,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 @RunWith(ArchUnitRunner.class)
 @AnalyzeClasses(packages = "org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage")
-public class AzureDataStoreWrapperArchTest {
+public class AzureDataStoreRegistrarArchTest {
 
     // v8 classes must not reference v12 — except AzureDataStoreWrapper (the intentional bridge).
     // Test classes (ending in Test/IT) are excluded: test infrastructure routinely crosses
@@ -36,8 +36,8 @@ public class AzureDataStoreWrapperArchTest {
     @ArchTest
     static final ArchRule v8MustNotReferenceV12 = noClasses()
             .that().resideInAPackage("..azure.blobstorage")
-            .and().areNotAssignableTo(AzureDataStoreWrapper.class)
-            .and().areNotAssignableTo(AzureDataStoreWrapper.DelegatingDataStore.class)
+            .and().areNotAssignableTo(AzureDataStoreRegistrar.class)
+            .and().areNotAssignableTo(AzureDataStoreRegistrar.DelegatingDataStore.class)
             .and().haveSimpleNameNotEndingWith("Test")
             .and().haveSimpleNameNotEndingWith("IT")
             .should().dependOnClassesThat()

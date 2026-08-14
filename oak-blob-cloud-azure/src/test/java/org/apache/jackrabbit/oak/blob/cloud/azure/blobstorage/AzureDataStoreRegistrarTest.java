@@ -71,17 +71,17 @@ import static org.mockito.Mockito.withSettings;
  * These tests verify that delegation is transparent, flag resolution precedence is correct, and the
  * OSGi service registration uses the v8 PID so existing configs keep working without migration.
  */
-public class AzureDataStoreWrapperTest {
+public class AzureDataStoreRegistrarTest {
 
     // mockImpl implements both AbstractSharedCachingDataStore and ConfigurableDataRecordAccessProvider —
     // the same intersection both AzureDataStore (v8) and AzureDataStoreV12 satisfy at runtime.
     private AbstractSharedCachingDataStore mockImpl;
-    private AzureDataStoreWrapper wrapper;
+    private AzureDataStoreRegistrar wrapper;
 
     @After
     public void tearDown() {
-        System.clearProperty(AzureDataStoreWrapper.ENV_VAR_V12_ENABLED);
-        System.clearProperty(AzureDataStoreWrapper.JVM_PROPERTY_V12_ENABLED);
+        System.clearProperty(AzureDataStoreRegistrar.ENV_VAR_V12_ENABLED);
+        System.clearProperty(AzureDataStoreRegistrar.JVM_PROPERTY_V12_ENABLED);
     }
 
     @Before
@@ -89,7 +89,7 @@ public class AzureDataStoreWrapperTest {
         mockImpl = mock(
                 AbstractSharedCachingDataStore.class,
                 withSettings().extraInterfaces(ConfigurableDataRecordAccessProvider.class));
-        wrapper = new AzureDataStoreWrapper();
+        wrapper = new AzureDataStoreRegistrar();
         wrapper.activeImpl = mockImpl;
     }
 
@@ -122,7 +122,7 @@ public class AzureDataStoreWrapperTest {
      */
     @Test
     public void configSettersAppliedToActiveImpl() {
-        AzureDataStoreWrapper.DelegatingDataStore ds = wrapper.new DelegatingDataStore();
+        AzureDataStoreRegistrar.DelegatingDataStore ds = wrapper.new DelegatingDataStore();
         ds.setDirectUploadURIExpirySeconds(300);
         ds.setDirectDownloadURIExpirySeconds(600);
         ds.setDirectDownloadURICacheSize(100);
@@ -143,40 +143,40 @@ public class AzureDataStoreWrapperTest {
 
     @Test
     public void getUseV12Value_noSysProp_noConfig_returnsFalse() {
-        assertFalse(AzureDataStoreWrapper.getUseV12Value(Collections.emptyMap()));
+        assertFalse(AzureDataStoreRegistrar.getUseV12Value(Collections.emptyMap()));
     }
 
     @Test
     public void getUseV12Value_noSysProp_configTrue_returnsTrue() {
-        Map<String, Object> config = Collections.singletonMap(AzureDataStoreWrapper.ENV_VAR_V12_ENABLED, true);
-        assertTrue(AzureDataStoreWrapper.getUseV12Value(config));
+        Map<String, Object> config = Collections.singletonMap(AzureDataStoreRegistrar.ENV_VAR_V12_ENABLED, true);
+        assertTrue(AzureDataStoreRegistrar.getUseV12Value(config));
     }
 
     @Test
     public void getUseV12Value_noSysProp_configFalse_returnsFalse() {
-        Map<String, Object> config = Collections.singletonMap(AzureDataStoreWrapper.ENV_VAR_V12_ENABLED, false);
-        assertFalse(AzureDataStoreWrapper.getUseV12Value(config));
+        Map<String, Object> config = Collections.singletonMap(AzureDataStoreRegistrar.ENV_VAR_V12_ENABLED, false);
+        assertFalse(AzureDataStoreRegistrar.getUseV12Value(config));
     }
 
     @Test
     public void getUseV12Value_jvmPropTrue_overridesConfigFalse() {
-        System.setProperty(AzureDataStoreWrapper.JVM_PROPERTY_V12_ENABLED, "true");
-        Map<String, Object> config = Collections.singletonMap(AzureDataStoreWrapper.ENV_VAR_V12_ENABLED, false);
-        assertTrue(AzureDataStoreWrapper.getUseV12Value(config));
+        System.setProperty(AzureDataStoreRegistrar.JVM_PROPERTY_V12_ENABLED, "true");
+        Map<String, Object> config = Collections.singletonMap(AzureDataStoreRegistrar.ENV_VAR_V12_ENABLED, false);
+        assertTrue(AzureDataStoreRegistrar.getUseV12Value(config));
     }
 
     @Test
     public void getUseV12Value_jvmPropFalse_overridesConfigTrue() {
-        System.setProperty(AzureDataStoreWrapper.JVM_PROPERTY_V12_ENABLED, "false");
-        Map<String, Object> config = Collections.singletonMap(AzureDataStoreWrapper.ENV_VAR_V12_ENABLED, true);
-        assertFalse(AzureDataStoreWrapper.getUseV12Value(config));
+        System.setProperty(AzureDataStoreRegistrar.JVM_PROPERTY_V12_ENABLED, "false");
+        Map<String, Object> config = Collections.singletonMap(AzureDataStoreRegistrar.ENV_VAR_V12_ENABLED, true);
+        assertFalse(AzureDataStoreRegistrar.getUseV12Value(config));
     }
 
     @Test
     public void registerDataStoreService_registersUnderAbstractSharedCachingDataStoreClass() {
         ComponentContext ctx = mockComponentContext();
 
-        AzureDataStoreWrapper.registerDataStoreService(ctx, mockImpl);
+        AzureDataStoreRegistrar.registerDataStoreService(ctx, mockImpl);
 
         verify(ctx.getBundleContext()).registerService(
                 eq(AbstractSharedCachingDataStore.class), same(mockImpl), any());
@@ -192,7 +192,7 @@ public class AzureDataStoreWrapperTest {
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Dictionary<String, Object>> props = ArgumentCaptor.forClass(Dictionary.class);
-        AzureDataStoreWrapper.registerDataStoreService(ctx, mockImpl);
+        AzureDataStoreRegistrar.registerDataStoreService(ctx, mockImpl);
 
         verify(ctx.getBundleContext()).registerService(any(Class.class), any(AbstractSharedCachingDataStore.class), props.capture());
         assertEquals(AzureDataStore.class.getName(), props.getValue().get(Constants.SERVICE_PID));
@@ -204,7 +204,7 @@ public class AzureDataStoreWrapperTest {
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Dictionary<String, Object>> props = ArgumentCaptor.forClass(Dictionary.class);
-        AzureDataStoreWrapper.registerDataStoreService(ctx, mockImpl);
+        AzureDataStoreRegistrar.registerDataStoreService(ctx, mockImpl);
 
         verify(ctx.getBundleContext()).registerService(any(Class.class), any(AbstractSharedCachingDataStore.class), props.capture());
         assertArrayEquals(new String[]{"type=AzureBlob"},
@@ -218,7 +218,7 @@ public class AzureDataStoreWrapperTest {
         ServiceRegistration<?> reg = mock(ServiceRegistration.class);
         doReturn(reg).when(bundleContext).registerService(any(Class.class), any(AbstractSharedCachingDataStore.class), any());
 
-        ServiceRegistration<?> result = AzureDataStoreWrapper.registerDataStoreService(ctx, mockImpl);
+        ServiceRegistration<?> result = AzureDataStoreRegistrar.registerDataStoreService(ctx, mockImpl);
 
         assertSame(reg, result);
     }
@@ -341,14 +341,14 @@ public class AzureDataStoreWrapperTest {
 
     @Test
     public void createV8Store_returnsAzureDataStoreInstance() {
-        AbstractSharedCachingDataStore store = AzureDataStoreWrapper.createV8Store(new java.util.Properties());
+        AbstractSharedCachingDataStore store = AzureDataStoreRegistrar.createV8Store(new java.util.Properties());
         assertNotNull(store);
         assertTrue(store instanceof AzureDataStore);
     }
 
     @Test
     public void createV12Store_returnsAzureDataStoreV12Instance() {
-        AbstractSharedCachingDataStore store = AzureDataStoreWrapper.createV12Store(new java.util.Properties());
+        AbstractSharedCachingDataStore store = AzureDataStoreRegistrar.createV12Store(new java.util.Properties());
         assertNotNull(store);
         assertNotNull(store.getClass().getName());
         assertTrue(store.getClass().getName().contains("AzureDataStoreV12"));
@@ -506,7 +506,7 @@ public class AzureDataStoreWrapperTest {
      */
     @Test
     public void createDataStore_defaultFlag_createsV8Store() {
-        AzureDataStoreWrapper w = new AzureDataStoreWrapper();
+        AzureDataStoreRegistrar w = new AzureDataStoreRegistrar();
         w.setStatisticsProvider(mock(org.apache.jackrabbit.oak.stats.StatisticsProvider.class));
         ComponentContext ctx = mockComponentContext();
 
@@ -521,8 +521,8 @@ public class AzureDataStoreWrapperTest {
      */
     @Test
     public void createDataStore_v12Flag_createsV12Store() {
-        System.setProperty(AzureDataStoreWrapper.JVM_PROPERTY_V12_ENABLED, "true");
-        AzureDataStoreWrapper w = new AzureDataStoreWrapper();
+        System.setProperty(AzureDataStoreRegistrar.JVM_PROPERTY_V12_ENABLED, "true");
+        AzureDataStoreRegistrar w = new AzureDataStoreRegistrar();
         w.setStatisticsProvider(mock(org.apache.jackrabbit.oak.stats.StatisticsProvider.class));
         ComponentContext ctx = mockComponentContext();
 
@@ -539,7 +539,7 @@ public class AzureDataStoreWrapperTest {
                 AbstractSharedCachingDataStore.class,
                 withSettings().extraInterfaces(ConfigurableDataRecordAccessProvider.class));
 
-        AzureDataStoreWrapper wrapperB = new AzureDataStoreWrapper();
+        AzureDataStoreRegistrar wrapperB = new AzureDataStoreRegistrar();
         wrapperB.activeImpl = mockImplB;
 
         DataRecord recA = mock(DataRecord.class, "recA");
