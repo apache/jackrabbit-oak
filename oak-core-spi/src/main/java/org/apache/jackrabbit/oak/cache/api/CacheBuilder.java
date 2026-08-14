@@ -19,10 +19,12 @@ package org.apache.jackrabbit.oak.cache.api;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 
+import org.apache.jackrabbit.oak.cache.impl.CacheMaintenanceExecutor;
 import org.apache.jackrabbit.oak.cache.impl.caffeine.CaffeineCacheAdapter;
 import org.apache.jackrabbit.oak.cache.impl.caffeine.CaffeineLoadingCacheAdapter;
 import org.jetbrains.annotations.NotNull;
@@ -43,6 +45,23 @@ import org.jetbrains.annotations.NotNull;
  * @param <V> the type of cache values
  */
 public final class CacheBuilder<K, V> {
+
+    /**
+     * Feature toggle name for {@link #FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED}.
+     */
+    public static final String FT_OAK_12290 = "FT_OAK-12290";
+
+    /**
+     * Whether Caffeine runs cache maintenance on Oak's maintenance executor instead of the
+     * calling thread. Defaults to {@code true}. Read when a cache is built, so flipping it only
+     * affects caches built afterwards. Ignored by caches with {@link #refreshAfterWrite(Duration)},
+     * which always run their reload asynchronously on Oak's maintenance executor - regardless of
+     * this toggle - since a synchronous reload would block every caller on the loader's work (e.g.
+     * a remote call). Also ignored by zero-capacity caches (see {@link #maximumWeight(long)},
+     * {@link #maximumSize(long)}), which are a "disable caching" idiom that depends on eviction
+     * being immediate and therefore always run inline.
+     */
+    public static final AtomicBoolean FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED = new AtomicBoolean(true);
 
     private long maximumWeight = -1;
     private long maximumSize = -1;
@@ -74,6 +93,12 @@ public final class CacheBuilder<K, V> {
      * Sets the maximum total weight of entries the cache may hold.
      * Must be used together with {@link #weigher(Weigher)} and may not be
      * combined with {@link #maximumSize(long)}.
+     *
+     * <p>As with {@link #maximumSize(long)}, a positive bound is enforced asynchronously - a read
+     * that immediately follows the write which exceeded the weight may still see the entry. Call
+     * {@link Cache#cleanUp()} to force pending maintenance. A weight of {@code 0} is handled
+     * synchronously, since it is used as a "disable caching" idiom that requires immediate
+     * eviction.</p>
      *
      * @param maximumWeight the maximum weight (must be non-negative)
      * @return this builder
@@ -107,6 +132,11 @@ public final class CacheBuilder<K, V> {
     /**
      * Sets the maximum number of entries the cache may hold.
      * May not be combined with {@link #maximumWeight(long)}.
+     *
+     * <p>A positive bound is enforced asynchronously - a read that immediately follows the write
+     * which exceeded it may still see the entry. Call {@link Cache#cleanUp()} to force pending
+     * maintenance. A size of {@code 0} is handled synchronously, since it is used as a
+     * "disable caching" idiom that requires immediate eviction.</p>
      *
      * @param maximumSize the maximum entry count (must be non-negative)
      * @return this builder
@@ -255,11 +285,19 @@ public final class CacheBuilder<K, V> {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private Caffeine<K, V> configureCaffeineBuilder() {
         Caffeine caffeineBuilder = Caffeine.newBuilder();
-        if (refreshAfterWrite == null) {
-            // Caffeine uses one executor for both maintenance and refresh work.
-            // Run maintenance on the caller thread unless refresh must stay asynchronous.
-            caffeineBuilder = caffeineBuilder.executor(Runnable::run);
-        }
+        // Caffeine uses one executor for both maintenance and refresh. A refresh loader may make a
+        // remote call; running it inSameThread would block every caller thread that triggers a refresh on
+        // that call, which defeats the point of refreshAfterWrite (return the stale value, reload in
+        // the background). So refreshing caches always run on Oak's maintenance executor, regardless
+        // of the toggle - the tradeoff is that a slow reload can occupy one of the pool's threads for
+        // longer, which is preferable to blocking callers. Zero-capacity caches are a "disable
+        // caching" idiom relied upon elsewhere for immediate eviction, so they always run inSameThread -
+        // otherwise a read immediately following a write could still observe the entry before
+        // background maintenance evicts it.
+        boolean zeroCapacity = maximumWeight == 0 || maximumSize == 0;
+        boolean inSameThread = zeroCapacity
+                || (refreshAfterWrite == null && !FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.get());
+        caffeineBuilder = caffeineBuilder.executor(inSameThread ? Runnable::run : CacheMaintenanceExecutor.get());
         if (initialCapacity >= 0) {
             caffeineBuilder = caffeineBuilder.initialCapacity(initialCapacity);
         }
@@ -277,6 +315,9 @@ public final class CacheBuilder<K, V> {
         }
         if (evictionListener != null) {
             EvictionListener<? super K, ? super V> listener = evictionListener;
+            // Caffeine's evictionListener runs inSameThread while holding an internal lock; Oak listeners
+            // do real work (e.g. persistent-cache writes) that must not run there. removalListener
+            // runs on the maintenance executor instead.
             caffeineBuilder = caffeineBuilder.removalListener(
                     (k, v, cause) -> listener.onEviction((K) k, (V) v, CaffeineCacheAdapter.toOakCause(cause)));
         }

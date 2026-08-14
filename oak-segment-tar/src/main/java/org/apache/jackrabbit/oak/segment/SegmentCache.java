@@ -164,14 +164,16 @@ public abstract class SegmentCache {
         }
 
         /**
-         * Removal handler called whenever an item is evicted from the cache.
+         * Removal handler called whenever an item is evicted from the cache. Runs asynchronously
+         * (see {@link CacheBuilder}), so it uses {@link SegmentId#compareAndUnload(Segment)} to avoid
+         * clobbering a fresher, concurrently loaded segment.
          */
         private void onRemove(@NotNull SegmentId key, Segment value, @NotNull EvictionCause cause) {
             stats.evictionCount.incrementAndGet();
             if (value != null) {
                 stats.currentWeight.addAndGet(-segmentWeight(value));
+                key.compareAndUnload(value);
             }
-            key.unloaded();
         }
 
         @Override
@@ -232,6 +234,9 @@ public abstract class SegmentCache {
         @Override
         public void clear() {
             cache.invalidateAll();
+            // Best-effort: cleanUp() doesn't wait for async removal callbacks, so some segments may
+            // stay reachable briefly, limiting what the following System.gc() hint reclaims.
+            cache.cleanUp();
         }
 
         @Override

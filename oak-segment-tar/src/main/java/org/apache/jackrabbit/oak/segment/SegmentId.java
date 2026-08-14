@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.segment;
 import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 import static org.apache.jackrabbit.oak.segment.SegmentStore.EMPTY_STORE;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -45,6 +47,16 @@ public class SegmentId implements Comparable<SegmentId> {
 
     /** Logger instance */
     private static final Logger log = LoggerFactory.getLogger(SegmentId.class);
+
+    /** Handle for the compare-and-clear used by {@link #compareAndUnload(Segment)}. */
+    private static final VarHandle SEGMENT;
+    static {
+        try {
+            SEGMENT = MethodHandles.lookup().findVarHandle(SegmentId.class, "segment", Segment.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
+        }
+    }
 
     /**
      * Checks whether this is a data segment identifier.
@@ -219,6 +231,19 @@ public class SegmentId implements Comparable<SegmentId> {
      */
     void unloaded() {
         this.segment = null;
+    }
+
+    /**
+     * Like {@link #unloaded()}, but only clears the memoised segment if it is still
+     * {@code expected}. Use this for asynchronous removal notifications, where {@code expected}
+     * may already have been superseded by a concurrent {@link #loaded(Segment)}.
+     *
+     * @param expected the segment that was removed; the field is left untouched if it no longer
+     *                 holds this value
+     * @return {@code true} if {@code expected} was still memoised and has now been cleared
+     */
+    boolean compareAndUnload(@NotNull Segment expected) {
+        return SEGMENT.compareAndSet(this, expected, null);
     }
 
     /**
