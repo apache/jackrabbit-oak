@@ -18,11 +18,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
 import javax.jcr.PropertyType;
+
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
@@ -607,6 +612,47 @@ public class LuceneIndexDefinitionTest {
                 .setProperty(FulltextIndexConstants.ANL_NAME, "whitespace");
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.getNodeState(), "/foo");
         assertEquals(TokenizerChain.class.getName(), defn.getAnalyzer().getClass().getName());
+    }
+
+    @Test
+    public void perFieldAnalyzerAppliesToDeclaredProperty() throws Exception {
+        NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "lucene", Set.of(TYPENAME_STRING));
+
+        //Set this to -1 to avoid wrapping by LimitAnalyzer
+        defnb.setProperty(FulltextIndexConstants.MAX_FIELD_LENGTH, -1);
+
+        //Custom analyzer: whitespace tokenizer only, no lowercasing (unlike the
+        //default OakAnalyzer) - same technique the existing customAnalyzer test uses.
+        defnb.child(ANALYZERS).child("frenchText")
+                .child(FulltextIndexConstants.ANL_TOKENIZER)
+                .setProperty(FulltextIndexConstants.ANL_NAME, "whitespace");
+
+        NodeBuilder rules = defnb.child(INDEX_RULES);
+        TestUtil.child(rules, "nt:base/properties/title")
+                .setProperty(PROP_NAME, "title")
+                .setProperty(FulltextIndexConstants.PROP_ANALYZED, true)
+                .setProperty(FulltextIndexConstants.PROP_ANALYZER, "frenchText");
+        TestUtil.child(rules, "nt:base/properties/body")
+                .setProperty(PROP_NAME, "body")
+                .setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
+
+        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.getNodeState(), "/foo");
+        Analyzer analyzer = defn.getAnalyzer();
+
+        assertEquals("Custom analyzer for 'title' must not lower-case",
+                "Hello", firstToken(analyzer, "full:title", "Hello World"));
+        assertEquals("Property 'body' without an analyzer override keeps the default (lower-cased) analyzer",
+                "hello", firstToken(analyzer, "full:body", "Hello World"));
+    }
+
+    private static String firstToken(Analyzer analyzer, String field, String text) throws IOException {
+        try (TokenStream ts = analyzer.tokenStream(field, text)) {
+            CharTermAttribute term = ts.addAttribute(CharTermAttribute.class);
+            ts.reset();
+            assertTrue(ts.incrementToken());
+            return term.toString();
+        }
     }
 
     @Test
