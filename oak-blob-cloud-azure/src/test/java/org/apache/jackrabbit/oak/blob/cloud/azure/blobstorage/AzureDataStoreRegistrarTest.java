@@ -1,0 +1,560 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
+
+import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
+import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
+import org.apache.jackrabbit.oak.spi.blob.data.MultiDataStoreAware;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
+import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
+import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
+import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.Constants;
+import org.osgi.framework.ServiceRegistration;
+import org.osgi.service.component.ComponentContext;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.File;
+import java.net.URI;
+import java.util.Collections;
+import java.util.Dictionary;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
+
+/**
+ * Unit tests for AzureDataStoreWrapper — delegation, v12 feature-flag detection, and OSGi service registration.
+ * <p>
+ * AzureDataStoreWrapper is the OSGi component that selects between the v8 and v12 blob-store backend
+ * at runtime based on config/JVM flags and exposes a single DataStore service to the rest of the system.
+ * These tests verify that delegation is transparent, flag resolution precedence is correct, and the
+ * OSGi service registration uses the v8 PID so existing configs keep working without migration.
+ */
+public class AzureDataStoreRegistrarTest {
+
+    // mockImpl implements both AbstractSharedCachingDataStore and ConfigurableDataRecordAccessProvider —
+    // the same intersection both AzureDataStore (v8) and AzureDataStoreV12 satisfy at runtime.
+    private AbstractSharedCachingDataStore mockImpl;
+    private AzureDataStoreRegistrar wrapper;
+
+    @After
+    public void tearDown() {
+        System.clearProperty(AzureDataStoreRegistrar.ENV_VAR_V12_ENABLED);
+        System.clearProperty(AzureDataStoreRegistrar.JVM_PROPERTY_V12_ENABLED);
+    }
+
+    @Before
+    public void setUp() {
+        mockImpl = mock(
+                AbstractSharedCachingDataStore.class,
+                withSettings().extraInterfaces(ConfigurableDataRecordAccessProvider.class));
+        wrapper = new AzureDataStoreRegistrar();
+        wrapper.activeImpl = mockImpl;
+    }
+
+    @Test
+    public void addRecordDelegatesToActiveImpl() throws DataStoreException {
+        DataRecord dataRecord = mock(DataRecord.class);
+        when(mockImpl.addRecord(any())).thenReturn(dataRecord);
+
+        DataRecord result = wrapper.new DelegatingDataStore()
+                .addRecord(new ByteArrayInputStream(new byte[]{1}));
+
+        assertSame(dataRecord, result);
+        verify(mockImpl).addRecord(any());
+    }
+
+    @Test
+    public void getRecordDelegatesToActiveImpl() throws DataStoreException {
+        DataRecord dataRecord = mock(DataRecord.class);
+        when(mockImpl.getRecord(any())).thenReturn(dataRecord);
+
+        DataRecord result = wrapper.new DelegatingDataStore()
+                .getRecord(mock(org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier.class));
+
+        assertSame(dataRecord, result);
+        verify(mockImpl).getRecord(any());
+    }
+
+    /**
+     * Config setters on DelegatingDataStore must forward to activeImpl — buffering them in the wrapper would silently have no effect on the active backend.
+     */
+    @Test
+    public void configSettersAppliedToActiveImpl() {
+        AzureDataStoreRegistrar.DelegatingDataStore ds = wrapper.new DelegatingDataStore();
+        ds.setDirectUploadURIExpirySeconds(300);
+        ds.setDirectDownloadURIExpirySeconds(600);
+        ds.setDirectDownloadURICacheSize(100);
+        ds.setBinaryTransferAccelerationEnabled(true);
+
+        ConfigurableDataRecordAccessProvider provider = (ConfigurableDataRecordAccessProvider) mockImpl;
+        verify(provider).setDirectUploadURIExpirySeconds(300);
+        verify(provider).setDirectDownloadURIExpirySeconds(600);
+        verify(provider).setDirectDownloadURICacheSize(100);
+        verify(provider).setBinaryTransferAccelerationEnabled(true);
+    }
+
+    @Test
+    public void closeClosesActiveImpl() throws DataStoreException {
+        wrapper.new DelegatingDataStore().close();
+        verify(mockImpl).close();
+    }
+
+    @Test
+    public void getUseV12Value_noSysProp_noConfig_returnsFalse() {
+        assertFalse(AzureDataStoreRegistrar.getUseV12Value(Collections.emptyMap()));
+    }
+
+    @Test
+    public void getUseV12Value_noSysProp_configTrue_returnsTrue() {
+        Map<String, Object> config = Collections.singletonMap(AzureDataStoreRegistrar.ENV_VAR_V12_ENABLED, true);
+        assertTrue(AzureDataStoreRegistrar.getUseV12Value(config));
+    }
+
+    @Test
+    public void getUseV12Value_noSysProp_configFalse_returnsFalse() {
+        Map<String, Object> config = Collections.singletonMap(AzureDataStoreRegistrar.ENV_VAR_V12_ENABLED, false);
+        assertFalse(AzureDataStoreRegistrar.getUseV12Value(config));
+    }
+
+    @Test
+    public void getUseV12Value_jvmPropTrue_overridesConfigFalse() {
+        System.setProperty(AzureDataStoreRegistrar.JVM_PROPERTY_V12_ENABLED, "true");
+        Map<String, Object> config = Collections.singletonMap(AzureDataStoreRegistrar.ENV_VAR_V12_ENABLED, false);
+        assertTrue(AzureDataStoreRegistrar.getUseV12Value(config));
+    }
+
+    @Test
+    public void getUseV12Value_jvmPropFalse_overridesConfigTrue() {
+        System.setProperty(AzureDataStoreRegistrar.JVM_PROPERTY_V12_ENABLED, "false");
+        Map<String, Object> config = Collections.singletonMap(AzureDataStoreRegistrar.ENV_VAR_V12_ENABLED, true);
+        assertFalse(AzureDataStoreRegistrar.getUseV12Value(config));
+    }
+
+    @Test
+    public void registerDataStoreService_registersUnderAbstractSharedCachingDataStoreClass() {
+        ComponentContext ctx = mockComponentContext();
+
+        AzureDataStoreRegistrar.registerDataStoreService(ctx, mockImpl);
+
+        verify(ctx.getBundleContext()).registerService(
+                eq(AbstractSharedCachingDataStore.class), same(mockImpl), any());
+    }
+
+    /**
+     * The registered service PID must match AzureDataStore (v8) — OSGi configs in existing AEM
+     * installations target that PID, so changing it would orphan those configs on upgrade.
+     */
+    @Test
+    public void registerDataStoreService_usesV8PidForCompatibility() {
+        ComponentContext ctx = mockComponentContext();
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Dictionary<String, Object>> props = ArgumentCaptor.forClass(Dictionary.class);
+        AzureDataStoreRegistrar.registerDataStoreService(ctx, mockImpl);
+
+        verify(ctx.getBundleContext()).registerService(any(Class.class), any(AbstractSharedCachingDataStore.class), props.capture());
+        assertEquals(AzureDataStore.class.getName(), props.getValue().get(Constants.SERVICE_PID));
+    }
+
+    @Test
+    public void registerDataStoreService_setsAzureBlobDescription() {
+        ComponentContext ctx = mockComponentContext();
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Dictionary<String, Object>> props = ArgumentCaptor.forClass(Dictionary.class);
+        AzureDataStoreRegistrar.registerDataStoreService(ctx, mockImpl);
+
+        verify(ctx.getBundleContext()).registerService(any(Class.class), any(AbstractSharedCachingDataStore.class), props.capture());
+        assertArrayEquals(new String[]{"type=AzureBlob"},
+                (String[]) props.getValue().get("oak.datastore.description"));
+    }
+
+    @Test
+    public void registerDataStoreService_returnsRegistrationFromBundleContext() {
+        ComponentContext ctx = mockComponentContext();
+        BundleContext bundleContext = ctx.getBundleContext();
+        ServiceRegistration<?> reg = mock(ServiceRegistration.class);
+        doReturn(reg).when(bundleContext).registerService(any(Class.class), any(AbstractSharedCachingDataStore.class), any());
+
+        ServiceRegistration<?> result = AzureDataStoreRegistrar.registerDataStoreService(ctx, mockImpl);
+
+        assertSame(reg, result);
+    }
+
+    @SuppressWarnings("unchecked")
+    private ComponentContext mockComponentContext() {
+        BundleContext bundleContext = mock(BundleContext.class);
+        ComponentContext ctx = mock(ComponentContext.class);
+        when(ctx.getBundleContext()).thenReturn(bundleContext);
+        // registerService must be pre-stubbed; without this, Mockito returns null and
+        // registerService() NPEs before the test can capture its arguments.
+        doReturn(mock(ServiceRegistration.class)).when(bundleContext).registerService(any(Class.class), any(AbstractSharedCachingDataStore.class), any());
+        return ctx;
+    }
+
+    @Test
+    public void getRecordIfStoredDelegatesToActiveImpl() throws DataStoreException {
+        DataRecord dataRecord = mock(DataRecord.class);
+        when(mockImpl.getRecordIfStored(any())).thenReturn(dataRecord);
+
+        DataRecord result = wrapper.new DelegatingDataStore()
+                .getRecordIfStored(mock(DataIdentifier.class));
+
+        assertSame(dataRecord, result);
+        verify(mockImpl).getRecordIfStored(any());
+    }
+
+    @Test
+    public void getRecordFromReferenceDelegatesToActiveImpl() throws DataStoreException {
+        DataRecord dataRecord = mock(DataRecord.class);
+        when(mockImpl.getRecordFromReference("ref123")).thenReturn(dataRecord);
+
+        DataRecord result = wrapper.new DelegatingDataStore().getRecordFromReference("ref123");
+
+        assertSame(dataRecord, result);
+        verify(mockImpl).getRecordFromReference("ref123");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void getAllIdentifiersDelegatesToActiveImpl() throws DataStoreException {
+        Iterator<DataIdentifier> iter = mock(Iterator.class);
+        when(mockImpl.getAllIdentifiers()).thenReturn(iter);
+
+        Iterator<DataIdentifier> result = wrapper.new DelegatingDataStore().getAllIdentifiers();
+
+        assertSame(iter, result);
+        verify(mockImpl).getAllIdentifiers();
+    }
+
+    @Test
+    public void updateModifiedDateOnAccessDelegatesToActiveImpl() {
+        wrapper.new DelegatingDataStore().updateModifiedDateOnAccess(12345L);
+        verify(mockImpl).updateModifiedDateOnAccess(12345L);
+    }
+
+    @Test
+    public void deleteAllOlderThanDelegatesToActiveImpl() throws DataStoreException {
+        when(mockImpl.deleteAllOlderThan(99999L)).thenReturn(3);
+
+        int result = wrapper.new DelegatingDataStore().deleteAllOlderThan(99999L);
+
+        assertEquals(3, result);
+        verify(mockImpl).deleteAllOlderThan(99999L);
+    }
+
+    @Test
+    public void clearInUseDelegatesToActiveImpl() {
+        wrapper.new DelegatingDataStore().clearInUse();
+        verify(mockImpl).clearInUse();
+    }
+
+    @Test
+    public void getMinRecordLengthDelegatesToActiveImpl() {
+        when(mockImpl.getMinRecordLength()).thenReturn(4096);
+
+        int result = wrapper.new DelegatingDataStore().getMinRecordLength();
+
+        assertEquals(4096, result);
+        verify(mockImpl).getMinRecordLength();
+    }
+
+    @Test
+    public void initiateDataRecordUploadDelegatesToActiveImpl() throws DataRecordUploadException {
+        DataRecordUpload upload = mock(DataRecordUpload.class);
+        ConfigurableDataRecordAccessProvider provider = (ConfigurableDataRecordAccessProvider) mockImpl;
+        when(provider.initiateDataRecordUpload(1024L, 5)).thenReturn(upload);
+
+        DataRecordUpload result = wrapper.new DelegatingDataStore().initiateDataRecordUpload(1024L, 5);
+
+        assertSame(upload, result);
+        verify(provider).initiateDataRecordUpload(1024L, 5);
+    }
+
+    @Test
+    public void completeDataRecordUploadDelegatesToActiveImpl() throws Exception {
+        DataRecord dataRecord = mock(DataRecord.class);
+        ConfigurableDataRecordAccessProvider provider = (ConfigurableDataRecordAccessProvider) mockImpl;
+        when(provider.completeDataRecordUpload("token123")).thenReturn(dataRecord);
+
+        DataRecord result = wrapper.new DelegatingDataStore().completeDataRecordUpload("token123");
+
+        assertSame(dataRecord, result);
+        verify(provider).completeDataRecordUpload("token123");
+    }
+
+    @Test
+    public void getDownloadURIDelegatesToActiveImpl() {
+        URI uri = URI.create("https://example.com/blob");
+        ConfigurableDataRecordAccessProvider provider = (ConfigurableDataRecordAccessProvider) mockImpl;
+        DataIdentifier id = mock(DataIdentifier.class);
+        when(provider.getDownloadURI(same(id), any())).thenReturn(uri);
+
+        URI result = wrapper.new DelegatingDataStore()
+                .getDownloadURI(id, DataRecordDownloadOptions.DEFAULT);
+
+        assertEquals(uri, result);
+        verify(provider).getDownloadURI(same(id), any());
+    }
+
+    @Test
+    public void createV8Store_returnsAzureDataStoreInstance() {
+        AbstractSharedCachingDataStore store = AzureDataStoreRegistrar.createV8Store(new java.util.Properties());
+        assertNotNull(store);
+        assertTrue(store instanceof AzureDataStore);
+    }
+
+    @Test
+    public void createV12Store_returnsAzureDataStoreV12Instance() {
+        AbstractSharedCachingDataStore store = AzureDataStoreRegistrar.createV12Store(new java.util.Properties());
+        assertNotNull(store);
+        assertNotNull(store.getClass().getName());
+        assertTrue(store.getClass().getName().contains("AzureDataStoreV12"));
+    }
+
+    @Test
+    public void initDelegatesToActiveImpl() throws DataStoreException {
+        wrapper.new DelegatingDataStore().init("/home/dir");
+        verify(mockImpl).init("/home/dir");
+    }
+
+    @Test
+    public void initiateDataRecordUpload_threeArg_delegatesToActiveImpl() throws DataRecordUploadException {
+        DataRecordUpload upload = mock(DataRecordUpload.class);
+        ConfigurableDataRecordAccessProvider provider = (ConfigurableDataRecordAccessProvider) mockImpl;
+        org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions options =
+                org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions.DEFAULT;
+        when(provider.initiateDataRecordUpload(2048L, 7, options)).thenReturn(upload);
+
+        DataRecordUpload result = wrapper.new DelegatingDataStore().initiateDataRecordUpload(2048L, 7, options);
+
+        assertSame(upload, result);
+        verify(provider).initiateDataRecordUpload(2048L, 7, options);
+    }
+
+    @Test
+    public void getDescription_returnsAzureBlobType() {
+        String[] desc = wrapper.getDescription();
+        assertEquals(2, desc.length);
+        assertEquals("type=AzureBlob", desc[0]);
+        assertTrue(desc[1].startsWith("sdkVersion="));
+    }
+
+    // -- SharedDataStore delegation --
+
+    @Test
+    public void addMetadataRecordStreamDelegatesToActiveImpl() throws Exception {
+        wrapper.new DelegatingDataStore().addMetadataRecord(new ByteArrayInputStream(new byte[0]), "rec");
+        verify((SharedDataStore) mockImpl).addMetadataRecord(any(InputStream.class), eq("rec"));
+    }
+
+    @Test
+    public void addMetadataRecordFileDelegatesToActiveImpl() throws Exception {
+        File f = mock(File.class);
+        wrapper.new DelegatingDataStore().addMetadataRecord(f, "rec");
+        verify((SharedDataStore) mockImpl).addMetadataRecord(same(f), eq("rec"));
+    }
+
+    @Test
+    public void getMetadataRecordDelegatesToActiveImpl() {
+        DataRecord rec = mock(DataRecord.class);
+        when(((SharedDataStore) mockImpl).getMetadataRecord("rec")).thenReturn(rec);
+        assertSame(rec, wrapper.new DelegatingDataStore().getMetadataRecord("rec"));
+    }
+
+    @Test
+    public void metadataRecordExistsDelegatesToActiveImpl() {
+        when(((SharedDataStore) mockImpl).metadataRecordExists("rec")).thenReturn(true);
+        assertTrue(wrapper.new DelegatingDataStore().metadataRecordExists("rec"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void getAllMetadataRecordsDelegatesToActiveImpl() {
+        List<DataRecord> list = mock(List.class);
+        when(((SharedDataStore) mockImpl).getAllMetadataRecords("prefix")).thenReturn(list);
+        assertSame(list, wrapper.new DelegatingDataStore().getAllMetadataRecords("prefix"));
+    }
+
+    @Test
+    public void deleteMetadataRecordDelegatesToActiveImpl() {
+        when(((SharedDataStore) mockImpl).deleteMetadataRecord("rec")).thenReturn(true);
+        assertTrue(wrapper.new DelegatingDataStore().deleteMetadataRecord("rec"));
+    }
+
+    @Test
+    public void deleteAllMetadataRecordsDelegatesToActiveImpl() {
+        wrapper.new DelegatingDataStore().deleteAllMetadataRecords("prefix");
+        verify((SharedDataStore) mockImpl).deleteAllMetadataRecords("prefix");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void getAllRecordsDelegatesToActiveImpl() throws DataStoreException {
+        Iterator<DataRecord> iter = mock(Iterator.class);
+        when(((SharedDataStore) mockImpl).getAllRecords()).thenReturn(iter);
+        assertSame(iter, wrapper.new DelegatingDataStore().getAllRecords());
+    }
+
+    @Test
+    public void getRecordForIdDelegatesToActiveImpl() throws DataStoreException {
+        DataIdentifier id = new DataIdentifier("abc");
+        DataRecord rec = mock(DataRecord.class);
+        when(((SharedDataStore) mockImpl).getRecordForId(id)).thenReturn(rec);
+        assertSame(rec, wrapper.new DelegatingDataStore().getRecordForId(id));
+    }
+
+    @Test
+    public void getTypeDelegatesToActiveImpl() {
+        when(((SharedDataStore) mockImpl).getType()).thenReturn(SharedDataStore.Type.SHARED);
+        assertEquals(SharedDataStore.Type.SHARED, wrapper.new DelegatingDataStore().getType());
+    }
+
+    // -- MultiDataStoreAware delegation --
+
+    @Test
+    public void deleteRecordDelegatesToActiveImpl() throws DataStoreException {
+        DataIdentifier id = new DataIdentifier("abc");
+        wrapper.new DelegatingDataStore().deleteRecord(id);
+        verify((MultiDataStoreAware) mockImpl).deleteRecord(id);
+    }
+
+    // -- TypedDataStore delegation --
+
+    @Test
+    public void addRecordWithOptionsDelegatesToActiveImpl() throws DataStoreException {
+        DataRecord rec = mock(DataRecord.class);
+        BlobOptions opts = new BlobOptions();
+        when(mockImpl.addRecord(any(), same(opts))).thenReturn(rec);
+        assertSame(rec, wrapper.new DelegatingDataStore().addRecord(new ByteArrayInputStream(new byte[0]), opts));
+        verify(mockImpl).addRecord(any(), same(opts));
+    }
+
+    // -- Cache-layer setters (H2: PropertiesUtil.populate must reach activeImpl) --
+
+    @Test
+    public void setPathForwardsToActiveImpl() {
+        wrapper.new DelegatingDataStore().setPath("/var/data/blobstore");
+        verify(mockImpl).setPath("/var/data/blobstore");
+    }
+
+    @Test
+    public void setCacheSizeForwardsToActiveImpl() {
+        wrapper.new DelegatingDataStore().setCacheSize(10L * 1024 * 1024 * 1024);
+        verify(mockImpl).setCacheSize(10L * 1024 * 1024 * 1024);
+    }
+
+    @Test
+    public void setUploadThreadsForwardsToActiveImpl() {
+        wrapper.new DelegatingDataStore().setUploadThreads(4);
+        verify(mockImpl).setUploadThreads(4);
+    }
+
+    @Test
+    public void statisticsProvider_getterReturnsInjectedValue() {
+        org.apache.jackrabbit.oak.stats.StatisticsProvider stats =
+                mock(org.apache.jackrabbit.oak.stats.StatisticsProvider.class);
+        wrapper.setStatisticsProvider(stats);
+        assertSame(stats, wrapper.getStatisticsProvider());
+    }
+
+    /**
+     * Default config (no v12 flag) must build the v8 store and return a working DelegatingDataStore
+     * registered under the v8 PID.
+     */
+    @Test
+    public void createDataStore_defaultFlag_createsV8Store() {
+        AzureDataStoreRegistrar w = new AzureDataStoreRegistrar();
+        w.setStatisticsProvider(mock(org.apache.jackrabbit.oak.stats.StatisticsProvider.class));
+        ComponentContext ctx = mockComponentContext();
+
+        org.apache.jackrabbit.oak.spi.blob.data.DataStore ds = w.createDataStore(ctx, new java.util.HashMap<>());
+
+        assertNotNull(ds);
+        assertTrue(w.activeImpl instanceof AzureDataStore);
+    }
+
+    /**
+     * v12 JVM flag must build the v12 store. Confirms the flag actually switches implementations.
+     */
+    @Test
+    public void createDataStore_v12Flag_createsV12Store() {
+        System.setProperty(AzureDataStoreRegistrar.JVM_PROPERTY_V12_ENABLED, "true");
+        AzureDataStoreRegistrar w = new AzureDataStoreRegistrar();
+        w.setStatisticsProvider(mock(org.apache.jackrabbit.oak.stats.StatisticsProvider.class));
+        ComponentContext ctx = mockComponentContext();
+
+        org.apache.jackrabbit.oak.spi.blob.data.DataStore ds = w.createDataStore(ctx, new java.util.HashMap<>());
+
+        assertNotNull(ds);
+        assertTrue(w.activeImpl.getClass().getName().contains("AzureDataStoreV12"));
+    }
+
+    // Guards against activeImpl accidentally becoming static; each wrapper must own its impl.
+    @Test
+    public void instancesHaveIndependentActiveImpl() throws DataStoreException {
+        AbstractSharedCachingDataStore mockImplB = mock(
+                AbstractSharedCachingDataStore.class,
+                withSettings().extraInterfaces(ConfigurableDataRecordAccessProvider.class));
+
+        AzureDataStoreRegistrar wrapperB = new AzureDataStoreRegistrar();
+        wrapperB.activeImpl = mockImplB;
+
+        DataRecord recA = mock(DataRecord.class, "recA");
+        DataRecord recB = mock(DataRecord.class, "recB");
+        when(mockImpl.addRecord(any())).thenReturn(recA);
+        when(mockImplB.addRecord(any())).thenReturn(recB);
+
+        DataRecord resultA = wrapper.new DelegatingDataStore()
+                .addRecord(new ByteArrayInputStream(new byte[]{1}));
+        DataRecord resultB = wrapperB.new DelegatingDataStore()
+                .addRecord(new ByteArrayInputStream(new byte[]{2}));
+
+        assertSame(recA, resultA);
+        assertSame(recB, resultB);
+        verify(mockImpl).addRecord(any());
+        verify(mockImplB).addRecord(any());
+    }
+}
