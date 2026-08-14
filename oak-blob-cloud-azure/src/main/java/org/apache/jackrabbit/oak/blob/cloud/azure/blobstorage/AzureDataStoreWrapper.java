@@ -74,7 +74,7 @@ import java.util.Properties;
         configurationPid = AzureDataStoreWrapper.NAME,
         configurationPolicy = ConfigurationPolicy.REQUIRE
 )
-public class AzureDataStoreRegistrar extends AbstractDataStoreService {
+public class AzureDataStoreWrapper extends AbstractDataStoreService {
 
     private static final Logger log = LoggerFactory.getLogger(AzureDataStoreWrapper.class);
 
