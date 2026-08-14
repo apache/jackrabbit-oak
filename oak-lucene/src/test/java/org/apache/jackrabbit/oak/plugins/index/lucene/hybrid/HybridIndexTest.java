@@ -37,7 +37,6 @@ import javax.management.AttributeNotFoundException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
-import ch.qos.logback.classic.Level;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.PumpStreamHandler;
@@ -98,6 +97,7 @@ import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.event.Level;
 
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
@@ -434,7 +434,7 @@ public class HybridIndexTest extends AbstractQueryTest {
         }
 
         createTestData("/content2", 5);
-        LogCustomizer lc = LogCustomizer.forLogger(LucenePropertyIndex.class.getName())
+        LogCustomizer lc = LogCustomizer.forLogger(LucenePropertyIndex.class)
                 .filter(Level.WARN)
                 .create();
         lc.starting();

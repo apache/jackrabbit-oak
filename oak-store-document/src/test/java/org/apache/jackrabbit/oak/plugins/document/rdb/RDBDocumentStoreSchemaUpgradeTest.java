@@ -46,8 +46,7 @@ import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import ch.qos.logback.classic.Level;
+import org.slf4j.event.Level;
 
 @RunWith(Parameterized.class)
 public class RDBDocumentStoreSchemaUpgradeTest {
@@ -108,7 +107,7 @@ public class RDBDocumentStoreSchemaUpgradeTest {
 
     @Test
     public void init01() {
-        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName()).enable(Level.INFO)
+        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class).enable(Level.INFO)
                 .contains("to DB level 1").create();
         logCustomizer.starting();
 
@@ -184,7 +183,7 @@ public class RDBDocumentStoreSchemaUpgradeTest {
 
     @Test
     public void init12() {
-        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName()).enable(Level.INFO)
+        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class).enable(Level.INFO)
                 .contains("to DB level 2").create();
         logCustomizer.starting();
 
@@ -208,7 +207,7 @@ public class RDBDocumentStoreSchemaUpgradeTest {
 
     @Test
     public void init01fail() {
-        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName()).enable(Level.INFO)
+        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class).enable(Level.INFO)
                 .contains("Attempted to upgrade").create();
         logCustomizer.starting();
 
@@ -238,7 +237,7 @@ public class RDBDocumentStoreSchemaUpgradeTest {
 
     @Test
     public void init11() {
-        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName()).enable(Level.INFO)
+        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class).enable(Level.INFO)
                 .contains("to DB level 1").create();
         logCustomizer.starting();
 
@@ -260,7 +259,7 @@ public class RDBDocumentStoreSchemaUpgradeTest {
 
     @Test
     public void init22() {
-        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName()).enable(Level.INFO)
+        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class).enable(Level.INFO)
                 .contains("to DB level").create();
         logCustomizer.starting();
 
@@ -283,7 +282,7 @@ public class RDBDocumentStoreSchemaUpgradeTest {
 
     @Test
     public void init12fail() {
-        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName()).enable(Level.INFO)
+        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class).enable(Level.INFO)
                 .contains("Attempted to upgrade").create();
         logCustomizer.starting();
 

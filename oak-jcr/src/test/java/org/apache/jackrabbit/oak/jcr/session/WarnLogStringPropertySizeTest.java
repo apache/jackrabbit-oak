@@ -16,9 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.commons.junit.TemporarySystemProperty;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
@@ -28,7 +26,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import javax.jcr.Node;
 import javax.jcr.Session;
@@ -37,7 +35,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
- * {@code WarnLogStringPropertySizeTest} checks if Warn log is bein added on adding
+ * {@code WarnLogStringPropertySizeTest} checks if WARN log is being added on adding
  * large string properties
  */
 @RunWith(Parameterized.class)
@@ -49,25 +47,22 @@ public class WarnLogStringPropertySizeTest extends AbstractRepositoryTest {
     private final static String testStringPropertyKey = "testStringPropertyKey";
     private final static String testLargeStringPropertyValue = "a".repeat(OakJcrConstants.DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE + 1);
     private final static String testSmallStringPropertyValue = "a".repeat(OakJcrConstants.DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE);
-    private final static String nodeImplLogger = NodeImpl.class.getName();
-    private final static String warnMessage = "String length: {} for property: {} at Node: {} is greater than configured value {}";
-    private static ListAppender<ILoggingEvent> listAppender = null;
+    private final static String warnMessage = "String length: .* for property: .* at Node: .* is greater than configured value .*";
+    private final LogCustomizer logger;
 
     public WarnLogStringPropertySizeTest(NodeStoreFixture fixture) {
         super(fixture);
+        logger = LogCustomizer.forLogger(NodeImpl.class).enable(Level.WARN).matchesRegex(warnMessage).create();
     }
 
     @Before
     public void loggingAppenderStart() {
-        LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
-        listAppender = new ListAppender<>();
-        listAppender.start();
-        context.getLogger(nodeImplLogger).addAppender(listAppender);
+        logger.starting();
     }
 
     @After
     public void loggingAppenderStop() {
-        listAppender.stop();
+        logger.finished();
     }
 
     @Test
@@ -75,7 +70,7 @@ public class WarnLogStringPropertySizeTest extends AbstractRepositoryTest {
         Session s = getAdminSession();
         Node test = s.getRootNode().addNode("testSmall");
         test.setProperty(testStringPropertyKey, testSmallStringPropertyValue);
-        assertFalse(isWarnMessagePresent(listAppender));
+        assertFalse(isWarnMessagePresent(logger));
     }
 
     @Test
@@ -83,15 +78,10 @@ public class WarnLogStringPropertySizeTest extends AbstractRepositoryTest {
         Session s = getAdminSession();
         Node test = s.getRootNode().addNode("testLarge");
         test.setProperty(testStringPropertyKey, testLargeStringPropertyValue);
-        assertTrue(isWarnMessagePresent(listAppender));
+        assertTrue(logger.getLogs().toString(), isWarnMessagePresent(logger));
     }
 
-    private boolean isWarnMessagePresent(ListAppender<ILoggingEvent> listAppender) {
-        for (ILoggingEvent loggingEvent : listAppender.list) {
-            if (loggingEvent.getMessage().contains(warnMessage)) {
-                return true;
-            }
-        }
-        return false;
+    private boolean isWarnMessagePresent(LogCustomizer logger) {
+        return !logger.getLogs().isEmpty();
     }
 }

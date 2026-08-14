@@ -24,7 +24,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
@@ -34,6 +33,7 @@ import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.junit.After;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -295,6 +295,6 @@ public class DocumentStoreStatsTest {
 
     private static void enableLevel(String logName, Level level){
         ((LoggerContext)LoggerFactory.getILoggerFactory())
-                .getLogger(logName).setLevel(level);
+                .getLogger(logName).setLevel(ch.qos.logback.classic.Level.valueOf(level.toString()));
     }
 }

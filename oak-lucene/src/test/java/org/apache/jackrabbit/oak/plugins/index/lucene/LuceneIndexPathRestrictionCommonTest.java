@@ -77,6 +77,6 @@ public class LuceneIndexPathRestrictionCommonTest extends IndexPathRestrictionCo
 
     @Override
     protected LogCustomizer getLogCustomizer() {
-        return LogCustomizer.forLogger(LucenePropertyIndex.class.getName()).enable(Level.TRACE).contains("Matched path").create();
+        return LogCustomizer.forLogger(LucenePropertyIndex.class).enable(Level.TRACE).contains("Matched path").create();
     }
 }

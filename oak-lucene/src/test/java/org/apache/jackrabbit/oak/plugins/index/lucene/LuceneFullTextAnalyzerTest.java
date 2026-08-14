@@ -58,7 +58,7 @@ public class LuceneFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
 
     @Override
     protected LogCustomizer setupLogCustomizer() {
-        return LogCustomizer.forLogger(LucenePropertyIndex.class.getName()).enable(Level.WARN).create();
+        return LogCustomizer.forLogger(LucenePropertyIndex.class).enable(Level.WARN).create();
     }
 
     @Override
