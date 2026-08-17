@@ -680,6 +680,43 @@ public class LuceneIndexDefinitionTest {
                 logs.stream().anyMatch(m -> m.contains("doesNotExist")));
     }
 
+    @Test
+    public void regexpPropertyWithAnalyzerFallsBackToDefaultWithWarning() throws Exception {
+        NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "lucene", Set.of(TYPENAME_STRING));
+
+        //Set this to -1 to avoid wrapping by LimitAnalyzer
+        defnb.setProperty(FulltextIndexConstants.MAX_FIELD_LENGTH, -1);
+
+        NodeBuilder rules = defnb.child(INDEX_RULES);
+        TestUtil.child(rules, "nt:base/properties/allStrings")
+                .setProperty(PROP_NAME, ".*")
+                .setProperty(FulltextIndexConstants.PROP_IS_REGEX, true)
+                .setProperty(FulltextIndexConstants.PROP_ANALYZED, true)
+                .setProperty(FulltextIndexConstants.PROP_ANALYZER, "frenchText");
+        defnb.child(ANALYZERS).child("frenchText")
+                .child(FulltextIndexConstants.ANL_TOKENIZER)
+                .setProperty(FulltextIndexConstants.ANL_NAME, "whitespace");
+
+        LogCustomizer customLogs = LogCustomizer.forLogger(LuceneIndexDefinition.class)
+                .enable(Level.WARN).create();
+        customLogs.starting();
+
+        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.getNodeState(), "/foo");
+        Analyzer analyzer = defn.getAnalyzer();
+
+        //Verify that the property falls back to using the default analyzer (lowercase "hello")
+        //when regexp properties can't be statically bound to per-field analyzer entries
+        assertEquals("Falls back to default analyzer for regexp property",
+                "hello", firstToken(analyzer, "full:whatever", "Hello World"));
+
+        List<String> logs = customLogs.getLogs();
+
+        //Verify that a warning was logged about regexp properties not supporting per-field analyzers
+        assertTrue("Expected a warning about regexp properties not supporting per-field analyzers. Captured logs: " + logs,
+                logs.stream().anyMatch(m -> m.contains("regular-expression")));
+    }
+
     private static String firstToken(Analyzer analyzer, String field, String text) throws IOException {
         try (TokenStream ts = analyzer.tokenStream(field, text)) {
             CharTermAttribute term = ts.addAttribute(CharTermAttribute.class);
