@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.query.xpath;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.text.ParseException;
 
@@ -142,6 +144,46 @@ public class XPathToSQL2Test {
                 "select ... where contains(*, 'test') or [type] = 'page' ");
     }
  
+    @Test
+    public void testXmlNameCharsInPathFeatureNotSet() throws ParseException {
+        String sql2 = new XPathToSQL2Converter(new QueryEngineSettings())
+                .convert("/jcr:root/a/m·d/element(*, nt:base)");
+        assertTrue(sql2.contains("'/a/m·d'"));
+    }
+
+    @Test
+    public void testXmlNameCharsInPathFeatureEnabled() throws ParseException {
+        QueryEngineSettings settings = new QueryEngineSettings();
+        settings.setXmlNameCharsInPathFeature(createFeature(true));
+        String sql2 = new XPathToSQL2Converter(settings)
+                .convert("/jcr:root/a/m·d/element(*, nt:base)");
+        assertTrue(sql2.contains("'/a/m·d'"));
+    }
+
+    @Test
+    public void testXmlNameCharsInPathFeatureDisabled() {
+        QueryEngineSettings settings = new QueryEngineSettings();
+        settings.setXmlNameCharsInPathFeature(createFeature(false));
+        try {
+            new XPathToSQL2Converter(settings)
+                    .convert("/jcr:root/a/m·d/element(*, nt:base)");
+            fail("expected ParseException");
+        } catch (ParseException expected) {
+            // expected
+        }
+    }
+
+    @Test
+    public void testGenuineSpaceInPathStillFails() {
+        try {
+            new XPathToSQL2Converter(new QueryEngineSettings())
+                    .convert("/jcr:root/a/m d/element(*, nt:base)");
+            fail("expected ParseException");
+        } catch (ParseException expected) {
+            // expected
+        }
+    }
+
     /**
      * Helper method to create a Feature mock with the specified enabled state.
      */

@@ -325,6 +325,20 @@ public class XPathTest {
                 "/* xpath: /jcr:root/content// element(*, nt:folder) order by @jcr:score descending */");
     }
 
+    @Test
+    public void xmlNameCharsInPathAreConverted() throws ParseException {
+        verify("/jcr:root/content/m·d/element(*, nt:base)",
+                "select [jcr:path], [jcr:score], * " +
+                "from [nt:base] as a " +
+                "where ischildnode(a, '/content/m·d') " +
+                "/* xpath: /jcr:root/content/m·d/element(*, nt:base) */");
+        verify("/jcr:root/content/m·d",
+                "select [jcr:path], [jcr:score], * " +
+                "from [nt:base] as a " +
+                "where issamenode(a, '/content/m·d') " +
+                "/* xpath: /jcr:root/content/m·d */");
+    }
+
     private void verify(String xpath, String expectedSql2) throws ParseException {
         String sql2 = new XPathToSQL2Converter().convert(xpath);
         sql2 = formatSQL(sql2);
