@@ -51,7 +51,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -311,8 +311,8 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
                 garb.index(indexDefinition.getIndexAlias()).ignoreUnavailable(true));
 
         UpdateAliasesRequest updateAliasesRequest = UpdateAliasesRequest.of(rb -> {
-            aliasResponse.result().forEach((idx, idxAliases) -> rb.actions(ab -> // remove old aliases
-                    ab.remove(rab -> rab.index(idx).aliases(new ArrayList<>(idxAliases.aliases().keySet()))))
+            aliasResponse.aliases().forEach((idx, idxAliases) -> rb.actions(ab -> // remove old aliases
+                    ab.remove(rab -> rab.index(idx).aliases(List.copyOf(idxAliases.aliases().keySet()))))
             );
             return rb.actions(ab -> ab.add(aab -> aab.index(indexName).alias(indexDefinition.getIndexAlias()))); // add new one
         });
@@ -323,7 +323,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
                 indexName, updateAliasesResponse.acknowledged());
 
         // once the alias has been updated, we can safely remove the old index
-        deleteOldIndices(client, aliasResponse.result().keySet());
+        deleteOldIndices(client, aliasResponse.aliases().keySet());
     }
 
     private void checkResponseAcknowledgement(AcknowledgedResponse response, String exceptionMessage) {
@@ -335,7 +335,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     private void deleteOldIndices(ElasticsearchIndicesClient indicesClient, Set<String> indices) throws IOException {
         if (indices.isEmpty())
             return;
-        DeleteIndexResponse deleteIndexResponse = indicesClient.delete(db -> db.index(new ArrayList<>(indices)));
+        DeleteIndexResponse deleteIndexResponse = indicesClient.delete(db -> db.index(List.copyOf(indices)));
         checkResponseAcknowledgement(deleteIndexResponse, "Delete index call not acknowledged for indices " + indices);
         LOG.info("Deleted indices {}. Response acknowledged: {}", indices, deleteIndexResponse.acknowledged());
     }
