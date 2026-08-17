@@ -27,7 +27,8 @@ import java.util.function.Supplier;
 
 /**
  * A {@link FulltextIndexWriter} proxy that defers creation of the real {@link ElasticIndexWriter}
- * to the first {@link #updateDocument} or {@link #deleteDocuments} call (OAK-12249).
+ * to the first {@link #updateDocument}, {@link #deleteDocumentTree} or {@link #deleteDocument}
+ * call (OAK-12249).
  *
  * <p>If {@link #close} is called before any document is written — i.e. the reindex produced zero
  * documents — the supplier is never invoked, so no Elasticsearch index or alias is created.
@@ -56,8 +57,13 @@ class LazyElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     }
 
     @Override
-    public void deleteDocuments(String path) throws IOException {
-        getOrCreate().deleteDocuments(path);
+    public void deleteDocumentTree(String path) throws IOException {
+        getOrCreate().deleteDocumentTree(path);
+    }
+
+    @Override
+    public void deleteDocument(String path) throws IOException {
+        getOrCreate().deleteDocument(path);
     }
 
     @Override
