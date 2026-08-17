@@ -172,10 +172,14 @@ public class LuceneIndexDefinition extends IndexDefinition {
     private Map<String, Analyzer> collectPerPropertyAnalyzers() {
         Map<String, Analyzer> result = new HashMap<>();
         for (IndexingRule rule : getDefinedRules()) {
+            // Process regular properties (non-regexp)
             for (PropertyDefinition pd : rule.getProperties()) {
                 if (!pd.analyzed || pd.analyzerName == null) {
                     continue;
                 }
+                // Defensive dead code: pd.isRegexp is always false here because regexp properties
+                // are stored in a separate list (namePatterns), not in propDefinitions.
+                // This check is kept for defensiveness but will never be true.
                 if (pd.isRegexp) {
                     log.warn("Property [{}] in index rule [{}] declares analyzer [{}] but is a " +
                             "regular-expression property definition, which is not supported for " +
@@ -192,6 +196,17 @@ public class LuceneIndexDefinition extends IndexDefinition {
                 }
                 result.put(constructAnalyzedPropertyName(pd.name), propAnalyzer);
             }
+
+            // Process regexp properties from namePatterns: warn if any declare an analyzer,
+            // since there's no fixed field name to bind the analyzer to
+            rule.getNamePatternsProperties().forEach(pd -> {
+                if (pd.analyzed && pd.analyzerName != null) {
+                    log.warn("Property [{}] in index rule [{}] declares analyzer [{}] but is a " +
+                            "regular-expression property definition, which is not supported for " +
+                            "per-property analyzers - falling back to the default analyzer. Index at {}",
+                            pd.name, rule.getNodeTypeName(), pd.analyzerName, getIndexPath());
+                }
+            });
         }
         return result;
     }
