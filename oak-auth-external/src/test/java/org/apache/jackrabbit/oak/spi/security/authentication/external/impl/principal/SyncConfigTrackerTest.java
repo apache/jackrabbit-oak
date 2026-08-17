@@ -28,6 +28,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
 
@@ -44,6 +45,7 @@ import static org.apache.jackrabbit.oak.spi.security.authentication.external.imp
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -121,6 +123,20 @@ public class SyncConfigTrackerTest {
         ServiceReference ref = context.bundleContext().getServiceReference(SyncHandler.class.getName());
         tracker.modifiedService(ref, service);
         assertFalse(tracker.isEnabled());
+    }
+
+    @Test
+    public void testAddingServiceWithNullService() {
+        // the framework may return null from getService() (e.g. the service was
+        // concurrently unregistered before it could be resolved); the reference must
+        // not be tracked in that case
+        BundleContext bundleContext = mock(BundleContext.class);
+        ServiceReference reference = mock(ServiceReference.class);
+        when(bundleContext.getService(reference)).thenReturn(null);
+
+        SyncConfigTracker t = new SyncConfigTracker(bundleContext, mappingTracker);
+        assertNull(t.addingService(reference));
+        assertFalse(t.isEnabled());
     }
 
     @Test
