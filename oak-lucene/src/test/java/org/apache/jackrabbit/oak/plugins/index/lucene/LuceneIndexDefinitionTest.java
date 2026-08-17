@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinition
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.CommitMitigatingTieredMergePolicy;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRule;
@@ -715,6 +716,41 @@ public class LuceneIndexDefinitionTest {
         //Verify that a warning was logged about regexp properties not supporting per-field analyzers
         assertTrue("Expected a warning about regexp properties not supporting per-field analyzers. Captured logs: " + logs,
                 logs.stream().anyMatch(m -> m.contains("regular-expression")));
+    }
+
+    @Test
+    public void fulltextAggregateFieldAlwaysUsesDefaultAnalyzer() throws Exception {
+        NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "lucene", Set.of(TYPENAME_STRING));
+
+        //Set this to -1 to avoid wrapping by LimitAnalyzer
+        defnb.setProperty(FulltextIndexConstants.MAX_FIELD_LENGTH, -1);
+
+        //Custom analyzer: whitespace tokenizer only, no lowercasing (unlike the
+        //default OakAnalyzer)
+        defnb.child(ANALYZERS).child("frenchText")
+                .child(FulltextIndexConstants.ANL_TOKENIZER)
+                .setProperty(FulltextIndexConstants.ANL_NAME, "whitespace");
+
+        NodeBuilder rules = defnb.child(INDEX_RULES);
+        TestUtil.child(rules, "nt:base/properties/title")
+                .setProperty(PROP_NAME, "title")
+                .setProperty(FulltextIndexConstants.PROP_ANALYZED, true)
+                .setProperty(FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, true)
+                .setProperty(FulltextIndexConstants.PROP_ANALYZER, "frenchText");
+
+        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.getNodeState(), "/foo");
+        Analyzer analyzer = defn.getAnalyzer();
+
+        //The property-specific field should use the custom frenchText analyzer (no lowercasing)
+        assertEquals("Custom analyzer for 'title' property field must not lower-case",
+                "Hello", firstToken(analyzer, "full:title", "Hello World"));
+
+        //The aggregate :fulltext field (used by CONTAINS(*, ...)) must always use the default
+        //analyzer, regardless of any per-property analyzer overrides. This is a locking test
+        //for a critical guarantee that should remain unchanged even if aggregation logic evolves.
+        assertEquals("Aggregate :fulltext field must always use default analyzer",
+                "hello", firstToken(analyzer, FieldNames.FULLTEXT, "Hello World"));
     }
 
     private static String firstToken(Analyzer analyzer, String field, String text) throws IOException {

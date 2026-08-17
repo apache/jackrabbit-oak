@@ -903,7 +903,7 @@ all the other components (e.g. `charFilters`, `Synonym`) are optional.
 
 ##### <a name="per-property-analyzer"></a>Per-Property Analyzer
 
-`@since Oak 1.43.0, [OAK-12360]`
+`@since Oak 2.5, [OAK-12360]`
 
 In addition to configuring a single analyzer per index (via the `analyzers/default` or other sibling nodes),
 you can optionally specify a custom analyzer for individual properties. This allows different properties
