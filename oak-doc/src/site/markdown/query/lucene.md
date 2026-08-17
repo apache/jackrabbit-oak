@@ -29,6 +29,7 @@
     * [Analyzers](#analyzers)
         * [Specify analyzer class directly](#analyzer-classes)
         * [Create analyzer via composition](#analyzer-composition)
+        * [Per-Property Analyzer](#per-property-analyzer)
     * [Codec](#codec)
     * [Boost and Search Relevancy](#boost)
     * [Effective Index Definition](#stored-index-definition)
@@ -899,6 +900,57 @@ all the other components (e.g. `charFilters`, `Synonym`) are optional.
             - synonyms = "synonym.txt"
             + synonym.txt (nt:file)
 ```
+
+##### <a name="per-property-analyzer"></a>Per-Property Analyzer
+
+`@since Oak 1.43.0, [OAK-12360]`
+
+In addition to configuring a single analyzer per index (via the `analyzers/default` or other sibling nodes),
+you can optionally specify a custom analyzer for individual properties. This allows different properties
+to be analyzed differently within the same index.
+
+To specify a custom analyzer for a property, set the `analyzer` attribute on the property definition node:
+
+```
+    + indexRules
+      - jcr:primaryType = "nt:unstructured"
+      + app:Asset
+        + properties
+          - jcr:primaryType = "nt:unstructured"
+          + title
+            - analyzed = true
+            - analyzer = "titleAnalyzer"
+          + description
+            - analyzed = true
+            - analyzer = "descriptionAnalyzer"
+    + analyzers
+      + default
+        - class = "org.apache.lucene.analysis.standard.StandardAnalyzer"
+      + titleAnalyzer
+        - class = "org.apache.lucene.analysis.en.EnglishAnalyzer"
+      + descriptionAnalyzer
+        + tokenizer
+          - name = "Standard"
+        + filters (nt:unstructured)
+          + LowerCase
+```
+
+The `analyzer` property value is a string that refers to a sibling analyzer node under the `analyzers` node.
+This feature is optional and fully backward compatible: properties that do not specify the `analyzer` attribute
+are unaffected and continue to use the index-wide default analyzer.
+
+**Known Limitations**
+
+1. **Aggregated fulltext field:** The aggregated `:fulltext` field used by cross-property fulltext queries
+   (e.g., `CONTAINS(*, 'text')`) always uses the single default analyzer from `analyzers/default`.
+   Per-property analyzers apply only to each property's own dedicated field. 
+   If a property defines a custom analyzer, it affects only queries on that specific property
+   (e.g., `CONTAINS(@title, 'text')`), not the aggregate fulltext search.
+
+2. **Regular-expression properties:** Per-property analyzers are not supported for regular-expression property definitions
+   (properties with `isRegexp = true`). When a regexp property rule matches multiple concrete property names across nodes,
+   there is no single fixed field to attach a custom analyzer to. In this case, the default analyzer is used
+   with a logged warning, and indexing proceeds normally.
 
 #### Examples
 
