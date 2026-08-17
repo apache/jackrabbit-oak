@@ -31,6 +31,7 @@ import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
@@ -49,6 +50,7 @@ import org.apache.lucene.index.LogDocMergePolicy;
 import org.apache.lucene.index.NoMergePolicy;
 import org.apache.lucene.index.TieredMergePolicy;
 import org.junit.Test;
+import org.slf4j.event.Level;
 
 import static javax.jcr.PropertyType.TYPENAME_LONG;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
@@ -644,6 +646,38 @@ public class LuceneIndexDefinitionTest {
                 "Hello", firstToken(analyzer, "full:title", "Hello World"));
         assertEquals("Property 'body' without an analyzer override keeps the default (lower-cased) analyzer",
                 "hello", firstToken(analyzer, "full:body", "Hello World"));
+    }
+
+    @Test
+    public void danglingAnalyzerReferenceFallsBackToDefaultWithWarning() throws Exception {
+        NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "lucene", Set.of(TYPENAME_STRING));
+
+        //Set this to -1 to avoid wrapping by LimitAnalyzer
+        defnb.setProperty(FulltextIndexConstants.MAX_FIELD_LENGTH, -1);
+
+        NodeBuilder rules = defnb.child(INDEX_RULES);
+        TestUtil.child(rules, "nt:base/properties/title")
+                .setProperty(PROP_NAME, "title")
+                .setProperty(FulltextIndexConstants.PROP_ANALYZED, true)
+                .setProperty(FulltextIndexConstants.PROP_ANALYZER, "doesNotExist");
+
+        LogCustomizer customLogs = LogCustomizer.forLogger(LuceneIndexDefinition.class)
+                .enable(Level.WARN).create();
+        customLogs.starting();
+
+        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.getNodeState(), "/foo");
+
+        List<String> logs = customLogs.getLogs();
+
+        //Verify that the property falls back to using the default analyzer (lowercase "hello")
+        //when the referenced analyzer does not exist.
+        assertEquals("Falls back to default analyzer when reference is dangling",
+                "hello", firstToken(defn.getAnalyzer(), "full:title", "Hello World"));
+
+        //Verify that a warning was logged about the unresolved analyzer reference
+        assertTrue("Expected a warning about the unresolved analyzer reference. Captured logs: " + logs,
+                logs.stream().anyMatch(m -> m.contains("doesNotExist")));
     }
 
     private static String firstToken(Analyzer analyzer, String field, String text) throws IOException {
