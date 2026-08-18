@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 2.4.0
+Release Notes -- Apache Jackrabbit Oak -- Version 2.6.0
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 2.4.0 is an incremental feature release based
+Apache Jackrabbit Oak 2.6.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
@@ -15,61 +15,59 @@ production use.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 2.4.0
+Changes in Oak 2.6.0
 --------------------
 
-** Sub-task
-    * [OAK-12248] - Don't query an index if it is known to be empty
-    * [OAK-12250] - update and consolidate hamcrest dependencies
-
-** Technical task
-    * [OAK-12238] - oak-upgrade: do not override Jackrabbit's Lucene version (for now)
-    * [OAK-12264] - oak-run: sync commons-csv dependency with other modules
-    * [OAK-12274] - shaded-guava: exclude errorprone dependency
-    * [OAK-12284] - oak-http: extract Authorization Field parsing and add test coverage
-
 ** Bug
-    * [OAK-12125] - Async indexing fails on invalid index definition: missing propertyNames
-    * [OAK-12244] - [oak-search] Index not updated when node gains or loses a mixin type at runtime
-    * [OAK-12257] - CI: Commit-Check broken
-    * [OAK-12259] - oak-http: OakServlet mis-parses HTTP Basic credentials - passwords containing a colon are silently truncated and malformed headers cause an HTTP 500
-    * [OAK-12275] - NameValidator: improve logging for unmapped prefixes
-    * [OAK-12282] - PersistentDisk Cache is unbound, with many JCR reads on a empty instance can cause OOM
-    * [OAK-12303] - Update vulnerable mina-core library
+    * [OAK-10410] - document-store: potential NPE in AbstractMongoConnectionTest teardown
+    * [OAK-12017] - CommitFailedException thrown by EditorHook does not contain path to node
+    * [OAK-12300] - ServiceListener not removed from BundleContext in awaitServiceEvent
+    * [OAK-12309] - DocumentNodeStoreService may fail to register or double register the NodeStore due to race conditions
+    * [OAK-12326] - Flacky test TokenCleanupTest#testBatchSizeLimitsCleanup
+    * [OAK-12339] - bump org.apache.felix.framework to 7.0.5
+    * [OAK-12349] - Update lz4-java to 1.11.2
+
+** Story
+    * [OAK-12219] - Add support for Azure SDK V12 in oak-blob-azure
 
 ** Improvement
-    * [OAK-12227] - Exclude Tika from oak-run that is imported from Jackrabbit
-    * [OAK-12260] - TokenLoginModule cannot handle many tokens in a performant way
-    * [OAK-12262] - Simplified index mgmt: support indexes without version number
+    * [OAK-11600] - DocumentNodeStoreConfigTest failure
+    * [OAK-12266] - Move fastQuerySize tests in oak-search
+    * [OAK-12290] - Lock Contention in SegmentCache
+    * [OAK-12299] - PersistentDiskCache: precompute elementCount and currentWeight to avoid expensive filesystem traversal on metrics reads
+    * [OAK-12315] - removeDescendantsAndSelfWithLeavesFirst() should optionally keep the root node
+    * [OAK-12325] - High-frequency direct ByteBuffer allocation in AbstractBlob.equals() may cause large bursts of native memory usage leading to OOMKill risk
+    * [OAK-12334] - Update MySql JDBC driver version to com.mysql:mysql-connector-j:9.2.0 in profile rdb-mysql
+    * [OAK-12340] - Simplified index management improvements
+    * [OAK-12343] - Document (and test) that ORDER BY on a type=Date ordered property fails when values aren't valid dates
 
 ** Task
-    * [OAK-10578] - ExternalLoginModule: reduce the number  of access to OSGI registry
-    * [OAK-12234] - Elastic async response processing should use a separate thread pool
-    * [OAK-12237] - bump netty versions to 4.1.135.Final
-    * [OAK-12240] - pojosr: remove jackrabbit-data dependency
-    * [OAK-12241] - run S3 integration tests with S3Mock emulator in CI
-    * [OAK-12242] - Remove FT_EMBEDDED_VERIFICATION_OAK-10633 and remove its related code path
-    * [OAK-12243] - AGENTS.md: clarify which packages are OSGi-exported and baseline-checked
-    * [OAK-12245] - update Tomcat dependency to 9.0.118
-    * [OAK-12252] - Remove FT_FULL_GC_OAK-10199 and remove its related code path
-    * [OAK-12254] - Upgrade mockito-core to 5.23.0
-    * [OAK-12256] - document Feature Toggles
-    * [OAK-12258] - elastic.md: add documentation for isFlattened
-    * [OAK-12265] - remove json-simple dependency in oak-pojosr
-    * [OAK-12267] - DocumentNodeStoreIT fails with lease expiry at strict lease-check boundary
-    * [OAK-12272] - Allow 120-character commit subjects in Commit Check
-    * [OAK-12273] - Stabilize Javadoc external links in CI
-    * [OAK-12283] - bump aws sdk to 2.35.11
-    * [OAK-12285] - S3 KMS is skipping presigned URL tests when sseCustomerKey is configured
-    * [OAK-12287] - Update to Apache Parent POM to version 39
-    * [OAK-12288] - disable blobId tracker for SegmentNodeStore by default
-    * [OAK-12289] - disable blobId tracker for DocumentNodeStore by default
-    * [OAK-12293] - Update commons-io dependency to 2.21.0
-    * [OAK-12294] - Update commons-codec dependency to 1.20.0
-    * [OAK-12296] - bump testcontainers to v2.0.3
-
-** Documentation
-    * [OAK-12235] - fix Java version information in README
+    * [OAK-12118] - LogCustomizer: avoid logback signatures, implement Closeable
+    * [OAK-12239] - Remove FT_PREFETCH_OAK-9780 and remove "non prefetch" code path
+    * [OAK-12255] - SystemPropertySupplier logSuccessAs can throw IAE
+    * [OAK-12276] - Upgrade jackson-databind dependency to 2.21.x (latest LTS)
+    * [OAK-12281] - Upgrade jackson-databind dependency to 2.21.x
+    * [OAK-12295] - update mongodb-driver-sync version to 5.3.1
+    * [OAK-12298] - SystemPropertySupplier: document how to signal that property is not present (implies default value)
+    * [OAK-12302] - Add Bundle-SCM entries to the bundle manifests.
+    * [OAK-12311] - parent: jackson version - warn wrt non-LTS versions
+    * [OAK-12312] - oak-pojosr: remove unintended org.testcontainers.shaded.com.fasterxml.jackson import
+    * [OAK-12314] - Builds failing because request to https://www.slf4j.org/apidocs/  times out
+    * [OAK-12316] - Remove FT_NOCOCLEANUP_OAK-10660 and remove its related code path
+    * [OAK-12317] - bump aws sdk to 2.36.3
+    * [OAK-12318] - bump testcontainers to v2.0.5
+    * [OAK-12320] - Update commons-codec dependency to 1.21.0
+    * [OAK-12321] - update gson dependencies to 2.14.0
+    * [OAK-12322] - update Tomcat dependency to 9.0.120
+    * [OAK-12323] - bump netty versions to 4.1.136.Final
+    * [OAK-12324] - bump dropwizard Metrics bundles to 3.2.6
+    * [OAK-12328] - Update build.yml to use Java 21 for SonarQube Analysis
+    * [OAK-12332] - oak-store-document: update org.quartz-scheduler dependency to 2.4.1
+    * [OAK-12333] - RDBMK: update PostgreSQL driver to version 42.7.13
+    * [OAK-12336] - RDBMK: update PostgreSQL driver/database
+    * [OAK-12337] - Update Oak trunk to Jackrabbit 2.22.4
+    * [OAK-12342] - remove unused httpmime dependency
+    * [OAK-12356] - Improve log warning
 
 In addition to the above-mentioned changes, this release contains all
 changes up to the previous release.
