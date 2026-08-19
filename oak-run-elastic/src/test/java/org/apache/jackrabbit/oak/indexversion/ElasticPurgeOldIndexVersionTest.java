@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.indexversion;
 
-import ch.qos.logback.classic.Level;
 import co.elastic.clients.elasticsearch._types.ExpandWildcard;
 import co.elastic.clients.elasticsearch.cat.IndicesResponse;
 import co.elastic.clients.elasticsearch.cat.indices.IndicesRecord;
@@ -39,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.event.Level;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -161,7 +161,7 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
 
     @Test
     public void noDeleteIfActiveIndexTimeThresholdNotMeet() throws Exception {
-        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
+        LogCustomizer custom = LogCustomizer.forLogger(org.apache.jackrabbit.oak.indexversion.IndexVersionOperation.class)
                 .enable(Level.INFO)
                 .create();
         try {
@@ -202,7 +202,7 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
     // but before which is fixed, the purging will not do deletion in that case
     @Test
     public void noDeleteIfActiveIndexTimeMissing() throws Exception {
-        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
+        LogCustomizer custom = LogCustomizer.forLogger(org.apache.jackrabbit.oak.indexversion.IndexVersionOperation.class)
                 .enable(Level.INFO)
                 .create();
         try {
@@ -252,7 +252,7 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
 
     @Test
     public void noDeleteIfInvalidIndexOperationVersion() throws Exception {
-        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
+        LogCustomizer custom = LogCustomizer.forLogger(org.apache.jackrabbit.oak.indexversion.IndexVersionOperation.class)
                 .enable(Level.INFO)
                 .create();
         try {
@@ -347,7 +347,7 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
 
     @Test
     public void noDeleteIfNonReadWriteMode() throws Exception {
-        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.run.PurgeOldIndexVersionCommand")
+        LogCustomizer custom = LogCustomizer.forLogger(org.apache.jackrabbit.oak.run.PurgeOldIndexVersionCommand.class)
                 .enable(Level.INFO)
                 .create();
         try {

@@ -45,7 +45,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import ch.qos.logback.classic.Level;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.testing.CIHelper;
@@ -64,6 +63,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.internal.util.collections.Sets;
+import org.slf4j.event.Level;
 
 public class ActiveDeletedBlobCollectorTest {
     @Rule
@@ -366,7 +366,7 @@ public class ActiveDeletedBlobCollectorTest {
     @Test
     public void dontWarnWhileErrorsWhileDeletingBlobs() throws Exception {
         LogCustomizer warnLogCustomizer =
-                LogCustomizer.forLogger(ActiveDeletedBlobCollectorFactory.class.getName()).enable(Level.WARN)
+                LogCustomizer.forLogger(ActiveDeletedBlobCollectorFactory.class).enable(Level.WARN)
                         .contains("Exception occurred while ")
                         .create();
 
@@ -424,7 +424,7 @@ public class ActiveDeletedBlobCollectorTest {
     @Test
     public void doDebugLogWhileErrorsWhileDeletingBlobs() throws Exception {
         LogCustomizer warnLogCustomizer =
-                LogCustomizer.forLogger(ActiveDeletedBlobCollectorFactory.class.getName()).enable(Level.DEBUG)
+                LogCustomizer.forLogger(ActiveDeletedBlobCollectorFactory.class).enable(Level.DEBUG)
                         .contains("Exception occurred while ")
                         .create();
 

@@ -68,7 +68,7 @@ public class SystemPropertySupplierTest {
 
     @Test
     public void testFilter() {
-        LogCustomizer logCustomizer = LogCustomizer.forLogger(SystemPropertySupplierTest.class.getName()).enable(Level.ERROR)
+        LogCustomizer logCustomizer = LogCustomizer.forLogger(SystemPropertySupplierTest.class).enable(Level.ERROR)
                 .contains("Ignoring invalid value").create();
         logCustomizer.starting();
 
@@ -85,7 +85,7 @@ public class SystemPropertySupplierTest {
     @Test
     public void testHidden() {
         String secret = "secret123";
-        LogCustomizer logCustomizer = LogCustomizer.forLogger(SystemPropertySupplierTest.class.getName()).enable(Level.TRACE)
+        LogCustomizer logCustomizer = LogCustomizer.forLogger(SystemPropertySupplierTest.class).enable(Level.TRACE)
                 .contains(secret).create();
         logCustomizer.starting();
 
@@ -102,7 +102,7 @@ public class SystemPropertySupplierTest {
 
     @Test
     public void testNonParseable() {
-        LogCustomizer logCustomizer = LogCustomizer.forLogger(SystemPropertySupplierTest.class.getName()).enable(Level.ERROR)
+        LogCustomizer logCustomizer = LogCustomizer.forLogger(SystemPropertySupplierTest.class).enable(Level.ERROR)
                 .contains("Ignoring malformed value").create();
         logCustomizer.starting();
 

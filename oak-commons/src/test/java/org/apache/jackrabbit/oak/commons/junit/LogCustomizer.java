@@ -91,18 +91,8 @@ public class LogCustomizer {
             this.name = name;
         }
 
-        public LogCustomizerBuilder enable(Level level) {
-            this.enableLevel = level;
-            return this;
-        }
-
         public LogCustomizerBuilder enable(org.slf4j.event.Level level) {
             this.enableLevel = fromSlf4jLevel(level);
-            return this;
-        }
-
-        public LogCustomizerBuilder filter(Level level) {
-            this.filterLevel = level;
             return this;
         }
 

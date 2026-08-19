@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
-import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -27,6 +26,7 @@ import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.slf4j.event.Level;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -246,7 +246,7 @@ public class OakStreamingIndexFileTest {
         byte[] fileBytes = writeFile();
 
         LogCustomizer logRecorder = LogCustomizer
-                .forLogger(OakStreamingIndexFile.class.getName()).enable(Level.WARN)
+                .forLogger(OakStreamingIndexFile.class).enable(Level.WARN)
                 .contains("Seeking back on streaming index file").create();
 
         NodeBuilder fooBuilder = builder.child("foo");

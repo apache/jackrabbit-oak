@@ -44,8 +44,9 @@
         120 MB: added commons-csv for csv parsing (OAK-10790)
         124 MB: Aws Sdk 2.x (OAK-11935)
         130 MB: Embed Aws Sdk 2.x in oak-blob-cloud (OAK-12008)
+        142 MB: jackson update (OAK-12276)
         -->
-        <max.jar.size>140000000</max.jar.size>
+        <max.jar.size>142000000</max.jar.size>
                       
     </properties>
 

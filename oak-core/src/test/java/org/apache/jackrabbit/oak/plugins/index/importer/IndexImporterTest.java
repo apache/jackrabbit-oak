@@ -100,7 +100,7 @@ public class IndexImporterTest {
 
     @Before
     public void setup(){
-        customizer = LogCustomizer.forLogger(IndexImporter.class.getName()).filter(Level.INFO).create();
+        customizer = LogCustomizer.forLogger(IndexImporter.class).filter(Level.INFO).create();
         customizer.starting();
     }
 
