@@ -37,6 +37,7 @@ Changes in Oak 2.6.0
     * [OAK-12299] - PersistentDiskCache: precompute elementCount and currentWeight to avoid expensive filesystem traversal on metrics reads
     * [OAK-12315] - removeDescendantsAndSelfWithLeavesFirst() should optionally keep the root node
     * [OAK-12325] - High-frequency direct ByteBuffer allocation in AbstractBlob.equals() may cause large bursts of native memory usage leading to OOMKill risk
+    * [OAK-12330] - Simplified index management - allow updating "secure"
     * [OAK-12334] - Update MySql JDBC driver version to com.mysql:mysql-connector-j:9.2.0 in profile rdb-mysql
     * [OAK-12340] - Simplified index management improvements
     * [OAK-12343] - Document (and test) that ORDER BY on a type=Date ordered property fails when values aren't valid dates
@@ -67,7 +68,9 @@ Changes in Oak 2.6.0
     * [OAK-12336] - RDBMK: update PostgreSQL driver/database
     * [OAK-12337] - Update Oak trunk to Jackrabbit 2.22.4
     * [OAK-12342] - remove unused httpmime dependency
+    * [OAK-12345] - Change checkpoint lifetime of "async - force modified" to 4 days
     * [OAK-12356] - Improve log warning
+    * [OAK-12367] - SegmentCache: Disable flacky test added for L1 hits should notify L2 (caffeine)
 
 In addition to the above-mentioned changes, this release contains all
 changes up to the previous release.
