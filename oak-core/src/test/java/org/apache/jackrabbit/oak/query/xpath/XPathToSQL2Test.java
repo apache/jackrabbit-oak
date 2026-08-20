@@ -147,8 +147,8 @@ public class XPathToSQL2Test {
     @Test
     public void testXmlNameCharsInPathFeatureNotSet() throws ParseException {
         String sql2 = new XPathToSQL2Converter(new QueryEngineSettings())
-                .convert("/jcr:root/a/m·d/element(*, nt:base)");
-        assertTrue(sql2.contains("'/a/m·d'"));
+                .convert("/jcr:root/a/m\u00b7d/element(*, nt:base)");
+        assertTrue(sql2.contains("'/a/m\u00b7d'"));
     }
 
     @Test
@@ -156,8 +156,8 @@ public class XPathToSQL2Test {
         QueryEngineSettings settings = new QueryEngineSettings();
         settings.setXmlNameCharsInPathFeature(createFeature(true));
         String sql2 = new XPathToSQL2Converter(settings)
-                .convert("/jcr:root/a/m·d/element(*, nt:base)");
-        assertTrue(sql2.contains("'/a/m·d'"));
+                .convert("/jcr:root/a/m\u00b7d/element(*, nt:base)");
+        assertTrue(sql2.contains("'/a/m\u00b7d'"));
     }
 
     @Test
@@ -166,7 +166,7 @@ public class XPathToSQL2Test {
         settings.setXmlNameCharsInPathFeature(createFeature(false));
         try {
             new XPathToSQL2Converter(settings)
-                    .convert("/jcr:root/a/m·d/element(*, nt:base)");
+                    .convert("/jcr:root/a/m\u00b7d/element(*, nt:base)");
             fail("expected ParseException");
         } catch (ParseException expected) {
             // expected

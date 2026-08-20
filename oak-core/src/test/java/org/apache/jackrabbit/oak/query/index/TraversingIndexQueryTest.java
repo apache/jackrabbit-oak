@@ -502,11 +502,11 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
 
     @Test
     public void testXmlNameCharsInPathAreQueryable() throws Exception {
-        root.getTree("/").addChild("content").addChild("m·d").addChild("child");
+        root.getTree("/").addChild("content").addChild("m\u00b7d").addChild("child");
         root.commit();
 
-        assertQuery("/jcr:root/content/m·d/element(*, nt:base)", "xpath",
-                List.of("/content/m·d/child"));
+        assertQuery("/jcr:root/content/m\u00b7d/element(*, nt:base)", "xpath",
+                List.of("/content/m\u00b7d/child"));
     }
 
     @Test
