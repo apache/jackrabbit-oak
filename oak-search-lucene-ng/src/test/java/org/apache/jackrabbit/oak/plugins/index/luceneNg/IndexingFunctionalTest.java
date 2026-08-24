@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
-import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
-import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.IndexSearcher;
@@ -29,188 +29,152 @@ import org.apache.lucene.search.TopDocs;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 /**
- * Functional tests for LuceneNgIndexEditor covering real-world indexing scenarios.
- * Tests verify that the editor can handle various content patterns without errors.
+ * Functional tests for the Lucene 9 index editor covering real-world indexing scenarios, migrated in
+ * Task B4 to drive real commits through {@link LuceneNgIndexEditorProvider} (see
+ * {@link LuceneNgEditorCommitUtil}) instead of constructing the editor directly.
  */
 public class IndexingFunctionalTest {
 
-    @Test
-    public void testIndexEmptyNode() throws Exception {
-        NodeBuilder builder = INITIAL_CONTENT.builder();
-        NodeBuilder definition = builder.child("oak:index").child("test");
-        definition.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+    private static final String IDX = "/oak:index/test";
 
-        NodeBuilder root = INITIAL_CONTENT.builder();
-        NodeBuilder emptyNode = root.child("emptyNode");
-        emptyNode.setProperty(":primaryType", "nt:base");
+    private static IndexDefinitionBuilder lucene9(NodeBuilder rootBuilder) {
+        NodeBuilder defnBuilder = rootBuilder.child("oak:index").child("test");
+        IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
+        idb.noAsync();
+        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        return idb;
+    }
 
-        LuceneNgIndexEditor editor = new LuceneNgIndexEditor(
-            "/emptyNode", definition, root.getNodeState());
-
-        // Should not throw exception when entering and leaving node with only hidden properties
-        editor.enter(EMPTY_NODE, emptyNode.getNodeState());
-        editor.leave(EMPTY_NODE, emptyNode.getNodeState());
+    private static NodeBuilder node(NodeBuilder parent, String name) {
+        NodeBuilder b = parent.child(name);
+        b.setProperty("jcr:primaryType", "nt:unstructured");
+        return b;
     }
 
     @Test
-    public void testIndexDeepHierarchy() throws Exception {
-        NodeBuilder builder = INITIAL_CONTENT.builder();
-        NodeBuilder definition = builder.child("oak:index").child("test");
-        definition.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
-
+    public void emptyNodeWithOnlyHiddenPropertiesIsNotIndexed() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
+        lucene9(root).indexRule("nt:unstructured").property("title").propertyIndex();
+        // Only a hidden property -> no visible primaryType, no indexable property.
+        root.child("emptyNode").setProperty(":primaryType", "nt:base");
 
-        // Create 10-level deep hierarchy
-        NodeBuilder currentLevel = root.child("level0");
-        currentLevel.setProperty("title", "Level 0");
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
+        assertEquals("node with only hidden properties must not be indexed and must not error",
+                0, LuceneNgEditorCommitUtil.numDocs(indexed, IDX));
+    }
 
-        // Create root editor
-        LuceneNgIndexEditor editor = new LuceneNgIndexEditor(
-            "/level0", definition, root.getNodeState());
+    @Test
+    public void deepHierarchyIsIndexedWithoutError() throws Exception {
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        lucene9(root).indexRule("nt:unstructured").property("title").propertyIndex();
 
-        editor.enter(EMPTY_NODE, currentLevel.getNodeState());
-
-        // Create child editors for each level
+        NodeBuilder current = node(root, "level0");
+        current.setProperty("title", "Level 0");
         for (int i = 1; i < 10; i++) {
-            String levelName = "level" + i;
-            NodeBuilder childNode = currentLevel.child(levelName);
-            childNode.setProperty("title", "Level " + i);
-
-            // childNodeAdded should return a valid editor
-            Editor childEditor = editor.childNodeAdded(levelName, childNode.getNodeState());
-            assertNotNull("Child editor should be created for " + levelName, childEditor);
-
-            // Enter and leave should not throw
-            childEditor.enter(EMPTY_NODE, childNode.getNodeState());
-            childEditor.leave(EMPTY_NODE, childNode.getNodeState());
-
-            currentLevel = childNode;
+            current = node(current, "level" + i);
+            current.setProperty("title", "Level " + i);
         }
 
-        // Leave root editor should not throw
-        editor.leave(EMPTY_NODE, root.child("level0").getNodeState());
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
+        assertEquals("every node in the 10-level hierarchy must be indexed",
+                10, LuceneNgEditorCommitUtil.numDocs(indexed, IDX));
     }
 
     @Test
-    public void testIndexLargePropertyValue() throws Exception {
-        NodeBuilder builder = INITIAL_CONTENT.builder();
-        NodeBuilder definition = builder.child("oak:index").child("test");
-        definition.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
-
+    public void largePropertyValueIsHandledWithoutError() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        NodeBuilder nodeWithLargeProperty = root.child("largeNode");
+        // nodeScopeIndex (fulltext, tokenized) has no single-term length limit, unlike a StringField.
+        lucene9(root).indexRule("nt:unstructured").property("largeText").nodeScopeIndex();
 
-        // Create 100KB text (100*1024 chars cycling through alphabet)
         StringBuilder largeText = new StringBuilder(100 * 1024);
         for (int i = 0; i < 100 * 1024; i++) {
             largeText.append((char) ('a' + (i % 26)));
         }
+        node(root, "largeNode").setProperty("largeText", largeText.toString());
 
-        nodeWithLargeProperty.setProperty("largeText", largeText.toString());
-
-        LuceneNgIndexEditor editor = new LuceneNgIndexEditor(
-            "/largeNode", definition, root.getNodeState());
-
-        // Should not throw OOM or any exception
-        editor.enter(EMPTY_NODE, nodeWithLargeProperty.getNodeState());
-        editor.leave(EMPTY_NODE, nodeWithLargeProperty.getNodeState());
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
+        try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
+            IndexSearcher searcher = new IndexSearcher(reader);
+            assertEquals("large fulltext value must be indexed without OOM/errors", 1,
+                    searcher.search(new TermQuery(new Term(FieldNames.PATH, "/largeNode")), 10).totalHits.value);
+        }
     }
 
     @Test
-    public void testIndexSpecialCharacters() throws Exception {
-        NodeBuilder builder = INITIAL_CONTENT.builder();
-        NodeBuilder definition = builder.child("oak:index").child("test");
-        definition.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
-
+    public void specialCharactersAreHandledWithoutError() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        NodeBuilder nodeWithSpecialChars = root.child("specialNode");
+        lucene9(root).indexRule("nt:unstructured")
+                .property("unicode").propertyIndex()
+                .property("newlines").propertyIndex()
+                .property("quotes").propertyIndex()
+                .property("symbols").propertyIndex();
 
-        // Test various special character scenarios
-        nodeWithSpecialChars.setProperty("unicode", "Hello 世界 🌍");
-        nodeWithSpecialChars.setProperty("newlines", "Line 1\nLine 2\nLine 3");
-        nodeWithSpecialChars.setProperty("quotes", "She said \"hello\" and 'goodbye'");
-        nodeWithSpecialChars.setProperty("symbols", "!@#$%^&*()_+-={}[]|\\:;<>?,./");
+        NodeBuilder n = node(root, "specialNode");
+        n.setProperty("unicode", "Hello 世界 🌍");
+        n.setProperty("newlines", "Line 1\nLine 2\nLine 3");
+        n.setProperty("quotes", "She said \"hello\" and 'goodbye'");
+        n.setProperty("symbols", "!@#$%^&*()_+-={}[]|\\:;<>?,./");
 
-        LuceneNgIndexEditor editor = new LuceneNgIndexEditor(
-            "/specialNode", definition, root.getNodeState());
-
-        // Should handle all special characters without errors
-        editor.enter(EMPTY_NODE, nodeWithSpecialChars.getNodeState());
-        editor.leave(EMPTY_NODE, nodeWithSpecialChars.getNodeState());
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
+        assertEquals("special characters must be indexed without errors",
+                1, LuceneNgEditorCommitUtil.numDocs(indexed, IDX));
     }
 
     @Test
-    public void testIndexMixedPropertyTypes() throws Exception {
-        NodeBuilder builder = INITIAL_CONTENT.builder();
-        NodeBuilder definition = builder.child("oak:index").child("test");
-        definition.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
-
+    public void mixedPropertyTypesAreHandledWithoutError() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        NodeBuilder nodeWithMixedProps = root.child("mixedNode");
+        lucene9(root).indexRule("nt:unstructured")
+                .property("stringProp").propertyIndex()
+                .property("longProp").propertyIndex()
+                .property("booleanProp").propertyIndex()
+                .property("doubleProp").propertyIndex();
 
-        // Set properties of different types
-        nodeWithMixedProps.setProperty("stringProp", "Some text");
-        nodeWithMixedProps.setProperty("longProp", 12345L);
-        nodeWithMixedProps.setProperty("booleanProp", true);
-        nodeWithMixedProps.setProperty("doubleProp", 3.14159);
+        NodeBuilder n = node(root, "mixedNode");
+        n.setProperty("stringProp", "Some text");
+        n.setProperty("longProp", 12345L);
+        n.setProperty("booleanProp", true);
+        n.setProperty("doubleProp", 3.14159);
 
-        LuceneNgIndexEditor editor = new LuceneNgIndexEditor(
-            "/mixedNode", definition, root.getNodeState());
-
-        // Currently only strings are indexed in Phase 1, others should be ignored gracefully
-        editor.enter(EMPTY_NODE, nodeWithMixedProps.getNodeState());
-        editor.leave(EMPTY_NODE, nodeWithMixedProps.getNodeState());
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
+        assertEquals("mixed property types must be indexed without errors",
+                1, LuceneNgEditorCommitUtil.numDocs(indexed, IDX));
     }
 
     @Test
-    public void testHiddenPropertiesExcluded() throws Exception {
-        NodeBuilder builder = INITIAL_CONTENT.builder();
-        NodeBuilder definition = builder.child("oak:index").child("test");
-        definition.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
-
+    public void hiddenPropertiesAreExcluded() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        NodeBuilder nodeWithHiddenProps = root.child("hiddenPropsNode");
+        lucene9(root).indexRule("nt:unstructured").property("normalProp").propertyIndex();
 
-        // Set both normal and hidden properties
-        nodeWithHiddenProps.setProperty("normalProp", "This should be indexed");
-        nodeWithHiddenProps.setProperty(":hiddenProp", "This should be skipped");
-        nodeWithHiddenProps.setProperty(":jcr:primaryType", "nt:base");
+        NodeBuilder n = node(root, "hiddenPropsNode");
+        n.setProperty("normalProp", "This should be indexed");
+        n.setProperty(":hiddenProp", "This should be skipped");
 
-        LuceneNgIndexEditor editor = new LuceneNgIndexEditor(
-            "/hiddenPropsNode", definition, root.getNodeState());
-
-        // Editor should handle both types, indexing normal and skipping hidden
-        editor.enter(EMPTY_NODE, nodeWithHiddenProps.getNodeState());
-        editor.leave(EMPTY_NODE, nodeWithHiddenProps.getNodeState());
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
+        try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
+            IndexSearcher searcher = new IndexSearcher(reader);
+            assertEquals(1, searcher.search(new TermQuery(new Term(FieldNames.PATH, "/hiddenPropsNode")), 10).totalHits.value);
+            assertNull("hidden ':hiddenProp' must never become a Lucene field",
+                    reader.leaves().get(0).reader().getFieldInfos().fieldInfo(":hiddenProp"));
+        }
     }
 
     @Test
-    public void testNodeUpdateReplacesDocument() throws Exception {
-        NodeBuilder builder = INITIAL_CONTENT.builder();
-        NodeBuilder oakIndex = builder.child("oak:index").child("testIdx");
-        oakIndex.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+    public void nodeUpdateReplacesDocument() throws Exception {
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        lucene9(root).indexRule("nt:unstructured").property("title").propertyIndex();
+        node(root.child("content"), "page1").setProperty("title", "Original Title");
 
-        NodeBuilder content = builder.child("content").child("page1");
-        content.setProperty("title", "Original Title");
+        NodeState base = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
 
-        // First indexing
-        LuceneNgIndexEditor editor = new LuceneNgIndexEditor("/content/page1", oakIndex, builder.getNodeState());
-        editor.enter(EMPTY_NODE, content.getNodeState());
-        editor.leave(EMPTY_NODE, content.getNodeState());
+        NodeBuilder b2 = base.builder();
+        b2.child("content").child("page1").setProperty("title", "Updated Title");
+        NodeState indexed = LuceneNgEditorCommitUtil.commit(base, b2.getNodeState());
 
-        // Second indexing of same path with different content
-        content.setProperty("title", "Updated Title");
-        LuceneNgIndexEditor editor2 = new LuceneNgIndexEditor("/content/page1", oakIndex, builder.getNodeState());
-        editor2.enter(EMPTY_NODE, content.getNodeState());
-        editor2.leave(EMPTY_NODE, content.getNodeState());
-
-        // Convenience constructor uses "/oak:index/default" as indexPath, so dir name is "default"
-        try (DirectoryReader reader = DirectoryReader.open(
-                new OakDirectory(oakIndex.child(LuceneNgIndexStorage.STORAGE_NODE_NAME), "default", true))) {
+        try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             IndexSearcher searcher = new IndexSearcher(reader);
             TopDocs hits = searcher.search(new TermQuery(new Term(FieldNames.PATH, "/content/page1")), 10);
             assertEquals("Should have exactly one document, not a duplicate", 1, hits.totalHits.value);
@@ -218,58 +182,43 @@ public class IndexingFunctionalTest {
     }
 
     @Test
-    public void testNodeDeletionRemovesDocument() throws Exception {
-        NodeBuilder builder = INITIAL_CONTENT.builder();
-        NodeBuilder oakIndex = builder.child("oak:index").child("testIdx");
-        oakIndex.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+    public void nodeDeletionRemovesDocument() throws Exception {
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        lucene9(root).indexRule("nt:unstructured").property("title").propertyIndex();
+        NodeBuilder contentNode = root.child("content");
+        node(contentNode, "keep").setProperty("title", "Keep me");
+        node(contentNode, "remove").setProperty("title", "Delete me");
 
-        NodeBuilder content = builder.child("content");
-        content.child("keep").setProperty("title", "Keep me");
-        content.child("remove").setProperty("title", "Delete me");
+        NodeState base = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
 
-        // Index both nodes
-        for (String name : new String[]{"keep", "remove"}) {
-            NodeBuilder child = content.child(name);
-            LuceneNgIndexEditor ed = new LuceneNgIndexEditor("/content/" + name, oakIndex, builder.getNodeState());
-            ed.enter(EMPTY_NODE, child.getNodeState());
-            ed.leave(EMPTY_NODE, child.getNodeState());
-        }
+        NodeBuilder b2 = base.builder();
+        b2.child("content").child("remove").remove();
+        NodeState indexed = LuceneNgEditorCommitUtil.commit(base, b2.getNodeState());
 
-        // Delete /content/remove via parent editor
-        LuceneNgIndexEditor parentEditor = new LuceneNgIndexEditor("/content", oakIndex, builder.getNodeState());
-        parentEditor.enter(EMPTY_NODE, content.getNodeState());
-        parentEditor.childNodeDeleted("remove", content.child("remove").getNodeState());
-        parentEditor.leave(EMPTY_NODE, content.getNodeState());
-
-        try (DirectoryReader reader = DirectoryReader.open(
-                new OakDirectory(oakIndex.child(LuceneNgIndexStorage.STORAGE_NODE_NAME), "default", true))) {
+        try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             IndexSearcher searcher = new IndexSearcher(reader);
-            TopDocs keepHits   = searcher.search(new TermQuery(new Term(FieldNames.PATH, "/content/keep")),   10);
+            TopDocs keepHits = searcher.search(new TermQuery(new Term(FieldNames.PATH, "/content/keep")), 10);
             TopDocs removeHits = searcher.search(new TermQuery(new Term(FieldNames.PATH, "/content/remove")), 10);
             assertEquals("keep should still be indexed", 1, keepHits.totalHits.value);
-            assertEquals("remove should be deleted",     0, removeHits.totalHits.value);
+            assertEquals("remove should be deleted", 0, removeHits.totalHits.value);
         }
     }
 
     @Test
-    public void testIndexManyProperties() throws Exception {
-        NodeBuilder builder = INITIAL_CONTENT.builder();
-        NodeBuilder definition = builder.child("oak:index").child("test");
-        definition.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
-
+    public void manyPropertiesAreHandledWithoutError() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        NodeBuilder nodeWithManyProps = root.child("manyPropsNode");
+        lucene9(root).indexRule("nt:unstructured").property("prop.*", true).propertyIndex();
 
-        // Create 100 properties
+        NodeBuilder n = node(root, "manyPropsNode");
         for (int i = 0; i < 100; i++) {
-            nodeWithManyProps.setProperty("prop" + i, "Value for property " + i);
+            n.setProperty("prop" + i, "Value for property " + i);
         }
 
-        LuceneNgIndexEditor editor = new LuceneNgIndexEditor(
-            "/manyPropsNode", definition, root.getNodeState());
-
-        // Should handle large number of properties without issues
-        editor.enter(EMPTY_NODE, nodeWithManyProps.getNodeState());
-        editor.leave(EMPTY_NODE, nodeWithManyProps.getNodeState());
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
+        try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
+            IndexSearcher searcher = new IndexSearcher(reader);
+            assertEquals("a node with 100 indexed properties must be indexed without errors", 1,
+                    searcher.search(new TermQuery(new Term(FieldNames.PATH, "/manyPropsNode")), 10).totalHits.value);
+        }
     }
 }

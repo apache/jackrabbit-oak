@@ -77,4 +77,17 @@ public class LuceneNgIndexDefinitionTest {
         // that use it. For now, just verify the class compiles and works.
         assertNotNull(definition);
     }
+
+    @Test
+    public void builderProducesAWorkingDefinition() {
+        NodeState defnState = builder.getNodeState();
+        LuceneNgIndexDefinition definition = new LuceneNgIndexDefinition.Builder()
+                .root(root)
+                .defn(defnState)
+                .indexPath("/oak:index/test")
+                .build();
+
+        assertNotNull(definition);
+        assertEquals("/oak:index/test", definition.getIndexPath());
+    }
 }

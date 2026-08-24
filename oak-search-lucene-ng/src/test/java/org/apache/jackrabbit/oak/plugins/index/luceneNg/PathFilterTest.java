@@ -16,62 +16,69 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
-import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.TermQuery;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertEquals;
 
 /**
- * Tests that LuceneNgIndexEditor respects includedPaths when deciding
- * whether to return child editors.
+ * Tests that the Lucene 9 index editor respects {@code includedPaths}: content under an included
+ * path is indexed, and content outside it is skipped.
+ *
+ * <p>Task B4 migrated these from asserting on the editor's {@code childNodeAdded} return value
+ * (INCLUDE vs EXCLUDE child editors) to asserting on the observable outcome of a real commit — which
+ * paths end up as documents in the index.</p>
  */
 public class PathFilterTest {
 
-    private LuceneNgIndexEditor editorFor(String path, NodeBuilder defnBuilder,
-                                          NodeState root) throws Exception {
-        return new LuceneNgIndexEditor(path, defnBuilder, root);
-    }
+    private static final String IDX = "/oak:index/test";
 
-    /**
-     * When the index has includedPaths=[/content/dam], a childNodeAdded call
-     * for a node UNDER the included path must return a non-null editor so that
-     * descendants are indexed.
-     */
-    @Test
-    public void childEditorReturnedForIncludedPath() throws Exception {
-        NodeBuilder defnBuilder = INITIAL_CONTENT.builder().child("oak:index").child("test");
+    private static NodeState indexWithIncludedDam() throws Exception {
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        NodeBuilder defnBuilder = root.child("oak:index").child("test");
         IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
+        idb.noAsync();
         idb.includedPaths("/content/dam");
         idb.indexRule("nt:unstructured").property("title").propertyIndex();
+        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
 
-        LuceneNgIndexEditor root = editorFor("/", defnBuilder, INITIAL_CONTENT);
-        Editor content = root.childNodeAdded("content", EMPTY_NODE);
-        assertNotNull("editor for /content must not be null (TRAVERSE path)", content);
+        // Node under the included path.
+        NodeBuilder asset = root.child("content").child("dam").child("asset");
+        asset.setProperty("jcr:primaryType", "nt:unstructured");
+        asset.setProperty("title", "included");
+        // Node outside the included path.
+        NodeBuilder libs = root.child("libs").child("thing");
+        libs.setProperty("jcr:primaryType", "nt:unstructured");
+        libs.setProperty("title", "excluded");
 
-        Editor dam = ((LuceneNgIndexEditor) content).childNodeAdded("dam", EMPTY_NODE);
-        assertNotNull("editor for /content/dam must not be null (INCLUDE path)", dam);
+        return LuceneNgEditorCommitUtil.reindex(root.getNodeState());
     }
 
-    /**
-     * When the index has includedPaths=[/content/dam], a childNodeAdded call
-     * for a node OUTSIDE the included path (e.g. /libs) must return null so
-     * that the entire subtree is skipped.
-     */
     @Test
-    public void childEditorNotReturnedForExcludedPath() throws Exception {
-        NodeBuilder defnBuilder = INITIAL_CONTENT.builder().child("oak:index").child("test");
-        IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
-        idb.includedPaths("/content/dam");
-        idb.indexRule("nt:unstructured").property("title").propertyIndex();
+    public void contentUnderIncludedPathIsIndexed() throws Exception {
+        NodeState indexed = indexWithIncludedDam();
+        try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
+            IndexSearcher searcher = new IndexSearcher(reader);
+            assertEquals("node under includedPaths=/content/dam must be indexed", 1,
+                    searcher.search(new TermQuery(new Term(FieldNames.PATH, "/content/dam/asset")), 10).totalHits.value);
+        }
+    }
 
-        LuceneNgIndexEditor root = editorFor("/", defnBuilder, INITIAL_CONTENT);
-        Editor libs = root.childNodeAdded("libs", EMPTY_NODE);
-        assertNull("editor for /libs must be null (EXCLUDE path)", libs);
+    @Test
+    public void contentOutsideIncludedPathIsNotIndexed() throws Exception {
+        NodeState indexed = indexWithIncludedDam();
+        try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
+            IndexSearcher searcher = new IndexSearcher(reader);
+            assertEquals("node outside includedPaths=/content/dam must be skipped", 0,
+                    searcher.search(new TermQuery(new Term(FieldNames.PATH, "/libs/thing")), 10).totalHits.value);
+        }
     }
 }

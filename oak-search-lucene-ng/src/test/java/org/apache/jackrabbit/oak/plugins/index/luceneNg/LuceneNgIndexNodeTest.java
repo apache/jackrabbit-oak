@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgIndexNode;
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgIndexNodeManager;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.index.IndexWriter;
@@ -32,7 +33,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.Assert.*;
 
 /**
- * Tests for LuceneNgIndexNode acquire/release/close lifecycle.
+ * Tests for {@link LuceneNgIndexNode} wrapped by {@link LuceneNgIndexNodeManager}, whose
+ * inherited {@code IndexNodeManager} acquire()/release()/close() lifecycle replaces the old
+ * hand-rolled lock/AcquiredNode design.
  */
 public class LuceneNgIndexNodeTest {
 
@@ -53,55 +56,62 @@ public class LuceneNgIndexNodeTest {
         return builder.getNodeState();
     }
 
-    private static LuceneNgIndexNode openNode(NodeState root, String indexPath) {
+    private static LuceneNgIndexNodeManager openManager(NodeState root, String indexPath) {
         NodeState indexState = root.getChildNode("oak:index").getChildNode("testIndex");
-        return new LuceneNgIndexNode(indexPath, root, indexState);
+        LuceneNgIndexNode node = new LuceneNgIndexNode(indexPath, root, indexState);
+        return new LuceneNgIndexNodeManager(indexPath, node);
     }
 
     @Test
     public void acquireReturnsNonNullWhenDataExists() throws Exception {
         NodeState root = buildIndexWithData("/oak:index/testIndex");
-        LuceneNgIndexNode node = openNode(root, "/oak:index/testIndex");
+        LuceneNgIndexNodeManager manager = openManager(root, "/oak:index/testIndex");
         try {
-            LuceneNgIndexNode.AcquiredNode acquired = node.acquire();
+            LuceneNgIndexNode acquired = manager.acquire();
             assertNotNull("acquire() must return non-null when index data exists", acquired);
-            assertNotNull("AcquiredNode must expose a searcher", acquired.getSearcher());
-            assertNotNull("AcquiredNode must expose a definition", acquired.getDefinition());
+            assertNotNull("acquired node must expose a searcher", acquired.getSearcher());
+            assertNotNull("acquired node must expose a definition", acquired.getDefinition());
             acquired.release();
         } finally {
-            node.close();
+            manager.close();
         }
     }
 
     @Test
     public void acquireReturnsNullAfterClose() throws Exception {
         NodeState root = buildIndexWithData("/oak:index/testIndex");
-        LuceneNgIndexNode node = openNode(root, "/oak:index/testIndex");
-        node.close();
-        assertNull("acquire() must return null after node is closed", node.acquire());
+        LuceneNgIndexNodeManager manager = openManager(root, "/oak:index/testIndex");
+        manager.close();
+        assertNull("acquire() must return null after the manager is closed", manager.acquire());
     }
 
     @Test
-    public void releaseIsIdempotent() throws Exception {
+    public void releaseTwiceThrowsIllegalMonitorState() throws Exception {
+        // The shared IndexNodeManager read/write lock (inherited from oak-search) requires
+        // exactly one release() per acquire() -- it does not guard against double-release
+        // the way the old hand-rolled AcquiredNode.release() used to (an AtomicBoolean
+        // guard that is no longer needed/present: production call sites -- LuceneNgCursor's
+        // java.lang.ref.Cleaner.Cleanable -- already guarantee single invocation). Calling
+        // release() twice now surfaces as a loud IllegalMonitorStateException instead of a
+        // silent no-op, which is the inherited contract, not a bug.
         NodeState root = buildIndexWithData("/oak:index/testIndex");
-        LuceneNgIndexNode node = openNode(root, "/oak:index/testIndex");
+        LuceneNgIndexNodeManager manager = openManager(root, "/oak:index/testIndex");
         try {
-            LuceneNgIndexNode.AcquiredNode acquired = node.acquire();
+            LuceneNgIndexNode acquired = manager.acquire();
             assertNotNull(acquired);
             acquired.release();
-            // second release must not throw
-            acquired.release();
+            assertThrows(IllegalMonitorStateException.class, acquired::release);
         } finally {
-            node.close();
+            manager.close();
         }
     }
 
     @Test
     public void closeBlocksUntilAllAcquiredNodesAreReleased() throws Exception {
         NodeState root = buildIndexWithData("/oak:index/testIndex");
-        LuceneNgIndexNode node = openNode(root, "/oak:index/testIndex");
+        LuceneNgIndexNodeManager manager = openManager(root, "/oak:index/testIndex");
 
-        LuceneNgIndexNode.AcquiredNode acquired = node.acquire();
+        LuceneNgIndexNode acquired = manager.acquire();
         assertNotNull(acquired);
 
         CountDownLatch closeDone = new CountDownLatch(1);
@@ -109,7 +119,7 @@ public class LuceneNgIndexNodeTest {
 
         Thread closeThread = new Thread(() -> {
             try {
-                node.close();
+                manager.close();
             } catch (Throwable t) {
                 closeError.set(t);
             } finally {

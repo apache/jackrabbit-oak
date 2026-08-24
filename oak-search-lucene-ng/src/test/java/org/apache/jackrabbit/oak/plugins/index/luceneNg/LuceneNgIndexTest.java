@@ -481,11 +481,14 @@ public class LuceneNgIndexTest {
         NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
         NodeBuilder oakIndex = builder.child("oak:index").child("testIdx");
         oakIndex.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
-        // Add index rule so the editor actually indexes these nodes
+        oakIndex.setProperty("reindex", true);
+        oakIndex.setProperty("jcr:primaryType", "oak:QueryIndexDefinition",
+                org.apache.jackrabbit.oak.api.Type.NAME);
+        // Add index rule so the editor actually indexes these nodes (sync lucene9 index: no "async").
         oakIndex.child("indexRules").child("nt:unstructured").child("properties")
                 .child("title").setProperty("name", "title").setProperty("propertyIndex", true);
 
-        // Write /a, /a/b, /a/b/c, /x using the convenience constructor (definition-backed storage)
+        // Build /a, /a/b, /a/b/c, /x into the tree, then index them via a real commit.
         for (String path : new String[]{"/a", "/a/b", "/a/b/c", "/x"}) {
             NodeBuilder nb = builder;
             for (String seg : path.substring(1).split("/")) {
@@ -493,14 +496,11 @@ public class LuceneNgIndexTest {
             }
             nb.setProperty("jcr:primaryType", "nt:unstructured");
             nb.setProperty("title", "node-at-" + path);
-            LuceneNgIndexEditor ed = new LuceneNgIndexEditor(path, oakIndex, builder.getNodeState());
-            ed.enter(org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE, nb.getNodeState());
-            ed.leave(org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE, nb.getNodeState());
         }
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(builder.getNodeState());
 
-        // Read back from definition-backed directory (convenience constructor uses dir name "default")
-        try (DirectoryReader reader = DirectoryReader.open(
-                new OakDirectory(oakIndex.child(LuceneNgIndexStorage.STORAGE_NODE_NAME), "default", true))) {
+        // Read back from the committed index storage (Lucene directory name = index node name).
+        try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, "/oak:index/testIdx")) {
             IndexSearcher searcher = new IndexSearcher(reader);
             // Direct children of /a should be only /a/b
             // The editor writes the parent path under LuceneNgIndexConstants.FIELD_PARENT_PATH (":parent")
@@ -1012,7 +1012,7 @@ public class LuceneNgIndexTest {
 
         LuceneNgIndex index = new LuceneNgIndex(tracker, "/oak:index/testIdx");
 
-        LuceneNgIndexNode.AcquiredNode indexNode = tracker.acquireIndexNode("/oak:index/testIdx");
+        LuceneNgIndexNode indexNode = tracker.acquireIndexNode("/oak:index/testIdx");
         assertNotNull("Index node must be resolvable", indexNode);
         try {
             IndexSearcher searcher = indexNode.getSearcher();

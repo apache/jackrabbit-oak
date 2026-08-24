@@ -16,8 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -26,67 +25,47 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
-import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.junit.Test;
 
-import java.util.List;
+import java.util.Arrays;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 /**
- * Tests that LuceneNgIndexEditor only indexes properties declared in the index definition,
- * using the proper field types based on PropertyDefinition flags.
+ * Tests that the Lucene 9 index editor only indexes properties declared in the index definition,
+ * using the proper Lucene field types based on {@code PropertyDefinition} flags.
+ *
+ * <p>Task B4 migrated these from driving {@code LuceneNgIndexEditor} directly to driving real
+ * commits through {@link LuceneNgIndexEditorProvider} (see {@link LuceneNgEditorCommitUtil}); the
+ * assertions are unchanged in intent — they still inspect the committed Lucene index (documents,
+ * fields, doc-values) via a {@link DirectoryReader} opened over the {@code /oak:index/test/lucene9}
+ * storage.</p>
  */
 public class IndexingRulesTest {
 
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
+    private static final String IDX = "/oak:index/test";
 
-    /**
-     * Builds the index definition NodeState from an IndexDefinitionBuilder and
-     * returns a ready-to-use LuceneNgIndexEditor for the given content node.
-     *
-     * The editor uses the 3-argument convenience constructor:
-     *   LuceneNgIndexEditor(path, definitionBuilder, root)
-     *
-     * Index data is written into the definition NodeBuilder itself (as the
-     * OakDirectory storage root), which lets tests open it with OakDirectory.
-     */
-    private LuceneNgIndexEditor editorFor(String path, NodeBuilder definitionBuilder,
-                                          NodeState root) throws Exception {
-        return new LuceneNgIndexEditor(path, definitionBuilder, root);
+    /** Creates a synchronous {@code lucene9} index definition builder at {@code /oak:index/test}. */
+    private static IndexDefinitionBuilder lucene9(NodeBuilder rootBuilder) {
+        NodeBuilder defnBuilder = rootBuilder.child("oak:index").child("test");
+        IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
+        idb.noAsync();
+        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        return idb;
     }
 
-    /** Index the given node, commit, and return a searcher over the written data. */
-    private IndexSearcher indexAndOpen(LuceneNgIndexEditor editor,
-                                       NodeState before, NodeState after,
-                                       NodeBuilder definitionBuilder) throws Exception {
-        editor.enter(before, after);
-        editor.leave(before, after);
-        DirectoryReader reader = DirectoryReader.open(
-                new OakDirectory(definitionBuilder.child(LuceneNgIndexStorage.STORAGE_NODE_NAME), "default", true));
-        return new IndexSearcher(reader);
-    }
-
-    /** Return the single document in the index, or null if none. */
-    private Document singleDoc(IndexSearcher searcher) throws Exception {
-        TopDocs hits = searcher.search(new MatchAllDocsQuery(), 10);
-        if (hits.totalHits.value == 0) return null;
-        return searcher.storedFields().document(hits.scoreDocs[0].doc);
-    }
-
-    /** Build a NodeBuilder with jcr:primaryType set. */
-    private NodeBuilder nodeOf(String primaryType) {
-        NodeBuilder b = INITIAL_CONTENT.builder().child("content");
+    private static NodeBuilder content(NodeBuilder rootBuilder, String name, String primaryType) {
+        NodeBuilder b = rootBuilder.child(name);
         b.setProperty("jcr:primaryType", primaryType);
         return b;
     }
@@ -97,35 +76,24 @@ public class IndexingRulesTest {
 
     @Test
     public void nodeNotMatchingAnyRuleIsNotIndexed() throws Exception {
-        NodeBuilder defnBuilder = INITIAL_CONTENT.builder().child("oak:index").child("test");
-        IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
-        idb.indexRule("nt:folder").property("title").propertyIndex();
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        lucene9(root).indexRule("nt:folder").property("title").propertyIndex();
+        content(root, "content", "nt:unstructured").setProperty("title", "hello");
 
-        NodeBuilder content = nodeOf("nt:unstructured");
-        content.setProperty("title", "hello");
-
-        LuceneNgIndexEditor editor = editorFor("/content", defnBuilder, INITIAL_CONTENT);
-        IndexSearcher searcher = indexAndOpen(editor, EMPTY_NODE, content.getNodeState(), defnBuilder);
-
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
         assertEquals("node type not in rules — must not produce a document",
-                0, searcher.search(new MatchAllDocsQuery(), 10).totalHits.value);
+                0, LuceneNgEditorCommitUtil.numDocs(indexed, IDX));
     }
 
     @Test
     public void nodeMatchingRuleWithNoPropertiesProducesNoDocument() throws Exception {
-        NodeBuilder defnBuilder = INITIAL_CONTENT.builder().child("oak:index").child("test");
-        IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
-        // rule exists but no properties configured
-        idb.indexRule("nt:unstructured");
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        lucene9(root).indexRule("nt:unstructured"); // rule exists but no properties configured
+        content(root, "content", "nt:unstructured").setProperty("title", "hello");
 
-        NodeBuilder content = nodeOf("nt:unstructured");
-        content.setProperty("title", "hello");
-
-        LuceneNgIndexEditor editor = editorFor("/content", defnBuilder, INITIAL_CONTENT);
-        IndexSearcher searcher = indexAndOpen(editor, EMPTY_NODE, content.getNodeState(), defnBuilder);
-
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
         assertEquals("rule with no properties — must not produce a document",
-                0, searcher.search(new MatchAllDocsQuery(), 10).totalHits.value);
+                0, LuceneNgEditorCommitUtil.numDocs(indexed, IDX));
     }
 
     // -------------------------------------------------------------------------
@@ -134,51 +102,44 @@ public class IndexingRulesTest {
 
     @Test
     public void onlyConfiguredPropertyIsIndexed() throws Exception {
-        NodeBuilder defnBuilder = INITIAL_CONTENT.builder().child("oak:index").child("test");
-        IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
-        idb.indexRule("nt:unstructured").property("title").propertyIndex();
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        lucene9(root).indexRule("nt:unstructured").property("title").propertyIndex();
+        NodeBuilder c = content(root, "content", "nt:unstructured");
+        c.setProperty("title", "hello");
+        c.setProperty("description", "world");
 
-        NodeBuilder content = nodeOf("nt:unstructured");
-        content.setProperty("title", "hello");
-        content.setProperty("description", "world");
-
-        LuceneNgIndexEditor editor = editorFor("/content", defnBuilder, INITIAL_CONTENT);
-        IndexSearcher searcher = indexAndOpen(editor, EMPTY_NODE, content.getNodeState(), defnBuilder);
-
-        TopDocs hits = searcher.search(new MatchAllDocsQuery(), 10);
-        assertEquals(1, hits.totalHits.value);
-
-        LeafReader leafReader = searcher.getIndexReader().leaves().get(0).reader();
-        assertNotNull("configured 'title' field must be present",
-                leafReader.getFieldInfos().fieldInfo("title"));
-        assertNull("unconfigured 'description' field must be absent",
-                leafReader.getFieldInfos().fieldInfo("description"));
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
+        try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
+            IndexSearcher searcher = new IndexSearcher(reader);
+            assertEquals(1, searcher.search(new TermQuery(new Term(FieldNames.PATH, "/content")), 10).totalHits.value);
+            LeafReader leaf = reader.leaves().get(0).reader();
+            assertNotNull("configured 'title' field must be present",
+                    leaf.getFieldInfos().fieldInfo("title"));
+            assertNull("unconfigured 'description' field must be absent",
+                    leaf.getFieldInfos().fieldInfo("description"));
+        }
     }
 
     @Test
     public void propertyWithIndexFalseIsSkipped() throws Exception {
-        NodeBuilder defnBuilder = INITIAL_CONTENT.builder().child("oak:index").child("test");
-        // Manually craft a rule where index=false
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        // Manually craft a rule where index=false; make it a real sync lucene9 index.
+        NodeBuilder defnBuilder = root.child("oak:index").child("test");
+        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        defnBuilder.setProperty("reindex", true);
+        defnBuilder.setProperty("jcr:primaryType", "oak:QueryIndexDefinition", Type.NAME);
         defnBuilder.child("indexRules").child("nt:unstructured")
                 .child("properties").child("title")
                 .setProperty("name", "title")
                 .setProperty("index", false)
                 .setProperty("propertyIndex", false);
 
-        NodeBuilder content = nodeOf("nt:unstructured");
-        content.setProperty("title", "hello");
-        content.setProperty("jcr:primaryType", "nt:unstructured");
+        content(root, "content", "nt:unstructured").setProperty("title", "hello");
 
-        LuceneNgIndexEditor editor = editorFor("/content", defnBuilder, INITIAL_CONTENT);
-        IndexSearcher searcher = indexAndOpen(editor, EMPTY_NODE, content.getNodeState(), defnBuilder);
-
-        // index=false means the property entry exists but should not be indexed
-        TopDocs hits = searcher.search(new MatchAllDocsQuery(), 10);
-        // The document should not exist (no indexed fields other than system fields)
-        if (hits.totalHits.value > 0) {
-            Document doc = searcher.storedFields().document(hits.scoreDocs[0].doc);
-            assertNull("index=false property must not produce a field", doc.getField("title"));
-        }
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
+        // index=false means the property must not be indexed, so the node produces no document.
+        assertEquals("index=false property must not produce an indexed document",
+                0, LuceneNgEditorCommitUtil.numDocs(indexed, IDX));
     }
 
     // -------------------------------------------------------------------------
@@ -187,81 +148,53 @@ public class IndexingRulesTest {
 
     @Test
     public void nodeScopeIndexAddsFulltextField() throws Exception {
-        NodeBuilder defnBuilder = INITIAL_CONTENT.builder().child("oak:index").child("test");
-        IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
-        idb.indexRule("nt:unstructured").property("body").nodeScopeIndex();
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        lucene9(root).indexRule("nt:unstructured").property("body").nodeScopeIndex();
+        content(root, "content", "nt:unstructured").setProperty("body", "search me");
 
-        NodeBuilder content = nodeOf("nt:unstructured");
-        content.setProperty("body", "search me");
-
-        LuceneNgIndexEditor editor = editorFor("/content", defnBuilder, INITIAL_CONTENT);
-        IndexSearcher searcher = indexAndOpen(editor, EMPTY_NODE, content.getNodeState(), defnBuilder);
-
-        TopDocs hits = searcher.search(new MatchAllDocsQuery(), 10);
-        assertEquals(1, hits.totalHits.value);
-        Document doc = searcher.storedFields().document(hits.scoreDocs[0].doc);
-        // FieldNames.FULLTEXT field is stored when useInExcerpt=true, not stored otherwise,
-        // but the field should be present in the index (confirmed via field list on leaf reader)
-        boolean fulltextPresent = false;
-        for (IndexableField f : doc.getFields()) {
-            if (FieldNames.FULLTEXT.equals(f.name())) {
-                fulltextPresent = true;
-                break;
-            }
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
+        try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
+            LeafReader leaf = reader.leaves().get(0).reader();
+            assertNotNull("FULLTEXT field should exist in index schema for nodeScopeIndex",
+                    leaf.getFieldInfos().fieldInfo(FieldNames.FULLTEXT));
         }
-        // nodeScopeIndex means fulltext field is added; if not stored, it won't appear in
-        // stored fields — verify via the direct document's fields list which includes all added fields
-        // Since TextField(FULLTEXT, "search me", Field.Store.NO) is not stored,
-        // we check the leaf reader's fieldInfos instead
-        LeafReader leafReader = searcher.getIndexReader().leaves().get(0).reader();
-        assertNotNull("FULLTEXT field should exist in index schema",
-                leafReader.getFieldInfos().fieldInfo(FieldNames.FULLTEXT));
     }
 
     @Test
     public void propertyWithoutNodeScopeIndexDoesNotContributeToFulltext() throws Exception {
-        NodeBuilder defnBuilder = INITIAL_CONTENT.builder().child("oak:index").child("test");
-        IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
-        idb.indexRule("nt:unstructured").property("status").propertyIndex();
-        // nodeScopeIndex NOT called — defaults to false
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        lucene9(root).indexRule("nt:unstructured").property("status").propertyIndex();
+        content(root, "content", "nt:unstructured").setProperty("status", "active");
 
-        NodeBuilder content = nodeOf("nt:unstructured");
-        content.setProperty("status", "active");
-
-        LuceneNgIndexEditor editor = editorFor("/content", defnBuilder, INITIAL_CONTENT);
-        IndexSearcher searcher = indexAndOpen(editor, EMPTY_NODE, content.getNodeState(), defnBuilder);
-
-        LeafReader leafReader = searcher.getIndexReader().leaves().get(0).reader();
-        assertNull("FULLTEXT field must be absent when nodeScopeIndex=false",
-                leafReader.getFieldInfos().fieldInfo(FieldNames.FULLTEXT));
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
+        try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
+            LeafReader leaf = reader.leaves().get(0).reader();
+            assertNull("FULLTEXT field must be absent when nodeScopeIndex=false",
+                    leaf.getFieldInfos().fieldInfo(FieldNames.FULLTEXT));
+        }
     }
 
     @Test
     public void storedNodeScopeIndexFieldIsStoredForExcerpt() throws Exception {
-        NodeBuilder defnBuilder = INITIAL_CONTENT.builder().child("oak:index").child("test");
-        IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
-        idb.indexRule("nt:unstructured").property("body")
-                .nodeScopeIndex()
-                .useInExcerpt();
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        lucene9(root).indexRule("nt:unstructured").property("body").nodeScopeIndex().useInExcerpt();
+        content(root, "content", "nt:unstructured").setProperty("body", "the excerpt value");
 
-        NodeBuilder content = nodeOf("nt:unstructured");
-        content.setProperty("body", "the excerpt value");
-
-        LuceneNgIndexEditor editor = editorFor("/content", defnBuilder, INITIAL_CONTENT);
-        IndexSearcher searcher = indexAndOpen(editor, EMPTY_NODE, content.getNodeState(), defnBuilder);
-
-        TopDocs hits = searcher.search(new MatchAllDocsQuery(), 10);
-        assertEquals(1, hits.totalHits.value);
-        Document doc = searcher.storedFields().document(hits.scoreDocs[0].doc);
-
-        boolean storedFulltext = false;
-        for (IndexableField f : doc.getFields()) {
-            if (FieldNames.FULLTEXT.equals(f.name()) && f.stringValue() != null) {
-                storedFulltext = true;
-                break;
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
+        try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
+            IndexSearcher searcher = new IndexSearcher(reader);
+            TopDocs hits = searcher.search(new TermQuery(new Term(FieldNames.PATH, "/content")), 10);
+            assertEquals(1, hits.totalHits.value);
+            Document doc = searcher.storedFields().document(hits.scoreDocs[0].doc);
+            boolean storedFulltext = false;
+            for (IndexableField f : doc.getFields()) {
+                if (FieldNames.FULLTEXT.equals(f.name()) && f.stringValue() != null) {
+                    storedFulltext = true;
+                    break;
+                }
             }
+            assertTrue("FULLTEXT field must be stored when useInExcerpt=true", storedFulltext);
         }
-        assertTrue("FULLTEXT field must be stored when useInExcerpt=true", storedFulltext);
     }
 
     // -------------------------------------------------------------------------
@@ -270,24 +203,15 @@ public class IndexingRulesTest {
 
     @Test
     public void orderedStringPropertyHasSortedDocValues() throws Exception {
-        NodeBuilder defnBuilder = INITIAL_CONTENT.builder().child("oak:index").child("test");
-        IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
-        idb.indexRule("nt:unstructured").property("title").ordered();
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        lucene9(root).indexRule("nt:unstructured").property("title").ordered();
+        content(root, "content", "nt:unstructured").setProperty("title", "hello");
 
-        NodeBuilder content = nodeOf("nt:unstructured");
-        content.setProperty("title", "hello");
-
-        LuceneNgIndexEditor editor = editorFor("/content", defnBuilder, INITIAL_CONTENT);
-        editor.enter(EMPTY_NODE, content.getNodeState());
-        editor.leave(EMPTY_NODE, content.getNodeState());
-
-        try (DirectoryReader reader = DirectoryReader.open(
-                new OakDirectory(defnBuilder.child(LuceneNgIndexStorage.STORAGE_NODE_NAME), "default", true))) {
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
+        try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             LeafReader leaf = reader.leaves().get(0).reader();
             // A single-valued "ordered" String property is written as a SortedSetDocValuesField
-            // (not a SortedDocValuesField), so that its doc-values type is consistent with the
-            // multi-valued case for the same field name -- Lucene requires one doc-values type
-            // per field across the whole index (see LuceneNgIndexEditor.indexStringProperty).
+            // (not a SortedDocValuesField), matching the multi-valued field's doc-values type.
             SortedSetDocValues ssdv = leaf.getSortedSetDocValues("title");
             assertNotNull("ordered String property must have SortedSetDocValues", ssdv);
             assertTrue("SortedSetDocValues must have a value for doc 0", ssdv.advanceExact(0));
@@ -299,19 +223,12 @@ public class IndexingRulesTest {
 
     @Test
     public void orderedLongPropertyHasNumericDocValues() throws Exception {
-        NodeBuilder defnBuilder = INITIAL_CONTENT.builder().child("oak:index").child("test");
-        IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
-        idb.indexRule("nt:unstructured").property("size").ordered("Long");
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        lucene9(root).indexRule("nt:unstructured").property("size").ordered("Long");
+        content(root, "content", "nt:unstructured").setProperty("size", 42L);
 
-        NodeBuilder content = nodeOf("nt:unstructured");
-        content.setProperty("size", 42L);
-
-        LuceneNgIndexEditor editor = editorFor("/content", defnBuilder, INITIAL_CONTENT);
-        editor.enter(EMPTY_NODE, content.getNodeState());
-        editor.leave(EMPTY_NODE, content.getNodeState());
-
-        try (DirectoryReader reader = DirectoryReader.open(
-                new OakDirectory(defnBuilder.child(LuceneNgIndexStorage.STORAGE_NODE_NAME), "default", true))) {
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
+        try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             LeafReader leaf = reader.leaves().get(0).reader();
             NumericDocValues ndv = leaf.getNumericDocValues("size");
             assertNotNull("ordered Long property must have NumericDocValues", ndv);
@@ -320,20 +237,12 @@ public class IndexingRulesTest {
 
     @Test
     public void unorderedPropertyHasNoDocValues() throws Exception {
-        NodeBuilder defnBuilder = INITIAL_CONTENT.builder().child("oak:index").child("test");
-        IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
-        idb.indexRule("nt:unstructured").property("tag").propertyIndex();
-        // ordered NOT called
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        lucene9(root).indexRule("nt:unstructured").property("tag").propertyIndex();
+        content(root, "content", "nt:unstructured").setProperty("tag", "oak");
 
-        NodeBuilder content = nodeOf("nt:unstructured");
-        content.setProperty("tag", "oak");
-
-        LuceneNgIndexEditor editor = editorFor("/content", defnBuilder, INITIAL_CONTENT);
-        editor.enter(EMPTY_NODE, content.getNodeState());
-        editor.leave(EMPTY_NODE, content.getNodeState());
-
-        try (DirectoryReader reader = DirectoryReader.open(
-                new OakDirectory(defnBuilder.child(LuceneNgIndexStorage.STORAGE_NODE_NAME), "default", true))) {
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
+        try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             LeafReader leaf = reader.leaves().get(0).reader();
             assertNull("unordered property must not have SortedDocValues",
                     leaf.getSortedDocValues("tag"));
@@ -347,45 +256,21 @@ public class IndexingRulesTest {
     // -------------------------------------------------------------------------
 
     /**
-     * The root cause of the original reindex loop: a property named "path" can be
-     * STRING on one node and LONG on another. When we added SortedDocValuesField for
-     * STRING and NumericDocValuesField for LONG, Lucene threw IllegalArgumentException.
-     *
-     * With index rules, only the declared type is ever indexed for a given property,
-     * so the conflict cannot arise.
+     * A property named "path" can be STRING on one node and LONG on another. With index rules only
+     * the declared type is ever considered, so no Lucene doc-values type conflict can arise and a
+     * single commit indexing both must not throw.
      */
     @Test
     public void samePropertyNameWithDifferentTypesAcrossNodesDoesNotThrow() throws Exception {
-        NodeBuilder defnBuilder = INITIAL_CONTENT.builder().child("oak:index").child("test");
-        IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
-        // Declare "path" as a String property index only
-        idb.indexRule("nt:unstructured").property("path").propertyIndex();
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        lucene9(root).indexRule("nt:unstructured").property("path").propertyIndex();
 
-        NodeState root = INITIAL_CONTENT;
-        NodeBuilder rootBuilder = root.builder();
+        content(root, "nodeA", "nt:unstructured").setProperty("path", "/some/string/path");
+        content(root, "nodeB", "nt:unstructured").setProperty("path", 12345L);
 
-        // Node A: "path" is a String
-        NodeBuilder nodeA = rootBuilder.child("nodeA");
-        nodeA.setProperty("jcr:primaryType", "nt:unstructured");
-        nodeA.setProperty("path", "/some/string/path");
-
-        // Node B: "path" is a Long — should be skipped (rule declared as String context,
-        // but more importantly: no doc values added, so no type conflict)
-        NodeBuilder nodeB = rootBuilder.child("nodeB");
-        nodeB.setProperty("jcr:primaryType", "nt:unstructured");
-        nodeB.setProperty("path", 12345L);
-
-        // Index node A
-        LuceneNgIndexEditor editorA = editorFor("/nodeA", defnBuilder, root);
-        editorA.enter(EMPTY_NODE, nodeA.getNodeState());
-        editorA.leave(EMPTY_NODE, nodeA.getNodeState());
-
-        // Index node B using a child editor (shared writer via the 3-arg constructor re-open)
-        // Re-use the same index by opening a second editor that appends — the key is no exception
-        LuceneNgIndexEditor editorB = editorFor("/nodeB", defnBuilder, root);
-        // Should not throw IllegalArgumentException regardless of "path" being Long here
-        editorB.enter(EMPTY_NODE, nodeB.getNodeState());
-        editorB.leave(EMPTY_NODE, nodeB.getNodeState());
+        // Must not throw IllegalArgumentException while indexing both cardinalities in one commit.
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
+        assertNotNull(indexed);
     }
 
     // -------------------------------------------------------------------------
@@ -394,30 +279,15 @@ public class IndexingRulesTest {
 
     @Test
     public void multiValueStringPropertyIndexesAllValues() throws Exception {
-        NodeBuilder defnBuilder = INITIAL_CONTENT.builder().child("oak:index").child("test");
-        IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
-        idb.indexRule("nt:unstructured").property("tags").propertyIndex().nodeScopeIndex();
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        lucene9(root).indexRule("nt:unstructured").property("tags").propertyIndex().nodeScopeIndex();
+        content(root, "content", "nt:unstructured")
+                .setProperty("tags", Arrays.asList("alpha", "beta", "gamma"), Type.STRINGS);
 
-        NodeBuilder content = nodeOf("nt:unstructured");
-        content.setProperty("tags",
-                java.util.Arrays.asList("alpha", "beta", "gamma"),
-                org.apache.jackrabbit.oak.api.Type.STRINGS);
-
-        LuceneNgIndexEditor editor = editorFor("/content", defnBuilder, INITIAL_CONTENT);
-        editor.enter(EMPTY_NODE, content.getNodeState());
-        editor.leave(EMPTY_NODE, content.getNodeState());
-
-        try (DirectoryReader reader = DirectoryReader.open(
-                new OakDirectory(defnBuilder.child(LuceneNgIndexStorage.STORAGE_NODE_NAME), "default", true))) {
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
+        try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             IndexSearcher searcher = new IndexSearcher(reader);
-            TopDocs hits = searcher.search(new MatchAllDocsQuery(), 10);
-            assertEquals(1, hits.totalHits.value);
-
-            // Count "tags" fields in the document
-            Document doc = searcher.storedFields().document(hits.scoreDocs[0].doc);
-            // StringField is not stored by default, so count via term vectors / field infos
-            // We verify the FULLTEXT field received 3 contributions via stored count
-            // (nodeScopeIndex means 3 TextField(FULLTEXT, ...) were added)
+            assertEquals(1, searcher.search(new TermQuery(new Term(FieldNames.PATH, "/content")), 10).totalHits.value);
             LeafReader leaf = reader.leaves().get(0).reader();
             assertNotNull("FULLTEXT field must exist for nodeScopeIndex tags",
                     leaf.getFieldInfos().fieldInfo(FieldNames.FULLTEXT));
@@ -430,27 +300,22 @@ public class IndexingRulesTest {
 
     @Test
     public void regexPropertyDefinitionMatchesProperty() throws Exception {
-        NodeBuilder defnBuilder = INITIAL_CONTENT.builder().child("oak:index").child("test");
-        IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
-        idb.indexRule("nt:unstructured").property("prop_.*", true).propertyIndex();
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        lucene9(root).indexRule("nt:unstructured").property("prop_.*", true).propertyIndex();
+        NodeBuilder c = content(root, "content", "nt:unstructured");
+        c.setProperty("prop_foo", "bar");
+        c.setProperty("other", "baz");
 
-        NodeBuilder content = nodeOf("nt:unstructured");
-        content.setProperty("prop_foo", "bar");
-        content.setProperty("other", "baz");
-
-        LuceneNgIndexEditor editor = editorFor("/content", defnBuilder, INITIAL_CONTENT);
-        IndexSearcher searcher = indexAndOpen(editor, EMPTY_NODE, content.getNodeState(), defnBuilder);
-
-        TopDocs hits = searcher.search(new MatchAllDocsQuery(), 10);
-        assertEquals(1, hits.totalHits.value);
-
-        // prop_foo should be indexed; "other" should not
-        // StringField is not stored, verify via field infos
-        LeafReader leaf = searcher.getIndexReader().leaves().get(0).reader();
-        assertNotNull("prop_foo matched by regex — field must be in schema",
-                leaf.getFieldInfos().fieldInfo("prop_foo"));
-        assertNull("other not matched by regex — field must be absent",
-                leaf.getFieldInfos().fieldInfo("other"));
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
+        try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
+            IndexSearcher searcher = new IndexSearcher(reader);
+            assertEquals(1, searcher.search(new TermQuery(new Term(FieldNames.PATH, "/content")), 10).totalHits.value);
+            LeafReader leaf = reader.leaves().get(0).reader();
+            assertNotNull("prop_foo matched by regex — field must be in schema",
+                    leaf.getFieldInfos().fieldInfo("prop_foo"));
+            assertNull("other not matched by regex — field must be absent",
+                    leaf.getFieldInfos().fieldInfo("other"));
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -459,46 +324,32 @@ public class IndexingRulesTest {
 
     @Test
     public void relativePropertyIsIndexedIntoParentDocument() throws Exception {
-        NodeBuilder defnBuilder = INITIAL_CONTENT.builder().child("oak:index").child("test");
-        IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
-        idb.indexRule("nt:unstructured")
-           .property("child/title")
-               .propertyIndex();
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        lucene9(root).indexRule("nt:unstructured").property("child/title").propertyIndex();
 
-        // Parent node: nt:unstructured
-        // Child node "child" carries the indexed property "title"
-        NodeBuilder parent = INITIAL_CONTENT.builder().child("page");
-        parent.setProperty("jcr:primaryType", "nt:unstructured");
-        NodeBuilder child = parent.child("child");
-        child.setProperty("title", "deep value");
+        NodeBuilder parent = content(root, "page", "nt:unstructured");
+        parent.child("child").setProperty("title", "deep value");
 
-        LuceneNgIndexEditor editor = editorFor("/page", defnBuilder, INITIAL_CONTENT);
-        IndexSearcher searcher = indexAndOpen(editor, EMPTY_NODE, parent.getNodeState(), defnBuilder);
-
-        TopDocs hits = searcher.search(new MatchAllDocsQuery(), 10);
-        assertEquals("relative property must produce a document for the parent path", 1,
-                hits.totalHits.value);
-
-        Document doc = searcher.storedFields().document(hits.scoreDocs[0].doc);
-        assertEquals("/page", doc.get(FieldNames.PATH));
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
+        try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
+            IndexSearcher searcher = new IndexSearcher(reader);
+            TopDocs hits = searcher.search(new TermQuery(new Term(FieldNames.PATH, "/page")), 10);
+            assertEquals("relative property must produce a document for the parent path", 1,
+                    hits.totalHits.value);
+            Document doc = searcher.storedFields().document(hits.scoreDocs[0].doc);
+            assertEquals("/page", doc.get(FieldNames.PATH));
+        }
     }
 
     @Test
     public void missingChildNodeForRelativePropertyProducesNoDocument() throws Exception {
-        NodeBuilder defnBuilder = INITIAL_CONTENT.builder().child("oak:index").child("test");
-        IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
-        idb.indexRule("nt:unstructured")
-           .property("child/title")
-               .propertyIndex();
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        lucene9(root).indexRule("nt:unstructured").property("child/title").propertyIndex();
+        content(root, "page", "nt:unstructured"); // no "child" sub-node
 
-        // Parent node has no "child" sub-node
-        NodeBuilder parent = INITIAL_CONTENT.builder().child("page");
-        parent.setProperty("jcr:primaryType", "nt:unstructured");
-
-        LuceneNgIndexEditor editor = editorFor("/page", defnBuilder, INITIAL_CONTENT);
-        IndexSearcher searcher = indexAndOpen(editor, EMPTY_NODE, parent.getNodeState(), defnBuilder);
-
-        assertEquals("no child node — must produce no document", 0,
-                searcher.search(new MatchAllDocsQuery(), 10).totalHits.value);
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
+        IndexSearcher searcher = new IndexSearcher(LuceneNgEditorCommitUtil.openReader(indexed, IDX));
+        assertEquals("no child node — must produce no document for /page", 0,
+                searcher.search(new TermQuery(new Term(FieldNames.PATH, "/page")), 10).totalHits.value);
     }
 }

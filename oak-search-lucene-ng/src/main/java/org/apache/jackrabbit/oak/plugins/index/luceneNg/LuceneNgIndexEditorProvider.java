@@ -21,6 +21,7 @@ import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.editor.LuceneNgIndexEditorContext;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -66,16 +67,15 @@ public class LuceneNgIndexEditorProvider implements IndexEditorProvider {
             throw new IllegalStateException("callback instance not of type ContextAwareCallback [" + callback + "]");
         }
         IndexingContext indexingContext = ((ContextAwareCallback) callback).getIndexingContext();
-        String indexPath = indexingContext.getIndexPath();
-        boolean reindex = indexingContext.isReindexing();
 
-        try {
-            NodeBuilder storage = LuceneNgIndexStorage.getOrCreateStorageBuilder(definition);
-            return new LuceneNgIndexEditor("/", indexPath, storage, definition, root, reindex, callback);
-        } catch (Exception e) {
-            throw new CommitFailedException("Lucene9", 1,
-                    "Failed to create LuceneNgIndexEditor", e);
-        }
+        // Build the shared-framework context and hand it to the collapsed editor. Reindex mode is
+        // NOT enabled here explicitly: FulltextIndexEditor.enter() enables it on the root editor
+        // when the incoming before-state is MISSING_NODE (a full reindex), which is exactly how
+        // oak-lucene's and oak-search-elastic's editor providers rely on it — none of them call
+        // enableReindexMode() from the provider.
+        LuceneNgIndexEditorContext context = new LuceneNgIndexEditorContext(
+                root, definition, null, callback, indexingContext, indexingContext.isAsync());
+        return new LuceneNgIndexEditor(context);
     }
 
     @Override

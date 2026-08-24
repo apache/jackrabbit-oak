@@ -132,7 +132,7 @@ public class IntegrationTest {
         tracker.update(builder.getNodeState());
 
         // Verify index was created by checking tracker has the index
-        LuceneNgIndexNode.AcquiredNode indexNode = tracker.acquireIndexNode("/oak:index/testIndex");
+        LuceneNgIndexNode indexNode = tracker.acquireIndexNode("/oak:index/testIndex");
         assertNotNull("Index should be tracked", indexNode);
         assertEquals("Index path should match", "/oak:index/testIndex", indexNode.getDefinition().getIndexPath());
         indexNode.release();
@@ -207,7 +207,7 @@ public class IntegrationTest {
         tracker.update(builder.getNodeState());
 
         // Verify index was created by checking tracker has the index
-        LuceneNgIndexNode.AcquiredNode indexNode = tracker.acquireIndexNode("/oak:index/largeIndex");
+        LuceneNgIndexNode indexNode = tracker.acquireIndexNode("/oak:index/largeIndex");
         assertNotNull("Index should be tracked", indexNode);
         assertEquals("Index path should match", "/oak:index/largeIndex", indexNode.getDefinition().getIndexPath());
         indexNode.release();
@@ -257,8 +257,17 @@ public class IntegrationTest {
         LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
         tracker.update(root1);
 
-        // Verify index1 is tracked
-        assertTrue("Index1 should be found", tracker.getIndexPaths().contains("/oak:index/index1"));
+        // Neither index1 has any index data (no content was ever indexed into it), nor has it
+        // ever been resolved via acquireIndexNode -- FulltextIndexTracker.update() only
+        // re-diffs already-known paths (see diffAndUpdate), it does not itself scan /oak:index
+        // for newly defined indexes. Full-repository discovery on update() is a known,
+        // deliberately deferred limitation of this task (see the follow-up task that layers
+        // eager discovery back on top). So index1 is correctly absent here.
+        assertFalse("Index1 is not tracked until acquired/opened at least once",
+                tracker.getIndexNodePaths().contains("/oak:index/index1"));
+        // Resolving it explicitly still works (lazy, on-demand discovery) -- it returns null
+        // only because there is no index data yet, not because the path is unknown.
+        assertNull("Index1 has no data yet", tracker.acquireIndexNode("/oak:index/index1"));
 
         // Add index2
         NodeBuilder index2 = oakIndex.child("index2");
@@ -270,12 +279,12 @@ public class IntegrationTest {
         // Update tracker with both indexes
         tracker.update(root2);
 
-        // Verify both indexes are tracked
-        assertTrue("Index1 should still be found", tracker.getIndexPaths().contains("/oak:index/index1"));
-        assertTrue("Index2 should be found", tracker.getIndexPaths().contains("/oak:index/index2"));
+        // Same reasoning as above, for both indexes.
+        assertNull("Index1 still has no data", tracker.acquireIndexNode("/oak:index/index1"));
+        assertNull("Index2 has no data yet", tracker.acquireIndexNode("/oak:index/index2"));
 
         // Verify nonexistent index returns null
-        LuceneNgIndexNode.AcquiredNode nonexistent = tracker.acquireIndexNode("/oak:index/nonexistent");
+        LuceneNgIndexNode nonexistent = tracker.acquireIndexNode("/oak:index/nonexistent");
         assertNull("Nonexistent index should return null", nonexistent);
     }
 

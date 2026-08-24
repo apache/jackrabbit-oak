@@ -18,8 +18,10 @@ package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Index definition for Lucene 9 indexes.
@@ -38,6 +40,24 @@ public class LuceneNgIndexDefinition extends IndexDefinition {
                                   @NotNull NodeState defn,
                                   @NotNull String indexPath) {
         super(root, defn, indexPath);
+    }
+
+    /**
+     * Creates a new Lucene 9 index definition with an explicit format version and unique id.
+     * Used by {@link Builder} (and, in turn, by the shared {@code FulltextIndexEditorContext}).
+     *
+     * @param root the root node state
+     * @param defn the index definition node state to use
+     * @param version the index format version
+     * @param uid the unique id of the index, or {@code null}
+     * @param indexPath the path to this index
+     */
+    public LuceneNgIndexDefinition(@NotNull NodeState root,
+                                  @NotNull NodeState defn,
+                                  @NotNull IndexFormatVersion version,
+                                  @Nullable String uid,
+                                  @NotNull String indexPath) {
+        super(root, defn, version, uid, indexPath);
     }
 
     @Override
@@ -62,5 +82,28 @@ public class LuceneNgIndexDefinition extends IndexDefinition {
      */
     public String getStoragePath() {
         return LuceneNgIndexStorage.storagePath(getIndexPath());
+    }
+
+    /**
+     * Builder for {@link LuceneNgIndexDefinition}, mirroring
+     * {@code LuceneIndexDefinition.Builder} in {@code oak-lucene}. Required by the shared
+     * {@code FulltextIndexEditorContext} (see {@code IndexDefinition.Builder}).
+     */
+    public static class Builder extends IndexDefinition.Builder<LuceneNgIndexDefinition> {
+        @Override
+        public LuceneNgIndexDefinition build() {
+            return super.build();
+        }
+
+        @Override
+        public Builder reindex() {
+            super.reindex();
+            return this;
+        }
+
+        @Override
+        protected LuceneNgIndexDefinition createInstance(NodeState indexDefnStateToUse) {
+            return new LuceneNgIndexDefinition(root, indexDefnStateToUse, version, uid, indexPath);
+        }
     }
 }
