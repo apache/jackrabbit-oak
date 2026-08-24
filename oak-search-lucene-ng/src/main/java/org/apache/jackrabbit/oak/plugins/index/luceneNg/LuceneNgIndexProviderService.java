@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
@@ -104,7 +105,16 @@ public class LuceneNgIndexProviderService {
         }
 
         if (indexTracker != null) {
-            indexTracker.close();
+            // FulltextIndexTracker.close() is package-private to oak-search's spi.query
+            // package and not reachable from here (unlike ElasticIndexTracker, this
+            // tracker holds real local resources — open Lucene readers/segment files —
+            // that must not be leaked on bundle deactivation). Driving update() with an
+            // empty root has the same effect through the tracker's public API: every
+            // currently tracked path is diffed against "removed" and, since isUpdateNeeded
+            // detects the change, openIndex() is invoked (and returns null, since there is
+            // no data under an empty root) so the *previous* generation's IndexNodeManager
+            // is close()d (public, inherited) and releaseResources() runs.
+            indexTracker.update(EmptyNodeState.EMPTY_NODE);
             indexTracker = null;
         }
     }

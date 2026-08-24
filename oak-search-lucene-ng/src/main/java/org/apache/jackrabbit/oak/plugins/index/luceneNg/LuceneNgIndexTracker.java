@@ -17,129 +17,45 @@
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgIndexNode;
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgIndexNodeManager;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexTracker;
+import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 /**
- * Tracks Lucene 9 indexes and provides access to index nodes.
- * Scans the repository for lucene9 type indexes and maintains a cache.
+ * Tracks Lucene 9 ({@code type=lucene9}) indexes for the query engine, via the shared
+ * {@link FulltextIndexTracker} (lazy per-path discovery + targeted subtree diffing — see
+ * that class for the discovery/refresh contract this inherits).
  */
-public class LuceneNgIndexTracker {
-    private static final Logger LOG = LoggerFactory.getLogger(LuceneNgIndexTracker.class);
+public class LuceneNgIndexTracker extends FulltextIndexTracker<LuceneNgIndexNodeManager, LuceneNgIndexNode> {
 
-    private final ConcurrentMap<String, LuceneNgIndexNode> indices = new ConcurrentHashMap<>();
-    private NodeState root;
-
-    /**
-     * Updates the tracker with new repository state.
-     * Scans /oak:index for lucene9 indexes and updates the cache.
-     *
-     * @param root the new root state
-     */
-    public void update(@NotNull NodeState root) {
-        this.root = root;
-        refreshIndexes();
+    @Override
+    protected LuceneNgIndexNodeManager openIndex(String path, NodeState root, NodeState node) {
+        LuceneNgIndexNode indexNode = new LuceneNgIndexNode(path, root, node);
+        if (!indexNode.hasSearcher()) {
+            return null;
+        }
+        return new LuceneNgIndexNodeManager(path, indexNode);
     }
 
     /**
-     * Acquires an index node for the given path. The caller MUST call
-     * {@link LuceneNgIndexNode.AcquiredNode#release()} when done.
-     *
-     * @param indexPath the path to the index (e.g., "/oak:index/myIndex")
-     * @return an acquired node, or null if not found or not yet populated
+     * Overridden because {@link FulltextIndexTracker}'s default checks only the
+     * {@code :status} and {@code :index-definition} hidden nodes for changes — neither of
+     * which {@link LuceneNgIndexEditor} ever writes (this module has no NRT/status-marker
+     * story yet; see module README). The Lucene segment files instead live directly under
+     * the index definition node itself ({@link LuceneNgIndexStorage#STORAGE_NODE_NAME}), so
+     * a plain whole-subtree comparison is what actually detects both definition and content
+     * (storage) changes here.
      */
+    @Override
+    public boolean isUpdateNeeded(NodeState before, NodeState after) {
+        return !EqualsDiff.equals(before, after);
+    }
+
     @Nullable
-    public LuceneNgIndexNode.AcquiredNode acquireIndexNode(@NotNull String indexPath) {
-        LuceneNgIndexNode node = indices.get(indexPath);
-        return node != null ? node.acquire() : null;
-    }
-
-    /**
-     * Get paths of all tracked indexes.
-     *
-     * @return set of index paths
-     */
-    public Set<String> getIndexPaths() {
-        return new HashSet<>(indices.keySet());
-    }
-
-    /**
-     * Closes all tracked index nodes and releases their resources.
-     * Must be called on OSGi deactivation to prevent file descriptor leaks.
-     */
-    public void close() {
-        for (LuceneNgIndexNode node : indices.values()) {
-            node.close();
-        }
-        indices.clear();
-        LOG.debug("LuceneNgIndexTracker closed");
-    }
-
-    /**
-     * Refreshes the index cache by scanning for Lucene 9 indexes.
-     */
-    private void refreshIndexes() {
-        if (root == null) {
-            return;
-        }
-
-        // Scan /oak:index for lucene9 indexes
-        NodeState oakIndex = root.getChildNode("oak:index");
-        if (!oakIndex.exists()) {
-            return;
-        }
-
-        Set<String> seen = new HashSet<>();
-
-        for (String indexName : oakIndex.getChildNodeNames()) {
-            String indexPath = "/oak:index/" + indexName;
-            NodeState indexState = oakIndex.getChildNode(indexName);
-
-            // Check if it's a lucene9 index
-            org.apache.jackrabbit.oak.api.PropertyState typeProp = indexState.getProperty("type");
-            if (typeProp != null) {
-                String type = typeProp.getValue(org.apache.jackrabbit.oak.api.Type.STRING);
-                if (LuceneNgIndexConstants.TYPE_LUCENE9.equals(type)) {
-                    seen.add(indexPath);
-                    LuceneNgIndexNode existing = indices.get(indexPath);
-                    if (existing == null) {
-                        LOG.debug("Tracking new Lucene 9 index: {}", indexPath);
-                        indices.put(indexPath, new LuceneNgIndexNode(indexPath, root, indexState));
-                    } else {
-                        NodeState currentStorage = LuceneNgIndexStorage.storageState(indexState);
-                        boolean definitionChanged = !existing.getIndexState().equals(indexState);
-                        boolean storageChanged = !existing.getStorageState().equals(currentStorage);
-                        if (definitionChanged || storageChanged) {
-                            LOG.debug("Refreshing Lucene 9 index node due to {}{}: {}",
-                                    definitionChanged ? "definition change" : "",
-                                    storageChanged ? (definitionChanged ? " and storage change" : "storage change") : "",
-                                    indexPath);
-                            existing.close();
-                            indices.put(indexPath, new LuceneNgIndexNode(indexPath, root, indexState));
-                        }
-                    }
-                }
-            }
-        }
-
-        // Remove entries that are no longer lucene9 indexes.
-        Set<String> tracked = new HashSet<>(indices.keySet());
-        for (String trackedPath : tracked) {
-            if (!seen.contains(trackedPath)) {
-                LuceneNgIndexNode removed = indices.remove(trackedPath);
-                if (removed != null) {
-                    removed.close();
-                    LOG.debug("Stopped tracking Lucene 9 index: {}", trackedPath);
-                }
-            }
-        }
+    public LuceneNgIndexNode acquireIndexNode(@NotNull String indexPath) {
+        return super.acquireIndexNode(indexPath, LuceneNgIndexConstants.TYPE_LUCENE9);
     }
 }

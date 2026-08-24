@@ -1,10 +1,10 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
+ * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -16,106 +16,92 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
-import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.TermQuery;
 import org.junit.Test;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 
 /**
- * Tests that LuceneNgIndexEditor calls IndexUpdateCallback once per
- * successfully indexed document.
+ * Verifies that the Lucene 9 index editor emits exactly one index update per successfully indexed
+ * document.
+ *
+ * <p>Task B4 note: the old assertions counted {@code IndexUpdateCallback} invocations by
+ * constructing {@code LuceneNgIndexEditor} with a hand-supplied callback. The collapsed editor no
+ * longer owns that callback — the shared framework fires {@code context.indexUpdate()} once per
+ * written document, one-to-one with the callback fire. So the observable equivalent, asserted here
+ * after a real commit, is the number of documents that end up in the index (and their
+ * addition/removal). This preserves the original intent — "one update per indexed document" — while
+ * asserting on the committed index rather than the editor's internal callback wiring.</p>
  */
 public class IndexUpdateCallbackTest {
 
-    @Test
-    public void callbackCalledOncePerIndexedDocument() throws Exception {
-        AtomicInteger callCount = new AtomicInteger(0);
-        IndexUpdateCallback callback = callCount::incrementAndGet;
+    private static final String IDX = "/oak:index/test";
 
-        NodeBuilder defnBuilder = INITIAL_CONTENT.builder().child("oak:index").child("test");
+    private static IndexDefinitionBuilder lucene9(NodeBuilder rootBuilder) {
+        NodeBuilder defnBuilder = rootBuilder.child("oak:index").child("test");
         IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
-        idb.indexRule("nt:unstructured").property("title").propertyIndex();
+        idb.noAsync();
+        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        return idb;
+    }
 
-        // Two nodes with the indexed property
-        NodeBuilder root = INITIAL_CONTENT.builder();
-        NodeBuilder page1 = root.child("page1");
-        page1.setProperty("jcr:primaryType", "nt:unstructured");
-        page1.setProperty("title", "alpha");
-        NodeBuilder page2 = root.child("page2");
-        page2.setProperty("jcr:primaryType", "nt:unstructured");
-        page2.setProperty("title", "beta");
-        // One node whose type has no rule — must not trigger the callback
-        NodeBuilder page3 = root.child("page3");
-        page3.setProperty("jcr:primaryType", "nt:folder");
-
-        LuceneNgIndexEditor editor = new LuceneNgIndexEditor("/", defnBuilder, INITIAL_CONTENT, callback);
-        editor.childNodeAdded("page1", page1.getNodeState())
-              .enter(EMPTY_NODE, page1.getNodeState());
-        editor.childNodeAdded("page2", page2.getNodeState())
-              .enter(EMPTY_NODE, page2.getNodeState());
-        editor.childNodeAdded("page3", page3.getNodeState())
-              .enter(EMPTY_NODE, page3.getNodeState());
-        editor.leave(EMPTY_NODE, root.getNodeState());
-
-        assertEquals("callback must be called once per indexed document", 2, callCount.get());
+    private static NodeBuilder node(NodeBuilder root, String name, String primaryType) {
+        NodeBuilder b = root.child(name);
+        b.setProperty("jcr:primaryType", primaryType);
+        return b;
     }
 
     @Test
-    public void callbackNotCalledWhenNoPropertiesIndexed() throws Exception {
-        AtomicInteger callCount = new AtomicInteger(0);
-        IndexUpdateCallback callback = callCount::incrementAndGet;
-
-        NodeBuilder defnBuilder = INITIAL_CONTENT.builder().child("oak:index").child("test");
-        IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
-        idb.indexRule("nt:unstructured").property("title").propertyIndex();
-
-        // Node matches rule but has no configured property
+    public void oneUpdatePerIndexedDocument() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        NodeBuilder page1 = root.child("page1");
-        page1.setProperty("jcr:primaryType", "nt:unstructured");
-        page1.setProperty("description", "no title here");
+        lucene9(root).indexRule("nt:unstructured").property("title").propertyIndex();
 
-        LuceneNgIndexEditor editor = new LuceneNgIndexEditor("/", defnBuilder, INITIAL_CONTENT, callback);
-        editor.childNodeAdded("page1", page1.getNodeState())
-              .enter(EMPTY_NODE, page1.getNodeState());
-        editor.leave(EMPTY_NODE, root.getNodeState());
+        node(root, "page1", "nt:unstructured").setProperty("title", "alpha");
+        node(root, "page2", "nt:unstructured").setProperty("title", "beta");
+        // Node whose type has no rule -> must not be indexed (no update).
+        node(root, "page3", "nt:folder");
 
-        assertEquals("callback must not be called when no properties matched", 0, callCount.get());
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
+        assertEquals("exactly one indexed document per matching node (page3 excluded)",
+                2, LuceneNgEditorCommitUtil.numDocs(indexed, IDX));
     }
 
     @Test
-    public void callbackFiresOnChildNodeDeleted() throws Exception {
-        AtomicInteger callCount = new AtomicInteger(0);
-        IndexUpdateCallback callback = callCount::incrementAndGet;
-
-        NodeBuilder defnBuilder = INITIAL_CONTENT.builder().child("oak:index").child("test");
-        IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
-        idb.indexRule("nt:unstructured").property("title").propertyIndex();
-
-        // Create a node to delete
+    public void noUpdateWhenNoPropertiesIndexed() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        NodeBuilder page1 = root.child("page1");
-        page1.setProperty("jcr:primaryType", "nt:unstructured");
-        page1.setProperty("title", "alpha");
+        lucene9(root).indexRule("nt:unstructured").property("title").propertyIndex();
+        // Node matches the rule's type but carries no configured property.
+        node(root, "page1", "nt:unstructured").setProperty("description", "no title here");
 
-        LuceneNgIndexEditor editor = new LuceneNgIndexEditor("/", defnBuilder, INITIAL_CONTENT, callback);
-        // First add the node
-        editor.childNodeAdded("page1", page1.getNodeState())
-              .enter(EMPTY_NODE, page1.getNodeState());
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
+        assertEquals("no indexed document when no configured property matched",
+                0, LuceneNgEditorCommitUtil.numDocs(indexed, IDX));
+    }
 
-        // Reset counter to isolate the deletion callback
-        callCount.set(0);
+    @Test
+    public void documentRemovedOnChildNodeDeletion() throws Exception {
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        lucene9(root).indexRule("nt:unstructured").property("title").propertyIndex();
+        node(root, "page1", "nt:unstructured").setProperty("title", "alpha");
 
-        // Now delete the node
-        editor.childNodeDeleted("page1", page1.getNodeState());
-        editor.leave(EMPTY_NODE, root.getNodeState());
+        NodeState base = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
 
-        assertEquals("callback must be called once when node is deleted", 1, callCount.get());
+        NodeBuilder b2 = base.builder();
+        b2.child("page1").remove();
+        NodeState indexed = LuceneNgEditorCommitUtil.commit(base, b2.getNodeState());
+
+        try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
+            IndexSearcher searcher = new IndexSearcher(reader);
+            assertEquals("deleting the node must remove its indexed document", 0,
+                    searcher.search(new TermQuery(new Term(FieldNames.PATH, "/page1")), 10).totalHits.value);
+        }
     }
 }

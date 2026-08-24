@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
@@ -104,9 +105,15 @@ public class LuceneNgCursorBatchingTest {
         assertEquals("All 60 documents must be returned across the two batches", 60, paths.size());
 
         // --- Node must be released between batches: drain only the first batch (50 rows), then
-        // assert closing the tracker's node (which calls LuceneNgIndexNode.close()) completes
-        // without blocking. Before the per-batch fix the eager cursor holds the AcquiredNode for
-        // its whole life, so close() would block on the reader read-lock and time out.
+        // assert closing the tracker's node completes without blocking. Before the per-batch fix
+        // the eager cursor holds the acquired node for its whole life, so close() would block on
+        // the reader read-lock and time out.
+        //
+        // FulltextIndexTracker.close() itself is package-private to oak-search, so it is not
+        // reachable from this test; driving update() with an empty root has the same effect
+        // through the tracker's public API -- the tracked index is diffed against "removed",
+        // which closes its LuceneNgIndexNodeManager (public, inherited IndexNodeManager.close())
+        // and, in turn, blocks on exactly the same read/write lock this test is probing.
         Cursor partialCursor = index.query(plan(matchAllFilter()), root);
         int drained = 0;
         while (drained < 50 && partialCursor.hasNext()) {
@@ -117,7 +124,7 @@ public class LuceneNgCursorBatchingTest {
 
         ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
-            Future<?> closeFuture = executor.submit(tracker::close);
+            Future<?> closeFuture = executor.submit(() -> tracker.update(EmptyNodeState.EMPTY_NODE));
             // With the per-batch cursor nothing is held between batches, so this returns promptly.
             closeFuture.get(2, TimeUnit.SECONDS);
         } finally {

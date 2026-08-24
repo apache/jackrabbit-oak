@@ -101,7 +101,7 @@ public class LuceneNgCursor extends AbstractCursor {
     }
 
     public LuceneNgCursor(TopDocs docs, IndexSearcher searcher,
-                          LuceneNgIndexNode.AcquiredNode indexNode) {
+                          LuceneNgIndexNode indexNode) {
         this(docs, searcher, null, Collections.emptyMap(), DEFAULT_FACET_TOP_CHILDREN, indexNode);
     }
 
@@ -111,7 +111,7 @@ public class LuceneNgCursor extends AbstractCursor {
 
     public LuceneNgCursor(TopDocs docs, IndexSearcher searcher,
                           Map<String, Facets> facetsMap, Map<Integer, String> excerptMap,
-                          int facetTopChildren, LuceneNgIndexNode.AcquiredNode indexNode) {
+                          int facetTopChildren, LuceneNgIndexNode indexNode) {
         this.docs = docs;
         this.searcher = searcher;
         this.facetTopChildren = Math.max(1, facetTopChildren);
@@ -251,7 +251,7 @@ public class LuceneNgCursor extends AbstractCursor {
      * {@link #pendingRows}, releases the index node, and returns whether any rows were added.
      */
     private boolean loadNextBatch() {
-        LuceneNgIndexNode.AcquiredNode indexNode = tracker.acquireIndexNode(indexPath);
+        LuceneNgIndexNode indexNode = tracker.acquireIndexNode(indexPath);
         if (indexNode == null) {
             noMoreDocs = true;
             return false;

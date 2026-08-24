@@ -164,7 +164,7 @@ public class LuceneNgIndex implements QueryIndex.AdvanceFulltextQueryIndex {
         // index has a rule for the queried type (same guard used in getPlans).
         if (!filter.matchesAllTypes()) {
             String nodeType = filter.getNodeType();
-            LuceneNgIndexNode.AcquiredNode node = tracker.acquireIndexNode(indexPath);
+            LuceneNgIndexNode node = tracker.acquireIndexNode(indexPath);
             if (node != null) {
                 try {
                     if (nodeType != null
@@ -682,7 +682,7 @@ public class LuceneNgIndex implements QueryIndex.AdvanceFulltextQueryIndex {
     @Override
     public List<QueryIndex.IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder, NodeState rootState) {
         // Don't offer a plan when the index has not yet been populated (no data)
-        LuceneNgIndexNode.AcquiredNode indexNode = tracker.acquireIndexNode(indexPath);
+        LuceneNgIndexNode indexNode = tracker.acquireIndexNode(indexPath);
         if (indexNode == null) {
             return Collections.emptyList();
         }
@@ -694,7 +694,7 @@ public class LuceneNgIndex implements QueryIndex.AdvanceFulltextQueryIndex {
     }
 
     private List<QueryIndex.IndexPlan> getPlansInternal(Filter filter, List<OrderEntry> sortOrder,
-            NodeState rootState, LuceneNgIndexNode.AcquiredNode indexNode) {
+            NodeState rootState, LuceneNgIndexNode indexNode) {
         // Check if we can handle this query
         FullTextExpression ft = filter.getFullTextConstraint();
         List<Filter.PropertyRestriction> propRestrictions = new ArrayList<>(filter.getPropertyRestrictions());
@@ -828,7 +828,7 @@ public class LuceneNgIndex implements QueryIndex.AdvanceFulltextQueryIndex {
         // acquire — this does NOT leak the index node into row iteration, which pages
         // independently inside the cursor. Sort-only queries acquire once just to build the Sort.
         if (facetFields != null && !facetFields.isEmpty()) {
-            LuceneNgIndexNode.AcquiredNode facetNode = tracker.acquireIndexNode(indexPath);
+            LuceneNgIndexNode facetNode = tracker.acquireIndexNode(indexPath);
             if (facetNode == null) {
                 LOG.warn("Index node not found or not yet populated: {}", indexPath);
                 return Cursors.newPathCursor(Collections.emptyList(), filter.getQueryLimits());
@@ -881,7 +881,7 @@ public class LuceneNgIndex implements QueryIndex.AdvanceFulltextQueryIndex {
                 facetNode.release();
             }
         } else if (sortOrder != null && !sortOrder.isEmpty()) {
-            LuceneNgIndexNode.AcquiredNode sortNode = tracker.acquireIndexNode(indexPath);
+            LuceneNgIndexNode sortNode = tracker.acquireIndexNode(indexPath);
             if (sortNode != null) {
                 try {
                     sort = createSort(sortOrder, sortNode.getDefinition(),

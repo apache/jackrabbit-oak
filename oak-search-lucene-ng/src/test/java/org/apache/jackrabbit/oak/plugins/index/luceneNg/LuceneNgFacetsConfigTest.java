@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -35,26 +34,30 @@ import org.junit.Test;
 import java.util.Arrays;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 /**
- * Verifies that FacetsConfig is built once per indexing session and correctly
- * handles multi-valued facet properties across multiple documents.
+ * Verifies that the {@code FacetsConfig} built by {@link org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.editor.LuceneNgIndexEditorContext}
+ * correctly handles multi-valued facet properties across multiple documents.
+ *
+ * <p>Task B4 migrated this to drive a real commit through {@link LuceneNgIndexEditorProvider} (see
+ * {@link LuceneNgEditorCommitUtil}); the facet counts are read back from the committed index.</p>
  */
 public class LuceneNgFacetsConfigTest {
+
+    private static final String IDX = "/oak:index/test";
 
     @Test
     public void multivaluedFacetPropertiesIndexedCorrectlyAcrossDocuments() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
 
-        // Index definition with a multi-valued facet property
         NodeBuilder defnBuilder = root.child("oak:index").child("test");
         IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
-        idb.indexRule("nt:unstructured")
-           .property("color").propertyIndex().facets();
+        idb.noAsync();
+        idb.indexRule("nt:unstructured").property("color").propertyIndex().facets();
+        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
 
-        // Three nodes: two with multi-valued color, one with single-valued
         NodeBuilder node1 = root.child("node1");
         node1.setProperty("jcr:primaryType", "nt:unstructured");
         node1.setProperty("color", Arrays.asList("red", "blue"), Type.STRINGS);
@@ -67,25 +70,11 @@ public class LuceneNgFacetsConfigTest {
         node3.setProperty("jcr:primaryType", "nt:unstructured");
         node3.setProperty("color", "green", Type.STRING);
 
-        NodeState rootState = root.getNodeState();
-
-        LuceneNgIndexEditor editor = new LuceneNgIndexEditor("/", defnBuilder, rootState);
-        editor.childNodeAdded("node1", node1.getNodeState()).enter(EMPTY_NODE, node1.getNodeState());
-        editor.childNodeAdded("node2", node2.getNodeState()).enter(EMPTY_NODE, node2.getNodeState());
-        editor.childNodeAdded("node3", node3.getNodeState()).enter(EMPTY_NODE, node3.getNodeState());
-        editor.leave(EMPTY_NODE, rootState);
-
-        // Read back the index and verify facet counts
-        NodeState indexState = root.getNodeState().getChildNode("oak:index").getChildNode("test");
-        NodeState storageState = LuceneNgIndexStorage.storageState(indexState);
-        NodeBuilder storageBuilder = root.child("oak:index").child("test")
-                .child(LuceneNgIndexStorage.STORAGE_NODE_NAME);
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
 
         String luceneFacetField = FieldNames.createFacetFieldName("color");
 
-        try (OakDirectory dir = new OakDirectory(storageBuilder, "test", true);
-             DirectoryReader reader = DirectoryReader.open(dir)) {
-
+        try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             assertEquals("Three documents must be indexed", 3, reader.numDocs());
 
             IndexSearcher searcher = new IndexSearcher(reader);
@@ -96,7 +85,6 @@ public class LuceneNgFacetsConfigTest {
                     new DefaultSortedSetDocValuesReaderState(reader, luceneFacetField);
             Facets facets = new SortedSetDocValuesFacetCounts(state, fc);
             FacetResult result = facets.getTopChildren(10, "color");
-
             assertNotNull("Facet result for 'color' must not be null", result);
 
             java.util.Map<String, Integer> counts = new java.util.HashMap<>();

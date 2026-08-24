@@ -8,6 +8,7 @@ Lucene 9 index provider for Oak (`type="lucene9"`).
 |---|---|---|---|
 | Property restrictions, path/type filters | ✓ | ✓ | ✓ |
 | Fulltext search | ✓ | ✓ | ✓ |
+| Index-time aggregation | ✓ | ✓ | ✓ |
 | Facets (insecure / statistical / secure) | ✓ | ✓ | ✓ |
 | Excerpts | ✓ | ✓ | ✓ |
 | Ordering / sorting | ✓ | ✓ | ✓ |
@@ -37,16 +38,10 @@ These items were identified during code review of the initial MVP. They are cons
 **Excerpts generated for all matched documents.**
 `generateExcerpts()` passes the full `TopDocs` to `UnifiedHighlighter`, which loads stored fields and re-analyzes text for every matched document, not just the visible page. Combined with the batching gap above, a fulltext query matching 50 K docs blocks until all highlights are computed before the first result is returned.
 
-**Ancestor write amplification.**
-`LuceneNgIndexEditor.enter()` calls `indexNode()` for every node that passes the path filter during diff traversal. When a deep leaf property changes, every ancestor is visited and re-indexed even if its own properties are unchanged. This inflates callback counts and can trigger premature async indexing checkpoints on deep trees.
-
-**`refreshIndexes()` does a deep `NodeState.equals()` on every commit.**
-The tracker compares the full index `NodeState` (definition + storage) on each repository commit to detect changes. For indexes backed by many segment files this traverses the entire storage subtree even when nothing changed. Consider caching a content hash or using a generation counter instead.
-
 ### Index discovery
 
-**Tracker only scans `/oak:index/*` (one level).**
-`LuceneNgIndexTracker.refreshIndexes()` only iterates direct children of `/oak:index`. Indexes at deeper paths (e.g. `/content/dam/oak:index/damAssets`) are maintained correctly by the editor provider but are never discovered for queries — queries silently fall back to traversal. For this version, `type=lucene9` index definitions must be placed at `/oak:index/<name>`.
+**`LuceneNgQueryIndexProvider.getQueryIndexes()` only discovers `lucene9` indexes one level under `/oak:index`.**
+`LuceneNgIndexTracker` itself can resolve and serve a `lucene9` index at any nesting depth once given its exact path (`acquireIndexNode(path)` does a lazy, per-path lookup with no depth restriction). The remaining limitation is query-time *discovery*: `LuceneNgQueryIndexProvider.getQueryIndexes()` — the method that tells the Oak query engine which `lucene9` indexes exist so it can hand the tracker an exact path — only enumerates direct children of `/oak:index`. An index defined deeper (e.g. `/content/dam/oak:index/damAssets`) is still maintained correctly by the editor, but a real query against it will never be offered that index as a query plan candidate and silently falls back to traversal. For this version, `type=lucene9` index definitions must still be placed at `/oak:index/<name>` for queries to find them.
 
 ### Error handling
 
@@ -54,9 +49,6 @@ The tracker compares the full index `NodeState` (definition + storage) on each r
 `createNumericQuery`, `createBooleanQuery`, and `createStringQuery` throw `IllegalArgumentException` for unsupported or inconsistent restriction combinations. The caller catches only `IOException`, so an unusual restriction pattern can propagate to the query engine and fail the entire query instead of falling back to another index or traversal.
 
 ### Concurrency
-
-**`IndexSearcherHolder.getFacetReaderState()` race with `close()`.**
-`LuceneNgIndexNode.close()` releases its write lock before `searcherHolder.close()` runs. A concurrent reader still holding a read lock in `getFacetReaderState()` may encounter `AlreadyClosedException` during facet state construction. This surfaces as sporadic query failures on index refresh under load.
 
 **`getFacetReaderState()` uses `get`/check/`putIfAbsent` instead of `computeIfAbsent`.**
 Under high concurrency, N threads can simultaneously construct a `DefaultSortedSetDocValuesReaderState` (which reads all ordinals). Only one wins the race; the rest are discarded. Replace with `computeIfAbsent` to guarantee at-most-one construction.
@@ -95,3 +87,11 @@ excerpts directly from the index.
 **`OakBufferedIndexFile` computes wrong read length if `PROP_UNIQUE_KEY` is externally deleted.** Under normal operation this property is written atomically with file creation and is never absent. Same design as legacy (see OAK-7066).
 
 **Statistical facet sampling seed is logged at `DEBUG` and is deterministic** (inherited from legacy). Requires `DEBUG` log access, statistical facet mode, and precise document placement control to exploit.
+
+**Binary content is not extracted for fulltext indexing.** `LuceneNgDocumentMaker.addBinary` is a
+documented no-op: `jcr:content/jcr:data` binaries (PDFs, office documents, etc.) contribute nothing
+to fulltext search, unlike the legacy module's Tika-based text extraction. This has always been true
+of this module — the hand-rolled editor never indexed binaries either — but adopting the shared
+`FulltextDocumentMaker` framework makes the gap reachable for the first time: index-time aggregation
+now pulls a matched child node's *string* properties into the parent's `:fulltext`, yet any binary
+property on that aggregated node is still skipped. Binary/Tika text extraction is deferred work.
