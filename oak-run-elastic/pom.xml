@@ -47,7 +47,6 @@
         142 MB: jackson update (OAK-12276)
         -->
         <max.jar.size>142000000</max.jar.size>
-                      
     </properties>
 
     <build>

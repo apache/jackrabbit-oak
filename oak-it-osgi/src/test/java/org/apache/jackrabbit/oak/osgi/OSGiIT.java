@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.osgi;
 
 import static org.junit.Assert.assertEquals;
 import static org.ops4j.pax.exam.CoreOptions.bundle;
+import static org.ops4j.pax.exam.CoreOptions.composite;
 import static org.ops4j.pax.exam.CoreOptions.frameworkProperty;
 import static org.ops4j.pax.exam.CoreOptions.junitBundles;
 import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
@@ -72,6 +73,7 @@ public class OSGiIT {
                 mavenBundle( "org.apache.felix", "org.apache.felix.fileinstall", "3.2.6" ),
 
                 mavenBundle( "org.ops4j.pax.logging", "pax-logging-api", "1.7.2" ),
+
                 // Jackson dependency for object serialisation.
                 // (these only need to be defined here when the versions are different from the ones
                 // defined in the project -- otherwise -> "bundle symbolic name and version are not unique")
@@ -80,14 +82,34 @@ public class OSGiIT {
                 // mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-databind").version("2.22.0"),
 
                 mavenBundle().groupId("com.github.ben-manes.caffeine").artifactId("caffeine").version("3.1.8"),
+                mavenBundle("jakarta.servlet", "jakarta.servlet-api", "5.0.0"),
 
+                // required for slf4j 2.0.x
+                spyflyOptions(),
                 frameworkProperty("repository.home").value("target"),
                 systemProperties(new SystemPropertyOption("felix.fileinstall.dir").value(getConfigDir())),
                 jarBundles(),
                 jpmsOptions());
     }
 
-    private Option jpmsOptions(){
+    /**
+     * Provides Apache Aries SPI Fly 1.3.x for SLF4J 2.x service-loader mediation in OSGi.
+     * SPI Fly 1.2.x (bundled by sling.testing.paxexam 3.1.0) embeds ASM 5.x and cannot
+     * weave Java 11+ bytecode. Version 1.3.7 uses external ASM 9.x and supports modern class files.
+     */
+    static Option spyflyOptions() {
+        return composite(
+            mavenBundle("org.apache.aries", "org.apache.aries.util", "1.1.3"),
+            mavenBundle("org.ow2.asm", "asm", "9.7.1"),
+            mavenBundle("org.ow2.asm", "asm-tree", "9.7.1"),
+            mavenBundle("org.ow2.asm", "asm-analysis", "9.7.1"),
+            mavenBundle("org.ow2.asm", "asm-commons", "9.7.1"),
+            mavenBundle("org.ow2.asm", "asm-util", "9.7.1"),
+            mavenBundle("org.apache.aries.spifly", "org.apache.aries.spifly.dynamic.bundle", "1.3.7")
+        );
+    }
+
+    static Option jpmsOptions(){
         DefaultCompositeOption composite = new DefaultCompositeOption();
         if (Version.parseVersion(System.getProperty("java.specification.version")).getMajor() > 1){
             if (java.nio.file.Files.exists(java.nio.file.FileSystems.getFileSystem(URI.create("jrt:/")).getPath("modules", "java.se.ee"))){
@@ -108,11 +130,11 @@ public class OSGiIT {
         return composite;
     }
 
-    private String getConfigDir(){
+    static String getConfigDir(){
         return new File(new File("src", "test"), "config").getAbsolutePath();
     }
 
-    private Option jarBundles() throws MalformedURLException {
+    static Option jarBundles() throws MalformedURLException {
         DefaultCompositeOption composite = new DefaultCompositeOption();
         for (File bundle : new File("target", "test-bundles").listFiles()) {
             if (bundle.getName().endsWith(".jar") && bundle.isFile()) {
