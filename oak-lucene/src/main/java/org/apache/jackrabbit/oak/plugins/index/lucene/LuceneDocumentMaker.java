@@ -25,6 +25,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -43,6 +44,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.*;
 import org.apache.lucene.facet.FacetsConfig;
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField;
+import org.apache.lucene.facet.taxonomy.FacetLabel;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.jetbrains.annotations.Nullable;
@@ -71,11 +73,21 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     private static final String LOG_KEY_UNABLE_TO_PARSE = "Unable to parse the provided date field";
     private static final String LOG_KEY_FOR_INPUT_STRING = "For input string";
     private static final String LOG_KEY_IGNORING_FACET_PROPERTY = "Ignoring facet property";
+    private static final String LOG_KEY_IGNORING_LONG_FACET_PROPERTY = "Ignoring long facet property";
     private static final String LOG_KEY_UNKNOWN = "Unknown";
 
     private static final String ORDERED_CONVERT_WARN =
             "[{}] Ignoring ordered value for property {} (type {}): not convertible to the declared "
             + "type {} at {}. ORDER BY may return incorrect or no results - leave type unset or use type=String.";
+
+    /**
+     * Feature toggle for OAK-12372: ignore facet properties with category path longer than 8191 characters to
+     * prevent exceptions at the Lucene level. Enabled by default (bug fix). When the toggle is flipped the
+     * shared {@link #FT_OAK_12372_DISABLE} flag is set to {@code true} and long facet properties are indexed,
+     * restoring the previous behaviour (i.e., exception during indexing).
+     */
+    public static final String FT_OAK_12372 = "FT_OAK-12372";
+    public static final AtomicBoolean FT_OAK_12372_DISABLE = new AtomicBoolean(false);
 
     public LuceneDocumentMaker(IndexDefinition definition,
                                IndexDefinition.IndexingRule indexingRule,
@@ -199,8 +211,24 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
             } else if (tag == Type.STRING.tag()) {
                 String value = property.getValue(Type.STRING);
                 if (!value.isEmpty()) {
-                    doc.add(new SortedSetDocValuesFacetField(pname, value));
-                    fieldAdded = true;
+                    if (FT_OAK_12372_DISABLE.get()) {
+                        // Legacy mode
+                        doc.add(new SortedSetDocValuesFacetField(pname, value));
+                        fieldAdded = true;
+                    } else {
+                        // Category path = pname + "/" + value --> cannot be longer than the Lucene limit of 8191
+                        int categoryPathLength = pname.length() + value.length() + 1;
+                        if (categoryPathLength > FacetLabel.MAX_CATEGORY_PATH_LENGTH) {
+                            if (!LOG_SILENCER.silence(LOG_KEY_IGNORING_LONG_FACET_PROPERTY)) {
+                                LOG.warn("[{}] Ignoring long facet property. Property {} is too long (name + value length: {})"
+                                                + " and cannot be used for facets",
+                                        getIndexName(), pname, categoryPathLength);
+                            }
+                        } else {
+                            doc.add(new SortedSetDocValuesFacetField(pname, value));
+                            fieldAdded = true;
+                        }
+                    }
                 }
             }
 
