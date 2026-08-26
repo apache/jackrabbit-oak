@@ -117,7 +117,7 @@ The following `Restriction` implementations are supported with the default Oak a
 | `rep:ntNames`    | Name   | true         | false     | Multivalued restriction to limit the effect to nodes of the specified primary node types (no nt inheritance) | Oak 1.0 |
 | `rep:prefixes`   | String | true         | false     | Multivalued restriction to limit the effect to item names that match the specified namespace prefixes (session level remapping not respected) | Oak 1.0 |
 | `rep:itemNames`  | Name   | true         | false     | Multivalued restriction for property or node names | Oak 1.3.8 |
-| `rep:current`    | String | true         | false     | Multivalued restriction that limits the effect to a single level i.e. the target node where the access control entry takes effect and optionally all or a subset of it's properties. There is no inheritance of the ACE effect to nodes in the subtree or their properties. Expanded JCR property names and namespace remapping not supported (see below for details) | Oak 1.42.0 |
+| `rep:current`    | String | true         | false     | Multivalued restriction that limits the effect to a single level i.e. the target node where the access control entry takes effect and optionally all or a subset of its properties. There is no inheritance of the ACE effect to nodes in the subtree or their properties. Expanded JCR property names and namespace remapping not supported (see below for details) | Oak 1.42.0 |
 | `rep:globs`      | String | true         | false     | Multivalued variant of the `rep:glob` restriction | Oak 1.44.0 |
 | `rep:subtrees`   | String | true         | false     | Multivalued restriction that limits effect to one or multiple subtrees (see below) | Oak 1.44.0 |
 
@@ -154,9 +154,9 @@ Examples without wildcard char:
 
 | rep:glob      | Result                                                   |
 |---------------|----------------------------------------------------------|
-| /cat          | '/foo/cat' and all it's descendants                      |
+| /cat          | '/foo/cat' and all its descendants                      |
 | /cat/         | all descendants of '/foo/cat'                            |
-| cat           | '/foocat' and all it's descendants                       |
+| cat           | '/foocat' and all its descendants                       |
 | cat/          | all descendants of '/foocat'                             |
 
 See also [GlobPattern] for implementation details and the [GlobRestrictionTest] in the _oak-exercise_ module for training material.
@@ -175,10 +175,10 @@ For a nodePath `/foo` the following results can be expected for the different va
 
 | rep:current       | Result                                                        |
 |-------------------|---------------------------------------------------------------|
-| []                | `/foo` only, none of it's properties                          |
-| [\*]              | `/foo` and all it's properties                                |
-| [jcr:primaryType] | `/foo` and it's `jcr:primaryType` property. no other property |
-| [a, b, c]         | `/foo` and it's properties `a`,`b`,`c`                        |
+| []                | `/foo` only, none of its properties                          |
+| [\*]              | `/foo` and all its properties                                |
+| [jcr:primaryType] | `/foo` and its `jcr:primaryType` property. no other property |
+| [a, b, c]         | `/foo` and its properties `a`,`b`,`c`                        |
 
 ###### Known Limitations
 - Due to the support of the residual name `*`, which isn't a valid JCR name, the restriction `rep:current` is defined to be 
