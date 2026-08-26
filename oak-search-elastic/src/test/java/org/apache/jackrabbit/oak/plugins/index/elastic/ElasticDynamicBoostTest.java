@@ -21,6 +21,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.DynamicBoostCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticDocument;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -54,6 +55,11 @@ public class ElasticDynamicBoostTest extends DynamicBoostCommonTest {
     @Before
     public void setDynamicBoostGroupingToggle() {
         ElasticDocument.FT_OAK_12353_ENABLE.set(dynamicBoostGroupingEnabled);
+    }
+
+    @After
+    public void resetDynamicBoostGroupingToggle() {
+        ElasticDocument.FT_OAK_12353_ENABLE.set(true);
     }
 
     @Override
