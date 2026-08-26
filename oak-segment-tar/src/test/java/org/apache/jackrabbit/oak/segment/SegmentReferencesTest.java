@@ -23,6 +23,8 @@ import static org.junit.Assert.assertNotEquals;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -31,6 +33,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -112,5 +115,30 @@ public class SegmentReferencesTest {
         SegmentId segmentId = segmentReferences.getSegmentId(1);
         assertEquals(segmentId.getMostSignificantBits(), -8306364159399214979L);
         assertEquals(segmentId.getLeastSignificantBits(), -6852035036232007869L);
+    }
+
+    @Test
+    public void shouldEstimateMemoryUsageWithDefaultImplementation() throws Exception {
+        MemoryStore store = new MemoryStore();
+        List<SegmentId> segmentIds = List.of(
+            store.getSegmentIdProvider().newDataSegmentId(),
+            store.getSegmentIdProvider().newDataSegmentId(),
+            store.getSegmentIdProvider().newDataSegmentId()
+        );
+
+        var customSegmentReferencesImplementation = new SegmentReferences() {
+            @NotNull
+            @Override
+            public Iterator<SegmentId> iterator() {
+                return segmentIds.iterator();
+            }
+
+            @Override
+            public SegmentId getSegmentId(int reference) {
+                throw new UnsupportedOperationException();
+            }
+        };
+
+        assertEquals(segmentIds.size() * 8, customSegmentReferencesImplementation.estimateMemoryUsage());
     }
 }
