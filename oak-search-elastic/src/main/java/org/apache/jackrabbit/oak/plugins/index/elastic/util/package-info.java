@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@Version("2.4.1")
+@Version("2.6.1")
 package org.apache.jackrabbit.oak.plugins.index.elastic.util;
 
 import org.osgi.annotation.versioning.Version;
