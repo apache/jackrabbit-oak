@@ -393,7 +393,7 @@ class ElasticIndexHelper {
                 .stream()
                 .filter(e -> e.getValue().size() > 1)
                 .filter(e -> e.getValue().stream().map(PropertyDefinition::getType).distinct().count() > 1)
-                .collect(Collectors.toList());
+                .toList();
 
         if (!multiTypesFields.isEmpty()) {
             String fields = multiTypesFields.stream().map(Map.Entry::getKey).collect(Collectors.joining(", ", "[", "]"));
@@ -417,7 +417,7 @@ class ElasticIndexHelper {
         StringBuilder result = new StringBuilder();
         for (char c : string.toCharArray()) {
             // start?
-            if (result.length() == 0) {
+            if (result.isEmpty()) {
                 result.append(Character.toLowerCase(c));
             } else {
                 if (Character.isUpperCase(c)) {
