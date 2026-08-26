@@ -20,6 +20,7 @@ import co.elastic.clients.elasticsearch._types.Time;
 import co.elastic.clients.elasticsearch._types.mapping.DenseVectorProperty;
 import co.elastic.clients.elasticsearch._types.mapping.DenseVectorSimilarity;
 import co.elastic.clients.elasticsearch._types.mapping.DynamicMapping;
+import co.elastic.clients.elasticsearch._types.mapping.IndexOptions;
 import co.elastic.clients.elasticsearch._types.mapping.Property;
 import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
@@ -350,13 +351,9 @@ class ElasticIndexHelper {
             for (PropertyDefinition pd : indexDefinition.getDynamicBoostProperties()) {
                 builder.properties(ElasticIndexUtils.fieldName(pd.nodeName),
                         b1 -> b1.nested(
-                                // norms disabled: values sharing a boost score are grouped into a single nested
-                                // doc (see ElasticDocument#FT_OAK_12353), so field length varies by group size and
-                                // would otherwise skew BM25 length normalization; boost is applied explicitly via
-                                // field_value_factor, so length normalization on this field isn't meaningful anyway.
                                 b2 -> b2.properties(DYNAMIC_BOOST_NESTED_VALUE,
                                                 b3 -> b3.text(
-                                                        b4 -> b4.analyzer("oak_analyzer").norms(false)))
+                                                        b4 -> b4.analyzer("oak_analyzer")))
                                         .properties(DYNAMIC_BOOST_NESTED_BOOST,
                                                 b3 -> b3.double_(f -> f)
                                         )
