@@ -16,14 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
-import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.cursor.Cursors;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.SecureFacetConfiguration;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
+import org.apache.jackrabbit.oak.plugins.index.search.SizeEstimator;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgCursor;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgSecureSortedSetDocValuesFacetCounts;
@@ -33,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
@@ -40,8 +45,6 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
-import org.apache.jackrabbit.oak.spi.query.QueryIndex.NodeAggregator;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.lucene.analysis.Analyzer;
@@ -71,6 +74,7 @@ import org.apache.lucene.search.SortedSetSortField;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.search.TermRangeQuery;
+import org.apache.lucene.search.TotalHitCountCollector;
 import org.apache.lucene.search.BoostQuery;
 import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.util.BytesRef;
@@ -87,16 +91,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
  * Lucene 9 query index implementation.
  * Executes queries against Lucene 9 indexes.
  */
-public class LuceneNgIndex implements QueryIndex.AdvanceFulltextQueryIndex {
+public class LuceneNgIndex extends FulltextIndex {
 
     private static final Logger LOG = LoggerFactory.getLogger(LuceneNgIndex.class);
-    // Must equal FacetHelper.ATTR_FACET_FIELDS — shared via plan attribute
+    // Must equal FulltextIndexPlanner.ATTR_FACET_FIELDS — the inherited FulltextIndexPlanner
+    // sets facet fields on the plan under this key; query(IndexPlan) reads them back.
     private static final String ATTR_FACET_FIELDS = "oak.facet.fields";
 
     private final LuceneNgIndexTracker tracker;
@@ -107,118 +113,108 @@ public class LuceneNgIndex implements QueryIndex.AdvanceFulltextQueryIndex {
         this.indexPath = indexPath;
     }
 
+    // ===== FulltextIndex abstract hooks =====
+    // Cost estimation and plan building come from the inherited FulltextIndexPlanner, which
+    // only offers a plan for properties this index actually declares, matching
+    // LucenePropertyIndex and ElasticIndex. getCost(Filter,...), getPlan(Filter,...) and
+    // query(Filter,...) are unsupported here (inherited default throws).
+
     @Override
-    public double getMinimumCost() {
-        return 2.0; // Better than traversal (1000+) but not as good as unique lookup (1.0)
+    protected LuceneNgIndexNode acquireIndexNode(String indexPath) {
+        return tracker.acquireIndexNode(indexPath);
+    }
+
+    @Override
+    protected LuceneNgIndexNode acquireIndexNode(IndexPlan plan) {
+        return (LuceneNgIndexNode) super.acquireIndexNode(plan);
+    }
+
+    @Override
+    protected String getType() {
+        return LuceneNgIndexConstants.TYPE_LUCENE9;
     }
 
     @Override
     public String getIndexName() {
-        return "luceneNg";
-    }
-
-    /**
-     * Returns the index definition path (per {@link QueryIndex#getIndexName(Filter, NodeState)})
-     * so callers can distinguish this LuceneNg index instance from others.
-     */
-    @Override
-    public String getIndexName(Filter filter, NodeState rootState) {
-        return indexPath;
+        return LuceneNgIndexConstants.TYPE_LUCENE9;
     }
 
     @Override
-    public double getCost(Filter filter, NodeState rootState) {
-        FullTextExpression ft = filter.getFullTextConstraint();
-        List<Filter.PropertyRestriction> propRestrictions = filter.getPropertyRestrictions()
-                .stream()
-                .filter(pr -> pr.propertyName != null)
-                .filter(pr -> !pr.propertyName.startsWith("rep:"))
-                .filter(pr -> !pr.propertyName.startsWith("oak:"))
-                .filter(pr -> !pr.propertyName.startsWith(QueryConstants.FUNCTION_RESTRICTION_PREFIX))
-                .collect(Collectors.toList());
-
-        // If we have both full-text and property restrictions, lower cost
-        if (ft != null && !propRestrictions.isEmpty()) {
-            return 1.5; // Very selective
-        }
-
-        // Full-text only
-        if (ft != null) {
-            return 2.0;
-        }
-
-        // Check for property restrictions we can handle
-        int supportedRestrictions = 0;
-        for (Filter.PropertyRestriction pr : propRestrictions) {
-            if (canHandleRestriction(pr)) {
-                supportedRestrictions++;
+    protected SizeEstimator getSizeEstimator(IndexPlan plan) {
+        // Port of LucenePropertyIndex.getSizeEstimator: a bounded count-only search over the
+        // plan's built query. Builds the query via buildQuery(plan.getFilter(), getPlanResult(plan)),
+        // the same PlanResult-driven construction the executed query uses. Note: LuceneNg's
+        // query(IndexPlan,...) returns its own LuceneNgCursor, which supplies its own size, so this
+        // estimator is not on the hot path today — but the hook is abstract and must be implemented
+        // correctly.
+        return () -> {
+            LuceneNgIndexNode indexNode = acquireIndexNode(plan);
+            if (indexNode == null) {
+                return -1L;
             }
-        }
-
-        if (supportedRestrictions > 0) {
-            // More restrictions = more selective = lower cost
-            return 2.0 / Math.sqrt(supportedRestrictions);
-        }
-
-        // Node-type-only query: only return a finite cost when the tracker confirms the
-        // index has a rule for the queried type (same guard used in getPlans).
-        if (!filter.matchesAllTypes()) {
-            String nodeType = filter.getNodeType();
-            LuceneNgIndexNode node = tracker.acquireIndexNode(indexPath);
-            if (node != null) {
-                try {
-                    if (nodeType != null
-                            && node.getDefinition().getApplicableIndexingRule(nodeType) != null) {
-                        return 10.0;
-                    }
-                } finally {
-                    node.release();
+            try {
+                IndexSearcher searcher = indexNode.getSearcher();
+                if (searcher == null) {
+                    return -1L;
                 }
+                Query query = buildQuery(plan.getFilter(), getPlanResult(plan));
+                TotalHitCountCollector collector = new TotalHitCountCollector();
+                searcher.search(query, collector);
+                int totalHits = collector.getTotalHits();
+                LOG.debug("Estimated size for query {} is {}", query, totalHits);
+                return (long) totalHits;
+            } catch (IOException e) {
+                LOG.warn("Size-estimate query failed on index {}", indexPath, e);
+                return -1L;
+            } finally {
+                indexNode.release();
             }
-        }
-
-        return Double.POSITIVE_INFINITY;
-    }
-
-    private boolean canHandleRestriction(Filter.PropertyRestriction pr) {
-        // Skip special properties (rep:facet, rep:excerpt, etc.) — they are not
-        // regular property restrictions and are handled separately as facet fields
-        if (pr.propertyName.startsWith("rep:") || pr.propertyName.startsWith("oak:")) {
-            return false;
-        }
-        // Can handle equality, range, NOT NULL, NULL, NOT, and IN queries
-        return pr.first != null || pr.last != null || pr.not != null || pr.list != null
-            || pr.isNotNullRestriction() || pr.isNullRestriction();
+        };
     }
 
     @Override
-    public String getPlan(Filter filter, NodeState rootState) {
-        return "lucene9:" + indexPath + " ft=" + filter.getFullTextConstraint();
+    protected Predicate<NodeState> getIndexDefinitionPredicate() {
+        return state -> LuceneNgIndexConstants.TYPE_LUCENE9.equals(
+                state.getString(IndexConstants.TYPE_PROPERTY_NAME));
     }
 
     @Override
-    public Cursor query(Filter filter, NodeState rootState) {
-        // Build the Lucene query up front; row iteration acquires the index node per batch
-        // inside the cursor rather than holding it open for the cursor's whole lifetime.
-        // This overload supports neither sort, facets, nor fulltext excerpts.
-        Query query = buildQuery(filter);
-        LOG.debug("Executing query: {}", query);
-        return new LuceneNgCursor(tracker, indexPath, query, null,
-                Collections.emptyMap(), false, null);
+    protected String getFulltextRequestString(IndexPlan plan, IndexNode indexNode, NodeState rootState) {
+        // The diagnostic representation of the query this plan would run — the same Lucene
+        // Query buildQuery(...) constructs for execution.
+        return buildQuery(plan.getFilter(), getPlanResult(plan)).toString();
     }
 
-    private Query buildQuery(Filter filter) {
+    @Override
+    protected boolean filterReplacedIndexes() {
+        return false; // matches this module's current behavior — no blue/green mount-info concept yet
+    }
+
+    @Override
+    protected boolean runIsActiveIndexCheck() {
+        return false; // matches ElasticIndex's choice; LuceneNg has no active-index-check concept yet
+    }
+
+    private Query buildQuery(Filter filter, FulltextIndexPlanner.PlanResult planResult) {
         FullTextExpression ft = filter.getFullTextConstraint();
 
         // Strip rep:facet pseudo-restrictions and function restrictions we don't index.
         // Function restrictions (e.g. "function*@:localname") are paired with their dedicated
         // equivalents (e.g. ":localname") and are handled by createPropertyQuery(); including
         // them as separate clauses would produce a term query on a non-existent field.
+        //
+        // A property restriction only becomes a Lucene clause when the planner validated it —
+        // matching LucenePropertyIndex.addNonFullTextConstraints, which skips any restriction
+        // whose planResult.getPropDefn(pr) is null (undeclared/unindexed property) and leaves it
+        // for the query engine to post-filter instead. The localname() pseudo-restriction has no
+        // declared PropertyDefinition, so it is gated on evaluateNodeNameRestriction() instead,
+        // exactly as legacy does.
         List<Filter.PropertyRestriction> propRestrictions = filter.getPropertyRestrictions()
             .stream()
             .filter(pr -> !QueryConstants.REP_FACET.equals(pr.propertyName))
             .filter(pr -> pr.propertyName == null
                     || !pr.propertyName.startsWith(QueryConstants.FUNCTION_RESTRICTION_PREFIX))
+            .filter(pr -> isPlannerValidated(pr, planResult))
             .collect(Collectors.toList());
 
         Query pathQuery = buildPathQuery(filter);
@@ -266,6 +262,37 @@ public class LuceneNgIndex implements QueryIndex.AdvanceFulltextQueryIndex {
         combined.add(contentQuery, Occur.MUST);
         combined.add(pathQuery, Occur.FILTER);
         return combined.build();
+    }
+
+    /**
+     * Decides whether a property restriction may be turned into a Lucene query clause, driven by
+     * the {@link FulltextIndexPlanner.PlanResult} the planner already built and attached to the plan
+     * (rather than re-deciding from the raw {@link Filter}). Mirrors
+     * {@code LucenePropertyIndex.addNonFullTextConstraints}:
+     * <ul>
+     *   <li>the {@code localname()} pseudo-restriction is retained only when the planner marked the
+     *       node-name restriction as evaluable ({@link FulltextIndexPlanner.PlanResult#evaluateNodeNameRestriction()});</li>
+     *   <li>every other property restriction is retained only when the planner matched it to a
+     *       declared/indexed property ({@link FulltextIndexPlanner.PlanResult#getPropDefn} is non-null) —
+     *       restrictions on undeclared properties are dropped here and left for the query engine to
+     *       post-filter, exactly as legacy does.</li>
+     * </ul>
+     */
+    private static boolean isPlannerValidated(Filter.PropertyRestriction pr,
+                                              FulltextIndexPlanner.PlanResult planResult) {
+        // In real query execution the plan is always built by the inherited FulltextIndexPlanner,
+        // so getPlanResult(plan) is non-null (the same assumption LucenePropertyIndex makes). A null
+        // PlanResult only arises for lower-level building-block callers that construct a plan without
+        // going through the planner (e.g. mock-plan unit tests). With no planner decision to be
+        // consistent with, there is nothing to gate on, so we retain the restriction — i.e. fall back
+        // to the pre-D3 "derive every constraint from the raw Filter" behavior.
+        if (planResult == null) {
+            return true;
+        }
+        if (QueryConstants.RESTRICTION_LOCAL_NAME.equals(pr.propertyName)) {
+            return planResult.evaluateNodeNameRestriction();
+        }
+        return planResult.getPropDefn(pr) != null;
     }
 
     /**
@@ -621,9 +648,12 @@ public class LuceneNgIndex implements QueryIndex.AdvanceFulltextQueryIndex {
      * PrefixQuery, or WildcardQuery). Wildcard terms bypass tokenization.
      */
     private static Query tokenToQuery(String text, String fieldName, Analyzer analyzer) {
+        // Property-scoped fulltext (CONTAINS(propertyName, ...)) resolves to the analyzed field
+        // written by LuceneNgDocumentMaker#indexAnalyzedProperty for that property, not to the
+        // raw property name (nothing is ever indexed under the literal property name here).
         String field = (fieldName == null || "*".equals(fieldName))
             ? FieldNames.FULLTEXT
-            : fieldName;
+            : FieldNames.createAnalyzedFieldName(fieldName);
 
         // Wildcard/prefix: bypass tokenization to preserve wildcard characters
         if (text.contains("*") || text.contains("?")) {
@@ -673,124 +703,28 @@ public class LuceneNgIndex implements QueryIndex.AdvanceFulltextQueryIndex {
     // ===== AdvancedQueryIndex methods =====
 
     @Override
-    @org.jetbrains.annotations.Nullable
-    public NodeAggregator getNodeAggregator() {
-        // No aggregation support yet
-        return null;
-    }
-
-    @Override
-    public List<QueryIndex.IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder, NodeState rootState) {
-        // Don't offer a plan when the index has not yet been populated (no data)
-        LuceneNgIndexNode indexNode = tracker.acquireIndexNode(indexPath);
-        if (indexNode == null) {
-            return Collections.emptyList();
-        }
-        try {
-        return getPlansInternal(filter, sortOrder, rootState, indexNode);
-        } finally {
-            indexNode.release();
-        }
-    }
-
-    private List<QueryIndex.IndexPlan> getPlansInternal(Filter filter, List<OrderEntry> sortOrder,
-            NodeState rootState, LuceneNgIndexNode indexNode) {
-        // Check if we can handle this query
-        FullTextExpression ft = filter.getFullTextConstraint();
-        List<Filter.PropertyRestriction> propRestrictions = new ArrayList<>(filter.getPropertyRestrictions());
-
-        // Remove function restrictions (e.g. "function*@:localname") — we don't support
-        // function-based indexes yet; these restrictions are never satisfied by our index
-        // and must not be counted as "supported" constraints or included in the Lucene query.
-        propRestrictions.removeIf(pr -> pr.propertyName != null
-                && pr.propertyName.startsWith(QueryConstants.FUNCTION_RESTRICTION_PREFIX));
-
-        // localname() restriction: only offer a plan when the indexing rule declares
-        // indexNodeName=true (mirrors FulltextIndexPlanner.canEvalNodeNameRestriction).
-        Filter.PropertyRestriction localNamePr = filter.getPropertyRestriction(QueryConstants.RESTRICTION_LOCAL_NAME);
-        if (localNamePr != null) {
-            String nodeType = filter.getNodeType();
-            IndexingRule rule = nodeType != null
-                    ? indexNode.getDefinition().getApplicableIndexingRule(nodeType) : null;
-            if (rule == null || !rule.isNodeNameIndexed()) {
-                return Collections.emptyList();
-            }
-            // Remove from the generic list — it is handled as a special case
-            propRestrictions.removeIf(pr -> QueryConstants.RESTRICTION_LOCAL_NAME.equals(pr.propertyName));
-        }
-
-        // Extract facet fields before the early-exit guard so facet-only queries are handled
-        List<String> facetFields = extractFacetFields(filter);
-
-        // Offer a plan when there is at least one constraint we can evaluate:
-        // fulltext, property restriction, facet, localname(), or a declared node-type
-        // restriction that the index actually covers.
-        boolean hasLocalNameConstraint = localNamePr != null;
-        boolean noContentConstraints = ft == null && propRestrictions.isEmpty()
-                && facetFields.isEmpty() && !hasLocalNameConstraint;
-        if (noContentConstraints) {
-            if (filter.matchesAllTypes()) {
-                // No constraints at all — skip
-                return Collections.emptyList();
-            }
-            // Node-type-only query: only offer a plan when the index has a rule for
-            // the queried type. This prevents us from winning queries like
-            // SELECT * FROM [cq:Page]... when the index only covers dam:Asset nodes.
-            String nodeType = filter.getNodeType();
-            if (nodeType == null
-                    || indexNode.getDefinition().getApplicableIndexingRule(nodeType) == null) {
-                return Collections.emptyList();
-            }
-        }
-
-        // Calculate cost
-        double cost = getCost(filter, rootState);
-        if (cost == Double.POSITIVE_INFINITY) {
-            return Collections.emptyList();
-        }
-
-        // Create index plan
-        QueryIndex.IndexPlan.Builder builder = new QueryIndex.IndexPlan.Builder();
-        builder.setCostPerExecution(cost);
-        builder.setCostPerEntry(0.1); // Low per-entry cost
-        builder.setEstimatedEntryCount(100); // Estimate
-        builder.setFilter(filter);
-        builder.setDelayed(false); // Synchronous index
-        // Facet columns are served by the fulltext index path even without jcr:contains.
-        builder.setFulltextIndex(ft != null || !facetFields.isEmpty());
-        if (!facetFields.isEmpty()) {
-            builder.setAttribute(ATTR_FACET_FIELDS, facetFields);
-            LOG.debug("Facet fields requested: {}", facetFields);
-        }
-
-        // Set sort order if we can support it
-        if (sortOrder != null && !sortOrder.isEmpty()) {
-            builder.setSortOrder(sortOrder);
-        }
-
-        builder.setDefinition(getDefinitionBuilder(rootState, indexPath).getNodeState());
-        builder.setPathPrefix(indexPath);
-        builder.setPlanName(indexPath);
-
-        return Collections.singletonList(builder.build());
-    }
-
-    @Override
-    public String getPlanDescription(QueryIndex.IndexPlan plan, NodeState root) {
-        // First line must start with "lucene:" so tooling that only matches legacy FulltextIndex
-        // plans (e.g. AEM ExplainQueryServlet LUCENE_INDEX_PATTERN: "/\* lucene:…") still detects an
-        // index. "@v9" suffix marks Lucene 9 / Oak type lucene9 in the captured index label;
-        // "lucene9:" on the next line keeps the engine explicit for logs and tests.
-        String shortName = PathUtils.getName(indexPath);
+    public String getPlanDescription(IndexPlan plan, NodeState root) {
+        // Kept as an override (rather than inheriting FulltextIndex.getPlanDescription) purely for
+        // output-format compatibility that LuceneNgIndexComparisonTest.testLuceneNgIndexIsUsed pins:
+        //  - the first line must start with "lucene:" so tooling that only matches legacy
+        //    FulltextIndex plans (e.g. AEM ExplainQueryServlet LUCENE_INDEX_PATTERN: "/\* lucene:…")
+        //    still detects an index; the "@v9" suffix marks Lucene 9 / Oak type lucene9;
+        //  - the "lucene9:" line keeps the engine explicit for logs/tests;
+        //  - the query label is "luceneQuery:" (not the base's "<type>Query:" = "lucene9Query:").
+        // The path is now taken from the plan's PlanResult (built by the inherited
+        // FulltextIndexPlanner) rather than a per-instance field, so it is correct even if this
+        // instance was allocated for a different index path.
+        String path = getPlanResult(plan).indexPath;
+        String shortName = PathUtils.getName(path);
         StringBuilder sb = new StringBuilder("lucene:");
         sb.append(shortName).append("@v9\n");
         sb.append("lucene9:").append(shortName).append("\n");
-        sb.append("    indexDefinition: ").append(indexPath).append("\n");
+        sb.append("    indexDefinition: ").append(path).append("\n");
         sb.append("    estimatedEntries: ").append(plan.getEstimatedEntryCount()).append("\n");
 
         Filter filter = plan.getFilter();
         if (filter != null) {
-            sb.append("    luceneQuery: ").append(buildQuery(filter).toString()).append("\n");
+            sb.append("    luceneQuery: ").append(buildQuery(filter, getPlanResult(plan)).toString()).append("\n");
             List<OrderEntry> sortOrder = plan.getSortOrder();
             if (sortOrder != null && !sortOrder.isEmpty()) {
                 sb.append("    sortOrder: ").append(sortOrder).append("\n");
@@ -799,9 +733,9 @@ public class LuceneNgIndex implements QueryIndex.AdvanceFulltextQueryIndex {
             if (ft != null) {
                 sb.append("    fulltextCondition: ").append(ft).append("\n");
             }
-            List<Filter.PropertyRestriction> propRestrictions = new ArrayList<>(filter.getPropertyRestrictions());
-            if (!propRestrictions.isEmpty()) {
-                sb.append("    propertyRestrictions: ").append(propRestrictions.size()).append("\n");
+            int propRestrictionCount = filter.getPropertyRestrictions().size();
+            if (propRestrictionCount > 0) {
+                sb.append("    propertyRestrictions: ").append(propRestrictionCount).append("\n");
             }
         }
 
@@ -817,7 +751,7 @@ public class LuceneNgIndex implements QueryIndex.AdvanceFulltextQueryIndex {
         @SuppressWarnings("unchecked")
         List<String> facetFields = (List<String>) plan.getAttribute(ATTR_FACET_FIELDS);
 
-        Query query = buildQuery(filter);
+        Query query = buildQuery(filter, getPlanResult(plan));
         LOG.debug("Executing query: {}", query);
 
         Sort sort = null;
@@ -893,16 +827,15 @@ public class LuceneNgIndex implements QueryIndex.AdvanceFulltextQueryIndex {
         }
 
         // Excerpts are generated per batch inside the cursor; the analyzer is owned and closed
-        // by the cursor. StandardAnalyzer mirrors the previous eager excerpt generation.
+        // by the cursor.
         Analyzer excerptAnalyzer = needsExcerpts ? new StandardAnalyzer() : null;
         return new LuceneNgCursor(tracker, indexPath, query, sort, facetColumns, needsExcerpts, excerptAnalyzer);
     }
 
     /**
      * Builds the {@code rep:facet(dim) -> JSON} column map from a computed {@link Facets} per
-     * dimension. Mirrors {@code LuceneNgCursor.buildFacetColumns}; extracted here because the lazy
-     * cursor now receives the already-built column map rather than live {@link Facets} objects
-     * (which reference a searcher that is released before row iteration begins).
+     * dimension. Built here, before the cursor is constructed, because the underlying
+     * {@link Facets} reference a searcher that is released before row iteration begins.
      */
     private static Map<String, String> buildFacetColumnsEagerly(Map<String, Facets> facetsMap, int topChildren) {
         if (facetsMap == null || facetsMap.isEmpty()) {
@@ -1031,91 +964,4 @@ public class LuceneNgIndex implements QueryIndex.AdvanceFulltextQueryIndex {
         }
     }
 
-    /**
-     * Navigates to the index definition node from the root state.
-     * Example: indexPath="/oak:index/myIndex" returns builder for that node.
-     */
-    private NodeBuilder getDefinitionBuilder(NodeState rootState, String indexPath) {
-        NodeBuilder builder = rootState.builder();
-
-        // Remove leading slash if present
-        String path = indexPath.startsWith("/") ? indexPath.substring(1) : indexPath;
-
-        // Navigate through path segments
-        String[] segments = path.split("/");
-        for (String segment : segments) {
-            builder = builder.child(segment);
-        }
-
-        return builder;
-    }
-
-    /**
-     * Extracts facet property names from Filter.
-     * Oak can expose facet requests either as {@code rep:facet -> rep:facet(x)} pseudo
-     * restrictions or directly as a property name shaped like {@code rep:facet(x)}.
-     */
-    private List<String> extractFacetFields(Filter filter) {
-        List<String> facetFields = new ArrayList<>();
-        for (Filter.PropertyRestriction pr : filter.getPropertyRestrictions()) {
-            String propName = pr.propertyName;
-            addFacetFieldIfPresent(facetFields, propName);
-
-            if (QueryConstants.REP_FACET.equals(propName)) {
-                if (pr.first != null) {
-                    addFacetFieldIfPresent(facetFields, pr.first.getValue(org.apache.jackrabbit.oak.api.Type.STRING));
-                }
-                if (pr.last != null) {
-                    addFacetFieldIfPresent(facetFields, pr.last.getValue(org.apache.jackrabbit.oak.api.Type.STRING));
-                }
-                if (pr.list != null) {
-                    for (PropertyValue candidate : pr.list) {
-                        if (candidate != null) {
-                            addFacetFieldIfPresent(facetFields, candidate.getValue(org.apache.jackrabbit.oak.api.Type.STRING));
-                        }
-                    }
-                }
-            }
-        }
-        // SQL2/XPath parsers may not always expose rep:facet(...) as a property restriction.
-        addFacetFieldsFromQueryStatement(facetFields, filter.getQueryStatement());
-        return facetFields;
-    }
-
-    private static void addFacetFieldIfPresent(List<String> facetFields, String expression) {
-        if (expression == null) {
-            return;
-        }
-        String prefix = QueryConstants.REP_FACET + "(";
-        if (!expression.startsWith(prefix) || !expression.endsWith(")")) {
-            return;
-        }
-        String facetField = expression.substring(prefix.length(), expression.length() - 1).trim();
-        if (!facetField.isEmpty() && !facetFields.contains(facetField)) {
-            facetFields.add(facetField);
-        }
-    }
-
-    private static void addFacetFieldsFromQueryStatement(List<String> facetFields, String statement) {
-        if (statement == null || statement.isEmpty()) {
-            return;
-        }
-        String token = QueryConstants.REP_FACET + "(";
-        int from = 0;
-        while (from < statement.length()) {
-            int start = statement.indexOf(token, from);
-            if (start < 0) {
-                return;
-            }
-            int end = statement.indexOf(')', start + token.length());
-            if (end < 0) {
-                return;
-            }
-            String field = statement.substring(start + token.length(), end).trim();
-            if (!field.isEmpty() && !facetFields.contains(field)) {
-                facetFields.add(field);
-            }
-            from = end + 1;
-        }
-    }
 }

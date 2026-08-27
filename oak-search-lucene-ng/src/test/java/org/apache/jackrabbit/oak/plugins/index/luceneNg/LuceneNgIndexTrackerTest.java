@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -83,13 +84,10 @@ public class LuceneNgIndexTrackerTest {
     }
 
     /**
-     * Regression test for the tracker-lookup half of the fix in OAK-12089 Task A1: unlike the
-     * pre-Task-A1 tracker, which only ever called {@code root.getChildNode("oak:index")} (a
-     * hardcoded top-level lookup) and so could never resolve an index below it, the shared
-     * {@code FulltextIndexTracker}'s {@code findIndexNode} walks the given path
-     * segment-by-segment with no depth restriction. This proves {@link LuceneNgIndexTracker
-     * #acquireIndexNode(String)} now resolves a {@code lucene9} index at any nesting depth, once
-     * given its exact path.
+     * Proves that {@link LuceneNgIndexTracker#acquireIndexNode(String)} resolves a {@code lucene9}
+     * index at any nesting depth, once given its exact path: the shared {@code
+     * FulltextIndexTracker}'s {@code findIndexNode} walks the given path segment-by-segment with
+     * no depth restriction.
      *
      * <p>This does NOT prove that a real query can use such an index: {@code
      * LuceneNgQueryIndexProvider#getQueryIndexes()} still only enumerates direct children of
@@ -128,5 +126,129 @@ public class LuceneNgIndexTrackerTest {
         assertNotNull(
                 "Tracker should resolve a lucene9 index at any nesting depth once given its exact path",
                 indexNode);
+    }
+
+    /**
+     * Black-box proof that {@code tracker.update()} reopens the index node in response to a real
+     * content change, driven entirely through the real editor/context commit path
+     * ({@link LuceneNgEditorCommitUtil}) rather than a hand-built {@code LuceneNgIndexNode}.
+     *
+     * <p>The inherited {@code FulltextIndexTracker} default {@code isUpdateNeeded} only inspects
+     * {@code :status}/{@code :index-definition} at the index node itself — see the tracker's class
+     * javadoc for why that is sufficient to catch every real content change.</p>
+     */
+    @Test
+    public void updateAfterRealContentChangeReopensTheIndexNode() throws Exception {
+        String indexPath = "/oak:index/testIndex";
+
+        NodeBuilder rootBuilder = INITIAL_CONTENT.builder();
+        NodeBuilder defnBuilder = rootBuilder.child("oak:index").child("testIndex");
+        IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
+        idb.noAsync();
+        idb.indexRule("nt:unstructured").property("title").propertyIndex();
+        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+
+        NodeBuilder node1 = rootBuilder.child("node1");
+        node1.setProperty("jcr:primaryType", "nt:unstructured");
+        node1.setProperty("title", "hello");
+
+        // Commit 1: reindex, indexing node1. Real editor/context path -> real Lucene segments.
+        NodeState afterFirst = LuceneNgEditorCommitUtil.reindex(rootBuilder.getNodeState());
+
+        LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
+        tracker.update(afterFirst);
+        LuceneNgIndexNode firstNode = tracker.acquireIndexNode(indexPath);
+        assertNotNull("Index node must be resolvable after the first commit", firstNode);
+        int firstIndexNodeId = firstNode.getIndexNodeId();
+        firstNode.release();
+
+        // Commit 2: a real content change (a second indexed node), via the same real commit path.
+        NodeBuilder b2 = afterFirst.builder();
+        NodeBuilder node2 = b2.child("node2");
+        node2.setProperty("jcr:primaryType", "nt:unstructured");
+        node2.setProperty("title", "world");
+        NodeState afterSecond = LuceneNgEditorCommitUtil.commit(afterFirst, b2.getNodeState());
+
+        tracker.update(afterSecond);
+        LuceneNgIndexNode secondNode = tracker.acquireIndexNode(indexPath);
+        assertNotNull("Index node must be resolvable after the second commit", secondNode);
+        int secondIndexNodeId = secondNode.getIndexNodeId();
+        secondNode.release();
+
+        assertNotEquals(
+                "A real content change must cause tracker.update() to reopen the index node "
+                        + "(new getIndexNodeId()), proving the tracker detected the change",
+                firstIndexNodeId, secondIndexNodeId);
+    }
+
+    /**
+     * Verifies that a reindex matching <b>zero</b> documents still reopens the index node.
+     *
+     * <p>{@code LuceneNgFulltextIndexWriter}'s {@code indexUpdated} dirty-tracking flag is
+     * <em>not</em> what makes this case safe: on reindex, {@code LuceneNgFulltextIndexWriterFactory}
+     * opens the {@code IndexWriter} with {@code OpenMode.CREATE} and {@code close()} always calls
+     * {@code indexWriter.commit()} regardless of whether any document was ever written, so if the
+     * reindex matches nothing, {@code updateDocument}/{@code deleteDocumentTree}/{@code
+     * deleteDocument} are never called and {@code indexUpdated} stays {@code false}. The actual
+     * safety net is upstream, in {@code oak-core}'s {@code IndexUpdate.removeIndexState()}, which
+     * unconditionally strips the index definition's hidden child nodes (including {@code :status}
+     * and {@code :index-definition}) before every reindex — independent of anything this module's
+     * writer does — so the inherited {@code FulltextIndexTracker} default's {@code
+     * isStatusChanged}/{@code isIndexDefinitionChanged} checks still see a real diff.</p>
+     */
+    @Test
+    public void reindexMatchingZeroDocumentsStillReopensTheIndexNode() throws Exception {
+        String indexPath = "/oak:index/testIndex";
+
+        NodeBuilder rootBuilder = INITIAL_CONTENT.builder();
+        NodeBuilder defnBuilder = rootBuilder.child("oak:index").child("testIndex");
+        IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
+        idb.noAsync();
+        idb.indexRule("nt:unstructured").property("title").propertyIndex();
+        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+
+        NodeBuilder node1 = rootBuilder.child("node1");
+        node1.setProperty("jcr:primaryType", "nt:unstructured");
+        node1.setProperty("title", "hello");
+
+        // Commit 1: reindex, indexing node1 -- real Lucene segment data exists for the index.
+        NodeState afterFirst = LuceneNgEditorCommitUtil.reindex(rootBuilder.getNodeState());
+        assertEquals("Sanity check: commit 1 must actually index something",
+                1, LuceneNgEditorCommitUtil.numDocs(afterFirst, indexPath));
+
+        LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
+        tracker.update(afterFirst);
+        LuceneNgIndexNode firstNode = tracker.acquireIndexNode(indexPath);
+        assertNotNull("Index node must be resolvable after the first commit", firstNode);
+        int firstIndexNodeId = firstNode.getIndexNodeId();
+        firstNode.release();
+
+        // Commit 2: force a reindex (explicit "reindex" flag, mirroring an admin-triggered
+        // reindex or a rule/config change) whose matching content set is empty -- node1 (the
+        // only content that ever matched the rule) is removed in the same commit.
+        NodeBuilder b2 = afterFirst.builder();
+        b2.child("node1").remove();
+        b2.child("oak:index").child("testIndex").setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+        NodeState afterSecond = LuceneNgEditorCommitUtil.commit(afterFirst, b2.getNodeState());
+        assertEquals("Sanity check: commit 2 must be a reindex that matches nothing, or this "
+                        + "test doesn't exercise the edge case it's meant to",
+                0, LuceneNgEditorCommitUtil.numDocs(afterSecond, indexPath));
+
+        tracker.update(afterSecond);
+        LuceneNgIndexNode secondNode = tracker.acquireIndexNode(indexPath);
+        try {
+            assertNotNull("Index node must still be resolvable after a reindex-to-empty "
+                    + "(the definition and its storage still exist, just with no documents)", secondNode);
+            assertNotEquals(
+                    "A reindex matching zero documents must still cause tracker.update() to reopen "
+                            + "the index node (new getIndexNodeId()): the old segments are stale and must "
+                            + "not keep being served, even though LuceneNgFulltextIndexWriter's own "
+                            + "indexUpdated flag never got set to true for this commit",
+                    firstIndexNodeId, secondNode.getIndexNodeId());
+        } finally {
+            if (secondNode != null) {
+                secondNode.release();
+            }
+        }
     }
 }

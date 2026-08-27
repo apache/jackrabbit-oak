@@ -45,10 +45,9 @@ import static org.junit.Assert.assertTrue;
  * Tests that the Lucene 9 index editor only indexes properties declared in the index definition,
  * using the proper Lucene field types based on {@code PropertyDefinition} flags.
  *
- * <p>Task B4 migrated these from driving {@code LuceneNgIndexEditor} directly to driving real
- * commits through {@link LuceneNgIndexEditorProvider} (see {@link LuceneNgEditorCommitUtil}); the
- * assertions are unchanged in intent — they still inspect the committed Lucene index (documents,
- * fields, doc-values) via a {@link DirectoryReader} opened over the {@code /oak:index/test/lucene9}
+ * <p>These drive real commits through {@link LuceneNgIndexEditorProvider} (see
+ * {@link LuceneNgEditorCommitUtil}) and inspect the committed Lucene index (documents, fields,
+ * doc-values) via a {@link DirectoryReader} opened over the {@code /oak:index/test/lucene9}
  * storage.</p>
  */
 public class IndexingRulesTest {

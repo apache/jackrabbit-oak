@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgIndexNodeManager;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexTracker;
-import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -27,7 +26,22 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Tracks Lucene 9 ({@code type=lucene9}) indexes for the query engine, via the shared
  * {@link FulltextIndexTracker} (lazy per-path discovery + targeted subtree diffing — see
- * that class for the discovery/refresh contract this inherits).
+ * that class for the discovery/refresh contract this inherits). {@code isUpdateNeeded} is not
+ * overridden: the inherited default (which checks only the {@code :status} and
+ * {@code :index-definition} hidden nodes) suffices here, for two independent reasons covering
+ * the two ways content changes reach this index:
+ * <ul>
+ *     <li>Incremental (non-reindex) updates: {@link LuceneNgIndexEditor} (via the shared
+ *     {@code FulltextIndexEditorContext.closeWriter()}) writes {@code :status/lastUpdated}
+ *     whenever {@code LuceneNgFulltextIndexWriter.close()} reports that a write actually
+ *     happened.</li>
+ *     <li>Reindex (including a reindex that ends up matching zero documents): {@code oak-core}'s
+ *     {@code IndexUpdate.removeIndexState()} unconditionally strips all hidden child nodes
+ *     (including {@code :status} and {@code :index-definition}) before every reindex, regardless
+ *     of this module's own dirty-tracking — so the default's {@code isIndexDefinitionChanged}/
+ *     {@code isStatusChanged} checks always see a diff on reindex, even one that indexes nothing.</li>
+ * </ul>
+ * See module README, "Performance", for the full dependency this relies on.
  */
 public class LuceneNgIndexTracker extends FulltextIndexTracker<LuceneNgIndexNodeManager, LuceneNgIndexNode> {
 
@@ -38,20 +52,6 @@ public class LuceneNgIndexTracker extends FulltextIndexTracker<LuceneNgIndexNode
             return null;
         }
         return new LuceneNgIndexNodeManager(path, indexNode);
-    }
-
-    /**
-     * Overridden because {@link FulltextIndexTracker}'s default checks only the
-     * {@code :status} and {@code :index-definition} hidden nodes for changes — neither of
-     * which {@link LuceneNgIndexEditor} ever writes (this module has no NRT/status-marker
-     * story yet; see module README). The Lucene segment files instead live directly under
-     * the index definition node itself ({@link LuceneNgIndexStorage#STORAGE_NODE_NAME}), so
-     * a plain whole-subtree comparison is what actually detects both definition and content
-     * (storage) changes here.
-     */
-    @Override
-    public boolean isUpdateNeeded(NodeState before, NodeState after) {
-        return !EqualsDiff.equals(before, after);
     }
 
     @Nullable

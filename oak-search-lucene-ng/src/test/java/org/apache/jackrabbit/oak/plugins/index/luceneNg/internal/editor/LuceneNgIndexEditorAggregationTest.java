@@ -36,15 +36,10 @@ import java.util.List;
 import static org.junit.Assert.assertTrue;
 
 /**
- * End-to-end proof of the payoff of the whole Part B migration: index-time aggregation, which the
- * hand-rolled {@code LuceneNgIndexEditor} never supported and which this module gains by subclassing
- * the shared {@code FulltextIndexEditor}/{@code FulltextDocumentMaker} (see {@code amit-jain}'s
- * 2026-08-24 PR review comment: "This should extend from FulltextIndexEditor ... aggregation support").
- *
- * <p>An aggregate rule folds a child node's fulltext content into its parent's {@code :fulltext}
- * field at index time (via {@code LuceneNgDocumentMaker.indexAggregateValue}), so a fulltext query
- * matches the <em>parent</em> for text that exists only on the child. Before this migration that was
- * impossible in {@code oak-search-lucene-ng}.</p>
+ * End-to-end proof that index-time aggregation works: an aggregate rule folds a child node's
+ * fulltext content into its parent's {@code :fulltext} field at index time (via
+ * {@code LuceneNgDocumentMaker.indexAggregateValue}), so a fulltext query matches the
+ * <em>parent</em> for text that exists only on the child.
  */
 public class LuceneNgIndexEditorAggregationTest extends AbstractQueryTest {
 

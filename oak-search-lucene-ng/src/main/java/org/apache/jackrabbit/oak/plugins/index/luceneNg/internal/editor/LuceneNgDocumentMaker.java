@@ -56,15 +56,12 @@ import java.util.List;
  * required by the shared {@link FulltextDocumentMaker} framework (the same framework
  * {@code oak-lucene} and {@code oak-search-elastic} use).
  *
- * <p>The Lucene field types produced here are a direct port of the hand-rolled
- * {@code LuceneNgIndexEditor} (declared-type dispatch, single-value ordered doc-values,
- * string/facet/node-name handling). The field-<em>selection</em> gating (which hook fires
- * for which {@link PropertyDefinition} flag) is handled entirely by the framework's
- * {@code makeDocument} template method; these hooks only create the fields once invoked.</p>
+ * <p>Field-<em>selection</em> gating (which hook fires for which {@link PropertyDefinition}
+ * flag) is handled entirely by the framework's {@code makeDocument} template method; these
+ * hooks only create the fields once invoked.</p>
  *
- * <p>Reusing the framework brings index-time <b>aggregation</b> to this module for the first
- * time: {@link #indexAggregateValue} routes a matched child/relative node's text into the
- * parent's {@code :fulltext} field.</p>
+ * <p>{@link #indexAggregateValue} routes a matched child/relative node's text into the
+ * parent's {@code :fulltext} field, giving this module index-time <b>aggregation</b>.</p>
  */
 public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
 
@@ -97,7 +94,7 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
     protected Document initDoc() {
         Document doc = new Document();
         // Path fields are always added — they use the ":path" / ":parent" prefixes which
-        // cannot collide with JCR property names. Ported from LuceneNgIndexEditor.indexNode.
+        // cannot collide with JCR property names.
         doc.add(new StringField(FieldNames.PATH, path, Field.Store.YES));
         int lastSlash = path.lastIndexOf('/');
         String parentPath = lastSlash == 0 ? "/" : path.substring(0, lastSlash);
@@ -124,10 +121,10 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
      * The framework's {@code addTypedFields} iterates array values and calls this once per value,
      * so this method handles a single value only.
      *
-     * <p>Port of {@code LuceneNgIndexEditor.indexProperty}'s declared-type dispatch: when the
-     * index definition declares Long/Double/Date, the value is converted and a numeric point
-     * field is written (guaranteeing a consistent Lucene field type across all documents);
-     * otherwise the field type is driven by the actual Oak value type (String exact-match).</p>
+     * <p>When the index definition declares Long/Double/Date, the value is converted and a
+     * numeric point field is written (guaranteeing a consistent Lucene field type across all
+     * documents); otherwise the field type is driven by the actual Oak value type (String
+     * exact-match).</p>
      */
     @Override
     protected void indexTypedProperty(Document doc, PropertyState property, String pname,
@@ -173,11 +170,10 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
     }
 
     /**
-     * Indexes the value at position {@code i} using the property's actual Oak value type
-     * (port of {@code LuceneNgIndexEditor.indexByActualType} / the exact-match portion of
-     * {@code indexStringProperty}). Numeric/boolean values are indexed as string exact-match
-     * fields and, matching the pre-refactor editor, only when the property is single-valued.
-     * Binary values are ignored here (never call {@code getValue(STRING)} on a binary).
+     * Indexes the value at position {@code i} using the property's actual Oak value type.
+     * Numeric/boolean values are indexed as string exact-match fields, and only when the
+     * property is single-valued. Binary values are ignored here (never call
+     * {@code getValue(STRING)} on a binary).
      */
     private void indexByActualType(Document doc, PropertyState property, String pname,
                                    PropertyDefinition pd, int i) {
@@ -209,11 +205,11 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
                 // sibling writes SORTED_SET for the same field name -> Lucene rejects the whole
                 // document ("Inconsistency of field data structures ... expected SORTED_SET, but it
                 // has NONE"), silently dropping it. Writing SORTED_SET for every value (matching the
-                // single-valued branch in indexTypeOrderedFields and the pre-refactor hand-rolled
-                // editor) keeps the field's doc-values type consistent across cardinalities AND
-                // restores multi-valued sort (the query side already uses a SortedSetSortField for
-                // SORTED_SET fields, selecting the minimum value). Single-valued values are handled by
-                // indexTypeOrderedFields, so only the array case is written here to avoid duplication.
+                // single-valued branch in indexTypeOrderedFields) keeps the field's doc-values type
+                // consistent across cardinalities AND enables multi-valued sort (the query side
+                // already uses a SortedSetSortField for SORTED_SET fields, selecting the minimum
+                // value). Single-valued values are handled by indexTypeOrderedFields, so only the
+                // array case is written here to avoid duplication.
                 if (pd.ordered && property.isArray()) {
                     doc.add(new SortedSetDocValuesField(pname, new BytesRef(
                             sv.length() <= MAX_FIELD_LENGTH ? sv : sv.substring(0, MAX_FIELD_LENGTH))));
@@ -236,14 +232,13 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
      * doc-values type whether a given node stores one value or many — which is required both for
      * multi-valued sort to work (the query side sorts SORTED_SET fields via {@code SortedSetSortField},
      * selecting the minimum value) and to avoid a doc-values-type inconsistency that would otherwise make
-     * Lucene drop a document in a mixed single/multi-valued commit. This matches the pre-refactor
-     * hand-rolled editor.
+     * Lucene drop a document in a mixed single/multi-valued commit.
      *
-     * <p>Note the doc-values field name is the plain property name (as in the pre-refactor editor), not
-     * {@code createDocValFieldName}, keeping written indexes readable across the migration. The ordered
-     * <em>String</em> case uses a {@link SortedSetDocValuesField} (rather than {@link SortedDocValuesField})
-     * so its type matches the multi-valued values written by {@link #indexByActualType} for the same field
-     * name; a single-element sorted set sorts identically to a single sorted value.</p>
+     * <p>The doc-values field name is the plain property name, not {@code createDocValFieldName}. The
+     * ordered <em>String</em> case uses a {@link SortedSetDocValuesField} (rather than
+     * {@link SortedDocValuesField}) so its type matches the multi-valued values written by
+     * {@link #indexByActualType} for the same field name; a single-element sorted set sorts identically
+     * to a single sorted value.</p>
      */
     @Override
     protected boolean indexTypeOrderedFields(Document doc, String pname, int tag, PropertyState property,
@@ -295,11 +290,14 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
 
     @Override
     protected void indexAnalyzedProperty(Document doc, String pname, String value, PropertyDefinition pd) {
-        // No-op: this module writes no per-property analyzed field (no "full:<prop>" field).
-        // Node-scope fulltext content is served entirely by the ":fulltext" TextField added via
-        // indexFulltextValue (nodeScopeIndex) and indexAggregateValue. Kept as a documented no-op
-        // to preserve the pre-refactor field output exactly (LuceneNgIndexEditor never produced a
-        // separate analyzed field either).
+        // Writes the per-property analyzed field consumed by property-scoped fulltext queries
+        // (CONTAINS(propertyName, ...)), as resolved on the read side by
+        // LuceneNgIndex#tokenToQuery via the same FieldNames.createAnalyzedFieldName(pname).
+        String analyzedFieldName = FieldNames.createAnalyzedFieldName(pname);
+        boolean tokenized = !pd.skipTokenization(pname);
+        doc.add(tokenized
+                ? new TextField(analyzedFieldName, value, pd.stored ? Field.Store.YES : Field.Store.NO)
+                : new StringField(analyzedFieldName, value, pd.stored ? Field.Store.YES : Field.Store.NO));
     }
 
     /**
@@ -307,12 +305,10 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
      * ({@code pd.stored}). Captured in {@link #isFulltextValuePersistedAtNode(PropertyDefinition)},
      * which the framework invokes for each nodeScope value immediately before
      * {@link #indexFulltextValue(Document, String)}, so the {@code :fulltext} field is <em>stored</em>
-     * for exactly the properties the pre-refactor editor stored it for. Storing is required for the
+     * exactly for properties with {@code useInExcerpt} set. Storing is required for the
      * query-side {@link org.apache.lucene.search.uhighlight.UnifiedHighlighter} to build
      * {@code rep:excerpt} snippets; without it excerpt/highlighting is broken (see
-     * {@code LuceneNgHighlightingTest}). Restores behaviour lost when this module adopted the shared
-     * {@code FulltextDocumentMaker} (the hand-rolled editor wrote {@code TextField(:fulltext, v,
-     * pd.stored ? YES : NO)}).
+     * {@code LuceneNgHighlightingTest}).
      */
     private boolean storeFulltextForExcerpt;
 
@@ -334,9 +330,8 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
     @Override
     protected void indexAggregateValue(Document doc, Aggregate.NodeIncludeResult result,
                                        String value, PropertyDefinition pd) {
-        // The concrete payoff of the framework migration: text from an aggregated child/relative
-        // node is folded into this (parent) document's ":fulltext" field, so a fulltext query on
-        // the parent matches the child's content.
+        // Text from an aggregated child/relative node is folded into this (parent) document's
+        // ":fulltext" field, so a fulltext query on the parent matches the child's content.
         //
         // oak-lucene additionally keys relative-node aggregates to a relative fulltext field and
         // applies pd.boost. This module does neither: it has no relative-fulltext field on the
@@ -354,8 +349,8 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
 
     @Override
     protected boolean indexFacetProperty(Document doc, int tag, PropertyState property, String pname) {
-        // Port of LuceneNgIndexEditor.indexFacetField. Dimension -> index-field-name mapping and
-        // multi-valued flags are registered on the shared FacetsConfig by the editor context.
+        // Dimension -> index-field-name mapping and multi-valued flags are registered on the
+        // shared FacetsConfig by the editor context.
         boolean added = false;
         if (!property.isArray()) {
             String value = convertToString(property);
@@ -392,9 +387,9 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
         // No-op. The framework only calls this when definition.evaluatePathRestrictions() is true
         // (default false). This module has never indexed ancestor path terms: its query side uses
         // the ":parent" field (written in initDoc) for direct-child path queries and does not read
-        // FieldNames.ANCESTORS / :depth at all. Porting oak-lucene's ancestor/depth fields would
-        // add fields nothing here consumes; keeping this a no-op preserves pre-refactor behaviour.
-        // Ancestor-based path-restriction support would be a separate, future enhancement.
+        // FieldNames.ANCESTORS / :depth at all, so porting oak-lucene's ancestor/depth fields here
+        // would add fields nothing consumes. Ancestor-based path-restriction support would be a
+        // separate, future enhancement.
     }
 
     // -------------------------------------------------------------------------
@@ -404,7 +399,7 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
     @Override
     protected boolean addBinary(Document doc, String path, List<String> binaryValues) {
         // Not supported — this module has no binary/Tika text extraction (see README
-        // "Known limitations"). Matches pre-refactor behaviour: binaries were never indexed.
+        // "Known limitations").
         return false;
     }
 

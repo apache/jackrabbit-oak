@@ -38,8 +38,7 @@ import static org.junit.Assert.assertTrue;
  * assert the resulting Lucene {@link Document} fields — no repository / editor context needed.
  *
  * <p>The end-to-end proof that aggregation folds a child's text into the parent's fulltext via a
- * real commit belongs to Task B4 (once {@code LuceneNgIndexEditorContext} exists to build a
- * {@code LuceneNgDocumentMaker} through the full framework), and is intentionally not here.</p>
+ * real commit lives in {@link LuceneNgIndexEditorAggregationTest}, not here.</p>
  */
 public class LuceneNgDocumentMakerTest {
 

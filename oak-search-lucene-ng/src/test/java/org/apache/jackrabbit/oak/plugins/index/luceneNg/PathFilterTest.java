@@ -33,9 +33,8 @@ import static org.junit.Assert.assertEquals;
  * Tests that the Lucene 9 index editor respects {@code includedPaths}: content under an included
  * path is indexed, and content outside it is skipped.
  *
- * <p>Task B4 migrated these from asserting on the editor's {@code childNodeAdded} return value
- * (INCLUDE vs EXCLUDE child editors) to asserting on the observable outcome of a real commit — which
- * paths end up as documents in the index.</p>
+ * <p>These assert on the observable outcome of a real commit — which paths end up as documents
+ * in the index.</p>
  */
 public class PathFilterTest {
 

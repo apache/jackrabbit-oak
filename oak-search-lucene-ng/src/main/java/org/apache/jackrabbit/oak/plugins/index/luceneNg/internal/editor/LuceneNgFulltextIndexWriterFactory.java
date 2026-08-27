@@ -67,7 +67,7 @@ public class LuceneNgFulltextIndexWriterFactory implements FulltextIndexWriterFa
                 directory.close();
                 throw e;
             }
-            return new LuceneNgFulltextIndexWriter(indexWriter);
+            return new LuceneNgFulltextIndexWriter(indexWriter, directory);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

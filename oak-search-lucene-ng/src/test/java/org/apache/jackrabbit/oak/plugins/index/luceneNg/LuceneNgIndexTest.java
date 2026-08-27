@@ -69,6 +69,19 @@ import static org.mockito.Mockito.*;
 
 public class LuceneNgIndexTest {
 
+    /**
+     * Wraps a (mock) {@link Filter} in a minimal {@link IndexPlan} so these unit tests can drive
+     * the {@code query(IndexPlan, NodeState)} path directly: LuceneNgIndex extends
+     * {@code FulltextIndex}, whose {@code query(Filter, NodeState)} overload throws
+     * {@code UnsupportedOperationException}. The plan exposes only what {@code query(IndexPlan,...)}
+     * reads: the filter, a null sort order, and no facet attribute.
+     */
+    private static IndexPlan planFor(Filter filter) {
+        IndexPlan plan = mock(IndexPlan.class);
+        when(plan.getFilter()).thenReturn(filter);
+        return plan;
+    }
+
     @Test
     public void testBasicTextQuery() throws Exception {
         // Setup: Create index with documents
@@ -113,7 +126,7 @@ public class LuceneNgIndexTest {
         when(filter.getQueryLimits()).thenReturn(null);
 
         // Execute query
-        Cursor cursor = index.query(filter, root);
+        Cursor cursor = index.query(planFor(filter), root);
 
         assertNotNull("Cursor should not be null", cursor);
         assertTrue("Should find article1", cursor.hasNext());
@@ -124,22 +137,22 @@ public class LuceneNgIndexTest {
         assertFalse("Should only find one document", cursor.hasNext());
     }
 
+    /**
+     * LuceneNgIndex is an AdvancedQueryIndex: cost is computed by the inherited
+     * FulltextIndexPlanner via getPlans(...), and the simple getCost(Filter, NodeState) overload
+     * is unsupported (throws, inherited from the base — the same contract as
+     * LucenePropertyIndex/ElasticIndex). Actual cost-model behavior (a plan is/isn't offered, with
+     * a real estimated entry count) is exercised end-to-end through the query engine in
+     * LuceneNgIndexComparisonTest.
+     */
     @Test
-    public void testGetCost() throws Exception {
-        NodeState root = InitialContentHelper.INITIAL_CONTENT;
-
+    public void getCostSimpleOverloadIsUnsupported() {
         LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
-        tracker.update(root);
-
         LuceneNgIndex index = new LuceneNgIndex(tracker, "/oak:index/test");
 
         Filter filter = mock(Filter.class);
-        when(filter.getFullTextConstraint()).thenReturn(FullTextParser.parse("*", "test"));
-
-        double cost = index.getCost(filter, root);
-
-        assertTrue("Cost should be greater than 0", cost > 0);
-        assertTrue("Cost should be finite", Double.isFinite(cost));
+        assertThrows(UnsupportedOperationException.class,
+                () -> index.getCost(filter, InitialContentHelper.INITIAL_CONTENT));
     }
 
     @Test
@@ -202,7 +215,7 @@ public class LuceneNgIndexTest {
         when(filter.getQueryLimits()).thenReturn(null);
 
         // Execute query
-        Cursor cursor = index.query(filter, root);
+        Cursor cursor = index.query(planFor(filter), root);
 
         // Should return person2 (35) and person3 (45), not person1 (25)
         assertTrue("Should find results", cursor.hasNext());
@@ -265,7 +278,7 @@ public class LuceneNgIndexTest {
         when(filter.getQueryLimits()).thenReturn(null);
 
         // Execute query
-        Cursor cursor = index.query(filter, root);
+        Cursor cursor = index.query(planFor(filter), root);
 
         // Should return Orange and Zebra (>= 'M'), not Apple or Banana
         assertTrue("Should find results", cursor.hasNext());
@@ -338,7 +351,7 @@ public class LuceneNgIndexTest {
         when(filter.getQueryLimits()).thenReturn(null);
 
         // Execute query
-        Cursor cursor = index.query(filter, root);
+        Cursor cursor = index.query(planFor(filter), root);
 
         // Should return only product2 (25.50)
         assertTrue("Should find results", cursor.hasNext());
@@ -399,7 +412,7 @@ public class LuceneNgIndexTest {
         when(filter.getQueryLimits()).thenReturn(null);
 
         // Execute query
-        Cursor cursor = index.query(filter, root);
+        Cursor cursor = index.query(planFor(filter), root);
 
         // Should return published and archived, not draft
         assertTrue("Should find results", cursor.hasNext());
@@ -462,7 +475,7 @@ public class LuceneNgIndexTest {
         when(filter.getQueryLimits()).thenReturn(null);
 
         // Execute query
-        Cursor cursor = index.query(filter, root);
+        Cursor cursor = index.query(planFor(filter), root);
 
         // Should return tech and science
         assertTrue("Should find results", cursor.hasNext());
@@ -527,7 +540,7 @@ public class LuceneNgIndexTest {
         when(filter.getPath()).thenReturn("/a");
         when(filter.getQueryLimits()).thenReturn(null);
 
-        Cursor cursor = index.query(filter, builder.getNodeState());
+        Cursor cursor = index.query(planFor(filter), builder.getNodeState());
         List<String> paths = new ArrayList<>();
         while (cursor.hasNext()) {
             paths.add(cursor.next().getPath());
@@ -554,7 +567,7 @@ public class LuceneNgIndexTest {
         when(filter.getPath()).thenReturn("/a");
         when(filter.getQueryLimits()).thenReturn(null);
 
-        Cursor cursor = index.query(filter, builder.getNodeState());
+        Cursor cursor = index.query(planFor(filter), builder.getNodeState());
         List<String> paths = new ArrayList<>();
         while (cursor.hasNext()) {
             paths.add(cursor.next().getPath());
@@ -593,7 +606,7 @@ public class LuceneNgIndexTest {
         when(filter.getPropertyRestrictions()).thenReturn(Collections.emptyList());
         when(filter.getQueryLimits()).thenReturn(null);
 
-        Cursor cursor = index.query(filter, builder.getNodeState());
+        Cursor cursor = index.query(planFor(filter), builder.getNodeState());
         assertTrue("Prefix query 'jackrab*' should match node", cursor.hasNext());
         assertEquals("/content/page1", cursor.next().getPath());
     }
@@ -628,7 +641,7 @@ public class LuceneNgIndexTest {
         when(filter.getPropertyRestrictions()).thenReturn(Collections.emptyList());
         when(filter.getQueryLimits()).thenReturn(null);
 
-        Cursor cursor = index.query(filter, builder.getNodeState());
+        Cursor cursor = index.query(planFor(filter), builder.getNodeState());
         assertTrue("Wildcard query 'jack*bit' should match node", cursor.hasNext());
         assertEquals("/content/page1", cursor.next().getPath());
     }
@@ -671,7 +684,7 @@ public class LuceneNgIndexTest {
         when(filter.getQueryLimits()).thenReturn(null);
 
         // Should not throw ArithmeticException
-        Cursor cursor = index.query(filter, root);
+        Cursor cursor = index.query(planFor(filter), root);
         assertNotNull("Cursor should not be null", cursor);
     }
 
@@ -713,7 +726,7 @@ public class LuceneNgIndexTest {
         when(filter.getQueryLimits()).thenReturn(null);
 
         // Should not throw ArithmeticException
-        Cursor cursor = index.query(filter, root);
+        Cursor cursor = index.query(planFor(filter), root);
         assertNotNull("Cursor should not be null", cursor);
     }
 
@@ -803,7 +816,7 @@ public class LuceneNgIndexTest {
         when(ftFilter.getPropertyRestrictions()).thenReturn(Collections.emptyList());
         when(ftFilter.getQueryLimits()).thenReturn(null);
 
-        Cursor ftCursor = index.query(ftFilter, root);
+        Cursor ftCursor = index.query(planFor(ftFilter), root);
         int ftCount = 0;
         while (ftCursor.hasNext()) {
             ftCount++;
@@ -824,7 +837,7 @@ public class LuceneNgIndexTest {
         when(statusOnlyFilter.getPropertyRestrictions()).thenReturn(Collections.singletonList(prStatusAlone));
         when(statusOnlyFilter.getQueryLimits()).thenReturn(null);
 
-        Cursor statusOnlyCursor = index.query(statusOnlyFilter, root);
+        Cursor statusOnlyCursor = index.query(planFor(statusOnlyFilter), root);
         int statusOnlyCount = 0;
         while (statusOnlyCursor.hasNext()) {
             statusOnlyCount++;
@@ -845,7 +858,7 @@ public class LuceneNgIndexTest {
         when(statusFilter.getPropertyRestrictions()).thenReturn(Collections.singletonList(prStatusOnly));
         when(statusFilter.getQueryLimits()).thenReturn(null);
 
-        Cursor statusCursor = index.query(statusFilter, root);
+        Cursor statusCursor = index.query(planFor(statusFilter), root);
         int statusCount = 0;
         while (statusCursor.hasNext()) {
             statusCount++;
@@ -876,7 +889,7 @@ public class LuceneNgIndexTest {
         when(filter.getQueryLimits()).thenReturn(null);
 
         // Execute query
-        Cursor cursor = index.query(filter, root);
+        Cursor cursor = index.query(planFor(filter), root);
 
         // Should return only /match
         assertTrue("Should find results", cursor.hasNext());
@@ -887,80 +900,6 @@ public class LuceneNgIndexTest {
 
         assertEquals("Should find 1 result", 1, resultPaths.size());
         assertTrue("Should contain /match", resultPaths.contains("/match"));
-    }
-
-    /**
-     * Regression test: getPlans() must offer a plan for a query that has only a
-     * node-type restriction and path restriction — no fulltext, no property
-     * restrictions, no facets.  This is the pattern of:
-     *
-     *   SELECT * FROM [dam:Asset] WHERE ISDESCENDANTNODE('/content/dam')
-     *
-     * Before the fix, the early-exit guard in getPlans() rejected all such queries.
-     * The plan must only be offered when the index actually has a rule for the queried
-     * type — otherwise AEM's internal queries (cq:Page, cq:Template, etc.) would get
-     * hijacked by a wrong index.
-     */
-    @Test
-    public void getPlansOfferedForNodeTypeOnlyQuery() throws Exception {
-        NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
-
-        // Set up index definition with a rule for nt:unstructured.
-        // IndexDefinitionBuilder sets type=fulltext by default; override to lucene9.
-        NodeBuilder defnBuilder = builder.child("oak:index").child("testIdx");
-        IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
-        idb.indexRule("nt:unstructured").property("title").propertyIndex();
-        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
-
-        // Write some data into the index storage
-        NodeBuilder storageNode = builder.child("oak:index").child("testIdx").child(LuceneNgIndexStorage.STORAGE_NODE_NAME);
-        OakDirectory dir = new OakDirectory(storageNode, "testIdx", false);
-        org.apache.lucene.index.IndexWriter writer = new org.apache.lucene.index.IndexWriter(
-                dir, new org.apache.lucene.index.IndexWriterConfig());
-        Document doc = new Document();
-        doc.add(new StringField(FieldNames.PATH, "/content/page1", Field.Store.YES));
-        writer.addDocument(doc);
-        writer.commit();
-        writer.close();
-        dir.close();
-
-        NodeState root = builder.getNodeState();
-        LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
-        tracker.update(root);
-
-        LuceneNgIndex index = new LuceneNgIndex(tracker, "/oak:index/testIdx");
-
-        // Query for a type covered by the index (nt:unstructured) → must get a plan
-        Filter covered = mock(Filter.class);
-        when(covered.getFullTextConstraint()).thenReturn(null);
-        when(covered.getPropertyRestrictions()).thenReturn(Collections.emptyList());
-        when(covered.matchesAllTypes()).thenReturn(false);
-        when(covered.getNodeType()).thenReturn("nt:unstructured");
-        when(covered.getPathRestriction()).thenReturn(Filter.PathRestriction.ALL_CHILDREN);
-        when(covered.getPath()).thenReturn("/content");
-        when(covered.getQueryLimits()).thenReturn(null);
-
-        List<QueryIndex.IndexPlan> plans = index.getPlans(covered, Collections.emptyList(), root);
-        assertFalse("getPlans() must offer a plan when the index has a rule for the queried type",
-                plans.isEmpty());
-        assertFalse("cost must be finite for a covered node-type query",
-                Double.isInfinite(index.getCost(covered, root)));
-        assertEquals("plan name must equal the index path so Oak's SelectorImpl records the index in query statistics",
-                "/oak:index/testIdx", plans.get(0).getPlanName());
-
-        // Query for a type NOT in the index (cq:Page) → must NOT get a plan
-        Filter unrelated = mock(Filter.class);
-        when(unrelated.getFullTextConstraint()).thenReturn(null);
-        when(unrelated.getPropertyRestrictions()).thenReturn(Collections.emptyList());
-        when(unrelated.matchesAllTypes()).thenReturn(false);
-        when(unrelated.getNodeType()).thenReturn("cq:Page");
-        when(unrelated.getPathRestriction()).thenReturn(Filter.PathRestriction.ALL_CHILDREN);
-        when(unrelated.getPath()).thenReturn("/content");
-        when(unrelated.getQueryLimits()).thenReturn(null);
-
-        List<QueryIndex.IndexPlan> noPlans = index.getPlans(unrelated, Collections.emptyList(), root);
-        assertTrue("getPlans() must NOT offer a plan when the index has no rule for the queried type",
-                noPlans.isEmpty());
     }
 
     /**

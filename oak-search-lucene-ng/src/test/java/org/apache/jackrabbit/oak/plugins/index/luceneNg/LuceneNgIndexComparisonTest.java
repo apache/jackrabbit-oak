@@ -28,6 +28,7 @@ import org.junit.Test;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
@@ -57,7 +58,10 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
 
         builder.indexRule("nt:base")
             .property("title").propertyIndex().ordered()
-            .property("description").propertyIndex()
+            // analyzed() in addition to propertyIndex(): propertyIndex() backs the equality
+            // lookup in testDescriptionQuery, analyzed() backs the property-scoped fulltext
+            // lookup in the shared testContainsOnAnalyzedProperty (CONTAINS(description, ...)).
+            .property("description").propertyIndex().analyzed()
             .property("age").propertyIndex().type("Long").ordered()
             .property("price").propertyIndex().type("Double").ordered()
             .property("status").propertyIndex().ordered()
@@ -81,6 +85,55 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
                 explain, containsString("luceneQuery:"));
         assertThat("Query plan should carry index definition path for tooling",
                 explain, containsString("indexDefinition: /oak:index/luceneNgTestIndex"));
+    }
+
+    /**
+     * The index declared by {@link #createSearchIndex()} does not index a property named
+     * {@code undeclared}. The lucene9 index must not offer a plan for a query restricted on a
+     * property it does not index — the query must fall back to traversal instead.
+     */
+    @Test
+    public void undeclaredPropertyNotServedByLucene9() throws Exception {
+        createSearchIndex();
+        createTestContent();
+        String explain = executeQuery(
+                "explain select [jcr:path] from [nt:base] where [undeclared] = 'x'", "sql").get(0);
+        assertThat("lucene9 index must not serve a query on a property it does not index; "
+                        + "the query must fall back to traversal. Plan was: " + explain,
+                explain, not(containsString("lucene9:")));
+    }
+
+    /**
+     * A query that combines a restriction on a DECLARED property ({@code title}) with one on an
+     * UNDECLARED property ({@code undeclared}). Because {@code title} is declared, the inherited
+     * {@link org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner} does
+     * offer a lucene9 plan (unlike {@link #undeclaredPropertyNotServedByLucene9}, where the only
+     * restriction is undeclared and no plan is offered at all). This pins whether the undeclared
+     * restriction still leaks into the constructed Lucene query.
+     *
+     * <p>The node {@code /mixed/n1} has {@code title='MixedDeclared'} AND {@code undeclared='bar'}.
+     * Legacy Lucene (LucenePropertyIndex.addNonFullTextConstraints) never turns a restriction on an
+     * undeclared property into a Lucene clause — {@code planResult.getPropDefn(pr) == null} → skip —
+     * so it matches on the {@code title} clause and lets the query engine post-filter the
+     * {@code undeclared} restriction; the node satisfies both, so legacy returns {@code /mixed/n1}.
+     * lucene9 must agree.
+     */
+    @Test
+    public void queryOnUndeclaredPropertyDoesNotWronglyMatchOrMismatch() throws Exception {
+        createSearchIndex();
+
+        Tree content = root.getTree("/").addChild("mixed");
+        Tree n1 = content.addChild("n1");
+        n1.setProperty("title", "MixedDeclared");
+        n1.setProperty("undeclared", "bar");
+        root.commit();
+
+        // title is declared (index enforces it); undeclared is not (query engine post-filters).
+        // The node satisfies both, so both backends must return it. Verified against legacy Lucene
+        // (LuceneIndexComparisonTest) for the identical scenario.
+        assertQuery(
+                "select [jcr:path] from [nt:base] where [title] = 'MixedDeclared' and [undeclared] = 'bar'",
+                "sql", List.of("/mixed/n1"));
     }
 
     @Test

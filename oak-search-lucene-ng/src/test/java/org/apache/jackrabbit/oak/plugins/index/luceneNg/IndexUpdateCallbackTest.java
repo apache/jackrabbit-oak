@@ -33,13 +33,10 @@ import static org.junit.Assert.assertEquals;
  * Verifies that the Lucene 9 index editor emits exactly one index update per successfully indexed
  * document.
  *
- * <p>Task B4 note: the old assertions counted {@code IndexUpdateCallback} invocations by
- * constructing {@code LuceneNgIndexEditor} with a hand-supplied callback. The collapsed editor no
- * longer owns that callback — the shared framework fires {@code context.indexUpdate()} once per
- * written document, one-to-one with the callback fire. So the observable equivalent, asserted here
- * after a real commit, is the number of documents that end up in the index (and their
- * addition/removal). This preserves the original intent — "one update per indexed document" — while
- * asserting on the committed index rather than the editor's internal callback wiring.</p>
+ * <p>The shared framework fires {@code context.indexUpdate()} once per written document, one-to-one
+ * with each committed document. So after a real commit, the number of documents that end up in the
+ * index (and their addition/removal) is an observable proxy for {@code IndexUpdateCallback}
+ * invocation counts, and is what this test asserts on.</p>
  */
 public class IndexUpdateCallbackTest {
 
