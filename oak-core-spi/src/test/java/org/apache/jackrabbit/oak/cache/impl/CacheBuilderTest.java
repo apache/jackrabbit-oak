@@ -240,9 +240,9 @@ public class CacheBuilderTest {
         }
     }
 
-    /** CacheStatsAdapter exposes stats and live weight estimates from a Cache. */
+    /** CacheStats exposes stats and live weight estimates from a Cache. */
     @Test
-    public void oakCacheStatsAdapterBridgesOakStats() {
+    public void oakCacheStatsBridgesOakStats() {
         Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                 .maximumWeight(100)
                 .weigher((k, v) -> k.length() + v.length())
