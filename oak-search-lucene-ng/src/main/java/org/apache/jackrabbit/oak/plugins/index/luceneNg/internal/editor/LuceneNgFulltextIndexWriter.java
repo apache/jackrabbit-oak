@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.editor;
 
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
 import org.apache.lucene.document.Document;
@@ -42,6 +43,7 @@ public class LuceneNgFulltextIndexWriter implements FulltextIndexWriter<Document
     private static final Logger LOG = LoggerFactory.getLogger(LuceneNgFulltextIndexWriter.class);
 
     private final IndexWriter indexWriter;
+    private final OakDirectory directory;
 
     /**
      * Tracks whether any write (update or delete) happened through this instance, so
@@ -51,8 +53,9 @@ public class LuceneNgFulltextIndexWriter implements FulltextIndexWriter<Document
      */
     private boolean indexUpdated = false;
 
-    public LuceneNgFulltextIndexWriter(@NotNull IndexWriter indexWriter) {
+    public LuceneNgFulltextIndexWriter(@NotNull IndexWriter indexWriter, @NotNull OakDirectory directory) {
         this.indexWriter = indexWriter;
+        this.directory = directory;
     }
 
     @Override
@@ -81,7 +84,11 @@ public class LuceneNgFulltextIndexWriter implements FulltextIndexWriter<Document
             LOG.debug("Committed Lucene 9 index");
             return indexUpdated;
         } finally {
-            indexWriter.close();
+            try {
+                indexWriter.close();
+            } finally {
+                directory.close();
+            }
         }
     }
 }

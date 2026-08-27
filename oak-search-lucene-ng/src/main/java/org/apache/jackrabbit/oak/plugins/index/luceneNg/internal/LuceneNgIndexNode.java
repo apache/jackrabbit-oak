@@ -42,7 +42,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * on the manager cannot return, and therefore {@link #closeResources()} cannot run, until
  * every {@code acquire()}-holder has called {@link #release()}. Do not reintroduce
  * per-call {@code IndexReader.tryIncRef()/decRef()} bookkeeping here — it is redundant
- * with (and was the source of the pre-fix concurrency race that predates) that lock.</p>
+ * with that lock and duplicating it reintroduces a concurrency race.</p>
  */
 public class LuceneNgIndexNode implements IndexNode {
 
@@ -103,8 +103,7 @@ public class LuceneNgIndexNode implements IndexNode {
     /** Whether this generation of the index has any data yet. Used by
      *  {@link org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexTracker#openIndex}
      *  to return {@code null} (per {@code FulltextIndexTracker}'s documented contract: "index
-     *  can be null") when nothing has been indexed yet, matching the pre-refactor behavior
-     *  where {@code acquire()} returned {@code null} in this case. */
+     *  can be null") when nothing has been indexed yet. */
     public boolean hasSearcher() {
         return searcherHolder != null;
     }
@@ -141,8 +140,7 @@ public class LuceneNgIndexNode implements IndexNode {
     @Override
     @Nullable
     public IndexStatistics getIndexStatistics() {
-        // No JMX/statistics support yet — documented known limitation (README, "Observability").
-        return null;
+        return searcherHolder != null ? new LuceneNgIndexStatistics(searcherHolder.getReader()) : null;
     }
 
     public IndexSearcher getSearcher() {

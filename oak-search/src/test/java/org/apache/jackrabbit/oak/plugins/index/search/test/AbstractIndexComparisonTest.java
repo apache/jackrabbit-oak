@@ -225,4 +225,17 @@ public abstract class AbstractIndexComparisonTest extends AbstractQueryTest {
         assertQuery("select [jcr:path] from [nt:base] where [status] = 'published' order by [age] DESC", "sql",
                 List.of("/content/page3", "/content/page1"), false, true);
     }
+
+    // ===== Fulltext queries =====
+
+    @Test
+    public void testContainsOnAnalyzedProperty() throws Exception {
+        createSearchIndex();
+        createTestContent();
+        // Property-scoped fulltext: CONTAINS(propertyName, term), as opposed to node-scope
+        // CONTAINS(*, term)/CONTAINS(., term). "functionality" appears only in page1's
+        // description ("Testing Oak search functionality").
+        assertQuery("select [jcr:path] from [nt:base] where CONTAINS(description, 'functionality')", "sql",
+                List.of("/content/page1"));
+    }
 }

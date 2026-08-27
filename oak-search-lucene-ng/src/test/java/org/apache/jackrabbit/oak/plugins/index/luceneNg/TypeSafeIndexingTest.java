@@ -39,8 +39,8 @@ import static org.junit.Assert.assertNotNull;
  * prevents Lucene 9's field-schema consistency constraint from firing when different nodes store the
  * same property with different value types.</p>
  *
- * <p>Task B4 migrated these to drive real commits through {@link LuceneNgIndexEditorProvider} (see
- * {@link LuceneNgEditorCommitUtil}); assertions still inspect the committed index via a
+ * <p>These drive real commits through {@link LuceneNgIndexEditorProvider} (see
+ * {@link LuceneNgEditorCommitUtil}); assertions inspect the committed index via a
  * {@link DirectoryReader}.</p>
  */
 public class TypeSafeIndexingTest {

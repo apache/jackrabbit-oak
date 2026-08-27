@@ -33,9 +33,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 /**
- * Functional tests for the Lucene 9 index editor covering real-world indexing scenarios, migrated in
- * Task B4 to drive real commits through {@link LuceneNgIndexEditorProvider} (see
- * {@link LuceneNgEditorCommitUtil}) instead of constructing the editor directly.
+ * Functional tests for the Lucene 9 index editor covering real-world indexing scenarios, driven
+ * through real commits via {@link LuceneNgIndexEditorProvider} (see {@link LuceneNgEditorCommitUtil}).
  */
 public class IndexingFunctionalTest {
 

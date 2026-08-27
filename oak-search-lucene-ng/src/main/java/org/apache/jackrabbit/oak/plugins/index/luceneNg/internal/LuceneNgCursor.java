@@ -16,16 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.luceneNg.internal;
 
-import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.index.cursor.AbstractCursor;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
-import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.facet.FacetResult;
-import org.apache.lucene.facet.Facets;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
@@ -45,24 +41,13 @@ import java.util.NoSuchElementException;
 import java.util.Queue;
 
 /**
- * Cursor over Lucene 9 search results.
- *
- * <p>Two modes are supported:</p>
- * <ul>
- *   <li><b>Eager</b> (legacy) — constructed with a pre-computed {@link TopDocs} and a live
- *       {@link IndexSearcher}; holds the acquired index node open until the cursor is exhausted,
- *       closed, or garbage-collected. Used by direct-searcher tests and the older query paths.</li>
- *   <li><b>Lazy / batched</b> — constructed with a {@link LuceneNgIndexTracker} and a query. Each
- *       {@link #hasNext()}/{@link #next()} that runs off the end of the current batch acquires the
- *       index node <em>only</em> for the duration of fetching one bounded batch (via
- *       {@code search}/{@code searchAfter}), materializes that batch's rows into a detached queue
- *       — including per-batch excerpt generation — and releases the node again. This mirrors the
- *       shape of legacy {@code LucenePropertyIndex.loadDocs()} and avoids holding the searcher open
- *       for the whole cursor lifetime.</li>
- * </ul>
- *
- * <p>The mode is selected by whether {@link #tracker} is non-null (set only by the lazy
- * constructor).</p>
+ * Cursor over Lucene 9 search results, constructed with a {@link LuceneNgIndexTracker} and a
+ * query. Each {@link #hasNext()}/{@link #next()} that runs off the end of the current batch
+ * acquires the index node <em>only</em> for the duration of fetching one bounded batch (via
+ * {@code search}/{@code searchAfter}), materializes that batch's rows into a detached queue —
+ * including per-batch excerpt generation — and releases the node again. This mirrors the shape of
+ * legacy {@code LucenePropertyIndex.loadDocs()} and avoids holding the searcher open for the whole
+ * cursor lifetime.
  */
 public class LuceneNgCursor extends AbstractCursor {
 
@@ -72,18 +57,10 @@ public class LuceneNgCursor extends AbstractCursor {
     private static final int MAX_BATCH_SIZE = 100_000;
     private static final Cleaner CLEANER = Cleaner.create();
 
-    // --- eager-mode state (null / unused in lazy mode) ---
-    private final TopDocs docs;
-    private final IndexSearcher searcher;
-    private final Map<Integer, String> excerptMap;  // docId -> highlighted excerpt
-    private int currentIndex = 0;
-
-    // --- shared state ---
     private final Map<String, String> facetColumns; // rep:facet(dim) -> JSON
     private final int facetTopChildren;
     private final Cleaner.Cleanable cleanable;
 
-    // --- lazy-mode state (null / unused in eager mode) ---
     private final LuceneNgIndexTracker tracker;
     private final String indexPath;
     private final Query lazyQuery;
@@ -96,46 +73,7 @@ public class LuceneNgCursor extends AbstractCursor {
     private boolean noMoreDocs = false;
     private long lazySize = 0;
 
-    public LuceneNgCursor(TopDocs docs, IndexSearcher searcher) {
-        this(docs, searcher, null, Collections.emptyMap(), DEFAULT_FACET_TOP_CHILDREN, null);
-    }
-
-    public LuceneNgCursor(TopDocs docs, IndexSearcher searcher,
-                          LuceneNgIndexNode indexNode) {
-        this(docs, searcher, null, Collections.emptyMap(), DEFAULT_FACET_TOP_CHILDREN, indexNode);
-    }
-
-    public LuceneNgCursor(TopDocs docs, IndexSearcher searcher, Map<String, Facets> facetsMap) {
-        this(docs, searcher, facetsMap, Collections.emptyMap(), DEFAULT_FACET_TOP_CHILDREN, null);
-    }
-
-    public LuceneNgCursor(TopDocs docs, IndexSearcher searcher,
-                          Map<String, Facets> facetsMap, Map<Integer, String> excerptMap,
-                          int facetTopChildren, LuceneNgIndexNode indexNode) {
-        this.docs = docs;
-        this.searcher = searcher;
-        this.facetTopChildren = Math.max(1, facetTopChildren);
-        this.facetColumns = buildFacetColumns(facetsMap != null ? facetsMap : Collections.emptyMap());
-        this.excerptMap = excerptMap != null ? excerptMap : Collections.emptyMap();
-        // Eager mode: no lazy state.
-        this.tracker = null;
-        this.indexPath = null;
-        this.lazyQuery = null;
-        this.lazySort = null;
-        this.needsExcerpts = false;
-        this.excerptAnalyzer = null;
-        this.pendingRows = null;
-        // Fires on cursor GC if not already released via hasNext()==false or close().
-        Runnable release = indexNode != null ? indexNode::release : () -> {};
-        this.cleanable = CLEANER.register(this, release);
-    }
-
     /**
-     * Lazy, batched constructor: does not eagerly search or hold an {@link IndexSearcher}.
-     * Each {@link #hasNext()}/{@link #next()} that runs off the current batch acquires the index
-     * node only for the duration of fetching one bounded batch, then releases it — mirroring
-     * legacy {@code LucenePropertyIndex.loadDocs()}, including per-batch excerpt generation.
-     *
      * @param tracker        the tracker to acquire the index node from, per batch
      * @param indexPath      the index definition path
      * @param query          the Lucene query to page through
@@ -155,10 +93,6 @@ public class LuceneNgCursor extends AbstractCursor {
         this.needsExcerpts = needsExcerpts;
         this.excerptAnalyzer = excerptAnalyzer;
         this.pendingRows = new LinkedList<>();
-        // Eager fields unused in lazy mode.
-        this.docs = null;
-        this.searcher = null;
-        this.excerptMap = Collections.emptyMap();
         // The analyzer (a Closeable) is held for the cursor's whole life; close it on
         // exhaustion / close() / GC. The runnable must not capture `this`.
         final Analyzer analyzerToClose = excerptAnalyzer;
@@ -169,47 +103,8 @@ public class LuceneNgCursor extends AbstractCursor {
         });
     }
 
-    private Map<String, String> buildFacetColumns(Map<String, Facets> facetsMap) {
-        if (facetsMap.isEmpty()) {
-            return Collections.emptyMap();
-        }
-        Map<String, String> result = new HashMap<>();
-        for (Map.Entry<String, Facets> entry : facetsMap.entrySet()) {
-            String dimension = entry.getKey();
-            try {
-                // Dimension is the Oak property name (matches legacy lucene index / rep:facet(foo)).
-                String luceneFieldName = FieldNames.createFacetFieldName(dimension);
-                FacetResult fr = entry.getValue().getTopChildren(facetTopChildren, dimension);
-                if (fr == null || fr.labelValues == null) {
-                    fr = entry.getValue().getTopChildren(facetTopChildren, luceneFieldName);
-                }
-                if (fr != null && fr.labelValues != null) {
-                    JsopBuilder json = new JsopBuilder();
-                    json.object();
-                    for (org.apache.lucene.facet.LabelAndValue lv : fr.labelValues) {
-                        json.key(lv.label);
-                        json.value(lv.value.intValue());
-                    }
-                    json.endObject();
-                    result.put(QueryConstants.REP_FACET + "(" + dimension + ")", json.toString());
-                }
-            } catch (IOException e) {
-                LOG.error("Failed to build facets for {}: {}", dimension, e.getMessage());
-            }
-        }
-        return Collections.unmodifiableMap(result);
-    }
-
     @Override
     public boolean hasNext() {
-        if (tracker == null) {
-            // legacy eager path
-            boolean more = currentIndex < docs.scoreDocs.length;
-            if (!more) {
-                cleanable.clean();
-            }
-            return more;
-        }
         if (!pendingRows.isEmpty()) {
             return true;
         }
@@ -226,19 +121,6 @@ public class LuceneNgCursor extends AbstractCursor {
 
     @Override
     public IndexRow next() {
-        if (tracker == null) {
-            // legacy eager path
-            ScoreDoc scoreDoc = docs.scoreDocs[currentIndex++];
-            try {
-                Document doc = searcher.storedFields().document(scoreDoc.doc);
-                String path = doc.get(FieldNames.PATH);
-                String excerpt = excerptMap.get(scoreDoc.doc);
-                return new LuceneNgIndexRow(path, scoreDoc.score, facetColumns, excerpt);
-            } catch (IOException e) {
-                LOG.error("Error reading document", e);
-                throw new RuntimeException(e);
-            }
-        }
         if (pendingRows.isEmpty() && !loadNextBatch()) {
             throw new NoSuchElementException();
         }
@@ -304,8 +186,7 @@ public class LuceneNgCursor extends AbstractCursor {
     }
 
     /**
-     * Same {@link UnifiedHighlighter}-based approach as the eager excerpt generation in
-     * {@code LuceneNgIndex}, scoped to one batch's {@link TopDocs} instead of the whole result set.
+     * {@link UnifiedHighlighter}-based excerpt generation, scoped to one batch's {@link TopDocs}.
      */
     private static Map<Integer, String> generateExcerptsForBatch(IndexSearcher searcher, Query query,
             TopDocs docs, Analyzer analyzer) {
@@ -333,12 +214,9 @@ public class LuceneNgCursor extends AbstractCursor {
 
     @Override
     public long getSize(org.apache.jackrabbit.oak.api.Result.SizePrecision precision, long max) {
-        if (tracker == null) {
-            return docs.totalHits.value;
-        }
-        // Lazy mode does not know the total up front; report the number materialized so far
-        // only once the result set is fully drained, otherwise "unknown" (-1), matching the
-        // legacy contract for streamed cursors.
+        // The total is not known up front; report the number materialized so far only once the
+        // result set is fully drained, otherwise "unknown" (-1), matching the legacy contract for
+        // streamed cursors.
         return noMoreDocs && pendingRows.isEmpty() ? lazySize : -1;
     }
 

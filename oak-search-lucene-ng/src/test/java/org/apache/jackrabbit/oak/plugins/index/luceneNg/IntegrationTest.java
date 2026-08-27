@@ -260,9 +260,8 @@ public class IntegrationTest {
         // Neither index1 has any index data (no content was ever indexed into it), nor has it
         // ever been resolved via acquireIndexNode -- FulltextIndexTracker.update() only
         // re-diffs already-known paths (see diffAndUpdate), it does not itself scan /oak:index
-        // for newly defined indexes. Full-repository discovery on update() is a known,
-        // deliberately deferred limitation of this task (see the follow-up task that layers
-        // eager discovery back on top). So index1 is correctly absent here.
+        // for newly defined indexes. Full-repository discovery on update() is a known limitation,
+        // so index1 is correctly absent here.
         assertFalse("Index1 is not tracked until acquired/opened at least once",
                 tracker.getIndexNodePaths().contains("/oak:index/index1"));
         // Resolving it explicitly still works (lazy, on-demand discovery) -- it returns null
@@ -361,8 +360,14 @@ public class IntegrationTest {
         when(filter.getPathRestriction()).thenReturn(PathRestriction.NO_RESTRICTION);
         when(filter.getQueryLimits()).thenReturn(null);
 
-        // Execute query
-        Cursor cursor = index.query(filter, root);
+        // Execute query.
+        // LuceneNgIndex extends FulltextIndex, whose query(Filter, NodeState) overload throws
+        // UnsupportedOperationException; only query(IndexPlan, NodeState) is supported. Drive that
+        // path by wrapping the mock filter in a minimal plan exposing only what it reads (the
+        // filter; null sort order; no facets).
+        QueryIndex.IndexPlan plan = mock(QueryIndex.IndexPlan.class);
+        when(plan.getFilter()).thenReturn(filter);
+        Cursor cursor = index.query(plan, root);
 
         assertNotNull("Cursor should not be null", cursor);
         assertTrue("Should find at least one result", cursor.hasNext());

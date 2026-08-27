@@ -36,14 +36,14 @@ import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
  * production does), instead of constructing {@code LuceneNgIndexEditor} directly and calling
  * {@code enter}/{@code leave} by hand.
  *
- * <p>Since Task B4 collapsed {@code LuceneNgIndexEditor} onto the shared {@code FulltextIndexEditor}
- * framework, the editor can no longer be instantiated at an arbitrary sub-path with its own
- * {@code IndexWriter}. The supported way to exercise it is to run an {@link EditorHook} over a
- * content commit — that builds the real {@code FulltextIndexEditorContext}, obtains the
- * {@code IndexingContext}/{@code ContextAwareCallback}, and writes the segments into the committed
- * node state, exactly as the production {@link LuceneNgIndexEditorProvider} does. Tests then open a
- * {@link DirectoryReader} over that committed {@code /oak:index/<name>/lucene9} storage to assert on
- * the observable index contents (documents, fields, doc-values, facets).</p>
+ * <p>{@code LuceneNgIndexEditor} sits on the shared {@code FulltextIndexEditor} framework and
+ * cannot be instantiated at an arbitrary sub-path with its own {@code IndexWriter}. The supported
+ * way to exercise it is to run an {@link EditorHook} over a content commit — that builds the real
+ * {@code FulltextIndexEditorContext}, obtains the {@code IndexingContext}/{@code ContextAwareCallback},
+ * and writes the segments into the committed node state, exactly as the production
+ * {@link LuceneNgIndexEditorProvider} does. Tests then open a {@link DirectoryReader} over that
+ * committed {@code /oak:index/<name>/lucene9} storage to assert on the observable index contents
+ * (documents, fields, doc-values, facets).</p>
  *
  * <p>Every index definition driven this way must be a <b>synchronous</b> {@code lucene9} index
  * (no {@code async} property, {@code type=lucene9}), so the {@link EditorHook} processes it inline.</p>

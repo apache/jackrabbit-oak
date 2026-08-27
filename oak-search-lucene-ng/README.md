@@ -38,6 +38,13 @@ These items were identified during code review of the initial MVP. They are cons
 **Excerpts generated for all matched documents.**
 `generateExcerpts()` passes the full `TopDocs` to `UnifiedHighlighter`, which loads stored fields and re-analyzes text for every matched document, not just the visible page. Combined with the batching gap above, a fulltext query matching 50 K docs blocks until all highlights are computed before the first result is returned.
 
+**`LuceneNgIndexTracker` does not override `isUpdateNeeded`.**
+It relies on the inherited `FulltextIndexTracker` default, which only compares the `:status` and `:index-definition` hidden child nodes between commits — not a full-subtree diff of the index definition (which would also walk the Lucene segment storage on every commit and is expensive on large indexes). This is safe for two independent reasons, covering the two ways content changes reach the index:
+- **Incremental (non-reindex) updates.** `LuceneNgIndexEditor` (via the shared `FulltextIndexEditorContext.closeWriter()`) writes `:status/lastUpdated` whenever `LuceneNgFulltextIndexWriter.close()` reports that a write actually happened (its `indexUpdated` flag, set by `updateDocument`/`deleteDocumentTree`/`deleteDocument`).
+- **Reindex — including the edge case of a reindex that ends up matching zero documents.** This is the case that actually matters and is easy to get wrong: `LuceneNgFulltextIndexWriter`'s `indexUpdated` flag is *not* a reliable signal here, because a reindex that matches no documents (a misconfigured rule, or all matching content already gone) still opens the `IndexWriter` with `OpenMode.CREATE` and calls `indexWriter.commit()` in `close()` without ever calling `updateDocument`/`deleteDocumentTree`/`deleteDocument` — so `indexUpdated` stays `false` even though the reindex wipes any previously-existing segments. (Legacy `oak-lucene`'s `DefaultIndexWriter.close()` has an explicit generation-number fallback for exactly this gap; `LuceneNgFulltextIndexWriter` does not.) The actual safety net for reindex is upstream of this module entirely: `oak-core`'s `IndexUpdate.removeIndexState()` unconditionally strips all hidden child nodes — including `:status` and `:index-definition` — from the index definition before every reindex, regardless of what this module's writer does. That guarantees a real diff (e.g. `:status` losing `lastUpdated`/`indexedNodes`, or disappearing entirely) that the inherited default's `isStatusChanged`/`isIndexDefinitionChanged` checks pick up, even for a reindex-to-empty.
+
+If a future LuceneNg-specific reindex path were ever added that bypasses `oak-core`'s standard `IndexUpdate` reindex machinery (e.g. a bespoke out-of-band reindex tool), it would need its own way of touching `:status`/`:index-definition` — relying on `LuceneNgFulltextIndexWriter`'s `indexUpdated` dirty-tracking alone would silently reintroduce a stale-index-node bug for the reindex-to-zero-documents case.
+
 ### Index discovery
 
 **`LuceneNgQueryIndexProvider.getQueryIndexes()` only discovers `lucene9` indexes one level under `/oak:index`.**
@@ -66,9 +73,6 @@ Query errors return empty cursors with no counter incremented. Operations cannot
 **`BlobDeletionCallback` is hardcoded to NOOP.**
 When index files are deleted from `OakDirectory`, the blob store is not notified. Unreferenced blobs accumulate until a full blob GC scan. The legacy module wires a real callback; this is a known incomplete feature (see TODO in `OakDirectory`).
 
-**`OakDirectory.close()` is the sole point where the in-memory file listing is persisted.**
-If a JVM crash occurs after files are created but before `close()` is called, the in-memory listing is lost. On next open, `getListing()` rebuilds it by scanning child node names — a documented recovery path, same as the legacy design.
-
 **`IndexWriter.commit()` and Oak `NodeStore` commit are not atomic.**
 A JVM crash between the two orphans blobs in the blob store. The blob GC will collect them eventually. This is the same accepted trade-off as `oak-lucene` (documented in OAK-7066 context).
 
@@ -95,3 +99,11 @@ of this module — the hand-rolled editor never indexed binaries either — but 
 `FulltextDocumentMaker` framework makes the gap reachable for the first time: index-time aggregation
 now pulls a matched child node's *string* properties into the parent's `:fulltext`, yet any binary
 property on that aggregated node is still skipped. Binary/Tika text extraction is deferred work.
+
+**Per-property fulltext boost (`PropertyDefinition.boost`) is not applied to node-scope fulltext relevance.**
+The legacy module expands a boosted property's value into the shared `:fulltext` field with an
+index-time boost so node-scope `CONTAINS(*, ...)`/`CONTAINS(., ...)` queries rank documents higher
+when the match is in a boosted property. Lucene 9 removed per-field index-time boosts, and this
+module does not replicate the effect via an alternative (e.g. query-time boosting per field). Both
+node-scope and property-scoped (`CONTAINS(propertyName, ...)`) fulltext matching are functionally
+correct here; only this relevance-tuning refinement is absent.

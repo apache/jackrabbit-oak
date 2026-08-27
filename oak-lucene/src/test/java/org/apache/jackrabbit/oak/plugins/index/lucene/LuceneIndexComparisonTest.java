@@ -67,6 +67,19 @@ public class LuceneIndexComparisonTest extends AbstractIndexComparisonTest {
         def.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
         def.setProperty(createProperty(INCLUDE_PROPERTY_NAMES,
                 List.of("title", "description", "age", "price", "status", "category"), Type.STRINGS));
+        // This is the old-style flat index definition format (fulltextEnabled=false +
+        // includePropertyNames): IndexDefinition#createIndexRules defaults every included
+        // property to propertyIndex=true, analyzed=false when fulltextEnabled is false. To keep
+        // that default (and every other scenario indexed the same way as before) while still
+        // supporting CONTAINS(description, ...), add an explicit per-property override under the
+        // old-format "properties" node -- IndexDefinition#createIndexRules copies any properties
+        // found there over the computed defaults for that single property (see
+        // getPropDefnNode/"Copy over the property configuration" in IndexDefinition.java), so
+        // only "description" gains analyzed=true; every other property (and description's own
+        // propertyIndex=true, needed by testDescriptionQuery) is unaffected.
+        Tree props = def.addChild(FulltextIndexConstants.PROP_NODE);
+        Tree descriptionProp = props.addChild("description");
+        descriptionProp.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
         root.commit();
     }
 }

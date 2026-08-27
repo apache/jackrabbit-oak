@@ -44,9 +44,9 @@ import static org.junit.Assert.assertEquals;
  * with an explicit type (Long, Double, Date), and that a node losing its matching rule has its stale
  * document deleted (OAK-12244).
  *
- * <p>Task B4 migrated these from driving {@code LuceneNgIndexEditor} directly to driving real
- * commits through {@link LuceneNgIndexEditorProvider} (see {@link LuceneNgEditorCommitUtil}); the
- * range/equality assertions still run against the committed Lucene index via a {@link DirectoryReader}.</p>
+ * <p>These drive real commits through {@link LuceneNgIndexEditorProvider} (see
+ * {@link LuceneNgEditorCommitUtil}); the range/equality assertions run against the committed
+ * Lucene index via a {@link DirectoryReader}.</p>
  */
 public class LuceneNgIndexEditorTest {
 

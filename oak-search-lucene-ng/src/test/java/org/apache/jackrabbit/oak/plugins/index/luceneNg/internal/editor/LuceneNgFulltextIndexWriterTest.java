@@ -16,12 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.editor;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexStorage;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
@@ -35,6 +39,7 @@ import org.junit.Test;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -102,6 +107,37 @@ public class LuceneNgFulltextIndexWriterTest {
         boolean updated = writer.close(System.currentTimeMillis());
 
         assertFalse("close() must report false when no write/delete happened before it", updated);
+    }
+
+    /**
+     * Regression test for the bug where {@code LuceneNgFulltextIndexWriterFactory} created an
+     * {@link OakDirectory} as a local variable and never passed it on for closing: only
+     * {@link OakDirectory#close()} (in write mode) persists the authoritative file listing
+     * ({@code PROP_DIR_LISTING}); without it, every open falls back to an expensive child-node
+     * scan. Asserts directly on the persisted property rather than merely that a fresh reader
+     * can still open the data — the latter would also pass via the child-scan fallback and
+     * therefore wouldn't catch this bug.
+     */
+    @Test
+    public void closePersistsDirectoryListing() throws Exception {
+        NodeBuilder definitionBuilder = EMPTY_NODE.builder();
+        LuceneNgIndexDefinition definition =
+                new LuceneNgIndexDefinition(EMPTY_NODE, EMPTY_NODE, "/oak:index/test");
+
+        LuceneNgFulltextIndexWriterFactory factory = new LuceneNgFulltextIndexWriterFactory();
+        FulltextIndexWriter<Document> writer = factory.newInstance(definition, definitionBuilder, null, true);
+        writer.updateDocument("/a", newDoc("/a"));
+        writer.close(System.currentTimeMillis());
+
+        // Independent, read-only view over the same storage subtree the writer just closed.
+        NodeState storageState = LuceneNgIndexStorage.storageState(definitionBuilder.getNodeState());
+        PropertyState dirListing = storageState.getProperty(LuceneNgIndexConstants.PROP_DIR_LISTING);
+
+        assertNotNull("PROP_DIR_LISTING must be persisted once the writer's directory is closed",
+                dirListing);
+        assertTrue("PROP_DIR_LISTING must list at least the segment files just written",
+                dirListing.count() > 0);
+        assertEquals(Type.STRINGS, dirListing.getType());
     }
 
     private static Document newDoc(String path) {

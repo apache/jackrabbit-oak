@@ -41,7 +41,7 @@ import static org.junit.Assert.assertNotNull;
  * Verifies that the {@code FacetsConfig} built by {@link org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.editor.LuceneNgIndexEditorContext}
  * correctly handles multi-valued facet properties across multiple documents.
  *
- * <p>Task B4 migrated this to drive a real commit through {@link LuceneNgIndexEditorProvider} (see
+ * <p>This drives a real commit through {@link LuceneNgIndexEditorProvider} (see
  * {@link LuceneNgEditorCommitUtil}); the facet counts are read back from the committed index.</p>
  */
 public class LuceneNgFacetsConfigTest {
