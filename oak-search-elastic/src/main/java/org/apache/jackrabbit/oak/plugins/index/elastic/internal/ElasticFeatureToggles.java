@@ -50,4 +50,11 @@ public final class ElasticFeatureToggles {
      */
     public static final String FT_OAK_12415 = "FT_OAK-12415";
     public static final AtomicBoolean FT_OAK_12415_ENABLE = new AtomicBoolean(true);
+
+    /**
+     * Feature toggle for OAK-12381: do not require cluster:monitor permission in Elasticsearch workspace API keys.
+     * Enabled by default but can be switched to {@code true} to bring back the previous behaviour.
+     */
+    public static final String FT_OAK_12381 = "FT_OAK-12381";
+    public static final AtomicBoolean FT_OAK_12381_DISABLE = new AtomicBoolean(false);
 }

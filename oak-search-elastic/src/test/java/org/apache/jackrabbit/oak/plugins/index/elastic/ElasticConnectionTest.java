@@ -54,6 +54,15 @@ public class ElasticConnectionTest {
                 LocalDate.now().isBefore(LocalDate.of(2027, 9, 15)));
     }
 
+    @Test
+    public void ft_oak_12381_toggleShouldBeRemoved() {
+        // Time-bombed: if this test fails, the feature toggle FT_OAK_12381 and its guards in
+        // ElasticConnection#isAvailable, ElasticIndexCleaner, ElasticIndexStatistics and ElasticIndexInfoProvider
+        // should be cleaned up.
+        assertTrue("Feature toggle " + ElasticFeatureToggles.FT_OAK_12381 + " is overdue for removal",
+                LocalDate.now().isBefore(LocalDate.of(2027, 10, 1)));
+    }
+
     @After
     public void resetToggle() {
         ElasticConnection.FT_OAK_12234_DISABLE.set(false);
