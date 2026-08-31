@@ -47,8 +47,10 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.Inference
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceIndexConfig;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -248,10 +250,21 @@ class ElasticIndexHelper {
     private static ObjectBuilder<IndexSettings> loadSettings(@NotNull IndexSettings.Builder builder,
                                                              @NotNull ElasticIndexDefinition indexDefinition) {
         // collect analyzer settings
+        NodeState analyzersNodeState = indexDefinition.getAnalyzersNodeState();
         IndexSettingsAnalysis.Builder analyzerBuilder =
-                ElasticCustomAnalyzer.buildCustomAnalyzers(indexDefinition.getAnalyzersNodeState(), "oak_analyzer");
+                ElasticCustomAnalyzer.buildCustomAnalyzers(analyzersNodeState, "oak_analyzer");
         if (analyzerBuilder == null) {
-            analyzerBuilder = new IndexSettingsAnalysis.Builder()
+            analyzerBuilder = new IndexSettingsAnalysis.Builder();
+        }
+        // "oak_analyzer" is the fallback default analyzer used by every property that doesn't declare its own
+        // analyzer reference. buildCustomAnalyzers only registers it under that name when an explicit
+        // analyzers/default node is configured (it now also registers any other named analyzer, e.g. one used
+        // only per-property via PROP_ANALYZER, so a non-null builder no longer implies "oak_analyzer" exists).
+        // Without an analyzers/default node, we still need to define it here so property mappings that reference
+        // "oak_analyzer" don't fail index creation.
+        boolean hasDefaultAnalyzer = analyzersNodeState != null && analyzersNodeState.hasChildNode(FulltextIndexConstants.ANL_DEFAULT);
+        if (!hasDefaultAnalyzer) {
+            analyzerBuilder
                     .filter(OAK_WORD_DELIMITER_GRAPH_FILTER,
                             tokenFilter -> tokenFilter.definition(
                                     tokenFilterDef -> tokenFilterDef.wordDelimiterGraph(
@@ -309,6 +322,12 @@ class ElasticIndexHelper {
                     builder.properties(FieldNames.FLATTENED_FIELD_PREFIX +
                             ElasticIndexUtils.fieldName(pd.nodeName), pBuilder.build());
                 }
+                if (pd.analyzed && pd.analyzerName != null) {
+                    LOG.warn("Property [{}] in index rule [{}] declares analyzer [{}] but is a " +
+                            "regular-expression property definition, which is not supported for " +
+                            "per-property analyzers - falling back to the default analyzer. Index at {}",
+                            pd.name, rule.getNodeTypeName(), pd.analyzerName, indexDefinition.getIndexPath());
+                }
             }
         }
         for (Map.Entry<String, List<PropertyDefinition>> entry : indexDefinition.getPropertiesByName().entrySet()) {
@@ -334,9 +353,23 @@ class ElasticIndexHelper {
                 pBuilder.boolean_(b -> b);
             } else {
                 if (indexDefinition.isAnalyzed(propertyDefinitions)) {
+                    String analyzerName = propertyDefinitions.stream().map(pd -> pd.analyzerName)
+                            .filter(Objects::nonNull).findFirst().orElse(null);
+                    String resolvedAnalyzerName = "oak_analyzer";
+                    if (analyzerName != null) {
+                        NodeState analyzersNodeState = indexDefinition.getAnalyzersNodeState();
+                        if (analyzersNodeState != null && analyzersNodeState.hasChildNode(analyzerName)) {
+                            resolvedAnalyzerName = analyzerName;
+                        } else {
+                            LOG.warn("Property [{}] references unknown analyzer [{}] - falling back to " +
+                                    "the default analyzer. Index at {}",
+                                    propertyName, analyzerName, indexDefinition.getIndexPath());
+                        }
+                    }
                     // always add keyword for sorting / faceting as sub-field
+                    String finalAnalyzerName = resolvedAnalyzerName;
                     pBuilder.text(
-                            b1 -> b1.analyzer("oak_analyzer")
+                            b1 -> b1.analyzer(finalAnalyzerName)
                                     .fields("keyword",
                                             b2 -> b2.keyword(
                                                     b3 -> b3.ignoreAbove(256))));

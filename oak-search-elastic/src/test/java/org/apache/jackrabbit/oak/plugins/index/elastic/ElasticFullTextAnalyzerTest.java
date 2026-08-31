@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.FullTextAnalyzerCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResultRowAsyncIterator;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -238,4 +239,110 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
     @Ignore("not supported in elasticsearch since hunspell resources need to be available on the server")
     @Override
     public void fullTextWithHunspell() {}
+
+    // OAK-12360: a property's own analyzer reference must apply at real index/query
+    // time (not just to the in-memory Analyzer object), while a sibling property
+    // without one keeps using the index's default analyzer.
+    @Test
+    public void perPropertyAnalyzerAppliesOnlyToDeclaredProperty() throws Exception {
+        setup(List.of("title", "body"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild("titleAnalyzer");
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "whitespace");
+
+            idx.getChild(FulltextIndexConstants.INDEX_RULES).getChild("nt:base")
+                    .getChild(FulltextIndexConstants.PROP_NODE).getChild("title")
+                    .setProperty(FulltextIndexConstants.PROP_ANALYZER, "titleAnalyzer");
+        });
+
+        Tree content = root.getTree("/").addChild("content");
+        Tree a = content.addChild("a");
+        a.setProperty("title", "Hello World");
+        a.setProperty("body", "Hello World");
+        root.commit();
+
+        assertEventually(() -> {
+            // "title" uses the whitespace tokenizer (no lower-casing): case-sensitive match.
+            assertQuery("//*[jcr:contains(@title, 'Hello')]", XPATH, List.of("/content/a"));
+            assertQuery("//*[jcr:contains(@title, 'hello')]", XPATH, List.of());
+            // "body" keeps the index's default (lower-casing) analyzer: case-insensitive match.
+            assertQuery("//*[jcr:contains(@body, 'hello')]", XPATH, List.of("/content/a"));
+            assertQuery("//*[jcr:contains(@body, 'Hello')]", XPATH, List.of("/content/a"));
+        });
+    }
+
+    // OAK-12360: a property's analyzer reference that doesn't resolve to any node under
+    // analyzers/ must not fail index creation - it falls back to the default analyzer and
+    // logs a warning.
+    @Test
+    public void danglingAnalyzerReferenceFallsBackToDefaultWithWarning() throws Exception {
+        LogCustomizer customLogs = LogCustomizer
+                .forLogger("org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexHelper")
+                .enable(Level.WARN).create();
+        customLogs.starting();
+
+        try {
+            setup(List.of("title", "body"), idx ->
+                    idx.getChild(FulltextIndexConstants.INDEX_RULES).getChild("nt:base")
+                            .getChild(FulltextIndexConstants.PROP_NODE).getChild("title")
+                            .setProperty(FulltextIndexConstants.PROP_ANALYZER, "doesNotExist"));
+
+            Tree content = root.getTree("/").addChild("content");
+            Tree a = content.addChild("a");
+            a.setProperty("title", "Hello World");
+            root.commit();
+
+            assertEventually(() ->
+                    // falls back to the default (lower-casing) analyzer, so this still matches
+                    assertQuery("//*[jcr:contains(@title, 'hello')]", XPATH, List.of("/content/a")));
+
+            List<String> logs = customLogs.getLogs();
+            Assert.assertTrue("Expected a warning about the unresolved analyzer reference. Captured logs: " + logs,
+                    logs.stream().anyMatch(m -> m.contains("doesNotExist")));
+        } finally {
+            customLogs.finished();
+        }
+    }
+
+    // OAK-12360: regular-expression property definitions have no single fixed field name to
+    // bind a per-property analyzer to, so declaring one there is not supported - it falls back
+    // to the index's default handling and logs a warning (mirrors the Lucene-side limitation).
+    @Test
+    public void regexpPropertyWithAnalyzerFallsBackWithWarning() throws Exception {
+        LogCustomizer customLogs = LogCustomizer
+                .forLogger("org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexHelper")
+                .enable(Level.WARN).create();
+        customLogs.starting();
+
+        try {
+            setup(List.of("title"), idx -> {
+                Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild("frenchAnalyzer");
+                anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "whitespace");
+
+                Tree allStrings = idx.getChild(FulltextIndexConstants.INDEX_RULES).getChild("nt:base")
+                        .getChild(FulltextIndexConstants.PROP_NODE).addChild("allStrings");
+                allStrings.setProperty(FulltextIndexConstants.PROP_NAME, FulltextIndexConstants.REGEX_ALL_PROPS);
+                allStrings.setProperty(FulltextIndexConstants.PROP_IS_REGEX, true);
+                allStrings.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
+                allStrings.setProperty(FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+                allStrings.setProperty(FulltextIndexConstants.PROP_ANALYZER, "frenchAnalyzer");
+            });
+
+            Tree content = root.getTree("/").addChild("content");
+            Tree a = content.addChild("a");
+            a.setProperty("randomProp", "Hello World");
+            root.commit();
+
+            assertEventually(() ->
+                    // regexp properties don't get the per-property analyzer wired in - the index still
+                    // builds and queries successfully via the aggregate fulltext field (which always
+                    // uses the index's default, case-insensitive analyzer)
+                    assertQuery("//*[jcr:contains(., 'hello')]", XPATH, List.of("/content/a")));
+
+            List<String> logs = customLogs.getLogs();
+            Assert.assertTrue("Expected a warning about regexp properties not supporting per-field analyzers. Captured logs: " + logs,
+                    logs.stream().anyMatch(m -> m.contains("regular-expression")));
+        } finally {
+            customLogs.finished();
+        }
+    }
 }
