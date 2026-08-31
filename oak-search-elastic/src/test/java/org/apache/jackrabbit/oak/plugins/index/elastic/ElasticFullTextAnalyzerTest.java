@@ -345,4 +345,38 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
             customLogs.finished();
         }
     }
+
+    // OAK-12360: a property that explicitly references the literal "default" analyzer node
+    // (analyzers/default) must resolve to the same ES analyzer ("oak_analyzer") that
+    // ElasticCustomAnalyzer#buildCustomAnalyzers actually registers that node under - not to a
+    // literal ES analyzer named "default" (which is never registered and would make Elasticsearch
+    // reject index creation with "analyzer [default] not found").
+    @Test
+    public void explicitDefaultAnalyzerReferenceResolvesToRegisteredDefault() throws Exception {
+        setup(List.of("title", "body"), idx -> {
+            // Custom default analyzer: whitespace tokenizer only, no lower-casing - so we can tell
+            // whether "title" really ends up using it (same as "body", which has no override).
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "whitespace");
+
+            idx.getChild(FulltextIndexConstants.INDEX_RULES).getChild("nt:base")
+                    .getChild(FulltextIndexConstants.PROP_NODE).getChild("title")
+                    .setProperty(FulltextIndexConstants.PROP_ANALYZER, FulltextIndexConstants.ANL_DEFAULT);
+        });
+
+        Tree content = root.getTree("/").addChild("content");
+        Tree a = content.addChild("a");
+        a.setProperty("title", "Hello World");
+        a.setProperty("body", "Hello World");
+        root.commit();
+
+        assertEventually(() -> {
+            // "title" (explicit "default" reference) and "body" (no override) must behave
+            // identically: both go through the custom, case-preserving default analyzer.
+            assertQuery("//*[jcr:contains(@title, 'Hello')]", XPATH, List.of("/content/a"));
+            assertQuery("//*[jcr:contains(@title, 'hello')]", XPATH, List.of());
+            assertQuery("//*[jcr:contains(@body, 'Hello')]", XPATH, List.of("/content/a"));
+            assertQuery("//*[jcr:contains(@body, 'hello')]", XPATH, List.of());
+        });
+    }
 }

@@ -357,13 +357,22 @@ class ElasticIndexHelper {
                             .filter(Objects::nonNull).findFirst().orElse(null);
                     String resolvedAnalyzerName = "oak_analyzer";
                     if (analyzerName != null) {
-                        NodeState analyzersNodeState = indexDefinition.getAnalyzersNodeState();
-                        if (analyzersNodeState != null && analyzersNodeState.hasChildNode(analyzerName)) {
-                            resolvedAnalyzerName = analyzerName;
+                        if (FulltextIndexConstants.ANL_DEFAULT.equals(analyzerName)) {
+                            // analyzers/default is always registered under the ES analyzer name
+                            // "oak_analyzer" (see ElasticCustomAnalyzer#buildCustomAnalyzers), never
+                            // literally as "default" - resolve it directly rather than through
+                            // hasChildNode, which would otherwise wrongly confirm "default" as a
+                            // valid ES analyzer name.
+                            resolvedAnalyzerName = "oak_analyzer";
                         } else {
-                            LOG.warn("Property [{}] references unknown analyzer [{}] - falling back to " +
-                                    "the default analyzer. Index at {}",
-                                    propertyName, analyzerName, indexDefinition.getIndexPath());
+                            NodeState analyzersNodeState = indexDefinition.getAnalyzersNodeState();
+                            if (analyzersNodeState != null && analyzersNodeState.hasChildNode(analyzerName)) {
+                                resolvedAnalyzerName = analyzerName;
+                            } else {
+                                LOG.warn("Property [{}] references unknown analyzer [{}] - falling back to " +
+                                        "the default analyzer. Index at {}",
+                                        propertyName, analyzerName, indexDefinition.getIndexPath());
+                            }
                         }
                     }
                     // always add keyword for sorting / faceting as sub-field
