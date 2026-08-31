@@ -103,7 +103,10 @@ public class NodeTypeIndexTest {
     public void nodeTypeCostOverride() throws Exception {
         NodeBuilder root = store.getRoot().builder();
 
-        // remove "rep:security" as it interferes with tests
+        // remove system security nodes to avoid skewing counts: rep:security's
+        // default authorizable store (rep:AuthorizableFolder, rep:User) also
+        // extends nt:hierarchyNode, so it would otherwise be counted by the
+        // NT_HIERARCHYNODE assertion below alongside the folders/file this test adds.
         root.getChildNode("rep:security").remove();
 
         NodeBuilder nodetypeIndex = root.getChildNode("oak:index").getChildNode("nodetype");
