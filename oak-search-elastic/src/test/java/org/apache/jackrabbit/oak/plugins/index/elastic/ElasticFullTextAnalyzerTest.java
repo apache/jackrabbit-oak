@@ -379,4 +379,40 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
             assertQuery("//*[jcr:contains(@body, 'hello')]", XPATH, List.of());
         });
     }
+
+    // OAK-12360: unlike Lucene (whose :fulltext field is always analyzed by the single index
+    // default, regardless of any property's own override), ES's aggregate FieldNames.FULLTEXT
+    // query is expanded at query time to also search each nodeScopeIndex-analyzed property's own
+    // field (ElasticRequestHandler#fullTextQuery, via IndexingRule#getNodeScopeAnalyzedProps) -
+    // because ElasticDocumentMaker never copies an analyzed property's text into :fulltext itself
+    // (isFulltextValuePersistedAtNode). When "title" is the sole such contributor (no sibling
+    // property sharing the default analyzer to fall back on), its own custom analyzer legitimately
+    // governs jcr:contains(., ...) too: the query term is analyzed the same way "title"'s content
+    // was, which is correct - not a leaky version of Lucene's guarantee, a genuinely different one.
+    @Test
+    public void perPropertyAnalyzerAppliesToAggregatedFulltextFieldWhenSoleContributor() throws Exception {
+        setup(List.of("title"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild("titleAnalyzer");
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "whitespace");
+
+            idx.getChild(FulltextIndexConstants.INDEX_RULES).getChild("nt:base")
+                    .getChild(FulltextIndexConstants.PROP_NODE).getChild("title")
+                    .setProperty(FulltextIndexConstants.PROP_ANALYZER, "titleAnalyzer");
+        });
+
+        Tree content = root.getTree("/").addChild("content");
+        Tree a = content.addChild("a");
+        a.setProperty("title", "Hello World");
+        root.commit();
+
+        assertEventually(() -> {
+            // Property-specific field: custom (whitespace, non-lower-casing) analyzer, case-sensitive.
+            assertQuery("//*[jcr:contains(@title, 'Hello')]", XPATH, List.of("/content/a"));
+            assertQuery("//*[jcr:contains(@title, 'hello')]", XPATH, List.of());
+            // Aggregated query: with "title" as the sole nodeScopeIndex-analyzed contributor, it
+            // correctly reflects "title"'s own (case-sensitive) analyzer too.
+            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH, List.of("/content/a"));
+            assertQuery("//*[jcr:contains(., 'hello')]", XPATH, List.of());
+        });
+    }
 }
