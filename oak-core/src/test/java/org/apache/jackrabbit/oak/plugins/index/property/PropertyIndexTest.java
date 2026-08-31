@@ -74,6 +74,7 @@ import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
@@ -81,6 +82,7 @@ import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.slf4j.LoggerFactory;
 
 import ch.qos.logback.classic.Level;
@@ -281,22 +283,21 @@ public class PropertyIndexTest {
         NodeState after = builder.getNodeState();
         NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+
         FilterImpl f = createFilter(indexed, NT_BASE);
         f.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
-        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
         PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
-
-        assertTrue("toggle must be on by default", PropertyIndexLookup.FT_OAK_12348_ENABLE.get());
         assertEquals(7.0, lookup.getCost(f, "foo", PropertyValues.newString("x1")), 0.0);
         assertEquals(7.0, pIndex.getCost(f, indexed), 0.0);
 
-        PropertyIndexLookup.FT_OAK_12348_ENABLE.set(false);
-        try {
-            assertEquals(7.0, lookup.getCost(f, "foo", PropertyValues.newString("x1")), 0.0);
-            assertEquals(7.0, pIndex.getCost(f, indexed), 0.0);
-        } finally {
-            PropertyIndexLookup.FT_OAK_12348_ENABLE.set(true);
-        }
+        QueryEngineSettings legacySettings = new QueryEngineSettings();
+        legacySettings.setCostPerEntryLegacyModeFeature(createLegacyModeFeature(true));
+        FilterImpl legacyFilter = createFilter(indexed, NT_BASE, legacySettings);
+        legacyFilter.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
+        PropertyIndex pIndexLegacy = new PropertyIndex(Mounts.defaultMountInfoProvider());
+        assertEquals(7.0, lookup.getCost(legacyFilter, "foo", PropertyValues.newString("x1")), 0.0);
+        assertEquals(7.0, pIndexLegacy.getCost(legacyFilter, indexed), 0.0);
     }
 
     /**
@@ -323,27 +324,27 @@ public class PropertyIndexTest {
         NodeState after = builder.getNodeState();
         NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+
         FilterImpl f = createFilter(indexed, NT_BASE);
         f.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
-        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
         PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
 
-        // toggle on (default): override takes effect immediately, no opt-in needed
+        // enabled (default): override takes effect immediately, no opt-in needed
         // -- 10.0 + 2.0 * 5 == 20.0 (legacy would have been 2.0 + 5 == 7.0).
-        assertTrue("toggle must be on by default", PropertyIndexLookup.FT_OAK_12348_ENABLE.get());
         assertEquals(20.0, lookup.getCost(f, "foo", PropertyValues.newString("x1")), 0.0);
         assertEquals(20.0, pIndex.getCost(f, indexed), 0.0);
         // getCostLegacy() is callable directly regardless of the toggle, and still
         // gives the old value -- proves the escape hatch's formula is intact.
         assertEquals(7.0, lookup.getCostLegacy(f, "foo", PropertyValues.newString("x1")), 0.0);
 
-        PropertyIndexLookup.FT_OAK_12348_ENABLE.set(false);
-        try {
-            assertEquals(7.0, lookup.getCost(f, "foo", PropertyValues.newString("x1")), 0.0);
-            assertEquals(7.0, pIndex.getCost(f, indexed), 0.0);
-        } finally {
-            PropertyIndexLookup.FT_OAK_12348_ENABLE.set(true);
-        }
+        QueryEngineSettings legacySettings = new QueryEngineSettings();
+        legacySettings.setCostPerEntryLegacyModeFeature(createLegacyModeFeature(true));
+        FilterImpl legacyFilter = createFilter(indexed, NT_BASE, legacySettings);
+        legacyFilter.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
+        PropertyIndex pIndexLegacy = new PropertyIndex(Mounts.defaultMountInfoProvider());
+        assertEquals(7.0, lookup.getCost(legacyFilter, "foo", PropertyValues.newString("x1")), 0.0);
+        assertEquals(7.0, pIndexLegacy.getCost(legacyFilter, indexed), 0.0);
     }
 
     /**
@@ -372,7 +373,6 @@ public class PropertyIndexTest {
         FilterImpl f = createFilter(indexed, NT_BASE);
         PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
 
-        assertTrue("toggle must be on by default", PropertyIndexLookup.FT_OAK_12348_ENABLE.get());
         double cost = pIndex.getCost(f, indexed);
         assertFalse("cost must not be NaN", Double.isNaN(cost));
         assertEquals(Double.POSITIVE_INFINITY, cost, 0.0);
@@ -405,7 +405,6 @@ public class PropertyIndexTest {
         f.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
         PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
 
-        assertTrue("toggle must be on by default", PropertyIndexLookup.FT_OAK_12348_ENABLE.get());
         // 3.0 + 1000.0 * 0 == 3.0 -- the huge costPerEntry must not apply, since
         // the short circuit means there is no per-entry contribution to multiply.
         assertEquals(3.0, pIndex.getCost(f, indexed), 0.0);
@@ -596,10 +595,20 @@ public class PropertyIndexTest {
     }
 
     private static FilterImpl createFilter(NodeState root, String nodeTypeName) {
+        return createFilter(root, nodeTypeName, new QueryEngineSettings());
+    }
+
+    private static FilterImpl createFilter(NodeState root, String nodeTypeName, QueryEngineSettings settings) {
         NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(root);
-        NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);        
+        NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);
         SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
-        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]", new QueryEngineSettings());
+        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]", settings);
+    }
+
+    private static Feature createLegacyModeFeature(boolean enabled) {
+        Feature feature = Mockito.mock(Feature.class);
+        Mockito.when(feature.isEnabled()).thenReturn(enabled);
+        return feature;
     }
 
     /**

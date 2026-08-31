@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.nodetype;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 
 import java.io.ByteArrayInputStream;
@@ -129,10 +128,9 @@ public class NodeTypeIndexTest {
         FilterImpl filter;
 
         // NodeTypeIndex has no toggle of its own -- it inherits whichever formula
-        // PropertyIndexLookup.getCost() is currently dispatching to, which is
-        // FT_OAK_12348_ENABLE, on by default -- no opt-in needed here.
-        assertTrue("toggle must be on by default",
-                org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup.FT_OAK_12348_ENABLE.get());
+        // PropertyIndexLookup.getCost() is currently dispatching to, driven by
+        // QueryEngineSettings.isCostPerEntryOverrideEnabled() (OAK-12348), which is
+        // enabled by default -- no opt-in needed here.
 
         // default (see nodeType() above) is 2*COST_OVERHEAD(2) + entrySum;
         // with the override it is 2*costPerExecution + costPerEntry*entrySum

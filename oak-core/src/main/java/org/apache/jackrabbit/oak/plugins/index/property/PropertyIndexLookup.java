@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -76,24 +75,6 @@ public class PropertyIndexLookup {
      * The maximum cost when the index can be used.
      */
     static final int MAX_COST = 100;
-
-    /**
-     * Feature toggle name for the configurable costPerEntry/costPerExecution
-     * cost formula (OAK-12348).
-     */
-    public static final String FT_OAK_12348 = "FT_OAK-12348";
-
-    /**
-     * When {@code true} (the default), {@link #getCost} reads {@code costPerEntry}/
-     * {@code costPerExecution} from the index definition ({@link #getCostConfigurable}).
-     * When {@code false}, {@link #getCost} uses the original hardcoded formula
-     * ({@link #getCostLegacy}) unconditionally, ignoring those properties even if
-     * set. Enabled by default: the new formula reproduces the legacy one exactly
-     * whenever {@code costPerEntry}/{@code costPerExecution} are absent, so this is
-     * a behavior-preserving default for anyone not using the new properties -- the
-     * toggle exists as an escape hatch, not as an opt-in gate.
-     */
-    public static final AtomicBoolean FT_OAK_12348_ENABLE = new AtomicBoolean(true);
 
     private final NodeState root;
 
@@ -157,10 +138,10 @@ public class PropertyIndexLookup {
 
     /**
      * Dispatches to {@link #getCostConfigurable} or {@link #getCostLegacy}
-     * depending on {@link #FT_OAK_12348_ENABLE}.
+     * depending on {@link org.apache.jackrabbit.oak.spi.query.QueryLimits#isCostPerEntryOverrideEnabled}.
      */
     public double getCost(Filter filter, String propertyName, PropertyValue value) {
-        return FT_OAK_12348_ENABLE.get()
+        return filter.getQueryLimits().isCostPerEntryOverrideEnabled()
                 ? getCostConfigurable(filter, propertyName, value)
                 : getCostLegacy(filter, propertyName, value);
     }

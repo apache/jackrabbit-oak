@@ -209,12 +209,12 @@ public class PropertyIndexPlan {
 
     /**
      * Dispatches to {@link #getCostConfigurable} or {@link #getCostLegacy}
-     * depending on {@link PropertyIndexLookup#FT_OAK_12348_ENABLE}, evaluated
-     * once per plan (a new plan is built whenever the filter changes, so a
-     * toggle flip is picked up on the next query, not on this cached plan).
+     * depending on {@link org.apache.jackrabbit.oak.spi.query.QueryLimits#isCostPerEntryOverrideEnabled},
+     * evaluated once per plan (a new plan is built whenever the filter changes,
+     * so a toggle flip is picked up on the next query, not on this cached plan).
      */
     double getCost() {
-        return PropertyIndexLookup.FT_OAK_12348_ENABLE.get() ? getCostConfigurable() : getCostLegacy();
+        return filter.getQueryLimits().isCostPerEntryOverrideEnabled() ? getCostConfigurable() : getCostLegacy();
     }
 
     /**
