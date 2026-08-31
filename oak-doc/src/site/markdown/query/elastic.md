@@ -90,11 +90,13 @@ For detailed configuration syntax and examples, see the [Lucene per-property ana
 1. **Regular-expression properties:** Per-property analyzers are not supported for properties with `isRegexp = true`.
    The default analyzer is used with a logged warning, and indexing proceeds normally.
 
-2. **Aggregated fulltext field behavior (differs from Lucene):** When a property is the *sole* analyzed `nodeScopeIndex` contributor
-   (no sibling property shares the default analyzer), that property's custom analyzer applies to aggregated fulltext queries (`jcr:contains(., ...)`) as well as property-specific queries.
-   This differs from Lucene, where the aggregated `:fulltext` field always uses the default analyzer regardless of per-property settings.
-   Elasticsearch's behavior is intentional: the query term is analyzed the same way the content was indexed, providing more accurate fulltext results.
-   When multiple properties contribute to the aggregate field, standard ranking and term matching apply.
+**Aggregated Fulltext Field Behavior**
+
+Unlike Lucene, where the aggregated `:fulltext` field always uses the default analyzer regardless of per-property settings, Elasticsearch supports more nuanced behavior.
+When a property is the sole analyzed `nodeScopeIndex` contributor (the only property with a custom analyzer; other properties, if any, use the default),
+that property's custom analyzer applies to aggregated fulltext queries (`jcr:contains(., ...)`) as well as property-specific queries.
+This is intentional and desirable: the query term is analyzed the same way the content was indexed, providing more accurate fulltext results.
+When multiple properties contribute to the aggregate field, standard ranking and term matching apply.
 
 [lucene]: https://jackrabbit.apache.org/oak/docs/query/lucene.html
 [lucene-per-property-analyzer]: https://jackrabbit.apache.org/oak/docs/query/lucene.html#per-property-analyzer
