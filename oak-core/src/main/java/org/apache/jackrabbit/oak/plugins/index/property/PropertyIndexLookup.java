@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -80,13 +81,26 @@ public class PropertyIndexLookup {
 
     private final MountInfoProvider mountInfoProvider;
 
+    /**
+     * See OAK-12348. {@code null} means the configurable cost formula is
+     * active (the default) -- there is no whiteboard-registered toggle to
+     * check, e.g. in embedded/non-OSGi usage.
+     */
+    @Nullable
+    private final Feature feature;
+
     public PropertyIndexLookup(NodeState root) {
         this(root, Mounts.defaultMountInfoProvider());
     }
 
     public PropertyIndexLookup(NodeState root, MountInfoProvider mountInfoProvider) {
+        this(root, mountInfoProvider, null);
+    }
+
+    public PropertyIndexLookup(NodeState root, MountInfoProvider mountInfoProvider, @Nullable Feature feature) {
         this.root = root;
         this.mountInfoProvider = mountInfoProvider;
+        this.feature = feature;
     }
 
     /**
@@ -138,10 +152,13 @@ public class PropertyIndexLookup {
 
     /**
      * Dispatches to {@link #getCostConfigurable} or {@link #getCostLegacy}
-     * depending on {@link org.apache.jackrabbit.oak.spi.query.QueryLimits#isCostPerEntryOverrideEnabled}.
+     * depending on the {@code feature} toggle passed to the constructor
+     * (OAK-12348, see {@link PropertyIndexProvider#FT_OAK_12348}). Enabled by
+     * default ({@code feature == null}, or not flipped): the configurable
+     * formula is used. Flipping the toggle on reverts to the legacy formula.
      */
     public double getCost(Filter filter, String propertyName, PropertyValue value) {
-        return filter.getQueryLimits().isCostPerEntryOverrideEnabled()
+        return (feature == null || !feature.isEnabled())
                 ? getCostConfigurable(filter, propertyName, value)
                 : getCostLegacy(filter, propertyName, value);
     }

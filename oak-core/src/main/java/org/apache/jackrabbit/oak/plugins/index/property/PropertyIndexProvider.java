@@ -16,16 +16,25 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
+import static org.apache.jackrabbit.oak.spi.toggle.Feature.newFeature;
+
 import java.util.List;
 
+import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import org.osgi.framework.BundleContext;
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 
 /**
@@ -33,18 +42,45 @@ import org.osgi.service.component.annotations.Reference;
  * <br>
  * Even if there are multiple index definitions, there is only actually one
  * PropertyIndex instance, which is used for all indexes.
- * 
+ *
  * @see PropertyIndex
  */
 @Component(service = QueryIndexProvider.class)
 public class PropertyIndexProvider implements QueryIndexProvider {
 
+    /**
+     * Feature toggle name for the configurable costPerEntry/costPerExecution
+     * cost formula (OAK-12348). Flipping this toggle on via the whiteboard
+     * reverts PropertyIndex to the original hardcoded cost formula -- it is
+     * disabled (configurable formula active) by default. Not reachable in
+     * embedded/non-OSGi usage (no BundleContext to activate with), same
+     * limitation as {@link PropertyIndexEditorProvider#FT_OAK_12125}.
+     */
+    public static final String FT_OAK_12348 = "FT_OAK-12348";
+
     @Reference
     private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
+    @Nullable
+    private Feature feature;
+
+    @Activate
+    private void activate(BundleContext bundleContext) {
+        Whiteboard whiteboard = new OsgiWhiteboard(bundleContext);
+        this.feature = newFeature(FT_OAK_12348, whiteboard);
+    }
+
+    @Deactivate
+    private void deactivate() {
+        if (feature != null) {
+            feature.close();
+            feature = null;
+        }
+    }
+
     @Override @NotNull
     public List<QueryIndex> getQueryIndexes(NodeState state) {
-        return List.of(new PropertyIndex(mountInfoProvider));
+        return List.of(new PropertyIndex(mountInfoProvider, feature));
     }
 
     public PropertyIndexProvider with(MountInfoProvider mountInfoProvider) {

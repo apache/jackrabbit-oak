@@ -283,21 +283,19 @@ public class PropertyIndexTest {
         NodeState after = builder.getNodeState();
         NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
-        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
-
         FilterImpl f = createFilter(indexed, NT_BASE);
         f.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
+
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
         PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
         assertEquals(7.0, lookup.getCost(f, "foo", PropertyValues.newString("x1")), 0.0);
         assertEquals(7.0, pIndex.getCost(f, indexed), 0.0);
 
-        QueryEngineSettings legacySettings = new QueryEngineSettings();
-        legacySettings.setCostPerEntryLegacyModeFeature(createLegacyModeFeature(true));
-        FilterImpl legacyFilter = createFilter(indexed, NT_BASE, legacySettings);
-        legacyFilter.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
-        PropertyIndex pIndexLegacy = new PropertyIndex(Mounts.defaultMountInfoProvider());
-        assertEquals(7.0, lookup.getCost(legacyFilter, "foo", PropertyValues.newString("x1")), 0.0);
-        assertEquals(7.0, pIndexLegacy.getCost(legacyFilter, indexed), 0.0);
+        Feature legacyModeFeature = createLegacyModeFeature(true);
+        PropertyIndexLookup legacyLookup = new PropertyIndexLookup(indexed, Mounts.defaultMountInfoProvider(), legacyModeFeature);
+        PropertyIndex pIndexLegacy = new PropertyIndex(Mounts.defaultMountInfoProvider(), legacyModeFeature);
+        assertEquals(7.0, legacyLookup.getCost(f, "foo", PropertyValues.newString("x1")), 0.0);
+        assertEquals(7.0, pIndexLegacy.getCost(f, indexed), 0.0);
     }
 
     /**
@@ -324,10 +322,10 @@ public class PropertyIndexTest {
         NodeState after = builder.getNodeState();
         NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
-        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
-
         FilterImpl f = createFilter(indexed, NT_BASE);
         f.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
+
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
         PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
 
         // enabled (default): override takes effect immediately, no opt-in needed
@@ -338,13 +336,11 @@ public class PropertyIndexTest {
         // gives the old value -- proves the escape hatch's formula is intact.
         assertEquals(7.0, lookup.getCostLegacy(f, "foo", PropertyValues.newString("x1")), 0.0);
 
-        QueryEngineSettings legacySettings = new QueryEngineSettings();
-        legacySettings.setCostPerEntryLegacyModeFeature(createLegacyModeFeature(true));
-        FilterImpl legacyFilter = createFilter(indexed, NT_BASE, legacySettings);
-        legacyFilter.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
-        PropertyIndex pIndexLegacy = new PropertyIndex(Mounts.defaultMountInfoProvider());
-        assertEquals(7.0, lookup.getCost(legacyFilter, "foo", PropertyValues.newString("x1")), 0.0);
-        assertEquals(7.0, pIndexLegacy.getCost(legacyFilter, indexed), 0.0);
+        Feature legacyModeFeature = createLegacyModeFeature(true);
+        PropertyIndexLookup legacyLookup = new PropertyIndexLookup(indexed, Mounts.defaultMountInfoProvider(), legacyModeFeature);
+        PropertyIndex pIndexLegacy = new PropertyIndex(Mounts.defaultMountInfoProvider(), legacyModeFeature);
+        assertEquals(7.0, legacyLookup.getCost(f, "foo", PropertyValues.newString("x1")), 0.0);
+        assertEquals(7.0, pIndexLegacy.getCost(f, indexed), 0.0);
     }
 
     /**
@@ -512,11 +508,9 @@ public class PropertyIndexTest {
         NodeState after = builder.getNodeState();
         NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
-        QueryEngineSettings legacySettings = new QueryEngineSettings();
-        legacySettings.setCostPerEntryLegacyModeFeature(createLegacyModeFeature(true));
-        FilterImpl legacyFilter = createFilter(indexed, NT_BASE, legacySettings);
-        legacyFilter.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
-        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
+        FilterImpl f = createFilter(indexed, NT_BASE);
+        f.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
+        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider(), createLegacyModeFeature(true));
 
         LogCustomizer customLogs = LogCustomizer
                 .forLogger(PropertyIndex.class.getName()).enable(Level.DEBUG).create();
@@ -525,8 +519,8 @@ public class PropertyIndexTest {
 
             // Baseline correctness: under legacy math, bIndex's unique
             // short-circuit still wins even with a second definition present.
-            assertEquals("bIndex", pIndex.getIndexName(legacyFilter, indexed));
-            assertEquals(2.0, pIndex.getCost(legacyFilter, indexed), 0.0);
+            assertEquals("bIndex", pIndex.getIndexName(f, indexed));
+            assertEquals(2.0, pIndex.getCost(f, indexed), 0.0);
 
             assertTrue("Expected bIndex's cost to be logged",
                     customLogs.getLogs().stream().anyMatch(msg -> msg.contains("bIndex")));
@@ -548,6 +542,20 @@ public class PropertyIndexTest {
     public void getMinimumCostIsZero() {
         PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
         assertEquals(0.0, pIndex.getMinimumCost(), 0.0);
+    }
+
+    /**
+     * Companion to {@link #getMinimumCostIsZero()}: with the legacy-mode
+     * toggle enabled, getMinimumCost() must reproduce the exact
+     * pre-OAK-12348 value (COST_OVERHEAD), not 0 -- this is the
+     * toggle-fidelity property the toggle exists to guarantee (a toggle
+     * that doesn't restore the old behavior when disabled isn't a real
+     * escape hatch).
+     */
+    @Test
+    public void getMinimumCostIsCostOverheadUnderLegacyMode() {
+        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider(), createLegacyModeFeature(true));
+        assertEquals(PropertyIndexPlan.COST_OVERHEAD, pIndex.getMinimumCost(), 0.0);
     }
 
     @Test
@@ -712,14 +720,10 @@ public class PropertyIndexTest {
     }
 
     private static FilterImpl createFilter(NodeState root, String nodeTypeName) {
-        return createFilter(root, nodeTypeName, new QueryEngineSettings());
-    }
-
-    private static FilterImpl createFilter(NodeState root, String nodeTypeName, QueryEngineSettings settings) {
         NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(root);
         NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);
         SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
-        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]", settings);
+        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]", new QueryEngineSettings());
     }
 
     private static Feature createLegacyModeFeature(boolean enabled) {

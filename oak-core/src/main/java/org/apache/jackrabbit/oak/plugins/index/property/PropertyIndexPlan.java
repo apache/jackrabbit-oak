@@ -42,6 +42,8 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,6 +97,13 @@ public class PropertyIndexPlan {
 
     private final boolean deprecated;
 
+    /**
+     * See OAK-12348. {@code null} means the configurable cost formula is
+     * active (the default).
+     */
+    @Nullable
+    private final Feature feature;
+
     PropertyIndexPlan(String name, NodeState root, NodeState definition,
                       Filter filter){
         this(name, root, definition, filter, Mounts.defaultMountInfoProvider());
@@ -102,6 +111,12 @@ public class PropertyIndexPlan {
 
     PropertyIndexPlan(String name, NodeState root, NodeState definition,
                       Filter filter, MountInfoProvider mountInfoProvider) {
+        this(name, root, definition, filter, mountInfoProvider, null);
+    }
+
+    PropertyIndexPlan(String name, NodeState root, NodeState definition,
+                      Filter filter, MountInfoProvider mountInfoProvider, @Nullable Feature feature) {
+        this.feature = feature;
         this.name = name;
         this.unique = definition.getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME);
         this.definition = definition;
@@ -209,12 +224,13 @@ public class PropertyIndexPlan {
 
     /**
      * Dispatches to {@link #getCostConfigurable} or {@link #getCostLegacy}
-     * depending on {@link org.apache.jackrabbit.oak.spi.query.QueryLimits#isCostPerEntryOverrideEnabled},
-     * evaluated once per plan (a new plan is built whenever the filter changes,
-     * so a toggle flip is picked up on the next query, not on this cached plan).
+     * depending on the {@code feature} toggle passed to the constructor
+     * (OAK-12348, see {@link PropertyIndexProvider#FT_OAK_12348}), evaluated
+     * once per plan (a new plan is built whenever the filter changes, so a
+     * toggle flip is picked up on the next query, not on this cached plan).
      */
     double getCost() {
-        return filter.getQueryLimits().isCostPerEntryOverrideEnabled() ? getCostConfigurable() : getCostLegacy();
+        return (feature == null || !feature.isEnabled()) ? getCostConfigurable() : getCostLegacy();
     }
 
     /**

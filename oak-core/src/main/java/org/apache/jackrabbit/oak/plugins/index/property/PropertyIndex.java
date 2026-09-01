@@ -34,6 +34,8 @@ import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,12 +91,25 @@ class PropertyIndex implements QueryIndex {
     private final MountInfoProvider mountInfoProvider;
 
     /**
+     * See OAK-12348. {@code null} means the configurable cost formula is
+     * active (the default) -- there is no whiteboard-registered toggle to
+     * check, e.g. in embedded/non-OSGi usage.
+     */
+    @Nullable
+    private final Feature feature;
+
+    /**
      * Cached property index plan
      */
     private PropertyIndexPlan cachedPlan;
 
     PropertyIndex(MountInfoProvider mountInfoProvider) {
+        this(mountInfoProvider, null);
+    }
+
+    PropertyIndex(MountInfoProvider mountInfoProvider, @Nullable Feature feature) {
         this.mountInfoProvider = mountInfoProvider;
+        this.feature = feature;
     }
 
     private PropertyIndexPlan getPlan(NodeState root, Filter filter) {
@@ -106,14 +121,14 @@ class PropertyIndex implements QueryIndex {
         if (plan != null && plan.getFilter().toString().equals(filter.toString())) {
             return plan;
         } else {
-            plan = createPlan(root, filter, mountInfoProvider);
+            plan = createPlan(root, filter, mountInfoProvider, feature);
             this.cachedPlan = plan;
             return plan;
         }
     }
 
     private static PropertyIndexPlan createPlan(NodeState root, Filter filter,
-                                                MountInfoProvider mountInfoProvider) {
+                                                MountInfoProvider mountInfoProvider, @Nullable Feature feature) {
         PropertyIndexPlan bestPlan = null;
 
         // The lowest cost any candidate plan can possibly report, given the
@@ -122,7 +137,7 @@ class PropertyIndex implements QueryIndex {
         // configurable formula (costPerExecution can be set to 0 on any
         // not-yet-scanned definition, so no positive floor is safe). Used
         // below to stop scanning once that floor is hit.
-        double minimumPossibleCost = filter.getQueryLimits().isCostPerEntryOverrideEnabled()
+        double minimumPossibleCost = (feature == null || !feature.isEnabled())
                 ? 0 : PropertyIndexPlan.COST_OVERHEAD;
 
         // TODO support indexes on a path
@@ -136,7 +151,7 @@ class PropertyIndex implements QueryIndex {
             if (PROPERTY.equals(definition.getString(TYPE_PROPERTY_NAME))
                     && definition.hasChildNode(INDEX_CONTENT_NODE_NAME)) {
                 PropertyIndexPlan plan = new PropertyIndexPlan(
-                        entry.getName(), root, definition, filter, mountInfoProvider);
+                        entry.getName(), root, definition, filter, mountInfoProvider, feature);
                 if (plan.getCost() != Double.POSITIVE_INFINITY) {
                     LOG.debug("property cost for {} is {}",
                             plan.getName(), plan.getCost());
@@ -230,12 +245,13 @@ class PropertyIndex implements QueryIndex {
 
     @Override
     public double getMinimumCost() {
-        // Since OAK-12348, costPerExecution can be configured arbitrarily low
-        // (including 0) on any property index definition, and this method has
-        // no Filter/NodeState to inspect index definitions -- so COST_OVERHEAD
-        // is no longer a sound floor. 0 is the only value that stays a valid
-        // lower bound in every configuration.
-        return 0;
+        // See OAK-12348. Unlike createPlan(), this method has no Filter to
+        // read a toggle through -- but it doesn't need one anymore: "feature"
+        // is set once at construction (PropertyIndexProvider), so disabling
+        // it here reproduces the exact pre-OAK-12348 value (COST_OVERHEAD),
+        // and the configurable formula's floor (costPerExecution can be
+        // configured down to 0) is used otherwise.
+        return (feature == null || !feature.isEnabled()) ? 0 : PropertyIndexPlan.COST_OVERHEAD;
     }
 
     @Override
