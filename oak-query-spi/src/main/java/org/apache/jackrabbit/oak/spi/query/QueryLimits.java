@@ -80,17 +80,4 @@ public interface QueryLimits {
         return true;
     }
 
-    /**
-     * See OAK-12348. By default, {@code PropertyIndex}/{@code NodeTypeIndex}
-     * read {@code costPerEntry}/{@code costPerExecution} from the index
-     * definition to compute cost. When {@code false}, the original hardcoded
-     * formula is used unconditionally, ignoring those properties even if set.
-     *
-     * @return true to use the configurable cost formula (the default), false
-     *         for the legacy formula
-     */
-    default boolean isCostPerEntryOverrideEnabled() {
-        return true;
-    }
-
 }

@@ -67,8 +67,6 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     public static final String FT_IGNORE_LIMIT_IN_INDEX_SELECTION = "FT_OAK-12057";
 
-    public static final String FT_OAK_12348 = "FT_OAK-12348";
-
     public static final int DEFAULT_PREFETCH_COUNT = Integer.getInteger(OAK_QUERY_PREFETCH_COUNT, -1);
 
     public static final String OAK_QUERY_FAIL_TRAVERSAL = "oak.queryFailTraversal";
@@ -127,7 +125,6 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     private Feature sortUnionQueryLegacyModeFeature;
     private Feature optimizeXPathUnion;
     private Feature ignoreLimitInIndexSelectionFeature;
-    private Feature costPerEntryLegacyModeFeature;
 
     private String autoOptionsMappingJson = "{}";
     private QueryOptions.AutomaticQueryOptionsMapping autoOptionsMapping = new QueryOptions.AutomaticQueryOptionsMapping(autoOptionsMappingJson);
@@ -258,18 +255,6 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     public boolean isIgnoreLimitInIndexSelection() {
         // enabled if the feature toggle is not used
         return ignoreLimitInIndexSelectionFeature == null || ignoreLimitInIndexSelectionFeature.isEnabled();
-    }
-
-    public void setCostPerEntryLegacyModeFeature(@Nullable Feature feature) {
-        this.costPerEntryLegacyModeFeature = feature;
-    }
-
-    @Override
-    public boolean isCostPerEntryOverrideEnabled() {
-        // Legacy (hardcoded) cost formula is disabled by default; the
-        // configurable costPerEntry/costPerExecution formula (OAK-12348) is
-        // the default behavior -- flipping this toggle on is the escape hatch.
-        return costPerEntryLegacyModeFeature == null || !costPerEntryLegacyModeFeature.isEnabled();
     }
 
     public String getStrictPathRestriction() {

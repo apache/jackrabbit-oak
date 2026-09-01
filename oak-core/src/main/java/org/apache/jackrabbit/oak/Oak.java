@@ -589,10 +589,6 @@ public class Oak {
             LOG.info("Registered ignore limit in index selection feature: " + QueryEngineSettings.FT_IGNORE_LIMIT_IN_INDEX_SELECTION);
             closer.register(ignoreLimitInIndexSelection);
             queryEngineSettings.setIgnoreLimitInIndexSelectionFeature(ignoreLimitInIndexSelection);
-            Feature costPerEntryLegacyModeFeature = newFeature(QueryEngineSettings.FT_OAK_12348, whiteboard);
-            LOG.info("Registered costPerEntry/costPerExecution legacy cost formula feature: " + QueryEngineSettings.FT_OAK_12348);
-            closer.register(costPerEntryLegacyModeFeature);
-            queryEngineSettings.setCostPerEntryLegacyModeFeature(costPerEntryLegacyModeFeature);
         }
 
         return this;
@@ -1011,10 +1007,6 @@ public class Oak {
 
         public void setIgnoreLimitInIndexSelectionFeature(@Nullable Feature feature) {
             settings.setIgnoreLimitInIndexSelectionFeature(feature);
-        }
-
-        public void setCostPerEntryLegacyModeFeature(@Nullable Feature feature) {
-            settings.setCostPerEntryLegacyModeFeature(feature);
         }
 
         @Override
