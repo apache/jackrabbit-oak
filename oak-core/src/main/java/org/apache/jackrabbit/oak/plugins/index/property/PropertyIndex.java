@@ -116,6 +116,15 @@ class PropertyIndex implements QueryIndex {
                                                 MountInfoProvider mountInfoProvider) {
         PropertyIndexPlan bestPlan = null;
 
+        // The lowest cost any candidate plan can possibly report, given the
+        // formula currently in effect (OAK-12348): COST_OVERHEAD under the
+        // legacy formula (bestCount can't go below 0), or 0 under the
+        // configurable formula (costPerExecution can be set to 0 on any
+        // not-yet-scanned definition, so no positive floor is safe). Used
+        // below to stop scanning once that floor is hit.
+        double minimumPossibleCost = filter.getQueryLimits().isCostPerEntryOverrideEnabled()
+                ? 0 : PropertyIndexPlan.COST_OVERHEAD;
+
         // TODO support indexes on a path
         // currently, only indexes on the root node are supported
         NodeState state = root.getChildNode(INDEX_DEFINITIONS_NAME);
@@ -133,8 +142,8 @@ class PropertyIndex implements QueryIndex {
                             plan.getName(), plan.getCost());
                     if (bestPlan == null || plan.getCost() < bestPlan.getCost()) {
                         bestPlan = plan;
-                        // Stop comparing if the costs are the minimum
-                        if (plan.getCost() == PropertyIndexPlan.COST_OVERHEAD) {
+                        // Stop comparing if the cost can't possibly be beaten
+                        if (plan.getCost() == minimumPossibleCost) {
                             break;
                         }
                     }

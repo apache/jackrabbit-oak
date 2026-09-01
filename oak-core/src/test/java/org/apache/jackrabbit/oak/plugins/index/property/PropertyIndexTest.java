@@ -434,6 +434,44 @@ public class PropertyIndexTest {
     }
 
     /**
+     * Regression for the early-break in PropertyIndex#createPlan: under the
+     * configurable formula (OAK-12348), hitting the legacy COST_OVERHEAD (2.0)
+     * on one definition does not mean no other definition can be cheaper --
+     * costPerExecution can be configured below 2.0. bIndex is unique (so its
+     * one matching entry short-circuits to bestCount=0, giving the *default*
+     * cost of exactly COST_OVERHEAD with no override needed) and is the entry
+     * createPlan() scans first for this pair of names (child node order here
+     * is hash-based, not alphabetical), reproducing the exact old break
+     * condition. aIndex overrides costPerExecution to 0.5 and is genuinely
+     * cheaper, but the old break would stop scanning right after bIndex and
+     * never see it.
+     */
+    @Test
+    public void createPlanDoesNotBreakEarlyWhenCheaperOverrideFollows() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+
+        NodeBuilder builder = root.builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "bIndex",
+                true, true, Set.of("foo"), null);
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "aIndex",
+                true, false, Set.of("foo"), null)
+                .setProperty(IndexConstants.COST_PER_ENTRY, 0.0)
+                .setProperty(IndexConstants.COST_PER_EXECUTION, 0.5);
+        NodeState before = builder.getNodeState();
+
+        builder.child("n1").setProperty("foo", "x1");
+        NodeState after = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        FilterImpl f = createFilter(indexed, NT_BASE);
+        f.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
+        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
+
+        assertEquals("aIndex", pIndex.getIndexName(f, indexed));
+        assertEquals(0.5, pIndex.getCost(f, indexed), 0.0);
+    }
+
+    /**
      * getMinimumCost() takes no Filter/NodeState, so it cannot know whether any
      * definition has overridden costPerExecution below the old hardcoded floor
      * (OAK-12348) -- 0 is the only value that stays a sound lower bound in every
