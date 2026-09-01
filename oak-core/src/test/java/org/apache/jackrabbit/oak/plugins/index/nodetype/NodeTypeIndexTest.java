@@ -45,9 +45,7 @@ import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 /**
  * {@code NodeTypeIndexTest} performs tests on {@link NodeTypeIndex}.
@@ -131,9 +129,9 @@ public class NodeTypeIndexTest {
 
         // NodeTypeIndex has no toggle of its own -- it inherits whichever formula
         // PropertyIndexLookup.getCost() is currently dispatching to, driven by the
-        // Feature passed into NodeTypeIndex's constructor (OAK-12348), which
-        // defaults to null (configurable formula active) when not provided --
-        // no opt-in needed here.
+        // useLegacy boolean passed into NodeTypeIndex's constructor (OAK-12348),
+        // which defaults to false (configurable formula active) when not provided
+        // -- no opt-in needed here.
 
         // default (see nodeType() above) is 2*COST_OVERHEAD(2) + entrySum;
         // with the override it is 2*costPerExecution + costPerEntry*entrySum
@@ -163,9 +161,7 @@ public class NodeTypeIndexTest {
      */
     @Test
     public void getMinimumCostIsLegacyValueUnderLegacyMode() {
-        Feature legacyModeFeature = Mockito.mock(Feature.class);
-        Mockito.when(legacyModeFeature.isEnabled()).thenReturn(true);
-        NodeTypeIndex index = new NodeTypeIndex(Mounts.defaultMountInfoProvider(), legacyModeFeature);
+        NodeTypeIndex index = new NodeTypeIndex(Mounts.defaultMountInfoProvider(), true);
         assertEquals(NodeTypeIndexLookup.MINIMUM_COST, index.getMinimumCost(), 0.0);
     }
 

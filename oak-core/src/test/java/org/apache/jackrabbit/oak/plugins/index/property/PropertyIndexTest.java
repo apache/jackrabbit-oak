@@ -74,7 +74,6 @@ import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
@@ -82,7 +81,6 @@ import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.slf4j.LoggerFactory;
 
 import ch.qos.logback.classic.Level;
@@ -291,9 +289,8 @@ public class PropertyIndexTest {
         assertEquals(7.0, lookup.getCost(f, "foo", PropertyValues.newString("x1")), 0.0);
         assertEquals(7.0, pIndex.getCost(f, indexed), 0.0);
 
-        Feature legacyModeFeature = createLegacyModeFeature(true);
-        PropertyIndexLookup legacyLookup = new PropertyIndexLookup(indexed, Mounts.defaultMountInfoProvider(), legacyModeFeature);
-        PropertyIndex pIndexLegacy = new PropertyIndex(Mounts.defaultMountInfoProvider(), legacyModeFeature);
+        PropertyIndexLookup legacyLookup = new PropertyIndexLookup(indexed, Mounts.defaultMountInfoProvider(), true);
+        PropertyIndex pIndexLegacy = new PropertyIndex(Mounts.defaultMountInfoProvider(), true);
         assertEquals(7.0, legacyLookup.getCost(f, "foo", PropertyValues.newString("x1")), 0.0);
         assertEquals(7.0, pIndexLegacy.getCost(f, indexed), 0.0);
     }
@@ -336,9 +333,8 @@ public class PropertyIndexTest {
         // gives the old value -- proves the escape hatch's formula is intact.
         assertEquals(7.0, lookup.getCostLegacy(f, "foo", PropertyValues.newString("x1")), 0.0);
 
-        Feature legacyModeFeature = createLegacyModeFeature(true);
-        PropertyIndexLookup legacyLookup = new PropertyIndexLookup(indexed, Mounts.defaultMountInfoProvider(), legacyModeFeature);
-        PropertyIndex pIndexLegacy = new PropertyIndex(Mounts.defaultMountInfoProvider(), legacyModeFeature);
+        PropertyIndexLookup legacyLookup = new PropertyIndexLookup(indexed, Mounts.defaultMountInfoProvider(), true);
+        PropertyIndex pIndexLegacy = new PropertyIndex(Mounts.defaultMountInfoProvider(), true);
         assertEquals(7.0, legacyLookup.getCost(f, "foo", PropertyValues.newString("x1")), 0.0);
         assertEquals(7.0, pIndexLegacy.getCost(f, indexed), 0.0);
     }
@@ -510,7 +506,7 @@ public class PropertyIndexTest {
 
         FilterImpl f = createFilter(indexed, NT_BASE);
         f.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
-        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider(), createLegacyModeFeature(true));
+        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider(), true);
 
         LogCustomizer customLogs = LogCustomizer
                 .forLogger(PropertyIndex.class.getName()).enable(Level.DEBUG).create();
@@ -554,7 +550,7 @@ public class PropertyIndexTest {
      */
     @Test
     public void getMinimumCostIsCostOverheadUnderLegacyMode() {
-        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider(), createLegacyModeFeature(true));
+        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider(), true);
         assertEquals(PropertyIndexPlan.COST_OVERHEAD, pIndex.getMinimumCost(), 0.0);
     }
 
@@ -724,12 +720,6 @@ public class PropertyIndexTest {
         NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);
         SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
         return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]", new QueryEngineSettings());
-    }
-
-    private static Feature createLegacyModeFeature(boolean enabled) {
-        Feature feature = Mockito.mock(Feature.class);
-        Mockito.when(feature.isEnabled()).thenReturn(enabled);
-        return feature;
     }
 
     /**

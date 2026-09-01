@@ -79,7 +79,8 @@ public class NodeTypeIndexProvider implements QueryIndexProvider {
     @NotNull
     @Override
     public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
-        return List.of(new NodeTypeIndex(mountInfoProvider, feature));
+        boolean useLegacy = feature != null && feature.isEnabled();
+        return List.of(new NodeTypeIndex(mountInfoProvider, useLegacy));
     }
 
     public NodeTypeIndexProvider with(MountInfoProvider mountInfoProvider) {

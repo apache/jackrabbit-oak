@@ -80,7 +80,8 @@ public class PropertyIndexProvider implements QueryIndexProvider {
 
     @Override @NotNull
     public List<QueryIndex> getQueryIndexes(NodeState state) {
-        return List.of(new PropertyIndex(mountInfoProvider, feature));
+        boolean useLegacy = feature != null && feature.isEnabled();
+        return List.of(new PropertyIndex(mountInfoProvider, useLegacy));
     }
 
     public PropertyIndexProvider with(MountInfoProvider mountInfoProvider) {

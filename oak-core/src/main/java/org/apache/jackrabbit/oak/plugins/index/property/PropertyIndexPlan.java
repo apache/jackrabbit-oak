@@ -42,8 +42,6 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.toggle.Feature;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,11 +96,13 @@ public class PropertyIndexPlan {
     private final boolean deprecated;
 
     /**
-     * See OAK-12348. {@code null} means the configurable cost formula is
-     * active (the default).
+     * See OAK-12348. {@code false} (the default) means the configurable cost
+     * formula is active. Resolved once by the caller (ultimately
+     * {@link PropertyIndexProvider}, from its whiteboard-registered toggle)
+     * rather than passed down as a {@code Feature} -- this class only needs
+     * the resolved answer, not the toggle mechanism itself.
      */
-    @Nullable
-    private final Feature feature;
+    private final boolean useLegacy;
 
     PropertyIndexPlan(String name, NodeState root, NodeState definition,
                       Filter filter){
@@ -111,12 +111,12 @@ public class PropertyIndexPlan {
 
     PropertyIndexPlan(String name, NodeState root, NodeState definition,
                       Filter filter, MountInfoProvider mountInfoProvider) {
-        this(name, root, definition, filter, mountInfoProvider, null);
+        this(name, root, definition, filter, mountInfoProvider, false);
     }
 
     PropertyIndexPlan(String name, NodeState root, NodeState definition,
-                      Filter filter, MountInfoProvider mountInfoProvider, @Nullable Feature feature) {
-        this.feature = feature;
+                      Filter filter, MountInfoProvider mountInfoProvider, boolean useLegacy) {
+        this.useLegacy = useLegacy;
         this.name = name;
         this.unique = definition.getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME);
         this.definition = definition;
@@ -224,13 +224,14 @@ public class PropertyIndexPlan {
 
     /**
      * Dispatches to {@link #getCostConfigurable} or {@link #getCostLegacy}
-     * depending on the {@code feature} toggle passed to the constructor
-     * (OAK-12348, see {@link PropertyIndexProvider#FT_OAK_12348}), evaluated
-     * once per plan (a new plan is built whenever the filter changes, so a
-     * toggle flip is picked up on the next query, not on this cached plan).
+     * depending on {@code useLegacy}, resolved once by the caller from the
+     * {@code Feature} toggle (OAK-12348, see
+     * {@link PropertyIndexProvider#FT_OAK_12348}) when this plan was built (a
+     * new plan is built whenever the filter changes, so a toggle flip is
+     * picked up on the next query, not on this cached plan).
      */
     double getCost() {
-        return (feature == null || !feature.isEnabled()) ? getCostConfigurable() : getCostLegacy();
+        return useLegacy ? getCostLegacy() : getCostConfigurable();
     }
 
     /**

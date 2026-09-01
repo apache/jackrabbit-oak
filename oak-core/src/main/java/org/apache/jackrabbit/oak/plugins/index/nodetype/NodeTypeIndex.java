@@ -28,8 +28,6 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.toggle.Feature;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * {@code NodeTypeIndex} implements a {@link QueryIndex} using
@@ -44,27 +42,34 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
     private final MountInfoProvider mountInfoProvider;
 
     /**
-     * See OAK-12348. {@code null} means the configurable cost formula is
-     * active (the default) -- there is no whiteboard-registered toggle to
-     * check, e.g. in embedded/non-OSGi usage.
+     * See OAK-12348. {@code false} (the default) means the configurable cost
+     * formula is active. Resolved once by the caller ({@link
+     * NodeTypeIndexProvider}, from its whiteboard-registered toggle) rather
+     * than passed down as a {@code Feature} -- this class only needs the
+     * resolved answer, not the toggle mechanism itself.
      */
-    @Nullable
-    private final Feature feature;
+    private final boolean useLegacy;
+
+    /**
+     * The value {@link #getMinimumCost()} returns -- precomputed once here
+     * (from {@code useLegacy}, which can't change after construction)
+     * instead of branching on every call.
+     */
+    private final double minimumCost;
 
     public NodeTypeIndex(MountInfoProvider mountInfoProvider) {
-        this(mountInfoProvider, null);
+        this(mountInfoProvider, false);
     }
 
-    public NodeTypeIndex(MountInfoProvider mountInfoProvider, @Nullable Feature feature) {
+    public NodeTypeIndex(MountInfoProvider mountInfoProvider, boolean useLegacy) {
         this.mountInfoProvider = mountInfoProvider;
-        this.feature = feature;
+        this.useLegacy = useLegacy;
+        this.minimumCost = useLegacy ? NodeTypeIndexLookup.MINIMUM_COST : 0;
     }
 
     @Override
     public double getMinimumCost() {
-        // See OAK-12348 (same rationale as PropertyIndex#getMinimumCost):
-        // disabling the toggle must reproduce the exact pre-OAK-12348 value.
-        return (feature == null || !feature.isEnabled()) ? 0 : NodeTypeIndexLookup.MINIMUM_COST;
+        return minimumCost;
     }
 
     @Override
@@ -87,7 +92,7 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
             return Double.POSITIVE_INFINITY;
         }
         
-        NodeTypeIndexLookup lookup = new NodeTypeIndexLookup(root, mountInfoProvider, feature);
+        NodeTypeIndexLookup lookup = new NodeTypeIndexLookup(root, mountInfoProvider, useLegacy);
         if (lookup.isIndexed(filter.getPath(), filter)) {
             return lookup.getCost(filter);
         } else {
@@ -109,7 +114,7 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
 
     @Override
     public Cursor query(Filter filter, NodeState root) {
-        NodeTypeIndexLookup lookup = new NodeTypeIndexLookup(root, mountInfoProvider, feature);
+        NodeTypeIndexLookup lookup = new NodeTypeIndexLookup(root, mountInfoProvider, useLegacy);
         if (!hasNodeTypeRestriction(filter) || !lookup.isIndexed(filter.getPath(), filter)) {
             throw new IllegalStateException(
                     "NodeType index is used even when no index is available for filter " + filter);
