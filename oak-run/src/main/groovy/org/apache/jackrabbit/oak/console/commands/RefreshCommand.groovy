@@ -20,8 +20,8 @@ package org.apache.jackrabbit.oak.console.commands
 
 import groovy.transform.CompileStatic
 import org.apache.jackrabbit.oak.console.ConsoleSession
-import org.codehaus.groovy.tools.shell.ComplexCommandSupport
-import org.codehaus.groovy.tools.shell.Groovysh
+import org.apache.groovy.groovysh.ComplexCommandSupport
+import org.apache.groovy.groovysh.Groovysh
 
 @CompileStatic
 class RefreshCommand extends ComplexCommandSupport{
