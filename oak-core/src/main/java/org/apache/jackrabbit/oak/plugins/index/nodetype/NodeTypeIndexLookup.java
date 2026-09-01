@@ -32,9 +32,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 class NodeTypeIndexLookup implements JcrConstants {
 
     /**
-     * Derived from {@link #getCost(Filter)}
+     * Since OAK-12348, the underlying PropertyIndexLookup cost can be
+     * configured arbitrarily low via costPerExecution, and this constant has
+     * no Filter/NodeState to inspect the active index definitions -- so 0 is
+     * the only value that stays a sound lower bound in every configuration.
      */
-    static final double MINIMUM_COST = 2.05;
+    static final double MINIMUM_COST = 0;
 
     private final NodeState root;
 

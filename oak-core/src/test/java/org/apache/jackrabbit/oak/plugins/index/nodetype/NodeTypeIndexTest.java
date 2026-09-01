@@ -144,6 +144,15 @@ public class NodeTypeIndexTest {
         assertEquals(2 * 10.0 + 3.0 * 3, index.getCost(filter, rootState), 0.0);
     }
 
+    /**
+     * Same rationale as PropertyIndex#getMinimumCost -- see PropertyIndexTest#getMinimumCostIsZero.
+     */
+    @Test
+    public void getMinimumCostIsZero() {
+        NodeTypeIndex index = new NodeTypeIndex(Mounts.defaultMountInfoProvider());
+        assertEquals(0.0, index.getMinimumCost(), 0.0);
+    }
+
     private static FilterImpl createFilter(NodeState root, String nodeTypeName) {
         NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(root);
         NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);        

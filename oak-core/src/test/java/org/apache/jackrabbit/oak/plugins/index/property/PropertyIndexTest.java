@@ -433,6 +433,18 @@ public class PropertyIndexTest {
         assertEquals(2.0, pIndex.getCost(f, indexed), 0.0);
     }
 
+    /**
+     * getMinimumCost() takes no Filter/NodeState, so it cannot know whether any
+     * definition has overridden costPerExecution below the old hardcoded floor
+     * (OAK-12348) -- 0 is the only value that stays a sound lower bound in every
+     * configuration.
+     */
+    @Test
+    public void getMinimumCostIsZero() {
+        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
+        assertEquals(0.0, pIndex.getMinimumCost(), 0.0);
+    }
+
     @Test
     public void testPropertyLookup() throws Exception {
         NodeState root = INITIAL_CONTENT;

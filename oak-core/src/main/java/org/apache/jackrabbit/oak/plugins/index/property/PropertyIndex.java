@@ -221,7 +221,12 @@ class PropertyIndex implements QueryIndex {
 
     @Override
     public double getMinimumCost() {
-        return PropertyIndexPlan.COST_OVERHEAD;
+        // Since OAK-12348, costPerExecution can be configured arbitrarily low
+        // (including 0) on any property index definition, and this method has
+        // no Filter/NodeState to inspect index definitions -- so COST_OVERHEAD
+        // is no longer a sound floor. 0 is the only value that stays a valid
+        // lower bound in every configuration.
+        return 0;
     }
 
     @Override
