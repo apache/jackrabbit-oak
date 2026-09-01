@@ -472,6 +472,73 @@ public class PropertyIndexTest {
     }
 
     /**
+     * Regression for the break condition's floor value under legacy mode, with
+     * two competing definitions present. Under the legacy formula, overrides
+     * are ignored entirely ({@code getCostLegacy()} = {@code COST_OVERHEAD +
+     * bestCount}, no override read at all), so the true minimum achievable
+     * legacy cost is always exactly {@code COST_OVERHEAD} -- a definition that
+     * hits it can never legitimately be beaten by another definition's legacy
+     * cost. That means the *winning* plan alone can't tell us which floor the
+     * break actually used: both the correct floor ({@code COST_OVERHEAD}) and
+     * a hypothetical reversed bug (a floor of 0 that never matches in legacy
+     * mode) produce the exact same winner here, since nothing can beat
+     * {@code COST_OVERHEAD} under legacy math regardless of the break.
+     * <p>
+     * What *does* distinguish them is whether the loop keeps scanning after
+     * bIndex hits {@code COST_OVERHEAD}: {@code LOG.debug} in
+     * {@code createPlan()} logs every candidate's cost unconditionally, before
+     * the break check runs. If the break correctly fires right after bIndex,
+     * aIndex is never even constructed/evaluated and its line never reaches
+     * the log. If the floor were wrongly 0 in legacy mode, the break would
+     * never fire on bIndex's 2.0, the loop would keep going, and aIndex's cost
+     * would be logged too -- even though it still can't win. This test asserts
+     * on that log evidence, since the winning plan/cost by itself would pass
+     * either way.
+     */
+    @Test
+    public void createPlanBreaksImmediatelyOnCostOverheadUnderLegacyModeWithMultipleDefinitions() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+
+        NodeBuilder builder = root.builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "bIndex",
+                true, true, Set.of("foo"), null);
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "aIndex",
+                true, false, Set.of("foo"), null)
+                .setProperty(IndexConstants.COST_PER_ENTRY, 0.0)
+                .setProperty(IndexConstants.COST_PER_EXECUTION, 0.5);
+        NodeState before = builder.getNodeState();
+
+        builder.child("n1").setProperty("foo", "x1");
+        NodeState after = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        QueryEngineSettings legacySettings = new QueryEngineSettings();
+        legacySettings.setCostPerEntryLegacyModeFeature(createLegacyModeFeature(true));
+        FilterImpl legacyFilter = createFilter(indexed, NT_BASE, legacySettings);
+        legacyFilter.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
+        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
+
+        LogCustomizer customLogs = LogCustomizer
+                .forLogger(PropertyIndex.class.getName()).enable(Level.DEBUG).create();
+        try {
+            customLogs.starting();
+
+            // Baseline correctness: under legacy math, bIndex's unique
+            // short-circuit still wins even with a second definition present.
+            assertEquals("bIndex", pIndex.getIndexName(legacyFilter, indexed));
+            assertEquals(2.0, pIndex.getCost(legacyFilter, indexed), 0.0);
+
+            assertTrue("Expected bIndex's cost to be logged",
+                    customLogs.getLogs().stream().anyMatch(msg -> msg.contains("bIndex")));
+            assertFalse("aIndex must never be evaluated -- the break must fire "
+                    + "immediately after bIndex hits COST_OVERHEAD under the legacy floor",
+                    customLogs.getLogs().stream().anyMatch(msg -> msg.contains("aIndex")));
+        } finally {
+            customLogs.finished();
+        }
+    }
+
+    /**
      * getMinimumCost() takes no Filter/NodeState, so it cannot know whether any
      * definition has overridden costPerExecution below the old hardcoded floor
      * (OAK-12348) -- 0 is the only value that stays a sound lower bound in every
