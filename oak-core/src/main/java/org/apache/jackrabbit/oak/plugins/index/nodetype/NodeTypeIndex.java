@@ -28,6 +28,8 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * {@code NodeTypeIndex} implements a {@link QueryIndex} using
@@ -41,13 +43,28 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
 
     private final MountInfoProvider mountInfoProvider;
 
+    /**
+     * See OAK-12348. {@code null} means the configurable cost formula is
+     * active (the default) -- there is no whiteboard-registered toggle to
+     * check, e.g. in embedded/non-OSGi usage.
+     */
+    @Nullable
+    private final Feature feature;
+
     public NodeTypeIndex(MountInfoProvider mountInfoProvider) {
+        this(mountInfoProvider, null);
+    }
+
+    public NodeTypeIndex(MountInfoProvider mountInfoProvider, @Nullable Feature feature) {
         this.mountInfoProvider = mountInfoProvider;
+        this.feature = feature;
     }
 
     @Override
     public double getMinimumCost() {
-        return NodeTypeIndexLookup.MINIMUM_COST;
+        // See OAK-12348 (same rationale as PropertyIndex#getMinimumCost):
+        // disabling the toggle must reproduce the exact pre-OAK-12348 value.
+        return (feature == null || !feature.isEnabled()) ? 0 : NodeTypeIndexLookup.MINIMUM_COST;
     }
 
     @Override
@@ -70,7 +87,7 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
             return Double.POSITIVE_INFINITY;
         }
         
-        NodeTypeIndexLookup lookup = new NodeTypeIndexLookup(root, mountInfoProvider);
+        NodeTypeIndexLookup lookup = new NodeTypeIndexLookup(root, mountInfoProvider, feature);
         if (lookup.isIndexed(filter.getPath(), filter)) {
             return lookup.getCost(filter);
         } else {
@@ -92,7 +109,7 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
 
     @Override
     public Cursor query(Filter filter, NodeState root) {
-        NodeTypeIndexLookup lookup = new NodeTypeIndexLookup(root, mountInfoProvider);
+        NodeTypeIndexLookup lookup = new NodeTypeIndexLookup(root, mountInfoProvider, feature);
         if (!hasNodeTypeRestriction(filter) || !lookup.isIndexed(filter.getPath(), filter)) {
             throw new IllegalStateException(
                     "NodeType index is used even when no index is available for filter " + filter);

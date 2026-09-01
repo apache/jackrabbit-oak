@@ -45,7 +45,9 @@ import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 /**
  * {@code NodeTypeIndexTest} performs tests on {@link NodeTypeIndex}.
@@ -128,9 +130,10 @@ public class NodeTypeIndexTest {
         FilterImpl filter;
 
         // NodeTypeIndex has no toggle of its own -- it inherits whichever formula
-        // PropertyIndexLookup.getCost() is currently dispatching to, driven by
-        // QueryEngineSettings.isCostPerEntryOverrideEnabled() (OAK-12348), which is
-        // enabled by default -- no opt-in needed here.
+        // PropertyIndexLookup.getCost() is currently dispatching to, driven by the
+        // Feature passed into NodeTypeIndex's constructor (OAK-12348), which
+        // defaults to null (configurable formula active) when not provided --
+        // no opt-in needed here.
 
         // default (see nodeType() above) is 2*COST_OVERHEAD(2) + entrySum;
         // with the override it is 2*costPerExecution + costPerEntry*entrySum
@@ -151,6 +154,19 @@ public class NodeTypeIndexTest {
     public void getMinimumCostIsZero() {
         NodeTypeIndex index = new NodeTypeIndex(Mounts.defaultMountInfoProvider());
         assertEquals(0.0, index.getMinimumCost(), 0.0);
+    }
+
+    /**
+     * Companion to {@link #getMinimumCostIsZero()}: with the legacy-mode
+     * toggle enabled, getMinimumCost() must reproduce the exact
+     * pre-OAK-12348 value ({@link NodeTypeIndexLookup#MINIMUM_COST}), not 0.
+     */
+    @Test
+    public void getMinimumCostIsLegacyValueUnderLegacyMode() {
+        Feature legacyModeFeature = Mockito.mock(Feature.class);
+        Mockito.when(legacyModeFeature.isEnabled()).thenReturn(true);
+        NodeTypeIndex index = new NodeTypeIndex(Mounts.defaultMountInfoProvider(), legacyModeFeature);
+        assertEquals(NodeTypeIndexLookup.MINIMUM_COST, index.getMinimumCost(), 0.0);
     }
 
     private static FilterImpl createFilter(NodeState root, String nodeTypeName) {

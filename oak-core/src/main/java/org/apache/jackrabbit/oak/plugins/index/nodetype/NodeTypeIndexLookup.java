@@ -24,6 +24,8 @@ import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * <code>NodeTypeIndexLookup</code> uses {@link PropertyIndexLookup} internally
@@ -32,21 +34,31 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 class NodeTypeIndexLookup implements JcrConstants {
 
     /**
-     * Since OAK-12348, the underlying PropertyIndexLookup cost can be
-     * configured arbitrarily low via costPerExecution, and this constant has
-     * no Filter/NodeState to inspect the active index definitions -- so 0 is
-     * the only value that stays a sound lower bound in every configuration.
+     * The pre-OAK-12348 legacy floor. Derived from {@link #getCost(Filter)}.
      */
-    static final double MINIMUM_COST = 0;
+    static final double MINIMUM_COST = 2.05;
 
     private final NodeState root;
 
     private final MountInfoProvider mountInfoProvider;
 
+    /**
+     * See OAK-12348. {@code null} means the configurable cost formula is
+     * active (the default).
+     */
+    @Nullable
+    private final Feature feature;
+
     public NodeTypeIndexLookup(NodeState root,
             MountInfoProvider mountInfoProvider) {
+        this(root, mountInfoProvider, null);
+    }
+
+    public NodeTypeIndexLookup(NodeState root,
+            MountInfoProvider mountInfoProvider, @Nullable Feature feature) {
         this.root = root;
         this.mountInfoProvider = mountInfoProvider;
+        this.feature = feature;
     }
 
     /**
@@ -58,7 +70,7 @@ class NodeTypeIndexLookup implements JcrConstants {
      *         otherwise.
      */
     public boolean isIndexed(String path, Filter f) {
-        PropertyIndexLookup lookup = new PropertyIndexLookup(root, mountInfoProvider);
+        PropertyIndexLookup lookup = new PropertyIndexLookup(root, mountInfoProvider, feature);
         if (lookup.isIndexed(JCR_PRIMARYTYPE, path, f)
                 && lookup.isIndexed(JCR_MIXINTYPES, path, f)) {
             return true;
@@ -73,12 +85,12 @@ class NodeTypeIndexLookup implements JcrConstants {
         }
 
         NodeState child = root.getChildNode(path.substring(0, slash));
-        return new NodeTypeIndexLookup(child, mountInfoProvider).isIndexed(
+        return new NodeTypeIndexLookup(child, mountInfoProvider, feature).isIndexed(
                 path.substring(slash), f);
     }
 
     public double getCost(Filter filter) {
-        PropertyIndexLookup lookup = new PropertyIndexLookup(root, mountInfoProvider);
+        PropertyIndexLookup lookup = new PropertyIndexLookup(root, mountInfoProvider, feature);
         return lookup.getCost(filter, JCR_PRIMARYTYPE, newName(filter.getPrimaryTypes()))
                 + lookup.getCost(filter, JCR_MIXINTYPES, newName(filter.getMixinTypes()));
     }
@@ -90,7 +102,7 @@ class NodeTypeIndexLookup implements JcrConstants {
      * @return the matched paths (the result might contain duplicate entries)
      */
     public Iterable<String> query(Filter filter) {
-        PropertyIndexLookup lookup = new PropertyIndexLookup(root, mountInfoProvider);
+        PropertyIndexLookup lookup = new PropertyIndexLookup(root, mountInfoProvider, feature);
         return IterableUtils.chainedIterable(
                 lookup.query(filter, JCR_PRIMARYTYPE, newName(filter.getPrimaryTypes())),
                 lookup.query(filter, JCR_MIXINTYPES, newName(filter.getMixinTypes())));
