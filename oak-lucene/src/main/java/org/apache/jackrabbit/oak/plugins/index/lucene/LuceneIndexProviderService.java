@@ -387,6 +387,9 @@ public class LuceneIndexProviderService {
         oakRegs.add(whiteboard.register(FeatureToggle.class,
                 new FeatureToggle(FulltextIndexEditor.FT_OAK_12244, FulltextIndexEditor.FT_OAK_12244_DISABLE),
                 emptyMap()));
+        oakRegs.add(whiteboard.register(FeatureToggle.class,
+                new FeatureToggle(FulltextIndexEditor.FT_OAK_12365, FulltextIndexEditor.FT_OAK_12365_DISABLE),
+                emptyMap()));
         initializeIndexDir(bundleContext, config);
         initializeExtractedTextCache(bundleContext, config, statisticsProvider);
         tracker = createTracker(bundleContext, config);
