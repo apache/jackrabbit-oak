@@ -203,7 +203,7 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-xml</artifactId>
-            <version>1.0.0</version>
+            <version>1.2.0</version>
         </dependency>
 
         <!-- Azure Identity Client for Microsoft Entra ID dependency -->
@@ -330,7 +330,6 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>33.1.0-jre</version>
         </dependency>
         <dependency>
             <groupId>com.google.code.findbugs</groupId>

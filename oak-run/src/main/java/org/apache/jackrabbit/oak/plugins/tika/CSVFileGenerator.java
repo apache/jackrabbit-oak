@@ -48,6 +48,8 @@ public class CSVFileGenerator {
             // commons-csv 1.2+ no longer auto-writes the header on construction; must be explicit
             printer.printRecord((Object[]) CSVFileBinaryResourceProvider.FORMAT.getHeader());
             closer.register(printer);
+            // commons-csv 1.2+ no longer auto-writes the header on construction; must be explicit
+            printer.printRecord((Object[]) CSVFileBinaryResourceProvider.FORMAT.getHeader());
             for (BinaryResource br : binaries){
                 count++;
                 printer.printRecord(

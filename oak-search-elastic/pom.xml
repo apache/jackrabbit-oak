@@ -54,18 +54,35 @@
               org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService
             </_exportcontents>
             <Import-Package>
-              !com.ibm.*, <!-- see OAK-11076 -->
-              !org.apache.derby.*, <!-- see OAK-11076 -->
+              <!-- OAK-11076: IBM JDK classes referenced by embedded Derby JDBC driver; absent in standard JDKs -->
+              !com.ibm.*,
+              <!-- OAK-11076: Derby JDBC driver ends up on the classpath with -Prdb-derby -->
+              !org.apache.derby.*,
+              <!-- OpenTelemetry SDK autoconfigure: optional tracing wiring in elasticsearch-java; only the API is deployed, not the SDK -->
               !io.opentelemetry.sdk.autoconfigure.*,
+              <!-- JDK-internal socket options used by embedded httpasyncclient; unavailable as an OSGi package -->
               !jdk.net.*,
+              <!-- Avalon/commons-logging legacy bridge; optional logging backend, not used here -->
               !org.apache.log.*,
+              <!-- Log4j; optional backend picked up by embedded commons-logging; we use SLF4J/logback instead -->
               !org.apache.logging.*,
+              <!-- JDK-internal package; not available in OSGi -->
               !sun.misc.*,
+              <!-- lucene-analysis-common is embedded in Bundle-ClassPath, so no OSGi import is needed -->
               !org.apache.lucene.analysis.*,
+              <!-- OAK-12093: jakarta.json-api 2.0.2's JsonProvider uses Class.forName() on this for OSGi service lookup;
+                   parsson is embedded as the JSON provider so this lookup path is never exercised -->
+              !org.glassfish.hk2.*,
+              <!-- GlassFish reference JSON-P implementation; parsson is embedded as the actual provider instead -->
               !org.glassfish.json.*,
+              <!-- JDK-internal management extension package; not available in OSGi -->
               !com.sun.management.*,
+              <!-- Jakarta JSON Binding (JSON-B); distinct from JSON-P and not used by this bundle -->
               !jakarta.json.bind.*,
+              <!-- OAK-11245: Java 11 built-in HTTP client; elasticsearch-java's JdkHttpClient transport is optional,
+                   the bundle uses Apache HttpClient instead -->
               !java.net.http.*,
+              <!-- OAK-11464: Oracle Cloud Infrastructure SDK; optionally referenced when building with rdb-mysql profile -->
               !com.oracle.bmc.*,
               *
             </Import-Package>
