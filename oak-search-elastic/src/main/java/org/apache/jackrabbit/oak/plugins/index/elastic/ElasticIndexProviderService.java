@@ -26,7 +26,6 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticDocument;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticRetryPolicy;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexStatistics;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConstants;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceMBeanImpl;
@@ -239,6 +238,9 @@ public class ElasticIndexProviderService {
                 emptyMap()));
         oakRegs.add(whiteboard.register(FeatureToggle.class,
                 new FeatureToggle(ElasticDocument.FT_OAK_12353, ElasticDocument.FT_OAK_12353_ENABLE),
+                emptyMap()));
+        oakRegs.add(whiteboard.register(FeatureToggle.class,
+                new FeatureToggle(ElasticIndexEditorProvider.FT_OAK_12249, ElasticIndexEditorProvider.FT_OAK_12249_ENABLE),
                 emptyMap()));
         if (System.getProperty(QueryEngineSettings.OAK_INFERENCE_ENABLED) != null) {
             this.isInferenceEnabled = Boolean.parseBoolean(System.getProperty(QueryEngineSettings.OAK_INFERENCE_ENABLED));
