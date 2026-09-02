@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 @Internal
-@Version("2.6.1")
+@Version("2.7.0")
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
 import org.apache.jackrabbit.oak.commons.annotations.Internal;
