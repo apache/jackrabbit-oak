@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.UUID;
 
-import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -68,7 +68,7 @@ public class MemoryDiffCacheTest {
         DiffCache cache = new MemoryDiffCache(builderProvider.newBuilder()
                 .setCacheSegmentCount(1)
                 .memoryCacheDistribution(0, 0, 0, 99, 0));
-        Iterable<AbstractCacheStats> statsIterable = cache.getStats();
+        Iterable<CacheStats> statsIterable = cache.getStats();
         assertNotNull(statsIterable);
         assertTrue(statsIterable.iterator().hasNext());
     }
