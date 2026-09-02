@@ -14,14 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.elastic.index;
+@Version("2.7.0")
+package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
-
-/**
- * Common type for {@link EagerElasticIndexWriter} and {@link LazyElasticIndexWriter}, so
- * {@link ElasticIndexWriterFactory#newInstance} can return either one without widening its
- * declared return type to the module-wide {@link FulltextIndexWriter}.
- */
-interface ElasticIndexWriter extends FulltextIndexWriter<ElasticDocument> {
-}
+import org.osgi.annotation.versioning.Version;
