@@ -164,13 +164,7 @@ public class PropertyIndexLookup {
         if (indexMeta == null) {
             return Double.POSITIVE_INFINITY;
         }
-        Set<IndexStoreStrategy> strategies = getStrategies(indexMeta);
-        ValuePattern pattern = new ValuePattern(indexMeta);
-        double cost = strategies.isEmpty() ? MAX_COST : COST_OVERHEAD;
-        for (IndexStoreStrategy s : strategies) {
-            cost += s.count(filter, root, indexMeta, encode(value, pattern), MAX_COST);
-        }
-        return cost;
+        return getCost(indexMeta, filter, value, COST_OVERHEAD, 1.0);
     }
 
     /**
@@ -184,6 +178,19 @@ public class PropertyIndexLookup {
         if (indexMeta == null) {
             return Double.POSITIVE_INFINITY;
         }
+        double costPerEntry = IndexUtils.getOptionalValue(indexMeta, IndexConstants.COST_PER_ENTRY, 1.0);
+        double costPerExecution = IndexUtils.getOptionalValue(indexMeta, IndexConstants.COST_PER_EXECUTION, COST_OVERHEAD);
+        return getCost(indexMeta, filter, value, costPerExecution, costPerEntry);
+    }
+
+    // Shared by getCostLegacy/getCostConfigurable, which only differ in
+    // costPerExecution/costPerEntry -- legacy hardcodes them, configurable
+    // reads them from indexMeta (which is why they can't be precomputed
+    // earlier than this: they depend on which property's index definition
+    // this call resolved, and the same PropertyIndexLookup is reused across
+    // different property names, e.g. by NodeTypeIndexLookup).
+    private double getCost(NodeState indexMeta, Filter filter, PropertyValue value,
+            double costPerExecution, double costPerEntry) {
         Set<IndexStoreStrategy> strategies = getStrategies(indexMeta);
         if (strategies.isEmpty()) {
             return MAX_COST;
@@ -193,8 +200,6 @@ public class PropertyIndexLookup {
         for (IndexStoreStrategy s : strategies) {
             entryCount += s.count(filter, root, indexMeta, encode(value, pattern), MAX_COST);
         }
-        double costPerEntry = IndexUtils.getOptionalValue(indexMeta, IndexConstants.COST_PER_ENTRY, 1.0);
-        double costPerExecution = IndexUtils.getOptionalValue(indexMeta, IndexConstants.COST_PER_EXECUTION, COST_OVERHEAD);
         return costPerExecution + costPerEntry * entryCount;
     }
 
