@@ -61,11 +61,16 @@ public class QueryResultImpl implements QueryResult {
 
     private final PartialValueFactory valueFactory;
 
-    public QueryResultImpl(SessionContext sessionContext, Result result) {
+    private final String queryStatement;
+    private final String queryLanguage;
+
+    public QueryResultImpl(SessionContext sessionContext, Result result, String query, String queryLanguage) {
         this.sessionContext = sessionContext;
         this.sessionDelegate = sessionContext.getSessionDelegate();
         this.result = result;
         this.valueFactory = new PartialValueFactory(sessionContext, sessionContext.getBlobAccessProvider());
+        this.queryStatement = query;
+        this.queryLanguage = queryLanguage;
     }
 
     @Override
@@ -231,10 +236,14 @@ public class QueryResultImpl implements QueryResult {
                                 fastSizeCallback = result;
                             }
                         });
-        return new NodeIteratorAdapter(prefIt) {
+        final QueryResultDebugIterator<NodeImpl<? extends NodeDelegate>> debugIt =
+                    new QueryResultDebugIterator<>(prefIt, queryStatement, queryLanguage);
+
+        return new NodeIteratorAdapter(debugIt) {
             @Override
             public long getSize() {
-                return prefIt.size();
+                return prefIt.size(); // bypass the debugIterator, as it does not influence
+                                      // the result set
             }
         };
     }
