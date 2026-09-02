@@ -88,20 +88,11 @@ class PropertyIndex implements QueryIndex {
 
     private final MountInfoProvider mountInfoProvider;
 
-    /**
-     * See OAK-12348. {@code false} (the default) means the configurable cost
-     * formula is active. Resolved once by the caller ({@link
-     * PropertyIndexProvider}, from its whiteboard-registered toggle) rather
-     * than passed down as a {@code Feature} -- this class only needs the
-     * resolved answer, not the toggle mechanism itself.
-     */
+    // OAK-12348: false (default) uses the configurable cost formula.
     private final boolean useLegacy;
 
-    /**
-     * The value {@link #getMinimumCost()} returns -- precomputed once here
-     * (from {@code useLegacy}, which can't change after construction)
-     * instead of branching on every call.
-     */
+    // Lowest cost any plan can report under the active formula; used by
+    // getMinimumCost() and createPlan()'s early-break check.
     private final double minimumCost;
 
     /**
@@ -128,23 +119,14 @@ class PropertyIndex implements QueryIndex {
         if (plan != null && plan.getFilter().toString().equals(filter.toString())) {
             return plan;
         } else {
-            plan = createPlan(root, filter, mountInfoProvider, useLegacy);
+            plan = createPlan(root, filter);
             this.cachedPlan = plan;
             return plan;
         }
     }
 
-    private static PropertyIndexPlan createPlan(NodeState root, Filter filter,
-                                                MountInfoProvider mountInfoProvider, boolean useLegacy) {
+    private PropertyIndexPlan createPlan(NodeState root, Filter filter) {
         PropertyIndexPlan bestPlan = null;
-
-        // The lowest cost any candidate plan can possibly report, given the
-        // formula currently in effect (OAK-12348): COST_OVERHEAD under the
-        // legacy formula (bestCount can't go below 0), or 0 under the
-        // configurable formula (costPerExecution can be set to 0 on any
-        // not-yet-scanned definition, so no positive floor is safe). Used
-        // below to stop scanning once that floor is hit.
-        double minimumPossibleCost = useLegacy ? PropertyIndexPlan.COST_OVERHEAD : 0;
 
         // TODO support indexes on a path
         // currently, only indexes on the root node are supported
@@ -164,7 +146,7 @@ class PropertyIndex implements QueryIndex {
                     if (bestPlan == null || plan.getCost() < bestPlan.getCost()) {
                         bestPlan = plan;
                         // Stop comparing if the cost can't possibly be beaten
-                        if (plan.getCost() == minimumPossibleCost) {
+                        if (plan.getCost() == minimumCost) {
                             break;
                         }
                     }

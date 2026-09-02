@@ -95,13 +95,7 @@ public class PropertyIndexPlan {
 
     private final boolean deprecated;
 
-    /**
-     * See OAK-12348. {@code false} (the default) means the configurable cost
-     * formula is active. Resolved once by the caller (ultimately
-     * {@link PropertyIndexProvider}, from its whiteboard-registered toggle)
-     * rather than passed down as a {@code Feature} -- this class only needs
-     * the resolved answer, not the toggle mechanism itself.
-     */
+    // OAK-12348: false (default) uses the configurable cost formula.
     private final boolean useLegacy;
 
     PropertyIndexPlan(String name, NodeState root, NodeState definition,
@@ -224,11 +218,7 @@ public class PropertyIndexPlan {
 
     /**
      * Dispatches to {@link #getCostConfigurable} or {@link #getCostLegacy}
-     * depending on {@code useLegacy}, resolved once by the caller from the
-     * {@code Feature} toggle (OAK-12348, see
-     * {@link PropertyIndexProvider#FT_OAK_12348}) when this plan was built (a
-     * new plan is built whenever the filter changes, so a toggle flip is
-     * picked up on the next query, not on this cached plan).
+     * based on {@code useLegacy}.
      */
     double getCost() {
         return useLegacy ? getCostLegacy() : getCostConfigurable();

@@ -41,20 +41,10 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
 
     private final MountInfoProvider mountInfoProvider;
 
-    /**
-     * See OAK-12348. {@code false} (the default) means the configurable cost
-     * formula is active. Resolved once by the caller ({@link
-     * NodeTypeIndexProvider}, from its whiteboard-registered toggle) rather
-     * than passed down as a {@code Feature} -- this class only needs the
-     * resolved answer, not the toggle mechanism itself.
-     */
+    // OAK-12348: false (default) uses the configurable cost formula.
     private final boolean useLegacy;
 
-    /**
-     * The value {@link #getMinimumCost()} returns -- precomputed once here
-     * (from {@code useLegacy}, which can't change after construction)
-     * instead of branching on every call.
-     */
+    // Value returned by getMinimumCost(), precomputed from useLegacy.
     private final double minimumCost;
 
     public NodeTypeIndex(MountInfoProvider mountInfoProvider) {

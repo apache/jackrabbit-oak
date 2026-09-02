@@ -40,13 +40,7 @@ class NodeTypeIndexLookup implements JcrConstants {
 
     private final MountInfoProvider mountInfoProvider;
 
-    /**
-     * See OAK-12348. {@code false} (the default) means the configurable cost
-     * formula is active. Resolved once by the caller (ultimately
-     * {@link NodeTypeIndexProvider}, from its whiteboard-registered toggle)
-     * rather than passed down as a {@code Feature} -- this class only needs
-     * the resolved answer, not the toggle mechanism itself.
-     */
+    // OAK-12348: false (default) uses the configurable cost formula.
     private final boolean useLegacy;
 
     public NodeTypeIndexLookup(NodeState root,

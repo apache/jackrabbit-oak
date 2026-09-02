@@ -80,13 +80,7 @@ public class PropertyIndexLookup {
 
     private final MountInfoProvider mountInfoProvider;
 
-    /**
-     * See OAK-12348. {@code false} (the default) means the configurable cost
-     * formula is active. Resolved once by the caller (typically
-     * {@link PropertyIndexProvider}, from its whiteboard-registered toggle)
-     * rather than passed down as a {@code Feature} -- this class only needs
-     * the resolved answer, not the toggle mechanism itself.
-     */
+    // OAK-12348: false (default) uses the configurable cost formula.
     private final boolean useLegacy;
 
     public PropertyIndexLookup(NodeState root) {
@@ -152,11 +146,7 @@ public class PropertyIndexLookup {
 
     /**
      * Dispatches to {@link #getCostConfigurable} or {@link #getCostLegacy}
-     * depending on {@code useLegacy}, resolved once by the caller from the
-     * {@code Feature} toggle (OAK-12348, see
-     * {@link PropertyIndexProvider#FT_OAK_12348}). {@code false} by default:
-     * the configurable formula is used. Flipping the toggle on reverts to
-     * the legacy formula.
+     * based on {@code useLegacy}.
      */
     public double getCost(Filter filter, String propertyName, PropertyValue value) {
         return useLegacy
