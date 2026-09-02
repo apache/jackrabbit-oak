@@ -98,6 +98,9 @@ public class PropertyIndexPlan {
     // OAK-12348: false (default) uses the configurable cost formula.
     private final boolean useLegacy;
 
+    // Value returned by getCost(), precomputed since bestCount/definition/useLegacy are all fixed after construction.
+    private final double cost;
+
     PropertyIndexPlan(String name, NodeState root, NodeState definition,
                       Filter filter){
         this(name, root, definition, filter, Mounts.defaultMountInfoProvider());
@@ -210,18 +213,15 @@ public class PropertyIndexPlan {
         this.depth = bestDepth;
         this.values = bestValues;
         this.bestCount = bestCount;
+        this.cost = useLegacy ? getCostLegacy() : getCostConfigurable();
     }
 
     String getName() {
         return name;
     }
 
-    /**
-     * Dispatches to {@link #getCostConfigurable} or {@link #getCostLegacy}
-     * based on {@code useLegacy}.
-     */
     double getCost() {
-        return useLegacy ? getCostLegacy() : getCostConfigurable();
+        return cost;
     }
 
     /**
