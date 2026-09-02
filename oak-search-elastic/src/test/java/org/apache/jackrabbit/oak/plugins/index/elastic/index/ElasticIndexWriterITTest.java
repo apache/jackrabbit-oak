@@ -95,7 +95,7 @@ public class ElasticIndexWriterITTest {
         ElasticIndexDefinition definition = new ElasticIndexDefinition(root, nodeState, indexName, connection.getIndexPrefix());
         ElasticBulkProcessorHandler bulkProcessorHandler = new ElasticBulkProcessorHandler(connection);
         bulkProcessorHandler.registerIndex(connection.getIndexPrefix() + "." + indexName, definition, builder.child("oak:index").getChildNode(indexName), CommitInfo.EMPTY, false);
-        ElasticIndexWriter writer = new EagerElasticIndexWriter(indexTracker, connection, definition, bulkProcessorHandler,
+        ElasticIndexWriter writer = new ElasticIndexWriter(indexTracker, connection, definition, bulkProcessorHandler,
                 new ElasticRetryPolicy(10, 1000, 5, 100), false
         );
 
