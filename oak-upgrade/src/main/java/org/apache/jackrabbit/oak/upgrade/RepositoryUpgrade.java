@@ -24,15 +24,12 @@ import static org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier.copyPr
 import static org.apache.jackrabbit.oak.plugins.name.Namespaces.addCustomMapping;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ALL;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.SKIP_NAME_CHECK;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -46,9 +43,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.jcr.NamespaceException;
-import javax.jcr.Node;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
@@ -62,13 +57,11 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.BeanConfig;
-import org.apache.jackrabbit.core.config.LoginModuleConfig;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.core.config.SecurityConfig;
 import org.apache.jackrabbit.core.fs.FileSystem;
 import org.apache.jackrabbit.core.fs.FileSystemException;
 import org.apache.jackrabbit.core.nodetype.NodeTypeRegistry;
-import org.apache.jackrabbit.core.query.lucene.FieldNames;
 import org.apache.jackrabbit.core.security.authorization.PrivilegeRegistry;
 import org.apache.jackrabbit.core.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -79,7 +72,6 @@ import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
@@ -135,10 +127,6 @@ import org.apache.jackrabbit.spi.QValueConstraint;
 import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
 import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
 import org.apache.jackrabbit.spi.commons.value.ValueFormat;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.index.TermDocs;
-import org.apache.lucene.index.TermEnum;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -194,8 +182,6 @@ public class RepositoryUpgrade {
 
     private List<CommitHook> customCommitHooks = null;
 
-    private boolean checkLongNames = false;
-
     private boolean filterLongNames = true;
 
     private boolean skipInitialization = false;
@@ -246,72 +232,12 @@ public class RepositoryUpgrade {
         this.target = target;
     }
 
-    public boolean isCopyBinariesByReference() {
-        return copyBinariesByReference;
-    }
-
-    public void setCopyBinariesByReference(boolean copyBinariesByReference) {
-        this.copyBinariesByReference = copyBinariesByReference;
-    }
-
-    public boolean isSkipOnError() {
-        return skipOnError;
-    }
-
-    public void setSkipOnError(boolean skipOnError) {
-        this.skipOnError = skipOnError;
-    }
-
-    public boolean isEarlyShutdown() {
-        return earlyShutdown;
-    }
-
     public void setEarlyShutdown(boolean earlyShutdown) {
         this.earlyShutdown = earlyShutdown;
     }
 
-    public boolean isCheckLongNames() {
-        return checkLongNames;
-    }
-
-    public void setCheckLongNames(boolean checkLongNames) {
-        this.checkLongNames = checkLongNames;
-    }
-
-    public boolean isFilterLongNames() {
-        return filterLongNames;
-    }
-
-    public void setFilterLongNames(boolean filterLongNames) {
-        this.filterLongNames = filterLongNames;
-    }
-
-    public boolean isSkipInitialization() {
-        return skipInitialization;
-    }
-
     public void setSkipInitialization(boolean skipInitialization) {
         this.skipInitialization = skipInitialization;
-    }
-
-    /**
-     * Returns the list of custom CommitHooks to be applied before the final
-     * type validation, reference and indexing hooks.
-     *
-     * @return the list of custom CommitHooks
-     */
-    public List<CommitHook> getCustomCommitHooks() {
-        return customCommitHooks;
-    }
-
-    /**
-     * Sets the list of custom CommitHooks to be applied before the final
-     * type validation, reference and indexing hooks.
-     *
-     * @param customCommitHooks the list of custom CommitHooks
-     */
-    public void setCustomCommitHooks(List<CommitHook> customCommitHooks) {
-        this.customCommitHooks = customCommitHooks;
     }
 
     /**
@@ -335,51 +261,6 @@ public class RepositoryUpgrade {
     }
 
     /**
-     * Sets the paths that should be merged when the source repository
-     * is copied to the target repository.
-     *
-     * @param merges Paths to be merged during copy.
-     */
-    public void setMerges(@NotNull String... merges) {
-        this.mergePaths = Collections.unmodifiableSet(SetUtils.toLinkedSet(requireNonNull(merges)));
-    }
-
-    /**
-     * Configures the version storage copy. Be default all versions are copied.
-     * One may disable it completely by setting {@code null} here or limit it to
-     * a selected date range: {@code <minDate, now()>}.
-     * 
-     * @param minDate
-     *            minimum date of the versions to copy or {@code null} to
-     *            disable the storage version copying completely. Default value:
-     *            {@code 1970-01-01 00:00:00}.
-     */
-    public void setCopyVersions(Calendar minDate) {
-        versionCopyConfiguration.setCopyVersions(minDate);
-    }
-
-    /**
-     * Configures copying of the orphaned version histories (eg. ones that are
-     * not referenced by the existing nodes). By default all orphaned version
-     * histories are copied. One may disable it completely by setting
-     * {@code null} here or limit it to a selected date range:
-     * {@code <minDate, now()>}. <br>
-     * <br>
-     * Please notice, that this option is overriden by the
-     * {@link #setCopyVersions(Calendar)}. You can't copy orphaned versions
-     * older than set in {@link #setCopyVersions(Calendar)} and if you set
-     * {@code null} there, this option will be ignored.
-     * 
-     * @param minDate
-     *            minimum date of the orphaned versions to copy or {@code null}
-     *            to not copy them at all. Default value:
-     *            {@code 1970-01-01 00:00:00}.
-     */
-    public void setCopyOrphanedVersions(Calendar minDate) {
-        versionCopyConfiguration.setCopyOrphanedVersions(minDate);
-    }
-
-    /**
      * Copies the full content from the source to the target repository.
      * <p>
      * The source repository <strong>must not be modified</strong> while
@@ -393,10 +274,6 @@ public class RepositoryUpgrade {
      * @throws RepositoryException if the copy operation fails
      */
     public void copy(RepositoryInitializer initializer) throws RepositoryException {
-        if (checkLongNames) {
-            assertNoLongNames();
-        }
-
         RepositoryConfig config = source.getRepositoryConfig();
         logger.info("Copying repository content from {} to Oak", config.getHomeDir());
         try {
@@ -523,7 +400,6 @@ public class RepositoryUpgrade {
                     new GroupEditorProvider(groupsPath),
                     // copy referenced version histories
                     new VersionableEditor.Provider(sourceRoot, workspaceName, versionCopyConfiguration),
-                    new SameNameSiblingsEditor.Provider(),
                     AuthorizableFolderEditor.provider(groupsPath, usersPath)
             )));
 
@@ -641,9 +517,7 @@ public class RepositoryUpgrade {
 
     protected ConfigurationParameters mapSecurityConfig(SecurityConfig config) {
         ConfigurationParameters loginConfig = mapConfigurationParameters(
-                config.getLoginModuleConfig(),
-                LoginModuleConfig.PARAM_ADMIN_ID, UserConstants.PARAM_ADMIN_ID,
-                LoginModuleConfig.PARAM_ANONYMOUS_ID, UserConstants.PARAM_ANONYMOUS_ID);
+                config.getLoginModuleConfig());
         ConfigurationParameters userConfig;
         if (config.getSecurityManagerConfig() == null) {
             userConfig = ConfigurationParameters.EMPTY;
@@ -972,68 +846,6 @@ public class RepositoryUpgrade {
             includes.add("/" + childNodeName);
         }
         return includes;
-    }
-
-    void assertNoLongNames() throws RepositoryException {
-        Session session = source.getRepository().login(null, null);
-        boolean longNameFound = false;
-        try {
-            IndexReader reader = IndexAccessor.getReader(source);
-            if (reader == null) {
-                return;
-            }
-            TermEnum terms = reader.terms(new Term(FieldNames.LOCAL_NAME));
-            while (terms.next()) {
-                Term t = terms.term();
-                if (!FieldNames.LOCAL_NAME.equals(t.field())) {
-                    continue;
-                }
-                String name = t.text();
-                if (nameMayBeTooLong(name)) {
-                    TermDocs docs = reader.termDocs(t);
-                    if (docs.next()) {
-                        int docId = docs.doc();
-                        String uuid = reader.document(docId).get(FieldNames.UUID);
-                        Node n = session.getNodeByIdentifier(uuid);
-                        if (isNameTooLong(n.getName(), n.getParent().getPath())) {
-                            logger.warn("Name too long: {}", n.getPath());
-                            longNameFound = true;
-                        }
-                    }
-                }
-            }
-        } catch (IOException e) {
-            throw new RepositoryException(e);
-        } finally {
-            session.logout();
-        }
-        if (longNameFound) {
-            logger.error("Node with a long name has been found. Please fix the content or rerun the migration with {} option.", SKIP_NAME_CHECK);
-            throw new RepositoryException("Node with a long name has been found.");
-        }
-    }
-
-    private boolean nameMayBeTooLong(String name) {
-        if (name.length() <= Utils.NODE_NAME_LIMIT / 3) {
-            return false;
-        }
-        if (name.getBytes(StandardCharsets.UTF_8).length <= Utils.NODE_NAME_LIMIT) {
-            return false;
-        }
-        return true;
-    }
-
-    private boolean isNameTooLong(String name, String parentPath) {
-        if (!nameMayBeTooLong(name)) {
-            return false;
-        }
-        if (parentPath.length() < Utils.PATH_SHORT) {
-            return false;
-        }
-        if (parentPath.getBytes(StandardCharsets.UTF_8).length < Utils.PATH_LONG) {
-            return false;
-        }
-        return true;
     }
 
     static class LoggingCompositeHook implements CommitHook {
