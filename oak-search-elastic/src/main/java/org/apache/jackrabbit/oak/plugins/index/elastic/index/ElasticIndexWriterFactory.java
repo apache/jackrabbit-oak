@@ -20,7 +20,6 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriterFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -44,8 +43,8 @@ public class ElasticIndexWriterFactory implements FulltextIndexWriterFactory<Ela
     }
 
     @Override
-    public FulltextIndexWriter<ElasticDocument> newInstance(IndexDefinition definition, NodeBuilder definitionBuilder,
-                                                            CommitInfo commitInfo, boolean reindex) {
+    public ElasticIndexWriter newInstance(IndexDefinition definition, NodeBuilder definitionBuilder,
+                                          CommitInfo commitInfo, boolean reindex) {
         if (!(definition instanceof ElasticIndexDefinition)) {
             throw new IllegalArgumentException("IndexDefinition must be of type ElasticsearchIndexDefinition " +
                     "instead of " + definition.getClass().getName());
@@ -53,21 +52,6 @@ public class ElasticIndexWriterFactory implements FulltextIndexWriterFactory<Ela
 
         ElasticIndexDefinition esDefinition = (ElasticIndexDefinition) definition;
 
-        // requiresProvisioning=true for a standard reindex, or when a prior lazy reindex produced
-        // zero documents and set PROP_REQUIRES_PROVISIONING in the node store.
-        boolean requiresProvisioning = reindex || esDefinition.requiresProvisioning();
-
-        if (requiresProvisioning && ElasticIndexEditorProvider.isLazyProvisioningActive()) {
-            // OAK-12249: defer provisioning to the first write, whether this is a reindex or an
-            // incremental cycle after an empty lazy reindex. If no documents arrive the supplier is
-            // never called, PROP_REQUIRES_PROVISIONING is re-written, and the next cycle retries.
-            return new LazyElasticIndexWriter(
-                    () -> new ElasticIndexWriter(indexTracker, elasticConnection, esDefinition,
-                            definitionBuilder, true, commitInfo, bulkProcessorHandler, retryPolicy),
-                    definitionBuilder, elasticConnection, esDefinition);
-        }
-
-        return new ElasticIndexWriter(indexTracker, elasticConnection, esDefinition,
-                definitionBuilder, requiresProvisioning, commitInfo, bulkProcessorHandler, retryPolicy);
+        return new ElasticIndexWriter(indexTracker, elasticConnection, esDefinition, definitionBuilder, reindex, commitInfo, bulkProcessorHandler, retryPolicy);
     }
 }

@@ -88,13 +88,6 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public static final String PROP_INDEX_NAME_SEED = ":nameSeed";
 
     /**
-     * Hidden property written when a lazy reindex (OAK-12249) produced zero documents and left no
-     * ES index or alias. Signals the next incremental-write cycle to provision the index on demand.
-     * Cleared once provisioning completes.
-     */
-    public static final String PROP_REQUIRES_PROVISIONING = ":requiresProvisioning";
-
-    /**
      * Hidden property to store similarity tags
      */
     public static final String SIMILARITY_TAGS = ":simTags";
@@ -273,10 +266,6 @@ public class ElasticIndexDefinition extends IndexDefinition {
      */
     public String getIndexAlias() {
         return indexAlias;
-    }
-
-    public boolean requiresProvisioning() {
-        return getOptionalValue(getDefinitionNodeState(), PROP_REQUIRES_PROVISIONING, false);
     }
 
     public Map<String, List<PropertyDefinition>> getPropertiesByName() {
