@@ -1,0 +1,31 @@
+name: NonDex Flaky Test Check
+
+on:
+  push:
+    branches:
+      - main
+      - add-nondex-workflow
+  workflow_dispatch:
+
+jobs:
+  nondex-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Java 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+
+      - name: Build module
+        run: mvn clean install -DskipTests -pl oak-auth-ldap -am -Dlicense.skip=true -Dcheckstyle.skip=true
+
+      - name: Run test normally
+        run: mvn -pl oak-auth-ldap test -Dtest=org.apache.jackrabbit.oak.security.authentication.ldap.TokenDefaultLdapLoginModuleTest#testSyncCreateGroup
+
+      - name: Run test with NonDex
+        run: mvn -pl oak-auth-ldap edu.illinois:nondex-maven-plugin:2.1.1:nondex -Dtest=org.apache.jackrabbit.oak.security.authentication.ldap.TokenDefaultLdapLoginModuleTest#testSyncCreateGroup -DnondexRuns=10
