@@ -23,7 +23,6 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexStatistics;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEditor;
@@ -33,8 +32,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -43,8 +40,6 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.TYPE_ELASTICSEARCH;
 
 public class ElasticIndexEditorProvider implements IndexEditorProvider {
-
-    private static final Logger LOG = LoggerFactory.getLogger(ElasticIndexEditorProvider.class);
 
     private final ElasticIndexTracker indexTracker;
     private final ElasticConnection elasticConnection;
@@ -61,38 +56,6 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
      * The fix is active by default; set to {@code true} via the feature toggle to disable it.
      */
     public static final AtomicBoolean FT_OAK_12206_DISABLE = new AtomicBoolean(false);
-
-    public static final String FT_OAK_12249 = "FT_OAK-12249";
-    /**
-     * When {@code true} AND {@link ElasticIndexStatistics#FT_OAK_12248_ENABLE} is also {@code true},
-     * Elasticsearch index provisioning is deferred to the first {@code updateDocument()} or
-     * {@code deleteDocuments()} call. A reindex that produces no documents never creates an ES
-     * index or alias.
-     *
-     * <p>Requires {@code FT_OAK-12248} (graceful 404 handling) to be enabled first. Enabling
-     * lazy provisioning without graceful 404 handling would cause unhandled ES 404 errors on every
-     * query against an empty-reindexed index. {@link #isLazyProvisioningActive()} enforces this
-     * dependency at runtime.
-     *
-     * <p>Disabled by default.
-     */
-    public static final AtomicBoolean FT_OAK_12249_ENABLE = new AtomicBoolean(false);
-
-    /**
-     * Returns {@code true} when lazy provisioning is active. Requires both this toggle and
-     * {@link ElasticIndexStatistics#FT_OAK_12248_ENABLE} to be {@code true}. The combined check
-     * enforces the deployment order: graceful 404 handling (OAK-12248) must be on before lazy
-     * provisioning (OAK-12249) can take effect.
-     */
-    public static boolean isLazyProvisioningActive() {
-        boolean lazyProvisioningRequested = FT_OAK_12249_ENABLE.get();
-        boolean graceful404Active = ElasticIndexStatistics.FT_OAK_12248_ENABLE.get();
-        if (lazyProvisioningRequested && !graceful404Active) {
-            LOG.warn("{} is enabled but {} (graceful 404 handling) is not — lazy provisioning stays " +
-                    "inactive until both toggles are enabled", FT_OAK_12249, ElasticIndexStatistics.FT_OAK_12248);
-        }
-        return lazyProvisioningRequested && graceful404Active;
-    }
 
     private final boolean OAK_INDEX_ELASTIC_WRITER_DISABLE = Boolean.getBoolean(OAK_INDEX_ELASTIC_WRITER_DISABLE_KEY);
 
