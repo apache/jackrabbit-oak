@@ -67,38 +67,17 @@ public class PropertyIndexPlan {
 
     private final String name;
 
-    private final Set<String> properties;
-
     private final Set<IndexStoreStrategy> strategies;
 
     private final Filter filter;
-
-    private final boolean matchesAllTypes;
-
-    private final boolean matchesNodeTypes;
-
-    /**
-     * The number of matching entries for the best-matching property found by
-     * the constructor's search loop, or {@code Double.POSITIVE_INFINITY} if
-     * none matched. {@link #getCostLegacy} and {@link #getCostConfigurable}
-     * both derive the final cost from this count.
-     */
-    private final double bestCount;
 
     private final Set<String> values;
 
     private final int depth;
 
-    private final PathFilter pathFilter;
-
-    private final boolean unique;
-
     private final boolean deprecated;
 
-    // OAK-12348: false (default) uses the configurable cost formula.
-    private final boolean useLegacy;
-
-    // Value returned by getCost(), precomputed since bestCount/definition/useLegacy are all fixed after construction.
+    // Value returned by getCost().
     private final double cost;
 
     PropertyIndexPlan(String name, NodeState root, NodeState definition,
@@ -113,20 +92,19 @@ public class PropertyIndexPlan {
 
     PropertyIndexPlan(String name, NodeState root, NodeState definition,
                       Filter filter, MountInfoProvider mountInfoProvider, boolean useLegacy) {
-        this.useLegacy = useLegacy;
         this.name = name;
-        this.unique = definition.getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME);
+        boolean unique = definition.getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME);
         this.definition = definition;
-        this.properties = SetUtils.toSet(definition.getNames(PROPERTY_NAMES));
-        pathFilter = PathFilter.from(definition.builder());
-        this.strategies = getStrategies(definition, mountInfoProvider);
+        Set<String> properties = SetUtils.toSet(definition.getNames(PROPERTY_NAMES));
+        PathFilter pathFilter = PathFilter.from(definition.builder());
+        this.strategies = getStrategies(definition, mountInfoProvider, unique);
         this.filter = filter;
 
         Iterable<String> types = definition.getNames(DECLARING_NODE_TYPES);
         // if there is no such property, then all nodetypes are matched
-        this.matchesAllTypes = !definition.hasProperty(DECLARING_NODE_TYPES);
+        boolean matchesAllTypes = !definition.hasProperty(DECLARING_NODE_TYPES);
         this.deprecated = definition.getBoolean(IndexConstants.INDEX_DEPRECATED);
-        this.matchesNodeTypes =
+        boolean matchesNodeTypes =
                 matchesAllTypes || StreamUtils.toStream(types).anyMatch(filter.getSupertypes()::contains);
 
         ValuePattern valuePattern = new ValuePattern(definition);
@@ -212,8 +190,7 @@ public class PropertyIndexPlan {
 
         this.depth = bestDepth;
         this.values = bestValues;
-        this.bestCount = bestCount;
-        this.cost = useLegacy ? getCostLegacy() : getCostConfigurable();
+        this.cost = useLegacy ? getCostLegacy(bestCount) : getCostConfigurable(bestCount);
     }
 
     String getName() {
@@ -229,7 +206,7 @@ public class PropertyIndexPlan {
      * {@code costPerEntry}/{@code costPerExecution} even if set on the index
      * definition.
      */
-    double getCostLegacy() {
+    double getCostLegacy(double bestCount) {
         return bestCount == Double.POSITIVE_INFINITY ? Double.POSITIVE_INFINITY : COST_OVERHEAD + bestCount;
     }
 
@@ -239,7 +216,7 @@ public class PropertyIndexPlan {
      * ({@code costPerEntry=1.0}, {@code costPerExecution=COST_OVERHEAD})
      * reproduce {@link #getCostLegacy} exactly.
      */
-    double getCostConfigurable() {
+    double getCostConfigurable(double bestCount) {
         if (bestCount == Double.POSITIVE_INFINITY) {
             return Double.POSITIVE_INFINITY;
         }
@@ -271,7 +248,7 @@ public class PropertyIndexPlan {
     }
 
     Set<IndexStoreStrategy> getStrategies(NodeState definition,
-            MountInfoProvider mountInfoProvider) {
+            MountInfoProvider mountInfoProvider, boolean unique) {
         return Multiplexers.getStrategies(unique, mountInfoProvider,
                 definition, INDEX_CONTENT_NODE_NAME);
     }
