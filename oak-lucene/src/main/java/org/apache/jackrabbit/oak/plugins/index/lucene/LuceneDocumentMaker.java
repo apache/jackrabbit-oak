@@ -203,32 +203,16 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
                 getFacetsConfig().setMultiValued(pname, true);
                 Iterable<String> values = property.getValue(Type.STRINGS);
                 for (String value : values) {
-                    if (value != null && !value.isEmpty()) {
+                    if (isValidFacetProperty(pname, value)) {
                         doc.add(new SortedSetDocValuesFacetField(pname, value));
                     }
                 }
                 fieldAdded = true;
             } else if (tag == Type.STRING.tag()) {
                 String value = property.getValue(Type.STRING);
-                if (!value.isEmpty()) {
-                    if (FT_OAK_12372_DISABLE.get()) {
-                        // Legacy mode
-                        doc.add(new SortedSetDocValuesFacetField(pname, value));
-                        fieldAdded = true;
-                    } else {
-                        // Category path = pname + "/" + value --> cannot be longer than the Lucene limit of 8191
-                        int categoryPathLength = pname.length() + value.length() + 1;
-                        if (categoryPathLength > FacetLabel.MAX_CATEGORY_PATH_LENGTH) {
-                            if (!LOG_SILENCER.silence(LOG_KEY_IGNORING_LONG_FACET_PROPERTY)) {
-                                LOG.warn("[{}] Ignoring long facet property. Property {} is too long (name + value length: {})"
-                                                + " and cannot be used for facets",
-                                        getIndexName(), pname, categoryPathLength);
-                            }
-                        } else {
-                            doc.add(new SortedSetDocValuesFacetField(pname, value));
-                            fieldAdded = true;
-                        }
-                    }
+                if (isValidFacetProperty(pname, value)) {
+                    doc.add(new SortedSetDocValuesFacetField(pname, value));
+                    fieldAdded = true;
                 }
             }
 
@@ -241,6 +225,30 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
             }
         }
         return fieldAdded;
+    }
+
+    private boolean isValidFacetProperty(String pname, String value) {
+        if (value == null || value.isEmpty()) {
+            return false;
+        }
+
+        if (FT_OAK_12372_DISABLE.get()) {
+            // Legacy mode
+            return true;
+        }
+
+        // Category path = pname + "/" + value --> cannot be longer than the Lucene limit of 8191
+        int categoryPathLength = pname.length() + value.length() + 1;
+        if (categoryPathLength > FacetLabel.MAX_CATEGORY_PATH_LENGTH) {
+            if (!LOG_SILENCER.silence(LOG_KEY_IGNORING_LONG_FACET_PROPERTY)) {
+                LOG.warn("[{}] Ignoring long facet property. Property {} at path {} is too long (name + value length: {})"
+                                + " and cannot be used for facets",
+                        getIndexName(), pname, path, categoryPathLength);
+            }
+            return false; // Facet property too long --> ignore
+        }
+
+        return true;
     }
 
     @Override

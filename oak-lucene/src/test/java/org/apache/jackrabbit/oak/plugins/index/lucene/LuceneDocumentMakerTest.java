@@ -156,17 +156,25 @@ public class LuceneDocumentMakerTest {
         LuceneIndexDefinitionBuilder builder = new LuceneIndexDefinitionBuilder();
         builder.indexRule("nt:base")
                 .property("foo")
+                .property("bars")
                 .propertyIndex()
                 .facets();
 
         LuceneIndexDefinition defn = LuceneIndexDefinition.newLuceneBuilder(root, builder.build(), "/foo").build();
-        LuceneDocumentMaker docMaker = new LuceneDocumentMaker(null, FacetsConfig::new, null, defn,
+        FacetsConfig facetsConfig = new FacetsConfig();
+        LuceneDocumentMaker docMaker = new LuceneDocumentMaker(null, () -> facetsConfig, null, defn,
                 defn.getApplicableIndexingRule("nt:base"), "/x");
 
         NodeBuilder test = EMPTY_NODE.builder();
         test.setProperty("foo", "a".repeat(8191 - 3)); // Max allowed path length + 1
 
+        test.setProperty("bars", List.of("abc", "a".repeat(10000)), Type.STRINGS);
+
         boolean originalFtValue = LuceneDocumentMaker.FT_OAK_12372_DISABLE.get();
+
+        LuceneDocumentMaker.FT_OAK_12372_DISABLE.set(false); // fix enabled (default) -- still not guarded here
+        docMaker.makeDocument(test.getNodeState());
+
         try {
             LuceneDocumentMaker.FT_OAK_12372_DISABLE.set(false); // default value --> ignore long facet properties
             docMaker.makeDocument(test.getNodeState());
