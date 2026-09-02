@@ -73,9 +73,9 @@ public class PropertyIndexPlan {
 
     private final Filter filter;
 
-    private boolean matchesAllTypes;
+    private final boolean matchesAllTypes;
 
-    private boolean matchesNodeTypes;
+    private final boolean matchesNodeTypes;
 
     /**
      * The number of matching entries for the best-matching property found by
