@@ -131,6 +131,14 @@ public interface FulltextIndexConstants {
 
     String PROP_ANALYZED = "analyzed";
 
+    /**
+     * Name of the analyzer (a sibling node under {@code analyzers}) to use for
+     * this property, overriding the index's {@code analyzers/default}.
+     * Optional; {@code null}/absent means the property uses the default
+     * analyzer, unchanged from today's behavior.
+     */
+    String PROP_ANALYZER = "analyzer";
+
     String RULE_INHERITED = "inherited";
 
     String PROP_ORDERED = "ordered";

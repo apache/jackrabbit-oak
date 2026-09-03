@@ -90,6 +90,14 @@ public class PropertyDefinition {
 
     public final boolean analyzed;
 
+    /**
+     * Name of a custom analyzer configured under the index's {@code
+     * analyzers} node to use for this property instead of the default
+     * analyzer. {@code null} if not configured.
+     */
+    @Nullable
+    public final String analyzerName;
+
     public final boolean ordered;
 
     public final boolean nullCheckEnabled;
@@ -194,6 +202,8 @@ public class PropertyDefinition {
         } else {
             this.analyzed = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_ANALYZED, false);
         }
+
+        this.analyzerName = getOptionalValue(defn, FulltextIndexConstants.PROP_ANALYZER, null);
 
         this.ordered = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_ORDERED, false);
         this.includedPropertyTypes = IndexDefinition.getSupportedTypes(defn, FulltextIndexConstants.PROP_INCLUDED_TYPE,
