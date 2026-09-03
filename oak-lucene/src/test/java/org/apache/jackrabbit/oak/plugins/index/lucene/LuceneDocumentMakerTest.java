@@ -27,10 +27,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.facet.FacetsConfig;
+import org.apache.lucene.index.FieldInfo;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
@@ -156,6 +158,9 @@ public class LuceneDocumentMakerTest {
         LuceneIndexDefinitionBuilder builder = new LuceneIndexDefinitionBuilder();
         builder.indexRule("nt:base")
                 .property("foo")
+                .propertyIndex()
+                .facets();
+        builder.indexRule("nt:base")
                 .property("bars")
                 .propertyIndex()
                 .facets();
@@ -172,18 +177,26 @@ public class LuceneDocumentMakerTest {
 
         boolean originalFtValue = LuceneDocumentMaker.FT_OAK_12372_DISABLE.get();
 
-        LuceneDocumentMaker.FT_OAK_12372_DISABLE.set(false); // fix enabled (default) -- still not guarded here
-        docMaker.makeDocument(test.getNodeState());
-
         try {
             LuceneDocumentMaker.FT_OAK_12372_DISABLE.set(false); // default value --> ignore long facet properties
-            docMaker.makeDocument(test.getNodeState());
+            Document doc = docMaker.makeDocument(test.getNodeState());
+            assertNotNull(doc);
+            // "foo" is too long on its own and is dropped entirely
+            assertEquals(0, facetValueCount(doc, "foo"));
+            // "bars" keeps its short value and drops the too-long one
+            assertEquals(1, facetValueCount(doc, "bars"));
 
             LuceneDocumentMaker.FT_OAK_12372_DISABLE.set(true); // legacy mode --> let Lucene throw exception
             assertThrows(IllegalArgumentException.class, () -> docMaker.makeDocument(test.getNodeState()));
         } finally {
             LuceneDocumentMaker.FT_OAK_12372_DISABLE.set(originalFtValue);
         }
+    }
+
+    private static long facetValueCount(Document doc, String pname) {
+        return Arrays.stream(doc.getFields(FieldNames.createFacetFieldName(pname)))
+                .filter(field -> field.fieldType().docValueType() == FieldInfo.DocValuesType.SORTED_SET)
+                .count();
     }
 
     @Test
