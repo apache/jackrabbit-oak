@@ -130,10 +130,10 @@ public class LuceneIndexProviderService {
     private static final boolean PROP_ENABLE_SINGLE_BLOB_INDEX_FILES_DEFAULT = true;
     private static final long PROP_INDEX_FS_STATS_INTERVAL_IN_SECS_DEFAULT = 300;
 
-    // OAK-XXXXX: bug fix, enabled by default - disable only if synchronous
+    // OAK-12173: bug fix, enabled by default - disable only if synchronous
     // tracker seeding at startup causes a problem in some deployment.
-    public static final String FT_SYNC_TRACKER_INIT_OAK_XXXXX = "FT_SYNC_TRACKER_INIT_OAK-XXXXX";
-    public static final AtomicBoolean FT_SYNC_TRACKER_INIT_OAK_XXXXX_DISABLE = new AtomicBoolean(false);
+    public static final String FT_SYNC_TRACKER_INIT_OAK_12173 = "FT_SYNC_TRACKER_INIT_OAK-12173";
+    public static final AtomicBoolean FT_SYNC_TRACKER_INIT_OAK_12173_DISABLE = new AtomicBoolean(false);
 
     @ObjectClassDefinition(
             id = "org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProviderService",
@@ -401,10 +401,10 @@ public class LuceneIndexProviderService {
         tracker = createTracker(bundleContext, config);
 
         oakRegs.add(whiteboard.register(FeatureToggle.class,
-                new FeatureToggle(FT_SYNC_TRACKER_INIT_OAK_XXXXX, FT_SYNC_TRACKER_INIT_OAK_XXXXX_DISABLE),
+                new FeatureToggle(FT_SYNC_TRACKER_INIT_OAK_12173, FT_SYNC_TRACKER_INIT_OAK_12173_DISABLE),
                 emptyMap()));
-        if (!FT_SYNC_TRACKER_INIT_OAK_XXXXX_DISABLE.get()) {
-            // OAK-XXXXX: seed the tracker synchronously with the current root so
+        if (!FT_SYNC_TRACKER_INIT_OAK_12173_DISABLE.get()) {
+            // OAK-12173: seed the tracker synchronously with the current root so
             // indexes that were already built before this service activated are
             // queryable immediately - without waiting for the (potentially
             // BackgroundObserver-queued) Observer registered below to run.
@@ -412,8 +412,8 @@ public class LuceneIndexProviderService {
         }
 
         oakRegs.add(whiteboard.register(FeatureToggle.class,
-                new FeatureToggle(FulltextIndex.FT_INDEX_NOT_READY_RETRY_OAK_XXXXX,
-                        FulltextIndex.FT_INDEX_NOT_READY_RETRY_OAK_XXXXX_DISABLE),
+                new FeatureToggle(FulltextIndex.FT_INDEX_NOT_READY_RETRY_OAK_12173,
+                        FulltextIndex.FT_INDEX_NOT_READY_RETRY_OAK_12173_DISABLE),
                 emptyMap()));
 
         indexProvider = new LuceneIndexProvider(tracker, augmentorFactory);

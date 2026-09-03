@@ -44,7 +44,7 @@ import org.junit.Test;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
-import static org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.FT_INDEX_NOT_READY_RETRY_OAK_XXXXX_DISABLE;
+import static org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.FT_INDEX_NOT_READY_RETRY_OAK_12173_DISABLE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -94,7 +94,7 @@ public class LucenePropertyIndexPlansNotReadyTest {
 
     @After
     public void tearDown() {
-        FT_INDEX_NOT_READY_RETRY_OAK_XXXXX_DISABLE.set(false);
+        FT_INDEX_NOT_READY_RETRY_OAK_12173_DISABLE.set(false);
     }
 
     private Filter rootFilter() {
@@ -139,7 +139,7 @@ public class LucenePropertyIndexPlansNotReadyTest {
 
     @Test
     public void noPlanAndNoRetryWhenToggleDisabled() {
-        FT_INDEX_NOT_READY_RETRY_OAK_XXXXX_DISABLE.set(true);
+        FT_INDEX_NOT_READY_RETRY_OAK_12173_DISABLE.set(true);
         LucenePropertyIndex index = new LucenePropertyIndex(tracker, null);
 
         long start = System.currentTimeMillis();
@@ -152,7 +152,7 @@ public class LucenePropertyIndexPlansNotReadyTest {
 
     @Test
     public void planIsEmptyAndBoundedWhenIndexNeverBecomesReady() {
-        // FT_INDEX_NOT_READY_RETRY_OAK_XXXXX_DISABLE is intentionally left at
+        // FT_INDEX_NOT_READY_RETRY_OAK_12173_DISABLE is intentionally left at
         // its default (false = retry enabled), matching the production
         // default - this is the worst-case-latency guarantee the retry
         // exists to bound: the index never becomes ready, so getPlans() must

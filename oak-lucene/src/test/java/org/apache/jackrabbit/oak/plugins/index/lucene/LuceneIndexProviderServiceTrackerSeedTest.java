@@ -50,7 +50,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHel
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
 
-// OAK-XXXXX
+// OAK-12173
 public class LuceneIndexProviderServiceTrackerSeedTest {
 
     @Rule

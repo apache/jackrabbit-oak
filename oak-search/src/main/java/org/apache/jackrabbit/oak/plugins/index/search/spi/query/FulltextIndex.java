@@ -89,10 +89,10 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
 
     public static final String FT_FILTER_GLOBALLY_SUPERSEDED = "FT_OAK-12146";
 
-    // OAK-XXXXX: bug fix, enabled by default - disable only if the bounded
+    // OAK-12173: bug fix, enabled by default - disable only if the bounded
     // retry below causes a problem in some deployment.
-    public static final String FT_INDEX_NOT_READY_RETRY_OAK_XXXXX = "FT_INDEX_NOT_READY_RETRY_OAK-XXXXX";
-    public static final AtomicBoolean FT_INDEX_NOT_READY_RETRY_OAK_XXXXX_DISABLE = new AtomicBoolean(false);
+    public static final String FT_INDEX_NOT_READY_RETRY_OAK_12173 = "FT_INDEX_NOT_READY_RETRY_OAK-12173";
+    public static final AtomicBoolean FT_INDEX_NOT_READY_RETRY_OAK_12173_DISABLE = new AtomicBoolean(false);
 
     private static final int NOT_READY_RETRY_ATTEMPTS = 3;
     private static final long NOT_READY_RETRY_SLEEP_MILLIS = 50;
@@ -208,7 +208,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
                 indexNode = acquireIndexNode(path);
 
                 if (indexNode == null && isIndexNotYetReady(path)) {
-                    if (!FT_INDEX_NOT_READY_RETRY_OAK_XXXXX_DISABLE.get()) {
+                    if (!FT_INDEX_NOT_READY_RETRY_OAK_12173_DISABLE.get()) {
                         if (retryDeadline < 0) {
                             retryDeadline = System.currentTimeMillis() + NOT_READY_RETRY_BUDGET_MILLIS;
                         }
