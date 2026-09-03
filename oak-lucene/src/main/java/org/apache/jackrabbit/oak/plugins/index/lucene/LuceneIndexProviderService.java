@@ -25,6 +25,7 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -128,6 +129,11 @@ public class LuceneIndexProviderService {
     private static final int PROP_INDEX_CLEANER_INTERVAL_IN_SECS_DEFAULT = 10*60;
     private static final boolean PROP_ENABLE_SINGLE_BLOB_INDEX_FILES_DEFAULT = true;
     private static final long PROP_INDEX_FS_STATS_INTERVAL_IN_SECS_DEFAULT = 300;
+
+    // OAK-XXXXX: bug fix, enabled by default - disable only if synchronous
+    // tracker seeding at startup causes a problem in some deployment.
+    public static final String FT_SYNC_TRACKER_INIT_OAK_XXXXX = "FT_SYNC_TRACKER_INIT_OAK-XXXXX";
+    public static final AtomicBoolean FT_SYNC_TRACKER_INIT_OAK_XXXXX_DISABLE = new AtomicBoolean(false);
 
     @ObjectClassDefinition(
             id = "org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProviderService",
@@ -393,6 +399,23 @@ public class LuceneIndexProviderService {
         initializeIndexDir(bundleContext, config);
         initializeExtractedTextCache(bundleContext, config, statisticsProvider);
         tracker = createTracker(bundleContext, config);
+
+        oakRegs.add(whiteboard.register(FeatureToggle.class,
+                new FeatureToggle(FT_SYNC_TRACKER_INIT_OAK_XXXXX, FT_SYNC_TRACKER_INIT_OAK_XXXXX_DISABLE),
+                emptyMap()));
+        if (!FT_SYNC_TRACKER_INIT_OAK_XXXXX_DISABLE.get()) {
+            // OAK-XXXXX: seed the tracker synchronously with the current root so
+            // indexes that were already built before this service activated are
+            // queryable immediately - without waiting for the (potentially
+            // BackgroundObserver-queued) Observer registered below to run.
+            tracker.update(nodeStore.getRoot());
+        }
+
+        oakRegs.add(whiteboard.register(FeatureToggle.class,
+                new FeatureToggle(FulltextIndex.FT_INDEX_NOT_READY_RETRY_OAK_XXXXX,
+                        FulltextIndex.FT_INDEX_NOT_READY_RETRY_OAK_XXXXX_DISABLE),
+                emptyMap()));
+
         indexProvider = new LuceneIndexProvider(tracker, augmentorFactory);
         filterGloballySupersededFeature = Feature.newFeature(
                 FulltextIndex.FT_FILTER_GLOBALLY_SUPERSEDED, whiteboard);

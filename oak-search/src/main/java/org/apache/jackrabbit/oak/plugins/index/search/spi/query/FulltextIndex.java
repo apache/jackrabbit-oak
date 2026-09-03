@@ -60,6 +60,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
@@ -85,6 +88,27 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     private static final Set<String> COMPETING_INDEX_TYPES = Set.of("lucene", "elasticsearch");
 
     public static final String FT_FILTER_GLOBALLY_SUPERSEDED = "FT_OAK-12146";
+
+    // OAK-XXXXX: bug fix, enabled by default - disable only if the bounded
+    // retry below causes a problem in some deployment.
+    public static final String FT_INDEX_NOT_READY_RETRY_OAK_XXXXX = "FT_INDEX_NOT_READY_RETRY_OAK-XXXXX";
+    public static final AtomicBoolean FT_INDEX_NOT_READY_RETRY_OAK_XXXXX_DISABLE = new AtomicBoolean(false);
+
+    private static final int NOT_READY_RETRY_ATTEMPTS = 3;
+    private static final long NOT_READY_RETRY_SLEEP_MILLIS = 50;
+
+    // Total retry budget for a single getPlans() call, shared across every
+    // not-yet-ready candidate index encountered during that call - not a
+    // per-index budget. Without sharing this deadline, a query matching N
+    // not-ready indexes would block for up to N * (attempts * sleep), which
+    // defeats the point of bounding the worst case.
+    private static final long NOT_READY_RETRY_BUDGET_MILLIS = NOT_READY_RETRY_ATTEMPTS * NOT_READY_RETRY_SLEEP_MILLIS;
+
+    // Rate-limits the "index not yet ready" WARN below, per index path, so that a
+    // long-running (re)indexing operation doesn't flood the log with one WARN per
+    // matching query for the whole duration of the (re)index.
+    private static final ConcurrentMap<String, Long> notReadyWarningTimestamps = new ConcurrentHashMap<>();
+    private static final long NOT_READY_WARNING_INTERVAL_MILLIS = 60_000;
 
     @Nullable private Feature filterGloballySupersededFeature;
 
@@ -121,6 +145,19 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
      */
     protected FulltextIndexPlanner getPlanner(IndexNode indexNode, String path, Filter filter, List<OrderEntry> sortOrder) {
         return new FulltextIndexPlanner(indexNode, path, filter, sortOrder);
+    }
+
+    /**
+     * @param indexPath the index path
+     * @return {@code true} if {@code indexPath} is a known, well-formed index
+     * definition that matched this query but is not currently queryable
+     * (most commonly because it has not finished its first (re)indexing
+     * cycle yet). Subclasses that can tell this apart from "no such index"
+     * should override this; the default is {@code false} so index types
+     * that don't support the distinction keep today's exact behavior.
+     */
+    protected boolean isIndexNotYetReady(String indexPath) {
+        return false;
     }
 
     @Override
@@ -161,10 +198,26 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
             indexPaths = IndexName.filterGloballySuperseded(indexPaths, allCompetingPaths);
         }
         List<IndexPlan> plans = new ArrayList<>(indexPaths.size());
+        // Lazily established on the first not-yet-ready index seen below, then
+        // shared by every subsequent one in this call - see
+        // NOT_READY_RETRY_BUDGET_MILLIS.
+        long retryDeadline = -1;
         for (String path : indexPaths) {
             IndexNode indexNode = null;
             try {
                 indexNode = acquireIndexNode(path);
+
+                if (indexNode == null && isIndexNotYetReady(path)) {
+                    if (!FT_INDEX_NOT_READY_RETRY_OAK_XXXXX_DISABLE.get()) {
+                        if (retryDeadline < 0) {
+                            retryDeadline = System.currentTimeMillis() + NOT_READY_RETRY_BUDGET_MILLIS;
+                        }
+                        indexNode = retryAcquireIndexNode(path, retryDeadline);
+                    }
+                    if (indexNode == null) {
+                        warnIndexNotReady(path);
+                    }
+                }
 
                 if (indexNode != null) {
                     IndexPlan plan = getPlanner(indexNode, path, filter, sortOrder).getPlan();
@@ -181,6 +234,49 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
             }
         }
         return plans;
+    }
+
+    /**
+     * Bounded, blocking retry for an index that {@link #isIndexNotYetReady(String)}
+     * says is a known candidate but not currently acquirable. Sleeps on the
+     * calling (query) thread between attempts, until {@code deadlineMillis}
+     * ({@link System#currentTimeMillis()} epoch millis) is reached.
+     * {@code deadlineMillis} is shared across every not-yet-ready index
+     * encountered within one {@link #getPlans} call, so the total added
+     * latency for that call - however many such indexes it hits - is capped
+     * at {@code NOT_READY_RETRY_BUDGET_MILLIS}, not that amount per index.
+     */
+    private IndexNode retryAcquireIndexNode(String path, long deadlineMillis) {
+        long remaining;
+        while ((remaining = deadlineMillis - System.currentTimeMillis()) > 0) {
+            try {
+                Thread.sleep(Math.min(NOT_READY_RETRY_SLEEP_MILLIS, remaining));
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return null;
+            }
+            IndexNode indexNode = acquireIndexNode(path);
+            if (indexNode != null) {
+                return indexNode;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Logs a WARN that the index at {@code path} is being dropped from consideration
+     * for this query because it is not yet ready, rate-limited to at most once per
+     * {@link #NOT_READY_WARNING_INTERVAL_MILLIS} per index path so that a long-running
+     * (re)indexing operation doesn't flood the log.
+     */
+    private static void warnIndexNotReady(String path) {
+        long now = System.currentTimeMillis();
+        Long last = notReadyWarningTimestamps.get(path);
+        if (last == null || now - last >= NOT_READY_WARNING_INTERVAL_MILLIS) {
+            notReadyWarningTimestamps.put(path, now);
+            LOG.warn("Index at [{}] matches this query but is not yet ready to serve reads " +
+                    "(likely still (re)indexing) - falling back to traversal for this query", path);
+        }
     }
 
     @Override

@@ -735,12 +735,31 @@ public class LucenePropertyIndex extends FulltextIndex {
         if (NON_LAZY) {
             return tracker.acquireIndexNode(indexPath);
         }
+        if (tracker.isIndexPresentButNotReady(indexPath)) {
+            // isIndexPresentButNotReady() only means "not yet opened by the
+            // tracker" - it can't tell "still building, no :data yet" apart
+            // from "built, but this is its very first access" without an
+            // actual open attempt. Make that attempt now (the one case where
+            // we deliberately give up some of the laziness below) instead of
+            // wrapping in a LazyLuceneIndexNode: that wrapper would look
+            // acquired to FulltextIndex#getPlans()'s not-ready retry/warn
+            // logic (it is never null) and only fail later, at actual read
+            // time, with an IllegalStateException ("No index node, corrupt
+            // index?"). A real attempt here also lets a genuinely-ready index
+            // succeed immediately instead of being misreported as not ready.
+            return tracker.acquireIndexNode(indexPath);
+        }
         return new LazyLuceneIndexNode(tracker, indexPath);
     }
 
     @Override
     protected LuceneIndexNode acquireIndexNode(IndexPlan plan) {
         return (LuceneIndexNode) super.acquireIndexNode(plan);
+    }
+
+    @Override
+    protected boolean isIndexNotYetReady(String indexPath) {
+        return tracker.isIndexPresentButNotReady(indexPath);
     }
 
     @Override
