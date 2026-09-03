@@ -25,6 +25,7 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -128,6 +129,10 @@ public class LuceneIndexProviderService {
     private static final int PROP_INDEX_CLEANER_INTERVAL_IN_SECS_DEFAULT = 10*60;
     private static final boolean PROP_ENABLE_SINGLE_BLOB_INDEX_FILES_DEFAULT = true;
     private static final long PROP_INDEX_FS_STATS_INTERVAL_IN_SECS_DEFAULT = 300;
+
+    // OAK-12173: bug fix, enabled by default - turn off only if synchronous
+    // tracker seeding at startup causes a problem in some deployment.
+    public static final AtomicBoolean FT_OAK_12173 = new AtomicBoolean(true);
 
     @ObjectClassDefinition(
             id = "org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProviderService",
@@ -393,6 +398,17 @@ public class LuceneIndexProviderService {
         initializeIndexDir(bundleContext, config);
         initializeExtractedTextCache(bundleContext, config, statisticsProvider);
         tracker = createTracker(bundleContext, config);
+
+        oakRegs.add(whiteboard.register(FeatureToggle.class,
+                new FeatureToggle("FT_OAK-12173", FT_OAK_12173),
+                emptyMap()));
+        if (FT_OAK_12173.get()) {
+            // OAK-12173: update the tracker now, so indexes built before this
+            // service started can be used right away. Without this, we'd have
+            // to wait for the Observer below, which can be slow to start.
+            tracker.update(nodeStore.getRoot());
+        }
+
         indexProvider = new LuceneIndexProvider(tracker, augmentorFactory);
         filterGloballySupersededFeature = Feature.newFeature(
                 FulltextIndex.FT_FILTER_GLOBALLY_SUPERSEDED, whiteboard);

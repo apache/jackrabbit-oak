@@ -735,6 +735,13 @@ public class LucenePropertyIndex extends FulltextIndex {
         if (NON_LAZY) {
             return tracker.acquireIndexNode(indexPath);
         }
+        if (!tracker.isIndexReady(indexPath)) {
+            // Try to open the index now, instead of returning a lazy
+            // placeholder. The placeholder always looks fine at first, so a
+            // broken index would only show up as a confusing error later,
+            // when a query tries to actually read from it.
+            return tracker.acquireIndexNode(indexPath);
+        }
         return new LazyLuceneIndexNode(tracker, indexPath);
     }
 
