@@ -60,9 +60,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
@@ -88,24 +85,6 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     private static final Set<String> COMPETING_INDEX_TYPES = Set.of("lucene", "elasticsearch");
 
     public static final String FT_FILTER_GLOBALLY_SUPERSEDED = "FT_OAK-12146";
-
-    // OAK-12173: bug fix, enabled by default - disable only if the extra
-    // per-candidate isIndexStillBuilding() check below (a cheap NodeState
-    // lookup, no I/O or blocking) causes a problem in some deployment.
-    //
-    // Deliberately does NOT retry/wait: a query thread has no business
-    // blocking on the async indexer's first-build cycle, which in practice
-    // completes on the order of seconds to minutes, not something a query
-    // can afford to sit through. All this does is turn an already-silent
-    // traversal fallback into a rate-limited, observable WARN.
-    public static final String FT_INDEX_STILL_BUILDING_WARN_OAK_12173 = "FT_INDEX_STILL_BUILDING_WARN_OAK-12173";
-    public static final AtomicBoolean FT_INDEX_STILL_BUILDING_WARN_OAK_12173_DISABLE = new AtomicBoolean(false);
-
-    // Rate-limits the "index still building" WARN below, per index path, so that a
-    // long-running (re)indexing operation doesn't flood the log with one WARN per
-    // matching query for the whole duration of the (re)index.
-    private static final ConcurrentMap<String, Long> notReadyWarningTimestamps = new ConcurrentHashMap<>();
-    private static final long NOT_READY_WARNING_INTERVAL_MILLIS = 60_000;
 
     @Nullable private Feature filterGloballySupersededFeature;
 
@@ -142,23 +121,6 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
      */
     protected FulltextIndexPlanner getPlanner(IndexNode indexNode, String path, Filter filter, List<OrderEntry> sortOrder) {
         return new FulltextIndexPlanner(indexNode, path, filter, sortOrder);
-    }
-
-    /**
-     * @param indexPath the index path
-     * @return {@code true} if {@code indexPath} is a known, well-formed index
-     * definition that matched this query but has never completed its first
-     * (re)indexing cycle - as opposed to being missing, disabled, or corrupt.
-     * This is deliberately narrower than "not currently queryable": an index
-     * that merely hasn't been opened yet (but is otherwise fully built) is
-     * not reported here, because a plain, immediate {@link #acquireIndexNode}
-     * attempt already resolves that case with no need to wait. Subclasses
-     * that can tell "still building" apart from "no such index" should
-     * override this; the default is {@code false} so index types that don't
-     * support the distinction keep today's exact behavior.
-     */
-    protected boolean isIndexStillBuilding(String indexPath) {
-        return false;
     }
 
     @Override
@@ -204,14 +166,6 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
             try {
                 indexNode = acquireIndexNode(path);
 
-                if (indexNode == null && !FT_INDEX_STILL_BUILDING_WARN_OAK_12173_DISABLE.get()
-                        && isIndexStillBuilding(path)) {
-                    // Deliberately no retry/wait here - see the comment on
-                    // FT_INDEX_STILL_BUILDING_WARN_OAK_12173 above. This is a
-                    // same-cost-as-before traversal fallback, just now logged.
-                    warnIndexStillBuilding(path);
-                }
-
                 if (indexNode != null) {
                     IndexPlan plan = getPlanner(indexNode, path, filter, sortOrder).getPlan();
                     if (plan != null) {
@@ -227,22 +181,6 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
             }
         }
         return plans;
-    }
-
-    /**
-     * Logs a WARN that the index at {@code path} is being dropped from consideration
-     * for this query because it has never completed its first (re)indexing cycle,
-     * rate-limited to at most once per {@link #NOT_READY_WARNING_INTERVAL_MILLIS} per
-     * index path so that a long-running (re)indexing operation doesn't flood the log.
-     */
-    private static void warnIndexStillBuilding(String path) {
-        long now = System.currentTimeMillis();
-        Long last = notReadyWarningTimestamps.get(path);
-        if (last == null || now - last >= NOT_READY_WARNING_INTERVAL_MILLIS) {
-            notReadyWarningTimestamps.put(path, now);
-            LOG.warn("Index at [{}] matches this query but has not finished its first (re)indexing " +
-                    "cycle yet - falling back to traversal for this query", path);
-        }
     }
 
     @Override

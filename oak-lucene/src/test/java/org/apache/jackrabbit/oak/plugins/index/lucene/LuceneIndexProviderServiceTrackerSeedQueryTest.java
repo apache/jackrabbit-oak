@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -24,8 +24,15 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.ResultRow;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
-import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
@@ -34,6 +41,8 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -47,14 +56,22 @@ import org.junit.rules.TemporaryFolder;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProviderService.FT_SYNC_TRACKER_INIT_OAK_12173_DISABLE;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
-// OAK-12173
-public class LuceneIndexProviderServiceTrackerSeedTest {
+/**
+ * End-to-end version of {@link LuceneIndexProviderServiceTrackerSeedTest}: instead of
+ * asserting directly against {@link IndexTracker#acquireIndexNode(String)}, this drives
+ * a real JCR-SQL2 query through a real {@link Oak}-built {@link ContentRepository} and
+ * checks the actual query plan - proving the fix (or the race it fixes, when the toggle
+ * is disabled) at the level a real caller (e.g. Sling's VanityPathInitializer) observes
+ * it, not just at the {@code IndexTracker} API level.
+ */
+public class LuceneIndexProviderServiceTrackerSeedQueryTest {
 
     @Rule
     public final TemporaryFolder folder = new TemporaryFolder(new File("target"));
@@ -100,58 +117,67 @@ public class LuceneIndexProviderServiceTrackerSeedTest {
         FT_SYNC_TRACKER_INIT_OAK_12173_DISABLE.set(false);
     }
 
-    @Test
-    public void indexIsQueryableImmediatelyAfterActivation() throws Exception {
+    /**
+     * Activates a real {@link LuceneIndexProviderService} against a NodeStore that
+     * already has a fully-built lucene index (as if built before this process
+     * started), builds a real queryable {@link ContentRepository} from its actual
+     * {@code indexProvider}, and immediately (no sleep) runs an {@code explain}
+     * query through the real query engine - returning the resulting plan string.
+     */
+    private String explainQueryImmediatelyAfterActivation(boolean toggleDisabled) throws Exception {
+        FT_SYNC_TRACKER_INIT_OAK_12173_DISABLE.set(toggleDisabled);
+
         NodeState prebuilt = rootWithFullyBuiltLuceneIndex();
-        registerCommonServices(new MemoryNodeStore(prebuilt));
+        NodeStore nodeStore = new MemoryNodeStore(prebuilt);
+        registerCommonServices(nodeStore);
 
         LuceneIndexProviderService service = new LuceneIndexProviderService();
         MockOsgi.injectServices(service, context.bundleContext());
-        // enableOpenIndexAsync defaults to true, i.e. the Observer is wrapped in a
-        // BackgroundObserver whose queue is never drained in this test - if the
-        // tracker were only ever seeded through that Observer, acquireIndexNode()
-        // below would see an empty tracker and return null.
+        // enableOpenIndexAsync defaults to true (BackgroundObserver, never drained
+        // here) - same race setup as LuceneIndexProviderServiceTrackerSeedTest.
         MockOsgi.activate(service, context.bundleContext(), defaultConfig());
+        try {
+            QueryIndexProvider indexProvider =
+                    (QueryIndexProvider) FieldUtils.readDeclaredField(service, "indexProvider", true);
 
-        IndexTracker tracker = (IndexTracker) FieldUtils.readDeclaredField(service, "tracker", true);
-        LuceneIndexNode indexNode = tracker.acquireIndexNode("/oak:index/lucene");
+            ContentRepository repo = new Oak(nodeStore)
+                    .with(new OpenSecurityProvider())
+                    .with(indexProvider)
+                    .createContentRepository();
 
-        assertNotNull("Index built before startup must be usable immediately after "
-                + "activate(), without waiting for the BackgroundObserver thread", indexNode);
-        if (indexNode != null) {
-            indexNode.release();
+            ContentSession session = repo.login(null, null);
+            try {
+                Root root = session.getLatestRoot();
+                QueryEngine qe = root.getQueryEngine();
+                Result result = qe.executeQuery(
+                        "explain select [jcr:path] from [nt:base] where [foo] = 'bar'",
+                        "JCR-SQL2", QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
+                ResultRow row = result.getRows().iterator().next();
+                return row.getValue("plan").getValue(Type.STRING);
+            } finally {
+                session.close();
+            }
+        } finally {
+            MockOsgi.deactivate(service, context.bundleContext());
         }
-
-        MockOsgi.deactivate(service, context.bundleContext());
     }
 
     @Test
-    public void indexIsNotQueryableAfterActivationWhenToggleDisabled() throws Exception {
-        // Reproduces the race this fix closes: with the synchronous seed
-        // turned off, the tracker is only ever seeded through the Observer -
-        // which, exactly as in the test above, is queued behind a
-        // BackgroundObserver that is never drained here. This is the
-        // pre-fix/toggled-off behavior, and it must actually fail to find the
-        // index (proving the toggle is load-bearing, not a no-op).
-        FT_SYNC_TRACKER_INIT_OAK_12173_DISABLE.set(true);
+    public void queryUsesIndexImmediatelyAfterActivation() throws Exception {
+        String plan = explainQueryImmediatelyAfterActivation(false);
+        assertThat("A query right after activate() must use the pre-built lucene index, "
+                        + "not fall back to traversal - actual plan: " + plan,
+                plan, containsString("lucene:lucene"));
+    }
 
-        NodeState prebuilt = rootWithFullyBuiltLuceneIndex();
-        registerCommonServices(new MemoryNodeStore(prebuilt));
-
-        LuceneIndexProviderService service = new LuceneIndexProviderService();
-        MockOsgi.injectServices(service, context.bundleContext());
-        MockOsgi.activate(service, context.bundleContext(), defaultConfig());
-
-        IndexTracker tracker = (IndexTracker) FieldUtils.readDeclaredField(service, "tracker", true);
-        LuceneIndexNode indexNode = tracker.acquireIndexNode("/oak:index/lucene");
-
-        assertNull("With the synchronous seed disabled, an index built before startup "
-                + "must NOT be usable immediately after activate() - this is the race "
-                + "the toggle exists to close", indexNode);
-        if (indexNode != null) {
-            indexNode.release();
-        }
-
-        MockOsgi.deactivate(service, context.bundleContext());
+    @Test
+    public void queryTraversesImmediatelyAfterActivationWhenToggleDisabled() throws Exception {
+        String plan = explainQueryImmediatelyAfterActivation(true);
+        assertThat("With the synchronous seed disabled, a query right after activate() "
+                        + "must fall back to traversal instead of using the (already built, "
+                        + "but not-yet-opened) index - this is the race the toggle exists to "
+                        + "close, reproduced here via a real query plan, not a direct "
+                        + "IndexTracker call - actual plan: " + plan,
+                plan, not(containsString("lucene:lucene")));
     }
 }

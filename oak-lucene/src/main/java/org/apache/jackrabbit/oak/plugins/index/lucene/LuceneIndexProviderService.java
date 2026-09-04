@@ -411,11 +411,6 @@ public class LuceneIndexProviderService {
             tracker.update(nodeStore.getRoot());
         }
 
-        oakRegs.add(whiteboard.register(FeatureToggle.class,
-                new FeatureToggle(FulltextIndex.FT_INDEX_STILL_BUILDING_WARN_OAK_12173,
-                        FulltextIndex.FT_INDEX_STILL_BUILDING_WARN_OAK_12173_DISABLE),
-                emptyMap()));
-
         indexProvider = new LuceneIndexProvider(tracker, augmentorFactory);
         filterGloballySupersededFeature = Feature.newFeature(
                 FulltextIndex.FT_FILTER_GLOBALLY_SUPERSEDED, whiteboard);

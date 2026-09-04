@@ -50,8 +50,8 @@ import static org.junit.Assert.assertTrue;
  * {@link LucenePropertyIndex} is first loaded, so it must be set before that
  * class - or anything that references it - is touched anywhere in this JVM.
  * This is why this is its own top-level test class, run in isolation from
- * {@link LucenePropertyIndexPlansNotReadyTest} (which relies on the
- * NON_LAZY=true default), rather than a method added to it.
+ * other {@code LucenePropertyIndex} tests (which rely on the NON_LAZY=true
+ * default), rather than a method added to one of them.
  */
 public class LucenePropertyIndexLazyNotReadyTest {
 
@@ -78,7 +78,7 @@ public class LucenePropertyIndexLazyNotReadyTest {
     }
 
     @Test
-    public void lazyModeSkipsStillBuildingIndexImmediately() {
+    public void lazyModeReturnsNoPlanForIndexWithoutBuiltData() {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         newLucenePropertyIndexDefinition(index, indexName, Set.of("foo"), "async");
         // Definition committed but never (re)indexed - no ":data" child yet.
@@ -86,19 +86,13 @@ public class LucenePropertyIndexLazyNotReadyTest {
 
         LucenePropertyIndex lucenePropertyIndex = new LucenePropertyIndex(tracker, null);
 
-        long start = System.currentTimeMillis();
         List<IndexPlan> plans =
                 lucenePropertyIndex.getPlans(rootFilter(), Collections.emptyList(), builder.getNodeState());
-        long elapsed = System.currentTimeMillis() - start;
 
-        assertTrue("Plans should be empty - index has never completed its first build", plans.isEmpty());
         // Proves acquireIndexNode(String) made a real open attempt (returning
         // null) instead of silently succeeding via a LazyLuceneIndexNode
-        // wrapper - but also that there is no wait/retry for the still-
-        // building case even in lazy mode.
-        assertTrue("getPlans() must not wait for a still-building index, even in lazy mode "
-                        + "(elapsed=" + elapsed + "ms)",
-                elapsed < 2000);
+        // wrapper, which would otherwise only fail much later, at read time.
+        assertTrue("Plans should be empty - index has never completed its first build", plans.isEmpty());
     }
 
     @Test

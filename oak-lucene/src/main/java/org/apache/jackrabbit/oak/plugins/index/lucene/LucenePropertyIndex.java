@@ -741,13 +741,11 @@ public class LucenePropertyIndex extends FulltextIndex {
             // from "built, but this is its very first access" without an
             // actual open attempt, which is cheap either way (a plain local
             // read, not something worth deferring). Make that attempt now
-            // instead of wrapping in a LazyLuceneIndexNode: that wrapper
-            // would look acquired to FulltextIndex#getPlans()'s not-yet-ready
-            // detection (it is never null) and only fail later, at actual
-            // read time, with an IllegalStateException ("No index node,
-            // corrupt index?"). A real attempt here also lets a
-            // genuinely-ready index succeed immediately instead of being
-            // misreported as not ready.
+            // instead of wrapping in a LazyLuceneIndexNode: that wrapper is
+            // never null, so a genuinely-ready index would only be found to
+            // actually work later, at read time - or, for a corrupt index,
+            // fail there with an IllegalStateException ("No index node,
+            // corrupt index?") instead of a clean null here.
             return tracker.acquireIndexNode(indexPath);
         }
         return new LazyLuceneIndexNode(tracker, indexPath);
@@ -756,11 +754,6 @@ public class LucenePropertyIndex extends FulltextIndex {
     @Override
     protected LuceneIndexNode acquireIndexNode(IndexPlan plan) {
         return (LuceneIndexNode) super.acquireIndexNode(plan);
-    }
-
-    @Override
-    protected boolean isIndexStillBuilding(String indexPath) {
-        return tracker.isIndexBuilding(indexPath);
     }
 
     @Override
