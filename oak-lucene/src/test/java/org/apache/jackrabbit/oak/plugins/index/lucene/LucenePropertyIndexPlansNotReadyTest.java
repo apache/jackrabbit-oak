@@ -38,37 +38,29 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
-import static org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.FT_INDEX_NOT_READY_RETRY_OAK_12173_DISABLE;
+import static org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.FT_INDEX_STILL_BUILDING_WARN_OAK_12173_DISABLE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+/**
+ * Covers {@code FulltextIndex#getPlans()}'s handling of an index that matched
+ * the query but has never completed its first (re)indexing cycle ("still
+ * building", per {@link IndexTracker#isIndexBuilding(String)}).
+ *
+ * <p>This is deliberately <em>not</em> a wait-and-retry mechanism: the async
+ * indexer's first-build cycle typically takes seconds to minutes in
+ * production (see GRANITE-63330), so there is no bounded sleep on the query
+ * thread that could plausibly catch it - a query thread should never block on
+ * it. All {@code getPlans()} does for a still-building index is skip it
+ * immediately (exactly as if no such index existed) and log a rate-limited
+ * WARN so the condition is observable instead of silent.
+ */
 public class LucenePropertyIndexPlansNotReadyTest {
-
-    @BeforeClass
-    public static void warmUpLucene() throws Exception {
-        // Creating the very first Lucene IndexWriter in a JVM costs several
-        // hundred ms of classloading/JIT (observed ~350-450ms on a cold JVM).
-        // The timing-sensitive test below has only a 150ms retry budget
-        // (3 attempts x 50ms, deliberately bounded in FulltextIndex to cap
-        // added query latency - not adjustable here), so pay that one-time
-        // cost up front, against throwaway scratch state, before any timed
-        // assertion runs.
-        NodeBuilder warmupBuilder = INITIAL_CONTENT.builder();
-        NodeBuilder warmupIndex = warmupBuilder.child(INDEX_DEFINITIONS_NAME);
-        newLucenePropertyIndexDefinition(warmupIndex, "warmup", Set.of("foo"), "async");
-        EditorHook warmupHook = new EditorHook(
-                new IndexUpdateProvider(new LuceneIndexEditorProvider(), "async", false));
-        NodeState before = warmupBuilder.getNodeState();
-        warmupBuilder.setProperty("foo", "bar");
-        NodeState after = warmupBuilder.getNodeState();
-        warmupHook.processCommit(before, after, CommitInfo.EMPTY);
-    }
 
     private final NodeBuilder builder = INITIAL_CONTENT.builder();
 
@@ -78,7 +70,7 @@ public class LucenePropertyIndexPlansNotReadyTest {
             new IndexUpdateProvider(new LuceneIndexEditorProvider(), "async", false));
 
     // Unique per test instance (JUnit creates a fresh instance per @Test method) so
-    // that the "index not yet ready" WARN rate-limiting in FulltextIndex - keyed by
+    // that the "index still building" WARN rate-limiting in FulltextIndex - keyed by
     // index path and shared statically across the whole JVM - can't cause one test
     // method's WARN to suppress another's within the same test run.
     private final String indexName = "lucene-" + UUID.randomUUID();
@@ -94,7 +86,7 @@ public class LucenePropertyIndexPlansNotReadyTest {
 
     @After
     public void tearDown() {
-        FT_INDEX_NOT_READY_RETRY_OAK_12173_DISABLE.set(false);
+        FT_INDEX_STILL_BUILDING_WARN_OAK_12173_DISABLE.set(false);
     }
 
     private Filter rootFilter() {
@@ -109,56 +101,7 @@ public class LucenePropertyIndexPlansNotReadyTest {
     }
 
     @Test
-    public void planIsFoundIfIndexBecomesReadyDuringRetryWindow() throws Exception {
-        LucenePropertyIndex index = new LucenePropertyIndex(tracker, null);
-
-        Thread builder2 = new Thread(() -> {
-            try {
-                // Simulates the async indexer finishing the first build shortly
-                // after the query started looking for a usable index - well
-                // within the retry window (3 attempts x 50ms = 150ms).
-                Thread.sleep(20);
-                NodeBuilder b = this.builder;
-                NodeState before = b.getNodeState();
-                b.setProperty("foo", "bar");
-                NodeState after = b.getNodeState();
-                NodeState indexedState = hook.processCommit(before, after, CommitInfo.EMPTY);
-                tracker.update(indexedState);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
-        builder2.start();
-
-        java.util.List<IndexPlan> plans = index.getPlans(rootFilter(), Collections.emptyList(), builder.getNodeState());
-        builder2.join();
-
-        assertEquals("Query should pick up the index once it becomes ready mid-retry, "
-                + "instead of unconditionally falling back to traversal", 1, plans.size());
-    }
-
-    @Test
-    public void noPlanAndNoRetryWhenToggleDisabled() {
-        FT_INDEX_NOT_READY_RETRY_OAK_12173_DISABLE.set(true);
-        LucenePropertyIndex index = new LucenePropertyIndex(tracker, null);
-
-        long start = System.currentTimeMillis();
-        java.util.List<IndexPlan> plans = index.getPlans(rootFilter(), Collections.emptyList(), builder.getNodeState());
-        long elapsed = System.currentTimeMillis() - start;
-
-        assertTrue("Plans should be empty - index never became ready", plans.isEmpty());
-        assertTrue("With the toggle disabled, getPlans() must not block retrying", elapsed < 50);
-    }
-
-    @Test
-    public void planIsEmptyAndBoundedWhenIndexNeverBecomesReady() {
-        // FT_INDEX_NOT_READY_RETRY_OAK_12173_DISABLE is intentionally left at
-        // its default (false = retry enabled), matching the production
-        // default - this is the worst-case-latency guarantee the retry
-        // exists to bound: the index never becomes ready, so getPlans() must
-        // exhaust the full retry budget (3 attempts x 50ms = 150ms) and
-        // still return an empty list, rather than hanging or looping
-        // unboundedly.
+    public void planIsEmptyImmediatelyWhenIndexStillBuilding() {
         LucenePropertyIndex index = new LucenePropertyIndex(tracker, null);
 
         LogCustomizer customLogger = LogCustomizer
@@ -168,34 +111,51 @@ public class LucenePropertyIndexPlansNotReadyTest {
         customLogger.starting();
         try {
             long start = System.currentTimeMillis();
-            java.util.List<IndexPlan> plans = index.getPlans(rootFilter(), Collections.emptyList(), builder.getNodeState());
+            List<IndexPlan> plans = index.getPlans(rootFilter(), Collections.emptyList(), builder.getNodeState());
             long elapsed = System.currentTimeMillis() - start;
 
-            assertTrue("Plans should be empty - index never became ready", plans.isEmpty());
-            // Tolerant window rather than an exact bound, to stay robust on
-            // slow/shared CI hardware: comfortably above zero proves the
-            // retries actually happened (not an instant give-up), and
-            // comfortably under a generous ceiling proves getPlans() didn't
-            // hang or loop unboundedly.
-            assertTrue("getPlans() should have spent time retrying before giving up (elapsed=" + elapsed + "ms)",
-                    elapsed >= 100);
-            assertTrue("getPlans() should not block far beyond the bounded retry budget (elapsed=" + elapsed + "ms)",
+            assertTrue("Plans should be empty - index has never completed its first build", plans.isEmpty());
+            // No retry/sleep exists anymore - a still-building index must be
+            // skipped essentially instantly, not after any deliberate delay.
+            // Generous ceiling to stay robust on slow/shared CI hardware.
+            assertTrue("getPlans() must not wait for a still-building index (elapsed=" + elapsed + "ms)",
                     elapsed < 2000);
 
             List<String> logs = customLogger.getLogs();
-            assertTrue("Expected a WARN log noting the index is not yet ready: " + logs,
-                    logs.stream().anyMatch(line -> line.contains("not yet ready")));
+            assertTrue("Expected a WARN log noting the index is still building: " + logs,
+                    logs.stream().anyMatch(line -> line.contains("first (re)indexing")));
         } finally {
             customLogger.finished();
         }
     }
 
     @Test
-    public void retryBudgetIsSharedAcrossMultipleNotReadyIndexes() {
-        // A second, independent not-ready index competing for the same query -
-        // both match the filter (both index "foo") and neither has a ":data"
-        // child yet. Before the fix, each not-ready candidate paid its own
-        // full retry budget, so two of them meant ~300ms instead of ~150ms.
+    public void noWarnWhenToggleDisabled() {
+        FT_INDEX_STILL_BUILDING_WARN_OAK_12173_DISABLE.set(true);
+        LucenePropertyIndex index = new LucenePropertyIndex(tracker, null);
+
+        LogCustomizer customLogger = LogCustomizer
+                .forLogger(FulltextIndex.class.getName())
+                .enable(Level.WARN)
+                .create();
+        customLogger.starting();
+        try {
+            List<IndexPlan> plans = index.getPlans(rootFilter(), Collections.emptyList(), builder.getNodeState());
+
+            assertTrue("Plans should be empty - index has never completed its first build", plans.isEmpty());
+            assertTrue("With the toggle disabled, no WARN should be logged",
+                    customLogger.getLogs().isEmpty());
+        } finally {
+            customLogger.finished();
+        }
+    }
+
+    @Test
+    public void multipleStillBuildingIndexesAllResolveImmediately() {
+        // A second, independent still-building index competing for the same
+        // query - both match the filter (both index "foo") and neither has a
+        // ":data" child yet. There is no retry budget to share anymore, but
+        // this guards against that cost ever creeping back in per-index.
         NodeBuilder secondIndex = builder.child(INDEX_DEFINITIONS_NAME);
         newLucenePropertyIndexDefinition(secondIndex, "lucene-" + UUID.randomUUID(), Set.of("foo"), "async");
         tracker.update(builder.getNodeState());
@@ -203,17 +163,29 @@ public class LucenePropertyIndexPlansNotReadyTest {
         LucenePropertyIndex index = new LucenePropertyIndex(tracker, null);
 
         long start = System.currentTimeMillis();
-        java.util.List<IndexPlan> plans = index.getPlans(rootFilter(), Collections.emptyList(), builder.getNodeState());
+        List<IndexPlan> plans = index.getPlans(rootFilter(), Collections.emptyList(), builder.getNodeState());
         long elapsed = System.currentTimeMillis() - start;
 
-        assertTrue("Plans should be empty - neither index ever became ready", plans.isEmpty());
-        // Same tolerant window as planIsEmptyAndBoundedWhenIndexNeverBecomesReady:
-        // proving the *total* time for both not-ready indexes together stays
-        // within one retry budget (~150ms), not one budget per index (~300ms+).
-        assertTrue("getPlans() should have spent time retrying before giving up (elapsed=" + elapsed + "ms)",
-                elapsed >= 100);
-        assertTrue("Retry budget must be shared across all not-ready indexes in one getPlans() call, "
-                        + "not paid once per index (elapsed=" + elapsed + "ms)",
-                elapsed < 250);
+        assertTrue("Plans should be empty - neither index has completed its first build", plans.isEmpty());
+        assertTrue("getPlans() must not wait, regardless of how many still-building indexes it hits "
+                        + "(elapsed=" + elapsed + "ms)",
+                elapsed < 2000);
+    }
+
+    @Test
+    public void planIsFoundImmediatelyOnceIndexIsBuilt() throws Exception {
+        // Once the async indexer actually finishes the first build (":data"
+        // appears), the very next getPlans() call must pick up the index -
+        // via a plain, immediate acquireIndexNode(), not a retry loop.
+        NodeState before = builder.getNodeState();
+        builder.setProperty("foo", "bar");
+        NodeState after = builder.getNodeState();
+        NodeState indexedState = hook.processCommit(before, after, CommitInfo.EMPTY);
+        tracker.update(indexedState);
+
+        LucenePropertyIndex index = new LucenePropertyIndex(tracker, null);
+        List<IndexPlan> plans = index.getPlans(rootFilter(), Collections.emptyList(), builder.getNodeState());
+
+        assertEquals("Query should pick up the index as soon as it is built", 1, plans.size());
     }
 }

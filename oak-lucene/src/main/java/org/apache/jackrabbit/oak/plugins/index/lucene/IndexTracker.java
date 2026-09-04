@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.search.BadIndexTracker;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -308,8 +309,13 @@ public class IndexTracker {
      * definition that is not currently open and not already known to be
      * corrupt/bad - i.e. it is a plausible candidate for the query engine
      * to use, but {@link #acquireIndexNode(String)} would return {@code null}
-     * for it right now (most commonly because it has not finished its first
-     * (re)indexing cycle yet).
+     * for it right now, for either of two very different reasons - see
+     * {@link #isIndexBuilding(String)} to tell them apart. Callers that need
+     * to decide whether it's worth attempting a real, synchronous
+     * {@link #acquireIndexNode(String)} at all (as opposed to a cheap lazy
+     * placeholder) should use this method; callers that need to decide
+     * whether it's worth <em>waiting</em> for the index should use
+     * {@link #isIndexBuilding(String)} instead.
      */
     public boolean isIndexPresentButNotReady(String path) {
         if (indices.containsKey(path)) {
@@ -324,6 +330,41 @@ public class IndexTracker {
             node = node.getChildNode(name);
         }
         return isLuceneIndexNode(node);
+    }
+
+    /**
+     * @param path the index path
+     * @return {@code true} if {@code path} is a well-formed, not-bad Lucene
+     * index definition (same preconditions as {@link #isIndexPresentButNotReady})
+     * that additionally has never completed its first (re)indexing cycle -
+     * that is, its {@value FulltextIndexConstants#INDEX_DATA_CHILD_NAME} child
+     * node does not exist yet.
+     * <p>
+     * This is a genuinely different, much slower condition than "present but
+     * not currently open": it only resolves once the async indexer's next
+     * cycle completes for this index, which in practice can take seconds to
+     * minutes - nothing a query thread should ever block waiting for. An
+     * index that is well-formed, not open, and <em>not</em> reported by this
+     * method (i.e. its {@code :data} child already exists) merely needs a
+     * plain synchronous {@link #acquireIndexNode(String)} attempt, which is
+     * local, fast, and does not need retrying.
+     */
+    public boolean isIndexBuilding(String path) {
+        if (indices.containsKey(path)) {
+            return false;
+        }
+        if (badIndexTracker.isIgnoredBadIndex(path)) {
+            return false;
+        }
+
+        NodeState node = root;
+        for (String name : PathUtils.elements(path)) {
+            node = node.getChildNode(name);
+        }
+        if (!isLuceneIndexNode(node)) {
+            return false;
+        }
+        return !node.hasChildNode(FulltextIndexConstants.INDEX_DATA_CHILD_NAME);
     }
 
     public Set<String> getIndexNodePaths(){

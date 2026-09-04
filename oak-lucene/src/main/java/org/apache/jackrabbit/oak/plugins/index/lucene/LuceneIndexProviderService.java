@@ -412,8 +412,8 @@ public class LuceneIndexProviderService {
         }
 
         oakRegs.add(whiteboard.register(FeatureToggle.class,
-                new FeatureToggle(FulltextIndex.FT_INDEX_NOT_READY_RETRY_OAK_12173,
-                        FulltextIndex.FT_INDEX_NOT_READY_RETRY_OAK_12173_DISABLE),
+                new FeatureToggle(FulltextIndex.FT_INDEX_STILL_BUILDING_WARN_OAK_12173,
+                        FulltextIndex.FT_INDEX_STILL_BUILDING_WARN_OAK_12173_DISABLE),
                 emptyMap()));
 
         indexProvider = new LuceneIndexProvider(tracker, augmentorFactory);

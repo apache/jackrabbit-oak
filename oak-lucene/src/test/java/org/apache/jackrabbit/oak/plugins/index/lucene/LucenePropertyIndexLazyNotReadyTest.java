@@ -19,11 +19,11 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -34,13 +34,11 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.After;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
-import static org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.FT_INDEX_NOT_READY_RETRY_OAK_12173_DISABLE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -57,22 +55,8 @@ import static org.junit.Assert.assertTrue;
  */
 public class LucenePropertyIndexLazyNotReadyTest {
 
-    @BeforeClass
-    public static void enableLazyIndexMode() throws Exception {
+    static {
         System.setProperty("oak.lucene.nonLazyIndex", "false");
-
-        // Same one-time Lucene classloading/JIT warm-up as
-        // LucenePropertyIndexPlansNotReadyTest#warmUpLucene - see that method
-        // for why it's needed before any timed assertion runs.
-        NodeBuilder warmupBuilder = INITIAL_CONTENT.builder();
-        NodeBuilder warmupIndex = warmupBuilder.child(INDEX_DEFINITIONS_NAME);
-        newLucenePropertyIndexDefinition(warmupIndex, "warmup", Set.of("foo"), "async");
-        EditorHook warmupHook = new EditorHook(
-                new IndexUpdateProvider(new LuceneIndexEditorProvider(), "async", false));
-        NodeState before = warmupBuilder.getNodeState();
-        warmupBuilder.setProperty("foo", "bar");
-        NodeState after = warmupBuilder.getNodeState();
-        warmupHook.processCommit(before, after, CommitInfo.EMPTY);
     }
 
     private final NodeBuilder builder = INITIAL_CONTENT.builder();
@@ -83,7 +67,6 @@ public class LucenePropertyIndexLazyNotReadyTest {
 
     @After
     public void tearDown() {
-        FT_INDEX_NOT_READY_RETRY_OAK_12173_DISABLE.set(false);
         System.clearProperty("oak.lucene.nonLazyIndex");
     }
 
@@ -95,7 +78,7 @@ public class LucenePropertyIndexLazyNotReadyTest {
     }
 
     @Test
-    public void lazyModeStillDetectsNotReadyIndex() {
+    public void lazyModeSkipsStillBuildingIndexImmediately() {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         newLucenePropertyIndexDefinition(index, indexName, Set.of("foo"), "async");
         // Definition committed but never (re)indexed - no ":data" child yet.
@@ -104,48 +87,43 @@ public class LucenePropertyIndexLazyNotReadyTest {
         LucenePropertyIndex lucenePropertyIndex = new LucenePropertyIndex(tracker, null);
 
         long start = System.currentTimeMillis();
-        java.util.List<IndexPlan> plans =
+        List<IndexPlan> plans =
                 lucenePropertyIndex.getPlans(rootFilter(), Collections.emptyList(), builder.getNodeState());
         long elapsed = System.currentTimeMillis() - start;
 
-        assertTrue("Plans should be empty - index never became ready", plans.isEmpty());
-        // Proves acquireIndexNode(String) returned null and routed through
-        // FulltextIndex#getPlans()'s not-ready retry/warn handling instead of
-        // silently succeeding via a LazyLuceneIndexNode wrapper (which would
-        // return almost instantly here, well under 100ms).
-        assertTrue("getPlans() should have spent time in the not-ready retry path (elapsed=" + elapsed + "ms)",
-                elapsed >= 100);
+        assertTrue("Plans should be empty - index has never completed its first build", plans.isEmpty());
+        // Proves acquireIndexNode(String) made a real open attempt (returning
+        // null) instead of silently succeeding via a LazyLuceneIndexNode
+        // wrapper - but also that there is no wait/retry for the still-
+        // building case even in lazy mode.
+        assertTrue("getPlans() must not wait for a still-building index, even in lazy mode "
+                        + "(elapsed=" + elapsed + "ms)",
+                elapsed < 2000);
     }
 
     @Test
-    public void lazyModePlanIsFoundOnceIndexBecomesReady() throws Exception {
+    public void lazyModePlanIsFoundImmediatelyWhenBuiltButNeverOpened() throws Exception {
+        // The "not opened yet" case in lazy mode: ":data" already exists
+        // (the index is fully built), but this LucenePropertyIndex/tracker
+        // pair has never opened it before. Must resolve via a single,
+        // immediate real acquire - not a wait.
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         newLucenePropertyIndexDefinition(index, indexName, Set.of("foo"), "async");
-        tracker.update(builder.getNodeState());
 
-        LucenePropertyIndex lucenePropertyIndex = new LucenePropertyIndex(tracker, null);
+        NodeState before = builder.getNodeState();
+        builder.setProperty("foo", "bar");
+        NodeState after = builder.getNodeState();
         EditorHook hook = new EditorHook(
                 new IndexUpdateProvider(new LuceneIndexEditorProvider(), "async", false));
+        NodeState indexedState = hook.processCommit(before, after, CommitInfo.EMPTY);
+        tracker.update(indexedState);
 
-        Thread indexingThread = new Thread(() -> {
-            try {
-                Thread.sleep(20);
-                NodeState before = builder.getNodeState();
-                builder.setProperty("foo", "bar");
-                NodeState after = builder.getNodeState();
-                NodeState indexedState = hook.processCommit(before, after, CommitInfo.EMPTY);
-                tracker.update(indexedState);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
-        indexingThread.start();
+        LucenePropertyIndex lucenePropertyIndex = new LucenePropertyIndex(tracker, null);
 
-        java.util.List<IndexPlan> plans =
+        List<IndexPlan> plans =
                 lucenePropertyIndex.getPlans(rootFilter(), Collections.emptyList(), builder.getNodeState());
-        indexingThread.join();
 
-        assertEquals("Query should pick up the index once it becomes ready mid-retry, "
+        assertEquals("Query should pick up an already-built index on its first access, "
                 + "even in lazy-index mode", 1, plans.size());
     }
 }
