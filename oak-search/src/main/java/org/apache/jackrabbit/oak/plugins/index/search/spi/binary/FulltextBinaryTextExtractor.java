@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
+import org.apache.tika.config.ServiceLoader;
 import org.apache.tika.config.TikaConfig;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.exception.WriteLimitReachedException;
@@ -287,7 +288,9 @@ public class FulltextBinaryTextExtractor {
         String configSource = null;
 
         try {
-            Thread.currentThread().setContextClassLoader(FulltextIndexEditorContext.class.getClassLoader());
+            ClassLoader newContextClassLoader = FulltextIndexEditorContext.class.getClassLoader();
+            Thread.currentThread().setContextClassLoader(newContextClassLoader);
+            ServiceLoader.setContextClassLoader(newContextClassLoader);
             if (definition != null && definition.hasCustomTikaConfig()) {
                 log.debug("[{}] Using custom tika config", definition.getIndexName());
                 configSource = "Custom config at " + definition.getIndexPath();
@@ -308,6 +311,7 @@ public class FulltextBinaryTextExtractor {
         } finally {
             IOUtils.closeQuietly(configStream);
             Thread.currentThread().setContextClassLoader(current);
+            ServiceLoader.setContextClassLoader(null); // Tika default is null
         }
         return new TikaConfigHolder(TikaConfig.getDefaultConfig(), "Default Config");
     }
