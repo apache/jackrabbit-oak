@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporter;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporterProvider;
 import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -49,6 +50,14 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerM
 
 @Component(service = {})
 public class IndexerMBeanImpl extends AnnotatedStandardMBean implements IndexerMBean {
+
+    /**
+     * Feature toggle for reverting to the legacy out-of-band import flow. Disabled by default,
+     * so the new generalized async-alignment is used; enable it (via LaunchDarkly) to fall back
+     * to the previous elasticsearch-only handling. The LaunchDarkly flag key is "OAK-12307".
+     */
+    static final String LEGACY_INDEX_IMPORT_TOGGLE = "OAK-12307";
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     @Reference
     private NodeStore nodeStore;
@@ -59,6 +68,7 @@ public class IndexerMBeanImpl extends AnnotatedStandardMBean implements IndexerM
     private WhiteboardIndexEditorProvider editorProvider = new WhiteboardIndexEditorProvider();
     private Registration mbeanReg;
     private Tracker<IndexImporterProvider> providerTracker;
+    private Feature legacyImportFeature;
 
     public IndexerMBeanImpl() {
         super(IndexerMBean.class);
@@ -73,7 +83,8 @@ public class IndexerMBeanImpl extends AnnotatedStandardMBean implements IndexerM
     public boolean importIndex(String indexDirPath, boolean ignoreLocalLock) throws IOException, CommitFailedException {
 
         try {
-            IndexImporter importer = new IndexImporter(nodeStore, new File(indexDirPath), editorProvider, createLock(ignoreLocalLock));
+            boolean useLegacyImportFlow = legacyImportFeature != null && legacyImportFeature.isEnabled();
+            IndexImporter importer = new IndexImporter(nodeStore, new File(indexDirPath), editorProvider, createLock(ignoreLocalLock), useLegacyImportFlow);
             providerTracker.getServices().forEach(importer::addImporterProvider);
             importer.importIndex();
         } catch (IOException | CommitFailedException | RuntimeException e) {
@@ -106,6 +117,7 @@ public class IndexerMBeanImpl extends AnnotatedStandardMBean implements IndexerM
                 IndexerMBean.TYPE,
                 "Indexer operations related MBean");
         providerTracker = wb.track(IndexImporterProvider.class);
+        legacyImportFeature = Feature.newFeature(LEGACY_INDEX_IMPORT_TOGGLE, wb);
     }
 
     @Deactivate
@@ -116,6 +128,9 @@ public class IndexerMBeanImpl extends AnnotatedStandardMBean implements IndexerM
         editorProvider.stop();
         if (providerTracker != null) {
             providerTracker.stop();
+        }
+        if (legacyImportFeature != null) {
+            legacyImportFeature.close();
         }
     }
 

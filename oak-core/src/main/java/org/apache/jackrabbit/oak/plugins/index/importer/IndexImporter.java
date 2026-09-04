@@ -98,21 +98,34 @@ public class IndexImporter {
     private final Set<String> indexPathsToUpdate;
     private final StatisticsProvider statisticsProvider;
     private final IndexingReporter indexingReporter;
+    private final boolean useLegacyImportFlow;
 
     public IndexImporter(NodeStore nodeStore, File indexDir, IndexEditorProvider indexEditorProvider,
                          AsyncIndexerLock indexerLock) throws IOException {
-        this(nodeStore, indexDir, indexEditorProvider, indexerLock, StatisticsProvider.NOOP, IndexingReporter.NOOP);
+        this(nodeStore, indexDir, indexEditorProvider, indexerLock, false);
+    }
+
+    public IndexImporter(NodeStore nodeStore, File indexDir, IndexEditorProvider indexEditorProvider,
+                         AsyncIndexerLock indexerLock, boolean useLegacyImportFlow) throws IOException {
+        this(nodeStore, indexDir, indexEditorProvider, indexerLock, StatisticsProvider.NOOP, IndexingReporter.NOOP, useLegacyImportFlow);
     }
 
     public IndexImporter(NodeStore nodeStore, File indexDir, IndexEditorProvider indexEditorProvider,
                          AsyncIndexerLock indexerLock, StatisticsProvider statisticsProvider) throws IOException {
-        this(nodeStore, indexDir, indexEditorProvider, indexerLock, statisticsProvider, IndexingReporter.NOOP);
+        this(nodeStore, indexDir, indexEditorProvider, indexerLock, statisticsProvider, IndexingReporter.NOOP, false);
     }
 
     public IndexImporter(NodeStore nodeStore, File indexDir, IndexEditorProvider indexEditorProvider,
                          AsyncIndexerLock indexerLock, StatisticsProvider statisticsProvider, IndexingReporter indexingReporter) throws IOException {
+        this(nodeStore, indexDir, indexEditorProvider, indexerLock, statisticsProvider, indexingReporter, false);
+    }
+
+    public IndexImporter(NodeStore nodeStore, File indexDir, IndexEditorProvider indexEditorProvider,
+                         AsyncIndexerLock indexerLock, StatisticsProvider statisticsProvider, IndexingReporter indexingReporter,
+                         boolean useLegacyImportFlow) throws IOException {
         this.statisticsProvider = statisticsProvider;
         this.indexingReporter = indexingReporter;
+        this.useLegacyImportFlow = useLegacyImportFlow;
         checkArgument(indexDir.exists() && indexDir.isDirectory(),
                 "Path [%s] does not point to existing directory", indexDir.getAbsolutePath());
         this.nodeStore = nodeStore;
@@ -209,17 +222,37 @@ public class IndexImporter {
                     indexPathsToUpdate.add(indexInfo.indexPath);
                     String idxBuilderType = idxBuilder.getString(TYPE_PROPERTY_NAME);
 
-                    // check if provided index definitions is of different type than existing one
-                    // also check if one of them is an elasticsearch type
-                    if (idxBuilderType != null &&
-                            !idxBuilderType.equals(indexInfo.type) &&
-                            (idxBuilderType.equals(TYPE_ELASTICSEARCH) || indexInfo.type.equals(TYPE_ELASTICSEARCH))) {
+                    if (useLegacyImportFlow) {
+                        // Legacy behaviour: only realign async when the type mismatch involves an
+                        // elasticsearch index, using the lane from the provided definition.
+                        if (idxBuilderType != null &&
+                                !idxBuilderType.equals(indexInfo.type) &&
+                                (idxBuilderType.equals(TYPE_ELASTICSEARCH) || indexInfo.type.equals(TYPE_ELASTICSEARCH))) {
 
-                        LOG.info("Provided index [{}] has a different type compared to the existing index." +
-                                " Using lane from the index definition provided", indexInfo.indexPath);
+                            LOG.info("Provided index [{}] has a different type compared to the existing index." +
+                                    " Using lane from the index definition provided", indexInfo.indexPath);
 
-                        PropertyState asyncProperty = PropertyStates.createProperty(ASYNC_PROPERTY_NAME, List.of(indexInfo.asyncLaneName), Type.STRINGS);
-                        idxBuilder.setProperty(asyncProperty);
+                            PropertyState asyncProperty = PropertyStates.createProperty(ASYNC_PROPERTY_NAME, List.of(indexInfo.asyncLaneName), Type.STRINGS);
+                            idxBuilder.setProperty(asyncProperty);
+                        }
+                    } else {
+                        // If the provided index definition has a different type than the one on disk
+                        // (e.g. disabled -> lucene, lucene -> elasticsearch), the on-disk definition is
+                        // obsolete: the rebuilt index must reflect only the provided definition. Align the
+                        // async property to the provided definition before switching lanes, so its lane
+                        // (or its absence, for a sync index) is what gets restored afterwards.
+                        if (idxBuilderType != null && !idxBuilderType.equals(indexInfo.type)) {
+                            LOG.info("Existing index [{}] has a different type than the provided definition ([{}] -> [{}]);" +
+                                    " using the provided definition", indexInfo.indexPath, idxBuilderType, indexInfo.type);
+
+                            PropertyState providedAsync = indexDefinitionUpdater.getIndexState(indexInfo.indexPath)
+                                    .getProperty(ASYNC_PROPERTY_NAME);
+                            if (providedAsync != null) {
+                                idxBuilder.setProperty(PropertyStates.createProperty(ASYNC_PROPERTY_NAME, providedAsync.getValue(Type.STRINGS), Type.STRINGS));
+                            } else {
+                                idxBuilder.removeProperty(ASYNC_PROPERTY_NAME);
+                            }
+                        }
                     }
                     AsyncLaneSwitcher.switchLane(idxBuilder, AsyncLaneSwitcher.getTempLaneName(indexInfo.asyncLaneName));
                 }
