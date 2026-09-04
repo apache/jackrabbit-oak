@@ -18,16 +18,26 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.nodetype;
 
+import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider.FT_OAK_12348;
+import static org.apache.jackrabbit.oak.spi.toggle.Feature.newFeature;
+
 import java.util.List;
 
+import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import org.osgi.framework.BundleContext;
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 
 /**
@@ -41,10 +51,36 @@ public class NodeTypeIndexProvider implements QueryIndexProvider {
     private MountInfoProvider mountInfoProvider = Mounts
             .defaultMountInfoProvider();
 
+    /**
+     * See {@link org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider#FT_OAK_12348}
+     * (OAK-12348) -- registered independently here rather than shared with
+     * PropertyIndexProvider, since the two are separate, independently
+     * activated components with no existing cross-component wiring in this
+     * codebase. Same toggle name, so an operator flipping one knows to check
+     * the other.
+     */
+    @Nullable
+    private Feature feature;
+
+    @Activate
+    private void activate(BundleContext bundleContext) {
+        Whiteboard whiteboard = new OsgiWhiteboard(bundleContext);
+        this.feature = newFeature(FT_OAK_12348, whiteboard);
+    }
+
+    @Deactivate
+    private void deactivate() {
+        if (feature != null) {
+            feature.close();
+            feature = null;
+        }
+    }
+
     @NotNull
     @Override
     public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
-        return List.of(new NodeTypeIndex(mountInfoProvider));
+        boolean useLegacy = feature != null && feature.isEnabled();
+        return List.of(new NodeTypeIndex(mountInfoProvider, useLegacy));
     }
 
     public NodeTypeIndexProvider with(MountInfoProvider mountInfoProvider) {

@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 class NodeTypeIndexLookup implements JcrConstants {
 
     /**
-     * Derived from {@link #getCost(Filter)}
+     * The pre-OAK-12348 legacy floor. Derived from {@link #getCost(Filter)}.
      */
     static final double MINIMUM_COST = 2.05;
 
@@ -40,10 +40,19 @@ class NodeTypeIndexLookup implements JcrConstants {
 
     private final MountInfoProvider mountInfoProvider;
 
+    // OAK-12348: false (default) uses the configurable cost formula.
+    private final boolean useLegacy;
+
     public NodeTypeIndexLookup(NodeState root,
             MountInfoProvider mountInfoProvider) {
+        this(root, mountInfoProvider, false);
+    }
+
+    public NodeTypeIndexLookup(NodeState root,
+            MountInfoProvider mountInfoProvider, boolean useLegacy) {
         this.root = root;
         this.mountInfoProvider = mountInfoProvider;
+        this.useLegacy = useLegacy;
     }
 
     /**
@@ -55,7 +64,7 @@ class NodeTypeIndexLookup implements JcrConstants {
      *         otherwise.
      */
     public boolean isIndexed(String path, Filter f) {
-        PropertyIndexLookup lookup = new PropertyIndexLookup(root, mountInfoProvider);
+        PropertyIndexLookup lookup = new PropertyIndexLookup(root, mountInfoProvider, useLegacy);
         if (lookup.isIndexed(JCR_PRIMARYTYPE, path, f)
                 && lookup.isIndexed(JCR_MIXINTYPES, path, f)) {
             return true;
@@ -70,12 +79,12 @@ class NodeTypeIndexLookup implements JcrConstants {
         }
 
         NodeState child = root.getChildNode(path.substring(0, slash));
-        return new NodeTypeIndexLookup(child, mountInfoProvider).isIndexed(
+        return new NodeTypeIndexLookup(child, mountInfoProvider, useLegacy).isIndexed(
                 path.substring(slash), f);
     }
 
     public double getCost(Filter filter) {
-        PropertyIndexLookup lookup = new PropertyIndexLookup(root, mountInfoProvider);
+        PropertyIndexLookup lookup = new PropertyIndexLookup(root, mountInfoProvider, useLegacy);
         return lookup.getCost(filter, JCR_PRIMARYTYPE, newName(filter.getPrimaryTypes()))
                 + lookup.getCost(filter, JCR_MIXINTYPES, newName(filter.getMixinTypes()));
     }
@@ -87,7 +96,7 @@ class NodeTypeIndexLookup implements JcrConstants {
      * @return the matched paths (the result might contain duplicate entries)
      */
     public Iterable<String> query(Filter filter) {
-        PropertyIndexLookup lookup = new PropertyIndexLookup(root, mountInfoProvider);
+        PropertyIndexLookup lookup = new PropertyIndexLookup(root, mountInfoProvider, useLegacy);
         return IterableUtils.chainedIterable(
                 lookup.query(filter, JCR_PRIMARYTYPE, newName(filter.getPrimaryTypes())),
                 lookup.query(filter, JCR_MIXINTYPES, newName(filter.getMixinTypes())));

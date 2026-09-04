@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
@@ -79,13 +80,21 @@ public class PropertyIndexLookup {
 
     private final MountInfoProvider mountInfoProvider;
 
+    // OAK-12348: false (default) uses the configurable cost formula.
+    private final boolean useLegacy;
+
     public PropertyIndexLookup(NodeState root) {
         this(root, Mounts.defaultMountInfoProvider());
     }
 
     public PropertyIndexLookup(NodeState root, MountInfoProvider mountInfoProvider) {
+        this(root, mountInfoProvider, false);
+    }
+
+    public PropertyIndexLookup(NodeState root, MountInfoProvider mountInfoProvider, boolean useLegacy) {
         this.root = root;
         this.mountInfoProvider = mountInfoProvider;
+        this.useLegacy = useLegacy;
     }
 
     /**
@@ -135,18 +144,63 @@ public class PropertyIndexLookup {
                 definition, INDEX_CONTENT_NODE_NAME);
     }
 
+    /**
+     * Dispatches to {@link #getCostConfigurable} or {@link #getCostLegacy}
+     * based on {@code useLegacy}.
+     */
     public double getCost(Filter filter, String propertyName, PropertyValue value) {
+        return useLegacy
+                ? getCostLegacy(filter, propertyName, value)
+                : getCostConfigurable(filter, propertyName, value);
+    }
+
+    /**
+     * Original cost formula: {@code COST_OVERHEAD + entryCount}. Ignores
+     * {@code costPerEntry}/{@code costPerExecution} even if set on the index
+     * definition.
+     */
+    public double getCostLegacy(Filter filter, String propertyName, PropertyValue value) {
         NodeState indexMeta = getIndexNode(root, propertyName, filter);
         if (indexMeta == null) {
             return Double.POSITIVE_INFINITY;
         }
-        Set<IndexStoreStrategy> strategies = getStrategies(indexMeta);
-        ValuePattern pattern = new ValuePattern(indexMeta);
-        double cost = strategies.isEmpty() ? MAX_COST : COST_OVERHEAD;
-        for (IndexStoreStrategy s : strategies) {
-            cost += s.count(filter, root, indexMeta, encode(value, pattern), MAX_COST);
+        return getCost(indexMeta, filter, value, COST_OVERHEAD, 1.0);
+    }
+
+    /**
+     * {@code cost = costPerExecution + costPerEntry * entryCount}, both
+     * optionally configured on the index definition (OAK-12348). Defaults
+     * ({@code costPerEntry=1.0}, {@code costPerExecution=COST_OVERHEAD})
+     * reproduce {@link #getCostLegacy} exactly.
+     */
+    public double getCostConfigurable(Filter filter, String propertyName, PropertyValue value) {
+        NodeState indexMeta = getIndexNode(root, propertyName, filter);
+        if (indexMeta == null) {
+            return Double.POSITIVE_INFINITY;
         }
-        return cost;
+        double costPerEntry = IndexUtils.getOptionalValue(indexMeta, IndexConstants.COST_PER_ENTRY, 1.0);
+        double costPerExecution = IndexUtils.getOptionalValue(indexMeta, IndexConstants.COST_PER_EXECUTION, COST_OVERHEAD);
+        return getCost(indexMeta, filter, value, costPerExecution, costPerEntry);
+    }
+
+    // Shared by getCostLegacy/getCostConfigurable, which only differ in
+    // costPerExecution/costPerEntry -- legacy hardcodes them, configurable
+    // reads them from indexMeta (which is why they can't be precomputed
+    // earlier than this: they depend on which property's index definition
+    // this call resolved, and the same PropertyIndexLookup is reused across
+    // different property names, e.g. by NodeTypeIndexLookup).
+    private double getCost(NodeState indexMeta, Filter filter, PropertyValue value,
+            double costPerExecution, double costPerEntry) {
+        Set<IndexStoreStrategy> strategies = getStrategies(indexMeta);
+        if (strategies.isEmpty()) {
+            return MAX_COST;
+        }
+        ValuePattern pattern = new ValuePattern(indexMeta);
+        double entryCount = 0;
+        for (IndexStoreStrategy s : strategies) {
+            entryCount += s.count(filter, root, indexMeta, encode(value, pattern), MAX_COST);
+        }
+        return costPerExecution + costPerEntry * entryCount;
     }
 
     /**

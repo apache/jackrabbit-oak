@@ -67,27 +67,18 @@ public class PropertyIndexPlan {
 
     private final String name;
 
-    private final Set<String> properties;
-
     private final Set<IndexStoreStrategy> strategies;
 
     private final Filter filter;
-
-    private boolean matchesAllTypes;
-
-    private boolean matchesNodeTypes;
-
-    private final double cost;
 
     private final Set<String> values;
 
     private final int depth;
 
-    private final PathFilter pathFilter;
-
-    private final boolean unique;
-
     private final boolean deprecated;
+
+    // Value returned by getCost().
+    private final double cost;
 
     PropertyIndexPlan(String name, NodeState root, NodeState definition,
                       Filter filter){
@@ -96,24 +87,29 @@ public class PropertyIndexPlan {
 
     PropertyIndexPlan(String name, NodeState root, NodeState definition,
                       Filter filter, MountInfoProvider mountInfoProvider) {
+        this(name, root, definition, filter, mountInfoProvider, false);
+    }
+
+    PropertyIndexPlan(String name, NodeState root, NodeState definition,
+                      Filter filter, MountInfoProvider mountInfoProvider, boolean useLegacy) {
         this.name = name;
-        this.unique = definition.getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME);
+        boolean unique = definition.getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME);
         this.definition = definition;
-        this.properties = SetUtils.toSet(definition.getNames(PROPERTY_NAMES));
-        pathFilter = PathFilter.from(definition.builder());
-        this.strategies = getStrategies(definition, mountInfoProvider);
+        Set<String> properties = SetUtils.toSet(definition.getNames(PROPERTY_NAMES));
+        PathFilter pathFilter = PathFilter.from(definition.builder());
+        this.strategies = getStrategies(definition, mountInfoProvider, unique);
         this.filter = filter;
 
         Iterable<String> types = definition.getNames(DECLARING_NODE_TYPES);
         // if there is no such property, then all nodetypes are matched
-        this.matchesAllTypes = !definition.hasProperty(DECLARING_NODE_TYPES);
+        boolean matchesAllTypes = !definition.hasProperty(DECLARING_NODE_TYPES);
         this.deprecated = definition.getBoolean(IndexConstants.INDEX_DEPRECATED);
-        this.matchesNodeTypes =
+        boolean matchesNodeTypes =
                 matchesAllTypes || StreamUtils.toStream(types).anyMatch(filter.getSupertypes()::contains);
 
         ValuePattern valuePattern = new ValuePattern(definition);
 
-        double bestCost = Double.POSITIVE_INFINITY;
+        double bestCount = Double.POSITIVE_INFINITY;
         Set<String> bestValues = emptySet();
         int bestDepth = 1;
 
@@ -168,22 +164,22 @@ public class PropertyIndexPlan {
                         }
                     }
                     values = PropertyIndexUtil.encode(values);
-                    double cost = strategies.isEmpty() ? MAX_COST : 0;
+                    double count = strategies.isEmpty() ? MAX_COST : 0;
                     for (IndexStoreStrategy strategy : strategies) {
-                        cost += strategy.count(filter, root, definition,
+                        count += strategy.count(filter, root, definition,
                                 values, MAX_COST);
                     }
-                    if (unique && cost <= 1) {
+                    if (unique && count <= 1) {
                         // for unique index, for the normal case
                         // (that is, for a regular lookup)
                         // no further reads are needed
-                        cost = 0;
+                        count = 0;
                     }
-                    if (cost < bestCost) {
+                    if (count < bestCount) {
                         bestDepth = depth;
                         bestValues = values;
-                        bestCost = cost;
-                        if (bestCost == 0) {
+                        bestCount = count;
+                        if (bestCount == 0) {
                             // shortcut: not possible to top this
                             break;
                         }
@@ -194,7 +190,7 @@ public class PropertyIndexPlan {
 
         this.depth = bestDepth;
         this.values = bestValues;
-        this.cost = COST_OVERHEAD + bestCost;
+        this.cost = useLegacy ? getCostLegacy(bestCount) : getCostConfigurable(bestCount);
     }
 
     String getName() {
@@ -203,6 +199,30 @@ public class PropertyIndexPlan {
 
     double getCost() {
         return cost;
+    }
+
+    /**
+     * Original cost formula: {@code COST_OVERHEAD + bestCount}. Ignores
+     * {@code costPerEntry}/{@code costPerExecution} even if set on the index
+     * definition.
+     */
+    double getCostLegacy(double bestCount) {
+        return bestCount == Double.POSITIVE_INFINITY ? Double.POSITIVE_INFINITY : COST_OVERHEAD + bestCount;
+    }
+
+    /**
+     * {@code cost = costPerExecution + costPerEntry * bestCount}, both
+     * optionally configured on the index definition (OAK-12348). Defaults
+     * ({@code costPerEntry=1.0}, {@code costPerExecution=COST_OVERHEAD})
+     * reproduce {@link #getCostLegacy} exactly.
+     */
+    double getCostConfigurable(double bestCount) {
+        if (bestCount == Double.POSITIVE_INFINITY) {
+            return Double.POSITIVE_INFINITY;
+        }
+        double costPerEntry = IndexUtils.getOptionalValue(definition, IndexConstants.COST_PER_ENTRY, 1.0);
+        double costPerExecution = IndexUtils.getOptionalValue(definition, IndexConstants.COST_PER_EXECUTION, COST_OVERHEAD);
+        return costPerExecution + costPerEntry * bestCount;
     }
 
     Cursor execute() {
@@ -228,7 +248,7 @@ public class PropertyIndexPlan {
     }
 
     Set<IndexStoreStrategy> getStrategies(NodeState definition,
-            MountInfoProvider mountInfoProvider) {
+            MountInfoProvider mountInfoProvider, boolean unique) {
         return Multiplexers.getStrategies(unique, mountInfoProvider,
                 definition, INDEX_CONTENT_NODE_NAME);
     }
@@ -260,7 +280,7 @@ public class PropertyIndexPlan {
             }
         }
         buffer.append("\n");
-        buffer.append("    estimatedCost: ").append(cost).append("\n");
+        buffer.append("    estimatedCost: ").append(getCost()).append("\n");
         return buffer.toString();
     }
 

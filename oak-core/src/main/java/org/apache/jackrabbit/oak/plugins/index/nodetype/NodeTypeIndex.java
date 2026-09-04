@@ -41,13 +41,25 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
 
     private final MountInfoProvider mountInfoProvider;
 
+    // OAK-12348: false (default) uses the configurable cost formula.
+    private final boolean useLegacy;
+
+    // Value returned by getMinimumCost(), precomputed from useLegacy.
+    private final double minimumCost;
+
     public NodeTypeIndex(MountInfoProvider mountInfoProvider) {
+        this(mountInfoProvider, false);
+    }
+
+    public NodeTypeIndex(MountInfoProvider mountInfoProvider, boolean useLegacy) {
         this.mountInfoProvider = mountInfoProvider;
+        this.useLegacy = useLegacy;
+        this.minimumCost = useLegacy ? NodeTypeIndexLookup.MINIMUM_COST : 0;
     }
 
     @Override
     public double getMinimumCost() {
-        return NodeTypeIndexLookup.MINIMUM_COST;
+        return minimumCost;
     }
 
     @Override
@@ -70,7 +82,7 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
             return Double.POSITIVE_INFINITY;
         }
         
-        NodeTypeIndexLookup lookup = new NodeTypeIndexLookup(root, mountInfoProvider);
+        NodeTypeIndexLookup lookup = new NodeTypeIndexLookup(root, mountInfoProvider, useLegacy);
         if (lookup.isIndexed(filter.getPath(), filter)) {
             return lookup.getCost(filter);
         } else {
@@ -92,7 +104,7 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
 
     @Override
     public Cursor query(Filter filter, NodeState root) {
-        NodeTypeIndexLookup lookup = new NodeTypeIndexLookup(root, mountInfoProvider);
+        NodeTypeIndexLookup lookup = new NodeTypeIndexLookup(root, mountInfoProvider, useLegacy);
         if (!hasNodeTypeRestriction(filter) || !lookup.isIndexed(filter.getPath(), filter)) {
             throw new IllegalStateException(
                     "NodeType index is used even when no index is available for filter " + filter);

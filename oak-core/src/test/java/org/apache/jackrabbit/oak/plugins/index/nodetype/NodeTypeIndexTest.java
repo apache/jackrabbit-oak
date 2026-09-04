@@ -91,6 +91,80 @@ public class NodeTypeIndexTest {
         checkCursor(index.query(filter, rootState), "/folder-1", "/folder-2", "/file-1");
     }
 
+    /**
+     * NodeTypeIndex has no cost logic of its own: its cost is the sum of two
+     * {@code PropertyIndexLookup.getCost()} calls (jcr:primaryType, jcr:mixinTypes)
+     * against the single "nodetype" property index definition. Setting
+     * costPerEntry/costPerExecution on that definition must change the total,
+     * with no code changes needed in the nodetype package itself.
+     */
+    @Test
+    public void nodeTypeCostOverride() throws Exception {
+        NodeBuilder root = store.getRoot().builder();
+
+        // remove system security nodes to avoid skewing counts: rep:security's
+        // default authorizable store (rep:AuthorizableFolder, rep:User) also
+        // extends nt:hierarchyNode, so it would otherwise be counted by the
+        // NT_HIERARCHYNODE assertion below alongside the folders/file this test adds.
+        root.getChildNode("rep:security").remove();
+
+        NodeBuilder nodetypeIndex = root.getChildNode("oak:index").getChildNode("nodetype");
+        // set "entryCount", so the node type index counts the nodes
+        // and the approximation is not used
+        nodetypeIndex.setProperty("entryCount", -1);
+        nodetypeIndex.setProperty(org.apache.jackrabbit.oak.plugins.index.IndexConstants.COST_PER_ENTRY, 3.0);
+        nodetypeIndex.setProperty(org.apache.jackrabbit.oak.plugins.index.IndexConstants.COST_PER_EXECUTION, 10.0);
+
+        addFolder(root, "folder-1");
+        addFolder(root, "folder-2");
+        addFile(root, "file-1");
+
+        store.merge(root, new EditorHook(new IndexUpdateProvider(
+                new PropertyIndexEditorProvider())), CommitInfo.EMPTY);
+
+        NodeState rootState = store.getRoot();
+        NodeTypeIndex index = new NodeTypeIndex(
+                Mounts.defaultMountInfoProvider());
+        FilterImpl filter;
+
+        // NodeTypeIndex has no toggle of its own -- it inherits whichever formula
+        // PropertyIndexLookup.getCost() is currently dispatching to, driven by the
+        // useLegacy boolean passed into NodeTypeIndex's constructor (OAK-12348),
+        // which defaults to false (configurable formula active) when not provided
+        // -- no opt-in needed here.
+
+        // default (see nodeType() above) is 2*COST_OVERHEAD(2) + entrySum;
+        // with the override it is 2*costPerExecution + costPerEntry*entrySum
+        filter = createFilter(rootState, JcrConstants.NT_FOLDER);
+        assertEquals(2 * 10.0 + 3.0 * 2, index.getCost(filter, rootState), 0.0);
+
+        filter = createFilter(rootState, JcrConstants.NT_FILE);
+        assertEquals(2 * 10.0 + 3.0 * 1, index.getCost(filter, rootState), 0.0);
+
+        filter = createFilter(rootState, JcrConstants.NT_HIERARCHYNODE);
+        assertEquals(2 * 10.0 + 3.0 * 3, index.getCost(filter, rootState), 0.0);
+    }
+
+    /**
+     * Same rationale as PropertyIndex#getMinimumCost -- see PropertyIndexTest#getMinimumCostIsZero.
+     */
+    @Test
+    public void getMinimumCostIsZero() {
+        NodeTypeIndex index = new NodeTypeIndex(Mounts.defaultMountInfoProvider());
+        assertEquals(0.0, index.getMinimumCost(), 0.0);
+    }
+
+    /**
+     * Companion to {@link #getMinimumCostIsZero()}: with the legacy-mode
+     * toggle enabled, getMinimumCost() must reproduce the exact
+     * pre-OAK-12348 value ({@link NodeTypeIndexLookup#MINIMUM_COST}), not 0.
+     */
+    @Test
+    public void getMinimumCostIsLegacyValueUnderLegacyMode() {
+        NodeTypeIndex index = new NodeTypeIndex(Mounts.defaultMountInfoProvider(), true);
+        assertEquals(NodeTypeIndexLookup.MINIMUM_COST, index.getMinimumCost(), 0.0);
+    }
+
     private static FilterImpl createFilter(NodeState root, String nodeTypeName) {
         NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(root);
         NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);        

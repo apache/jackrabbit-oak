@@ -88,13 +88,26 @@ class PropertyIndex implements QueryIndex {
 
     private final MountInfoProvider mountInfoProvider;
 
+    // OAK-12348: false (default) uses the configurable cost formula.
+    private final boolean useLegacy;
+
+    // Lowest cost any plan can report under the active formula; used by
+    // getMinimumCost() and createPlan()'s early-break check.
+    private final double minimumCost;
+
     /**
      * Cached property index plan
      */
     private PropertyIndexPlan cachedPlan;
 
     PropertyIndex(MountInfoProvider mountInfoProvider) {
+        this(mountInfoProvider, false);
+    }
+
+    PropertyIndex(MountInfoProvider mountInfoProvider, boolean useLegacy) {
         this.mountInfoProvider = mountInfoProvider;
+        this.useLegacy = useLegacy;
+        this.minimumCost = useLegacy ? PropertyIndexPlan.COST_OVERHEAD : 0;
     }
 
     private PropertyIndexPlan getPlan(NodeState root, Filter filter) {
@@ -106,14 +119,13 @@ class PropertyIndex implements QueryIndex {
         if (plan != null && plan.getFilter().toString().equals(filter.toString())) {
             return plan;
         } else {
-            plan = createPlan(root, filter, mountInfoProvider);
+            plan = createPlan(root, filter);
             this.cachedPlan = plan;
             return plan;
         }
     }
 
-    private static PropertyIndexPlan createPlan(NodeState root, Filter filter,
-                                                MountInfoProvider mountInfoProvider) {
+    private PropertyIndexPlan createPlan(NodeState root, Filter filter) {
         PropertyIndexPlan bestPlan = null;
 
         // TODO support indexes on a path
@@ -127,14 +139,14 @@ class PropertyIndex implements QueryIndex {
             if (PROPERTY.equals(definition.getString(TYPE_PROPERTY_NAME))
                     && definition.hasChildNode(INDEX_CONTENT_NODE_NAME)) {
                 PropertyIndexPlan plan = new PropertyIndexPlan(
-                        entry.getName(), root, definition, filter, mountInfoProvider);
+                        entry.getName(), root, definition, filter, mountInfoProvider, useLegacy);
                 if (plan.getCost() != Double.POSITIVE_INFINITY) {
                     LOG.debug("property cost for {} is {}",
                             plan.getName(), plan.getCost());
                     if (bestPlan == null || plan.getCost() < bestPlan.getCost()) {
                         bestPlan = plan;
-                        // Stop comparing if the costs are the minimum
-                        if (plan.getCost() == PropertyIndexPlan.COST_OVERHEAD) {
+                        // Stop comparing if the cost can't possibly be beaten
+                        if (plan.getCost() == minimumCost) {
                             break;
                         }
                     }
@@ -221,7 +233,7 @@ class PropertyIndex implements QueryIndex {
 
     @Override
     public double getMinimumCost() {
-        return PropertyIndexPlan.COST_OVERHEAD;
+        return minimumCost;
     }
 
     @Override
