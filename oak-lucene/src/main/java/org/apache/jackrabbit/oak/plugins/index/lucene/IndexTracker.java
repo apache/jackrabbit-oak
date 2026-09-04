@@ -302,6 +302,36 @@ public class IndexTracker {
         return new LuceneIndexDefinition(root, node, indexPath);
     }
 
+    /**
+     * @param path the index path
+     * @return {@code true} if {@code path} is a well-formed Lucene index
+     * definition that is not currently open and not already known to be
+     * corrupt/bad - i.e. it is a plausible candidate for the query engine
+     * to use, but {@link #acquireIndexNode(String)} would return {@code null}
+     * for it right now (most commonly because it has not finished its first
+     * (re)indexing cycle yet, though it could also simply never have been
+     * opened by this tracker instance despite already being fully built).
+     * Callers that need to decide whether it's worth attempting a real,
+     * synchronous {@link #acquireIndexNode(String)} at all (as opposed to a
+     * cheap lazy placeholder) should use this method - a real attempt is
+     * cheap and correctly resolves either underlying reason, unlike this
+     * predicate on its own.
+     */
+    public boolean isIndexPresentButNotReady(String path) {
+        if (indices.containsKey(path)) {
+            return false;
+        }
+        if (badIndexTracker.isIgnoredBadIndex(path)) {
+            return false;
+        }
+
+        NodeState node = root;
+        for (String name : PathUtils.elements(path)) {
+            node = node.getChildNode(name);
+        }
+        return isLuceneIndexNode(node);
+    }
+
     public Set<String> getIndexNodePaths(){
         return indices.keySet();
     }

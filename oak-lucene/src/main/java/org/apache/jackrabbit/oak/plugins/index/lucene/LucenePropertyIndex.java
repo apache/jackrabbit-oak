@@ -735,6 +735,19 @@ public class LucenePropertyIndex extends FulltextIndex {
         if (NON_LAZY) {
             return tracker.acquireIndexNode(indexPath);
         }
+        if (tracker.isIndexPresentButNotReady(indexPath)) {
+            // isIndexPresentButNotReady() only means "not yet opened by the
+            // tracker" - it can't tell "still building, no :data yet" apart
+            // from "built, but this is its very first access" without an
+            // actual open attempt, which is cheap either way (a plain local
+            // read, not something worth deferring). Make that attempt now
+            // instead of wrapping in a LazyLuceneIndexNode: that wrapper is
+            // never null, so a genuinely-ready index would only be found to
+            // actually work later, at read time - or, for a corrupt index,
+            // fail there with an IllegalStateException ("No index node,
+            // corrupt index?") instead of a clean null here.
+            return tracker.acquireIndexNode(indexPath);
+        }
         return new LazyLuceneIndexNode(tracker, indexPath);
     }
 
