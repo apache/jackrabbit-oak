@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
+import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.analysis.Analyzer;
@@ -141,19 +142,71 @@ public class LuceneIndexDefinition extends IndexDefinition {
         if (analyzers.containsKey(ANL_DEFAULT)){
             defaultAnalyzer = analyzers.get(ANL_DEFAULT);
         }
-        if (!evaluatePathRestrictions()){
-            result = defaultAnalyzer;
-        } else {
-            Map<String, Analyzer> analyzerMap = Map.of(
-                    FieldNames.ANCESTORS, new TokenizerChain(new PathHierarchyTokenizerFactory(Collections.emptyMap())));
-            result = new PerFieldAnalyzerWrapper(defaultAnalyzer, analyzerMap);
+
+        Map<String, Analyzer> perFieldAnalyzers = new HashMap<>();
+        if (evaluatePathRestrictions()) {
+            perFieldAnalyzers.put(FieldNames.ANCESTORS,
+                    new TokenizerChain(new PathHierarchyTokenizerFactory(Collections.emptyMap())));
         }
+        perFieldAnalyzers.putAll(collectPerPropertyAnalyzers());
+
+        result = perFieldAnalyzers.isEmpty()
+                ? defaultAnalyzer
+                : new PerFieldAnalyzerWrapper(defaultAnalyzer, perFieldAnalyzers);
 
         //In case of negative value no limits would be applied
         if (maxFieldLength < 0){
             return result;
         }
         return new LimitTokenCountAnalyzer(result, maxFieldLength);
+    }
+
+    /**
+     * Per-property analyzer overrides ({@code indexRules/.../properties/<name>/analyzer}).
+     * A reference that doesn't resolve to a node under {@code analyzers/}, or a
+     * regular-expression property definition (which matches a different concrete
+     * property name per node, so has no single fixed field name to key on), falls
+     * back to the default analyzer for that property with a warning - it never
+     * fails the whole index definition.
+     */
+    private Map<String, Analyzer> collectPerPropertyAnalyzers() {
+        Map<String, Analyzer> result = new HashMap<>();
+        for (IndexingRule rule : getDefinedRules()) {
+            // Process regular properties. Regexp properties never appear here - they're
+            // stored in a separate list (namePatterns) - so they're handled below instead.
+            for (PropertyDefinition pd : rule.getProperties()) {
+                if (!pd.analyzed || pd.analyzerName == null) {
+                    continue;
+                }
+                Analyzer propAnalyzer = analyzers.get(pd.analyzerName);
+                if (propAnalyzer == null) {
+                    log.warn("Property [{}] in index rule [{}] references unknown analyzer [{}] - " +
+                            "falling back to the default analyzer. Index at {}",
+                            pd.name, rule.getNodeTypeName(), pd.analyzerName, getIndexPath());
+                    continue;
+                }
+                result.put(constructAnalyzedPropertyName(pd.name), propAnalyzer);
+            }
+
+            // Process regexp properties from namePatterns: warn if any declare an analyzer,
+            // since there's no fixed field name to bind the analyzer to
+            rule.getNamePatternsProperties().forEach(pd -> {
+                if (pd.analyzed && pd.analyzerName != null) {
+                    log.warn("Property [{}] in index rule [{}] declares analyzer [{}] but is a " +
+                            "regular-expression property definition, which is not supported for " +
+                            "per-property analyzers - falling back to the default analyzer. Index at {}",
+                            pd.name, rule.getNodeTypeName(), pd.analyzerName, getIndexPath());
+                }
+            });
+        }
+        return result;
+    }
+
+    private String constructAnalyzedPropertyName(String pname) {
+        if (getVersion().isAtLeast(IndexFormatVersion.V2)) {
+            return FieldNames.createAnalyzedFieldName(pname);
+        }
+        return pname;
     }
 
     private static Map<String, Analyzer> collectAnalyzers(NodeState defn) {
