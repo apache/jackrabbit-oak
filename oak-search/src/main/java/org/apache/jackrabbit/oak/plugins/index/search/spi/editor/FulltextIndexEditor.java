@@ -89,6 +89,22 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
      */
     public static final AtomicBoolean FT_OAK_12244_DISABLE = new AtomicBoolean(false);
 
+    /**
+     * Feature toggle name for OAK-12365.
+     * When active (default), a node whose last indexed property is removed (rule/type
+     * unchanged) has its stale index document deleted, instead of being silently left
+     * behind because {@code makeDocument()} now returns {@code null}.
+     */
+    public static final String FT_OAK_12365 = "FT_OAK-12365";
+
+    /**
+     * Kill switch for the OAK-12365 stale-document deletion. Set to {@code true} to
+     * revert to the pre-OAK-12365 behavior where a node losing its last indexed property
+     * leaves its previous document in the index. Default is {@code false} (deletion
+     * active). Wired to the {@link #FT_OAK_12365} feature toggle at runtime.
+     */
+    public static final AtomicBoolean FT_OAK_12365_DISABLE = new AtomicBoolean(false);
+
     private static final List<Aggregate.Matcher> EMPTY_AGGREGATE_MATCHER_LIST = List.of();
 
     private final FulltextIndexEditorContext<D> context;
@@ -376,6 +392,11 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
                 context.indexUpdate();
                 context.getWriter().updateDocument(path, d);
                 return true;
+            } else if (isUpdate && !FT_OAK_12365_DISABLE.get()) {
+                // OAK-12365: node still matches the rule but has no content left to index.
+                log.debug("[{}] Deleting stale document for {}", getIndexName(), path);
+                context.indexUpdate();
+                context.getWriter().deleteDocument(path);
             }
         } catch (IOException e) {
             log.warn("Failed to index the node [{}] due to {}", path, e.toString());

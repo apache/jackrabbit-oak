@@ -35,12 +35,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toFloats;
 
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class ElasticDocument {
+
+    public static final String FT_OAK_12353 = "FT_OAK-12353";
+    /**
+     * When {@code true}, dynamic boost values sharing the same boost score are grouped into a
+     * single nested document per property, with {@code value} holding an array of the grouped
+     * values, instead of one nested document per value. This reduces the number of nested
+     * documents generated for properties with many dynamic-boost values that share a boost score.
+     * Default is {@code true} (feature enabled); set to {@code false} via the feature toggle to
+     * revert to the pre-fix behaviour of one nested document per value.
+     */
+    public static final AtomicBoolean FT_OAK_12353_ENABLE = new AtomicBoolean(true);
 
     @JsonProperty(FieldNames.PATH)
     public final String path;
@@ -66,6 +80,12 @@ public class ElasticDocument {
     @JsonProperty(ElasticIndexDefinition.LAST_UPDATED)
     private long lastUpdated;
 
+    // fieldName -> boost -> values sharing that boost. Only populated when FT_OAK_12353_ENABLE is
+    // true, in which case it replaces the corresponding entries that would otherwise be added to
+    // "properties" directly by addDynamicBoostField.
+    @JsonIgnore
+    private final Map<String, LinkedHashMap<Double, LinkedHashSet<String>>> dynamicBoostGroups;
+
     // Internal set with properties that need to be removed from the document on update operations
     @JsonIgnore
     private final Set<String> propertiesToRemove;
@@ -87,6 +107,7 @@ public class ElasticDocument {
         this.dbFullText = new LinkedHashSet<>();
         this.similarityTags = new LinkedHashSet<>();
         this.propertiesToRemove = new HashSet<>();
+        this.dynamicBoostGroups = new LinkedHashMap<>();
     }
 
     void addFulltext(String value) {
@@ -175,12 +196,18 @@ public class ElasticDocument {
     }
 
     void addDynamicBoostField(String fieldName, String value, double boost) {
-        addProperty(fieldName,
-                Map.of(
-                        ElasticIndexHelper.DYNAMIC_BOOST_NESTED_VALUE, value,
-                        ElasticIndexHelper.DYNAMIC_BOOST_NESTED_BOOST, boost
-                )
-        );
+        if (FT_OAK_12353_ENABLE.get()) {
+            dynamicBoostGroups.computeIfAbsent(fieldName, k -> new LinkedHashMap<>())
+                    .computeIfAbsent(boost, k -> new LinkedHashSet<>())
+                    .add(value);
+        } else {
+            addProperty(fieldName,
+                    Map.of(
+                            ElasticIndexHelper.DYNAMIC_BOOST_NESTED_VALUE, value,
+                            ElasticIndexHelper.DYNAMIC_BOOST_NESTED_BOOST, boost
+                    )
+            );
+        }
 
         // add value into the dynamic boost specific fulltext field. We cannot add this in the standard
         // field since dynamic boosted terms require lower weight compared to standard terms
@@ -197,7 +224,21 @@ public class ElasticDocument {
 
     @JsonAnyGetter
     public Map<String, Object> getProperties() {
-        return properties;
+        if (dynamicBoostGroups.isEmpty()) {
+            return properties;
+        }
+        Map<String, Object> merged = new LinkedHashMap<>(properties);
+        dynamicBoostGroups.forEach((fieldName, boostToValues) -> {
+            Set<Object> nestedDocs = boostToValues.entrySet().stream()
+                    .map(entry -> Map.of(
+                            ElasticIndexHelper.DYNAMIC_BOOST_NESTED_VALUE,
+                            entry.getValue().size() == 1 ? entry.getValue().iterator().next() : entry.getValue(),
+                            ElasticIndexHelper.DYNAMIC_BOOST_NESTED_BOOST, entry.getKey()
+                    ))
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+            merged.put(fieldName, nestedDocs);
+        });
+        return merged;
     }
 
     public void removeProperty(String fieldName) {
@@ -221,6 +262,9 @@ public class ElasticDocument {
         }
         if (!dynamicProperties.isEmpty()) {
             buff.append("dynamicProperties:").append(dynamicProperties).append('\n');
+        }
+        if (!dynamicBoostGroups.isEmpty()) {
+            buff.append("dynamicBoostGroups:").append(dynamicBoostGroups).append('\n');
         }
         return buff.toString();
     }

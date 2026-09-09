@@ -50,11 +50,6 @@ class ElasticIndexEditorContext extends FulltextIndexEditorContext<ElasticDocume
     }
 
     @Override
-    public ElasticIndexWriter getWriter() {
-        return (ElasticIndexWriter) super.getWriter();
-    }
-
-    @Override
     public boolean storedIndexDefinitionEnabled() {
         return false;
     }
