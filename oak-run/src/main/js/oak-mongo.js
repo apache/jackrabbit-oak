@@ -140,15 +140,10 @@ var oak = (function(global){
     api.countDirectChildren = function(path){
         if (path === undefined) {
             return 0;
-        } else if (path != "/") {
-            path = path + "/";
         }
-        var depth = pathDepth(path);
-        var totalCount = 0;
-        var childDepth = path == "/" ? depth + 1 : depth;
-        var count = db.nodes.count({_id: pathFilter(childDepth, path)});
-        totalCount += count;
-        return totalCount;
+        var childDepth = pathDepth(path) + 1;
+        var prefix = path == "/" ? path : path + "/";
+        return db.nodes.count({_id: pathFilter(childDepth, prefix)});
     };
 
     /**
