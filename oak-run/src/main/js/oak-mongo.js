@@ -135,7 +135,7 @@ var oak = (function(global){
      * @memberof oak
      * @method countDirectChildren
      * @param {string} path the path of a node.
-     * @returns {number} the number of children, including all descendant nodes.
+     * @returns {number} the number of direct child nodes.
      */
     api.countDirectChildren = function(path){
         if (path === undefined) {
@@ -145,7 +145,8 @@ var oak = (function(global){
         }
         var depth = pathDepth(path);
         var totalCount = 0;
-        var count = db.nodes.count({_id: pathFilter(depth + 1, path)});
+        var childDepth = path == "/" ? depth + 1 : depth;
+        var count = db.nodes.count({_id: pathFilter(childDepth, path)});
         totalCount += count;
         return totalCount;
     };
