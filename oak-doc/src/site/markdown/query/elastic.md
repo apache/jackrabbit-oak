@@ -77,6 +77,28 @@ To use these values exclusively for influencing relevance without affecting matc
   can be changed by `suggestUpdateFrequencyMinutes` property in suggestion node under the index definition node.
   In Elastic indexes, there is no such delay and thus no need for the above config property. This is an improvement in ES over lucene.
 
+### Per-Property Analyzer Support
+
+`@since Oak 2.5, [OAK-12360]`
+
+Elasticsearch supports per-property analyzer configuration, allowing different properties to use different analyzers within the same index.
+This feature works identically to the Lucene equivalent for syntax and backward compatibility: set the `analyzer` attribute on a property definition node to specify a custom analyzer.
+For detailed configuration syntax and examples, see the [Lucene per-property analyzer documentation][lucene-per-property-analyzer].
+
+**Known Limitations**
+
+1. **Regular-expression properties:** Per-property analyzers are not supported for properties with `isRegexp = true`.
+   The default analyzer is used with a logged warning, and indexing proceeds normally.
+
+**Aggregated Fulltext Field Behavior**
+
+Unlike Lucene, where the aggregated `:fulltext` field always uses the default analyzer regardless of per-property settings, Elasticsearch supports more nuanced behavior.
+When a property is the sole analyzed `nodeScopeIndex` contributor (the only property with a custom analyzer; other properties, if any, use the default),
+that property's custom analyzer applies to aggregated fulltext queries (`jcr:contains(., ...)`) as well as property-specific queries.
+This is intentional and desirable: the query term is analyzed the same way the content was indexed, providing more accurate fulltext results.
+When multiple properties contribute to the aggregate field, standard ranking and term matching apply.
+
 [lucene]: https://jackrabbit.apache.org/oak/docs/query/lucene.html
+[lucene-per-property-analyzer]: https://jackrabbit.apache.org/oak/docs/query/lucene.html#per-property-analyzer
 [options]: https://www.elastic.co/guide/en/elasticsearch/reference/current/configure-text-analysis.html
 [flattened]: https://www.elastic.co/docs/reference/elasticsearch/mapping-reference/flattened#supported-operations
