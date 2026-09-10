@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.luceneNg.internal;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexStorage;
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.LuceneNgIndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -80,6 +81,25 @@ public class LuceneNgIndexNode implements IndexNode {
     public LuceneNgIndexNode(@NotNull String indexPath,
                              @NotNull NodeState root,
                              @NotNull NodeState indexState) {
+        this(indexPath, root, indexState, null);
+    }
+
+    /**
+     * Creates a new index node, opening a cached {@link IndexSearcher} from
+     * {@link LuceneNgIndexStorage}.
+     * If the storage path does not exist yet the searcher is left null and
+     * {@link #getSearcher()} returns null.
+     *
+     * @param indexPath  path to the index definition (e.g. "/oak:index/myIndex")
+     * @param root       repository root state
+     * @param indexState index definition node state (immutable snapshot)
+     * @param copier     when non-null, the {@link LuceneNgIndexCopier} used to wrap the
+     *                   opened directory with a local-disk cache (CopyOnRead)
+     */
+    public LuceneNgIndexNode(@NotNull String indexPath,
+                             @NotNull NodeState root,
+                             @NotNull NodeState indexState,
+                             @Nullable LuceneNgIndexCopier copier) {
         this.indexPath = indexPath;
         this.indexState = indexState;
         this.definition = new LuceneNgIndexDefinition(root, indexState, indexPath);
@@ -89,7 +109,7 @@ public class LuceneNgIndexNode implements IndexNode {
 
         IndexSearcherHolder holder = null;
         try {
-            holder = new IndexSearcherHolder(storageState, indexName);
+            holder = new IndexSearcherHolder(storageState, indexName, copier, definition);
         } catch (IOException e) {
             LOG.debug("No index data for {} yet, searcher not opened: {}", indexPath, e.getMessage());
         }

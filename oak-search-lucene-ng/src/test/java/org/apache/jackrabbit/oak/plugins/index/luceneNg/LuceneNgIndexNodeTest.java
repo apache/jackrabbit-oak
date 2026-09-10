@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
 import org.apache.jackrabbit.oak.InitialContentHelper;
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.LuceneNgIndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgIndexNodeManager;
@@ -24,8 +25,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
+import java.io.File;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -38,6 +42,9 @@ import static org.junit.Assert.*;
  * hand-rolled lock/AcquiredNode design.
  */
 public class LuceneNgIndexNodeTest {
+
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     private static NodeState buildIndexWithData(String indexPath) throws Exception {
         NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
@@ -136,5 +143,32 @@ public class LuceneNgIndexNodeTest {
         assertTrue("close() must complete after all acquired nodes are released",
                 closeDone.await(2, TimeUnit.SECONDS));
         assertNull("close() must not throw", closeError.get());
+    }
+
+    @Test
+    public void wrapsDirectoryWhenCopierProvided() throws Exception {
+        String indexPath = "/oak:index/testIndex";
+        NodeState root = buildIndexWithData(indexPath);
+        NodeState indexState = root.getChildNode("oak:index").getChildNode("testIndex");
+
+        File localRoot = temporaryFolder.newFolder();
+        LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, localRoot, false);
+
+        LuceneNgIndexNode node = new LuceneNgIndexNode(indexPath, root, indexState, copier);
+        LuceneNgIndexNodeManager manager = new LuceneNgIndexNodeManager(indexPath, node);
+        try {
+            assertTrue(node.hasSearcher());
+            // Only the real wrapForRead/CopyOnReadDirectory copy path increments this counter -
+            // LuceneNgIndexCopier's constructor alone (independent of any wrap) already creates
+            // an indexWriterDir work folder under localRoot, so merely checking localRoot's
+            // contents would pass even if the wrap were silently skipped.
+            assertTrue("expected at least one file to have been copied from remote to local",
+                    copier.getDownloadCount() > 0);
+        } finally {
+            // Releases node.closeResources() via LuceneNgIndexNodeManager (closeResources()
+            // itself is package-private in the internal package, not reachable from this test).
+            manager.close();
+            copier.close();
+        }
     }
 }
