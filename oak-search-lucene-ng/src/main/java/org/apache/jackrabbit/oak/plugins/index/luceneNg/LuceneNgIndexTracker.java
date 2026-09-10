@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.LuceneNgIndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgIndexNodeManager;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexTracker;
@@ -45,9 +46,21 @@ import org.jetbrains.annotations.Nullable;
  */
 public class LuceneNgIndexTracker extends FulltextIndexTracker<LuceneNgIndexNodeManager, LuceneNgIndexNode> {
 
+    /** When non-null, configures every opened index to cache remote segment files on local disk. */
+    @Nullable
+    private final LuceneNgIndexCopier copier;
+
+    public LuceneNgIndexTracker() {
+        this(null);
+    }
+
+    public LuceneNgIndexTracker(@Nullable LuceneNgIndexCopier copier) {
+        this.copier = copier;
+    }
+
     @Override
     protected LuceneNgIndexNodeManager openIndex(String path, NodeState root, NodeState node) {
-        LuceneNgIndexNode indexNode = new LuceneNgIndexNode(path, root, node);
+        LuceneNgIndexNode indexNode = new LuceneNgIndexNode(path, root, node, copier);
         if (!indexNode.hasSearcher()) {
             return null;
         }

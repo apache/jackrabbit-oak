@@ -16,29 +16,51 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.LuceneNgIndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.search.test.AbstractIndexComparisonTest;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.jetbrains.annotations.Nullable;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
+import java.io.File;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Runs the shared {@link AbstractIndexComparisonTest} scenarios against the LuceneNg (Lucene 9) backend.
  */
 public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
 
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
     @Override
     protected ContentRepository createRepository() {
-        LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
+        return createRepository(null);
+    }
+
+    /**
+     * Same wiring as {@link #createRepository()}, but lets a test build a repository whose
+     * {@link LuceneNgIndexTracker} is backed by a real {@link LuceneNgIndexCopier} (CopyOnRead)
+     * instead of the default no-copier tracker every other test in this class uses.
+     */
+    private ContentRepository createRepository(@Nullable LuceneNgIndexCopier copier) {
+        LuceneNgIndexTracker tracker = new LuceneNgIndexTracker(copier);
         LuceneNgQueryIndexProvider provider = new LuceneNgQueryIndexProvider(tracker);
         LuceneNgIndexEditorProvider editor = new LuceneNgIndexEditorProvider(tracker);
 
@@ -212,5 +234,64 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
         // nodeSingle's tag is "b", so ascending order is nodeMulti, nodeSingle.
         assertQuery("select [jcr:path] from [nt:base] where [tags] is not null order by [tags]", "sql",
                 List.of("/test/nodeMulti", "/test/nodeSingle"), false, true);
+    }
+
+    /**
+     * End-to-end proof that CopyOnRead ({@link LuceneNgIndexCopier}) is a transparent read-path
+     * optimisation: a lucene9 index served through a tracker wired with a real copier must
+     * return exactly the same results as the no-copier baseline every other test in this class
+     * exercises, for the identical content/query fixture and query used by the shared
+     * {@code AbstractIndexComparisonTest#testContainsOnAnalyzedProperty} (see grep for
+     * "CONTAINS" in this file, referenced from {@link #createSearchIndex()}'s comment above).
+     *
+     * <p>To rule out a false-positive (the wrap being silently skipped while the query still
+     * happens to work off the remote directory), the final assertion does not merely check that
+     * *some* file landed under the configured local root — {@code LuceneNgIndexCopier}'s
+     * constructor unconditionally creates an empty {@code indexWriterDir} scratch directory, so
+     * that alone would pass even if CopyOnRead never actually ran. Instead it looks for a real
+     * Lucene commit file ({@code segments_N}), which only appears locally if
+     * {@code CopyOnReadDirectory} genuinely copied it from the remote {@code OakDirectory}.
+     */
+    @Test
+    public void queryResultsIdenticalWithCopyOnReadEnabled() throws Exception {
+        File localRoot = temporaryFolder.newFolder();
+        LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, localRoot, false);
+        try {
+            // Swap in a repository whose lucene9 index is served through a copier-backed
+            // tracker, in place of the default no-copier one createRepository() installed via
+            // AbstractQueryTest#before(). createSearchIndex()/createTestContent()/assertQuery()
+            // all operate on the instance fields reassigned here.
+            ContentSession originalSession = session;
+            Root originalRoot = root;
+            QueryEngine originalQe = qe;
+            try {
+                session = createRepository(copier).login(null, null);
+                root = session.getLatestRoot();
+                qe = root.getQueryEngine();
+
+                createSearchIndex();
+                createTestContent();
+
+                // Identical content fixture and query as
+                // AbstractIndexComparisonTest#testContainsOnAnalyzedProperty's no-copier baseline:
+                // "functionality" appears only in page1's description
+                // ("Testing Oak search functionality").
+                assertQuery(
+                        "select [jcr:path] from [nt:base] where CONTAINS(description, 'functionality')",
+                        "sql", List.of("/content/page1"));
+            } finally {
+                session = originalSession;
+                root = originalRoot;
+                qe = originalQe;
+            }
+
+            boolean realSegmentFileCopiedLocally = FileUtils.listFiles(localRoot, null, true).stream()
+                    .anyMatch(f -> f.getName().startsWith("segments_"));
+            assertTrue("expected a real Lucene commit file (segments_N) to be copied locally under "
+                            + localRoot + ", not just the always-created empty scaffold dirs",
+                    realSegmentFileCopiedLocally);
+        } finally {
+            copier.close();
+        }
     }
 }

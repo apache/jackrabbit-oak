@@ -101,6 +101,16 @@ public class OakDirectory extends Directory {
         return fileNames.toArray(new String[0]);
     }
 
+    /**
+     * O(1) accessor backed by the already in-memory {@link #fileNames} set - a real hash
+     * lookup, not a {@link #listAll()} scan. Used by {@link CopyOnReadDirectory#openInput}
+     * (once per segment file per read) to check remote existence without a runtime type
+     * check, now that {@code remote} is typed {@link OakDirectory} throughout that class.
+     */
+    public boolean fileExists(String name) {
+        return fileNames.contains(name);
+    }
+
     @Override
     public void deleteFile(String name) throws IOException {
         checkWritable();

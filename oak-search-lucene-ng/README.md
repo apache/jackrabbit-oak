@@ -19,7 +19,8 @@ Lucene 9 index provider for Oak (`type="lucene9"`).
 | Index statistics / JMX | ✓ | ✓ | ✗ |
 | Index augmentors [^1] | ✓ | ✗ | ✗ |
 | NRT / hybrid indexing | ✓ | ✗ | ✗ |
-| Index copier (CopyOnRead/Write) | ✓ | ✗ | ✗ |
+| Index copier (CopyOnRead) | ✓ | ✗ | ✓ |
+| Index copier (CopyOnWrite) | ✓ | ✗ | ✗ |
 | Composite node store queries [^2] | ✓ | ✗ | ✗ |
 | Inference / vector search | ✗ | ✓ | ✗ |
 
@@ -75,6 +76,13 @@ When index files are deleted from `OakDirectory`, the blob store is not notified
 
 **`IndexWriter.commit()` and Oak `NodeStore` commit are not atomic.**
 A JVM crash between the two orphans blobs in the blob store. The blob GC will collect them eventually. This is the same accepted trade-off as `oak-lucene` (documented in OAK-7066 context).
+
+**CopyOnWrite is not ported.** `LuceneNgIndexCopier` only implements `wrapForRead` — the
+read path lazily caches remote segment files to local disk (mirroring legacy `IndexCopier`'s
+`wrapForRead`/`CopyOnReadDirectory`), avoiding remote-blob-store reads on every query and
+keeping k8s readiness-probe latency bounded. `wrapForWrite`/`CopyOnWriteDirectory` (local
+buffering during indexing/reindex) is not ported; the write path still writes segment files
+directly to the remote-backed `OakDirectory`, same as if CopyOnRead were disabled.
 
 ### Minor
 

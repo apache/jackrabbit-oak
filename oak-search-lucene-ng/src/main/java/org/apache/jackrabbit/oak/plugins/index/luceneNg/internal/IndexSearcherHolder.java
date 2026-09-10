@@ -16,12 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.luceneNg.internal;
 
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexStorage;
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.LuceneNgIndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.facet.sortedset.DefaultSortedSetDocValuesReaderState;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.store.Directory;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +46,7 @@ public class IndexSearcherHolder implements Closeable {
     private final String indexName;
     private DirectoryReader reader;
     private IndexSearcher searcher;
-    private OakDirectory directory;
+    private Directory directory;
     private final ConcurrentMap<String, DefaultSortedSetDocValuesReaderState> facetStateCache =
             new ConcurrentHashMap<>();
 
@@ -50,10 +54,31 @@ public class IndexSearcherHolder implements Closeable {
      * @param storageState {@link LuceneNgIndexStorage#storageState(NodeState)} for the index definition
      * @param indexName    the index name, used only for logging/error messages
      */
-
     public IndexSearcherHolder(NodeState storageState, String indexName) throws IOException {
+        this(storageState, indexName, null, null);
+    }
+
+    /**
+     * @param storageState {@link LuceneNgIndexStorage#storageState(NodeState)} for the index definition
+     * @param indexName    the index name, used only for logging/error messages
+     * @param copier       when non-null, wraps the remote {@link OakDirectory} with a local-disk
+     *                     cache (CopyOnRead) via {@link LuceneNgIndexCopier#wrapForRead}
+     * @param definition   the index definition; required (non-null) when {@code copier} is non-null
+     */
+    public IndexSearcherHolder(NodeState storageState, String indexName,
+                               @Nullable LuceneNgIndexCopier copier, @Nullable LuceneNgIndexDefinition definition) throws IOException {
         this.indexName = indexName;
-        this.directory = new OakDirectory(storageState.builder(), indexName, true);
+        OakDirectory oakDirectory = new OakDirectory(storageState.builder(), indexName, true);
+        Directory toOpen = oakDirectory;
+        if (copier != null) {
+            try {
+                toOpen = copier.wrapForRead(definition.getIndexPath(), definition, oakDirectory, LuceneNgIndexStorage.STORAGE_NODE_NAME);
+            } catch (IOException e) {
+                oakDirectory.close();
+                throw e;
+            }
+        }
+        this.directory = toOpen;
         try {
             this.reader = DirectoryReader.open(directory);
         } catch (IOException e) {

@@ -17,17 +17,25 @@
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.LuceneNgIndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import java.io.File;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.junit.Assert.*;
 
 public class LuceneNgIndexTrackerTest {
+
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     private NodeState root;
     private NodeBuilder builder;
@@ -250,5 +258,47 @@ public class LuceneNgIndexTrackerTest {
                 secondNode.release();
             }
         }
+    }
+
+    /**
+     * Proves the copier configured on the tracker's constructor reaches {@code openIndex} and,
+     * through it, the {@link LuceneNgIndexNode}/{@code IndexSearcherHolder} it opens -- i.e. the
+     * wiring added in this task actually takes effect end to end, not just that the constructor
+     * accepts the argument.
+     */
+    @Test
+    public void openIndexPassesConfiguredCopierThrough() throws Exception {
+        String indexPath = "/oak:index/testIndex";
+
+        NodeBuilder rootBuilder = INITIAL_CONTENT.builder();
+        NodeBuilder defnBuilder = rootBuilder.child("oak:index").child("testIndex");
+        IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
+        idb.noAsync();
+        idb.indexRule("nt:unstructured").property("title").propertyIndex();
+        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+
+        NodeBuilder node1 = rootBuilder.child("node1");
+        node1.setProperty("jcr:primaryType", "nt:unstructured");
+        node1.setProperty("title", "hello");
+
+        // Real editor/context commit path -> real Lucene segments to cache.
+        NodeState afterFirst = LuceneNgEditorCommitUtil.reindex(rootBuilder.getNodeState());
+
+        File localRoot = temporaryFolder.newFolder();
+        LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, localRoot, false);
+        LuceneNgIndexTracker tracker = new LuceneNgIndexTracker(copier);
+        tracker.update(afterFirst);
+
+        LuceneNgIndexNode node = tracker.acquireIndexNode(indexPath);
+        assertNotNull(node);
+        node.release();
+
+        // Only the real wrapForRead/CopyOnReadDirectory copy path increments this counter -
+        // LuceneNgIndexCopier's constructor alone (independent of any wrap) already creates an
+        // indexWriterDir work folder under localRoot, so merely checking localRoot's contents
+        // would pass even if the wrap were silently skipped somewhere along the chain.
+        assertTrue("expected at least one file to have been copied from remote to local",
+                copier.getDownloadCount() > 0);
+        copier.close();
     }
 }

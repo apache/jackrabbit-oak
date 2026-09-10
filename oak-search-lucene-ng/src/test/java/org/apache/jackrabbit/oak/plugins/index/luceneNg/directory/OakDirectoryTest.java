@@ -196,6 +196,21 @@ public class OakDirectoryTest {
     }
 
     @Test
+    public void fileExistsReflectsCreatedAndDeletedFiles() throws Exception {
+        NodeBuilder storageBuilder = root.child("storageRoot");
+        OakDirectory dir = new OakDirectory(storageBuilder, "testIndex", false);
+        assertFalse(dir.fileExists("segments_1"));
+
+        try (IndexOutput out = dir.createOutput("segments_1", IOContext.DEFAULT)) {
+            out.writeString("x");
+        }
+        assertTrue(dir.fileExists("segments_1"));
+
+        dir.deleteFile("segments_1");
+        assertFalse(dir.fileExists("segments_1"));
+    }
+
+    @Test
     public void uniqueKeysDifferBetweenFiles() throws Exception {
         NodeBuilder storageBuilder = root.child("storageRoot");
         OakDirectory directory = new OakDirectory(storageBuilder, "testIndex", false);
