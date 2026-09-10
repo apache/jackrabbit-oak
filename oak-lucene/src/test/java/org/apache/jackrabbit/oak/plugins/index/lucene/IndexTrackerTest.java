@@ -287,6 +287,89 @@ public class IndexTrackerTest {
         assertEquals(indexNodeId, indexNodeId2);
     }
 
+    @Test
+    public void isIndexReady_falseForDefinitionWithoutBuiltData() {
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        newLucenePropertyIndexDefinition(index, "lucene", Set.of("foo"), "async");
+        // No hook.processCommit() here - the index definition exists but has
+        // never been (re)indexed, so it has no ":data" child yet.
+        NodeState notYetBuilt = builder.getNodeState();
+
+        tracker.update(notYetBuilt);
+
+        assertNull(tracker.acquireIndexNode("/oak:index/lucene"));
+        assertFalse(tracker.isIndexReady("/oak:index/lucene"));
+    }
+
+    @Test
+    public void isIndexReady_trueOnceAcquiredWhenIndexIsFullyBuilt() throws Exception {
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        newLucenePropertyIndexDefinition(index, "lucene", Set.of("foo"), "async");
+
+        NodeState before = builder.getNodeState();
+        builder.setProperty("foo", "bar");
+        NodeState after = builder.getNodeState();
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+
+        tracker.update(indexed);
+
+        assertNotNull(tracker.acquireIndexNode("/oak:index/lucene"));
+        assertTrue(tracker.isIndexReady("/oak:index/lucene"));
+    }
+
+    @Test
+    public void isIndexReady_falseWhenNoSuchPath() {
+        tracker.update(builder.getNodeState());
+        assertFalse(tracker.isIndexReady("/oak:index/doesNotExist"));
+    }
+
+    @Test
+    public void isIndexReady_falseForKnownBadIndex() throws Exception {
+        createIndex("foo");
+
+        NodeState before = builder.getNodeState();
+        builder.setProperty("foo", "bar");
+        NodeState after = builder.getNodeState();
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+        tracker.update(indexed);
+
+        builder = indexed.builder();
+        indexed = corruptIndex("/oak:index/foo");
+        tracker = new IndexTracker();
+        tracker.update(indexed);
+
+        // Force discovery so the path is registered as bad in badIndexTracker.
+        assertNull(tracker.acquireIndexNode("/oak:index/foo"));
+        assertTrue(tracker.getBadIndexTracker().getIndexPaths().contains("/oak:index/foo"));
+
+        assertFalse("A known-bad/corrupt index was never successfully opened, "
+                + "so it can never be reported as ready",
+                tracker.isIndexReady("/oak:index/foo"));
+    }
+
+    @Test
+    public void isIndexReady_falseButAcquiresImmediatelyWhenBuiltButNeverOpened() throws Exception {
+        // The index is fully built, but this tracker has never opened it
+        // before - so isIndexReady() says false. That's fine, as long as
+        // acquiring it still works right away, with no retry or wait needed.
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        newLucenePropertyIndexDefinition(index, "lucene", Set.of("foo"), "async");
+
+        NodeState before = builder.getNodeState();
+        builder.setProperty("foo", "bar");
+        NodeState after = builder.getNodeState();
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+
+        // A fresh tracker: it has never opened this index, even though
+        // ':data' already exists.
+        tracker = new IndexTracker();
+        tracker.update(indexed);
+
+        assertFalse(tracker.isIndexReady("/oak:index/lucene"));
+        assertNotNull("A plain, immediate acquire must succeed - the index is fully built",
+                tracker.acquireIndexNode("/oak:index/lucene"));
+    }
+
     private NodeState corruptIndex(String indexPath) {
         NodeBuilder dir = TestUtil.child(builder, PathUtils.concat(indexPath, ":data"));
         for (String name : dir.getChildNodeNames()){
