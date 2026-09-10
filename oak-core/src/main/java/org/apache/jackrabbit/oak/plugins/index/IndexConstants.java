@@ -56,6 +56,21 @@ public interface IndexConstants {
     String ENTRY_COUNT_PROPERTY_NAME = "entryCount";
 
     String KEY_COUNT_PROPERTY_NAME = "keyCount";
+
+    /**
+     * Multiplier (Double) applied to the estimated entry count when computing this
+     * index's query cost. Optional; defaults to 1.0 (no change to the estimate).
+     * Same property name as oak-search's FulltextIndexConstants#COST_PER_ENTRY,
+     * used for the same purpose on property/node type indexes.
+     */
+    String COST_PER_ENTRY = "costPerEntry";
+
+    /**
+     * Fixed cost (Double) added once per query plan that uses this index. Optional;
+     * defaults to the index's built-in overhead. Same property name as
+     * oak-search's FulltextIndexConstants#COST_PER_EXECUTION.
+     */
+    String COST_PER_EXECUTION = "costPerExecution";
     
     /**
      * The regular expression pattern of the values to be indexes.
