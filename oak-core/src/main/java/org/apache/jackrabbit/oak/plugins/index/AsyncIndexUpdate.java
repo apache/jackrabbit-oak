@@ -1431,7 +1431,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                     Calendar cal = ISO8601.parse(ps.getValue(Type.STRING));
                     return cal != null ? cal.getTimeInMillis() : 0;
                 } catch (Exception e) {
-                    log.debug("[{}] Unable to read {} for LAST_INDEXED_TIME metric", name, lastIndexedTo, e);
+                    log.warn("[{}] Unable to read {} for LAST_INDEXED_TIME metric", name, lastIndexedTo, e);
                     return 0;
                 }
             }
