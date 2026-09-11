@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -213,7 +213,7 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public Iterable<AbstractCacheStats> getCacheStats() {
+    public Iterable<CacheStats> getCacheStats() {
         return leaseChecking(delegate::getCacheStats);
     }
 

@@ -191,7 +191,7 @@ public class PriorityCacheTest {
 
         assertEquals(0, cache.getStats().evictionCount());
         assertEquals(success, cache.size());
-        assertEquals(failure, cache.getStats().loadExceptionCount());
+        assertEquals(failure, cache.getStats().loadFailureCount());
     }
 
 }

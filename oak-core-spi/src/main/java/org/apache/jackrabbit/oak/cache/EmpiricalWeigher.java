@@ -27,8 +27,7 @@ import org.slf4j.LoggerFactory;
  * Determines the weight of object based on the memory taken by them. The memory estimates
  * are based on empirical data and not exact
  */
-public class EmpiricalWeigher extends GuavaCompatibleEmpiricalWeigher
-        implements Weigher<CacheValue, CacheValue> {
+public class EmpiricalWeigher implements Weigher<CacheValue, CacheValue> {
 
     static final Logger LOG = LoggerFactory.getLogger(EmpiricalWeigher.class);
 
@@ -44,16 +43,4 @@ public class EmpiricalWeigher extends GuavaCompatibleEmpiricalWeigher
         return (int) size;
     }
     
-}
-
-/**
- * Compatibility base class that keeps {@link EmpiricalWeigher} assignable to the
- * legacy Guava-shim {@link org.apache.jackrabbit.guava.common.cache.Weigher} type while the public API migrates to
- * {@link Weigher}.
- *
- * <p>TODO OAK-12162: remove this compatibility base in
- * OAK-12162 once downstream callers no longer require {@link org.apache.jackrabbit.guava.common.cache.Weigher}
- * assignability.</p>
- */
-abstract class GuavaCompatibleEmpiricalWeigher implements org.apache.jackrabbit.guava.common.cache.Weigher<CacheValue, CacheValue> {
 }

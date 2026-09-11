@@ -20,9 +20,7 @@ This document decomposes the Oak Cache API migration plan (PLAN.md) into indepen
 
 **Remaining:**
 
-- OAK-12157, OAK-12158 (oak-segment-tar) — not yet started
-- OAK-12159 (oak-blob-plugins) — not yet started
-- OAK-12161, OAK-12162 — blocked on OAK-12157, OAK-12158, OAK-12159
+- OAK-12162 — in progress on branch OAK-12161
 
 ## Dependency Graph
 
