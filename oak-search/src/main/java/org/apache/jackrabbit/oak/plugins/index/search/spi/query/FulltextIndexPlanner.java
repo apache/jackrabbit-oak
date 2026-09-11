@@ -396,9 +396,10 @@ public class FulltextIndexPlanner {
     }
 
     private boolean isPlanWithValidPathFilter() {
+        // OAK-11628: the check is lenient, i.e. excludedPaths are ignored.
         String pathFilter = filter.getPath();
         PathFilter definitionPathFilter = definition.getPathFilter();
-        return definitionPathFilter.areAllDescendantsIncluded(pathFilter);
+        return definitionPathFilter.areAllDescendantsIncluded(pathFilter, true);
     }
 
     private boolean matchesValuePattern(PropertyRestriction pr, PropertyDefinition pd) {
