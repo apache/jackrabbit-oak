@@ -589,6 +589,10 @@ public class Oak {
             LOG.info("Registered ignore limit in index selection feature: " + QueryEngineSettings.FT_IGNORE_LIMIT_IN_INDEX_SELECTION);
             closer.register(ignoreLimitInIndexSelection);
             queryEngineSettings.setIgnoreLimitInIndexSelectionFeature(ignoreLimitInIndexSelection);
+            Feature pathRestrictionWarnByDefault = newFeature(QueryEngineSettings.FT_PATH_RESTRICTION_WARN_BY_DEFAULT, whiteboard);
+            LOG.info("Registered path restriction warn by default feature: " + QueryEngineSettings.FT_PATH_RESTRICTION_WARN_BY_DEFAULT);
+            closer.register(pathRestrictionWarnByDefault);
+            queryEngineSettings.setPathRestrictionWarnByDefaultFeature(pathRestrictionWarnByDefault);
         }
 
         return this;
@@ -1007,6 +1011,10 @@ public class Oak {
 
         public void setIgnoreLimitInIndexSelectionFeature(@Nullable Feature feature) {
             settings.setIgnoreLimitInIndexSelectionFeature(feature);
+        }
+
+        public void setPathRestrictionWarnByDefaultFeature(@Nullable Feature feature) {
+            settings.setPathRestrictionWarnByDefaultFeature(feature);
         }
 
         @Override
