@@ -167,10 +167,7 @@ public class AzureRepositoryLock implements RepositoryLock {
                     } else if (isTransientClientSideException(e)) {
                         log.warn("Could not renew the lease due to transient client-side error. Retry in progress ...", e);
                     } else {
-                        log.error("Can't renew the lease", e);
-                        shutdownHook.run();
-                        doUpdate = false;
-                        return;
+                        log.warn("Could not renew lease due to exception. Retry in progress ... ", e);
                     }
                 }
                 waitABit(100);
