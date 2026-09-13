@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.index.IndexName;
+import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.cursor.Cursors;
 import org.apache.jackrabbit.oak.plugins.index.cursor.PathCursor;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexLookup;
@@ -472,8 +473,9 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
                     if (readCount % TRAVERSING_WARNING == 0) {
                         Cursors.checkReadLimit(readCount, settings);
                         if (readCount == 2 * TRAVERSING_WARNING) {
-                            log.warn("Index-Traversed {} nodes with filter {}", readCount, plan.getFilter(),
-                                    new Exception("call stack"));
+                            String caller = IndexUtils.getCaller(settings.getIgnoredClassNamesInCallTrace());
+                            log.warn("Index-Traversed {} nodes with filter {} called by {}", readCount, plan.getFilter(),
+                                    caller);
                         } else {
                             log.warn("Index-Traversed {} nodes with filter {}", readCount, plan.getFilter());
                         }
