@@ -33,7 +33,7 @@
   <description>Oak Elasticsearch integration subproject</description>
 
   <properties>
-    <elasticsearch.java.client.version>9.5.1</elasticsearch.java.client.version>
+    <elasticsearch.java.client.version>9.5.3</elasticsearch.java.client.version>
     <!--
       Since ES 9.x the Lucene version is 10.x, but this would require a minimum of Java 21.
       Current Oak minimum Java version is 17, so we need to use Lucene 9.x for now.
@@ -123,11 +123,6 @@
     <dependency>
       <groupId>org.osgi</groupId>
       <artifactId>org.osgi.service.component</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.service.component.annotations</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
