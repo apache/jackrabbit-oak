@@ -48,7 +48,7 @@ public class TestHelper {
         String alias =  ElasticIndexNameHelper.getElasticSafeIndexName(connection.getIndexPrefix(), "/oak:index/" + indexName);
         // get and delete the indexes which this alias is pointing to
         GetAliasResponse aliasResponse = connection.getClient().indices().getAlias(fn -> fn.name(alias));
-        Map<String, IndexAliases> aliases = aliasResponse.result();
+        Map<String, IndexAliases> aliases = aliasResponse.aliases();
         for (String remoteIndexName : aliases.keySet()) {
             DeleteIndexResponse deleteIndexResponse = connection.getClient().indices().
                     delete(fn -> fn.index(remoteIndexName));

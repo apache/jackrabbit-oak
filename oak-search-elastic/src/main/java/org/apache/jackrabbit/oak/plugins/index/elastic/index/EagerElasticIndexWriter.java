@@ -42,7 +42,6 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.Inference
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.importer.AsyncLaneSwitcher;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
@@ -312,7 +311,7 @@ class EagerElasticIndexWriter implements ElasticIndexWriter {
                 garb.index(indexDefinition.getIndexAlias()).ignoreUnavailable(true));
 
         UpdateAliasesRequest updateAliasesRequest = UpdateAliasesRequest.of(rb -> {
-            aliasResponse.result().forEach((idx, idxAliases) -> rb.actions(ab -> // remove old aliases
+            aliasResponse.aliases().forEach((idx, idxAliases) -> rb.actions(ab -> // remove old aliases
                     ab.remove(rab -> rab.index(idx).aliases(new ArrayList<>(idxAliases.aliases().keySet()))))
             );
             return rb.actions(ab -> ab.add(aab -> aab.index(indexName).alias(indexDefinition.getIndexAlias()))); // add new one
@@ -324,7 +323,7 @@ class EagerElasticIndexWriter implements ElasticIndexWriter {
                 indexName, updateAliasesResponse.acknowledged());
 
         // once the alias has been updated, we can safely remove the old index
-        deleteOldIndices(client, aliasResponse.result().keySet());
+        deleteOldIndices(client, aliasResponse.aliases().keySet());
     }
 
     private void checkResponseAcknowledgement(AcknowledgedResponse response, String exceptionMessage) {
