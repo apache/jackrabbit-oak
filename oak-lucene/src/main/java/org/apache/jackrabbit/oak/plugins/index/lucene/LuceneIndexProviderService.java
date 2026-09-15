@@ -272,6 +272,7 @@ public class LuceneIndexProviderService {
 
     private LuceneIndexProvider indexProvider;
     private Feature filterGloballySupersededFeature;
+    private Feature legacySortFeature;
 
     private final List<ServiceRegistration> regs = new ArrayList<>();
     private final List<Registration> oakRegs = new ArrayList<>();
@@ -400,6 +401,8 @@ public class LuceneIndexProviderService {
         filterGloballySupersededFeature = Feature.newFeature(
                 FulltextIndex.FT_FILTER_GLOBALLY_SUPERSEDED, whiteboard);
         indexProvider.setFilterGloballySupersededFeature(filterGloballySupersededFeature);
+        legacySortFeature = Feature.newFeature(LucenePropertyIndex.FT_LEGACY_SORT_OAK_12399, whiteboard);
+        indexProvider.setLegacySortFeature(legacySortFeature);
         initializeActiveBlobCollector(whiteboard, config);
         initializeLogging(config);
         initialize();
@@ -442,6 +445,10 @@ public class LuceneIndexProviderService {
 
         if (filterGloballySupersededFeature != null) {
             filterGloballySupersededFeature.close();
+        }
+
+        if (legacySortFeature != null) {
+            legacySortFeature.close();
         }
 
         if (backgroundObserver != null){
