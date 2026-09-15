@@ -75,6 +75,17 @@
               !jakarta.json.bind.*,
               !java.net.http.*,
               !com.oracle.bmc.*,
+              <!-- legacy co.elastic.clients.transport.rest_client.RestClientTransport is embedded in
+                   elasticsearch-java but unused by Oak (Rest5ClientTransport is used instead); it
+                   references the deprecated org.elasticsearch.client:elasticsearch-rest-client API
+                   (httpasyncclient based), which is not on the classpath -->
+              !org.apache.http.*,
+              !org.elasticsearch.client.*,
+              <!-- optional TLS/compression providers pulled in transitively by httpclient5 that are
+                   only used reflectively when present on the classpath; not needed for Oak's usage -->
+              !org.brotli.dec.*,
+              !org.conscrypt.*,
+              !org.glassfish.hk2.osgiresourcelocator.*,
               *
             </Import-Package>
             <Embed-Dependency>
