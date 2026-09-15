@@ -22,9 +22,11 @@ import co.elastic.clients.transport.instrumentation.NoopInstrumentation;
 import co.elastic.clients.transport.rest5_client.Rest5ClientTransport;
 import co.elastic.clients.transport.rest5_client.low_level.Rest5Client;
 import co.elastic.clients.transport.rest5_client.low_level.Rest5ClientBuilder;
+import org.apache.hc.client5.http.config.TlsConfig;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.hc.core5.http2.HttpVersionPolicy;
 import org.apache.hc.core5.util.Timeout;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -69,6 +71,11 @@ public class ElasticConnection implements Closeable {
     protected static final int DEFAULT_MAX_RETRY_TIME = 0;
     protected static final int ES_SOCKET_TIMEOUT = 120000;
 
+    // see FT_OAK_12366
+    static final TlsConfig HTTP1_TLS_CONFIG = TlsConfig.custom()
+            .setVersionPolicy(HttpVersionPolicy.FORCE_HTTP_1)
+            .build();
+
     /**
      * Feature toggle for OAK-12234: process Elastic async responses on a dedicated executor instead of the JDK
      * {@link ForkJoinPool#commonPool() common pool}. Enabled by default (bug fix). When the toggle is flipped the
@@ -77,6 +84,19 @@ public class ElasticConnection implements Closeable {
      */
     public static final String FT_OAK_12234 = "FT_OAK-12234";
     public static final AtomicBoolean FT_OAK_12234_DISABLE = new AtomicBoolean(false);
+
+    /**
+     * Feature toggle for OAK-12366: force HTTP/1.1 on the Elasticsearch REST client connection. As of the ES 9.x
+     * client upgrade, the underlying transport negotiates HTTP/2 over TLS by default. Because HTTP/2 multiplexes
+     * all requests over a single TCP connection, large bulk ingestion payloads (up to 8MB) have been observed to
+     * trigger H2 stream resets ({@code RST_STREAM}) from the server or intermediary proxies, while small read
+     * requests sharing the same connection succeed -- making the failures intermittent, hard to diagnose, and
+     * unrecoverable within an enrichment cycle. Enabled by default (bug fix). When the toggle is flipped the
+     * shared {@link #FT_OAK_12366_DISABLE} flag is set to {@code true} and the client falls back to negotiating
+     * HTTP/2, restoring the previous behaviour.
+     */
+    public static final String FT_OAK_12366 = "FT_OAK-12366";
+    public static final AtomicBoolean FT_OAK_12366_DISABLE = new AtomicBoolean(false);
 
     /**
      * System property to size the shared executor used to process Elastic async responses. These threads are mostly
@@ -148,6 +168,10 @@ public class ElasticConnection implements Closeable {
                     builder.setConnectionConfigCallback(
                             connectConf -> connectConf.setSocketTimeout(Timeout.ofMilliseconds(ES_SOCKET_TIMEOUT))
                     );
+                    if (!FT_OAK_12366_DISABLE.get()) {
+                        builder.setConnectionManagerCallback(connManager ->
+                                connManager.setDefaultTlsConfig(HTTP1_TLS_CONFIG));
+                    }
 
                     Rest5Client httpClient = builder.build();
 
