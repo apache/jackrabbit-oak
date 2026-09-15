@@ -1,0 +1,91 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.jackrabbit.oak.plugins.index.mongot;
+
+import javax.jcr.Repository;
+
+import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.plugins.index.FacetCommonTest;
+import org.apache.jackrabbit.oak.plugins.index.TestUtil;
+import org.junit.ClassRule;
+import org.junit.Test;
+
+public class MongotFacetCommonTest extends FacetCommonTest {
+
+    @ClassRule
+    public static final MongotSearchConnectionRule mongo = new MongotSearchConnectionRule();
+
+    @Override
+    protected Repository createJcrRepository() {
+        indexOptions = new MongotIndexOptions();
+        repositoryOptionsUtil = new MongotCommonTestRepositoryBuilder(mongo).build();
+        return new Jcr(repositoryOptionsUtil.getOak()).createRepository();
+    }
+
+    @Override
+    protected void assertEventually(Runnable assertion) {
+        TestUtil.assertEventually(assertion, 30_000);
+    }
+
+    @Override
+    @Test
+    public void insecureFacets() throws Exception {
+        super.insecureFacets();
+    }
+
+    @Override
+    @Test
+    public void statisticalFacets() throws Exception {
+        super.statisticalFacets();
+    }
+
+    @Override
+    @Test
+    public void statisticalFacetsWithHitCountLessThanSampleSize() throws Exception {
+        super.statisticalFacetsWithHitCountLessThanSampleSize();
+    }
+
+    @Override
+    @Test
+    public void statisticalFacets_withHitCountSameAsSampleSize() throws Exception {
+        super.statisticalFacets_withHitCountSameAsSampleSize();
+    }
+
+    @Override
+    @Test
+    public void statisticalFacets_withOneLabelInaccessible() throws Exception {
+        super.statisticalFacets_withOneLabelInaccessible();
+    }
+
+    @Override
+    @Test
+    public void statisticalFacets_withAdminSession() throws Exception {
+        super.statisticalFacets_withAdminSession();
+    }
+
+    @Override
+    @Test
+    public void insecureFacetsWithMultiValueProperty() throws Exception {
+        super.insecureFacetsWithMultiValueProperty();
+    }
+
+    @Override
+    @Test
+    public void statisticalFacetsWithMultiValueProperty() throws Exception {
+        super.statisticalFacetsWithMultiValueProperty();
+    }
+}
