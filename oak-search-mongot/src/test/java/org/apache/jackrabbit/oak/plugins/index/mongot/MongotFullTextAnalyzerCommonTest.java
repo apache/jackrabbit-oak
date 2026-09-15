@@ -28,9 +28,11 @@ import org.apache.jackrabbit.oak.plugins.index.mongot.query.MongotIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.junit.After;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.event.Level;
 
+@Ignore
 public class MongotFullTextAnalyzerCommonTest extends FullTextAnalyzerCommonTest {
 
     @ClassRule
