@@ -18,44 +18,37 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
-import org.apache.jackrabbit.oak.query.ast.Operator;
-import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
-import org.apache.jackrabbit.oak.spi.query.Filter;
-import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.junit.After;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Tests {@link LucenePropertyIndex#acquireIndexNode(String)} in "lazy" mode
- * (system property {@code oak.lucene.nonLazyIndex=false}).
+ * Tests the lazy-index branch of {@link LucenePropertyIndex#acquireIndexNode(String)}.
  *
- * <p>This property is only read once, the first time {@link LucenePropertyIndex}
- * is loaded. So it must be set before that happens, which is why this lives
- * in its own test class instead of a method added to the other
- * {@code LucenePropertyIndex} tests (which use normal, non-lazy mode).
+ * <p>Real "lazy mode" is switched on JVM-wide by the system property
+ * {@code oak.lucene.nonLazyIndex=false}, read once into a {@code static final}
+ * field the first time {@link LucenePropertyIndex} loads - not something a
+ * single test class can reliably control once other tests share the same JVM
+ * fork. So instead of flipping that global switch, these tests call the
+ * package-private {@link LucenePropertyIndex#acquireIndexNode(String, boolean)}
+ * overload directly with {@code nonLazy=false}, exercising exactly the same
+ * branch the real lazy mode would take, deterministically.
  */
 public class LucenePropertyIndexLazyNotReadyTest {
-
-    static {
-        System.setProperty("oak.lucene.nonLazyIndex", "false");
-    }
 
     private final NodeBuilder builder = INITIAL_CONTENT.builder();
 
@@ -63,41 +56,11 @@ public class LucenePropertyIndexLazyNotReadyTest {
 
     private final String indexName = "lucene-" + UUID.randomUUID();
 
-    @After
-    public void tearDown() {
-        System.clearProperty("oak.lucene.nonLazyIndex");
+    private String indexPath() {
+        return "/oak:index/" + indexName;
     }
 
-    private Filter rootFilter() {
-        FilterImpl f = FilterImpl.newTestInstance();
-        f.restrictPath("/", Filter.PathRestriction.EXACT);
-        f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
-        return f;
-    }
-
-    @Test
-    public void lazyModeReturnsNoPlanForIndexWithoutBuiltData() {
-        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        newLucenePropertyIndexDefinition(index, indexName, Set.of("foo"), "async");
-        // Definition committed but never (re)indexed - no ":data" child yet.
-        tracker.update(builder.getNodeState());
-
-        LucenePropertyIndex lucenePropertyIndex = new LucenePropertyIndex(tracker, null);
-
-        List<IndexPlan> plans =
-                lucenePropertyIndex.getPlans(rootFilter(), Collections.emptyList(), builder.getNodeState());
-
-        // acquireIndexNode(String) really tried to open the index and got
-        // null, instead of returning a lazy placeholder that looks fine now
-        // but would fail later when actually read.
-        assertTrue("Plans should be empty - index has never completed its first build", plans.isEmpty());
-    }
-
-    @Test
-    public void lazyModePlanIsFoundImmediatelyWhenBuiltButNeverOpened() throws Exception {
-        // The index is fully built (":data" exists), but this tracker has
-        // never opened it before. Even so, it should be usable right away -
-        // no waiting needed, even in lazy mode.
+    private NodeState buildIndex() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         newLucenePropertyIndexDefinition(index, indexName, Set.of("foo"), "async");
 
@@ -106,15 +69,64 @@ public class LucenePropertyIndexLazyNotReadyTest {
         NodeState after = builder.getNodeState();
         EditorHook hook = new EditorHook(
                 new IndexUpdateProvider(new LuceneIndexEditorProvider(), "async", false));
-        NodeState indexedState = hook.processCommit(before, after, CommitInfo.EMPTY);
-        tracker.update(indexedState);
+        return hook.processCommit(before, after, CommitInfo.EMPTY);
+    }
+
+    @Test
+    public void returnsNullWhenIndexHasNoBuiltData() {
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        newLucenePropertyIndexDefinition(index, indexName, Set.of("foo"), "async");
+        // Definition committed but never (re)indexed - no ":data" child yet.
+        tracker.update(builder.getNodeState());
 
         LucenePropertyIndex lucenePropertyIndex = new LucenePropertyIndex(tracker, null);
 
-        List<IndexPlan> plans =
-                lucenePropertyIndex.getPlans(rootFilter(), Collections.emptyList(), builder.getNodeState());
+        // acquireIndexNode() made a real open attempt and got null, instead
+        // of returning a lazy placeholder that looks fine now but would fail
+        // later, when actually read.
+        assertNull(lucenePropertyIndex.acquireIndexNode(indexPath(), false));
+    }
 
-        assertEquals("Query should pick up an already-built index on its first access, "
-                + "even in lazy-index mode", 1, plans.size());
+    @Test
+    public void opensForRealWhenBuiltButNeverOpenedBefore() throws Exception {
+        tracker.update(buildIndex());
+
+        LucenePropertyIndex lucenePropertyIndex = new LucenePropertyIndex(tracker, null);
+
+        // Not yet open in this tracker (isIndexReady() == false), but ':data'
+        // already exists - must resolve via a single, immediate real open,
+        // not a lazy placeholder.
+        LuceneIndexNode indexNode = lucenePropertyIndex.acquireIndexNode(indexPath(), false);
+        try {
+            assertNotNull(indexNode);
+            assertFalse("A not-yet-open index must be opened for real, not wrapped "
+                            + "in a lazy placeholder",
+                    indexNode instanceof LucenePropertyIndex.LazyLuceneIndexNode);
+        } finally {
+            indexNode.release();
+        }
+    }
+
+    @Test
+    public void returnsLazyPlaceholderWhenIndexAlreadyOpen() throws Exception {
+        tracker.update(buildIndex());
+
+        // Open it once directly through the tracker, so it's now cached
+        // (isIndexReady() == true).
+        LuceneIndexNode opened = tracker.acquireIndexNode(indexPath());
+        assertNotNull(opened);
+        opened.release();
+        assertTrue(tracker.isIndexReady(indexPath()));
+
+        LucenePropertyIndex lucenePropertyIndex = new LucenePropertyIndex(tracker, null);
+        LuceneIndexNode indexNode = lucenePropertyIndex.acquireIndexNode(indexPath(), false);
+        try {
+            assertTrue("Once the index is already open, acquireIndexNode() should "
+                            + "return the cheap lazy placeholder instead of opening "
+                            + "it again",
+                    indexNode instanceof LucenePropertyIndex.LazyLuceneIndexNode);
+        } finally {
+            indexNode.release();
+        }
     }
 }
