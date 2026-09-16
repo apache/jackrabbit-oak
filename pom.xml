@@ -106,6 +106,7 @@
             <exclude>oak-segment-tar/target/**</exclude>
             <exclude>oak-segment-tar/*.iml</exclude>
             <exclude>specs/**</exclude>
+            <exclude>OAK_MONGOT_SEARCH_POC_BACKGROUND.md</exclude>
           </excludes>
         </configuration>
       </plugin>
