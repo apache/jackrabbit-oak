@@ -382,6 +382,9 @@ public class LuceneIndexProviderService {
                 new FeatureToggle(FulltextIndexPlanner.FT_OAK_12221, FulltextIndexPlanner.FT_OAK_12221_ENABLE),
                 emptyMap()));
         oakRegs.add(whiteboard.register(FeatureToggle.class,
+                new FeatureToggle(FulltextIndexPlanner.FT_OAK_12100, FulltextIndexPlanner.FT_OAK_12100_DISABLE),
+                emptyMap()));
+        oakRegs.add(whiteboard.register(FeatureToggle.class,
                 new FeatureToggle(FulltextIndexEditor.FT_OAK_12193, FulltextIndexEditor.FT_OAK_12193_DISABLE),
                 emptyMap()));
         oakRegs.add(whiteboard.register(FeatureToggle.class,
