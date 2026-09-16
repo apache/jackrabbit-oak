@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
@@ -35,14 +36,35 @@ import java.util.stream.Collectors;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 
 class DefaultCleanupContext implements CleanupContext {
+
+    /**
+     * When {@code true}, "dangling future segment" detection is order-independent: a compacted segment
+     * is treated as an unused future segment iff its generation is strictly newer than the head
+     * generation, instead of relying on the physical scan position of the last compacted root. The
+     * positional heuristic (below) assumes segments are laid out in compaction write order (compacted
+     * root written last), which does not hold for a segment store assembled out of compaction order
+     * (e.g. a promoted cold standby, whose segments are written via {@code FileStore.writeSegment} in
+     * sync-arrival order), where it can reclaim live, head-referenced compacted segments (OAK-12400).
+     * <p>
+     * Default {@code false} preserves the existing behaviour; set to {@code true} to opt in.
+     */
+    private static final String DANGLING_BY_GENERATION = "oak.segment.cleanup.danglingByGeneration";
+
     private final @NotNull SegmentTracker segmentTracker;
     private final @NotNull Predicate<GCGeneration> old;
     private final @Nullable UUID rootSegmentUUID;
+    private final @NotNull GCGeneration headGeneration;
+    private final boolean danglingByGeneration;
     private boolean aheadOfRoot;
 
-    DefaultCleanupContext(@NotNull SegmentTracker tracker, @NotNull Predicate<GCGeneration> old, @NotNull String compactedRoot) {
+    DefaultCleanupContext(@NotNull SegmentTracker tracker, @NotNull Predicate<GCGeneration> old, @NotNull String compactedRoot,
+            @NotNull GCGeneration headGeneration) {
         this.segmentTracker = tracker;
         this.old = old;
+        this.headGeneration = headGeneration;
+        this.danglingByGeneration = SystemPropertySupplier
+                .create(DANGLING_BY_GENERATION, Boolean.FALSE)
+                .get();
 
         RecordId rootId =  RecordId.fromString(tracker, compactedRoot);
         if (rootId.equals(RecordId.NULL)) {
@@ -76,8 +98,18 @@ class DefaultCleanupContext implements CleanupContext {
      * they are persisted after the last compacted root. This context relies on the cleanup algorithm to mark
      * TAR entries in reverse order and will consider each compacted segment to be reclaimable until the root
      * has been encountered, i.e. as long as {@code aheadOfRoot} is true.
+     * <p>
+     * The reverse-order/position assumption only holds for a store written by compaction (the compacted root
+     * is written last). It is violated by a store assembled out of compaction order (e.g. a promoted cold
+     * standby), where live head-referenced compacted segments can be encountered before the root and get
+     * wrongly reclaimed (OAK-12400). When {@link #DANGLING_BY_GENERATION} is enabled, detection is instead
+     * generation-based: a compacted segment is an unused future segment iff its generation is strictly newer
+     * than the head generation, which is independent of physical segment order.
      */
     private boolean isDanglingFutureSegment(UUID id, GCGeneration generation) {
+        if (danglingByGeneration) {
+            return generation.isCompacted() && generation.compareWith(headGeneration) > 0;
+        }
         return (aheadOfRoot &= !id.equals(rootSegmentUUID)) && generation.isCompacted();
     }
 
