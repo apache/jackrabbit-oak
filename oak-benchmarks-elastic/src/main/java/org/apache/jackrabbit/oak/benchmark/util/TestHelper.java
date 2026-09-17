@@ -53,7 +53,7 @@ public class TestHelper {
             DeleteIndexResponse deleteIndexResponse = connection.getClient().indices().
                     delete(fn -> fn.index(remoteIndexName));
             if (!deleteIndexResponse.acknowledged()) {
-                LOG.warn("Delete index call not acknowledged for index " + remoteIndexName + " .Please check if remote index deleted or not.");
+                LOG.warn("Delete index call not acknowledged for index {} .Please check if remote index deleted or not.", remoteIndexName);
             }
         }
     }
