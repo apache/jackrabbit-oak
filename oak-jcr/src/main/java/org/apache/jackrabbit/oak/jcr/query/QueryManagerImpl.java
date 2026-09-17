@@ -142,7 +142,7 @@ public class QueryManagerImpl implements QueryManager {
             queryOpsLogger.debug("Executed query [{}] in [{}] ms", statement, millis);
             sessionContext.getStatisticManager()
                     .logQueryEvaluationTime(language, statement, millis);
-            return new QueryResultImpl(sessionContext, r);
+            return new QueryResultImpl(sessionContext, r, statement, language);
         } catch (IllegalArgumentException e) {
             throw new InvalidQueryException(e);
         } catch (ParseException e) {
