@@ -289,9 +289,9 @@ public class LucenePropertyIndex extends FulltextIndex {
         }
         final Filter filter = plan.getFilter();
         final Sort sort = getSort(plan);
-        // OAK-12399: when the sort includes the relevance score, scores must be tracked explicitly,
-        // otherwise Lucene returns NaN for a field sort.
-        final boolean needsScores = requiresScores(sort);
+        // OAK-12399: track document scores only when the fix is active (legacy toggle off) and the
+        // sort includes the relevance score; otherwise keep the legacy field-sort behaviour.
+        final boolean needsScores = !legacySortEnabled() && requiresScores(sort);
         final PlanResult pr = getPlanResult(plan);
         QueryLimits settings = filter.getQueryLimits();
         LuceneResultRowIterator rItr = new LuceneResultRowIterator() {
@@ -830,7 +830,7 @@ public class LucenePropertyIndex extends FulltextIndex {
      * mixed - so the legacy path can be deleted wholesale once the fix has proven itself.
      */
     private Sort getSort(IndexPlan plan) {
-        if (legacySortFeature != null && legacySortFeature.isEnabled()) {
+        if (legacySortEnabled()) {
             return getSortLegacy(plan);
         }
 
@@ -855,6 +855,11 @@ public class LucenePropertyIndex extends FulltextIndex {
         }
 
         return fieldsList.isEmpty() ? null : new Sort(fieldsList.toArray(new SortField[0]));
+    }
+
+    /** OAK-12399: true when the legacy kill-switch is on, i.e. the pre-OAK-12399 behaviour is used. */
+    private boolean legacySortEnabled() {
+        return legacySortFeature != null && legacySortFeature.isEnabled();
     }
 
     /**
