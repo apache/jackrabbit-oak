@@ -302,6 +302,17 @@ public class IndexTracker {
         return new LuceneIndexDefinition(root, node, indexPath);
     }
 
+    /**
+     * @param path the index path
+     * @return {@code true} if the index is already open and ready to use.
+     * {@code false} means we don't know yet - it could still be building,
+     * broken, or simply not opened yet. Call {@link #acquireIndexNode(String)}
+     * to find out for sure.
+     */
+    public boolean isIndexReady(String path) {
+        return indices.containsKey(path);
+    }
+
     public Set<String> getIndexNodePaths(){
         return indices.keySet();
     }
