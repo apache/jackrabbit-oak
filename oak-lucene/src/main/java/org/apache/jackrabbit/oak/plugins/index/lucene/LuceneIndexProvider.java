@@ -48,6 +48,13 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
         this.filterGloballySupersededFeature = feature;
     }
 
+    // OAK-12399: kill-switch for the jcr:score-as-secondary-sort fix, passed on to each query index.
+    @Nullable private Feature legacySortFeature;
+
+    public void setLegacySortFeature(@Nullable Feature feature) {
+        this.legacySortFeature = feature;
+    }
+
     public LuceneIndexProvider() {
         this(new IndexTracker());
     }
@@ -90,6 +97,7 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
     protected LucenePropertyIndex newLucenePropertyIndex() {
         LucenePropertyIndex index = new LucenePropertyIndex(tracker, augmentorFactory);
         index.setFilterGloballySupersededFeature(filterGloballySupersededFeature);
+        index.setLegacySortFeature(legacySortFeature);
         return index;
     }
 

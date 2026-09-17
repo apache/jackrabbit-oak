@@ -132,6 +132,7 @@ import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.Version;
 import org.jetbrains.annotations.NotNull;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -215,6 +216,14 @@ public class LucenePropertyIndex extends FulltextIndex {
     private final static boolean EAGER_FACET_CACHE_FILL =
             Boolean.parseBoolean(System.getProperty(EAGER_FACET_CACHE_FILL_NAME, "true"));
 
+    /**
+     * OAK-12399: kill-switch feature toggle for the fix that keeps {@code jcr:score} as a secondary
+     * relevance sort key alongside an ordered property. The fix is enabled by default; enabling this
+     * toggle at runtime restores the legacy behaviour (jcr:score dropped from the sort, document
+     * scores not computed). Registered on the Whiteboard by {@code LuceneIndexProviderService}.
+     */
+    public static final String FT_LEGACY_SORT_OAK_12399 = "FT_LEGACY_SORT_OAK-12399";
+
     private static boolean FLAG_CACHE_FACET_RESULTS_CHANGE = true;
 
     /**
@@ -247,6 +256,18 @@ public class LucenePropertyIndex extends FulltextIndex {
         logConfigsOnce();
     }
 
+    /**
+     * OAK-12399: kill-switch for the jcr:score-as-secondary-sort fix. Injected by
+     * {@code LuceneIndexProvider}; when {@code null} (non-OSGi callers) or disabled the fix is active,
+     * when enabled the legacy behaviour is restored. See {@link #FT_LEGACY_SORT_OAK_12399}.
+     */
+    @Nullable
+    private Feature legacySortFeature;
+
+    public void setLegacySortFeature(@Nullable Feature legacySortFeature) {
+        this.legacySortFeature = legacySortFeature;
+    }
+
     private void logConfigsOnce() {
         if (FLAG_CACHE_FACET_RESULTS_CHANGE) {
             LOG.info(OLD_FACET_PROVIDER_CONFIG_NAME + " = " + OLD_FACET_PROVIDER);
@@ -268,6 +289,9 @@ public class LucenePropertyIndex extends FulltextIndex {
         }
         final Filter filter = plan.getFilter();
         final Sort sort = getSort(plan);
+        // OAK-12399: track document scores only when the fix is active (legacy toggle off) and the
+        // sort includes the relevance score; otherwise keep the legacy field-sort behaviour.
+        final boolean needsScores = !legacySortEnabled() && requiresScores(sort);
         final PlanResult pr = getPlanResult(plan);
         QueryLimits settings = filter.getQueryLimits();
         LuceneResultRowIterator rItr = new LuceneResultRowIterator() {
@@ -373,14 +397,16 @@ public class LucenePropertyIndex extends FulltextIndex {
                                 if (sort == null) {
                                     docs = searcher.searchAfter(lastDoc, query, nextBatchSize);
                                 } else {
-                                    docs = searcher.searchAfter(lastDoc, query, nextBatchSize, sort);
+                                    // OAK-12399: needsScores as doDocScores so a jcr:score sort field is populated.
+                                    docs = searcher.searchAfter(lastDoc, query, null, nextBatchSize, sort, needsScores, false);
                                 }
                             } else {
                                 LOG.debug("loading the first {} entries for query {}", nextBatchSize, query);
                                 if (sort == null) {
                                     docs = searcher.search(query, nextBatchSize);
                                 } else {
-                                    docs = searcher.search(query, nextBatchSize, sort);
+                                    // OAK-12399: needsScores as doDocScores so a jcr:score sort field is populated.
+                                    docs = searcher.search(query, null, nextBatchSize, sort, needsScores, false);
                                 }
                             }
                             PERF_LOGGER.end(start, -1, "{} ...", docs.scoreDocs.length);
@@ -811,7 +837,55 @@ public class LucenePropertyIndex extends FulltextIndex {
         return getLuceneRequest(plan, augmentorFactory, null).toString();
     }
 
-    private static Sort getSort(IndexPlan plan) {
+    /**
+     * OAK-12399: builds the Lucene sort. When the legacy kill-switch is enabled it defers to
+     * {@link #getSortLegacy(IndexPlan)} (the pre-OAK-12399 behaviour). Otherwise it keeps jcr:score as
+     * a real relevance sort field at its original position: native (jcr:score) entries map to
+     * {@link SortField.Type#SCORE}, while property entries consume
+     * {@link PlanResult#getOrderedProperty(int)} in order (that list has no entry for jcr:score, hence
+     * the separate {@code propIndex}). Handles all cases uniformly - pure jcr:score, property-only and
+     * mixed - so the legacy path can be deleted wholesale once the fix has proven itself.
+     */
+    private Sort getSort(IndexPlan plan) {
+        if (legacySortEnabled()) {
+            return getSortLegacy(plan);
+        }
+
+        List<OrderEntry> sortOrder = plan.getSortOrder();
+        if (sortOrder == null || sortOrder.isEmpty()) {
+            return null;
+        }
+
+        List<SortField> fieldsList = new ArrayList<>(sortOrder.size());
+        PlanResult planResult = getPlanResult(plan);
+        int propIndex = 0;
+        for (OrderEntry oe : sortOrder) {
+            boolean reverse = oe.getOrder() != OrderEntry.Order.ASCENDING;
+            if (isNativeSort(oe)) {
+                // Type.SCORE sorts highest-first when reverse=false, so invert: DESC -> highest first.
+                fieldsList.add(new SortField(null, SortField.Type.SCORE, !reverse));
+            } else {
+                PropertyDefinition pd = planResult.getOrderedProperty(propIndex++);
+                String propName = FieldNames.createDocValFieldName(oe.getPropertyName());
+                fieldsList.add(new SortField(propName, toLuceneSortType(oe, pd), reverse));
+            }
+        }
+
+        return fieldsList.isEmpty() ? null : new Sort(fieldsList.toArray(new SortField[0]));
+    }
+
+    /** OAK-12399: true when the legacy kill-switch is on, i.e. the pre-OAK-12399 behaviour is used. */
+    private boolean legacySortEnabled() {
+        return legacySortFeature != null && legacySortFeature.isEnabled();
+    }
+
+    /**
+     * Pre-OAK-12399 sort building: drops jcr:score from the sort (see {@link #removeNativeSort}) and
+     * pairs the remaining entries positionally with {@link PlanResult#getOrderedProperty(int)}. Kept
+     * behind the {@link #FT_LEGACY_SORT_OAK_12399} kill-switch; delete together with the switch once
+     * the fix is confirmed.
+     */
+    private static Sort getSortLegacy(IndexPlan plan) {
         List<OrderEntry> sortOrder = plan.getSortOrder();
         if (sortOrder == null || sortOrder.isEmpty()) {
             return null;
@@ -834,6 +908,11 @@ public class LucenePropertyIndex extends FulltextIndex {
         } else {
             return new Sort(fieldsList.toArray(new SortField[0]));
         }
+    }
+
+    private static boolean requiresScores(Sort sort) {
+        return sort != null && Arrays.stream(sort.getSort())
+                .anyMatch(sortField -> sortField.getType() == SortField.Type.SCORE);
     }
 
     /**
