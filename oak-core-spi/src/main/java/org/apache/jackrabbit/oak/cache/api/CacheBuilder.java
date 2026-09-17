@@ -24,7 +24,7 @@ import java.util.function.Supplier;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 
-import org.apache.jackrabbit.oak.cache.impl.CacheMaintenanceExecutor;
+import org.apache.jackrabbit.oak.cache.impl.maintenance.CacheMaintenanceExecutor;
 import org.apache.jackrabbit.oak.cache.impl.caffeine.CaffeineCacheAdapter;
 import org.apache.jackrabbit.oak.cache.impl.caffeine.CaffeineLoadingCacheAdapter;
 import org.jetbrains.annotations.NotNull;
