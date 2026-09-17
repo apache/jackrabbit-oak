@@ -34,6 +34,7 @@ import org.junit.Test;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import org.apache.hc.core5.http2.HttpVersionPolicy;
+import org.apache.jackrabbit.oak.plugins.index.elastic.internal.ElasticFeatureToggles;
 
 public class ElasticConnectionTest {
 
@@ -49,14 +50,14 @@ public class ElasticConnectionTest {
     public void ft_oak_12366_toggleShouldBeRemoved() {
         // Time-bombed: if this test fails, the feature toggle FT_OAK_12366 and its guard in
         // ElasticConnection#getClients should be cleaned up — the fix has been in production long enough.
-        assertTrue("Feature toggle " + ElasticConnection.FT_OAK_12366 + " is overdue for removal",
+        assertTrue("Feature toggle " + ElasticFeatureToggles.FT_OAK_12366 + " is overdue for removal",
                 LocalDate.now().isBefore(LocalDate.of(2027, 9, 15)));
     }
 
     @After
     public void resetToggle() {
         ElasticConnection.FT_OAK_12234_DISABLE.set(false);
-        ElasticConnection.FT_OAK_12366_DISABLE.set(false);
+        ElasticFeatureToggles.FT_OAK_12366_DISABLE.set(false);
         System.clearProperty(ElasticConnection.PROP_RESPONSE_THREAD_POOL_SIZE);
     }
 
@@ -153,7 +154,7 @@ public class ElasticConnectionTest {
 
     @Test
     public void connectionBuildsWithHttp1ToggleDisabled() throws IOException {
-        ElasticConnection.FT_OAK_12366_DISABLE.set(true);
+        ElasticFeatureToggles.FT_OAK_12366_DISABLE.set(true);
         try (ElasticConnection connection = defaultConnection()) {
             assertNotNull(connection.getClient());
         }
