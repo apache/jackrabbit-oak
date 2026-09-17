@@ -25,4 +25,18 @@ public interface IndexStatistics {
   int numDocs();
 
   int getDocCountFor(String key);
+
+  /**
+   * Approximate number of indexed documents below the given ancestor path, using the index's own
+   * path/depth data (rather than a global heuristic). Used to estimate the cost of
+   * {@code ISCHILDNODE} / {@code ISDESCENDANTNODE} restrictions.
+   *
+   * @param ancestorPath the ancestor path (a {@code :ancestors} value), e.g. {@code /content}
+   * @param exactDepth   when {@code >= 0}, count only nodes at exactly this depth (the direct
+   *                     children of {@code ancestorPath}); when {@code < 0}, count all descendants
+   * @return the approximate document count, or {@code -1} if this statistic is not available
+   */
+  default int getDocCountForPath(String ancestorPath, int exactDepth) {
+    return -1;
+  }
 }

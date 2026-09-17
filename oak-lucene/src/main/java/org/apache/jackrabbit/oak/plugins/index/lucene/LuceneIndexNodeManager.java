@@ -298,7 +298,7 @@ public class LuceneIndexNodeManager {
         public SearcherHolder(IndexSearcher searcher, List<LuceneIndexReader> nrtReaders) {
             this.searcher = searcher;
             this.nrtReaders = nrtReaders;
-            this.indexStatistics = new LuceneIndexStatistics(searcher.getIndexReader());
+            this.indexStatistics = new LuceneIndexStatistics(searcher);
         }
 
         public LuceneIndexStatistics getIndexStatistics() {

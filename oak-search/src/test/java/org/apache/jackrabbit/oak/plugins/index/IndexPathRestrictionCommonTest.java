@@ -164,19 +164,18 @@ public abstract class IndexPathRestrictionCommonTest {
         int cost = count / FulltextIndexPlanner.DEFAULT_PROPERTY_WEIGHT;
         validateEstimatedCount(f, cost);
 
-        // /jcr:root/test/*[foo = 'bar']
+        // /jcr:root/test/*[foo = 'bar'] : all matching nodes are direct children of /test, so the
+        // index's own direct-child count (100) exceeds the property estimate and cost is unchanged.
         f = createFilter(root, NT_BASE);
         f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
         f.restrictPath("/test", Filter.PathRestriction.DIRECT_CHILDREN);
-        // direct children + equality check: we assume 50% of just checking for equality
-        validateEstimatedCount(f, (int) (cost * 0.5));
+        validateEstimatedCount(f, cost);
 
-        // /jcr:root/test//*[foo = 'bar']
+        // /jcr:root/test//*[foo = 'bar'] : likewise, all matching nodes are descendants of /test.
         f = createFilter(root, NT_BASE);
         f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
         f.restrictPath("/test", Filter.PathRestriction.ALL_CHILDREN);
-        // descendants + equality check: we assume 90% of just checking for equality
-        validateEstimatedCount(f, (int) (cost * 0.9));
+        validateEstimatedCount(f, cost);
 
         // /jcr:root/test/x[foo = 'bar']
         f = createFilter(root, NT_BASE);
@@ -184,6 +183,137 @@ public abstract class IndexPathRestrictionCommonTest {
         f.restrictPath("/test/x", Filter.PathRestriction.EXACT);
         // exact path + equality check: we assume just 1 (as we have only one possible node)
         validateEstimatedCount(f, 1);
+    }
+
+    @Test
+    public void entryCountReflectsSubtreeForPathRestriction() throws Exception {
+        IndexDefinitionBuilder idxBuilder =
+                getIndexDefinitionBuilder(rootBuilder.child(IndexConstants.INDEX_DEFINITIONS_NAME).
+                        child("fooIndex"))
+                        .noAsync().evaluatePathRestrictions();
+        idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
+        idxBuilder.build();
+        commit();
+
+        // Many matching nodes OUTSIDE the queried subtree, so the global doc count is far
+        // larger than the /test subtree. A path-restricted estimate must reflect the subtree,
+        // not this global count.
+        NodeBuilder big = rootBuilder.child("big");
+        for (int i = 0; i < 500; i++) {
+            big.child("n" + i).setProperty("foo", "bar");
+        }
+        // /test: only 5 direct children, but 50 descendants (a wide/deep subtree). ischildnode
+        // must therefore be estimated far below isdescendantnode.
+        NodeBuilder test = rootBuilder.child("test");
+        for (int i = 0; i < 5; i++) {
+            test.child("c" + i).setProperty("foo", "bar");
+        }
+        NodeBuilder c0 = test.child("c0");
+        for (int i = 0; i < 45; i++) {
+            c0.child("d" + i).setProperty("foo", "bar");
+        }
+        commit();
+
+        // /jcr:root/test/*[foo = 'bar'] : only the 5 direct children match, independent of the
+        // 500+ nodes elsewhere.
+        FilterImpl child = createFilter(root, NT_BASE);
+        child.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        child.restrictPath("/test", Filter.PathRestriction.DIRECT_CHILDREN);
+        validateEstimatedCount(child, 5);
+
+        // /jcr:root/test//*[foo = 'bar'] : the 50 descendants match.
+        FilterImpl descendant = createFilter(root, NT_BASE);
+        descendant.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        descendant.restrictPath("/test", Filter.PathRestriction.ALL_CHILDREN);
+        validateEstimatedCount(descendant, 50);
+    }
+
+    @Test
+    public void entryCountLegacyHeuristicWhenToggleDisabled() throws Exception {
+        FulltextIndexPlanner.FT_OAK_12401_DISABLE.set(true);
+        try {
+            IndexDefinitionBuilder idxBuilder =
+                    getIndexDefinitionBuilder(rootBuilder.child(IndexConstants.INDEX_DEFINITIONS_NAME).
+                            child("fooIndex"))
+                            .noAsync().evaluatePathRestrictions();
+            idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
+            idxBuilder.build();
+            commit();
+
+            NodeBuilder big = rootBuilder.child("big");
+            for (int i = 0; i < 500; i++) {
+                big.child("n" + i).setProperty("foo", "bar");
+            }
+            NodeBuilder test = rootBuilder.child("test");
+            for (int i = 0; i < 5; i++) {
+                test.child("c" + i).setProperty("foo", "bar");
+            }
+            NodeBuilder c0 = test.child("c0");
+            for (int i = 0; i < 45; i++) {
+                c0.child("d" + i).setProperty("foo", "bar");
+            }
+            commit();
+
+            // 550 matching nodes / DEFAULT_PROPERTY_WEIGHT
+            int cost = 550 / FulltextIndexPlanner.DEFAULT_PROPERTY_WEIGHT;
+
+            // Legacy heuristic (toggle disabled): direct children -> 50% of the global estimate,
+            // regardless of the actual subtree.
+            FilterImpl child = createFilter(root, NT_BASE);
+            child.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+            child.restrictPath("/test", Filter.PathRestriction.DIRECT_CHILDREN);
+            validateEstimatedCount(child, cost / 2);
+
+            // Legacy heuristic: descendants -> 90% of the global estimate.
+            FilterImpl descendant = createFilter(root, NT_BASE);
+            descendant.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+            descendant.restrictPath("/test", Filter.PathRestriction.ALL_CHILDREN);
+            validateEstimatedCount(descendant, (int) (cost * 0.9));
+        } finally {
+            FulltextIndexPlanner.FT_OAK_12401_DISABLE.set(false);
+        }
+    }
+
+    @Test
+    public void entryCountForSubtreeMountedIndex() throws Exception {
+        // Index mounted under /content (not at the repository root), so ":ancestors"/":depth" are
+        // stored relative to /content. The estimate must relativize the query path the same way the
+        // query does, otherwise the ancestor lookup misses and the estimate collapses to 0.
+        IndexDefinitionBuilder idxBuilder =
+                getIndexDefinitionBuilder(rootBuilder.child("content").child(IndexConstants.INDEX_DEFINITIONS_NAME).
+                        child("fooIndex"))
+                        .noAsync().evaluatePathRestrictions();
+        idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
+        idxBuilder.build();
+        commit();
+
+        NodeBuilder content = rootBuilder.child("content");
+        NodeBuilder big = content.child("big");
+        for (int i = 0; i < 500; i++) {
+            big.child("n" + i).setProperty("foo", "bar");
+        }
+        NodeBuilder test = content.child("test");
+        for (int i = 0; i < 5; i++) {
+            test.child("c" + i).setProperty("foo", "bar");
+        }
+        NodeBuilder c0 = test.child("c0");
+        for (int i = 0; i < 45; i++) {
+            c0.child("d" + i).setProperty("foo", "bar");
+        }
+        commit();
+
+        // ischildnode('/content/test'): the 5 direct children - must NOT be 0 (which is what an
+        // absolute-path lookup against a /content-relative index would return).
+        FilterImpl child = createFilter(root, NT_BASE);
+        child.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        child.restrictPath("/content/test", Filter.PathRestriction.DIRECT_CHILDREN);
+        validateEstimatedCount(child, 5);
+
+        // isdescendantnode('/content/test'): the 50 descendants.
+        FilterImpl descendant = createFilter(root, NT_BASE);
+        descendant.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        descendant.restrictPath("/content/test", Filter.PathRestriction.ALL_CHILDREN);
+        validateEstimatedCount(descendant, 50);
     }
 
     @Test
