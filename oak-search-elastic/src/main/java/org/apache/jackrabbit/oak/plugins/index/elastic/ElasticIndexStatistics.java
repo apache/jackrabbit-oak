@@ -31,6 +31,8 @@ import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
 import org.apache.jackrabbit.oak.cache.api.CacheLoader;
 import org.apache.jackrabbit.oak.cache.api.LoadingCache;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -121,6 +123,22 @@ public class ElasticIndexStatistics implements IndexStatistics {
      */
     public int getDocCountFor(Query query) {
         return getOrRefetchDocCount(null, query);
+    }
+
+    @Override
+    public int getDocCountForPath(String ancestorPath, int exactDepth) {
+        // Mirror the query the index actually runs for the path restriction (see
+        // ElasticRequestHandler): ":ancestors" term, plus an exact ":depth" for direct children.
+        Query ancestorQuery = TermQueryBuilderFactory.newAncestorQuery(ancestorPath);
+        Query query;
+        if (exactDepth >= 0) {
+            Query depthQuery = Query.of(q -> q.term(t -> t.field(FieldNames.PATH_DEPTH)
+                    .value(v -> v.longValue(exactDepth))));
+            query = Query.of(q -> q.bool(b -> b.must(ancestorQuery).must(depthQuery)));
+        } else {
+            query = ancestorQuery;
+        }
+        return getDocCountFor(query);
     }
 
     private int getOrRefetchDocCount(@Nullable String field, @Nullable Query query) {

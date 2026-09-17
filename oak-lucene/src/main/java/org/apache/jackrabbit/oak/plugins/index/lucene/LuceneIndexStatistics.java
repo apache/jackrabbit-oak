@@ -21,10 +21,18 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiFields;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.NumericRangeQuery;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TotalHitCountCollector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,6 +49,9 @@ public class LuceneIndexStatistics implements IndexStatistics {
     private final int numDocs;
     private final Map<String, Integer> numDocsForField;
     private final boolean safelyInitialized;
+    // Kept to answer path/depth counts on demand (OAK-12401); may be null (e.g. some tests), in
+    // which case path counts are reported as unavailable (-1).
+    private final IndexSearcher searcher;
 
     // For ease of tests as there didn't seem an easy way to make an IndexReader delegator
     // that would fail calls to reader on-demand.
@@ -53,6 +64,19 @@ public class LuceneIndexStatistics implements IndexStatistics {
      * @param reader {@link IndexReader} for which statistics need to be collected.
      */
     LuceneIndexStatistics(IndexReader reader) {
+        this(null, reader);
+    }
+
+    /**
+     * @param searcher {@link IndexSearcher} for which statistics need to be collected; also used to
+     *                 answer path/depth counts on demand (OAK-12401).
+     */
+    LuceneIndexStatistics(IndexSearcher searcher) {
+        this(searcher, searcher.getIndexReader());
+    }
+
+    private LuceneIndexStatistics(IndexSearcher searcher, IndexReader reader) {
+        this.searcher = searcher;
         numDocs = reader.numDocs();
 
         Map<String, Integer> numDocsForField = new HashMap<>();
@@ -122,6 +146,36 @@ public class LuceneIndexStatistics implements IndexStatistics {
         }
 
         return docCntForField;
+    }
+
+    @Override
+    public int getDocCountForPath(String ancestorPath, int exactDepth) {
+        if (searcher == null) {
+            return -1;
+        }
+        // Mirror the query the index actually runs for the path restriction (see
+        // LucenePropertyIndex#addNonFullTextConstraints): ":ancestors" term, plus an exact ":depth"
+        // for direct children.
+        Term ancestorTerm = TermFactory.newAncestorTerm(ancestorPath);
+        try {
+            if (exactDepth < 0) {
+                // descendants: a single ":ancestors" term - count straight from the term
+                // dictionary, without scanning postings
+                return searcher.getIndexReader().docFreq(ancestorTerm);
+            }
+            // direct children: ":ancestors" AND an exact ":depth" - count without scoring
+            BooleanQuery bq = new BooleanQuery();
+            bq.add(new BooleanClause(new TermQuery(ancestorTerm), BooleanClause.Occur.MUST));
+            bq.add(new BooleanClause(
+                    NumericRangeQuery.newIntRange(FieldNames.PATH_DEPTH, exactDepth, exactDepth, true, true),
+                    BooleanClause.Occur.MUST));
+            TotalHitCountCollector collector = new TotalHitCountCollector();
+            searcher.search(bq, collector);
+            return collector.getTotalHits();
+        } catch (IOException e) {
+            LOG.warn("Couldn't count documents under path {} (depth {})", ancestorPath, exactDepth, e);
+            return -1;
+        }
     }
 
 }

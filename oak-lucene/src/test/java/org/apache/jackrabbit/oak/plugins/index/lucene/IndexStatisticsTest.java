@@ -183,6 +183,21 @@ public class IndexStatisticsTest {
         }
     }
 
+    @Test
+    public void docCountForPathUnavailableWithoutSearcher() throws IOException {
+        Directory d = new RAMDirectory();
+        IndexWriter w = getWriter(d);
+        Document doc = new Document();
+        doc.add(new StringField("foo", "bar", Field.Store.NO));
+        w.addDocument(doc);
+        w.close();
+
+        // Stats built from a bare reader (no searcher) cannot answer path/depth counts.
+        LuceneIndexStatistics stats = getStats(d);
+        assertEquals(-1, stats.getDocCountForPath("/content", -1));
+        assertEquals(-1, stats.getDocCountForPath("/content", 2));
+    }
+
     private static IndexWriter getWriter(Directory d) throws IOException {
         IndexWriterConfig config = new IndexWriterConfig(VERSION, LuceneIndexConstants.ANALYZER);
         return new IndexWriter(d, config);

@@ -108,6 +108,21 @@ public class FulltextIndexPlanner {
     public static final AtomicBoolean FT_OAK_12221_ENABLE = new AtomicBoolean(false);
 
     /**
+     * Feature toggle name for OAK-12401.
+     * Estimates the cost of {@code ISCHILDNODE} / {@code ISDESCENDANTNODE} restrictions from the
+     * index's own path/depth counts instead of the legacy global {@code /2} and {@code *0.9}
+     * heuristics. Enabled by default.
+     */
+    public static final String FT_OAK_12401 = "FT_OAK-12401";
+
+    /**
+     * Kill switch for the path-restriction cost estimation introduced by OAK-12401.
+     * Set to {@code true} to revert to the legacy heuristic. Default is {@code false} (improved
+     * behavior active). Wired to the {@link #FT_OAK_12401} feature toggle at runtime.
+     */
+    public static final AtomicBoolean FT_OAK_12401_DISABLE = new AtomicBoolean(false);
+
+    /**
      * IndexPlan Attribute name which refers to the name of the fields that should be used for facets.
      */
     public static final String ATTR_FACET_FIELDS = "oak.facet.fields";
@@ -960,21 +975,49 @@ public class FulltextIndexPlanner {
                 // then the result size is at most 1.
                 minNumDocs = 1;
             } else if (pathRestriction == PathRestriction.DIRECT_CHILDREN) {
-                // We restrict to direct children: assume at most 50% are there.
-                minNumDocs /= 2;
+                minNumDocs = adjustForPathRestriction(minNumDocs, filter, true);
             } else if (pathRestriction != PathRestriction.NO_RESTRICTION) {
-                // Other restriction: assume at most 90%.
-                // This is important if we have
-                // "descendantnode(/content/abc) or issamenode(/content/abc)":
-                // We could either convert it to a union, or not use the path restriction.
-                // In this case, we want to convert it to a union!
-                // A path restriction will reduce the number of entries.
-                // So the cost of having a usable path condition is
-                // lower than the cost of not having a path condition at all.
-                minNumDocs = (int) (minNumDocs * 0.9);
+                minNumDocs = adjustForPathRestriction(minNumDocs, filter, false);
             }
         }
         return minNumDocs;
+    }
+
+    /**
+     * Estimates the entry count for a path restriction (OAK-12401). When enabled (default), uses
+     * the index's own count of documents under the filter's path - the number of descendants (or,
+     * for direct children, the nodes at exactly the child depth) - capped at {@code minNumDocs}.
+     * Falls back to the legacy global heuristic ({@code /2} for direct children, {@code *0.9} for
+     * descendants) when disabled or when the count is not available.
+     * <p>
+     * The legacy heuristic reduced a global doc count by a fixed fraction, so ISCHILDNODE was only
+     * ~50% cheaper than ISDESCENDANTNODE regardless of the tree shape - making the index lose to a
+     * traversal on wide/deep subtrees.
+     */
+    private int adjustForPathRestriction(int minNumDocs, Filter filter, boolean directChildren) {
+        if (!FT_OAK_12401_DISABLE.get()) {
+            String filterPath = filter.getPath();
+            // Skip join placeholders (JoinConditionImpl.SPECIAL_PATH_PREFIX) and non-absolute paths.
+            if (filterPath != null && filterPath.startsWith("/") && !filterPath.startsWith("//")) {
+                // Relativize against the index's path prefix exactly like the query does
+                // (FulltextIndex#getPathRestriction), so ":ancestors"/":depth" match for
+                // subtree-mounted indexes (where they are stored relative to the prefix).
+                String path = filterPath;
+                String pathPrefix = getPathPrefix();
+                if (!pathPrefix.isEmpty()) {
+                    path = "/" + PathUtils.relativize(pathPrefix, filterPath);
+                }
+                // Skip the index root: there the query applies no ":ancestors" restriction at all.
+                if (!"/".equals(path)) {
+                    int exactDepth = directChildren ? getDepth(path) + result.getParentDepth() + 1 : -1;
+                    int pathDocs = indexNode.getIndexStatistics().getDocCountForPath(path, exactDepth);
+                    if (pathDocs >= 0) {
+                        return Math.min(minNumDocs, pathDocs);
+                    }
+                }
+            }
+        }
+        return directChildren ? minNumDocs / 2 : (int) (minNumDocs * 0.9);
     }
 
     /**
@@ -1079,9 +1122,9 @@ public class FulltextIndexPlanner {
             if (pathRestriction == PathRestriction.EXACT || pathRestriction == PathRestriction.PARENT) {
                 minNumDocs = 1;
             } else if (pathRestriction == PathRestriction.DIRECT_CHILDREN) {
-                minNumDocs /= 2;
+                minNumDocs = adjustForPathRestriction(minNumDocs, filter, true);
             } else if (pathRestriction != PathRestriction.NO_RESTRICTION) {
-                minNumDocs = (int) (minNumDocs * 0.9);
+                minNumDocs = adjustForPathRestriction(minNumDocs, filter, false);
             }
         }
         return minNumDocs;
