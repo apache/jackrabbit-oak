@@ -59,6 +59,9 @@ public class DefaultCleanupContextTest {
     /** An older compacted generation (below the head). */
     private static final GCGeneration OLD_COMPACTED_GENERATION = GCGeneration.newGCGeneration(25, 10, true);
 
+    /** Same generation as the head but a different fullGeneration (compareWith ignores fullGeneration). */
+    private static final GCGeneration SAME_GENERATION_DIFFERENT_FULL = GCGeneration.newGCGeneration(26, 10, true);
+
     private static final String NULL_ROOT = RecordId.NULL.toString10();
 
     private SegmentTracker tracker;
@@ -196,6 +199,29 @@ public class DefaultCleanupContextTest {
         System.setProperty(DANGLING_BY_GENERATION, "true");
         DefaultCleanupContext context = newCleanupContext(generation -> true);
         Assert.assertTrue(context.shouldReclaim(liveCompactedDataSegment, OLD_COMPACTED_GENERATION, false));
+    }
+
+    /**
+     * {@code compareWith} compares only the generation field, so a compacted segment at the same generation
+     * as the head but a different fullGeneration is retained. Pins this intentional, conservative behaviour.
+     */
+    @Test
+    public void retainsSameGenerationDifferentFullGenerationWhenEnabled() {
+        System.setProperty(DANGLING_BY_GENERATION, "true");
+        DefaultCleanupContext context = newCleanupContext(generation -> false);
+        Assert.assertFalse(context.shouldReclaim(liveCompactedDataSegment, SAME_GENERATION_DIFFERENT_FULL, false));
+    }
+
+    /**
+     * Generation-based detection does not depend on the gc.log root sentinel: with a NULL compacted root it
+     * still retains a live head-generation segment and reclaims a genuine future one.
+     */
+    @Test
+    public void generationDetectionIgnoresNullRootWhenEnabled() {
+        System.setProperty(DANGLING_BY_GENERATION, "true");
+        DefaultCleanupContext context = newCleanupContext(generation -> false, NULL_ROOT);
+        Assert.assertFalse(context.shouldReclaim(liveCompactedDataSegment, COMPACTED_HEAD_GENERATION, false));
+        Assert.assertTrue(context.shouldReclaim(liveCompactedDataSegment, FUTURE_COMPACTED_GENERATION, false));
     }
 
     // ---- shouldFollow: reference propagation is only for bulk segments ----
