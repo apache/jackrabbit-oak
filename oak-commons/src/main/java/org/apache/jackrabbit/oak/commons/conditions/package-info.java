@@ -21,7 +21,7 @@
  * Utilities for argument checking.
  */
 @Internal(since = "1.0.0")
-@Version("1.0.0")
+@Version("1.1.0")
 package org.apache.jackrabbit.oak.commons.conditions;
 import org.apache.jackrabbit.oak.commons.annotations.Internal;
 import org.osgi.annotation.versioning.Version;

@@ -101,6 +101,71 @@ public final class Validate {
     }
 
     /**
+     * Checks the specified expression. This is a primitive-specialized variant of
+     * {@link #checkArgument(boolean, String, Object...)}: it has the same contract but takes a
+     * single {@code int} argument, so a passing check neither boxes the argument nor allocates a
+     * varargs array. Prefer it on hot paths that pass exactly one {@code int} to the message
+     * template.
+     *
+     * @param expression
+     *            to check
+     * @param messageTemplate
+     *            to use in exception (using {@link String#format} syntax)
+     * @param arg
+     *            the single message argument
+     * @throws IllegalArgumentException
+     *             when false
+     */
+    public static void checkArgument(boolean expression, @NotNull String messageTemplate, int arg) {
+
+        Objects.requireNonNull(messageTemplate);
+
+        if (CHECKMESSAGETEMPLATE) {
+            checkTemplate(messageTemplate, arg);
+        }
+
+        if (!expression) {
+            if (!CHECKMESSAGETEMPLATE) {
+                checkTemplate(messageTemplate, arg);
+            }
+
+            String message = String.format(messageTemplate, arg);
+            throw new IllegalArgumentException(message);
+        }
+    }
+
+    /**
+     * Checks the specified expression. The {@code long} counterpart of
+     * {@link #checkArgument(boolean, String, int)}.
+     *
+     * @param expression
+     *            to check
+     * @param messageTemplate
+     *            to use in exception (using {@link String#format} syntax)
+     * @param arg
+     *            the single message argument
+     * @throws IllegalArgumentException
+     *             when false
+     */
+    public static void checkArgument(boolean expression, @NotNull String messageTemplate, long arg) {
+
+        Objects.requireNonNull(messageTemplate);
+
+        if (CHECKMESSAGETEMPLATE) {
+            checkTemplate(messageTemplate, arg);
+        }
+
+        if (!expression) {
+            if (!CHECKMESSAGETEMPLATE) {
+                checkTemplate(messageTemplate, arg);
+            }
+
+            String message = String.format(messageTemplate, arg);
+            throw new IllegalArgumentException(message);
+        }
+    }
+
+    /**
      * Checks whether the specified expression is true
      *
      * @param expression expression to checks
