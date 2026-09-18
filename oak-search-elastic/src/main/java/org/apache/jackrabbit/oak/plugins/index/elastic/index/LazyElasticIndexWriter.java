@@ -26,7 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Supplier;
 
 /**
@@ -77,13 +77,13 @@ class LazyElasticIndexWriter implements ElasticIndexWriter {
         ElasticsearchIndicesClient client = elasticConnection.getClient().indices();
         GetAliasResponse aliasResponse = client.getAlias(garb ->
                 garb.index(indexDefinition.getIndexAlias()).ignoreUnavailable(true));
-        if (aliasResponse.result().isEmpty()) {
+        if (aliasResponse.aliases().isEmpty()) {
             return;
         }
 
         UpdateAliasesRequest removeAliasesRequest = UpdateAliasesRequest.of(rb -> {
-            aliasResponse.result().forEach((idx, idxAliases) -> rb.actions(ab ->
-                    ab.remove(rab -> rab.index(idx).aliases(new ArrayList<>(idxAliases.aliases().keySet())))));
+            aliasResponse.aliases().forEach((idx, idxAliases) -> rb.actions(ab ->
+                    ab.remove(rab -> rab.index(idx).aliases(List.copyOf(idxAliases.aliases().keySet())))));
             return rb;
         });
         UpdateAliasesResponse updateAliasesResponse = client.updateAliases(removeAliasesRequest);
@@ -91,12 +91,12 @@ class LazyElasticIndexWriter implements ElasticIndexWriter {
             throw new IllegalStateException("Remove alias call not acknowledged for alias " + indexDefinition.getIndexAlias());
         }
 
-        DeleteIndexResponse deleteIndexResponse = client.delete(db -> db.index(new ArrayList<>(aliasResponse.result().keySet())));
+        DeleteIndexResponse deleteIndexResponse = client.delete(db -> db.index(List.copyOf(aliasResponse.aliases().keySet())));
         if (!deleteIndexResponse.acknowledged()) {
-            throw new IllegalStateException("Delete index call not acknowledged for indices " + aliasResponse.result().keySet());
+            throw new IllegalStateException("Delete index call not acknowledged for indices " + aliasResponse.aliases().keySet());
         }
         LOG.info("Reindex produced no documents for a previously-provisioned index — removed stale alias {} and deleted {}",
-                indexDefinition.getIndexAlias(), aliasResponse.result().keySet());
+                indexDefinition.getIndexAlias(), aliasResponse.aliases().keySet());
     }
 
     @Override

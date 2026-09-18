@@ -87,7 +87,7 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
 
         IndicesResponse indicesRes = getListOfRemoteIndexes();
         // 8 indices in ES remote
-        Assert.assertEquals(8, indicesRes.valueBody().size());
+        Assert.assertEquals(8, indicesRes.indices().size());
 
         runIndexPurgeCommand(true, 1, "");
 
@@ -101,9 +101,9 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
         expectedRemoteIndexNames.add(getRemoteIndexName("fooIndex-4-custom-2", indexRootNode));
         expectedRemoteIndexNames.add(getRemoteIndexName("fooIndex-4", indexRootNode));
 
-        Assert.assertEquals(expectedRemoteIndexNames.size(), indicesRes.valueBody().size());
+        Assert.assertEquals(expectedRemoteIndexNames.size(), indicesRes.indices().size());
 
-        for (IndicesRecord i : indicesRes.valueBody()) {
+        for (IndicesRecord i : indicesRes.indices()) {
             Assert.assertTrue(expectedRemoteIndexNames.contains(i.index()));
         }
 
@@ -176,11 +176,11 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
 
             IndicesResponse indicesRes = getListOfRemoteIndexes();
             // 7 indices in ES remote
-            Assert.assertEquals(7, indicesRes.valueBody().size());
+            Assert.assertEquals(7, indicesRes.indices().size());
             runIndexPurgeCommand(true, TimeUnit.DAYS.toMillis(1), "");
 
             indicesRes = getListOfRemoteIndexes();
-            Assert.assertEquals(7, indicesRes.valueBody().size());
+            Assert.assertEquals(7, indicesRes.indices().size());
 
             List<String> logs = custom.getLogs();
             assertThat(logs.toString(),
@@ -225,13 +225,13 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
 
             IndicesResponse indicesRes = getListOfRemoteIndexes();
             // 7 indices in ES remote
-            Assert.assertEquals(7, indicesRes.valueBody().size());
+            Assert.assertEquals(7, indicesRes.indices().size());
             runIndexPurgeCommand(true, 1, "");
 
 
             indicesRes = getListOfRemoteIndexes();
             // 7 indices in ES remote
-            Assert.assertEquals(7, indicesRes.valueBody().size());
+            Assert.assertEquals(7, indicesRes.indices().size());
 
             List<String> logs = custom.getLogs();
             assertThat(logs.toString(),
@@ -267,13 +267,13 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
 
             IndicesResponse indicesRes = getListOfRemoteIndexes();
             // 7 indices in ES remote
-            Assert.assertEquals(7, indicesRes.valueBody().size());
+            Assert.assertEquals(7, indicesRes.indices().size());
 
             runIndexPurgeCommand(true, 1, "");
 
             indicesRes = getListOfRemoteIndexes();
             // 1 indices in ES remote
-            Assert.assertEquals(1, indicesRes.valueBody().size());
+            Assert.assertEquals(1, indicesRes.indices().size());
 
 
             List<String> logs = custom.getLogs();
@@ -302,13 +302,13 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
 
         IndicesResponse indicesRes = getListOfRemoteIndexes();
         // 13 indices in ES remote
-        Assert.assertEquals(13, indicesRes.valueBody().size());
+        Assert.assertEquals(13, indicesRes.indices().size());
 
         runIndexPurgeCommand(true, 1, "/oak:index/fooIndex");
 
         indicesRes = getListOfRemoteIndexes();
         // 7 indices in ES remote
-        Assert.assertEquals(7, indicesRes.valueBody().size());
+        Assert.assertEquals(7, indicesRes.indices().size());
 
         NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
 
@@ -325,9 +325,9 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
         expectedRemoteIndexNames.add(getRemoteIndexName("fooIndex1-3-custom-2", indexRootNode));
 
 
-        Assert.assertEquals(expectedRemoteIndexNames.size(), indicesRes.valueBody().size());
+        Assert.assertEquals(expectedRemoteIndexNames.size(), indicesRes.indices().size());
 
-        for (IndicesRecord i : indicesRes.valueBody()) {
+        for (IndicesRecord i : indicesRes.indices()) {
             Assert.assertTrue(expectedRemoteIndexNames.contains(i.index()));
         }
 
@@ -363,12 +363,12 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
 
             IndicesResponse indicesRes = getListOfRemoteIndexes();
             // 8 indices in ES remote
-            Assert.assertEquals(8, indicesRes.valueBody().size());
+            Assert.assertEquals(8, indicesRes.indices().size());
             runIndexPurgeCommand(false, 1, "");
 
             indicesRes = getListOfRemoteIndexes();
             // 8 indices in ES remote
-            Assert.assertEquals(8, indicesRes.valueBody().size());
+            Assert.assertEquals(8, indicesRes.indices().size());
 
             List<String> logs = custom.getLogs();
             assertThat("repository is opened in read only mode ", logs.toString(),

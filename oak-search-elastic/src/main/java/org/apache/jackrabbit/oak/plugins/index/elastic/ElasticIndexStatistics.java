@@ -246,7 +246,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
             List<IndicesRecord> records = crd.connection.getClient().cat().indices(i -> i
                             .index(crd.index)
                             .bytes(Bytes.Bytes))
-                    .valueBody();
+                    .indices();
             if (records.isEmpty()) {
                 throw new IllegalStateException("Cannot retrieve stats for index " + crd.index + " as it does not exist");
             }

@@ -45,8 +45,9 @@
         124 MB: Aws Sdk 2.x (OAK-11935)
         130 MB: Embed Aws Sdk 2.x in oak-blob-cloud (OAK-12008)
         142 MB: jackson update (OAK-12276)
+        147 MB, Elasticsearch 9.5.x (OAK-12366)
         -->
-        <max.jar.size>142000000</max.jar.size>
+        <max.jar.size>147000000</max.jar.size>
                       
     </properties>
 
