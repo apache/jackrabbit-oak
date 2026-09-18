@@ -77,7 +77,7 @@ class DefaultCleanupStrategy implements CleanupStrategy {
 
     private static CleanupContext newCleanupContext(Context context) {
         return new DefaultCleanupContext(context.getSegmentTracker(), context.getReclaimer(),
-                context.getCompactedRootId());
+                context.getCompactedRootId(), getGcGeneration(context));
     }
 
     private static String toFileNames(@NotNull List<String> files) {

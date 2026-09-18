@@ -114,7 +114,7 @@ class CleanupFirstCompactionStrategy implements CompactionStrategy {
                         return true;
                     }
                     return generation.getGeneration() < currentGeneration.getGeneration() && !generation.isCompacted();
-                }, compactedRoot);
+                }, compactedRoot, currentGeneration);
             case TAIL:
                 return new DefaultCleanupContext(context.getSegmentTracker(), generation -> {
                     if (generation == null) {
@@ -127,7 +127,7 @@ class CleanupFirstCompactionStrategy implements CompactionStrategy {
                         return !generation.isCompacted();
                     }
                     return generation.getGeneration() < currentGeneration.getGeneration() && !generation.isCompacted();
-                }, compactedRoot);
+                }, compactedRoot, currentGeneration);
             default:
                 throw new IllegalArgumentException("invalid garbage collection type");
         }
