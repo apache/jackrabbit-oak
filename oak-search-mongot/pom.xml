@@ -43,12 +43,16 @@
         <configuration>
           <instructions>
             <Export-Package>!*</Export-Package>
+            <Embed-Dependency>
+              oak-search;scope=compile|runtime;inline=true,
+
+              *;scope=compile|runtime
+            </Embed-Dependency>
           </instructions>
         </configuration>
       </plugin>
     </plugins>
   </build>
-
   <dependencies>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
