@@ -87,8 +87,8 @@ public class CompactionWriter {
     }
 
     public void flush() throws IOException {
-        partialWriter.flush();
         targetWriter.flush();
+        partialWriter.flush();
     }
 
     public @Nullable FullyCompactedNodeState getPreviouslyCompactedState(NodeState nodeState) {
