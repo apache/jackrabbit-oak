@@ -257,6 +257,302 @@ public class PropertyIndexTest {
                 cost < traversal);
     }
 
+    /**
+     * Default cost (no costPerEntry/costPerExecution set) must stay exactly
+     * COST_OVERHEAD + entryCount regardless of the FT_OAK_12348 toggle position,
+     * both via {@link PropertyIndexLookup#getCost} and via {@link PropertyIndex#getCost}
+     * (which goes through {@link PropertyIndexPlan}). The toggle is enabled by
+     * default, so this is what a fresh install sees with no properties set.
+     */
+    @Test
+    public void costPerEntryAndCostPerExecutionDefaultUnchanged() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+
+        NodeBuilder builder = root.builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, Set.of("foo"), null)
+                .setProperty("entryCount", -1);
+        NodeState before = builder.getNodeState();
+
+        for (int i = 0; i < 5; i++) {
+            builder.child("n" + i).setProperty("foo", "x1");
+        }
+        NodeState after = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        FilterImpl f = createFilter(indexed, NT_BASE);
+        f.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
+
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
+        assertEquals(7.0, lookup.getCost(f, "foo", PropertyValues.newString("x1")), 0.0);
+        assertEquals(7.0, pIndex.getCost(f, indexed), 0.0);
+
+        PropertyIndexLookup legacyLookup = new PropertyIndexLookup(indexed, Mounts.defaultMountInfoProvider(), true);
+        PropertyIndex pIndexLegacy = new PropertyIndex(Mounts.defaultMountInfoProvider(), true);
+        assertEquals(7.0, legacyLookup.getCost(f, "foo", PropertyValues.newString("x1")), 0.0);
+        assertEquals(7.0, pIndexLegacy.getCost(f, indexed), 0.0);
+    }
+
+    /**
+     * Setting costPerEntry/costPerExecution on the index definition changes the
+     * cost by the documented formula, {@code cost = costPerExecution + costPerEntry * entryCount},
+     * by default -- FT_OAK_12348 is enabled out of the box. Disabling it (the
+     * escape hatch) must fall back to the legacy value.
+     */
+    @Test
+    public void costPerEntryAndCostPerExecutionOverride() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+
+        NodeBuilder builder = root.builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, Set.of("foo"), null)
+                .setProperty("entryCount", -1)
+                .setProperty(IndexConstants.COST_PER_ENTRY, 2.0)
+                .setProperty(IndexConstants.COST_PER_EXECUTION, 10.0);
+        NodeState before = builder.getNodeState();
+
+        for (int i = 0; i < 5; i++) {
+            builder.child("n" + i).setProperty("foo", "x1");
+        }
+        NodeState after = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        FilterImpl f = createFilter(indexed, NT_BASE);
+        f.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
+
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
+
+        // enabled (default): override takes effect immediately, no opt-in needed
+        // -- 10.0 + 2.0 * 5 == 20.0 (legacy would have been 2.0 + 5 == 7.0).
+        assertEquals(20.0, lookup.getCost(f, "foo", PropertyValues.newString("x1")), 0.0);
+        assertEquals(20.0, pIndex.getCost(f, indexed), 0.0);
+        // getCostLegacy() is callable directly regardless of the toggle, and still
+        // gives the old value -- proves the escape hatch's formula is intact.
+        assertEquals(7.0, lookup.getCostLegacy(f, "foo", PropertyValues.newString("x1")), 0.0);
+
+        PropertyIndexLookup legacyLookup = new PropertyIndexLookup(indexed, Mounts.defaultMountInfoProvider(), true);
+        PropertyIndex pIndexLegacy = new PropertyIndex(Mounts.defaultMountInfoProvider(), true);
+        assertEquals(7.0, legacyLookup.getCost(f, "foo", PropertyValues.newString("x1")), 0.0);
+        assertEquals(7.0, pIndexLegacy.getCost(f, indexed), 0.0);
+    }
+
+    /**
+     * costPerEntry == 0 on an index that doesn't apply to the query must not turn
+     * POSITIVE_INFINITY into NaN (0 * Infinity == NaN in IEEE754) — an inapplicable
+     * index must never look "free". Exercises the default (enabled) toggle state.
+     */
+    @Test
+    public void costPerEntryZeroDoesNotCorruptInfinityCost() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+
+        NodeBuilder builder = root.builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, Set.of("foo"), null)
+                .setProperty("entryCount", -1)
+                .setProperty(IndexConstants.COST_PER_ENTRY, 0.0)
+                .setProperty(IndexConstants.COST_PER_EXECUTION, 0.0);
+        NodeState before = builder.getNodeState();
+        builder.child("n1").setProperty("foo", "x1");
+        NodeState after = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        // filter has no restriction on "foo" (or any other indexed property) at all,
+        // so no candidate property matches and PropertyIndexPlan's bestCost stays
+        // POSITIVE_INFINITY internally.
+        FilterImpl f = createFilter(indexed, NT_BASE);
+        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
+
+        double cost = pIndex.getCost(f, indexed);
+        assertFalse("cost must not be NaN", Double.isNaN(cost));
+        assertEquals(Double.POSITIVE_INFINITY, cost, 0.0);
+    }
+
+    /**
+     * The unique-index short circuit zeroes the raw per-property strategy count
+     * ({@code bestCost}) for a normal unique lookup — it never made the *final*
+     * cost 0 even before this change (default final cost was always
+     * {@code COST_OVERHEAD + 0 == COST_OVERHEAD}, i.e. 2.0, never 0.0). So the
+     * invariant an override must preserve is: the entry-count contribution stays
+     * zero (a huge costPerEntry must not blow up the cost of a unique lookup),
+     * while costPerExecution still applies as the flat cost of the lookup itself.
+     */
+    @Test
+    public void uniqueIndexShortCircuitZeroesEntryCountContributionUnderOverride() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+
+        NodeBuilder builder = root.builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "uuidIndex",
+                true, true, Set.of("foo"), null)
+                .setProperty(IndexConstants.COST_PER_ENTRY, 1000.0)
+                .setProperty(IndexConstants.COST_PER_EXECUTION, 3.0);
+        NodeState before = builder.getNodeState();
+        builder.child("n1").setProperty("foo", "x1");
+        NodeState after = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        FilterImpl f = createFilter(indexed, NT_BASE);
+        f.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
+        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
+
+        // 3.0 + 1000.0 * 0 == 3.0 -- the huge costPerEntry must not apply, since
+        // the short circuit means there is no per-entry contribution to multiply.
+        assertEquals(3.0, pIndex.getCost(f, indexed), 0.0);
+    }
+
+    /**
+     * Same scenario without any override: default final cost for a unique
+     * short-circuited lookup is COST_OVERHEAD (2.0), not 0.0 -- documents the
+     * baseline the override test above is relative to.
+     */
+    @Test
+    public void uniqueIndexShortCircuitDefaultCostIsOverheadNotZero() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+
+        NodeBuilder builder = root.builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "uuidIndex",
+                true, true, Set.of("foo"), null);
+        NodeState before = builder.getNodeState();
+        builder.child("n1").setProperty("foo", "x1");
+        NodeState after = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        FilterImpl f = createFilter(indexed, NT_BASE);
+        f.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
+        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
+        assertEquals(2.0, pIndex.getCost(f, indexed), 0.0);
+    }
+
+    /**
+     * Regression for the early-break in PropertyIndex#createPlan: under the
+     * configurable formula (OAK-12348), hitting the legacy COST_OVERHEAD (2.0)
+     * on one definition does not mean no other definition can be cheaper --
+     * costPerExecution can be configured below 2.0. bIndex is unique (so its
+     * one matching entry short-circuits to bestCount=0, giving the *default*
+     * cost of exactly COST_OVERHEAD with no override needed) and is the entry
+     * createPlan() scans first for this pair of names (child node order here
+     * is hash-based, not alphabetical), reproducing the exact old break
+     * condition. aIndex overrides costPerExecution to 0.5 and is genuinely
+     * cheaper, but the old break would stop scanning right after bIndex and
+     * never see it.
+     */
+    @Test
+    public void createPlanDoesNotBreakEarlyWhenCheaperOverrideFollows() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+
+        NodeBuilder builder = root.builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "bIndex",
+                true, true, Set.of("foo"), null);
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "aIndex",
+                true, false, Set.of("foo"), null)
+                .setProperty(IndexConstants.COST_PER_ENTRY, 0.0)
+                .setProperty(IndexConstants.COST_PER_EXECUTION, 0.5);
+        NodeState before = builder.getNodeState();
+
+        builder.child("n1").setProperty("foo", "x1");
+        NodeState after = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        FilterImpl f = createFilter(indexed, NT_BASE);
+        f.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
+        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
+
+        assertEquals("aIndex", pIndex.getIndexName(f, indexed));
+        assertEquals(0.5, pIndex.getCost(f, indexed), 0.0);
+    }
+
+    /**
+     * Regression for the break condition's floor value under legacy mode, with
+     * two competing definitions present. Under the legacy formula, overrides
+     * are ignored entirely ({@code getCostLegacy()} = {@code COST_OVERHEAD +
+     * bestCount}, no override read at all), so the true minimum achievable
+     * legacy cost is always exactly {@code COST_OVERHEAD} -- a definition that
+     * hits it can never legitimately be beaten by another definition's legacy
+     * cost. That means the *winning* plan alone can't tell us which floor the
+     * break actually used: both the correct floor ({@code COST_OVERHEAD}) and
+     * a hypothetical reversed bug (a floor of 0 that never matches in legacy
+     * mode) produce the exact same winner here, since nothing can beat
+     * {@code COST_OVERHEAD} under legacy math regardless of the break.
+     * <p>
+     * What *does* distinguish them is whether the loop keeps scanning after
+     * bIndex hits {@code COST_OVERHEAD}: {@code LOG.debug} in
+     * {@code createPlan()} logs every candidate's cost unconditionally, before
+     * the break check runs. If the break correctly fires right after bIndex,
+     * aIndex is never even constructed/evaluated and its line never reaches
+     * the log. If the floor were wrongly 0 in legacy mode, the break would
+     * never fire on bIndex's 2.0, the loop would keep going, and aIndex's cost
+     * would be logged too -- even though it still can't win. This test asserts
+     * on that log evidence, since the winning plan/cost by itself would pass
+     * either way.
+     */
+    @Test
+    public void createPlanBreaksImmediatelyOnCostOverheadUnderLegacyModeWithMultipleDefinitions() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+
+        NodeBuilder builder = root.builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "bIndex",
+                true, true, Set.of("foo"), null);
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "aIndex",
+                true, false, Set.of("foo"), null)
+                .setProperty(IndexConstants.COST_PER_ENTRY, 0.0)
+                .setProperty(IndexConstants.COST_PER_EXECUTION, 0.5);
+        NodeState before = builder.getNodeState();
+
+        builder.child("n1").setProperty("foo", "x1");
+        NodeState after = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        FilterImpl f = createFilter(indexed, NT_BASE);
+        f.restrictPropertyAsList("foo", java.util.List.of(PropertyValues.newString("x1")));
+        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider(), true);
+
+        LogCustomizer customLogs = LogCustomizer
+                .forLogger(PropertyIndex.class.getName()).enable(Level.DEBUG).create();
+        try {
+            customLogs.starting();
+
+            // Baseline correctness: under legacy math, bIndex's unique
+            // short-circuit still wins even with a second definition present.
+            assertEquals("bIndex", pIndex.getIndexName(f, indexed));
+            assertEquals(2.0, pIndex.getCost(f, indexed), 0.0);
+
+            assertTrue("Expected bIndex's cost to be logged",
+                    customLogs.getLogs().stream().anyMatch(msg -> msg.contains("bIndex")));
+            assertFalse("aIndex must never be evaluated -- the break must fire "
+                    + "immediately after bIndex hits COST_OVERHEAD under the legacy floor",
+                    customLogs.getLogs().stream().anyMatch(msg -> msg.contains("aIndex")));
+        } finally {
+            customLogs.finished();
+        }
+    }
+
+    /**
+     * getMinimumCost() takes no Filter/NodeState, so it cannot know whether any
+     * definition has overridden costPerExecution below the old hardcoded floor
+     * (OAK-12348) -- 0 is the only value that stays a sound lower bound in every
+     * configuration.
+     */
+    @Test
+    public void getMinimumCostIsZero() {
+        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
+        assertEquals(0.0, pIndex.getMinimumCost(), 0.0);
+    }
+
+    /**
+     * Companion to {@link #getMinimumCostIsZero()}: with the legacy-mode
+     * toggle enabled, getMinimumCost() must reproduce the exact
+     * pre-OAK-12348 value (COST_OVERHEAD), not 0 -- this is the
+     * toggle-fidelity property the toggle exists to guarantee (a toggle
+     * that doesn't restore the old behavior when disabled isn't a real
+     * escape hatch).
+     */
+    @Test
+    public void getMinimumCostIsCostOverheadUnderLegacyMode() {
+        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider(), true);
+        assertEquals(PropertyIndexPlan.COST_OVERHEAD, pIndex.getMinimumCost(), 0.0);
+    }
+
     @Test
     public void testPropertyLookup() throws Exception {
         NodeState root = INITIAL_CONTENT;
@@ -420,7 +716,7 @@ public class PropertyIndexTest {
 
     private static FilterImpl createFilter(NodeState root, String nodeTypeName) {
         NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(root);
-        NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);        
+        NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);
         SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
         return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]", new QueryEngineSettings());
     }
