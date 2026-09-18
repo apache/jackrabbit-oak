@@ -26,8 +26,10 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsData;
@@ -35,9 +37,14 @@ import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
+import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
+import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.jetbrains.annotations.NotNull;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.slf4j.event.Level;
 
 /**
  * Tests the SQL-2 parser.
@@ -53,10 +60,20 @@ public class SQL2ParserTest {
     }
 
     public static SQL2Parser createTestSQL2Parser(NamePathMapper mappings, NodeTypeInfoProvider nodeTypes2) {
-        QueryStatsData data = new QueryStatsData("", "");
-        return new SQL2Parser(mappings, nodeTypes2, new QueryEngineSettings(), data.new QueryExecutionStats());
+        return createTestSQL2Parser(mappings, nodeTypes2, new QueryEngineSettings());
     }
 
+    public static SQL2Parser createTestSQL2Parser(NamePathMapper mappings, NodeTypeInfoProvider nodeTypes2,
+            QueryEngineSettings settings) {
+        QueryStatsData data = new QueryStatsData("", "");
+        return new SQL2Parser(mappings, nodeTypes2, settings, data.new QueryExecutionStats());
+    }
+
+
+    @Before
+    public void resetSlashPropertyNameWarnings() {
+        SQL2Parser.resetSlashPropertyNameWarnings();
+    }
 
     @Test
     public void testIgnoreSqlComment() throws ParseException {
@@ -248,6 +265,159 @@ public class SQL2ParserTest {
 
         xpath = "//(element(*, type1) | element(*, type2))[@a='b' or @c='d'] order by @foo";
         assertTrue("Converted xpath " + xpath + "doesn't end with 'order by [foo]'", c.convert(xpath).endsWith("order by [foo]"));
+    }
+
+    @Test
+    public void testWarnOnLeadingSlashInWhereProperty() throws ParseException {
+        List<String> logs = parseAndGetWarnings(
+                "SELECT * FROM [nt:base] AS s WHERE ISDESCENDANTNODE(s, '/content/dam') " +
+                "AND s.[/jcr:content/metadata/prism:expirationDate] > CAST('2025-08-12T08:00:00.000+08:00' AS DATE)");
+        assertEquals(logs.toString(), 1, logs.size());
+        assertTrue(logs.toString(), logs.get(0).contains("/jcr:content/metadata/prism:expirationDate"));
+        assertTrue(logs.toString(), logs.get(0).contains("leading '/'"));
+    }
+
+    @Test
+    public void testWarnOnLeadingSlashInWherePropertyWithoutSelector() throws ParseException {
+        List<String> logs = parseAndGetWarnings(
+                "SELECT * FROM [nt:base] WHERE [/jcr:title] = 'x'");
+        assertEquals(logs.toString(), 1, logs.size());
+        assertTrue(logs.toString(), logs.get(0).contains("/jcr:title"));
+    }
+
+    @Test
+    public void testWarnOnLeadingSlashInSelectColumn() throws ParseException {
+        List<String> logs = parseAndGetWarnings(
+                "SELECT s.[/jcr:content/foo] FROM [nt:base] AS s");
+        assertEquals(logs.toString(), 1, logs.size());
+        assertTrue(logs.toString(), logs.get(0).contains("/jcr:content/foo"));
+    }
+
+    @Test
+    public void testWarnOnLeadingSlashInOrderBy() throws ParseException {
+        List<String> logs = parseAndGetWarnings(
+                "SELECT * FROM [nt:base] AS s ORDER BY s.[/jcr:title]");
+        assertEquals(logs.toString(), 1, logs.size());
+        assertTrue(logs.toString(), logs.get(0).contains("/jcr:title"));
+    }
+
+    @Test
+    public void testWarnOnLeadingSlashInContains() throws ParseException {
+        List<String> logs = parseAndGetWarnings(
+                "SELECT * FROM [nt:base] AS s WHERE CONTAINS(s.[/jcr:content/foo], 'bar')");
+        assertEquals(logs.toString(), 1, logs.size());
+        assertTrue(logs.toString(), logs.get(0).contains("/jcr:content/foo"));
+    }
+
+    @Test
+    public void testWarnOnLeadingSlashInJoinCondition() throws ParseException {
+        List<String> logs = parseAndGetWarnings(
+                "SELECT * FROM [nt:base] AS a INNER JOIN [nt:base] AS b ON a.[/foo] = b.[bar]");
+        assertEquals(logs.toString(), 1, logs.size());
+        assertTrue(logs.toString(), logs.get(0).contains("/foo"));
+    }
+
+    @Test
+    public void testWarnOnLeadingSlashInFunctionOperand() throws ParseException {
+        List<String> lengthLogs = parseAndGetWarnings(
+                "SELECT * FROM [nt:base] AS s WHERE LENGTH(s.[/foo]) > 0");
+        assertEquals(lengthLogs.toString(), 1, lengthLogs.size());
+        assertTrue(lengthLogs.toString(), lengthLogs.get(0).contains("/foo"));
+
+        List<String> propertyLogs = parseAndGetWarnings(
+                "SELECT * FROM [nt:base] AS s WHERE PROPERTY(s.[/bar], 'string') = 'x'");
+        assertEquals(propertyLogs.toString(), 1, propertyLogs.size());
+        assertTrue(propertyLogs.toString(), propertyLogs.get(0).contains("/bar"));
+    }
+
+    @Test
+    public void testNoWarnOnAbsolutePathInFunctions() throws ParseException {
+        assertTrue(parseAndGetWarnings(
+                "SELECT * FROM [nt:base] AS s WHERE ISDESCENDANTNODE([/content/dam/approved])").isEmpty());
+        assertTrue(parseAndGetWarnings(
+                "SELECT * FROM [nt:base] AS s WHERE ISCHILDNODE([/content/dam])").isEmpty());
+        assertTrue(parseAndGetWarnings(
+                "SELECT * FROM [nt:base] AS s WHERE ISSAMENODE([/content/dam])").isEmpty());
+    }
+
+    @Test
+    public void testNoWarnOnValidPropertyNames() throws ParseException {
+        List<String> logs = parseAndGetWarnings(
+                "SELECT s.[jcr:content/foo] FROM [nt:base] AS s WHERE ISDESCENDANTNODE(s, '/content/dam') " +
+                "AND s.[jcr:content/metadata/prism:expirationDate] > CAST('2025-08-12T08:00:00.000+08:00' AS DATE) " +
+                "AND s.[j:c] = '/conf/wknd' ORDER BY s.[jcr:title]");
+        assertTrue(logs.toString(), logs.isEmpty());
+    }
+
+    @Test
+    public void testWarnOncePerQueryForRepeatedSlashProperty() throws ParseException {
+        List<String> logs = parseAndGetWarnings(
+                "SELECT s.[/jcr:content/foo] FROM [nt:base] AS s " +
+                "WHERE s.[/jcr:content/foo] = 'x' ORDER BY s.[/jcr:content/foo]");
+        assertEquals(logs.toString(), 1, logs.size());
+    }
+
+    @Test
+    public void testWarnsOncePerNameAcrossRepeatedQueryExecutions() throws ParseException {
+        // Each query execution builds a fresh parser; the warning must still be de-duplicated
+        // across executions so a hot offending query does not flood the logs.
+        String query = "SELECT s.[/jcr:content/foo] FROM [nt:base] AS s";
+        assertEquals(1, parseAndGetWarnings(query).size());
+        assertTrue(parseAndGetWarnings(query).isEmpty());
+        assertTrue(parseAndGetWarnings(query).isEmpty());
+    }
+
+    @Test
+    public void testWarnByDefaultWhenSuppressToggleRegisteredButDisabled() throws ParseException {
+        // Registered-but-not-enabled is the production default; the warning must still fire.
+        QueryEngineSettings settings = new QueryEngineSettings();
+        settings.setDisableWarnSlashPropertyNameFeature(
+                Feature.newFeature(QueryEngineSettings.FT_DISABLE_WARN_SLASH_PROPERTY_NAME, new DefaultWhiteboard()));
+        List<String> logs = parseAndGetWarnings(settings, "SELECT s.[/jcr:content/foo] FROM [nt:base] AS s");
+        assertEquals(logs.toString(), 1, logs.size());
+    }
+
+    @Test
+    public void testNoWarnWhenSuppressToggleEnabled() throws ParseException {
+        DefaultWhiteboard whiteboard = new DefaultWhiteboard();
+        Feature feature = Feature.newFeature(QueryEngineSettings.FT_DISABLE_WARN_SLASH_PROPERTY_NAME, whiteboard);
+        whiteboard.track(FeatureToggle.class).getServices().forEach(t -> t.setEnabled(true));
+        QueryEngineSettings settings = new QueryEngineSettings();
+        settings.setDisableWarnSlashPropertyNameFeature(feature);
+        List<String> logs = parseAndGetWarnings(settings, "SELECT s.[/jcr:content/foo] FROM [nt:base] AS s");
+        assertTrue(logs.toString(), logs.isEmpty());
+    }
+
+    @Test
+    public void testWarningSetIsCappedToBoundMemory() throws ParseException {
+        LogCustomizer customLogs = LogCustomizer.forLogger(SQL2Parser.class.getName()).enable(Level.WARN).create();
+        try {
+            customLogs.starting();
+            int distinct = SQL2Parser.MAX_LOGGED_SLASH_PROPERTY_NAMES + 50;
+            for (int i = 0; i < distinct; i++) {
+                p.parse("SELECT * FROM [nt:base] WHERE [/prop" + i + "] = 'x'");
+            }
+            // distinct offending names beyond the cap must not keep growing the set / logging
+            assertEquals(SQL2Parser.MAX_LOGGED_SLASH_PROPERTY_NAMES, customLogs.getLogs().size());
+        } finally {
+            customLogs.finished();
+        }
+    }
+
+    private static List<String> parseAndGetWarnings(String query) throws ParseException {
+        return parseAndGetWarnings(new QueryEngineSettings(), query);
+    }
+
+    private static List<String> parseAndGetWarnings(QueryEngineSettings settings, String query) throws ParseException {
+        SQL2Parser parser = createTestSQL2Parser(NamePathMapper.DEFAULT, nodeTypes, settings);
+        LogCustomizer customLogs = LogCustomizer.forLogger(SQL2Parser.class.getName()).enable(Level.WARN).create();
+        try {
+            customLogs.starting();
+            parser.parse(query);
+            return new ArrayList<>(customLogs.getLogs());
+        } finally {
+            customLogs.finished();
+        }
     }
 
     interface DummyQueryIndex extends QueryIndex, QueryIndex.AdvancedQueryIndex {
