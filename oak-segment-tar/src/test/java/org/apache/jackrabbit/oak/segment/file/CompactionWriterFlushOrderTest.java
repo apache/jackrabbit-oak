@@ -44,7 +44,6 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -88,8 +87,6 @@ public class CompactionWriterFlushOrderTest {
      * reference any segment that is persisted after it.
      */
     @Test
-    @Disabled("OAK-12404: reproduces the bug, currently fails. "
-            + "Fix: swap the two statements in CompactionWriter#flush().")
     public void softCancellationPersistsTheSpineBeforeTheContentItReferences() throws Exception {
         NodeStore nodeStore = SegmentNodeStoreBuilders.builder(store).build();
         for (int i = 0; i < 100; i++) {
