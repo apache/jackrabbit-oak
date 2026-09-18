@@ -28,6 +28,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.util.Iterator;
@@ -52,8 +54,6 @@ import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.apache.jackrabbit.util.LazyFileInputStream;
-import org.apache.jackrabbit.util.TransientFileFactory;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -320,11 +320,10 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
             try {
                 // If cache configured to 0 will return null
                 if (cached == null || !cached.exists()) {
-                    TransientFileFactory fileFactory = TransientFileFactory.getInstance();
-                    File tmpFile = fileFactory.createTransientFile("temp0cache", null, temp);
+                    final File tmpFile = Files.createTempFile(temp.toPath(), "blob-cache-", null).toFile();
                     try (InputStream in = backend.getRecord(getIdentifier()).getStream()) {
                         copyInputStreamToFile(in, tmpFile);
-                        return new LazyFileInputStream(tmpFile);
+                        return Files.newInputStream(tmpFile.toPath(), StandardOpenOption.DELETE_ON_CLOSE);
                     }
                 } else {
                     return new FileInputStream(cached);
