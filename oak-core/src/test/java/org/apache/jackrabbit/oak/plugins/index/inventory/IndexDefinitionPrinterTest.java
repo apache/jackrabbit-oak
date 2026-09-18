@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.index.inventory;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.apache.felix.inventory.Format;
@@ -35,6 +36,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -86,6 +88,36 @@ public class IndexDefinitionPrinterTest {
 
         IndexDefinitionUpdater updater = new IndexDefinitionUpdater(json);
         assertTrue(updater.getIndexPaths().contains("/a"));
+    }
+
+    @Test
+    public void diffIndexInlined() throws Exception {
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder diffIndex = builder.child("oak:index").child("diff.index");
+        diffIndex.setProperty("type", "lucene");
+        diffIndex.setProperty("async", "async");
+        String payload = "{\"damAssetLucene\":{\"indexRules\":{\"dam:Asset\":"
+                + "{\"properties\":{\"foo\":{\"propertyIndex\":true}}}}}}";
+        diffIndex.child("diff.json").child("jcr:content")
+                .setProperty("jcr:data", new ArrayBasedBlob(payload.getBytes(StandardCharsets.UTF_8)));
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // diff.index is not returned by the path service, yet it must still appear in the output
+        when(pathService.getIndexPaths()).thenReturn(List.of());
+
+        String json = getJSON();
+        JSONObject o = (JSONObject) JSONValue.parseWithException(json);
+
+        JSONObject diff = (JSONObject) o.get("/oak:index/diff.index");
+        assertNotNull("diff.index should be present in the output", diff);
+        assertEquals("lucene", diff.get("type"));
+
+        // diff.json must be inlined as a JSON object, not a base64 blob string
+        Object diffJson = diff.get("diff.json");
+        assertTrue("diff.json should be inlined as a JSON object", diffJson instanceof JSONObject);
+        JSONObject damAsset = (JSONObject) ((JSONObject) diffJson).get("damAssetLucene");
+        assertNotNull(damAsset);
+        assertNotNull(damAsset.get("indexRules"));
     }
 
     private String getJSON() {
