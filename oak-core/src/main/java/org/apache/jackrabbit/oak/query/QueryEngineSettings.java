@@ -67,6 +67,8 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     public static final String FT_IGNORE_LIMIT_IN_INDEX_SELECTION = "FT_OAK-12057";
 
+    public static final String FT_PATH_RESTRICTION_WARN_BY_DEFAULT = "FT_OAK-11628";
+
     public static final int DEFAULT_PREFETCH_COUNT = Integer.getInteger(OAK_QUERY_PREFETCH_COUNT, -1);
 
     public static final String OAK_QUERY_FAIL_TRAVERSAL = "oak.queryFailTraversal";
@@ -125,6 +127,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     private Feature sortUnionQueryLegacyModeFeature;
     private Feature optimizeXPathUnion;
     private Feature ignoreLimitInIndexSelectionFeature;
+    private Feature pathRestrictionWarnByDefaultFeature;
 
     private String autoOptionsMappingJson = "{}";
     private QueryOptions.AutomaticQueryOptionsMapping autoOptionsMapping = new QueryOptions.AutomaticQueryOptionsMapping(autoOptionsMappingJson);
@@ -257,7 +260,18 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
         return ignoreLimitInIndexSelectionFeature == null || ignoreLimitInIndexSelectionFeature.isEnabled();
     }
 
+    public void setPathRestrictionWarnByDefaultFeature(@Nullable Feature feature) {
+        this.pathRestrictionWarnByDefaultFeature = feature;
+    }
+
     public String getStrictPathRestriction() {
+        // OAK-11628: when the toggle is enabled, the default (DISABLE) is raised to WARN so that
+        // path filter mismatches are logged.
+        if (strictPathRestriction == StrictPathRestriction.DISABLE
+                && pathRestrictionWarnByDefaultFeature != null
+                && pathRestrictionWarnByDefaultFeature.isEnabled()) {
+            return StrictPathRestriction.WARN.name();
+        }
         return strictPathRestriction.name();
     }
 

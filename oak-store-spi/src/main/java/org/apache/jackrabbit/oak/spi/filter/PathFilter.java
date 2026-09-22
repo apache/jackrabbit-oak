@@ -180,14 +180,34 @@ public class PathFilter {
 
     /**
      * Check whether this node and all descendants are included in this filter.
+     * <p>
+     * Convenience for {@link #areAllDescendantsIncluded(String, boolean)} in strict mode.
      *
      * @param path the path
      * @return true if this and all descendants of this path are included in the filter
      */
     public boolean areAllDescendantsIncluded(String path) {
-        for (String excludedPath : excludedPaths) {
-            if (excludedPath.equals(path) || isAncestor(excludedPath, path) || isAncestor(path, excludedPath)) {
-                return false;
+        return areAllDescendantsIncluded(path, false);
+    }
+
+    /**
+     * Check whether this node and all descendants are included in this filter.
+     * <p>
+     * When {@code isLenient} is {@code false} (strict) the path is not included if it equals an
+     * excluded path, lies within an excluded subtree, or is an ancestor of an excluded path (so
+     * that some descendants are excluded). When {@code isLenient} is {@code true} excluded paths
+     * are ignored altogether and only the included paths are checked.
+     *
+     * @param path      the path
+     * @param isLenient if true, excluded paths are ignored and only inclusion is checked
+     * @return true if this and all descendants of this path are included in the filter
+     */
+    public boolean areAllDescendantsIncluded(String path, boolean isLenient) {
+        if (!isLenient) {
+            for (String excludedPath : excludedPaths) {
+                if (excludedPath.equals(path) || isAncestor(excludedPath, path) || isAncestor(path, excludedPath)) {
+                    return false;
+                }
             }
         }
         for (String includedPath : includedPaths) {
