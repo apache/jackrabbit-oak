@@ -98,9 +98,12 @@ public class StandaloneCleanupGcLogTest {
                 GCJournalEntry.EMPTY, entry);
         // Note: GCJournalEntry serialization always clears the compacted flag on the persisted
         // generation (see GcJournalTest#testGCGenerationCompactedFlagCleared) - the generation
-        // number itself is what proves this entry reflects the compacted head.
-        Assert.assertTrue("gc.log entry must record a full generation >= 1",
-                entry.getGcGeneration().getFullGeneration() >= 1);
+        // number itself is what proves this entry reflects the compacted head. A single
+        // compactFull() on a fresh store always produces generation=1, fullGeneration=1.
+        Assert.assertEquals("gc.log entry must record generation 1",
+                1, entry.getGcGeneration().getGeneration());
+        Assert.assertEquals("gc.log entry must record full generation 1",
+                1, entry.getGcGeneration().getFullGeneration());
     }
 
     /**

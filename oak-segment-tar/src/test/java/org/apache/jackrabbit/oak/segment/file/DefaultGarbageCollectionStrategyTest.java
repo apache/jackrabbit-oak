@@ -109,6 +109,18 @@ public class DefaultGarbageCollectionStrategyTest {
     }
 
     @Test
+    public void skippedCompactionWithCompactedGenerationPersistsToJournal() throws Exception {
+        CompactionResult result = CompactionResult.skipped(
+                SegmentGCOptions.GCType.FULL,
+                GCGeneration.newGCGeneration(1, 1, true),
+                SegmentGCOptions.defaultGCOptions(),
+                RecordId.NULL,
+                0);
+        runCleanup(result);
+        verifyGCJournalPersistence(Mockito.times(1));
+    }
+
+    @Test
     public void nonApplicableCompactionDoesNotPersistToJournal() throws Exception {
         runCleanup(CompactionResult.notApplicable(0));
         verifyGCJournalPersistence(Mockito.never());
