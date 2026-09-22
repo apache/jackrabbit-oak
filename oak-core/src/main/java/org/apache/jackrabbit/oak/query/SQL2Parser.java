@@ -26,6 +26,8 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -113,6 +115,22 @@ public class SQL2Parser {
     private final QueryEngineSettings settings;
     
     private boolean literalUsageLogged;
+
+    /**
+     * Property/column names (with a leading '/') already warned about. Cleared periodically to
+     * bound memory and to keep surfacing ongoing usage; see IndexName for the same idiom.
+     */
+    private static final Set<String> LOGGED_SLASH_PROPERTY_NAMES = ConcurrentHashMap.newKeySet();
+
+    /**
+     * Upper bound on {@link #LOGGED_SLASH_PROPERTY_NAMES}. Unlike index names (a bounded, config-defined
+     * set), property names come from arbitrary queries and can be unbounded (e.g. paths with dynamic
+     * segments), so the set is capped to bound memory; the periodic clear frees capacity again.
+     */
+    static final int MAX_LOGGED_SLASH_PROPERTY_NAMES = 1000;
+
+    /** When {@link #LOGGED_SLASH_PROPERTY_NAMES} will next be cleared. */
+    private static volatile long nextSlashPropertyLogClear;
 
     private final QueryExecutionStats stats;
 
@@ -349,6 +367,33 @@ public class SQL2Parser {
         return s;
     }
 
+    private String checkPropertyName(String propertyName) {
+        if (propertyName != null && propertyName.startsWith("/")
+                && settings.isWarnOnSlashInPropertyNameEnabled()) {
+            long now = System.currentTimeMillis();
+            if (nextSlashPropertyLogClear < now) {
+                LOGGED_SLASH_PROPERTY_NAMES.clear();
+                // clear again in 5 minutes, so ongoing usage keeps being surfaced
+                nextSlashPropertyLogClear = now + 5 * 60 * 1000;
+            }
+            // warn at most once per distinct offending name per interval, and bound the set size,
+            // to avoid flooding logs / unbounded memory for user-supplied names
+            if (LOGGED_SLASH_PROPERTY_NAMES.size() < MAX_LOGGED_SLASH_PROPERTY_NAMES
+                    && LOGGED_SLASH_PROPERTY_NAMES.add(propertyName)) {
+                LOG.warn("Query uses a leading '/' in a property or column name, which is not valid " +
+                        "and will be rejected in a future version: [{}] (should be [{}]). Query: {}",
+                        propertyName, propertyName.substring(1), statement);
+            }
+        }
+        return propertyName;
+    }
+
+    // Visible for testing: reset the leading-'/' warning de-duplication state.
+    static void resetSlashPropertyNameWarnings() {
+        LOGGED_SLASH_PROPERTY_NAMES.clear();
+        nextSlashPropertyLogClear = 0;
+    }
+
     private SourceImpl parseSource() throws ParseException {
         SelectorImpl selector = parseSelector();
         selectors.put(selector.getSelectorName(), selector);
@@ -406,11 +451,11 @@ public class SQL2Parser {
         } else {
             String selector1 = name;
             read(".");
-            String property1 = readName();
+            String property1 = checkPropertyName(readName());
             read("=");
             String selector2 = readName();
             read(".");
-            return factory.equiJoinCondition(selector1, property1, selector2, readName());
+            return factory.equiJoinCondition(selector1, property1, selector2, checkPropertyName(readName()));
         }
     }
 
@@ -446,16 +491,16 @@ public class SQL2Parser {
                     a = parseCondition(op);
                 }
             } else if (readIf(".")) {
-                a = parseCondition(factory.propertyValue(identifier, readName()));
+                a = parseCondition(factory.propertyValue(identifier, checkPropertyName(readName())));
             } else {
-                a = parseCondition(factory.propertyValue(getOnlySelectorName(), identifier));
+                a = parseCondition(factory.propertyValue(getOnlySelectorName(), checkPropertyName(identifier)));
             }
         } else if ("[".equals(currentToken)) {
             String name = readName();
             if (readIf(".")) {
-                a = parseCondition(factory.propertyValue(name, readName()));
+                a = parseCondition(factory.propertyValue(name, checkPropertyName(readName())));
             } else {
-                a = parseCondition(factory.propertyValue(getOnlySelectorName(), name));
+                a = parseCondition(factory.propertyValue(getOnlySelectorName(), checkPropertyName(name)));
             }
         } else if (supportSQL1) {
             StaticOperandImpl left = parseStaticOperand();
@@ -579,7 +624,7 @@ public class SQL2Parser {
                                 name, null, parseStaticOperand());
                     } else {
                         String selector = name;
-                        name = readName();
+                        name = checkPropertyName(readName());
                         read(",");
                         c = factory.fullTextSearch(
                                 selector, name, parseStaticOperand());
@@ -587,7 +632,7 @@ public class SQL2Parser {
                 } else {
                     read(",");
                     c = factory.fullTextSearch(
-                            getOnlySelectorName(), name,
+                            getOnlySelectorName(), checkPropertyName(name),
                             parseStaticOperand());
                 }
             }
@@ -626,7 +671,7 @@ public class SQL2Parser {
                                 name, null, parseStaticOperand());
                     } else {
                         String selector = name;
-                        name = readName();
+                        name = checkPropertyName(readName());
                         read(",");
                         c = factory.fullTextSearch(
                                 selector, name, parseStaticOperand());
@@ -634,7 +679,7 @@ public class SQL2Parser {
                 } else {
                     read(",");
                     c = factory.fullTextSearch(
-                            getOnlySelectorName(), name,
+                            getOnlySelectorName(), checkPropertyName(name),
                             parseStaticOperand());
                 }
             }
@@ -749,9 +794,9 @@ public class SQL2Parser {
 
     private PropertyValueImpl parsePropertyValue(String name) throws ParseException {
         if (readIf(".")) {
-            return factory.propertyValue(name, readName());
+            return factory.propertyValue(name, checkPropertyName(readName()));
         } else {
-            return factory.propertyValue(getOnlySelectorName(), name);
+            return factory.propertyValue(getOnlySelectorName(), checkPropertyName(name));
         }
     }
 
@@ -955,7 +1000,7 @@ public class SQL2Parser {
                     }
                     readOptionalAlias(column);
                 } else {
-                    column.propertyName = readName();
+                    column.propertyName = checkPropertyName(readName());
                     if (column.propertyName.equals("rep:spellcheck")) {
                         if (readIf("(")) {
                             read(")");
@@ -967,7 +1012,7 @@ public class SQL2Parser {
                         if (readIf("*")) {
                             column.propertyName = null;
                         } else {
-                            column.propertyName = readName();
+                            column.propertyName = checkPropertyName(readName());
                             if (!readOptionalAlias(column)) {
                                 column.columnName =
                                         column.selectorName
