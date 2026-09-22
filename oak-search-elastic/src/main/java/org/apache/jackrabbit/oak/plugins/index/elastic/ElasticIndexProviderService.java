@@ -225,6 +225,9 @@ public class ElasticIndexProviderService {
                 new FeatureToggle(FulltextIndexPlanner.FT_OAK_12221, FulltextIndexPlanner.FT_OAK_12221_ENABLE),
                 emptyMap()));
         oakRegs.add(whiteboard.register(FeatureToggle.class,
+                new FeatureToggle(FulltextIndexPlanner.FT_OAK_12401, FulltextIndexPlanner.FT_OAK_12401_DISABLE),
+                emptyMap()));
+        oakRegs.add(whiteboard.register(FeatureToggle.class,
                 new FeatureToggle(ElasticIndexEditorProvider.FT_OAK_12206, ElasticIndexEditorProvider.FT_OAK_12206_DISABLE),
                 emptyMap()));
         oakRegs.add(whiteboard.register(FeatureToggle.class,
