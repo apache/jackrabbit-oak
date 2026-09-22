@@ -26,7 +26,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
+import java.util.function.IntFunction;
 
 import org.junit.Test;
 
@@ -35,27 +35,28 @@ public class ReaderCacheTest {
     @Test
     public void empty() {
         final AtomicInteger counter = new AtomicInteger();
-        Function<Integer, String> loader = input -> {
+        IntFunction<String> loader = input -> {
                 counter.incrementAndGet();
                 return valueOf(input);
         };
+        // A zero-weight cache retains next to nothing in the LIRS tier, and the fast cache is
+        // only populated once a slow-cache hit proves reuse (GRANITE-69536). With almost no
+        // retention there are almost no such hits, so nearly every lookup reloads - i.e. "0"
+        // effectively means no caching (unlike before, when the fast cache was populated eagerly).
         StringCache c = new StringCache(0);
         for (int repeat = 0; repeat < 10; repeat++) {
             for (int i = 0; i < 1000; i++) {
                 assertEquals(valueOf(i), c.get(i, i, i, loader));
             }
         }
-        // the LIRS cache should be almost empty (low hit rate there)
-        assertTrue(valueOf(counter), counter.get() > 1000);
-        // but the fast cache should improve the total hit rate
-        assertTrue(valueOf(counter), counter.get() < 5000);
+        assertTrue(valueOf(counter), counter.get() > 9000);
     }
 
     @Test
     public void largeEntries() {
         final AtomicInteger counter = new AtomicInteger();
         final String large = new String(new char[1024]);
-        Function<Integer, String> loader = input -> {
+        IntFunction<String> loader = input -> {
                 counter.incrementAndGet();
                 return large + input;
         };
@@ -75,11 +76,13 @@ public class ReaderCacheTest {
     @Test
     public void clear() {
         final AtomicInteger counter = new AtomicInteger();
-        Function<Integer, String> uniqueLoader = input -> valueOf(counter.incrementAndGet());
-        StringCache c = new StringCache(0);
+        IntFunction<String> uniqueLoader = input -> valueOf(counter.incrementAndGet());
+        // Use a weight that actually retains, so a repeat read hits the slow cache and promotes
+        // the entry to the fast cache; clear() must then empty both tiers.
+        StringCache c = new StringCache(1024 * 1024);
         // load a new entry
         assertEquals("1", c.get(0, 0, 0, uniqueLoader));
-        // but only once
+        // a repeat read hits the (retained) slow cache and returns the same value
         assertEquals("1", c.get(0, 0, 0, uniqueLoader));
         c.clear();
         // after clearing the cache, load a new entry
@@ -89,11 +92,11 @@ public class ReaderCacheTest {
 
     @Test
     public void randomized() {
-        ArrayList<Function<Integer, String>> loaderList = new ArrayList<Function<Integer, String>>();
+        ArrayList<IntFunction<String>> loaderList = new ArrayList<>();
         int segmentCount = 10;
         for (int i = 0; i < segmentCount; i++) {
             final int x = i;
-            Function<Integer, String> loader = input -> "loader #" + x + " offset " + input;
+            IntFunction<String> loader = input -> "loader #" + x + " offset " + input;
             loaderList.add(loader);
         }
         StringCache c = new StringCache(10);
@@ -101,7 +104,7 @@ public class ReaderCacheTest {
         for (int i = 0; i < 1000; i++) {
             int segment = r.nextInt(segmentCount);
             int offset = r.nextInt(10);
-            Function<Integer, String> loader = loaderList.get(segment);
+            IntFunction<String> loader = loaderList.get(segment);
             String x = c.get(segment, segment, offset, loader);
             assertEquals(loader.apply(offset), x);
         }

@@ -200,7 +200,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         long max = Math.max(1, maxMemory / segmentCount);
         for (int i = 0; i < segmentCount; i++) {
             Segment<K, V> old = segments[i];
-            Segment<K, V> s = new Segment<K, V>(this,
+            Segment<K, V> s = new Segment<>(this,
                     max, averageMemory, stackMoveDistance);
             if (old != null) {
                 s.hitCount = old.hitCount;
@@ -1636,7 +1636,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         }
 
         public CacheLIRS<K, V> build(CacheLoader<K, V> cacheLoader) {
-            return new CacheLIRS<K, V>(weigher, maxWeight, averageWeight,
+            return new CacheLIRS<>(weigher, maxWeight, averageWeight,
                     segmentCount, stackMoveDistance, cacheLoader, evicted, module);
         }
     }
