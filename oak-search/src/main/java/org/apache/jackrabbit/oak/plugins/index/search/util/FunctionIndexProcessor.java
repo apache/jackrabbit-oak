@@ -82,6 +82,10 @@ public class FunctionIndexProcessor {
             if (token.startsWith("@")) {
                 String propertyName = token.substring(1);
                 ps = getProperty(path, state, propertyName);
+            } else if (isQuotedLiteral(token)) {
+                ps = PropertyStates.createProperty("value", unquote(token), Type.STRING);
+            } else if ("null".equals(token)) {
+                ps = null;
             } else {
                 ps = calculateFunction(token, stack);
             }
@@ -95,8 +99,21 @@ public class FunctionIndexProcessor {
         return ret == EMPTY_PROPERTY_STATE ? null : ret;
     }
 
+    private static boolean isQuotedLiteral(String token) {
+        return token.length() >= 2 && token.startsWith("'") && token.endsWith("'");
+    }
+
+    private static String unquote(String token) {
+        String inner = token.substring(1, token.length() - 1);
+        return inner.replace("''", "'");
+    }
+
     /**
      * Split the polish notation into a tokens that can more easily be processed.
+     * This is quote-aware: a token of the form 'text' (as used for the operator
+     * literal of op(...)) is kept as one token even if "text" itself contains a
+     * '*' character (e.g. the multiplication operator). Within such a literal, a
+     * single quote is escaped as two single quotes ('').
      *
      *  @param functionDescription in polish notation, for example "function*lower*{@literal @}name"
      *  @return tokens, for example ["function", "lower", "{@literal @}name"]
@@ -105,11 +122,59 @@ public class FunctionIndexProcessor {
         if (functionDescription == null) {
             return null;
         }
-        return functionDescription.split("\\*");
+        ArrayList<String> tokens = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        boolean inLiteral = false;
+        for (int i = 0; i < functionDescription.length(); i++) {
+            char c = functionDescription.charAt(i);
+            if (inLiteral) {
+                current.append(c);
+                if (c == '\'') {
+                    if (i + 1 < functionDescription.length() && functionDescription.charAt(i + 1) == '\'') {
+                        // an escaped quote within the literal
+                        current.append('\'');
+                        i++;
+                    } else {
+                        inLiteral = false;
+                    }
+                }
+            } else if (c == '\'') {
+                inLiteral = true;
+                current.append(c);
+            } else if (c == '*') {
+                tokens.add(current.toString());
+                current.setLength(0);
+            } else {
+                current.append(c);
+            }
+        }
+        tokens.add(current.toString());
+        return tokens.toArray(new String[0]);
     }
 
     private static PropertyState calculateFunction(String functionName,
                                                    Deque<PropertyState> stack) {
+        if ("if".equals(functionName)) {
+            // if(condition, trueValue, falseValue)
+            PropertyState condition = stack.pop();
+            PropertyState trueValue = stack.pop();
+            PropertyState falseValue = stack.pop();
+            return isTruthy(condition) ? trueValue : falseValue;
+        }
+        if ("exists".equals(functionName)) {
+            PropertyState operand = stack.pop();
+            return PropertyStates.createProperty("value",
+                    operand != EMPTY_PROPERTY_STATE, Type.BOOLEAN);
+        }
+        if ("op".equals(functionName)) {
+            // op(a, operator, b); operator is typically a quoted string
+            // literal, but can be any operand that evaluates to one of the
+            // known operator strings (e.g. a property reference)
+            PropertyState a = stack.pop();
+            PropertyState operator = stack.pop();
+            PropertyState b = stack.pop();
+            return calculateOp(a, operator, b);
+        }
         PropertyState ps = stack.pop();
         if ("coalesce".equals(functionName)) {
             // coalesce (a, b) => (a != null ? a : b)
@@ -161,6 +226,173 @@ public class FunctionIndexProcessor {
             result = PropertyStates.createProperty("value", values, type);
         }
         return result;
+    }
+
+    /**
+     * Whether the given value is "truthy": neither missing, nor the number 0,
+     * nor the boolean false.
+     */
+    private static boolean isTruthy(PropertyState ps) {
+        if (ps == null || ps == EMPTY_PROPERTY_STATE) {
+            return false;
+        }
+        Type<?> type = ps.getType();
+        if (type == Type.BOOLEAN) {
+            return ps.getValue(Type.BOOLEAN);
+        }
+        if (type == Type.LONG) {
+            return ps.getValue(Type.LONG) != 0;
+        }
+        if (type == Type.DOUBLE) {
+            return ps.getValue(Type.DOUBLE) != 0;
+        }
+        if (type == Type.DECIMAL) {
+            return ps.getValue(Type.DECIMAL).signum() != 0;
+        }
+        return true;
+    }
+
+    /**
+     * Try to convert the value to a number, for use with op()'s math and
+     * comparison operators.
+     *
+     * @return the number, or null if the value is missing or not numeric
+     */
+    private static Double toDouble(PropertyState ps) {
+        if (ps == null || ps == EMPTY_PROPERTY_STATE) {
+            return null;
+        }
+        try {
+            return Double.parseDouble(ps.getValue(Type.STRING));
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Compare two (non-null) operands: numerically if both can be parsed as a
+     * number, otherwise as strings.
+     */
+    private static int compareOperands(PropertyState a, PropertyState b) {
+        Double da = toDouble(a);
+        Double db = toDouble(b);
+        if (da != null && db != null) {
+            return Double.compare(da, db);
+        }
+        return a.getValue(Type.STRING).compareTo(b.getValue(Type.STRING));
+    }
+
+    /**
+     * Whether the two operands are equal. Unlike "=" / "&lt;&gt;", this
+     * considers two missing operands to be equal (used for "is" / "is not").
+     */
+    private static boolean isEqual(PropertyState a, PropertyState b) {
+        boolean aMissing = a == null || a == EMPTY_PROPERTY_STATE;
+        boolean bMissing = b == null || b == EMPTY_PROPERTY_STATE;
+        if (aMissing || bMissing) {
+            return aMissing && bMissing;
+        }
+        Double da = toDouble(a);
+        Double db = toDouble(b);
+        if (da != null && db != null) {
+            return da.doubleValue() == db.doubleValue();
+        }
+        return a.getValue(Type.STRING).equals(b.getValue(Type.STRING));
+    }
+
+    /**
+     * Three-valued (null = unknown) coercion to boolean, for "and" / "or".
+     */
+    private static Boolean toBoolean3(PropertyState ps) {
+        if (ps == null || ps == EMPTY_PROPERTY_STATE) {
+            return null;
+        }
+        return isTruthy(ps);
+    }
+
+    private static Boolean and3(Boolean a, Boolean b) {
+        if (Boolean.FALSE.equals(a) || Boolean.FALSE.equals(b)) {
+            return false;
+        }
+        if (a == null || b == null) {
+            return null;
+        }
+        return true;
+    }
+
+    private static Boolean or3(Boolean a, Boolean b) {
+        if (Boolean.TRUE.equals(a) || Boolean.TRUE.equals(b)) {
+            return true;
+        }
+        if (a == null || b == null) {
+            return null;
+        }
+        return false;
+    }
+
+    /**
+     * Evaluate op(a, operator, b). Comparisons return null if either operand is
+     * missing (except "is" / "is not", which treat missing as a comparable
+     * value); math operators return null if either operand is missing or not
+     * numeric; "and" / "or" use standard SQL three-valued logic.
+     */
+    private static PropertyState calculateOp(PropertyState a, PropertyState operatorLiteral, PropertyState b) {
+        String operator = operatorLiteral.getValue(Type.STRING);
+        boolean aMissing = a == EMPTY_PROPERTY_STATE;
+        boolean bMissing = b == EMPTY_PROPERTY_STATE;
+        switch (operator) {
+            case "is":
+                return PropertyStates.createProperty("value", isEqual(a, b), Type.BOOLEAN);
+            case "is not":
+                return PropertyStates.createProperty("value", !isEqual(a, b), Type.BOOLEAN);
+            case "and": {
+                Boolean result = and3(toBoolean3(a), toBoolean3(b));
+                return result == null ? null : PropertyStates.createProperty("value", result, Type.BOOLEAN);
+            }
+            case "or": {
+                Boolean result = or3(toBoolean3(a), toBoolean3(b));
+                return result == null ? null : PropertyStates.createProperty("value", result, Type.BOOLEAN);
+            }
+            default:
+                break;
+        }
+        if (aMissing || bMissing) {
+            return null;
+        }
+        switch (operator) {
+            case "=":
+                return PropertyStates.createProperty("value", isEqual(a, b), Type.BOOLEAN);
+            case "<>":
+                return PropertyStates.createProperty("value", !isEqual(a, b), Type.BOOLEAN);
+            case ">":
+                return PropertyStates.createProperty("value", compareOperands(a, b) > 0, Type.BOOLEAN);
+            case ">=":
+                return PropertyStates.createProperty("value", compareOperands(a, b) >= 0, Type.BOOLEAN);
+            case "<":
+                return PropertyStates.createProperty("value", compareOperands(a, b) < 0, Type.BOOLEAN);
+            case "<=":
+                return PropertyStates.createProperty("value", compareOperands(a, b) <= 0, Type.BOOLEAN);
+            case "+":
+            case "-":
+            case "*":
+            case "/": {
+                Double da = toDouble(a);
+                Double db = toDouble(b);
+                if (da == null || db == null) {
+                    return null;
+                }
+                double result;
+                switch (operator) {
+                    case "+": result = da + db; break;
+                    case "-": result = da - db; break;
+                    case "*": result = da * db; break;
+                    default: result = da / db; break;
+                }
+                return PropertyStates.createProperty("value", result, Type.DOUBLE);
+            }
+            default:
+                throw new IllegalArgumentException("Unknown operator for op(): " + operator);
+        }
     }
 
     private static PropertyState getProperty(String path, NodeState state,
@@ -238,6 +470,43 @@ public class FunctionIndexProcessor {
         if (match("fn:string-length(") || match("length(")) {
             return "length*" + parse() + read(")");
         }
+        if (match("jcr:if(") || match("if(")) {
+            return "if*" + parse() + readCommaAndWhitespace() + parse() +
+                    readCommaAndWhitespace() + parse() + read(")");
+        }
+        if (match("jcr:exists(") || match("exists(")) {
+            return "exists*" + parse() + read(")");
+        }
+        if (match("jcr:op(") || match("op(")) {
+            return "op*" + parse() + readCommaAndWhitespace() + parse() +
+                    readCommaAndWhitespace() + parse() + read(")");
+        }
+        if (matchNullLiteral() || match("jcr:null()")) {
+            return "null";
+        }
+        if (match("'")) {
+            // a quoted string literal, typically used for op()'s operator
+            // argument, but usable anywhere a property reference or nested
+            // function call is expected. A single quote is escaped as two
+            // single quotes ('').
+            StringBuilder literal = new StringBuilder();
+            while (true) {
+                int end = remaining.indexOf('\'');
+                if (end < 0) {
+                    throw new IllegalArgumentException("Unterminated string literal: " + remaining);
+                }
+                literal.append(remaining, 0, end);
+                remaining = remaining.substring(end + 1);
+                if (remaining.startsWith("'")) {
+                    // an escaped quote within the literal
+                    literal.append("''");
+                    remaining = remaining.substring(1);
+                } else {
+                    break;
+                }
+            }
+            return "'" + literal + "'";
+        }
 
         // property name
         if (match("[")) {
@@ -290,6 +559,21 @@ public class FunctionIndexProcessor {
         while (match(" ")) {
         }
         return "*";
+    }
+
+    /**
+     * Match the "null" literal, but only as a whole word (so it can never
+     * accidentally consume the start of a property or function name).
+     */
+    private boolean matchNullLiteral() {
+        if (remaining.startsWith("null")) {
+            String after = remaining.substring(4);
+            if (after.isEmpty() || after.startsWith(")") || after.startsWith(",") || after.startsWith(" ")) {
+                remaining = after;
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean match(String string) {

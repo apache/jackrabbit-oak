@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -169,10 +170,115 @@ public class SQL2ParserTest {
     }
 
     @Test
+    public void testCoalesceWithStringLiteral() throws ParseException {
+        // a literal is a valid dynamic operand anywhere, not just for op()
+        p.parse("SELECT * FROM [nt:base] WHERE COALESCE([a], 'default')='default'");
+
+        p.parse("SELECT * FROM [nt:base] WHERE COALESCE('default', [a])='default'");
+    }
+
+    @Test
+    public void testCoalesceWithEscapedQuoteLiteral() throws ParseException {
+        // a single quote within a literal is escaped as two single quotes;
+        // the resulting function-restriction token must round-trip with the
+        // same escaping FunctionIndexProcessor uses, since index-restriction
+        // matching relies on exact string equality between the two
+        Query query = p.parse("SELECT * FROM [nt:base] WHERE COALESCE([a], 'it''s a test')='x'");
+        assertTrue("expected the literal's escaping to be preserved, got: " + query,
+                query.toString().contains("'it''s a test'"));
+    }
+
+    @Test
     public void testFirst() throws ParseException {
         p.parse("SELECT * FROM [nt:base] WHERE FIRST([d:t])='a'");
 
         p.parse("SELECT * FROM [nt:base] WHERE FIRST([jcr:mixinTypes])='a'");
+    }
+
+    @Test
+    public void testIf() throws ParseException {
+        p.parse("SELECT * FROM [nt:base] WHERE IF([cond], [a], [b])='x'");
+
+        p.parse("SELECT * FROM [nt:base] WHERE IF(EXISTS([alias]), PATH(), null)='x'");
+
+        p.parse("SELECT * FROM [nt:base] WHERE IF([cond], IF([cond2], [a], [b]), [c])='x'");
+
+        // XPath uses the "jcr:" prefix
+        p.parse(new XPathToSQL2Converter()
+                .convert("//*[jcr:if(@cond, @a, @b) = 'x']"));
+
+        p.parse(new XPathToSQL2Converter()
+                .convert("//*[jcr:if(jcr:exists(@alias), fn:path(), @b) = 'x']"));
+
+        // jcr:null() is the XPath spelling of the "null" literal
+        String sql2 = new XPathToSQL2Converter()
+                .convert("//*[jcr:if(jcr:exists(@alias), fn:path(), jcr:null()) = 'x']");
+        assertTrue("expected a bare null literal, got: " + sql2,
+                sql2.contains("null)") && !sql2.contains("[null]"));
+        p.parse(sql2);
+    }
+
+    @Test(expected = ParseException.class)
+    public void ifFailsWithTwoParams() throws ParseException {
+        p.parse("SELECT * FROM [nt:base] WHERE IF([cond], [a])='x'");
+    }
+
+    @Test
+    public void testExists() throws ParseException {
+        p.parse("SELECT * FROM [nt:base] WHERE EXISTS([alias])=true");
+
+        p.parse("SELECT * FROM [nt:base] WHERE EXISTS(UPPER([alias]))=true");
+
+        // XPath uses the "jcr:" prefix
+        p.parse(new XPathToSQL2Converter()
+                .convert("//*[jcr:exists(@alias) = true()]"));
+    }
+
+    @Test(expected = ParseException.class)
+    public void existsFailsWithNoParam() throws ParseException {
+        p.parse("SELECT * FROM [nt:base] WHERE EXISTS()=true");
+    }
+
+    @Test(expected = ParseException.class)
+    public void opFailsWhenDisabledByDefault() throws ParseException {
+        // the op(a, operator, b) function is disabled by default
+        p.parse("SELECT * FROM [nt:base] WHERE OP([a], '+', [b])=3");
+    }
+
+    @Test(expected = ParseException.class)
+    public void opXPathFailsWhenDisabledByDefault() throws ParseException {
+        // the XPath -> SQL-2 conversion itself always succeeds (it's purely
+        // syntactic); the toggle is enforced when the resulting SQL-2 is parsed
+        p.parse(new XPathToSQL2Converter()
+                .convert("//*[jcr:op(@a, '+', @b) = 3]"));
+    }
+
+    @Test
+    public void testOpWhenEnabled() throws ParseException {
+        SQL2Parser opParser = createTestSQL2Parser(createSettingsWithOpEnabled());
+
+        opParser.parse("SELECT * FROM [nt:base] WHERE OP([a], '+', [b])=3");
+        opParser.parse("SELECT * FROM [nt:base] WHERE OP([a], '=', [b])=true");
+        opParser.parse("SELECT * FROM [nt:base] WHERE OP([a], 'is not', [b])=true");
+        // the '*' operator literal must not confuse the parser/tokenizer
+        opParser.parse("SELECT * FROM [nt:base] WHERE OP([a], '*', [b])=6");
+
+        // XPath uses the "jcr:" prefix
+        opParser.parse(new XPathToSQL2Converter()
+                .convert("//*[jcr:op(@a, '+', @b) = 3]"));
+    }
+
+    private static SQL2Parser createTestSQL2Parser(QueryEngineSettings settings) {
+        QueryStatsData data = new QueryStatsData("", "");
+        return new SQL2Parser(NamePathMapper.DEFAULT, nodeTypes, settings, data.new QueryExecutionStats());
+    }
+
+    private static QueryEngineSettings createSettingsWithOpEnabled() {
+        QueryEngineSettings settings = new QueryEngineSettings();
+        Feature feature = mock(Feature.class);
+        given(feature.isEnabled()).willReturn(true);
+        settings.setOpFunctionFeature(feature);
+        return settings;
     }
 
     @Test

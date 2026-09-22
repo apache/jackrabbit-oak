@@ -769,6 +769,32 @@ public class XPathToSQL2Converter {
             f.params.add(parseExpression());
             read(")");
             return f;
+        } else if ("jcr:null".equals(functionName)) {
+            read(")");
+            return Expression.Literal.newNull();
+        } else if ("jcr:if".equals(functionName)) {
+            Expression.Function f = new Expression.Function("if");
+            f.params.add(parseExpression());
+            read(",");
+            f.params.add(parseExpression());
+            read(",");
+            f.params.add(parseExpression());
+            read(")");
+            return f;
+        } else if ("jcr:exists".equals(functionName)) {
+            Expression.Function f = new Expression.Function("exists");
+            f.params.add(parseExpression());
+            read(")");
+            return f;
+        } else if ("jcr:op".equals(functionName)) {
+            Expression.Function f = new Expression.Function("op");
+            f.params.add(parseExpression());
+            read(",");
+            f.params.add(parseExpression());
+            read(",");
+            f.params.add(parseExpression());
+            read(")");
+            return f;
         } else if ("fn:lower-case".equals(functionName)) {
             Expression.Function f = new Expression.Function("lower");
             f.params.add(parseExpression());
@@ -839,7 +865,8 @@ public class XPathToSQL2Converter {
             return new Expression.Suggest(term);
         } else {
             throw getSyntaxError("jcr:like | jcr:contains | jcr:score | xs:dateTime | " +
-                    "fn:lower-case | fn:upper-case | jcr:first | fn:name | fn:local-name | fn:path | rep:similar | rep:spellcheck | rep:suggest");
+                    "fn:lower-case | fn:upper-case | jcr:first | jcr:null | jcr:if | jcr:exists | jcr:op | " +
+                    "fn:name | fn:local-name | fn:path | rep:similar | rep:spellcheck | rep:suggest");
         }
     }
 

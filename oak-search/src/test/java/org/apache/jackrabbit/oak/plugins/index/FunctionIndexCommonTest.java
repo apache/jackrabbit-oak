@@ -969,6 +969,78 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
                 "/oak:index/test1", List.of("/a", "/b", "/bar")));
     }
 
+    @Test
+    public void coalesceWithLiteralQuery() throws Exception {
+        // a literal is a valid coalesce() operand, not just a property or
+        // nested function -- useful as a fallback default value
+        IndexDefinitionBuilder idxb = indexOptions.createIndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("foo", null).function(
+                "coalesce([jcr:content/foo2], 'defaultAlias')");
+
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+        idx.setProperty(PathFilter.PROP_EXCLUDED_PATHS, List.of("/jcr:system", "/oak:index"), Type.STRINGS);
+        root.commit();
+
+        Tree rootTree = root.getTree("/");
+        rootTree.addChild("a").addChild("jcr:content").setProperty("foo2", "custom");
+        rootTree.addChild("b");
+
+        root.commit();
+
+        // "/" and "/a/jcr:content" also lack their own "jcr:content/foo2" child,
+        // so they legitimately fall back to the literal too
+        assertEventually(() -> assertPlanAndQuery(
+                "select * from [nt:base] where coalesce([jcr:content/foo2], 'defaultAlias') = 'defaultAlias'",
+                "/oak:index/test1", List.of("/", "/a/jcr:content", "/b")));
+    }
+
+    @Test
+    public void ifFunctionQuery() throws Exception {
+        IndexDefinitionBuilder idxb = indexOptions.createIndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("foo", null).function("if([cond], [t], [f])");
+
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+        root.commit();
+
+        Tree rootTree = root.getTree("/");
+        Tree a = rootTree.addChild("a");
+        a.setProperty("cond", true);
+        a.setProperty("t", "yes");
+        a.setProperty("f", "no");
+        Tree b = rootTree.addChild("b");
+        b.setProperty("cond", false);
+        b.setProperty("t", "yes2");
+        b.setProperty("f", "no2");
+
+        root.commit();
+
+        assertEventually(() -> assertPlanAndQuery(
+                "select * from [nt:base] where if([cond], [t], [f]) = 'yes'",
+                "/oak:index/test1", List.of("/a")));
+    }
+
+    @Test
+    public void existsFunctionQuery() throws Exception {
+        IndexDefinitionBuilder idxb = indexOptions.createIndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("foo", null).function("exists([alias])");
+
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+        root.commit();
+
+        Tree rootTree = root.getTree("/");
+        rootTree.addChild("a").setProperty("alias", "x");
+        rootTree.addChild("b");
+
+        root.commit();
+
+        assertEventually(() -> assertPlanAndQuery(
+                "select * from [nt:base] where exists([alias]) = true",
+                "/oak:index/test1", List.of("/a")));
+    }
+
     /*
      * Given an index def with 2 orderable property definitions(Relative) for same
      * property - one with function and one without

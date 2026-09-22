@@ -90,9 +90,12 @@ simpleName [ ASC | DESC ]
 [ selectorName . ] propertyName
     | LENGTH( dynamicOperand )
     | { NAME | LOCALNAME | PATH | SCORE } ( [ selectorName ] )
-    | { LOWER | UPPER | FRIST } ( dynamicOperand )
+    | { LOWER | UPPER | FIRST } ( dynamicOperand )
     | COALESCE ( dynamicOperand, dynamicOperand )
     | PROPERTY ( propertyName, type )
+    | IF ( dynamicOperand, dynamicOperand, dynamicOperand )
+    | EXISTS ( dynamicOperand )
+    | NULL
 ","
 "
 

@@ -1,0 +1,294 @@
+{
+  "cqReportsLucene": {
+    "indexRules": {
+      "nt:unstructured": {
+        "properties": {
+          "slingResourceType": {
+            "name": "sling:resourceType",
+            "propertyIndex": true,
+            "type": "String"
+          },
+          "additionalInfo": {
+            "name": "target/additionalInfo",
+            "propertyIndex": true,
+            "type": "String"
+          }
+        }
+      }
+    }
+  },
+  "damAssetLucene": {
+    "indexRules": {
+      "dam:Asset": {
+        "properties": {
+          "scene7Name": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/dam:scene7Name"
+          },
+          "shaneco-asset-type": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-asset-type"
+          },
+          "shaneco-batch": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-batch"
+          },
+          "shaneco-shot-orientation": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-shot-orientation"
+          },
+          "shaneco-keywords": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/dc:subject"
+          },
+          "shaneco-smart-tags": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-smart-tags"
+          },
+          "shaneco-year": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-year"
+          },
+          "shaneco-campaign-name": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-campaign-name"
+          },
+          "shaneco-channel": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-channel"
+          },
+          "shaneco-persona": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-persona"
+          },
+          "shaneco-store-number---name": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-store-number-name"
+          },
+          "shaneco-person-pictured": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-person-pictured"
+          },
+          "shaneco-demographics---gender": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-demographics-gender"
+          },
+          "shaneco-demographics---ethnicity": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-demographics-ethnicity"
+          },
+          "shaneco-demographics---age": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-demographics-age"
+          },
+          "shaneco-photographer": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-photographer"
+          },
+          "shaneco-rights-restricted": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-rights-restricted"
+          },
+          "shaneco-rights-restricted-detail": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-rights-restricted-detail"
+          },
+          "shaneco-article": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-article"
+          },
+          "shaneco-product-category": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-product-category"
+          },
+          "shaneco-product-title": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-product-title"
+          },
+          "shaneco-product-description": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-product-description"
+          },
+          "shaneco-collection": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-collection"
+          },
+          "shaneco-style": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-style"
+          },
+          "shaneco-gender": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-gender"
+          },
+          "shaneco-engravable": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-engravable"
+          },
+          "shaneco-ring-mount": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-ring-mount"
+          },
+          "shaneco-gemstone-type": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-gemstone-type"
+          },
+          "shaneco-stone-shape": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-stone-shape"
+          },
+          "shaneco-stone-color": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-stone-color"
+          },
+          "shaneco-metal-type": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-metal-type"
+          },
+          "shaneco-duration": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/dc:extent"
+          },
+          "shaneco-aspect-ratio": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-aspect-ratio"
+          },
+          "shaneco-last-published-to-dynamic-media": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-last-published-to-dynamic-media"
+          },
+          "shaneco-last-published-to-brand-portal": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:shaneco-last-published-to-brand-portal"
+          },
+          "shaneco-create-date": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/metadata/xmp:CreateDate"
+          },
+          "shaneco-modified-by": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:content/jcr:lastModifiedBy"
+          },
+          "shaneco-uploaded-by": {
+            "nullCheckEnabled": true,
+            "propertyIndex": true,
+            "analyzed": true,
+            "notNullCheckEnabled": true,
+            "name": "jcr:createdBy"
+          }
+        }
+      }
+    }
+  }
+}
