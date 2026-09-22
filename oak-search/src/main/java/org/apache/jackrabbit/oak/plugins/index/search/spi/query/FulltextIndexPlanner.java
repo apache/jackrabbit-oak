@@ -108,6 +108,21 @@ public class FulltextIndexPlanner {
     public static final AtomicBoolean FT_OAK_12221_ENABLE = new AtomicBoolean(false);
 
     /**
+     * Feature toggle name for OAK-12100.
+     * When the toggle is enabled (set to true), the nodeName ({@code :localname}) cost accounting
+     * is disabled and the legacy behavior (nodeName condition ignored when estimating cost) is used
+     * instead. The improved behavior is active by default.
+     */
+    public static final String FT_OAK_12100 = "FT_OAK-12100";
+
+    /**
+     * Kill switch for the nodeName cost accounting introduced by OAK-12100. Set to {@code true} to
+     * revert to the legacy behavior (nodeName condition not taken into account). Default is
+     * {@code false} (improved behavior active). Wired to the {@link #FT_OAK_12100} toggle at runtime.
+     */
+    public static final AtomicBoolean FT_OAK_12100_DISABLE = new AtomicBoolean(false);
+
+    /**
      * IndexPlan Attribute name which refers to the name of the fields that should be used for facets.
      */
     public static final String ATTR_FACET_FIELDS = "oak.facet.fields";
@@ -373,7 +388,7 @@ public class FulltextIndexPlanner {
 
             // Set a index based guess here. Unique would set its own value below
             if (useActualEntryCount && !definition.isEntryCountDefined()) {
-                int maxPossibleNumDocs = getMaxPossibleNumDocs(result.propDefns, filter);
+                int maxPossibleNumDocs = getMaxPossibleNumDocs(result.propDefns, filter, canEvalNodeNameRestriction);
                 if (maxPossibleNumDocs >= 0) {
                     plan.setEstimatedEntryCount(maxPossibleNumDocs);
                 }
@@ -873,9 +888,9 @@ public class FulltextIndexPlanner {
         return indexStatistics.numDocs();
     }
 
-    private int getMaxPossibleNumDocs(Map<String, PropertyDefinition> propDefns, Filter filter) {
+    private int getMaxPossibleNumDocs(Map<String, PropertyDefinition> propDefns, Filter filter, boolean canEvalNodeName) {
         if (FT_OAK_12221_ENABLE.get()) {
-            return getMaxPossibleNumDocsBySelectivity(propDefns, filter);
+            return getMaxPossibleNumDocsBySelectivity(propDefns, filter, canEvalNodeName);
         }
         IndexStatistics indexStatistics = indexNode.getIndexStatistics();
         if (indexStatistics == null) {
@@ -945,6 +960,21 @@ public class FulltextIndexPlanner {
             }
         }
 
+        // The :nodeName field is not a regular property field, so it has no per-field
+        // statistics and is not part of propDefns. A nodeName equality/like restriction
+        // is still selective though, so account for it like a default-weight property.
+        // Otherwise a query combining a nodeName condition with other restrictions (for
+        // example an OR turned into a union) would get an unrealistically high cost and
+        // the conditions would not be pushed down to the index.
+        PropertyRestriction nodeNamePr = (canEvalNodeName && !FT_OAK_12100_DISABLE.get()) ?
+                filter.getPropertyRestriction(QueryConstants.RESTRICTION_LOCAL_NAME) : null;
+        if (nodeNamePr != null) {
+            double scaledDocCnt = Math.ceil((double) indexStatistics.numDocs() / nodeNameRestrictionWeight(nodeNamePr));
+            if (scaledDocCnt < minNumDocs) {
+                minNumDocs = (int) scaledDocCnt;
+            }
+        }
+
         // Reduce the estimation if the index supports path restrictions,
         // and we have one that we can use.
         // We don't need to be exact here, because we don't know the
@@ -987,7 +1017,7 @@ public class FulltextIndexPlanner {
      * once at the end against the most restrictive field's doc count. This makes the
      * estimate independent of iteration order.
      */
-    private int getMaxPossibleNumDocsBySelectivity(Map<String, PropertyDefinition> propDefns, Filter filter) {
+    private int getMaxPossibleNumDocsBySelectivity(Map<String, PropertyDefinition> propDefns, Filter filter, boolean canEvalNodeName) {
         IndexStatistics indexStatistics = indexNode.getIndexStatistics();
         if (indexStatistics == null) {
             log.warn("Statistics not available - possibly index is corrupt? Returning high doc count");
@@ -1070,6 +1100,17 @@ public class FulltextIndexPlanner {
             anyCondition = true;
         }
 
+        // The :nodeName field is not a regular property field, so it is not part of
+        // propDefns and has no per-field statistics. A nodeName equality/like restriction
+        // is still selective, so treat it like a default-weight property: its field covers
+        // all docs, so it only contributes a selectivity factor (it never tightens the cap).
+        PropertyRestriction nodeNamePr = (canEvalNodeName && !FT_OAK_12100_DISABLE.get()) ?
+                filter.getPropertyRestriction(QueryConstants.RESTRICTION_LOCAL_NAME) : null;
+        if (nodeNamePr != null) {
+            combinedSelectivity *= 1.0 / nodeNameRestrictionWeight(nodeNamePr);
+            anyCondition = true;
+        }
+
         if (anyCondition) {
             minNumDocs = (int) Math.min(numDocs, Math.round(combinedSelectivity * selectivityCap));
         }
@@ -1089,6 +1130,15 @@ public class FulltextIndexPlanner {
 
     private static boolean isEqualityRestriction(PropertyRestriction pr) {
         return pr.first != null && pr.first == pr.last;
+    }
+
+    /**
+     * The weight used to estimate the selectivity of a nodeName ({@code :localname})
+     * restriction. Equality uses {@link #DEFAULT_PROPERTY_WEIGHT}; a non-equality (like)
+     * restriction caps the weight at 3, mirroring the handling of regular properties.
+     */
+    private static int nodeNameRestrictionWeight(PropertyRestriction nodeNamePr) {
+        return isEqualityRestriction(nodeNamePr) ? DEFAULT_PROPERTY_WEIGHT : Math.min(3, DEFAULT_PROPERTY_WEIGHT);
     }
 
     protected List<OrderEntry> createSortOrder(IndexDefinition.IndexingRule rule) {
