@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalId
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginTestBase;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.monitor.ExternalIdentityMonitor;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SynchronizationMBean;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
@@ -107,6 +108,7 @@ public class ExternalLoginModuleFactoryTest extends ExternalLoginTestBase {
         context.registerService(Repository.class, mock(Repository.class));
         context.registerService(SyncManager.class, new SyncManagerImpl(whiteboard));
         context.registerService(ExternalIdentityProviderManager.class, new ExternalIDPManagerImpl(whiteboard));
+        context.registerService(ExternalIdentityMonitor.class, mock(ExternalIdentityMonitor.class));
 
         final LoginModuleFactory lmf = context.registerInjectActivateService(ExternalLoginModuleFactory.class);
         options.put(ProxyLoginModule.PROP_LOGIN_MODULE_FACTORY, (ProxyLoginModule.BootLoginModuleFactory) lmf::createLoginModule);
@@ -211,6 +213,33 @@ public class ExternalLoginModuleFactoryTest extends ExternalLoginTestBase {
 
         factory.bindContentRepository(getContentRepository());
         assertSame(mbeanregistration, getMBeanRegistration());
+    }
+
+    @Test
+    public void testCreateLoginModuleInjectsMonitor() {
+        ExternalIdentityMonitor monitor = mock(ExternalIdentityMonitor.class);
+        context.registerService(ExternalIdentityMonitor.class, monitor);
+        context.registerService(SyncManager.class, mock(SyncManager.class));
+        context.registerService(ExternalIdentityProviderManager.class, mock(ExternalIdentityProviderManager.class));
+
+        ExternalLoginModuleFactory factory = context.registerInjectActivateService(ExternalLoginModuleFactory.class);
+        ExternalLoginModule lm = (ExternalLoginModule) factory.createLoginModule();
+
+        // The monitor must be pre-injected so that initialize() does not open a
+        // ServiceTracker on every login (which causes Felix EventDispatcher contention).
+        assertSame(monitor, lm.getMonitor());
+    }
+
+    @Test
+    public void testCreateLoginModuleNoMonitorServiceFallsBackToNoop() {
+        // When no ExternalIdentityMonitor service is available (e.g. non-OSGi path or
+        // monitor not yet registered), createLoginModule() must still inject NOOP so that
+        // initialize() never needs to open a ServiceTracker via the whiteboard.
+        ExternalLoginModuleFactory factory = new ExternalLoginModuleFactory(
+                mock(SyncManager.class), mock(ExternalIdentityProviderManager.class), null);
+
+        ExternalLoginModule lm = (ExternalLoginModule) factory.createLoginModule();
+        assertSame(ExternalIdentityMonitor.NOOP, lm.getMonitor());
     }
 
     private SynchronizationMBean getMBeanRegistration() throws Exception {

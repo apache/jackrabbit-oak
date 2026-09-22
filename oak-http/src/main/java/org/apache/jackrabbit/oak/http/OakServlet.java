@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
-import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
@@ -39,7 +38,6 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.util.Base64;
 import org.apache.tika.mime.MediaType;
 
 public class OakServlet extends HttpServlet {
@@ -68,16 +66,7 @@ public class OakServlet extends HttpServlet {
             HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
-            Credentials credentials = null;
-
-            String authorization = request.getHeader("Authorization");
-            if (authorization != null && authorization.startsWith("Basic ")) {
-                String[] basic =
-                        Base64.decode(authorization.substring("Basic ".length())).split(":");
-                credentials = new SimpleCredentials(basic[0], basic[1].toCharArray());
-            } else {
-                throw new LoginException();
-            }
+            SimpleCredentials credentials = AuthorizationField.valueOf(request.getHeaders("Authorization"));
 
             ContentSession session = repository.login(credentials, null);
             try {

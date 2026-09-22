@@ -36,8 +36,7 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import ch.qos.logback.classic.Level;
+import org.slf4j.event.Level;
 
 public class BulkCreateOrUpdateClusterTest extends AbstractMultiDocumentStoreTest {
 
@@ -208,7 +207,7 @@ public class BulkCreateOrUpdateClusterTest extends AbstractMultiDocumentStoreTes
 
     @Test
     public void testSimpleConflictHandling() {
-        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName()).enable(Level.DEBUG)
+        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class).enable(Level.DEBUG)
                 .contains("invalidating cache and retrying").create();
         logCustomizer.starting();
 

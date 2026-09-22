@@ -23,7 +23,7 @@ import org.junit.After;
 import org.junit.Rule;
 import org.junit.contrib.java.lang.system.ProvideSystemProperty;
 import org.junit.contrib.java.lang.system.RestoreSystemProperties;
-import org.testcontainers.containers.ToxiproxyContainer;
+import org.testcontainers.toxiproxy.ToxiproxyContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.io.IOException;

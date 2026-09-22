@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
-import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.observation.JackrabbitEvent;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -35,6 +34,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -111,7 +111,7 @@ public class ObservationQueueFullWarnTest extends AbstractRepositoryTest {
 
     @Test
     public void warnOnQueueFull() throws RepositoryException, InterruptedException, ExecutionException {
-        LogCustomizer customLogs = LogCustomizer.forLogger(ChangeProcessor.class.getName())
+        LogCustomizer customLogs = LogCustomizer.forLogger(ChangeProcessor.class)
                 .filter(Level.WARN)
                 .contains(OBS_QUEUE_FULL_WARN)
                 .create();
@@ -129,15 +129,15 @@ public class ObservationQueueFullWarnTest extends AbstractRepositoryTest {
 
     @Test
     public void warnOnRepeatedQueueFull() throws RepositoryException, InterruptedException, ExecutionException {
-        LogCustomizer warnLogs = LogCustomizer.forLogger(ChangeProcessor.class.getName())
+        LogCustomizer warnLogs = LogCustomizer.forLogger(ChangeProcessor.class)
                 .filter(Level.WARN)
                 .contains(OBS_QUEUE_FULL_WARN)
                 .create();
-        LogCustomizer debugLogs = LogCustomizer.forLogger(ChangeProcessor.class.getName())
+        LogCustomizer debugLogs = LogCustomizer.forLogger(ChangeProcessor.class)
                 .filter(Level.DEBUG)
                 .contains(OBS_QUEUE_FULL_WARN)
                 .create();
-        LogCustomizer logLevelSetting = LogCustomizer.forLogger(ChangeProcessor.class.getName())
+        LogCustomizer logLevelSetting = LogCustomizer.forLogger(ChangeProcessor.class)
                 .enable(Level.DEBUG)
                 .create();
         logLevelSetting.starting();

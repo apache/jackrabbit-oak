@@ -97,7 +97,7 @@ public class QueryLimitTest extends AbstractQueryTest {
     public void queryLengthWarnLimitBreachLogsWarning() throws Exception {
         String generatedString = RandomStringUtils.random(queryLengthWarnLimit, true, false);
 
-        LogCustomizer customLogs = LogCustomizer.forLogger(QueryEngineImpl.class.getName()).enable(Level.WARN).create();
+        LogCustomizer customLogs = LogCustomizer.forLogger(QueryEngineImpl.class).enable(Level.WARN).create();
 
         try {
             customLogs.starting();

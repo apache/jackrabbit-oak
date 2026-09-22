@@ -46,6 +46,18 @@ however there are differences:
   that could require changes when migrating from Lucene to Elasticsearch.
   The `HunspellStem` filter is not supported since dictionary files are required in the Elasticsearch cluster filesystem.
 * `useInExcerpt` does not support regexp relative properties.
+* Unlike Lucene, where there is no limit on the number of indexed fields (which is a frequent source of issues since Lucene indexes are sparse and each unset field consumes no space, masking the real field count), Elasticsearch enforces a default limit of **1000 fields** per index
+  (`index.mapping.total_fields.limit`, configurable via the `limitTotalFields` index definition property — increasing this value is not recommended as it can cause memory issues in Elasticsearch).
+  Regex property definitions that match a large number of properties can easily exhaust this limit.
+  In such cases, set `isFlattened` to `true` on the property definition: all properties matched by the regex are then stored under a single
+  [flattened][flattened] field type in Elasticsearch instead of creating one field per matched property.
+  Note that `isFlattened` is `false` by default, and is automatically overridden to `false` when `analyzed` is `true` on the same property
+  definition, because flattened fields do not support full-text queries.
+  Flattened fields come with the following limitations (see [Elasticsearch documentation][flattened]):
+    * Only filtered queries are supported.
+    * All values are treated as string keywords regardless of their actual type; in particular, `range` queries use lexicographic comparison, not numeric ordering.
+    * Wildcard key references are not supported (e.g. `labels.time*`).
+    * Highlighting is not supported.
 * For property definitions, `sync` and `unique` are ignored.
   Synchronous indexing, and enforcing uniqueness constraints is not currently supported in elastic indexes.
 * The behavior of `dynamicBoost` differs slightly between Lucene and Elasticsearch:  
@@ -67,3 +79,4 @@ To use these values exclusively for influencing relevance without affecting matc
 
 [lucene]: https://jackrabbit.apache.org/oak/docs/query/lucene.html
 [options]: https://www.elastic.co/guide/en/elasticsearch/reference/current/configure-text-analysis.html
+[flattened]: https://www.elastic.co/docs/reference/elasticsearch/mapping-reference/flattened#supported-operations

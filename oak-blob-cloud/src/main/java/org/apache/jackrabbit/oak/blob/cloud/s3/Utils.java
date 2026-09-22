@@ -116,7 +116,6 @@ public final class Utils {
      * @return {@link S3Client}
      */
     public static S3Client openService(final Properties prop, boolean accReq) {
-
         S3ClientBuilder builder = S3Client.builder();
 
         configureBuilder(builder, prop, accReq);
@@ -165,15 +164,24 @@ public final class Utils {
      * @return a configured {@link S3Presigner} instance
      */
     public static S3Presigner createPresigner(final S3Client s3Client, final Properties props) {
+        return createPresigner(s3Client, props, false);
+    }
+
+    static S3Presigner createPresigner(final S3Client s3Client, final Properties props, final boolean accReq) {
         final boolean isGCP = Objects.equals(RemoteStorageMode.GCP, props.get(S3Constants.MODE));
-        return S3Presigner.builder().s3Client(s3Client)
+        String region = Utils.getRegion(props);
+        S3Presigner.Builder builder = S3Presigner.builder().s3Client(s3Client)
                 .credentialsProvider(Utils.getAwsCredentials(props))
-                .region(Region.of(Utils.getRegion(props)))
+                .region(Region.of(region))
                 .serviceConfiguration(S3Configuration.builder()
-                        .pathStyleAccessEnabled(isGCP)
+                        .pathStyleAccessEnabled(isPathStyleAccessEnabled(props, isGCP))
                         .chunkedEncodingEnabled(!isGCP)
-                        .build())
-                .build();
+                        .build());
+
+        if (accReq || hasCustomEndpoint(props)) {
+            builder.endpointOverride(getEndPointUri(props, accReq, region));
+        }
+        return builder.build();
     }
 
     /**
@@ -419,7 +427,6 @@ public final class Utils {
         int apiTimeout = Math.max(connectionTimeOut * 10, 300000); // At least 5 minutes
 
         ClientOverrideConfiguration.Builder builder = ClientOverrideConfiguration.builder();
-
         builder.retryStrategy(b -> b.maxAttempts(maxErrorRetry));
         builder.apiCallTimeout(Duration.ofMillis(apiTimeout)); // Long timeout for large uploads
         builder.apiCallAttemptTimeout(Duration.ofMillis(connectionTimeOut)); // Per-attempt timeout
@@ -584,10 +591,19 @@ public final class Utils {
 
         builder.serviceConfiguration(
                 S3Configuration.builder()
-                        .pathStyleAccessEnabled(isGCP) // enable for GCP
+                        .pathStyleAccessEnabled(isPathStyleAccessEnabled(prop, isGCP)) // always on for GCP; opt-in for S3 via pathStyleAccess property
                         .chunkedEncodingEnabled(!isGCP) // Disable for GCP
                         .useArnRegionEnabled(!isGCP)  // Disable for GCP
                         .build());
+    }
+
+    private static boolean isPathStyleAccessEnabled(Properties prop, boolean isGCP) {
+        return isGCP || Boolean.parseBoolean(prop.getProperty(S3Constants.PATH_STYLE_ACCESS, "false"));
+    }
+
+    private static boolean hasCustomEndpoint(Properties prop) {
+        String endpoint = prop.getProperty(S3Constants.S3_END_POINT);
+        return endpoint != null && !endpoint.isEmpty();
     }
 
     // Helper class to hold common Http config

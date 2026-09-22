@@ -57,7 +57,9 @@ public class IndexDefMergerScenariosTest extends ParameterizedMergingTestBase {
                 testCase("should not remove child nodes from product index missing from custom index",
                         "missing-child.json"),
                 testCase("should support removing adding changing properties from product index in custom index",
-                        "removed-property.json")
+                        "removed-property.json"),
+                testCase("should merge customization of unversioned index into test-custom-1",
+                        "unversioned-index.json")
         });
     }
 

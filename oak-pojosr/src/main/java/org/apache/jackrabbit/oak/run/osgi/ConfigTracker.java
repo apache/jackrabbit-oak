@@ -29,9 +29,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
-import org.json.simple.JSONObject;
-import org.json.simple.JSONValue;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 import org.osgi.service.cm.ConfigurationAdmin;
@@ -117,8 +118,13 @@ class ConfigTracker extends ServiceTracker<ConfigurationAdmin, ConfigurationAdmi
             }
 
             String content = new String(Files.readAllBytes(jsonFile.toPath()), StandardCharsets.UTF_8);
-            JSONObject json = (JSONObject) JSONValue.parse(content);
-            configs.putAll(json);
+            ObjectMapper mapper = new ObjectMapper();
+            Map<String, Map<String, Object>> map = mapper.readValue(
+                    content,
+                    new TypeReference<>() {
+                    }
+            );
+            configs.putAll(map);
         }
 
         return configs;

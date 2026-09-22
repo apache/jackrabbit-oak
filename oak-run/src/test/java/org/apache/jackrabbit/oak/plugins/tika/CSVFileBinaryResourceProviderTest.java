@@ -41,6 +41,7 @@ public class CSVFileBinaryResourceProviderTest {
     public void testGetBinaries() throws Exception {
         StringBuilder sb = new StringBuilder();
         CSVPrinter p = new CSVPrinter(sb, CSVFileBinaryResourceProvider.FORMAT);
+        p.printRecord((Object[]) CSVFileBinaryResourceProvider.FORMAT.getHeader());
         // BLOB_ID, LENGTH, JCR_MIMETYPE, JCR_ENCODING, JCR_PATH
         p.printRecord("a", 123, "text/plain", null, "/a");
         p.printRecord("a2", 123, "text/plain", null, "/a/c");

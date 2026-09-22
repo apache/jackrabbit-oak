@@ -103,7 +103,7 @@ public class ElasticIndexPathRestrictionCommonTest extends IndexPathRestrictionC
 
     @Override
     protected LogCustomizer getLogCustomizer() {
-        return LogCustomizer.forLogger(ElasticResultRowAsyncIterator.class.getName()).enable(Level.TRACE).contains("hierarchy inclusion rules").create();
+        return LogCustomizer.forLogger(ElasticResultRowAsyncIterator.class).enable(Level.TRACE).contains("hierarchy inclusion rules").create();
     }
 
 }

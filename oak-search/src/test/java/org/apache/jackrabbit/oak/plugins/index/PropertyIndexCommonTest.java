@@ -521,6 +521,109 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
     }
 
     @Test
+    public void nodeGainsMixinAppearsInMixinBasedIndex() throws Exception {
+        indexOptions.setIndex(
+                root,
+                "test1",
+                indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), "mix:title", false, "jcr:title")
+        );
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = test.addChild("a");
+        a.setProperty("jcr:title", "hello");
+        root.commit();
+
+        String query = "select [jcr:path] from [mix:title] where [jcr:title] = 'hello'";
+        assertEventually(() -> assertQuery(query, List.of()));
+
+        a = root.getTree("/test/a");
+        a.setProperty(JcrConstants.JCR_MIXINTYPES, List.of("mix:title"), Type.NAMES);
+        root.commit();
+
+        assertEventually(() -> assertQuery(query, List.of("/test/a")));
+    }
+
+    @Test
+    public void nodeLosesMixinDisappearsFromMixinBasedIndex() throws Exception {
+        indexOptions.setIndex(
+                root,
+                "test1",
+                indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), "mix:title", false, "jcr:title")
+        );
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = createNodeWithMixinType(test, "a", "mix:title");
+        a.setProperty("jcr:title", "hello");
+        root.commit();
+
+        String query = "select [jcr:path] from [mix:title] where [jcr:title] = 'hello'";
+        assertEventually(() -> assertQuery(query, List.of("/test/a")));
+
+        a = root.getTree("/test/a");
+        a.removeProperty(JcrConstants.JCR_MIXINTYPES);
+        root.commit();
+
+        assertEventually(() -> assertQuery(query, List.of()));
+    }
+
+    @Test
+    public void nodeLosesLastAggregatedPropertyDisappearsFromFulltextIndex() throws Exception {
+        // OAK-12365: root's rule/type is unchanged; only the aggregated child content
+        // disappears. CONTAINS() is required here since equality queries are revalidated
+        // against the live tree and wouldn't surface a stale document.
+        IndexDefinitionBuilder builder = indexOptions.createIndexDefinitionBuilder();
+        builder.noAsync(); // wildcard aggregateRule never converges on the async lane in time
+        builder.indexRule("nt:base").property("jcr:content/status").propertyIndex();
+        builder.aggregateRule("nt:base").include("*");
+        indexOptions.setIndex(root, "test1", builder);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").addChild("jcr:content").setProperty("status", "published");
+        root.commit();
+
+        // ISCHILDNODE('/test'): the wildcard aggregate also propagates the fulltext
+        // content up to "/test" itself, so scope the query to exclude that ancestor.
+        String query = "select [jcr:path] from [nt:base] where ISCHILDNODE('/test') and CONTAINS(*, 'published')";
+        assertEventually(() -> assertQuery(query, List.of("/test/a")));
+
+        root.getTree("/test/a/jcr:content").removeProperty("status");
+        root.commit();
+
+        assertEventually(() -> assertQuery(query, List.of()));
+    }
+
+    @Test
+    public void parentLosesMixinDoesNotCascadeDeleteChildWithSameMixin() throws Exception {
+        indexOptions.setIndex(
+                root,
+                "test1",
+                indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), "mix:title", false, "jcr:title")
+        );
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = createNodeWithMixinType(test, "a", "mix:title");
+        a.setProperty("jcr:title", "parent");
+        Tree child = createNodeWithMixinType(a, "child", "mix:title");
+        child.setProperty("jcr:title", "childTitle");
+        root.commit();
+
+        String childQuery = "select [jcr:path] from [mix:title] where [jcr:title] = 'childTitle'";
+        assertEventually(() -> assertQuery(childQuery, List.of("/test/a/child")));
+
+        // Remove mixin from parent only — child still has mix:title
+        a = root.getTree("/test/a");
+        a.removeProperty(JcrConstants.JCR_MIXINTYPES);
+        root.commit();
+
+        // Child must survive — deleteDocumentTree on the parent must not cascade to it
+        assertEventually(() -> assertQuery(childQuery, List.of("/test/a/child")));
+    }
+
+    @Test
     public void indexingBasedOnMixinAndRelativeProps() throws Exception {
         indexOptions.setIndex(
                 root,

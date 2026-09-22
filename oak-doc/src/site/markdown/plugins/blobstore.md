@@ -234,6 +234,18 @@ other cluster nodes or different repositories sharing the datastore to get a con
 interval of synchronization is defined by the OSGi configuration parameter `blobTrackSnapshotIntervalInSecs` for the 
 configured NodeStore services.
 
+**Default behavior by NodeStore:**
+
+* **SegmentNodeStore** (`SegmentNodeStoreService` / `SegmentNodeStoreFactory`): blob ID tracking is **disabled by
+  default** (`blobTrackSnapshotIntervalInSecs = 0`, default since Oak 2.4.0). To enable it, set a positive value such as
+  `43200` (12 hours).
+* **DocumentNodeStore**: blob ID tracking is **disabled by default**
+  (`blobTrackSnapshotIntervalInSecs = 0`, default since Oak 2.4.0). To enable it, set a positive value such as `43200`
+  (12 hours).
+
+When tracking is disabled (interval = 0), blob IDs are not cached locally and the warnings described below do
+not apply. The full blob ID list is always retrieved directly from the DataStore during GC.
+
 If 2 garbage collection cycles are executed within the `blobTrackSnapshotIntervalInSecs` then there may be warnings 
 in the logs of some missing blob ids which is due to the fact that the deletions due to earlier gc has not been 
 synchronized with the data store. It's ok to either ignore these warnings or to adjust the `blobTrackSnapshotIntervalInSecs` 

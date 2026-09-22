@@ -1032,6 +1032,9 @@ public class RDBDocumentStore implements DocumentStore {
                 "driverVersion", md.getDriverVersion());
         String versionDiags = dbInfo.checkVersion(md);
         if (!versionDiags.isEmpty()) {
+            // advisory only (store still initializes normally), but raising a per-DB minimum in
+            // RDBDocumentStoreDB/RDBBlobStoreDB means previously-supported versions start logging
+            // here on every startup, which can trigger ERROR-level log monitoring alerts
             LOG.error(versionDiags);
         }
 

@@ -117,6 +117,16 @@ public class IndexNameTest {
     }
 
     @Test
+    public void nextCustomizedName() {
+        // versioned index: product version is preserved
+        assertEquals("asset-1-custom-1", IndexName.parse("asset-1").nextCustomizedName());
+        assertEquals("asset-1-custom-2", IndexName.parse("asset-1-custom-1").nextCustomizedName());
+        // unversioned index: no "-0-" in the result
+        assertEquals("asset-custom-1", IndexName.parse("asset").nextCustomizedName());
+        assertEquals("asset-custom-2", IndexName.parse("asset-custom-1").nextCustomizedName());
+    }
+
+    @Test
     public void filterNewestIndexes() {
 
         // Single index - should return as-is

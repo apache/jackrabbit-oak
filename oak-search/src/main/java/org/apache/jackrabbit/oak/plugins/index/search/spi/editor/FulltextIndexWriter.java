@@ -36,11 +36,24 @@ public interface FulltextIndexWriter<D> {
     void updateDocument(String path, D doc) throws IOException;
 
     /**
-     * Deletes documents which are same or child of given path
+     * Deletes the document at the given path and all descendant documents.
+     * Use this when a node is physically removed from the repository.
      *
-     * @param path path whose children need to be deleted
+     * @param path path of the node whose document and all descendants need to be deleted
      */
-    void deleteDocuments(String path) throws IOException;
+    void deleteDocumentTree(String path) throws IOException;
+
+    /**
+     * Deletes only the document at the given path, leaving descendant documents untouched.
+     * Use this when a node loses indexability at runtime (e.g. mixin removed) while its
+     * children may still be indexable.
+     *
+     * <p>Default implementation falls back to {@link #deleteDocumentTree} for implementations
+     * that do not differentiate; override in backends that support exact-document deletion.
+     *
+     * @param path path of the node whose document needs to be deleted
+     */
+    void deleteDocument(String path) throws IOException;
 
     /**
      * Closes the underlying resources.

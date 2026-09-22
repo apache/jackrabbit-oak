@@ -115,7 +115,7 @@ public class SegmentNodeStoreServiceTest {
             .check());
         assertTrue(cd.hasProperty("blobTrackSnapshotIntervalInSecs")
             .withLongType()
-            .withValue("43200")
+            .withValue("0")
             .check());
         assertTrue(cd.hasReference("blobStore")
             .withInterface("org.apache.jackrabbit.oak.spi.blob.BlobStore")
@@ -236,7 +236,7 @@ public class SegmentNodeStoreServiceTest {
             .check());
         assertTrue(ocd.hasAttributeDefinition("blobTrackSnapshotIntervalInSecs")
             .withLongType()
-            .withDefaultValue("43200")
+            .withDefaultValue("0")
             .check());
     }
 

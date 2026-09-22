@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
+import static org.apache.jackrabbit.oak.spi.toggle.Feature.newFeature;
+
+import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -24,8 +27,14 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.framework.BundleContext;
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 
 /**
@@ -42,14 +51,33 @@ public class PropertyIndexEditorProvider implements IndexEditorProvider {
 
     public static final String TYPE = "property";
 
+    public static final String FT_OAK_12125 = "FT_OAK-12125";
+
     @Reference
     private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
+
+    @Nullable
+    private Feature feature;
+
+    @Activate
+    private void activate(BundleContext bundleContext) {
+        Whiteboard whiteboard = new OsgiWhiteboard(bundleContext);
+        this.feature = newFeature(FT_OAK_12125, whiteboard);
+    }
+
+    @Deactivate
+    private void deactivate() {
+        if (feature != null) {
+            feature.close();
+            feature = null;
+        }
+    }
 
     @Override
     public Editor getIndexEditor(
             @NotNull String type, @NotNull NodeBuilder definition, @NotNull NodeState root, @NotNull IndexUpdateCallback callback) {
         if (TYPE.equals(type)) {
-            return new PropertyIndexEditor(definition, root, callback, mountInfoProvider);
+            return new PropertyIndexEditor(definition, root, callback, mountInfoProvider, feature);
         }
         return null;
     }

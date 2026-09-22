@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
-import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -62,6 +61,7 @@ import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.event.Level;
 
 import javax.jcr.GuestCredentials;
 import javax.jcr.Repository;

@@ -32,6 +32,15 @@ import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 
+/**
+ * Kept for binary compatibility with existing callers. Use {@link AzureDataStoreRegistrar} instead.
+ *
+ * @deprecated superseded by {@link AzureDataStoreRegistrar}, which replaces the dual-service
+ * (v8/v12) OSGi architecture with a single component that selects the SDK version at activation
+ * time via JVM property, environment variable, or OSGi configuration; retained only for binary
+ * compatibility.
+ */
+@Deprecated(since = "2.3", forRemoval = true)
 public abstract class AbstractAzureDataStoreService extends AbstractDataStoreService {
     private static final String DESCRIPTION = "oak.datastore.description";
 

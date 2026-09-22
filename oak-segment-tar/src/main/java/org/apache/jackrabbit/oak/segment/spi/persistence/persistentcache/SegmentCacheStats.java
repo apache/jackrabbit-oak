@@ -54,16 +54,21 @@ public class SegmentCacheStats extends AbstractCacheStats {
     @NotNull
     final AtomicLong missCount = new AtomicLong();
 
+    @NotNull
+    private final Supplier<Long> writeDiscardCountSupplier;
+
     public SegmentCacheStats(@NotNull String name,
                              @NotNull Supplier<Long> maximumWeight,
                              @NotNull Supplier<Long> elementCount,
                              @NotNull Supplier<Long> currentWeight,
-                             @NotNull Supplier<Long> evictionCount) {
+                             @NotNull Supplier<Long> evictionCount,
+                             @NotNull Supplier<Long> writeDiscardCount) {
         super(name);
         this.maximumWeight = maximumWeight;
         this.elementCount = requireNonNull(elementCount);
         this.currentWeight = requireNonNull(currentWeight);
         this.evictionCount = evictionCount;
+        this.writeDiscardCountSupplier = requireNonNull(writeDiscardCount);
     }
 
     @Override
@@ -76,6 +81,10 @@ public class SegmentCacheStats extends AbstractCacheStats {
                 loadTime.get(),
                 evictionCount.get()
         );
+    }
+
+    public long getWriteDiscardCount() {
+        return writeDiscardCountSupplier.get();
     }
 
     @Override

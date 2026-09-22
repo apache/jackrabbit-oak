@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.jcr;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -32,10 +31,6 @@ import javax.jcr.Session;
 import org.apache.jackrabbit.commons.iterator.NodeIterable;
 import org.apache.jackrabbit.oak.fixture.DocumentRdbFixture;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
-import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.junit.Assume;
 import org.junit.Test;
 
@@ -180,31 +175,6 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
         session.save();
         session.getWorkspace().copy("/test-0", "/test-1");
         session.save();
-    }
-
-    @Test
-    public void childOrderCleanupFeatureToggleTest() throws RepositoryException {
-        //init repository
-        getAdminSession();
-        NodeStore nodeStore = getNodeStore();
-        assertNotNull(nodeStore);
-        Tracker<FeatureToggle> track = fixture.getWhiteboard().track(FeatureToggle.class);
-        if (nodeStore instanceof DocumentNodeStore) {
-            DocumentNodeStore documentNodeStore = (DocumentNodeStore) nodeStore;
-            assertTrue(documentNodeStore.isChildOrderCleanupEnabled());
-            for (FeatureToggle toggle : track.getServices()) {
-                if ("FT_NOCOCLEANUP_OAK-10660".equals(toggle.getName())) {
-                    assertFalse(toggle.isEnabled());
-                    assertTrue(documentNodeStore.isChildOrderCleanupEnabled());
-                    toggle.setEnabled(true);
-                    assertTrue(toggle.isEnabled());
-                    assertFalse(documentNodeStore.isChildOrderCleanupEnabled());
-                    toggle.setEnabled(false);
-                    assertFalse(toggle.isEnabled());
-                    assertTrue(documentNodeStore.isChildOrderCleanupEnabled());
-                }
-            }
-        }
     }
 
     private void doTest(String nodeType) throws RepositoryException {

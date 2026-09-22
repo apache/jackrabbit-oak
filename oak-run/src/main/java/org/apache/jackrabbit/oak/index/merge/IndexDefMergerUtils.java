@@ -413,8 +413,8 @@ public class IndexDefMergerUtils {
                 IndexName latest = n.getLatestCustomized(allNames);
                 IndexName ancestor = n.getLatestProduct(allNames);
                 if (latest != null && ancestor != null) {
-                    if (n.compareTo(latest) <= 0 || n.compareTo(ancestor) <= 0) {
-                        // ignore older versions of indexes
+                    if (n.isVersioned() && (n.compareTo(latest) <= 0 || n.compareTo(ancestor) <= 0)) {
+                        // ignore older versions of indexes (not applicable to unversioned indexes)
                         continue;
                     }
                     JsonObject latestCustomized = allIndexes.getChildren().get(latest.getNodeName());

@@ -411,7 +411,12 @@ public class NRTIndex implements Closeable {
         }
 
         @Override
-        public void deleteDocuments(String path) throws IOException {
+        public void deleteDocumentTree(String path) throws IOException {
+            //Do not delete documents. Query side would handle it
+        }
+
+        @Override
+        public void deleteDocument(String path) throws IOException {
             //Do not delete documents. Query side would handle it
         }
 

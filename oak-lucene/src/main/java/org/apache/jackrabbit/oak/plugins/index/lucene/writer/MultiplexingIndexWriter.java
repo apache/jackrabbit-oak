@@ -62,9 +62,9 @@ class MultiplexingIndexWriter implements LuceneIndexWriter {
     }
 
     @Override
-    public void deleteDocuments(String path) throws IOException {
+    public void deleteDocumentTree(String path) throws IOException {
         Mount mount = mountInfoProvider.getMountByPath(path);
-        getWriter(mount).deleteDocuments(path);
+        getWriter(mount).deleteDocumentTree(path);
 
         //In case of default mount look for other mounts with roots under this path
         //Note that one mount cannot be part of another mount
@@ -74,6 +74,13 @@ class MultiplexingIndexWriter implements LuceneIndexWriter {
                 getWriter(m).deleteAll();
             }
         }
+    }
+
+    @Override
+    public void deleteDocument(String path) throws IOException {
+        // Single-document delete: no mount-under-path cleanup needed
+        Mount mount = mountInfoProvider.getMountByPath(path);
+        getWriter(mount).deleteDocument(path);
     }
 
     @Override

@@ -20,6 +20,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_NSDATA;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_PREFIXES;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 
@@ -55,10 +56,16 @@ public class NameValidatorTest {
         validator.childNodeAdded("invalid:name", EMPTY_NODE);
     }
 
-    @Test(expected = CommitFailedException.class)
-    public void testInvalidPrefix() throws CommitFailedException {
-        Validator validator = new NameValidator(newNamespaceNode("valid"), false);
-        validator.childNodeAdded("invalid:name", EMPTY_NODE);
+    @Test
+    public void testInvalidPrefix() {
+        try {
+            Validator validator = new NameValidator(newNamespaceNode("valid"), false);
+            validator.childNodeAdded("invalid:name", EMPTY_NODE);
+        } catch (CommitFailedException ex) {
+            String shouldContain = "Prefix 'invalid' not present in namespace registry";
+            assertTrue("Exception should contain >>>" + shouldContain + "<<<, got: >>>" + ex.getMessage() + "<<<",
+                    ex.getMessage().contains(shouldContain));
+        }
     }
 
     @Test(expected = CommitFailedException.class)

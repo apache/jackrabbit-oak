@@ -91,7 +91,8 @@ public abstract class AbstractDataRecordAccessProviderTest {
     //
     @Test
     public void testGetDownloadURIProvidesValidURIIT() throws DataStoreException {
-        Assume.assumeTrue("SSE-C doesn't support presigned GET URLs", !isSSECustomerKeyEncryption());
+        Assume.assumeTrue("Presigned GET URLs are skipped when sseCustomerKey is configured",
+                !isSSECustomerKeyEncryption());
         DataRecord record = null;
         ConfigurableDataRecordAccessProvider dataStore = getDataStore();
         try {
@@ -157,7 +158,8 @@ public abstract class AbstractDataRecordAccessProviderTest {
 
     @Test
     public void testGetDownloadURIIT() throws DataStoreException, IOException {
-        Assume.assumeTrue("SSE-C doesn't support presigned GET URLs", !isSSECustomerKeyEncryption());
+        Assume.assumeTrue("Presigned GET URLs are skipped when sseCustomerKey is configured",
+                !isSSECustomerKeyEncryption());
         DataRecord record = null;
         DataRecordAccessProvider dataStore = getDataStore();
         try {
@@ -180,7 +182,8 @@ public abstract class AbstractDataRecordAccessProviderTest {
 
     @Test
     public void testGetDownloadURIWithCustomHeadersIT() throws DataStoreException, IOException {
-        Assume.assumeTrue("SSE-C doesn't support presigned GET URLs", !isSSECustomerKeyEncryption());
+        Assume.assumeTrue("Presigned GET URLs are skipped when sseCustomerKey is configured",
+                !isSSECustomerKeyEncryption());
         String umlautFilename = "Uml\u00e4utfile.png";
         String umlautFilename_ISO_8859_1 = new String(
                 StandardCharsets.ISO_8859_1.encode(umlautFilename).array(),
@@ -257,7 +260,8 @@ public abstract class AbstractDataRecordAccessProviderTest {
 
     @Test
     public void testGetExpiredReadURIFailsIT() throws DataStoreException, IOException {
-        Assume.assumeTrue("SSE-C doesn't support presigned GET URLs", !isSSECustomerKeyEncryption());
+        Assume.assumeTrue("Presigned GET URLs are skipped when sseCustomerKey is configured",
+                !isSSECustomerKeyEncryption());
         DataRecord record = null;
         ConfigurableDataRecordAccessProvider dataStore = getDataStore();
         try {

@@ -78,7 +78,13 @@ public class IndexWriterPoolTest {
         }
 
         @Override
-        public void deleteDocuments(String path) {
+        public void deleteDocumentTree(String path) {
+            delay();
+            deletedPaths.add(path);
+        }
+
+        @Override
+        public void deleteDocument(String path) {
             delay();
             deletedPaths.add(path);
         }
@@ -106,7 +112,7 @@ public class IndexWriterPoolTest {
         TestWriter writer = new TestWriter();
         Document doc = TestUtil.newDoc("value");
         indexWriterPool.updateDocument(writer, "test", doc);
-        indexWriterPool.deleteDocuments(writer, "test");
+        indexWriterPool.deleteDocumentTree(writer, "test");
         boolean closeResult = indexWriterPool.closeWriter(writer, 30);
         indexWriterPool.close();
 
@@ -163,7 +169,7 @@ public class IndexWriterPoolTest {
         TestWriter writer = new TestWriter(100);
         Document doc = TestUtil.newDoc("value");
         indexWriterPool.updateDocument(writer, "test", doc);
-        indexWriterPool.deleteDocuments(writer, "test-deletion");
+        indexWriterPool.deleteDocumentTree(writer, "test-deletion");
         indexWriterPool.close();
 
         assertEquals(Map.of("test", doc), writer.docs);

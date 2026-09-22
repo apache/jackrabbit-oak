@@ -66,7 +66,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
 
     @Before
     public void setupLogger(){
-        logCustomizer = LogCustomizer.forLogger(SQL2Parser.class.getName()).enable(Level.WARN)
+        logCustomizer = LogCustomizer.forLogger(SQL2Parser.class).enable(Level.WARN)
                         .contains(nativeWarnLog).create();
         logCustomizer.starting();
     }

@@ -18,7 +18,9 @@ package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import org.apache.jackrabbit.oak.spi.blob.data.CachingDataStore;
 import org.apache.jackrabbit.oak.spi.blob.data.LocalCache;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,5 +42,13 @@ public class TestS3DSWithSmallCache extends TestS3Ds {
     public void setUp() throws Exception {
         props.setProperty("cacheSize", String.valueOf(dataLength * 10));
         super.setUp();
+    }
+
+    @Override
+    @Test
+    public void testMultiThreaded() {
+        Assume.assumeTrue("S3Mock is not reliable with concurrent reads through the very small local cache",
+                !S3DataStoreUtils.isS3EmulatorConfigured());
+        super.testMultiThreaded();
     }
 }

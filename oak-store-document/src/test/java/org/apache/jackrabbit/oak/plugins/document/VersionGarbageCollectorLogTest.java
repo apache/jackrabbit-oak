@@ -32,8 +32,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-
-import ch.qos.logback.classic.Level;
+import org.slf4j.event.Level;
 
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;

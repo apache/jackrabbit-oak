@@ -46,6 +46,14 @@ public class SegmentNodeStoreFactoryTest {
             .withBooleanType()
             .withValue("false")
             .check());
+        assertTrue(cd.hasProperty("blobGcMaxAgeInSecs")
+            .withLongType()
+            .withValue("86400")
+            .check());
+        assertTrue(cd.hasProperty("blobTrackSnapshotIntervalInSecs")
+            .withLongType()
+            .withValue("0")
+            .check());
         assertTrue(cd.hasReference("blobStore")
             .withInterface("org.apache.jackrabbit.oak.spi.blob.BlobStore")
             .withOptionalUnaryCardinality()
@@ -96,6 +104,14 @@ public class SegmentNodeStoreFactoryTest {
         assertTrue(ocd.hasAttributeDefinition("registerDescriptors")
             .withBooleanType()
             .withDefaultValue("false")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("blobGcMaxAgeInSecs")
+            .withLongType()
+            .withDefaultValue("86400")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("blobTrackSnapshotIntervalInSecs")
+            .withLongType()
+            .withDefaultValue("0")
             .check());
     }
 

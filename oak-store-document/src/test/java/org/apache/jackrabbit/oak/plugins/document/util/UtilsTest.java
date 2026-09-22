@@ -197,42 +197,23 @@ public class UtilsTest {
     public void fullGCExplicitlyDisabled() {
         DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
         builder.setFullGCEnabled(false);
-        Feature docStoreFullGCFeature = mock(Feature.class);
-        when(docStoreFullGCFeature.isEnabled()).thenReturn(false);
-        builder.setDocStoreFullGCFeature(docStoreFullGCFeature);
         boolean fullGCEnabled = isFullGCEnabled(builder);
         assertFalse("Full GC is disabled explicitly", fullGCEnabled);
     }
 
     @Test
-    public void fullGCEnabledViaConfiguration() {
-        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
-        builder.setFullGCEnabled(true);
-        Feature docStoreFullGCFeature = mock(Feature.class);
-        when(docStoreFullGCFeature.isEnabled()).thenReturn(false);
-        builder.setDocStoreFullGCFeature(docStoreFullGCFeature);
-        boolean fullGCEnabled = isFullGCEnabled(builder);
-        assertTrue("Full GC is enabled via configuration", fullGCEnabled);
-    }
-
-    @Test
-    public void fullGCEnabledViaFeatureToggle() {
+    public void fullGCConfigurationRoundTrip() {
         DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
         builder.setFullGCEnabled(false);
-        Feature docStoreFullGCFeature = mock(Feature.class);
-        when(docStoreFullGCFeature.isEnabled()).thenReturn(true);
-        builder.setDocStoreFullGCFeature(docStoreFullGCFeature);
-        boolean fullGCEnabled = isFullGCEnabled(builder);
-        assertTrue("Full GC is enabled via Feature Toggle", fullGCEnabled);
+        assertFalse("Full GC can be disabled via configuration", isFullGCEnabled(builder));
+        builder.setFullGCEnabled(true);
+        assertTrue("Full GC can be re-enabled via configuration", isFullGCEnabled(builder));
     }
 
     @Test
     public void fullGCDisabledForRDB() {
         DocumentNodeStoreBuilder<?> builder = newRDBDocumentNodeStoreBuilder();
         builder.setFullGCEnabled(true);
-        Feature docStoreFullGCFeature = mock(Feature.class);
-        when(docStoreFullGCFeature.isEnabled()).thenReturn(true);
-        builder.setDocStoreFullGCFeature(docStoreFullGCFeature);
         boolean fullGCEnabled = isFullGCEnabled(builder);
         assertFalse("Full GC is disabled for RDB Document Store", fullGCEnabled);
     }
@@ -347,42 +328,25 @@ public class UtilsTest {
     public void embeddedVerificationExplicitlyDisabled() {
         DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
         builder.setEmbeddedVerificationEnabled(false);
-        Feature docStoreEmbeddedVerificationFeature = mock(Feature.class);
-        when(docStoreEmbeddedVerificationFeature.isEnabled()).thenReturn(false);
-        builder.setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature);
         boolean embeddedVerificationEnabled = isEmbeddedVerificationEnabled(builder);
         assertFalse("Embedded Verification is disabled explicitly", embeddedVerificationEnabled);
     }
 
     @Test
-    public void embeddedVerificationEnabledViaConfiguration() {
-        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
-        builder.setEmbeddedVerificationEnabled(true);
-        Feature docStoreEmbeddedVerificationFeature = mock(Feature.class);
-        when(docStoreEmbeddedVerificationFeature.isEnabled()).thenReturn(false);
-        builder.setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature);
-        boolean embeddedVerificationEnabled = isEmbeddedVerificationEnabled(builder);
-        assertTrue("Embedded Verification is enabled via configuration", embeddedVerificationEnabled);
-    }
-
-    @Test
-    public void embeddedVerificationEnabledViaFeatureToggle() {
+    public void embeddedVerificationConfigurationRoundTrip() {
         DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
         builder.setEmbeddedVerificationEnabled(false);
-        Feature docStoreEmbeddedVerificationFeature = mock(Feature.class);
-        when(docStoreEmbeddedVerificationFeature.isEnabled()).thenReturn(true);
-        builder.setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature);
-        boolean embeddedVerificationEnabled = isEmbeddedVerificationEnabled(builder);
-        assertTrue("Embedded Verification is enabled via Feature Toggle", embeddedVerificationEnabled);
+        assertFalse("Embedded Verification can be disabled via configuration",
+                isEmbeddedVerificationEnabled(builder));
+        builder.setEmbeddedVerificationEnabled(true);
+        assertTrue("Embedded Verification can be re-enabled via configuration",
+                isEmbeddedVerificationEnabled(builder));
     }
 
     @Test
     public void embeddedVerificationDisabledForRDB() {
         DocumentNodeStoreBuilder<?> builder = newRDBDocumentNodeStoreBuilder();
         builder.setEmbeddedVerificationEnabled(true);
-        Feature docStoreEmbeddedVerificationFeature = mock(Feature.class);
-        when(docStoreEmbeddedVerificationFeature.isEnabled()).thenReturn(true);
-        builder.setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature);
         boolean embeddedVerificationEnabled = isEmbeddedVerificationEnabled(builder);
         assertFalse("Embedded Verification is disabled for RDB Document Store", embeddedVerificationEnabled);
     }

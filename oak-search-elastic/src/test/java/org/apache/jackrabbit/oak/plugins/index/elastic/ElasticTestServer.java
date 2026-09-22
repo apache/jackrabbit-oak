@@ -25,13 +25,14 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
-import org.testcontainers.utility.MountableFile;
 
 import co.elastic.clients.transport.Version;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 public class ElasticTestServer implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticTestServer.class);
@@ -39,6 +40,7 @@ public class ElasticTestServer implements AutoCloseable {
 
     private static final ElasticTestServer SERVER = new ElasticTestServer();
     private static volatile ElasticsearchContainer CONTAINER;
+    private static volatile Network network;
 
     private ElasticTestServer() {
     }
@@ -62,23 +64,26 @@ public class ElasticTestServer implements AutoCloseable {
         return CONTAINER;
     }
 
-    @SuppressWarnings("resource")
     private synchronized void setup() {
         String esDockerImageVersion = ELASTIC_DOCKER_IMAGE_VERSION != null ? ELASTIC_DOCKER_IMAGE_VERSION : Version.VERSION.toString();
         LOG.info("Elasticsearch test Docker image version: {}.", esDockerImageVersion);
         checkIfDockerClientAvailable();
-        Network network = Network.newNetwork();
+        network = Network.newNetwork();
         CONTAINER = new ElasticsearchContainer("docker.elastic.co/elasticsearch/elasticsearch:" + esDockerImageVersion)
                 .withEnv("ES_JAVA_OPTS", "-Xms1g -Xmx1g")
-                .withCopyFileToContainer(
-                        MountableFile.forClasspathResource("elasticsearch.yml"),
-                        "/usr/share/elasticsearch/config/elasticsearch.yml")
+                .withEnv("network.host", "0.0.0.0")
+                .withEnv("ingest.geoip.downloader.enabled", "false")
+                .withEnv("xpack.security.enabled", "false")
+                .withEnv("xpack.security.http.ssl.enabled", "false")
+                .withEnv("action.destructive_requires_name", "false")
                 .withNetwork(network)
                 .withNetworkAliases("elasticsearch")
+                .waitingFor(Wait.forHttp("/").forPort(9200).forStatusCode(200))
                 // Default is 30 seconds, which might not be enough on environments with limited resources or network latency
                 .withStartupTimeout(Duration.ofMinutes(3))
                 .withStartupAttempts(3);
         CONTAINER.start();
+        verifyConnectivity();
 
         Slf4jLogConsumer logConsumer = new Slf4jLogConsumer(LOG).withSeparateOutputStreams();
         CONTAINER.followOutput(logConsumer);
@@ -86,15 +91,14 @@ public class ElasticTestServer implements AutoCloseable {
 
     @Override
     public void close() {
-        if (this == SERVER) {
-            // Closed with a shutdown hook
-            return;
-        }
-
         if (CONTAINER != null) {
             CONTAINER.stop();
         }
         CONTAINER = null;
+        if (network != null) {
+            network.close();
+        }
+        network = null;
     }
 
     private void checkIfDockerClientAvailable() {
@@ -106,6 +110,31 @@ public class ElasticTestServer implements AutoCloseable {
                     ", Elastic tests will be skipped");
         }
         assumeNotNull(client);
+    }
+
+    private void verifyConnectivity() {
+        // Ensure the container is actually reachable before tests proceed.
+        try (ElasticConnection connection = ElasticConnection.newBuilder()
+                .withIndexPrefix("elastic_test_bootstrap")
+                .withConnectionParameters(ElasticConnection.DEFAULT_SCHEME, CONTAINER.getHost(),
+                        CONTAINER.getMappedPort(ElasticConnection.DEFAULT_PORT))
+                .build()) {
+            long deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(1);
+            while (System.nanoTime() < deadline) {
+                if (connection.isAvailable()) {
+                    return;
+                }
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Interrupted while waiting for Elasticsearch readiness", e);
+                }
+            }
+            throw new IllegalStateException("Elasticsearch test container started but did not become reachable via HTTP");
+        } catch (IOException e) {
+            LOG.debug("Error closing bootstrap Elastic connection", e);
+        }
     }
 
     /**

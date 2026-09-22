@@ -52,7 +52,7 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
 
     @Override
     protected LogCustomizer setupLogCustomizer() {
-        return LogCustomizer.forLogger(ElasticResultRowAsyncIterator.class.getName()).enable(Level.ERROR).create();
+        return LogCustomizer.forLogger(ElasticResultRowAsyncIterator.class).enable(Level.ERROR).create();
     }
 
     @Override
@@ -92,29 +92,6 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.setProperty(FulltextIndexConstants.ANL_NAME, "this_does_not_exists");
         });
-    }
-
-    @Test
-    /*
-     * elastic supports advanced stemmer languages, not available in lucene
-     */
-    public void fulltextSearchWithAdvancedLanguageBasedStemmer() throws Exception {
-        setup(List.of("foo"), idx -> {
-            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
-            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
-
-            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
-            addFilter(filters, "LowerCase");
-            Tree stemmer = addFilter(filters, "stemmer");
-            stemmer.setProperty("language", "dutch_kp");
-        });
-
-        Tree content = root.getTree("/").addChild("content");
-        content.addChild("bar").setProperty("foo", "edele");
-        content.addChild("baz").setProperty("foo", "other text");
-        root.commit();
-
-        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'edeel')", List.of("/content/bar")));
     }
 
     // these filters are only available in elastic

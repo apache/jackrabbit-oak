@@ -310,7 +310,7 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
         ElasticIndexDefinition esIdxDef = getElasticIndexDefinition(index);
         try {
             return esConnection.getClient().indices().getMapping(i -> i.index(esIdxDef.getIndexAlias()))
-                .result().entrySet().stream().findFirst().get().getValue();
+                .mappings().entrySet().stream().findFirst().get().getValue();
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }

@@ -17,7 +17,9 @@
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import org.apache.jackrabbit.oak.spi.blob.data.CachingDataStore;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,5 +41,27 @@ public class TestS3DsCacheOff extends TestS3Ds {
     public void setUp() throws Exception {
         props.setProperty("cacheSize", "0");
         super.setUp();
+    }
+
+    // Re-enable: with cache off, deleteRecord is immediately visible via S3 so the
+    // assertion that getRecordIfStored returns null after deletion is valid here.
+    @Override
+    @Test
+    public void testDeleteRecord() {
+        try {
+            doDeleteRecordTest();
+        } catch (Exception e) {
+            throw new AssertionError("Failed to delete S3 record with cache disabled", e);
+        }
+    }
+
+    // S3Backend updates duplicate records via CopyObject (copy-to-self). S3Mock does not
+    // support that operation, so this test cannot run against the emulator.
+    @Override
+    @Test
+    public void testAddDuplicateRecord() {
+        Assume.assumeTrue("S3Mock does not support CopyObject used by S3Backend for duplicate record updates",
+                !S3DataStoreUtils.isS3EmulatorConfigured());
+        super.testAddDuplicateRecord();
     }
 }

@@ -195,11 +195,7 @@ public class BufferedStringValueTest {
         bufferedStringValue = new BufferedStringValue(null, null, true);
         String s = "Zm9vYg";
         bufferedStringValue.append(s.toCharArray(), 0, s.length());
-        // https://datatracker.ietf.org/doc/html/rfc4648#section-10
-        // BUG in Base64 class - this should be "foob".
-        // Behavior will change when Jackrabbit version with fix
-        // https://issues.apache.org/jira/browse/JCR-5226 is used.
-        assertEquals("foo", bufferedStringValue.getString());
+        assertEquals("foob", bufferedStringValue.getString());
     }
 
     @Test

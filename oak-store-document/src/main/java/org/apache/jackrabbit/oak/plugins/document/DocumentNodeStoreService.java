@@ -195,38 +195,22 @@ public class DocumentNodeStoreService {
     /**
      * Default interval for taking snapshots of locally tracked blob ids.
      */
-    static final long DEFAULT_BLOB_SNAPSHOT_INTERVAL = 12 * 60 * 60;
-
-    /**
-     * Feature toggle name to enable prefetch operation in DocumentStore
-     */
-    private static final String FT_NAME_PREFETCH = "FT_PREFETCH_OAK-9780";
+    static final long DEFAULT_BLOB_SNAPSHOT_INTERVAL = 0L;
 
     /**
      * Feature toggle name to enable document store throttling for Mongo Document Store
      */
     private static final String FT_NAME_DOC_STORE_THROTTLING = "FT_THROTTLING_OAK-9909";
 
-    private static final String FT_NAME_DOC_STORE_NOCOCLEANUP = "FT_NOCOCLEANUP_OAK-10660";
-
     /**
      * Feature toggle name to enable invalidation on cancel (due to a merge collision)
      */
     private static final String FT_NAME_CANCEL_INVALIDATION = "FT_CANCELINVALIDATION_OAK-10595";
-    /**
-     * Feature toggle name to enable full GC for Mongo Document Store
-     */
-    private static final String FT_NAME_FULL_GC = "FT_FULL_GC_OAK-10199";
 
     /**
      * Feature toggle name to avoid exclusive merge lock for merging changes in repository in case of a conflict
      */
     private static final String FT_NAME_AVOID_MERGE_LOCK = "FT_AVOID_MERGE_LOCK_OAK-11720";
-
-    /**
-     * Feature toggle name to enable embedded verification for full GC mode for Mongo Document Store
-     */
-    private static final String FT_NAME_EMBEDDED_VERIFICATION = "FT_EMBEDDED_VERIFICATION_OAK-10633";
 
     /** OAK-11246 : default millis for perflogger info */
     static final long DEFAULT_PERFLOGGER_INFO_MILLIS = Long.MAX_VALUE;
@@ -265,6 +249,10 @@ public class DocumentNodeStoreService {
     private Closer closer;
     private WhiteboardExecutor executor;
 
+    // volatile is intentional: these fields are written in bind/unbind methods (outside the
+    // registrationLock) and read inside synchronized(registrationLock) blocks. The volatile
+    // keyword establishes the required happens-before relationship between the unsynchronized
+    // write and the subsequent synchronized read, ensuring visibility across threads.
     private volatile BlobStore blobStore;
 
     private volatile DataSource dataSource;
@@ -276,12 +264,8 @@ public class DocumentNodeStoreService {
     private DocumentNodeStore nodeStore;
     private ObserverTracker observerTracker;
     private JournalPropertyHandlerFactory journalPropertyHandlerFactory = new JournalPropertyHandlerFactory();
-    private Feature prefetchFeature;
     private Feature docStoreThrottlingFeature;
-    private Feature noChildOrderCleanupFeature;
     private Feature cancelInvalidationFeature;
-    private Feature docStoreFullGCFeature;
-    private Feature docStoreEmbeddedVerificationFeature;
     private Feature docStoreAvoidMergeLockFeature;
     private Feature prevNoPropCacheFeature;
     private ComponentContext context;
@@ -297,13 +281,15 @@ public class DocumentNodeStoreService {
     @Reference(service = Preset.class)
     private Preset preset;
 
-    private boolean customBlobStore;
+    private volatile boolean customBlobStore;
 
     private ServiceRegistration blobStoreReg;
 
     private BlobStore defaultBlobStore;
 
     private Configuration config;
+
+    private final Object registrationLock = new Object();
 
     @Activate
     protected void activate(ComponentContext context, Configuration config) throws Exception {
@@ -316,12 +302,8 @@ public class DocumentNodeStoreService {
         executor.start(whiteboard);
         customBlobStore = this.config.customBlobStore();
         documentStoreType = DocumentStoreType.fromString(this.config.documentStoreType());
-        prefetchFeature = Feature.newFeature(FT_NAME_PREFETCH, whiteboard);
         docStoreThrottlingFeature = Feature.newFeature(FT_NAME_DOC_STORE_THROTTLING, whiteboard);
-        noChildOrderCleanupFeature = Feature.newFeature(FT_NAME_DOC_STORE_NOCOCLEANUP, whiteboard);
         cancelInvalidationFeature = Feature.newFeature(FT_NAME_CANCEL_INVALIDATION, whiteboard);
-        docStoreFullGCFeature = Feature.newFeature(FT_NAME_FULL_GC, whiteboard);
-        docStoreEmbeddedVerificationFeature = Feature.newFeature(FT_NAME_EMBEDDED_VERIFICATION, whiteboard);
         docStoreAvoidMergeLockFeature = Feature.newFeature(FT_NAME_AVOID_MERGE_LOCK, whiteboard);
         prevNoPropCacheFeature = Feature.newFeature(FT_NAME_PREV_NO_PROP_CACHE, whiteboard);
 
@@ -329,19 +311,23 @@ public class DocumentNodeStoreService {
     }
 
     private void registerNodeStoreIfPossible() throws IOException {
-        // disallow attempts to restart (OAK-3420)
-        if (deactivationTimestamp != 0) {
-            log.info("DocumentNodeStore was already unregistered ({}ms ago)", System.currentTimeMillis() - deactivationTimestamp);
-        } else if (context == null) {
-            log.info("Component still not activated. Ignoring the initialization call");
-        } else if (customBlobStore && blobStore == null) {
-            log.info("Custom BlobStore use enabled. DocumentNodeStoreService would be initialized when "
-                    + "BlobStore would be available");
-        } else if (documentStoreType == DocumentStoreType.RDB && (dataSource == null || blobDataSource == null)) {
-            log.info("DataSource use enabled. DocumentNodeStoreService would be initialized when "
-                    + "DataSource would be available (currently available: nodes: {}, blobs: {})", dataSource, blobDataSource);
-        } else {
-            registerNodeStore();
+        synchronized (registrationLock) {
+            // disallow attempts to restart (OAK-3420)
+            if (deactivationTimestamp != 0) {
+                log.info("DocumentNodeStore was already unregistered ({}ms ago)", System.currentTimeMillis() - deactivationTimestamp);
+            } else if (nodeStore != null) {
+                log.info("DocumentNodeStore already registered. Ignoring the initialization call");
+            } else if (context == null) {
+                log.info("Component still not activated. Ignoring the initialization call");
+            } else if (customBlobStore && blobStore == null) {
+                log.info("Custom BlobStore use enabled. DocumentNodeStoreService would be initialized when "
+                        + "BlobStore would be available");
+            } else if (documentStoreType == DocumentStoreType.RDB && (dataSource == null || blobDataSource == null)) {
+                log.info("DataSource use enabled. DocumentNodeStoreService would be initialized when "
+                        + "DataSource would be available (currently available: nodes: {}, blobs: {})", dataSource, blobDataSource);
+            } else {
+                registerNodeStore();
+            }
         }
     }
 
@@ -554,12 +540,8 @@ public class DocumentNodeStoreService {
                 setBundlingDisabled(config.bundlingDisabled()).
                 setJournalPropertyHandlerFactory(journalPropertyHandlerFactory).
                 setLeaseCheckMode(ClusterNodeInfo.DEFAULT_LEASE_CHECK_DISABLED ? LeaseCheckMode.DISABLED : LeaseCheckMode.valueOf(config.leaseCheckMode())).
-                setPrefetchFeature(prefetchFeature).
                 setDocStoreThrottlingFeature(docStoreThrottlingFeature).
-                setNoChildOrderCleanupFeature(noChildOrderCleanupFeature).
                 setCancelInvalidationFeature(cancelInvalidationFeature).
-                setDocStoreFullGCFeature(docStoreFullGCFeature).
-                setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature).
                 setDocStoreAvoidMergeLockFeature(docStoreAvoidMergeLockFeature).
                 setPrevNoPropCacheFeature(prevNoPropCacheFeature).
                 setThrottlingEnabled(config.throttlingEnabled()).
@@ -720,8 +702,8 @@ public class DocumentNodeStoreService {
             journalPropertyHandlerFactory.stop();
         }
 
-        closeFeatures(prefetchFeature, docStoreThrottlingFeature, cancelInvalidationFeature, docStoreFullGCFeature,
-                docStoreEmbeddedVerificationFeature, prevNoPropCacheFeature, docStoreAvoidMergeLockFeature);
+        closeFeatures(docStoreThrottlingFeature, cancelInvalidationFeature, prevNoPropCacheFeature,
+                docStoreAvoidMergeLockFeature);
 
         unregisterNodeStore();
     }
@@ -778,7 +760,9 @@ public class DocumentNodeStoreService {
     }
 
 
-    private DocumentStoreType documentStoreType;
+    // volatile for the same reason as blobStore/dataSource above: written in activate() before
+    // the registrationLock is acquired, and read inside synchronized(registrationLock) blocks.
+    private volatile DocumentStoreType documentStoreType;
 
     @Reference(name = "blobDataSource",
             cardinality = ReferenceCardinality.OPTIONAL,
@@ -840,32 +824,34 @@ public class DocumentNodeStoreService {
     }
 
     private void unregisterNodeStore() {
-        deactivationTimestamp = System.currentTimeMillis();
+        synchronized (registrationLock) {
+            deactivationTimestamp = System.currentTimeMillis();
 
-        closeQuietly(closer);
+            closeQuietly(closer);
 
-        if (nodeStoreReg != null) {
-            nodeStoreReg.unregister();
-            nodeStoreReg = null;
-        }
+            if (nodeStoreReg != null) {
+                nodeStoreReg.unregister();
+                nodeStoreReg = null;
+            }
 
-        //If we exposed our BlobStore then unregister it *after*
-        //NodeStore service. This ensures that if any other component
-        //like SecondaryStoreCache depends on this then it remains active
-        //untill DocumentNodeStore get deactivated
-        if (blobStoreReg != null){
-            blobStoreReg.unregister();
-            blobStoreReg = null;
-        }
+            //If we exposed our BlobStore then unregister it *after*
+            //NodeStore service. This ensures that if any other component
+            //like SecondaryStoreCache depends on this then it remains active
+            //untill DocumentNodeStore get deactivated
+            if (blobStoreReg != null){
+                blobStoreReg.unregister();
+                blobStoreReg = null;
+            }
 
-        if (nodeStore != null) {
-            nodeStore.dispose();
-            nodeStore = null;
-        }
+            if (nodeStore != null) {
+                nodeStore.dispose();
+                nodeStore = null;
+            }
 
-        if (executor != null) {
-            executor.stop();
-            executor = null;
+            if (executor != null) {
+                executor.stop();
+                executor = null;
+            }
         }
     }
 

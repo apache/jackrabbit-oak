@@ -63,7 +63,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -124,8 +123,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
     private Set<? extends Principal> principals;
     private AuthInfo authInfo;
 
-    private ExternalIdentityMonitor monitor; // do not access directly, use monitorSupplier
-    private Supplier<ExternalIdentityMonitor> monitorSupplier;
+    private ExternalIdentityMonitor monitor = ExternalIdentityMonitor.NOOP;
 
     /**
      * Default constructor for the OSGIi LoginModuleFactory case and the default non-OSGi JAAS case.
@@ -167,16 +165,14 @@ public class ExternalLoginModule extends AbstractLoginModule {
             log.debug("No 'SupportedCredentials' configured. Using default implementation supporting 'SimpleCredentials'.");
         }
 
-        monitorSupplier = () -> {
-            if (monitor == null) {
-                monitor = WhiteboardUtils.getService(whiteboard, ExternalIdentityMonitor.class);
-                if (monitor == null) {
-                    log.debug("No ExternalIdentityMonitor registered.");
-                    monitor = ExternalIdentityMonitor.NOOP;
-                }
+        if (monitor == ExternalIdentityMonitor.NOOP) {
+            ExternalIdentityMonitor resolved = WhiteboardUtils.getService(whiteboard, ExternalIdentityMonitor.class);
+            if (resolved != null) {
+                monitor = resolved;
+            } else {
+                log.debug("No ExternalIdentityMonitor registered.");
             }
-            return monitor;
-        };
+        }
     }
     
     private void initializeIdpManager(@NotNull String idpName, @NotNull Whiteboard whiteboard) {
@@ -301,7 +297,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
         } catch (SyncException e) {
             log.error("SyncHandler {} throws sync exception for '{}'", syncHandler.getName(), logId, e);
             onError();
-            monitorSupplier.get().syncFailed(e);
+            monitor.syncFailed(e);
             throw createLoginException(e, "Error while syncing user.");
         }
     }
@@ -430,7 +426,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
                     timer.mark("commit");
                 }
                 log.debug("syncUser({}) {}, status: {}", user.getId(), timer, syncResult.getStatus());
-                monitorSupplier.get().doneSyncExternalIdentity(watch.elapsed(NANOSECONDS), syncResult, numAttempt-1);
+                monitor.doneSyncExternalIdentity(watch.elapsed(NANOSECONDS), syncResult, numAttempt-1);
                 success = true;
             } catch (CommitFailedException e) {
                 log.warn("User synchronization failed during commit: {}. (attempt {}/{})", e, numAttempt, MAX_SYNC_ATTEMPTS);
@@ -461,7 +457,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
             root.commit();
             timer.mark("commit");
             log.debug("validateUser({}) {}", id, timer);
-            monitorSupplier.get().doneSyncId(watch.elapsed(NANOSECONDS), syncResult);
+            monitor.doneSyncId(watch.elapsed(NANOSECONDS), syncResult);
         } catch (CommitFailedException e) {
             throw new SyncException("User synchronization failed during commit.", e);
         } finally {
@@ -534,5 +530,14 @@ public class ExternalLoginModule extends AbstractLoginModule {
 
     public void setIdpManager(@NotNull ExternalIdentityProviderManager idpManager) {
         this.idpManager = idpManager;
+    }
+
+    public void setMonitor(@NotNull ExternalIdentityMonitor monitor) {
+        this.monitor = monitor;
+    }
+
+    @NotNull
+    public ExternalIdentityMonitor getMonitor() {
+        return monitor;
     }
 }

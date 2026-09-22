@@ -56,10 +56,16 @@ public class LocalIndexWriterFactory implements FulltextIndexWriterFactory<Itera
         }
 
         @Override
-        public void deleteDocuments(String path) throws IOException {
+        public void deleteDocumentTree(String path) throws IOException {
             //Hybrid index logic drops the deletes. So no use to
             //add them to the list
             //addLuceneDoc(LuceneDoc.forDelete(definition.getIndexPathFromConfig(), path));
+        }
+
+        @Override
+        public void deleteDocument(String path) throws IOException {
+            //Hybrid index logic drops the deletes. So no use to
+            //add them to the list
         }
 
         @Override

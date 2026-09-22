@@ -19,12 +19,12 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-
-import org.apache.commons.io.IOUtils;
+import java.util.Arrays;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
@@ -75,9 +75,37 @@ public abstract class AbstractBlob implements Blob {
         }
 
         try {
-            return IOUtils.contentEquals(a.getNewStream(), b.getNewStream());
+            try (InputStream ais = a.getNewStream(); InputStream bis = b.getNewStream()) {
+                return contentEquals(ais, bis);
+            }
         } catch (IOException e) {
             throw new IllegalStateException("Blob equality check failed", e);
+        }
+    }
+
+    private static boolean contentEquals(InputStream is1, InputStream is2) throws IOException {
+        if (is1 == is2) {
+            return true;
+        }
+
+        byte[] buf1 = new byte[4096];
+        byte[] buf2 = new byte[4096];
+
+        while (true) {
+            // readNBytes handles "short reads" automatically, blocking until requested bytes or EOF
+            int read1 = is1.readNBytes(buf1, 0, buf1.length);
+            int read2 = is2.readNBytes(buf2, 0, buf2.length);
+
+            if (read1 != read2) {
+                return false; // Length mismatch
+            }
+            if (read1 == 0) {
+                return true; // Reached EOF on both streams identically
+            }
+            // Arrays.equals is highly optimized via CPU intrinsics
+            if (!Arrays.equals(buf1, 0, read1, buf2, 0, read2)) {
+                return false; // Content mismatch
+            }
         }
     }
 

@@ -22,6 +22,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.log.LogSilencer;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.jetbrains.annotations.NotNull;
@@ -31,27 +32,53 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class AbstractPersistentCache implements PersistentCache, Closeable {
     private static final Logger logger = LoggerFactory.getLogger(AbstractPersistentCache.class);
 
     public static final int THREADS = Integer.getInteger("oak.segment.cache.threads", 10);
+    public static final int WRITE_QUEUE_SIZE = Integer.getInteger("oak.segment.cache.writeQueueSize", 100);
 
     protected ExecutorService executor;
     protected AtomicLong cacheSize = new AtomicLong(0);
     protected PersistentCache nextCache;
     protected final Set<String> writesPending;
+    protected AtomicLong discardCount = new AtomicLong();
 
     protected SegmentCacheStats segmentCacheStats;
 
+    private final LogSilencer writeQueueFullSilencer = new LogSilencer();
+
     public AbstractPersistentCache() {
-        executor = Executors.newFixedThreadPool(THREADS);
+        AtomicInteger threadCount = new AtomicInteger(0);
+        ThreadFactory threadFactory = r -> {
+            Thread t = new Thread(r, "segment-cache-writer-" + threadCount.incrementAndGet());
+            t.setDaemon(true);
+            return t;
+        };
+        BlockingQueue<Runnable> writeQueue = new LinkedBlockingQueue<>(WRITE_QUEUE_SIZE);
+        executor = new ThreadPoolExecutor(
+                THREADS, THREADS,
+                0L, TimeUnit.MILLISECONDS,
+                writeQueue,
+                threadFactory,
+                (r, e) -> {
+                    discardCount.incrementAndGet();
+                    if (!writeQueueFullSilencer.silence("writeQueueFull")) {
+                        logger.warn("Segment write task discarded: write queue full (capacity={}, totalDiscarded={}){}",
+                                WRITE_QUEUE_SIZE, discardCount.get(), LogSilencer.SILENCING_POSTFIX);
+                    }
+                });
         writesPending = ConcurrentHashMap.newKeySet();
     }
 
@@ -147,5 +174,9 @@ public abstract class AbstractPersistentCache implements PersistentCache, Closea
 
     public int getWritesPending() {
         return writesPending.size();
+    }
+
+    public long getWriteDiscardCount() {
+        return discardCount.get();
     }
 }

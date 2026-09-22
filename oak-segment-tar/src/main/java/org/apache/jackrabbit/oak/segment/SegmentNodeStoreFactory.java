@@ -80,7 +80,7 @@ public class SegmentNodeStoreFactory {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private static final long DEFAULT_BLOB_SNAPSHOT_INTERVAL = 12 * 60 * 60;
+    private static final long DEFAULT_BLOB_SNAPSHOT_INTERVAL = 0L;
 
     private static final long DEFAULT_BLOB_GC_MAX_AGE = 24 * 60 * 60;
 

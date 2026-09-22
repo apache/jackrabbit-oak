@@ -89,6 +89,8 @@ public abstract class FulltextIndexEditorContext<D> {
 
     private final boolean indexDefnRewritten;
 
+    private final boolean typeChangeTrackingEnabled;
+
     private FulltextBinaryTextExtractor textExtractor;
 
     private PropertyUpdateCallback propertyUpdateCallback;
@@ -109,6 +111,7 @@ public abstract class FulltextIndexEditorContext<D> {
         this.updateCallback = updateCallback;
         this.extractedTextCache = extractedTextCache;
         this.asyncIndexing = asyncIndexing;
+        this.typeChangeTrackingEnabled = !FulltextIndexEditor.FT_OAK_12244_DISABLE.get();
         if (this.definition.isOfOldFormat()) {
             indexDefnRewritten = true;
             IndexDefinition.updateDefinition(definition, indexingContext.getIndexPath());
@@ -120,6 +123,10 @@ public abstract class FulltextIndexEditorContext<D> {
     public abstract IndexDefinition.Builder newDefinitionBuilder();
 
     public abstract DocumentMaker<D> newDocumentMaker(IndexDefinition.IndexingRule rule, String path);
+
+    public boolean isTypeChangeTrackingEnabled() {
+        return typeChangeTrackingEnabled;
+    }
 
     protected FulltextBinaryTextExtractor createBinaryTextExtractor(ExtractedTextCache extractedTextCache,
                                                                     IndexDefinition definition, boolean reindex) {

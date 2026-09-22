@@ -63,6 +63,9 @@ public class DocumentBlobTrackerRegistrationTest extends AbstractBlobTrackerRegi
         properties.put("repository.home", repoHome);
         properties.put("mongouri", MongoUtils.URL);
         properties.put("db", MongoUtils.DB);
+        // Explicitly enable blob ID tracking (default is 0/disabled since Oak 2.4.0).
+        // This test verifies tracker reinitialization which requires an active tracker.
+        properties.put("blobTrackSnapshotIntervalInSecs", 3600L);
         MockOsgi.setConfigForPid(context.bundleContext(),
                 DocumentNodeStoreService.class.getName(), properties);
         service = context.registerInjectActivateService(new DocumentNodeStoreService());

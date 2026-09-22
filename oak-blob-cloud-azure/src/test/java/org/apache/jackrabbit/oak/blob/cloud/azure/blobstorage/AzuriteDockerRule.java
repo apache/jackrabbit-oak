@@ -33,7 +33,6 @@ import java.security.InvalidKeyException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class AzuriteDockerRule extends ExternalResource {
@@ -48,8 +47,8 @@ public class AzuriteDockerRule extends ExternalResource {
     @Override
     protected void before() throws Throwable {
         azuriteContainer = new GenericContainer<>(DOCKER_IMAGE_NAME)
+                .withCommand("azurite-blob", "--blobHost", "0.0.0.0", "--skipApiVersionCheck")
                 .withExposedPorts(10000)
-                .withEnv(Map.of("executable", "blob"))
                 .withStartupTimeout(Duration.ofSeconds(30));
 
         try {

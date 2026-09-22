@@ -33,7 +33,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import ch.qos.logback.classic.Level;
 import org.apache.commons.lang3.StringUtils;
 import com.mongodb.BasicDBObject;
 import com.mongodb.ReadPreference;
@@ -67,6 +66,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -213,7 +213,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     public void checkMark() throws Exception {
         String rootFolder = folder.newFolder().getAbsolutePath();
         LogCustomizer customLogs = LogCustomizer
-            .forLogger(MarkSweepGarbageCollector.class.getName())
+            .forLogger(MarkSweepGarbageCollector.class)
             .enable(Level.TRACE)
             .filter(Level.TRACE)
             .create();
@@ -362,7 +362,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     public void checkGcPathLogging() throws Exception {
         String rootFolder = folder.newFolder().getAbsolutePath();
         LogCustomizer customLogs = LogCustomizer
-            .forLogger(MarkSweepGarbageCollector.class.getName())
+            .forLogger(MarkSweepGarbageCollector.class)
             .enable(Level.TRACE)
             .filter(Level.TRACE)
             .create();
@@ -381,7 +381,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     public void checkConsistencyPathLogging() throws Exception {
         String rootFolder = folder.newFolder().getAbsolutePath();
         LogCustomizer customLogs = LogCustomizer
-            .forLogger(MarkSweepGarbageCollector.class.getName())
+            .forLogger(MarkSweepGarbageCollector.class)
             .enable(Level.TRACE)
             .filter(Level.TRACE)
             .create();

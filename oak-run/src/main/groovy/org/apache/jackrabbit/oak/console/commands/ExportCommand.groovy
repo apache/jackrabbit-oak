@@ -22,8 +22,8 @@ package org.apache.jackrabbit.oak.console.commands
 import org.apache.jackrabbit.oak.commons.PathUtils
 import org.apache.jackrabbit.oak.console.ConsoleSession
 import org.apache.jackrabbit.oak.exporter.NodeStateSerializer
-import org.codehaus.groovy.tools.shell.CommandSupport
-import org.codehaus.groovy.tools.shell.Groovysh
+import org.apache.groovy.groovysh.CommandSupport
+import org.apache.groovy.groovysh.Groovysh
 import groovy.cli.picocli.CliBuilder
 
 class ExportCommand extends CommandSupport{

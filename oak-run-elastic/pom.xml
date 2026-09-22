@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>2.3-SNAPSHOT</version>
+        <version>2.7-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
@@ -44,8 +44,10 @@
         120 MB: added commons-csv for csv parsing (OAK-10790)
         124 MB: Aws Sdk 2.x (OAK-11935)
         130 MB: Embed Aws Sdk 2.x in oak-blob-cloud (OAK-12008)
+        142 MB: jackson update (OAK-12276)
+        147 MB, Elasticsearch 9.5.x (OAK-12366)
         -->
-        <max.jar.size>140000000</max.jar.size>
+        <max.jar.size>147000000</max.jar.size>
                       
     </properties>
 
@@ -256,7 +258,7 @@
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>elasticsearch</artifactId>
+            <artifactId>testcontainers-elasticsearch</artifactId>
             <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>

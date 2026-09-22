@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.ConnectionString;
 import com.mongodb.client.MongoDatabase;
 import org.apache.commons.collections4.set.ListOrderedSet;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.Compression;
@@ -71,7 +72,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 import org.junit.rules.TemporaryFolder;
-import org.testcontainers.shaded.org.apache.commons.io.FileUtils;
 
 import java.io.BufferedReader;
 import java.io.File;

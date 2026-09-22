@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
-import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
@@ -29,6 +28,7 @@ import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.event.Level;
 
 import java.util.List;
 import java.util.UUID;
@@ -54,7 +54,7 @@ public class InferenceServiceMetricsTest {
     @Before
     public void setUp() {
         logCustomizer = LogCustomizer
-            .forLogger(InferenceServiceMetrics.class.getName())
+            .forLogger(InferenceServiceMetrics.class)
             .enable(Level.INFO)
             .enable(Level.DEBUG)
             .create();

@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
@@ -90,17 +91,9 @@ public class PipelinedMongoConnectionFailureIT {
     final boolean parallelDump;
     final boolean testUpdateContent;
 
-    @Rule
-    public final Network network = Network.newNetwork();
-    @Rule
-    public final MongoDBContainer mongoDBContainer = new MongoDBContainer(MongoDockerRule.getDockerImageName())
-            .withNetwork(network)
-            .withNetworkAliases("mongo")
-            .withExposedPorts(MONGODB_DEFAULT_PORT);
-    @Rule
-    public final ToxiproxyContainer toxiproxy = new ToxiproxyContainer(TOXIPROXY_IMAGE)
-            .withStartupAttempts(3)
-            .withNetwork(network);
+    private Network network;
+    private MongoDBContainer mongoDBContainer;
+    private ToxiproxyContainer toxiproxy;
     @Rule
     public final DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
     @Rule
@@ -125,6 +118,16 @@ public class PipelinedMongoConnectionFailureIT {
 
     @Before
     public void before() throws Exception {
+        network = Network.newNetwork();
+        mongoDBContainer = new MongoDBContainer(MongoDockerRule.getDockerImageName())
+                .withNetwork(network)
+                .withNetworkAliases("mongo")
+                .withExposedPorts(MONGODB_DEFAULT_PORT);
+        mongoDBContainer.start();
+        toxiproxy = new ToxiproxyContainer(TOXIPROXY_IMAGE)
+                .withStartupAttempts(3)
+                .withNetwork(network);
+        toxiproxy.start();
         ToxiproxyClient toxiproxyClient = new ToxiproxyClient(toxiproxy.getHost(), toxiproxy.getControlPort());
         // For the logic under test
         this.proxy = toxiproxyClient.createProxy("mongo", "0.0.0.0:8666", "mongo:" + MONGODB_DEFAULT_PORT);
@@ -139,6 +142,19 @@ public class PipelinedMongoConnectionFailureIT {
             c.getDatabase().drop();
         } finally {
             c.close();
+        }
+    }
+
+    @After
+    public void after() {
+        if (toxiproxy != null) {
+            toxiproxy.stop();
+        }
+        if (mongoDBContainer != null) {
+            mongoDBContainer.stop();
+        }
+        if (network != null) {
+            network.close();
         }
     }
 

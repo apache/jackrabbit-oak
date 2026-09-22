@@ -220,7 +220,7 @@ public class NodeTypeTest extends AbstractRepositoryTest {
             ntt.add(nt);
         }
 
-        logCustomizer = LogCustomizer.forLogger(TypeEditorProvider.class.getName()).enable(Level.INFO)
+        logCustomizer = LogCustomizer.forLogger(TypeEditorProvider.class).enable(Level.INFO)
                 .contains("appear to be trivial, repository will not be scanned").create();
         try {
             logCustomizer.starting();
@@ -254,7 +254,7 @@ public class NodeTypeTest extends AbstractRepositoryTest {
         }
         // but update both node types
 
-        logCustomizer = LogCustomizer.forLogger(TypeEditorProvider.class.getName()).enable(Level.INFO)
+        logCustomizer = LogCustomizer.forLogger(TypeEditorProvider.class).enable(Level.INFO)
                 .contains("appear not to be trivial, starting repository scan").create();
         try {
             logCustomizer.starting();

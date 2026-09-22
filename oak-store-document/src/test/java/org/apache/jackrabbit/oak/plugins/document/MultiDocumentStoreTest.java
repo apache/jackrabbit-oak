@@ -385,10 +385,10 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
             }
             ds.createOrUpdate(NODES, ops);
 
-            LogCustomizer logCustomizerJDBC = LogCustomizer.forLogger(RDBDocumentStoreJDBC.class.getName()).enable(Level.TRACE)
+            LogCustomizer logCustomizerJDBC = LogCustomizer.forLogger(RDBDocumentStoreJDBC.class).enable(Level.TRACE)
                     .matchesRegex("update: batch result.*").create();
             logCustomizerJDBC.starting();
-            LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName()).enable(Level.TRACE)
+            LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class).enable(Level.TRACE)
                     .matchesRegex("bulkUpdate: success.*").create();
             logCustomizer.starting();
 

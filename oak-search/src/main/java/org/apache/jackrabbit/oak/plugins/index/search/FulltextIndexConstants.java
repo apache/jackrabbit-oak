@@ -485,6 +485,6 @@ public interface FulltextIndexConstants {
      * needed from an outside process that does not have visibility to the specific index module.
      */
     Map<String, String> INDEX_VERSION_BY_TYPE = Map.of(
-            "elasticsearch", "1.4.0"
+            "elasticsearch", "1.5.0"
     );
 }

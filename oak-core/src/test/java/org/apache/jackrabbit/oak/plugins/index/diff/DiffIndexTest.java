@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_DISABL
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -257,6 +258,112 @@ public class DiffIndexTest {
 
         repositoryDefinitions = RootIndexesListService.getRootIndexDefinitions(store, "lucene");
         assertSameJson("{}", repositoryDefinitions.toString());
+    }
+
+    @Test
+    public void testDiffIndexUpdateUnversionedOotbExplicit() throws Exception {
+        NodeStore store = new MemoryNodeStore(INITIAL_CONTENT);
+
+        List<IndexEditorProvider> indexEditors = List.of(
+                new ReferenceEditorProvider(), new PropertyIndexEditorProvider(), new NodeCounterEditorProvider());
+        IndexEditorProvider provider = CompositeIndexEditorProvider.compose(indexEditors);
+        EditorHook hook = new EditorHook(new IndexUpdateProvider(provider));
+
+        // seed the store with an unversioned OOTB index /oak:index/test (type lucene)
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child(INDEX_DEFINITIONS_NAME).child("test")
+                .setProperty("jcr:primaryType", IndexConstants.INDEX_DEFINITIONS_NODE_TYPE, Type.NAME)
+                .setProperty(TYPE_PROPERTY_NAME, "lucene");
+        store.merge(builder, hook, CommitInfo.EMPTY);
+
+        // diff adds indexRules to the product index
+        storeDiff(store, "2026-01-01T00:00:00.000Z",
+                "{ \"test\": {"
+                + "  \"indexRules\": {"
+                + "    \"nt:base\": {"
+                + "      \"properties\": {"
+                + "        \"prop1\": { \"name\": \"prop1\", \"propertyIndex\": true }"
+                + "      }"
+                + "    }"
+                + "  }"
+                + "} }");
+
+        // expect test-custom-1 with:
+        // - type "lucene" from the product index
+        // - indexRules/nt:base/properties/prop1 from the diff
+        assertSameJson("{\n"
+                + "  \"/oak:index/test-custom-1\": {\n"
+                + "    \"mergeChecksum\": \"2e4b9003683d6c179c72f94393a91b2bedc3fa67d1a60f6f7876002dbb40c070\",\n"
+                + "    \"mergeInfo\": \"This index was auto-merged. See also https://oak-indexing.github.io/oakTools/simplified.html\",\n"
+                + "    \"reindex\": true,\n"
+                + "    \"jcr:primaryType\": \"nam:oak:QueryIndexDefinition\",\n"
+                + "    \"type\": \"lucene\",\n"
+                + "    \"merges\": [\"/oak:index/test\"],\n"
+                + "    \"indexRules\": {\n"
+                + "      \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                + "      \"nt:base\": {\n"
+                + "        \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                + "        \"properties\": {\n"
+                + "          \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
+                + "          \"prop1\": {\n"
+                + "            \"name\": \"prop1\",\n"
+                + "            \"propertyIndex\": true,\n"
+                + "            \"jcr:primaryType\": \"nam:nt:unstructured\"\n"
+                + "          }\n"
+                + "        }\n"
+                + "      }\n"
+                + "    }\n"
+                + "  },\n"
+                + "  \"/oak:index/test\": {\n"
+                + "    \"reindex\": true,\n"
+                + "    \"jcr:primaryType\": \"nam:oak:QueryIndexDefinition\",\n"
+                + "    \"type\": \"lucene\"\n"
+                + "  }\n"
+                + "}",
+                RootIndexesListService.getRootIndexDefinitions(store, "lucene").toString());
+    }
+
+    @Test
+    public void testDiffIndexUpdateUnversionedOotb() throws Exception {
+        NodeStore store = new MemoryNodeStore(INITIAL_CONTENT);
+
+        // Seed the store with an unversioned OOTB index "/oak:index/test"
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder indexDefs = builder.child(INDEX_DEFINITIONS_NAME);
+        indexDefs.child("test")
+                .setProperty("jcr:primaryType", IndexConstants.INDEX_DEFINITIONS_NODE_TYPE, Type.NAME)
+                .setProperty(TYPE_PROPERTY_NAME, "lucene");
+        store.merge(builder, new EditorHook(new IndexUpdateProvider(
+                CompositeIndexEditorProvider.compose(List.of(
+                        new ReferenceEditorProvider(),
+                        new PropertyIndexEditorProvider(),
+                        new NodeCounterEditorProvider())))),
+                CommitInfo.EMPTY);
+
+        // Apply a diff that adds indexRules to the unversioned index
+        storeDiff(store, "2026-01-01T00:00:00.000Z",
+                "{ \"test\": {"
+                + "  \"indexRules\": {"
+                + "    \"nt:base\": {"
+                + "      \"properties\": {"
+                + "        \"prop1\": { \"name\": \"prop1\", \"propertyIndex\": true }"
+                + "      }"
+                + "    }"
+                + "  }"
+                + "} }");
+
+        JsonObject repositoryDefinitions = RootIndexesListService.getRootIndexDefinitions(store, "lucene");
+        // expect test-custom-1, not test-0-custom-1
+        JsonObject merged = repositoryDefinitions.getChildren().get("/oak:index/test-custom-1");
+        assertNotNull("Expected test-custom-1 to be created, got: " + repositoryDefinitions, merged);
+        // property from the product index
+        assertEquals("\"lucene\"", merged.getProperties().get("type"));
+        // indexRules child and prop1 entry from the diff
+        JsonObject prop1 = merged.getChildren().get("indexRules")
+                .getChildren().get("nt:base")
+                .getChildren().get("properties")
+                .getChildren().get("prop1");
+        assertNotNull("prop1 from diff should be present in the merged index", prop1);
     }
 
     private void assertSameJson(String a, String b) {

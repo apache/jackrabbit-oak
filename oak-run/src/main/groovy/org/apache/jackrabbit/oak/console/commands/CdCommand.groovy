@@ -22,9 +22,9 @@ import jline.console.completer.Completer
 import org.apache.jackrabbit.oak.commons.PathUtils
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils
 import org.apache.jackrabbit.oak.console.ConsoleSession
-import org.codehaus.groovy.tools.shell.CommandSupport
-import org.codehaus.groovy.tools.shell.Groovysh
-import org.codehaus.groovy.tools.shell.util.SimpleCompletor
+import org.apache.groovy.groovysh.CommandSupport
+import org.apache.groovy.groovysh.Groovysh
+import org.apache.groovy.groovysh.util.SimpleCompleter
 
 class CdCommand extends CommandSupport{
     public static final String COMMAND_NAME = 'change-dir'
@@ -35,7 +35,7 @@ class CdCommand extends CommandSupport{
 
     @Override
     protected List<Completer> createCompleters() {
-        SimpleCompletor completor = new SimpleCompletor(){
+        SimpleCompleter completor = new SimpleCompleter(){
             @Override
             SortedSet getCandidates() {
                 SortedSet<String> names = new TreeSet<String>()

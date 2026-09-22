@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.run.cli;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -28,10 +29,23 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 class ReadOnlyBlobStoreWrapper {
 
     public static BlobStore wrap(BlobStore delegate){
-        Class[] interfaces = delegate.getClass().getInterfaces();
+        Class<?>[] interfaces = getAllInterfaces(delegate);
         return (BlobStore) Proxy.newProxyInstance(ReadOnlyBlobStoreWrapper.class.getClassLoader(),
                 interfaces,
                 new ReadOnlyHandler(delegate));
+    }
+
+    private static Class<?>[] getAllInterfaces(BlobStore delegate) {
+        Set<Class<?>> interfaces = new LinkedHashSet<>();
+        Class<?> type = delegate.getClass();
+        while (type != null) {
+            for (Class<?> iface : type.getInterfaces()) {
+                interfaces.add(iface);
+            }
+            type = type.getSuperclass();
+        }
+        interfaces.add(BlobStore.class);
+        return interfaces.toArray(new Class<?>[0]);
     }
 
     private static class ReadOnlyHandler implements InvocationHandler {

@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>2.3-SNAPSHOT</version>
+    <version>2.7-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -33,8 +33,16 @@
   <description>Oak Elasticsearch integration subproject</description>
 
   <properties>
-    <elasticsearch.java.client.version>8.19.5</elasticsearch.java.client.version>
-    <lucene.version>9.12.2</lucene.version>
+    <elasticsearch.java.client.version>9.5.3</elasticsearch.java.client.version>
+    <!--
+      Since ES 9.x the Lucene version is 10.x, but this would require a minimum of Java 21.
+      Current Oak minimum Java version is 17, so we need to use Lucene 9.x for now.
+      We are not actually using lucene core functionalities. The main reason we import it is that we need the analyzer
+      package to allow configuration of custom analyzers.
+      The analyzers are compatible. We won't get new analyzers introduced from version 10.
+      TODO: upgrade this to 10.x after bumping Oak minimum Java version to 21
+    -->
+    <lucene.version>9.12.3</lucene.version>
   </properties>
 
   <build>
@@ -50,9 +58,6 @@
               org.apache.jackrabbit.oak.plugins.index.elastic.query,
               org.apache.jackrabbit.oak.plugins.index.elastic.util
             </Export-Package>
-            <_exportcontents>
-              org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService
-            </_exportcontents>
             <Import-Package>
               !com.ibm.*, <!-- see OAK-11076 -->
               !org.apache.derby.*, <!-- see OAK-11076 -->
@@ -67,6 +72,17 @@
               !jakarta.json.bind.*,
               !java.net.http.*,
               !com.oracle.bmc.*,
+              <!-- legacy co.elastic.clients.transport.rest_client.RestClientTransport is embedded in
+                   elasticsearch-java but unused by Oak (Rest5ClientTransport is used instead); it
+                   references the deprecated org.elasticsearch.client:elasticsearch-rest-client API
+                   (httpasyncclient based), which is not on the classpath -->
+              !org.apache.http.*,
+              !org.elasticsearch.client.*,
+              <!-- optional TLS/compression providers pulled in transitively by httpclient5 that are
+                   only used reflectively when present on the classpath; not needed for Oak's usage -->
+              !org.brotli.dec.*,
+              !org.conscrypt.*,
+              !org.glassfish.hk2.osgiresourcelocator.*,
               *
             </Import-Package>
             <Embed-Dependency>
@@ -273,19 +289,18 @@
     </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest-core</artifactId>
-      <version>2.2</version>
+      <artifactId>hamcrest</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.testcontainers</groupId>
-      <artifactId>elasticsearch</artifactId>
+      <artifactId>testcontainers-elasticsearch</artifactId>
       <version>${testcontainers.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.testcontainers</groupId>
-      <artifactId>toxiproxy</artifactId>
+      <artifactId>testcontainers-toxiproxy</artifactId>
       <version>${testcontainers.version}</version>
       <scope>test</scope>
     </dependency>

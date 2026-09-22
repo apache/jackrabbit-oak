@@ -209,14 +209,14 @@ public class MultiplexingIndexWriterTest {
         assertEquals(2, numDocs(defaultMount));
 
         writer = factory.newInstance(defn, builder, null, true);
-        writer.deleteDocuments("/libs/config");
+        writer.deleteDocumentTree("/libs/config");
         writer.close(0);
 
         assertEquals(1, numDocs(fooMount));
         assertEquals(2, numDocs(defaultMount));
 
         writer = factory.newInstance(defn, builder, null, true);
-        writer.deleteDocuments("/content");
+        writer.deleteDocumentTree("/content");
         writer.close(0);
 
         assertEquals(1, numDocs(fooMount));
@@ -240,7 +240,7 @@ public class MultiplexingIndexWriterTest {
         assertEquals(2, numDocs(defaultMount));
 
         writer = factory.newInstance(defn, builder, null, true);
-        writer.deleteDocuments("/content");
+        writer.deleteDocumentTree("/content");
         writer.close(0);
 
         assertEquals(0, numDocs(fooMount));

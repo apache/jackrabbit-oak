@@ -423,6 +423,33 @@ public class MergeTest {
     }
 
     @Test
+    public void secure() {
+        // - "secure" is overwritten, and topChildren added
+        String merged = new DiffIndexMerger().processMerge(null, JsonObject.fromJson("{\n"
+                        + "    \"jcr:primaryType\": \"nam:oak:QueryIndexDefinition\",\n"
+                        + "    \"type\": \"lucene\",\n"
+                        + "    \"facets\": {\n"
+                        + "      \"secure\": \"insecure\"\n"
+                        + "    }\n"
+                        + "  }"
+                        + "", true), JsonObject.fromJson("{\n"
+                        + "    \"facets\": {\n"
+                        + "      \"secure\": \"statistical\",\n"
+                        + "      \"topChildren\": \"100\"\n"
+                        + "    }\n"
+                        + "  }", true)).toString();
+        assertEquals("{\n"
+                + "  \"jcr:primaryType\": \"nam:oak:QueryIndexDefinition\",\n"
+                + "  \"type\": \"lucene\",\n"
+                + "  \"facets\": {\n"
+                + "    \"secure\": \"statistical\",\n"
+                + "    \"topChildren\": \"100\",\n"
+                + "    \"jcr:primaryType\": \"nam:nt:unstructured\"\n"
+                + "  }\n"
+                + "}", merged);
+    }
+
+    @Test
     public void mergeDiffsTest() {
         JsonObject a = JsonObject.fromJson("{\n"
                 + "    \"indexRules\": {\n"

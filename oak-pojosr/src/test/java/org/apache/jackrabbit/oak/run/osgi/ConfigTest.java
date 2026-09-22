@@ -32,6 +32,8 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.felix.connect.launch.BundleDescriptor;
 import org.apache.felix.connect.launch.PojoServiceRegistry;
 import org.junit.After;
@@ -43,7 +45,6 @@ import org.osgi.framework.BundleException;
 import org.osgi.framework.Constants;
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
-import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 
 
 public class ConfigTest {

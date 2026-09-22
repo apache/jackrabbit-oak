@@ -92,7 +92,7 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
         final Root root = session.getLatestRoot();
         NamespaceRegistry r = getNamespaceRegistry(session, root);
 
-        LogCustomizer customLogs = LogCustomizer.forLogger("org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry").enable(Level.ERROR).create();
+        LogCustomizer customLogs = LogCustomizer.forLogger(org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry.class).enable(Level.ERROR).create();
         try {
             customLogs.starting();
             r.registerNamespace("foo", "example.com");

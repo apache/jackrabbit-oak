@@ -1108,24 +1108,32 @@ public class Utils {
 
     /**
      * Check whether full GC is enabled or not for document store.
+     * <p>
+     * Full GC is opt-in (default {@code false}) and can only be enabled via OSGi
+     * {@code fullGCEnabled} / builder configuration.
+     *
+     * @apiNote The runtime toggle {@code FT_FULL_GC_OAK-10199} has been removed {@since 2.4.0}
      *
      * @param builder instance for DocumentNodeStoreBuilder
      * @return true if full GC is enabled else false
      */
     public static boolean isFullGCEnabled(final DocumentNodeStoreBuilder<?> builder) {
-        final Feature docStoreFullGCFeature = builder.getDocStoreFullGCFeature();
-        return builder.isFullGCEnabled() || (docStoreFullGCFeature != null && docStoreFullGCFeature.isEnabled());
+        return builder.isFullGCEnabled();
     }
 
     /**
      * Check whether embedded verification for full GC mode is enabled or not for document store.
+     * <p>
+     * Just like {@link #isFullGCEnabled(DocumentNodeStoreBuilder)}, embedded verification has no
+     * runtime feature toggle. It is controlled only via OSGi {@code embeddedVerificationEnabled}
+     * / builder {@link DocumentNodeStoreBuilder#isEmbeddedVerificationEnabled()} (default
+     * {@code true}). RDB builders always return {@code false}.
      *
      * @param builder instance for DocumentNodeStoreBuilder
      * @return true if embedded verification is enabled else false
      */
     public static boolean isEmbeddedVerificationEnabled(final DocumentNodeStoreBuilder<?> builder) {
-        final Feature docStoreEmbeddedVerificationFeature = builder.getDocStoreEmbeddedVerificationFeature();
-        return builder.isEmbeddedVerificationEnabled() || (docStoreEmbeddedVerificationFeature != null && docStoreEmbeddedVerificationFeature.isEnabled());
+        return builder.isEmbeddedVerificationEnabled();
     }
 
     /**

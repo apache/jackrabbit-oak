@@ -521,4 +521,18 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
         assertEquals(paths, result);
     }
 
+    // Passthroughs so subclasses in other packages can build indexes: the IndexOptions methods are
+    // protected and only reachable from this package.
+    protected IndexDefinitionBuilder createIndexDefinitionBuilder() {
+        return indexOptions.createIndexDefinitionBuilder();
+    }
+
+    protected IndexDefinitionBuilder createIndex(IndexDefinitionBuilder builder, boolean isAsync, String... propNames) {
+        return indexOptions.createIndex(builder, isAsync, propNames);
+    }
+
+    protected Tree setIndex(String name, IndexDefinitionBuilder builder) {
+        return indexOptions.setIndex(root, name, builder);
+    }
+
 }

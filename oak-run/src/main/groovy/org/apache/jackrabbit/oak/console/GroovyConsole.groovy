@@ -23,21 +23,51 @@ import groovy.transform.TypeCheckingMode
 import jline.Terminal
 import jline.TerminalFactory
 import jline.console.history.FileHistory
+import org.apache.jackrabbit.oak.console.commands.CdCommand
+import org.apache.jackrabbit.oak.console.commands.CheckpointCommand
+import org.apache.jackrabbit.oak.console.commands.ExportCommand
+import org.apache.jackrabbit.oak.console.commands.ExportRelevantDocumentsCommand
+import org.apache.jackrabbit.oak.console.commands.LsCommand
+import org.apache.jackrabbit.oak.console.commands.LsdDocumentCommand
+import org.apache.jackrabbit.oak.console.commands.LuceneCommand
+import org.apache.jackrabbit.oak.console.commands.OakHelpCommand
+import org.apache.jackrabbit.oak.console.commands.PnCommand
+import org.apache.jackrabbit.oak.console.commands.PrintDocumentCommand
+import org.apache.jackrabbit.oak.console.commands.RefreshCommand
+import org.apache.jackrabbit.oak.console.commands.RetrieveCommand
 import org.apache.jackrabbit.oak.run.commons.Utils
-import org.apache.jackrabbit.oak.console.commands.*
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore
+import org.apache.groovy.groovysh.AnsiDetector
+import org.apache.groovy.groovysh.ExitNotification
+import org.apache.groovy.groovysh.Groovysh
+import org.apache.groovy.groovysh.InteractiveShellRunner
+import org.apache.groovy.groovysh.Command as ShellCommand
+import org.apache.groovy.groovysh.commands.AliasCommand
+import org.apache.groovy.groovysh.commands.ClearCommand
+import org.apache.groovy.groovysh.commands.DisplayCommand
+import org.apache.groovy.groovysh.commands.DocCommand
+import org.apache.groovy.groovysh.commands.EditCommand
+import org.apache.groovy.groovysh.commands.ExitCommand
+import org.apache.groovy.groovysh.commands.HistoryCommand
+import org.apache.groovy.groovysh.commands.ImportCommand
+import org.apache.groovy.groovysh.commands.InspectCommand
+import org.apache.groovy.groovysh.commands.LoadCommand
+import org.apache.groovy.groovysh.commands.PurgeCommand
+import org.apache.groovy.groovysh.commands.RecordCommand
+import org.apache.groovy.groovysh.commands.RegisterCommand
+import org.apache.groovy.groovysh.commands.SaveCommand
+import org.apache.groovy.groovysh.commands.SetCommand
+import org.apache.groovy.groovysh.commands.ShowCommand
 import org.codehaus.groovy.runtime.StackTraceUtils
-import org.codehaus.groovy.tools.shell.*
-import org.codehaus.groovy.tools.shell.Command as ShellCommand
-import org.codehaus.groovy.tools.shell.commands.*
 import org.codehaus.groovy.tools.shell.util.Logger
+import org.codehaus.groovy.tools.shell.IO
 import org.codehaus.groovy.tools.shell.util.Preferences
 import org.fusesource.jansi.Ansi
 import org.fusesource.jansi.AnsiConsole
 import org.fusesource.jansi.AnsiRenderer
 
 /**
- * Some part of logic is based on usage in org.codehaus.groovy.tools.shell.Main
+ * Some part of logic is based on usage in org.apache.groovy.tools.shell.Main
  */
 @CompileStatic
 class GroovyConsole {
@@ -175,7 +205,7 @@ class GroovyConsole {
                 throw new IllegalStateException("Error hook is not set")
             }
             if (cause instanceof MissingPropertyException) {
-                if (cause.type && cause.type.canonicalName == Interpreter.SCRIPT_FILENAME) {
+                if (cause.type && cause.type.canonicalName == "groovysh_evaluate") {
                     io.err.println("@|bold,red Unknown property|@: " + cause.property)
                     return
                 }
