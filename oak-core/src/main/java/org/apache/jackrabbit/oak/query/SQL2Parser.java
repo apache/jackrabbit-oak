@@ -689,8 +689,7 @@ public class SQL2Parser {
 
     private DynamicOperandImpl parseDynamicOperand() throws ParseException {
         if (currentTokenType == VALUE) {
-            // a literal, for example used as the operator argument of op(a, operator, b),
-            // or the "null" literal, for example used in if(a, b, null)
+            // a literal or null, for example "if([alias], path(), null)"
             PropertyValue v = currentValue;
             read();
             return factory.literalOperand(v, escapeStringLiteral(v.getValue(Type.STRING)));
@@ -760,7 +759,7 @@ public class SQL2Parser {
             op = factory.existsOperand(parseDynamicOperand());
         } else if ("OP".equalsIgnoreCase(functionName)) {
             if (!settings.isOpFunctionEnabled()) {
-                throw getSyntaxError("LENGTH, FIRST, NAME, LOCALNAME, PATH, SCORE, COALESCE, LOWER, UPPER, PROPERTY, IF, or EXISTS");
+                throw getSyntaxError("The feature to support 'OP' is not enabled");
             }
             DynamicOperandImpl a = parseDynamicOperand();
             read(",");
@@ -769,7 +768,7 @@ public class SQL2Parser {
             DynamicOperandImpl b = parseDynamicOperand();
             op = factory.op(a, operator, b);
         } else {
-            throw getSyntaxError("LENGTH, FIRST, NAME, LOCALNAME, PATH, SCORE, COALESCE, LOWER, UPPER, PROPERTY, IF, EXISTS, or OP");
+            throw getSyntaxError("LENGTH, FIRST, NAME, LOCALNAME, PATH, SCORE, COALESCE, LOWER, UPPER, PROPERTY, IF, or EXISTS");
         }
         read(")");
         return op;

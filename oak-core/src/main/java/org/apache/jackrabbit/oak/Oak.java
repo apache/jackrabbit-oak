@@ -1019,6 +1019,7 @@ public class Oak {
 
         public void setOpFunctionFeature(@Nullable Feature feature) {
             settings.setOpFunctionFeature(feature);
+        }
 
         public void setXmlNameCharsInPathFeature(@Nullable Feature feature) {
             settings.setXmlNameCharsInPathFeature(feature);

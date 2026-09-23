@@ -866,7 +866,7 @@ public class XPathToSQL2Converter {
             return new Expression.Suggest(term);
         } else {
             throw getSyntaxError("jcr:like | jcr:contains | jcr:score | xs:dateTime | " +
-                    "fn:lower-case | fn:upper-case | jcr:first | jcr:null | jcr:if | jcr:exists | jcr:op | " +
+                    "fn:lower-case | fn:upper-case | jcr:first | jcr:null | jcr:if | jcr:exists | " +
                     "fn:name | fn:local-name | fn:path | rep:similar | rep:spellcheck | rep:suggest");
         }
     }

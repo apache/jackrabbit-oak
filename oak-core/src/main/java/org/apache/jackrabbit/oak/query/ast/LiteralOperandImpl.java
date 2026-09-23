@@ -29,9 +29,8 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 
 /**
- * A literal used as a dynamic operand, for example the operator argument of
- * op(a, operator, b), or the "null" literal, for example used in
- * if(a, b, null).
+ * A literal used as a dynamic operand, for example the "null" literal used in
+ * "if(a, b, null)".
  */
 public class LiteralOperandImpl extends DynamicOperandImpl {
 
