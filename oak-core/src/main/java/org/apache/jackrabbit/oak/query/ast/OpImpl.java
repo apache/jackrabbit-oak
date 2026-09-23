@@ -86,7 +86,7 @@ public class OpImpl extends DynamicOperandImpl {
 
     @Override
     public PropertyValue currentProperty() {
-        return FunctionIndexUtils.calculateOp(operand1.currentProperty(),
+        return FunctionIndexUtils.processOp(operand1.currentProperty(),
                 operator.currentProperty(),
                 operand2.currentProperty());
     }

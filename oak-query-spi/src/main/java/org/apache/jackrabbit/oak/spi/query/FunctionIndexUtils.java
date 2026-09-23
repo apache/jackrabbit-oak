@@ -20,36 +20,36 @@ package org.apache.jackrabbit.oak.spi.query;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 
 /**
- * Shared evaluation helpers for functions (upper, lower, etc), were we need the
- * same behavior at index time (query engine) and index time
- * (FunctionIndexProcessor).
+ * Shared evaluation helpers for the "if(condition, trueValue, falseValue)" and
+ * "op(a, operator, b)" functions, where we need the same behavior at query
+ * time and index time.
+ * <p>
+ * These helpers intentionally do <em>not</em> perform the kind of type
+ * coercion the query engine's {@code ComparisonImpl} does for regular
+ * {@code WHERE} clause conditions. Instead,
+ * comparisons are delegated directly to {@link PropertyValue#compareTo}: if
+ * the two operands have the same type, they are compared according to that
+ * type's natural ordering; if the types differ, the comparison falls back to
+ * an arbitrary but consistent type-based ordering.
  */
 public class FunctionIndexUtils {
 
     private FunctionIndexUtils() {
     }
 
-    public static PropertyState processIf(PropertyState condition, PropertyState trueValue, PropertyState falseValue) {
-        return isTruthy(condition) ? trueValue : falseValue;
-    }
-
-    /**
-     * Whether the given value is "truthy": neither missing, nor the number 0,
-     * nor the boolean false.
-     */
-    private static boolean isTruthy(PropertyState ps) {
-        return isTruthy(PropertyValues.create(ps));
-    }
-
     /**
      * Whether the given value is "truthy": neither missing, nor the number
-     * 0, nor the boolean false.
+     * 0, nor the boolean false. Used for the condition of "if(...)", and for
+     * the "and" / "or" operators of "op(...)".
+     *
+     * @param v the value, or null if missing
+     * @return true, unless the value is missing, the boolean false, or the
+     *         number (long, double, or decimal) zero
      */
     public static boolean isTruthy(PropertyValue v) {
         if (v == null) {
@@ -69,17 +69,33 @@ public class FunctionIndexUtils {
         }
     }
 
-    public static PropertyValue calculateOp(PropertyValue a, PropertyValue operator, PropertyValue b) {
+    /**
+     * Evaluate "op(a, operator, b)".
+     *
+     * @param a the first operand, or null if missing
+     * @param operator the operator, never null
+     * @param b the second operand, or null if missing
+     * @return the result of the operation, or null if the result is
+     *         undefined (for example, a comparison or math operation with a
+     *         missing or non-numeric operand)
+     * @throws IllegalArgumentException if the operator is not one of the
+     *         operators listed above
+     */
+    public static PropertyValue processOp(PropertyValue a, PropertyValue operator, PropertyValue b) {
         String op = operator.getValue(Type.STRING);
         switch (op) {
         case "is":
-            return PropertyValues.newBoolean(a == null || b == null || a.compareTo(b) == 0);
+            return PropertyValues.newBoolean(isSame(a, b));
         case "is not":
-            return PropertyValues.newBoolean(!(a == null || b == null || a.compareTo(b) == 0));
-        case "and":
-            return PropertyValues.newBoolean(isTruthy(a) && isTruthy(b));
-        case "or":
-            return PropertyValues.newBoolean(isTruthy(a) || isTruthy(b));
+            return PropertyValues.newBoolean(!isSame(a, b));
+        case "and": {
+            Boolean result = and3(toBoolean3(a), toBoolean3(b));
+            return result == null ? null : PropertyValues.newBoolean(result);
+        }
+        case "or": {
+            Boolean result = or3(toBoolean3(a), toBoolean3(b));
+            return result == null ? null : PropertyValues.newBoolean(result);
+        }
         }
         if (a == null || b == null) {
             return null;
@@ -121,12 +137,69 @@ public class FunctionIndexUtils {
     }
 
     /**
-     * Try to convert the value to a number, for op()'s math and comparison
-     * operators.
+     * Whether the two operands are the same, for the "is" / "is not"
+     * operators of "op(...)": unlike {@code =} / {@code <>}, this considers
+     * two missing operands to be the same, so the result of this method is
+     * never itself "unknown".
      *
-     * @return the number, or null if the value is missing or not numeric
+     * @param a the first operand, or null if missing
+     * @param b the second operand, or null if missing
+     * @return true if both are missing, or if neither is missing and
+     *         {@code a.compareTo(b) == 0}
      */
-    static Double toDoubleOrNull(PropertyValue v) {
+    private static boolean isSame(PropertyValue a, PropertyValue b) {
+        if (a == null || b == null) {
+            return a == null && b == null;
+        }
+        return a.compareTo(b) == 0;
+    }
+
+    /**
+     * Three-valued (null meaning "unknown") coercion to boolean.
+     *
+     * @param v the value, or null if missing
+     * @return {@link #isTruthy}, or null if the value is missing
+     */
+    private static Boolean toBoolean3(PropertyValue v) {
+        if (v == null) {
+            return null;
+        }
+        return isTruthy(v);
+    }
+
+    /**
+     * Three-valued (SQL-style) logical "and".
+     */
+    private static Boolean and3(Boolean a, Boolean b) {
+        if (Boolean.FALSE.equals(a) || Boolean.FALSE.equals(b)) {
+            return false;
+        }
+        if (a == null || b == null) {
+            return null;
+        }
+        return true;
+    }
+
+    /**
+     * Three-valued (SQL-style) logical "or".
+     */
+    private static Boolean or3(Boolean a, Boolean b) {
+        if (Boolean.TRUE.equals(a) || Boolean.TRUE.equals(b)) {
+            return true;
+        }
+        if (a == null || b == null) {
+            return null;
+        }
+        return false;
+    }
+
+    /**
+     * Try to convert the value to a number.
+     *
+     * @param v the value, or null if missing
+     * @return the number, or null if the value is missing or not a valid number
+     */
+    public static Double toDoubleOrNull(PropertyValue v) {
         if (v == null) {
             return null;
         }

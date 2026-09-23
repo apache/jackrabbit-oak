@@ -106,6 +106,16 @@ public class FunctionIndexProcessor {
         return token.length() >= 2 && token.startsWith("'") && token.endsWith("'");
     }
 
+    /**
+     * Convert a value popped off the evaluation stack to a {@link PropertyValue},
+     * for use with {@link FunctionIndexUtils}. Unlike {@link PropertyValues#create(PropertyState)},
+     * this maps the internal {@link #EMPTY_PROPERTY_STATE} "missing value" sentinel to
+     * {@code null}, which is the "missing" signal {@link FunctionIndexUtils} expects.
+     */
+    private static PropertyValue toPropertyValue(PropertyState ps) {
+        return ps == EMPTY_PROPERTY_STATE ? null : PropertyValues.create(ps);
+    }
+
     private static String unquote(String token) {
         String inner = token.substring(1, token.length() - 1);
         return inner.replace("''", "'");
@@ -161,7 +171,7 @@ public class FunctionIndexProcessor {
             PropertyState condition = stack.pop();
             PropertyState trueValue = stack.pop();
             PropertyState falseValue = stack.pop();
-            return FunctionIndexUtils.isTruthy(PropertyValues.create(condition)) ?
+            return FunctionIndexUtils.isTruthy(toPropertyValue(condition)) ?
                     trueValue :
                     falseValue;
         } else if ("exists".equals(functionName)) {
@@ -172,10 +182,13 @@ public class FunctionIndexProcessor {
             PropertyState a = stack.pop();
             PropertyState operator = stack.pop();
             PropertyState b = stack.pop();
-            PropertyValue result = FunctionIndexUtils.calculateOp(
-                    PropertyValues.create(a),
-                    PropertyValues.create(operator),
-                    PropertyValues.create(b));
+            PropertyValue result = FunctionIndexUtils.processOp(
+                    toPropertyValue(a),
+                    toPropertyValue(operator),
+                    toPropertyValue(b));
+            if (result == null) {
+                return null;
+            }
             Type<?> type = result.getType();
             return PropertyStates.createProperty("value", result.getValue(type), type);
         }
