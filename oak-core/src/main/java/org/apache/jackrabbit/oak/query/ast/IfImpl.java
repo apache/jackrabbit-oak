@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
-import org.apache.jackrabbit.oak.spi.query.FunctionUtils;
+import org.apache.jackrabbit.oak.spi.query.FunctionIndexUtils;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 
@@ -82,7 +82,7 @@ public class IfImpl extends DynamicOperandImpl {
 
     @Override
     public PropertyValue currentProperty() {
-        return FunctionUtils.isTruthy(condition.currentProperty()) ?
+        return FunctionIndexUtils.isTruthy(condition.currentProperty()) ?
                 trueValue.currentProperty() :
                 falseValue.currentProperty();
     }

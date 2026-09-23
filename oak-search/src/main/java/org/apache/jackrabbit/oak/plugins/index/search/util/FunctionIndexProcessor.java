@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
-import org.apache.jackrabbit.oak.spi.query.FunctionUtils;
+import org.apache.jackrabbit.oak.spi.query.FunctionIndexUtils;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -161,7 +161,7 @@ public class FunctionIndexProcessor {
             PropertyState condition = stack.pop();
             PropertyState trueValue = stack.pop();
             PropertyState falseValue = stack.pop();
-            return FunctionUtils.isTruthy(PropertyValues.create(condition)) ?
+            return FunctionIndexUtils.isTruthy(PropertyValues.create(condition)) ?
                     trueValue :
                     falseValue;
         } else if ("exists".equals(functionName)) {
@@ -172,7 +172,7 @@ public class FunctionIndexProcessor {
             PropertyState a = stack.pop();
             PropertyState operator = stack.pop();
             PropertyState b = stack.pop();
-            PropertyValue result = FunctionUtils.calculateOp(
+            PropertyValue result = FunctionIndexUtils.calculateOp(
                     PropertyValues.create(a),
                     PropertyValues.create(operator),
                     PropertyValues.create(b));
