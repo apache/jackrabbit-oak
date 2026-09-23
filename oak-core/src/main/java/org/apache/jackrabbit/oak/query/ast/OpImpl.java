@@ -26,23 +26,14 @@ import javax.jcr.PropertyType;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.query.FunctionUtils;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 
 /**
- * The function "op(a, operator, b)". The operator is itself a dynamic
- * operand, typically a quoted string literal, but it can also be a property
- * or another function. Supported operators:
- * <ul>
- * <li>=, &lt;&gt;, &gt;, &gt;=, &lt;, &lt;= : comparisons (null if a or b is
- * null), return true / false</li>
- * <li>+, -, *, / : math (null if a or b is null, or not numeric)</li>
- * <li>is, is not : same as = and &lt;&gt;, but consider null equal to
- * null</li>
- * <li>and, or : logical and / or, using three-valued logic</li>
- * </ul>
+ * The function "op(a, operator, b)".
+ *
  * Whether this function is available in queries is controlled by
  * {@link org.apache.jackrabbit.oak.query.QueryEngineSettings#isOpFunctionEnabled()}
  * (checked by the parser, not here).
@@ -95,69 +86,9 @@ public class OpImpl extends DynamicOperandImpl {
 
     @Override
     public PropertyValue currentProperty() {
-        PropertyValue op = operator.currentProperty();
-        if (op == null) {
-            return null;
-        }
-        return calculateOp(operand1.currentProperty(), op.getValue(Type.STRING), operand2.currentProperty());
-    }
-
-    private static PropertyValue calculateOp(PropertyValue a, String op, PropertyValue b) {
-        switch (op) {
-        case "is":
-            return PropertyValues.newBoolean(FunctionOperatorUtils.isEqual(a, b));
-        case "is not":
-            return PropertyValues.newBoolean(!FunctionOperatorUtils.isEqual(a, b));
-        case "and": {
-            Boolean result = FunctionOperatorUtils.and3(
-                    FunctionOperatorUtils.toBoolean3(a), FunctionOperatorUtils.toBoolean3(b));
-            return result == null ? null : PropertyValues.newBoolean(result);
-        }
-        case "or": {
-            Boolean result = FunctionOperatorUtils.or3(
-                    FunctionOperatorUtils.toBoolean3(a), FunctionOperatorUtils.toBoolean3(b));
-            return result == null ? null : PropertyValues.newBoolean(result);
-        }
-        default:
-            break;
-        }
-        if (a == null || b == null) {
-            return null;
-        }
-        switch (op) {
-        case "=":
-            return PropertyValues.newBoolean(FunctionOperatorUtils.isEqual(a, b));
-        case "<>":
-            return PropertyValues.newBoolean(!FunctionOperatorUtils.isEqual(a, b));
-        case ">":
-            return PropertyValues.newBoolean(FunctionOperatorUtils.compareOperands(a, b) > 0);
-        case ">=":
-            return PropertyValues.newBoolean(FunctionOperatorUtils.compareOperands(a, b) >= 0);
-        case "<":
-            return PropertyValues.newBoolean(FunctionOperatorUtils.compareOperands(a, b) < 0);
-        case "<=":
-            return PropertyValues.newBoolean(FunctionOperatorUtils.compareOperands(a, b) <= 0);
-        case "+":
-        case "-":
-        case "*":
-        case "/": {
-            Double da = FunctionOperatorUtils.toDouble(a);
-            Double db = FunctionOperatorUtils.toDouble(b);
-            if (da == null || db == null) {
-                return null;
-            }
-            double result;
-            switch (op) {
-            case "+": result = da + db; break;
-            case "-": result = da - db; break;
-            case "*": result = da * db; break;
-            default: result = da / db; break;
-            }
-            return PropertyValues.newDouble(result);
-        }
-        default:
-            throw new IllegalArgumentException("Unknown operator for op(): " + op);
-        }
+        return FunctionUtils.calculateOp(operand1.currentProperty(),
+                operator.currentProperty(),
+                operand2.currentProperty());
     }
 
     @Override

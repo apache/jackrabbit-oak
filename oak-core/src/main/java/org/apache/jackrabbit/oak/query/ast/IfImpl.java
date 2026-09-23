@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.query.FunctionUtils;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 
@@ -81,8 +82,9 @@ public class IfImpl extends DynamicOperandImpl {
 
     @Override
     public PropertyValue currentProperty() {
-        boolean truthy = FunctionOperatorUtils.isTruthy(condition.currentProperty());
-        return truthy ? trueValue.currentProperty() : falseValue.currentProperty();
+        return FunctionUtils.isTruthy(condition.currentProperty()) ?
+                trueValue.currentProperty() :
+                falseValue.currentProperty();
     }
 
     @Override
@@ -106,19 +108,13 @@ public class IfImpl extends DynamicOperandImpl {
 
     @Override
     public String getFunction(SelectorImpl s) {
-        String fc = condition.getFunction(s);
-        if (fc == null) {
+        String c = condition.getFunction(s);
+        String t = trueValue.getFunction(s);
+        String f = falseValue.getFunction(s);
+        if (c == null || t == null || f == null) {
             return null;
         }
-        String ft = trueValue.getFunction(s);
-        if (ft == null) {
-            return null;
-        }
-        String ff = falseValue.getFunction(s);
-        if (ff == null) {
-            return null;
-        }
-        return "if*" + fc + "*" + ft + "*" + ff;
+        return "if*" + c + "*" + t + "*" + f;
     }
 
     @Override
