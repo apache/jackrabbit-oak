@@ -39,17 +39,36 @@ public class ReaderCacheTest {
                 counter.incrementAndGet();
                 return valueOf(input);
         };
-        // A zero-weight cache retains next to nothing in the LIRS tier, and the fast cache is
-        // only populated once a slow-cache hit proves reuse (GRANITE-69536). With almost no
-        // retention there are almost no such hits, so nearly every lookup reloads - i.e. "0"
-        // effectively means no caching (unlike before, when the fast cache was populated eagerly).
+        // A zero-weight cache disables the slow (LIRS) tier and serves everything from the
+        // lock-free fast cache, populated on load. The 1000 small values fit the fast array, so
+        // after the first pass lookups hit and only a handful of hash collisions reload.
         StringCache c = new StringCache(0);
         for (int repeat = 0; repeat < 10; repeat++) {
             for (int i = 0; i < 1000; i++) {
                 assertEquals(valueOf(i), c.get(i, i, i, loader));
             }
         }
-        assertTrue(valueOf(counter), counter.get() > 9000);
+        // Each distinct value is loaded at least once; the fast cache keeps the total far below
+        // the 10000 lookups a cache-less run would incur.
+        assertTrue(valueOf(counter), counter.get() >= 1000);
+        assertTrue(valueOf(counter), counter.get() < 5000);
+    }
+
+    @Test
+    public void fastOnlyLargeValueReDecoded() {
+        // With the slow cache disabled (weight 0), a value too large for the fast cache
+        // (> MAX_STRING_SIZE) is not cached anywhere and is re-decoded on every access.
+        final AtomicInteger counter = new AtomicInteger();
+        final String large = new String(new char[1024]);
+        IntFunction<String> loader = input -> {
+            counter.incrementAndGet();
+            return large + input;
+        };
+        StringCache c = new StringCache(0);
+        for (int i = 0; i < 5; i++) {
+            assertEquals(large + 7, c.get(7, 7, 7, loader));
+        }
+        assertEquals(5, counter.get());
     }
 
     @Test

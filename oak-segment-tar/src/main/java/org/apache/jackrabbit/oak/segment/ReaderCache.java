@@ -24,12 +24,14 @@ import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 import java.util.Arrays;
 import java.util.function.IntFunction;
 
+import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 
 /**
@@ -45,8 +47,9 @@ public abstract class ReaderCache<T> {
 
     /**
      * The slower (LIRS) cache, exposed through the Oak Cache API.
+     * {@code null} when the configured weight is non-positive, i.e. the slow cache is disabled.
      */
-    @NotNull
+    @Nullable
     private final Cache<CacheKey, T> cache;
 
     @NotNull
@@ -63,19 +66,56 @@ public abstract class ReaderCache<T> {
     protected ReaderCache(long maxWeight, int averageWeight,
             @NotNull String name, @NotNull Weigher<CacheKey, T> weigher) {
         fastCache = new FastCache<>();
-        cache = CacheLIRS.<CacheKey, T>newBuilder()
-                .module(name)
-                .maximumWeight(maxWeight)
-                .averageWeight(averageWeight)
-                .weigher(weigher::weigh)
-                .build()
-                .asOakCache();
-        cacheStats = new CacheStatsAdapter(cache, name, weigher, maxWeight);
+        if (maxWeight > 0) {
+            cache = CacheLIRS.<CacheKey, T>newBuilder()
+                    .module(name)
+                    .maximumWeight(maxWeight)
+                    .averageWeight(averageWeight)
+                    .weigher(weigher::weigh)
+                    .build()
+                    .asOakCache();
+            cacheStats = new CacheStatsAdapter(cache, name, weigher, maxWeight);
+        } else {
+            cache = null;
+            cacheStats = new EmptyCacheStats(name);
+        }
     }
 
     @NotNull
     public AbstractCacheStats getStats() {
         return cacheStats;
+    }
+
+    /**
+     * Zeroed stats used when the slow cache is disabled ({@code maxWeight <= 0}).
+     */
+    private static final class EmptyCacheStats extends AbstractCacheStats {
+        private final CacheStats stats;
+
+        EmptyCacheStats(@NotNull String name) {
+            super(name);
+            this.stats = new CacheStats(0, 0, 0, 0, 0, 0);
+        }
+
+        @Override
+        protected CacheStats getCurrentStats() {
+            return stats;
+        }
+
+        @Override
+        public long getElementCount() {
+            return 0;
+        }
+
+        @Override
+        public long estimateCurrentWeight() {
+            return 0;
+        }
+
+        @Override
+        public long getMaxTotalWeight() {
+            return 0;
+        }
     }
 
     private static int getEntryHash(long msb, long lsb, int offset) {
@@ -101,6 +141,19 @@ public abstract class ReaderCache<T> {
             return value;
         }
 
+        if (cache == null) {
+            value = loader.apply(offset);
+            /*
+             * Admission to the fast cache depends on a slow cache hit by default.
+             * If the slow cache is disabled (i.e. there will never be a hit),
+             * we populate it on first access to avoid a perpetually empty fast cache.
+             */
+            if (isSmall(value)) {
+                fastCache.put(hash, new FastCacheEntry<>(hash, msb, lsb, offset, value));
+            }
+            return value;
+        }
+
         CacheKey key = new CacheKey(hash, msb, lsb, offset);
         value = cache.getIfPresent(key);
         if (value != null) {
@@ -120,7 +173,9 @@ public abstract class ReaderCache<T> {
      * Clear the cache.
      */
     public void clear() {
-        cache.invalidateAll();
+        if (cache != null) {
+            cache.invalidateAll();
+        }
         fastCache.clear();
     }
 
