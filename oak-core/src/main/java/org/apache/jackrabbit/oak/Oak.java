@@ -593,6 +593,10 @@ public class Oak {
             LOG.info("Registered op(a, operator, b) function feature: " + QueryEngineSettings.FT_OP_FUNCTION);
             closer.register(opFunctionFeature);
             queryEngineSettings.setOpFunctionFeature(opFunctionFeature);
+            Feature xmlNameCharsInPath = newFeature(QueryEngineSettings.FT_XML_NAME_CHARS_IN_PATH, whiteboard);
+            LOG.info("Registered XML name characters in path feature: " + QueryEngineSettings.FT_XML_NAME_CHARS_IN_PATH);
+            closer.register(xmlNameCharsInPath);
+            queryEngineSettings.setXmlNameCharsInPathFeature(xmlNameCharsInPath);
         }
 
         return this;
@@ -1015,6 +1019,9 @@ public class Oak {
 
         public void setOpFunctionFeature(@Nullable Feature feature) {
             settings.setOpFunctionFeature(feature);
+
+        public void setXmlNameCharsInPathFeature(@Nullable Feature feature) {
+            settings.setXmlNameCharsInPathFeature(feature);
         }
 
         @Override
