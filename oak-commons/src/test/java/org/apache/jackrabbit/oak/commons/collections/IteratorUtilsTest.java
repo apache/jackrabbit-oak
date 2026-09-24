@@ -827,6 +827,9 @@ public class IteratorUtilsTest {
         Assert.assertTrue(subChain.hasNext());
         Iterator<String> mainChain = IteratorUtils.chainedIterator(subChain, Collections.singleton("c").iterator());
         Assert.assertEquals("a", mainChain.next());
+        Assert.assertEquals("b", mainChain.next());
+        Assert.assertEquals("c", mainChain.next());
+        Assert.assertFalse(mainChain.hasNext());
     }
 
     @Test
