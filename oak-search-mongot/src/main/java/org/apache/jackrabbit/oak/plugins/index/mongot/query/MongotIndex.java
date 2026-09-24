@@ -86,6 +86,10 @@ final class MongotIndex extends FulltextIndex {
 
     @Override
     protected SizeEstimator getSizeEstimator(IndexPlan plan) {
+        // Required by the FulltextIndex SPI contract, but not called anywhere in this
+        // class: it reports the whole index's document count rather than a
+        // query-specific count, so it wouldn't be accurate for Cursor.getSize().
+        // See streamingCursor()'s own $count-based estimator for the one actually used.
         return () -> {
             MongotIndexNode node = (MongotIndexNode) acquireIndexNode(plan);
             try {
@@ -219,8 +223,26 @@ final class MongotIndex extends FulltextIndex {
                     MongotResultAdapter.excerpts(result, request.excerptColumns()),
                     null, null);
         }, documents::close);
+        // Use a query-specific $count aggregation instead of rows::getSize: the latter
+        // would fully drain the streaming cursor (in aggregateCursor()'s batches) the
+        // moment anything calls Cursor.getSize()/JCR's RowIterator.getSize() - a common
+        // "N results found" UI pattern - even when the caller never intends to iterate
+        // all rows. $count is cheap (server-side count, no document bodies returned)
+        // and, unlike the unused getSizeEstimator(IndexPlan) override above, reflects
+        // this query's actual filter rather than the whole index's document count.
+        SizeEstimator sizeEstimator = () -> countMatches(collection, pipeline, definition);
         return new FulltextPathCursor(rows, NEVER_REWOUND, plan,
-                plan.getFilter().getQueryLimits(), rows::getSize);
+                plan.getFilter().getQueryLimits(), sizeEstimator);
+    }
+
+    private static long countMatches(MongoCollection<Document> collection,
+                                     List<Document> pipeline,
+                                     MongotIndexDefinition definition) {
+        List<Document> countPipeline = new ArrayList<>(pipeline);
+        countPipeline.add(new Document("$count", "n"));
+        try (MongoCursor<Document> cursor = aggregateCursor(collection, countPipeline, definition)) {
+            return cursor.hasNext() ? ((Number) cursor.next().get("n")).longValue() : 0L;
+        }
     }
 
     private static Cursor cursor(List<FulltextResultRow> rows, IndexPlan plan) {
