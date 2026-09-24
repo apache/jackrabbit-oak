@@ -76,6 +76,46 @@ public class ValidateTest {
     }
 
     @Test
+    public void checkArgumentTrueWithLongArg() {
+        Validate.checkArgument(true, "value: %s", 42L);
+    }
+
+    @Test
+    public void checkArgumentFalseWithLongArg() {
+        try {
+            Validate.checkArgument(false, "value: %s", 9_000_000_000L);
+            fail("exception expected");
+        } catch (IllegalArgumentException ex) {
+            assertEquals("value: 9000000000", ex.getMessage());
+        }
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void checkArgumentTrueWithLongArgNullTemplate() {
+        Validate.checkArgument(true, null, 42L);
+    }
+
+    @Test
+    public void checkArgumentTrueWithDoubleArg() {
+        Validate.checkArgument(true, "value: %s", 3.5d);
+    }
+
+    @Test
+    public void checkArgumentFalseWithDoubleArg() {
+        try {
+            Validate.checkArgument(false, "value: %s", 3.5d);
+            fail("exception expected");
+        } catch (IllegalArgumentException ex) {
+            assertEquals("value: 3.5", ex.getMessage());
+        }
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void checkArgumentTrueWithDoubleArgNullTemplate() {
+        Validate.checkArgument(true, null, 3.5d);
+    }
+
+    @Test
     public void checkArgumentFalseWithMessageTemplateTooFew() {
         try {
             Validate.checkArgument(false, "foo %s bar %s", "qux2");
