@@ -27,8 +27,8 @@ import java.util.function.IntFunction;
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
-import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.api.Cache;
+import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
 import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -36,7 +36,7 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * A cache consisting of a fast and slow component. The fast cache for small items is based
- * on an array, and a slow one uses a LIRS cache.
+ * on an array, and the slow one is a weight-bounded cache from the Oak Cache API.
  */
 public abstract class ReaderCache<T> {
     /**
@@ -46,7 +46,7 @@ public abstract class ReaderCache<T> {
     private final FastCache<T> fastCache;
 
     /**
-     * The slower (LIRS) cache, exposed through the Oak Cache API.
+     * The slower, weight-bounded cache, from the Oak Cache API.
      * {@code null} when the configured weight is non-positive, i.e. the slow cache is disabled.
      */
     @Nullable
@@ -59,21 +59,16 @@ public abstract class ReaderCache<T> {
      * Create a new string cache.
      *
      * @param maxWeight the maximum memory in bytes.
-     * @param averageWeight  an estimate for the average weight of the elements in the
-     *                       cache. See {@link CacheLIRS#setAverageMemory(int)}.
      * @param weigher   Needed to provide an estimation of the cache weight in memory
      */
-    protected ReaderCache(long maxWeight, int averageWeight,
-            @NotNull String name, @NotNull Weigher<CacheKey, T> weigher) {
+    protected ReaderCache(long maxWeight, @NotNull String name, @NotNull Weigher<CacheKey, T> weigher) {
         fastCache = new FastCache<>();
         if (maxWeight > 0) {
-            cache = CacheLIRS.<CacheKey, T>newBuilder()
-                    .module(name)
+            cache = CacheBuilder.<CacheKey, T>newBuilder()
                     .maximumWeight(maxWeight)
-                    .averageWeight(averageWeight)
-                    .weigher(weigher::weigh)
-                    .build()
-                    .asOakCache();
+                    .weigher(weigher)
+                    .recordStats()
+                    .build();
             cacheStats = new CacheStatsAdapter(cache, name, weigher, maxWeight);
         } else {
             cache = null;
