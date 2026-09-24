@@ -354,7 +354,6 @@ public class IteratorUtils {
      * @throws NullPointerException if an iterators collection is null or contains a null iterator
      */
     public static <E> Iterator<E> chainedIterator(final Collection<Iterator<? extends E>> iterators) {
-        Objects.requireNonNull(iterators);
         return lazyChainedIterator(iterators.iterator());
     }
 
