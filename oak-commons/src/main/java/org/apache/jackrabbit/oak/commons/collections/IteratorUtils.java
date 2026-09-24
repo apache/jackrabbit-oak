@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -314,8 +315,6 @@ public class IteratorUtils {
      */
     public static <E> Iterator<E> chainedIterator(final Iterator<? extends E> iterator1,
                                                   final Iterator<? extends E> iterator2) {
-        Objects.requireNonNull(iterator1);
-        Objects.requireNonNull(iterator2);
         return lazyChainedIterator(List.of(iterator1, iterator2).iterator());
     }
 
@@ -336,12 +335,7 @@ public class IteratorUtils {
      */
     @SafeVarargs
     public static <E> Iterator<E> chainedIterator(final Iterator<? extends E>... iterators) {
-        Objects.requireNonNull(iterators);
-        final List<Iterator<? extends E>> chainedIterators = new ArrayList<>(iterators.length);
-        for (Iterator<? extends E> iterator : iterators) {
-            chainedIterators.add(Objects.requireNonNull(iterator));
-        }
-        return lazyChainedIterator(chainedIterators.iterator());
+        return lazyChainedIterator(Arrays.asList(iterators).iterator());
     }
 
     /**
@@ -361,11 +355,7 @@ public class IteratorUtils {
      */
     public static <E> Iterator<E> chainedIterator(final Collection<Iterator<? extends E>> iterators) {
         Objects.requireNonNull(iterators);
-        final List<Iterator<? extends E>> chainedIterators = new ArrayList<>(iterators.size());
-        for (Iterator<? extends E> iterator : iterators) {
-            chainedIterators.add(Objects.requireNonNull(iterator));
-        }
-        return lazyChainedIterator(chainedIterators.iterator());
+        return lazyChainedIterator(iterators.iterator());
     }
 
     /**
