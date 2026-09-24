@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
 import co.elastic.clients.elasticsearch.ElasticsearchAsyncClient;
+import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
@@ -59,6 +60,8 @@ public class ElasticBulkProcessorHandlerTest {
     private CommitInfo commitInfo;
 
     private AutoCloseable closeable;
+    private String originalRetryOnConflict;
+    private boolean originalRetryOnConflictEnabled;
 
     @Before
     public void setUp() {
@@ -66,10 +69,19 @@ public class ElasticBulkProcessorHandlerTest {
         when(indexDefinitionMock.getDefinitionNodeState()).thenReturn(definitionNodeStateMock);
         when(commitInfo.getInfo()).thenReturn(Map.of());
         when(elasticConnectionMock.getAsyncClient()).thenReturn(esAsyncClientMock);
+        originalRetryOnConflict = System.getProperty(ElasticBulkProcessorHandler.RETRY_ON_CONFLICT_PROP);
+        System.clearProperty(ElasticBulkProcessorHandler.RETRY_ON_CONFLICT_PROP);
+        originalRetryOnConflictEnabled = ElasticBulkProcessorHandler.FT_OAK_12415_ENABLE.get();
     }
 
     @After
     public void tearDown() throws Exception {
+        if (originalRetryOnConflict == null) {
+            System.clearProperty(ElasticBulkProcessorHandler.RETRY_ON_CONFLICT_PROP);
+        } else {
+            System.setProperty(ElasticBulkProcessorHandler.RETRY_ON_CONFLICT_PROP, originalRetryOnConflict);
+        }
+        ElasticBulkProcessorHandler.FT_OAK_12415_ENABLE.set(originalRetryOnConflictEnabled);
         closeable.close();
     }
 
@@ -178,5 +190,58 @@ public class ElasticBulkProcessorHandlerTest {
         Assert.assertFalse(bulkProcessorHandler.flushIndex("index1"));
         Assert.assertFalse(bulkProcessorHandler.flushIndex("index2"));
         bulkProcessorHandler.close();
+    }
+
+    @Test
+    public void partialUpdateSetsRetryOnConflictByDefault() throws IOException {
+        ElasticBulkProcessorHandler handler = new ElasticBulkProcessorHandler(elasticConnectionMock);
+        try {
+            BulkOperation op = handler.buildUpdateOperation("index", "id", new ElasticDocument("/content/foo"));
+            Assert.assertEquals(Integer.valueOf(ElasticBulkProcessorHandler.RETRY_ON_CONFLICT_DEFAULT),
+                    op.update().retryOnConflict());
+        } finally {
+            handler.close();
+        }
+    }
+
+    @Test
+    public void scriptedUpdateWithRemovalsSetsRetryOnConflict() throws IOException {
+        ElasticBulkProcessorHandler handler = new ElasticBulkProcessorHandler(elasticConnectionMock);
+        try {
+            ElasticDocument doc = new ElasticDocument("/content/foo");
+            // properties to remove => scripted-update path
+            doc.removeProperty("obsoleteProp");
+            BulkOperation op = handler.buildUpdateOperation("index", "id", doc);
+            Assert.assertEquals(Integer.valueOf(ElasticBulkProcessorHandler.RETRY_ON_CONFLICT_DEFAULT),
+                    op.update().retryOnConflict());
+        } finally {
+            handler.close();
+        }
+    }
+
+    @Test
+    public void retryOnConflictCanBeDisabledViaProperty() throws IOException {
+        System.setProperty(ElasticBulkProcessorHandler.RETRY_ON_CONFLICT_PROP, "0");
+        ElasticBulkProcessorHandler handler = new ElasticBulkProcessorHandler(elasticConnectionMock);
+        try {
+            BulkOperation op = handler.buildUpdateOperation("index", "id", new ElasticDocument("/content/foo"));
+            // disabled => no retry_on_conflict field
+            Assert.assertNull(op.update().retryOnConflict());
+        } finally {
+            handler.close();
+        }
+    }
+
+    @Test
+    public void retryOnConflictCanBeDisabledViaFeatureToggle() throws IOException {
+        ElasticBulkProcessorHandler.FT_OAK_12415_ENABLE.set(false);
+        ElasticBulkProcessorHandler handler = new ElasticBulkProcessorHandler(elasticConnectionMock);
+        try {
+            BulkOperation op = handler.buildUpdateOperation("index", "id", new ElasticDocument("/content/foo"));
+            // toggle off => no retry_on_conflict, despite the count defaulting to 3
+            Assert.assertNull(op.update().retryOnConflict());
+        } finally {
+            handler.close();
+        }
     }
 }

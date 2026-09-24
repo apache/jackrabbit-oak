@@ -58,6 +58,13 @@ public class ElasticBulkProcessorHandler {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticBulkProcessorHandler.class);
     private static final LogSilencer LOG_SILENCER = new LogSilencer(Duration.ofSeconds(5).toMillis(), 50);
 
+    public static final String FT_OAK_12415 = "FT_OAK-12415";
+    /**
+     * When {@code true} (default), update operations set {@code retry_on_conflict} so Elasticsearch re-applies
+     * a conflicting update instead of dropping it. Set to {@code false} to revert to the legacy behaviour.
+     */
+    public static final AtomicBoolean FT_OAK_12415_ENABLE = new AtomicBoolean(true);
+
     /**
      * Keeps information about an index that is being written by the bulk processor
      */
@@ -118,6 +125,9 @@ public class ElasticBulkProcessorHandler {
     // when true, fails indexing in case of bulk failures
     public static final String FAIL_ON_ERROR_PROP = "oak.indexer.elastic.bulkProcessor.failOnError";
     public static final boolean FAIL_ON_ERROR_DEFAULT = false;
+    // Retries for an update that hits a version conflict; <= 0 (or the FT_OAK_12415 toggle off) disables retries.
+    public static final String RETRY_ON_CONFLICT_PROP = "oak.indexer.elastic.bulkProcessor.retryOnConflict";
+    public static final int RETRY_ON_CONFLICT_DEFAULT = 3;
 
     private static final String SYNC_MODE_PROPERTY = "sync-mode";
     private static final String SYNC_RT_MODE = "rt";
@@ -131,6 +141,7 @@ public class ElasticBulkProcessorHandler {
     // fails to index, an exception will be thrown in the next call done to that particular index (add a document or close the index).
     // Connection errors will always throw an exception, regardless of this setting, because they relate to the connection to the Elasticsearch server.
     private final boolean failOnIndexingError = ConfigHelper.getSystemPropertyAsBoolean(FAIL_ON_ERROR_PROP, FAIL_ON_ERROR_DEFAULT);
+    private final int retryOnConflict = ConfigHelper.getSystemPropertyAsInt(RETRY_ON_CONFLICT_PROP, RETRY_ON_CONFLICT_DEFAULT);
 
     private final ElasticConnection elasticConnection;
     private final BulkIngester<OperationContext> bulkIngester;
@@ -243,10 +254,22 @@ public class ElasticBulkProcessorHandler {
         IndexInfo indexInfo = getIndexInfoOrFail(indexName);
         OperationContext context = new OperationContext(indexInfo, id);
         indexInfo.updateOperations++;
+        add(buildUpdateOperation(indexName, id, document), context);
+    }
+
+    /**
+     * Builds the bulk update operation. Sets {@code retry_on_conflict} so Elasticsearch re-reads and re-applies
+     * this update server-side on a version conflict (up to the configured retries) rather than dropping it.
+     */
+    BulkOperation buildUpdateOperation(String indexName, String id, ElasticDocument document) {
+        // null leaves the field out, i.e. the legacy request
+        Integer retries = FT_OAK_12415_ENABLE.get() && retryOnConflict > 0 ? retryOnConflict : null;
         if (document.getPropertiesToRemove().isEmpty()) {
-            add(BulkOperation.of(op ->
-                    op.update(uf -> uf.index(indexName).id(id).action(uaf -> uaf.doc(document).docAsUpsert(true)))
-            ), context);
+            return BulkOperation.of(op ->
+                    op.update(uf -> uf.index(indexName).id(id)
+                            .action(uaf -> uaf.doc(document).docAsUpsert(true))
+                            .retryOnConflict(retries))
+            );
         } else {
             // when updating a document we need to remove the properties that are not present in the new document
             // to do so we need to keep track of the properties that are present in the document before the update
@@ -259,11 +282,12 @@ public class ElasticBulkProcessorHandler {
             }
 
             // Add the update operation with the script
-            add(BulkOperation.of(op -> op.update(uf ->
-                            uf.index(indexName).id(id).action(uaf ->
+            return BulkOperation.of(op -> op.update(uf ->
+                    uf.index(indexName).id(id)
+                            .action(uaf ->
                                     uaf.script(s -> s.source(ScriptSource.of(ss -> ss.scriptString(script.toString()))).params("document", JsonData.of(document)))
-                                            .upsert(document)))),
-                    context);
+                                            .upsert(document))
+                            .retryOnConflict(retries)));
         }
     }
 
