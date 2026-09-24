@@ -130,8 +130,7 @@ public abstract class ReaderCache<T> {
      */
     @NotNull
     public T get(long msb, long lsb, int offset, IntFunction<T> loader) {
-        int hash = getEntryHash(msb, lsb, offset);
-        T value = fastCache.get(hash, msb, lsb, offset);
+        T value = fastCache.get(msb, lsb, offset);
         if (value != null) {
             return value;
         }
@@ -144,17 +143,17 @@ public abstract class ReaderCache<T> {
              * we populate it on first access to avoid a perpetually empty fast cache.
              */
             if (isSmall(value)) {
-                fastCache.put(hash, new FastCacheEntry<>(hash, msb, lsb, offset, value));
+                fastCache.put(msb, lsb, offset, value);
             }
             return value;
         }
 
-        CacheKey key = new CacheKey(hash, msb, lsb, offset);
+        CacheKey key = new CacheKey(msb, lsb, offset);
         value = cache.getIfPresent(key);
         if (value != null) {
             // slow-cache hit: promote to fast tier
             if (isSmall(value)) {
-                fastCache.put(hash, new FastCacheEntry<>(hash, msb, lsb, offset, value));
+                fastCache.put(msb, lsb, offset, value);
             }
             return value;
         }
@@ -198,14 +197,13 @@ public abstract class ReaderCache<T> {
         /**
          * Get the string if it is stored.
          *
-         * @param hash the hash
          * @param msb the msb of the segment
          * @param lsb the lsb of the segment
          * @param offset the offset
          * @return the string, or null
          */
-        T get(int hash, long msb, long lsb, int offset) {
-            int index = hash & (CACHE_SIZE - 1);
+        T get(long msb, long lsb, int offset) {
+            int index = getEntryHash(msb, lsb, offset) & (CACHE_SIZE - 1);
             FastCacheEntry<T> e = elements[index];
             if (e != null && e.matches(msb, lsb, offset)) {
                 return e.value;
@@ -217,56 +215,33 @@ public abstract class ReaderCache<T> {
             Arrays.fill(elements, null);
         }
 
-        void put(int hash, FastCacheEntry<T> entry) {
-            int index = hash & (CACHE_SIZE - 1);
-            elements[index] = entry;
+        void put(long msb, long lsb, int offset, T value) {
+            int index = getEntryHash(msb, lsb, offset) & (CACHE_SIZE - 1);
+            elements[index] = new FastCacheEntry<>(msb, lsb, offset, value);
         }
 
     }
 
-    protected static class CacheKey {
-        private final int hash;
-        private final long msb;
-        private final long lsb;
-        private final int offset;
-
-        CacheKey(int hash, long msb, long lsb, int offset) {
-            this.hash = hash;
-            this.msb = msb;
-            this.lsb = lsb;
-            this.offset = offset;
-        }
+    protected record CacheKey(long msb, long lsb, int offset) {
 
         @Override
         public int hashCode() {
-            return hash;
+            return getEntryHash(msb, lsb, offset);
         }
 
         @Override
-        public boolean equals(Object other) {
-            if (other == this) {
-                return true;
-            }
-            if (!(other instanceof ReaderCache.CacheKey otherKey)) {
-                return false;
-            }
-            return (otherKey.hash == hash) && (otherKey.msb == msb) &&
-                (otherKey.lsb == lsb) && (otherKey.offset == offset);
-        }
-
-        @Override
-        public String toString() {
+        public @NotNull String toString() {
             return Long.toHexString(msb) +
                 ':' + Long.toHexString(lsb) +
                 '+' + Integer.toHexString(offset);
         }
 
         public int estimateMemoryUsage() {
-            return OBJECT_HEADER_SIZE + 32;
+            return OBJECT_HEADER_SIZE + (3 * Long.BYTES);
         }
     }
 
-    private record FastCacheEntry<T>(int hash, long msb, long lsb, int offset, T value) {
+    private record FastCacheEntry<T>(long msb, long lsb, int offset, T value) {
         boolean matches(long msb, long lsb, int offset) {
             return (this.offset == offset) && (this.msb == msb) && (this.lsb == lsb);
         }
