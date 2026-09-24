@@ -461,12 +461,8 @@ public class Segment {
         size += 56; // 7 refs x 8 bytes
 
         if (id.isDataSegmentId()) {
-            int recordNumberCount = getRecordNumberCount();
-            size += 5 * recordNumberCount;
-
-            int referencedSegmentIdCount = getReferencedSegmentIdCount();
-            size += 8 * referencedSegmentIdCount;
-
+            size += recordNumbers.estimateMemoryUsage();
+            size += segmentReferences.estimateMemoryUsage();
             size += StringUtils.estimateMemoryUsage(info);
         }
         size += data.estimateMemoryUsage();
