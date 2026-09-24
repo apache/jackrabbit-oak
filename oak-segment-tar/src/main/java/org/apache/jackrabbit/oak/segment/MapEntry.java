@@ -35,6 +35,11 @@ import org.jetbrains.annotations.Nullable;
 class MapEntry extends AbstractChildNodeEntry
         implements Map.Entry<RecordId, RecordId>, Comparable<MapEntry> {
 
+    private static final Comparator<MapEntry> COMPARATOR =
+            Comparator.comparingLong((MapEntry me) -> me.getHash() & HASH_MASK)
+                    .thenComparing(MapEntry::getName)
+                    .thenComparing(MapEntry::getValue, Comparator.nullsLast(Comparator.naturalOrder()));
+
     @NotNull
     private final SegmentReader reader;
 
@@ -148,10 +153,7 @@ class MapEntry extends AbstractChildNodeEntry
 
     @Override
     public int compareTo(@NotNull MapEntry that) {
-        return Comparator.comparingLong((MapEntry me) -> me.getHash() & HASH_MASK)
-                .thenComparing(MapEntry::getName)
-                .thenComparing(MapEntry::getValue, Comparator.nullsLast(Comparator.naturalOrder()))
-                .compare(this, that);
+        return COMPARATOR.compare(this, that);
     }
 
 }
