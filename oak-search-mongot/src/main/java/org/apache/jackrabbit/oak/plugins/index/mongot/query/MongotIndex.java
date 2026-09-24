@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.mongot.query;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -268,9 +269,30 @@ final class MongotIndex extends FulltextIndex {
                 + TimeUnit.MILLISECONDS.toNanos(SEARCH_READINESS_TIMEOUT_MILLIS);
         while (true) {
             try {
-                int[] fetchSizes = definition.getQueryFetchSizes();
+                // Each driver batch is a full round-trip to the server, so the batch
+                // size should be as large as the configuration allows: using the
+                // smallest configured fetch size here previously turned a query with
+                // many hits into hundreds of round-trips and dominated query latency
+                // (e.g. ~18s for ~2000 hits at fetchSizes[0]=10, vs. <1s at 1000; the
+                // MongoDB driver holds one batch at a time, and the server caps a
+                // single batch response at 16MB regardless of the requested size, so
+                // this is safe rather than causing unbounded per-batch memory/time).
+                //
+                // NOTE / follow-up optimization opportunity (out of scope here): this
+                // always uses the largest configured size, even for queries that only
+                // need a handful of rows (e.g. a small LIMIT / typeahead query), which
+                // wastes server/network work building an oversized first batch. A
+                // properly adaptive scheme (small first batch, growing only if the
+                // caller keeps pulling) needs a row-limit hint to be threaded through
+                // from the query plan down to here - that hint doesn't currently exist
+                // in the backend-neutral IndexPlan/Filter/FulltextIndex SPI (oak-search)
+                // that this and the Elastic/Lucene backends all implement, so it isn't
+                // something this module can fix alone. Worth revisiting as a shared,
+                // implementation-neutral improvement to FulltextIndex/IndexPlan rather
+                // than a mongot-only special case.
+                int batchSize = Arrays.stream(definition.getQueryFetchSizes()).max().getAsInt();
                 AggregateIterable<Document> aggregation = collection.aggregate(pipeline)
-                        .batchSize(fetchSizes[0])
+                        .batchSize(batchSize)
                         .maxTime(definition.getQueryTimeoutMillis(), TimeUnit.MILLISECONDS);
                 return aggregation.iterator();
             } catch (MongoCommandException e) {
