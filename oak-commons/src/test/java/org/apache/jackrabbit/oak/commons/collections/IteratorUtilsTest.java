@@ -26,11 +26,14 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class IteratorUtilsTest {
@@ -816,6 +819,17 @@ public class IteratorUtilsTest {
         Iterator<String> iterator2 = Arrays.asList("a", "b").iterator();
 
         Assert.assertThrows(NullPointerException.class, () -> IteratorUtils.chainedIterator(new ArrayList<>(Arrays.asList(iterator1, iterator2, null)).iterator()));
+    }
+
+    @Test
+    // OAK-12410
+    public void testChainedIteratorsAfterHasNextCall() {
+        Iterator<String> subChain = IteratorUtils.chainedIterator(
+                Collections.singleton("a").iterator(),
+                Collections.singleton("b").iterator());
+        assertTrue(subChain.hasNext());
+        Iterator<String> mainChain = IteratorUtils.chainedIterator(subChain, Collections.singleton("c").iterator());
+        assertEquals("a", mainChain.next());
     }
 
     @Test
