@@ -453,6 +453,10 @@ public class DefaultSegmentWriter implements SegmentWriter {
             while (thisLevel.size() > 1) {
                 int size = thisLevel.size();
                 int levelSize = ListRecord.LEVEL_SIZE;
+                // Ceiling division of size/levelSize using only integer arithmetic (avoids the
+                // double conversion Math.ceil would need). Adding (levelSize - 1) before dividing
+                // pushes any nonzero remainder past the next multiple of levelSize, so truncating
+                // integer division yields ceil(size / levelSize) instead of floor(size / levelSize).
                 List<RecordId> nextLevel = new ArrayList<>((size + levelSize - 1) / levelSize);
                 for (int i = 0; i < size; i += levelSize) {
                     int end = Math.min(i + levelSize, size);
