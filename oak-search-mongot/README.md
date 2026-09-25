@@ -157,11 +157,11 @@ Its bundle identity, checksum, and runtime requirements are recorded in the
 [distribution notes](dist/README.md).
 
 Install that bundle into a compatible Oak OSGi runtime, together with the
-runtime bundles it imports. The current build expects the matching Oak API and
-`oak-search` packages plus the MongoDB Java Driver 5.3 bundle set
-(`mongodb-driver-sync`, `mongodb-driver-core`, `bson`, and
-`bson-record-codec`); those dependencies are not embedded in the connector
-JAR. Do not install the `*-tests.jar` artifact.
+runtime bundles it imports. The bundle embeds the `oak-search` classes it uses,
+because `oak-search` exports no packages, and imports the matching Oak API
+packages plus the MongoDB Java Driver 5.x bundle set (`mongodb-driver-sync`,
+`mongodb-driver-core`, and `bson`, version 5.4 or later); the driver is not
+embedded in the connector JAR. Do not install the `*-tests.jar` artifact.
 
 Configure the component PID after installing the bundle:
 

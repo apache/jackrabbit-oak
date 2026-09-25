@@ -58,6 +58,9 @@
         <include>org.apache.jackrabbit:oak-lucene</include>
         <include>org.apache.jackrabbit:oak-search-elastic</include>
         <include>org.apache.jackrabbit:oak-search-mongot</include>
+        <include>org.mongodb:bson</include>
+        <include>org.mongodb:mongodb-driver-core</include>
+        <include>org.mongodb:mongodb-driver-sync</include>
         <include>org.apache.tika:tika-core</include>
         <include>org.apache.jackrabbit:oak-blob</include>
         <include>org.apache.jackrabbit:oak-blob-cloud-azure</include>
