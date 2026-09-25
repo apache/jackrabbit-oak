@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.mongot.query;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -85,6 +86,10 @@ final class MongotIndex extends FulltextIndex {
 
     @Override
     protected SizeEstimator getSizeEstimator(IndexPlan plan) {
+        // Required by the FulltextIndex SPI contract, but not called anywhere in this
+        // class: it reports the whole index's document count rather than a
+        // query-specific count, so it wouldn't be accurate for Cursor.getSize().
+        // See streamingCursor()'s own $count-based estimator for the one actually used.
         return () -> {
             MongotIndexNode node = (MongotIndexNode) acquireIndexNode(plan);
             try {
@@ -218,8 +223,26 @@ final class MongotIndex extends FulltextIndex {
                     MongotResultAdapter.excerpts(result, request.excerptColumns()),
                     null, null);
         }, documents::close);
+        // Use a query-specific $count aggregation instead of rows::getSize: the latter
+        // would fully drain the streaming cursor (in aggregateCursor()'s batches) the
+        // moment anything calls Cursor.getSize()/JCR's RowIterator.getSize() - a common
+        // "N results found" UI pattern - even when the caller never intends to iterate
+        // all rows. $count is cheap (server-side count, no document bodies returned)
+        // and, unlike the unused getSizeEstimator(IndexPlan) override above, reflects
+        // this query's actual filter rather than the whole index's document count.
+        SizeEstimator sizeEstimator = () -> countMatches(collection, pipeline, definition);
         return new FulltextPathCursor(rows, NEVER_REWOUND, plan,
-                plan.getFilter().getQueryLimits(), rows::getSize);
+                plan.getFilter().getQueryLimits(), sizeEstimator);
+    }
+
+    private static long countMatches(MongoCollection<Document> collection,
+                                     List<Document> pipeline,
+                                     MongotIndexDefinition definition) {
+        List<Document> countPipeline = new ArrayList<>(pipeline);
+        countPipeline.add(new Document("$count", "n"));
+        try (MongoCursor<Document> cursor = aggregateCursor(collection, countPipeline, definition)) {
+            return cursor.hasNext() ? ((Number) cursor.next().get("n")).longValue() : 0L;
+        }
     }
 
     private static Cursor cursor(List<FulltextResultRow> rows, IndexPlan plan) {
@@ -268,9 +291,30 @@ final class MongotIndex extends FulltextIndex {
                 + TimeUnit.MILLISECONDS.toNanos(SEARCH_READINESS_TIMEOUT_MILLIS);
         while (true) {
             try {
-                int[] fetchSizes = definition.getQueryFetchSizes();
+                // Each driver batch is a full round-trip to the server, so the batch
+                // size should be as large as the configuration allows: using the
+                // smallest configured fetch size here previously turned a query with
+                // many hits into hundreds of round-trips and dominated query latency
+                // (e.g. ~18s for ~2000 hits at fetchSizes[0]=10, vs. <1s at 1000; the
+                // MongoDB driver holds one batch at a time, and the server caps a
+                // single batch response at 16MB regardless of the requested size, so
+                // this is safe rather than causing unbounded per-batch memory/time).
+                //
+                // NOTE / follow-up optimization opportunity (out of scope here): this
+                // always uses the largest configured size, even for queries that only
+                // need a handful of rows (e.g. a small LIMIT / typeahead query), which
+                // wastes server/network work building an oversized first batch. A
+                // properly adaptive scheme (small first batch, growing only if the
+                // caller keeps pulling) needs a row-limit hint to be threaded through
+                // from the query plan down to here - that hint doesn't currently exist
+                // in the backend-neutral IndexPlan/Filter/FulltextIndex SPI (oak-search)
+                // that this and the Elastic/Lucene backends all implement, so it isn't
+                // something this module can fix alone. Worth revisiting as a shared,
+                // implementation-neutral improvement to FulltextIndex/IndexPlan rather
+                // than a mongot-only special case.
+                int batchSize = Arrays.stream(definition.getQueryFetchSizes()).max().getAsInt();
                 AggregateIterable<Document> aggregation = collection.aggregate(pipeline)
-                        .batchSize(fetchSizes[0])
+                        .batchSize(batchSize)
                         .maxTime(definition.getQueryTimeoutMillis(), TimeUnit.MILLISECONDS);
                 return aggregation.iterator();
             } catch (MongoCommandException e) {
