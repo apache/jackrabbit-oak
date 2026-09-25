@@ -305,7 +305,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 }
             }
 
-            List<MapEntry> entries = new ArrayList<>();
+            List<MapEntry> entries = new ArrayList<>(changes.size());
             for (Map.Entry<String, RecordId> entry : changes.entrySet()) {
                 String key = entry.getKey();
 
@@ -427,7 +427,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 return writeMapBucket(null, null, level);
             } else {
                 // combine all remaining entries into a leaf record
-                List<MapEntry> list = new ArrayList<>();
+                List<MapEntry> list = new ArrayList<>(newSize);
                 for (MapRecord bucket : buckets) {
                     if (bucket != null) {
                         bucket.getEntries().forEach(list::add);
@@ -717,7 +717,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             Type<?> type = state.getType();
             int count = state.count();
 
-            List<RecordId> valueIds = new ArrayList<>();
+            List<RecordId> valueIds = new ArrayList<>(count);
             for (int i = 0; i < count; i++) {
                 if (type.tag() == PropertyType.BINARY) {
                     try {
@@ -867,7 +867,8 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 beforeTemplate = before.getTemplate();
             }
 
-            List<RecordId> ids = new ArrayList<>();
+            // holds at most: template id, child-node id, property-list id
+            List<RecordId> ids = new ArrayList<>(3);
             Template template = new Template(reader, state);
             if (template.equals(beforeTemplate)) {
                 ids.add(before.getTemplateId());
@@ -882,7 +883,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 ids.add(writeNode(state.getChildNode(template.getChildName()), null));
             }
 
-            List<RecordId> pIds = new ArrayList<>();
+            List<RecordId> pIds = new ArrayList<>(template.getPropertyTemplates().length);
             for (PropertyTemplate pt : template.getPropertyTemplates()) {
                 String name = pt.getName();
                 PropertyState property = state.getProperty(name);
