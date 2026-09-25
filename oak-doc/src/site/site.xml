@@ -78,6 +78,9 @@ under the License.
       <item href="security/overview.html" name="Security" collapse="false">
         <item href="security/introduction.html" name="Introduction" />
         <item href="security/reports.html" name="Reports" />
+        <item href="security/audit.html" name="Audit" collapse="true">
+          <item href="security/audit-design.html" name="Design" />
+        </item>
         <item href="security/authentication.html" name="Authentication" collapse="true">
           <item href="security/authentication/differences.html" name="Differences" />
           <item href="security/authentication/default.html" name="Default" />
