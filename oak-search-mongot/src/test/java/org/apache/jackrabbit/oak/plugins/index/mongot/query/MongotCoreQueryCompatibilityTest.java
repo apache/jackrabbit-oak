@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.plugins.index.mongot.MongotSearchConnectionRule
 import org.apache.jackrabbit.oak.plugins.index.mongot.MongotTestRepositoryBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.bson.Document;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -137,6 +138,24 @@ public class MongotCoreQueryCompatibilityTest {
     }
 
     @Test
+    public void exactSizeOfAnIndexSortedSearchNeedsNoIndexLookupOrSecondSort() throws Exception {
+        String query = "select [jcr:path] from [nt:unstructured] as s where "
+                + "contains(s.[jcr:title], 'mongodb') and isdescendantnode(s, '/content/site') "
+                + "order by [jcr:score]";
+        long indexLookups = stageCount("$listSearchIndexes");
+        long sorts = stageCount("$sort");
+        long counts = stageCount("$count");
+
+        assertEquals(3, repository.query(query, "JCR-SQL2")
+                .getSize(Result.SizePrecision.EXACT, Long.MAX_VALUE));
+
+        // Only the result pipeline sorts, and a query with hits needs no search index lookup.
+        assertEquals(counts + 1, stageCount("$count"));
+        assertEquals(sorts + 1, stageCount("$sort"));
+        assertEquals(indexLookups, stageCount("$listSearchIndexes"));
+    }
+
+    @Test
     public void orderedValuesRemainDistinctBeyondTheMongotTokenLimit() throws Exception {
         String query = "select [jcr:path] from [nt:unstructured] as s where "
                 + "contains(s.[jcr:title], 'long-sort-target') order by s.[sortKey]";
@@ -187,6 +206,13 @@ public class MongotCoreQueryCompatibilityTest {
         assertEquals(Set.copyOf(descending), Set.copyOf(ascending));
         assertMonotonic(scores(repository.query(searchQuery + " order by [jcr:score] desc", "JCR-SQL2")), false);
         assertMonotonic(scores(repository.query(searchQuery + " order by [jcr:score]", "JCR-SQL2")), true);
+
+        // $search already returns hits by descending score, so that order needs no $sort.
+        long searches = stageCount("$search");
+        long sorts = stageCount("$sort");
+        repository.paths(searchQuery + " order by [jcr:score] desc", "JCR-SQL2");
+        assertEquals(searches + 1, stageCount("$search"));
+        assertEquals(sorts, stageCount("$sort"));
     }
 
     @Test
@@ -258,6 +284,13 @@ public class MongotCoreQueryCompatibilityTest {
             scores.add(row.getValue("jcr:score").getValue(Type.DOUBLE));
         }
         return scores;
+    }
+
+    private static long stageCount(String stage) {
+        Number count = mongo.getDatabase().runCommand(new Document("serverStatus", 1))
+                .get("metrics", Document.class).get("aggStageCounters", Document.class)
+                .get(stage, Number.class);
+        return count == null ? 0 : count.longValue();
     }
 
     private static void assertMonotonic(List<Double> values, boolean ascending) {
