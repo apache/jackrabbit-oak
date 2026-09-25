@@ -58,7 +58,6 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Buffer;
-import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
@@ -452,12 +451,19 @@ public class DefaultSegmentWriter implements SegmentWriter {
             checkArgument(!list.isEmpty());
             List<RecordId> thisLevel = list;
             while (thisLevel.size() > 1) {
-                List<RecordId> nextLevel = new ArrayList<>();
-                for (List<RecordId> bucket : ListUtils.partitionList(thisLevel, ListRecord.LEVEL_SIZE)) {
-                    if (bucket.size() > 1) {
-                        nextLevel.add(writeListBucket(bucket));
+                int size = thisLevel.size();
+                int levelSize = ListRecord.LEVEL_SIZE;
+                // Ceiling division of size/levelSize using only integer arithmetic (avoids the
+                // double conversion Math.ceil would need). Adding (levelSize - 1) before dividing
+                // pushes any nonzero remainder past the next multiple of levelSize, so truncating
+                // integer division yields ceil(size / levelSize) instead of floor(size / levelSize).
+                List<RecordId> nextLevel = new ArrayList<>((size + levelSize - 1) / levelSize);
+                for (int i = 0; i < size; i += levelSize) {
+                    int end = Math.min(i + levelSize, size);
+                    if (end - i > 1) {
+                        nextLevel.add(writeListBucket(thisLevel.subList(i, end)));
                     } else {
-                        nextLevel.add(bucket.get(0));
+                        nextLevel.add(thisLevel.get(i));
                     }
                 }
                 thisLevel = nextLevel;
