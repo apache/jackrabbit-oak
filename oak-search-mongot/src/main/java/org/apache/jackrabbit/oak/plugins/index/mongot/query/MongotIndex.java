@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import com.mongodb.MongoCommandException;
 import com.mongodb.client.AggregateIterable;
@@ -238,7 +239,11 @@ final class MongotIndex extends FulltextIndex {
     private static long countMatches(MongoCollection<Document> collection,
                                      List<Document> pipeline,
                                      MongotIndexDefinition definition) {
-        List<Document> countPipeline = new ArrayList<>(pipeline);
+        // Sorting and projecting do not change the count, and $sort blocks on every hit.
+        List<Document> countPipeline = pipeline.stream()
+                .filter(stage -> !stage.containsKey("$sort") && !stage.containsKey("$set")
+                        && !stage.containsKey("$project"))
+                .collect(Collectors.toCollection(ArrayList::new));
         countPipeline.add(new Document("$count", "n"));
         try (MongoCursor<Document> cursor = aggregateCursor(collection, countPipeline, definition)) {
             return cursor.hasNext() ? ((Number) cursor.next().get("n")).longValue() : 0L;
@@ -284,9 +289,6 @@ final class MongotIndex extends FulltextIndex {
                                                          List<Document> pipeline,
                                                          MongotIndexDefinition definition) {
         boolean usesSearch = !pipeline.isEmpty() && pipeline.get(0).containsKey("$search");
-        if (usesSearch) {
-            requireSearchIndex(collection, definition.getSearchIndexName());
-        }
         long deadline = System.nanoTime()
                 + TimeUnit.MILLISECONDS.toNanos(SEARCH_READINESS_TIMEOUT_MILLIS);
         while (true) {
@@ -316,11 +318,19 @@ final class MongotIndex extends FulltextIndex {
                 AggregateIterable<Document> aggregation = collection.aggregate(pipeline)
                         .batchSize(batchSize)
                         .maxTime(definition.getQueryTimeoutMillis(), TimeUnit.MILLISECONDS);
-                return aggregation.iterator();
+                MongoCursor<Document> cursor = aggregation.iterator();
+                // $search against a missing index returns no hits instead of failing, so
+                // confirm the index exists only when there are none, not on every query.
+                if (usesSearch && !cursor.hasNext()) {
+                    requireSearchIndex(collection, definition.getSearchIndexName());
+                }
+                return cursor;
             } catch (MongoCommandException e) {
                 if (!isSearchIndexStarting(e) || System.nanoTime() >= deadline) {
                     throw e;
                 }
+                // Fail fast when the index is missing or failed instead of waiting for it.
+                requireSearchIndex(collection, definition.getSearchIndexName());
                 try {
                     TimeUnit.MILLISECONDS.sleep(SEARCH_READINESS_RETRY_MILLIS);
                 } catch (InterruptedException interrupted) {
@@ -435,6 +445,11 @@ final class MongotIndex extends FulltextIndex {
                         entry.getOrder() == OrderEntry.Order.ASCENDING ? 1 : -1);
                 requiredSortValues.append(field, new Document("$exists", true));
             }
+        }
+        if (sort.equals(new Document("_score", -1))) {
+            // $search already returns hits by descending score; sorting again would block.
+            sort.clear();
+            scoreMaterialized = false;
         }
         if (!sort.isEmpty()) {
             // Oak's ordered indexes only expose rows that have a value for every
