@@ -357,12 +357,16 @@ final class MongotIndex extends FulltextIndex {
     }
 
     private static Document searchStage(MongotIndexDefinition definition, Document operator,
-                                        List<String> highlightPaths) {
+                                        List<String> highlightPaths,
+                                        boolean returnStoredSource) {
         Document search = new Document("index", definition.getSearchIndexName());
         search.putAll(operator);
         if (!highlightPaths.isEmpty()) {
             Object path = highlightPaths.size() == 1 ? highlightPaths.get(0) : highlightPaths;
             search.append("highlight", new Document("path", path));
+        }
+        if (returnStoredSource) {
+            search.append("returnStoredSource", true);
         }
         return new Document("$search", search);
     }
@@ -392,8 +396,13 @@ final class MongotIndex extends FulltextIndex {
         boolean hasSearch = hasFullText || hasSimilarity || hasNativeQuery;
         if (hasSearch) {
             Document searchOperator;
+            // Mongot can only highlight stored fields. Without a stored full text there is no
+            // node-level excerpt, as with Lucene for properties that are not useInExcerpt.
             List<String> highlightPaths = MongotResultAdapter.highlightPaths(
-                    request.excerptColumns());
+                    request.excerptColumns()).stream()
+                    .filter(path -> definition.isFullTextStored()
+                            || !MongoFieldNames.FULLTEXT.equals(path))
+                    .toList();
             List<Document> lexicalOperators = new ArrayList<>();
             if (hasFullText) {
                 lexicalOperators.add(fullText.searchOperator());
@@ -413,7 +422,8 @@ final class MongotIndex extends FulltextIndex {
                 }
                 searchOperator = combineMust(operators);
             }
-            pipeline.add(searchStage(definition, searchOperator, highlightPaths));
+            pipeline.add(searchStage(definition, searchOperator, highlightPaths,
+                    definition.isStoredSource()));
         }
         pipeline.addAll(filters.pipeline());
 
@@ -584,7 +594,8 @@ final class MongotIndex extends FulltextIndex {
                 .append(field, 1)
                 .append("_score", new Document("$meta", "searchScore"));
         List<Document> pipeline = new ArrayList<>();
-        pipeline.add(searchStage(definition, operator, List.of()));
+        // Suggestions and spellchecks project their own field, which is not stored on mongot.
+        pipeline.add(searchStage(definition, operator, List.of(), false));
         MongotQueryTranslation filters = MongotQueryTranslator.translateFilter(
                 plan.getFilter(), getPlanResult(plan));
         if (!filters.isSupported()) {

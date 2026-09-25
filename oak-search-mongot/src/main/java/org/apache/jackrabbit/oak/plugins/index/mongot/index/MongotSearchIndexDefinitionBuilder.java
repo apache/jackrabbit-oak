@@ -86,6 +86,14 @@ final class MongotSearchIndexDefinitionBuilder {
         if (definition.isSpellcheckEnabled()) {
             fields.append(MongoFieldNames.SPELLCHECK, new Document("type", "string"));
         }
+        if (!definition.isFullTextStored()) {
+            Document fullText = new Document("type", "string").append("store", false);
+            if (analyzer.name() != null) {
+                fullText.append("analyzer", analyzer.name())
+                        .append("searchAnalyzer", analyzer.searchName());
+            }
+            fields.append(MongoFieldNames.FULLTEXT, fullText);
+        }
         for (IndexDefinition.IndexingRule rule : definition.getDefinedRules()) {
             for (PropertyDefinition property : rule.getSimilarityProperties()) {
                 fields.append(FieldNames.createSimilarityFieldName(
@@ -103,6 +111,12 @@ final class MongotSearchIndexDefinitionBuilder {
             mappings.append("fields", fields);
         }
         Document result = new Document("mappings", mappings);
+        if (definition.isStoredSource()) {
+            // Mongot reports the include list sorted. Emitting the same order keeps
+            // MongotSearchIndexManager from resubmitting, and so rebuilding, the index.
+            result.append("storedSource", new Document("include",
+                    MongoFieldNames.POST_SEARCH_FIELDS.stream().sorted().toList()));
+        }
         if (analyzer.name() != null) {
             result.append("analyzer", analyzer.name())
                     .append("searchAnalyzer", analyzer.searchName());

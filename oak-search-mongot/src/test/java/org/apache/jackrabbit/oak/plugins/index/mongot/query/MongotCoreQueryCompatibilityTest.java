@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.plugins.index.mongot.MongotSearchConnectionRule
 import org.apache.jackrabbit.oak.plugins.index.mongot.MongotTestRepositoryBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.bson.Document;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -45,12 +46,17 @@ public class MongotCoreQueryCompatibilityTest {
     @ClassRule
     public static final MongotSearchConnectionRule mongo = new MongotSearchConnectionRule();
 
-    private static MongotTestRepositoryBuilder.Fixture repository;
+    static MongotTestRepositoryBuilder.Fixture repository;
 
     @BeforeClass
     public static void createRepository() throws Exception {
+        createRepository(false);
+    }
+
+    static void createRepository(boolean storedSource) throws Exception {
         MongotTestRepositoryBuilder builder = new MongotTestRepositoryBuilder(mongo);
         IndexDefinitionBuilder definition = builder.definition();
+        definition.getBuilderTree().setProperty(MongotIndexDefinition.STORED_SOURCE, storedSource);
         definition.indexRule("nt:base").property("jcr:title")
                 .propertyIndex().analyzed().nodeScopeIndex();
         IndexDefinitionBuilder.IndexRule rule = definition.indexRule("nt:unstructured");
@@ -155,6 +161,21 @@ public class MongotCoreQueryCompatibilityTest {
         assertEquals(expected, repository.paths(query, "JCR-SQL2"));
         assertEquals(expected.subList(12, 17),
                 repository.paths(query, "JCR-SQL2", 5, 12));
+    }
+
+    @Test
+    public void indexingCycleKeepsTheSearchIndexQueryable() throws Exception {
+        Document before = repository.collection().listSearchIndexes().first();
+
+        repository.mutate(root -> root.child("unrelated")
+                .setProperty(JCR_PRIMARYTYPE, "nt:unstructured", Type.NAME)
+                .setProperty("jcr:title", "zebra"));
+        repository.index();
+
+        // Resubmitting an unchanged definition makes mongot rebuild, and stop serving, the index.
+        Document after = repository.collection().listSearchIndexes().first();
+        assertEquals(after.toJson(), "READY", after.getString("status"));
+        assertEquals(before.get("latestVersion"), after.get("latestVersion"));
     }
 
     @Test
