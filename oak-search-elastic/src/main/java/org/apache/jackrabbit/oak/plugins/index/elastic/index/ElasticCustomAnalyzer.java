@@ -96,62 +96,80 @@ public class ElasticCustomAnalyzer {
     @Nullable
     public static IndexSettingsAnalysis.Builder buildCustomAnalyzers(NodeState state, String analyzerName) {
         if (state != null) {
-            NodeState defaultAnalyzer = state.getChildNode(FulltextIndexConstants.ANL_DEFAULT);
-            if (defaultAnalyzer.exists()) {
-                IndexSettingsAnalysis.Builder builder = new IndexSettingsAnalysis.Builder();
-                Map<String, Object> analyzer;
-                try {
-                    analyzer = convertNodeState(defaultAnalyzer);
-                } catch (IOException e) {
-                    LOG.warn("Can not load analyzer; using an empty configuration", e);
-                    analyzer = Map.of();
+            IndexSettingsAnalysis.Builder builder = null;
+            for (ChildNodeEntry cne : state.getChildNodeEntries()) {
+                if (builder == null) {
+                    builder = new IndexSettingsAnalysis.Builder();
                 }
-                String builtIn = defaultAnalyzer.getString(FulltextIndexConstants.ANL_CLASS);
-                if (builtIn == null) {
-                    builtIn = defaultAnalyzer.getString(FulltextIndexConstants.ANL_NAME);
-                }
-                if (builtIn != null) {
-                    analyzer.put(ANALYZER_TYPE, normalize(builtIn));
-
-                    // content params, usually stop words
-                    for (ChildNodeEntry nodeEntry : defaultAnalyzer.getChildNodeEntries()) {
-                        List<String> list;
-                        try {
-                            list = loadContent(nodeEntry.getNodeState(), nodeEntry.getName(), NOOP_TRANSFORMATION);
-                        } catch (IOException e) {
-                            LOG.warn("Unable to load analyzer content for entry '" + nodeEntry.getName() + "'; using empty list", e);
-                            list = List.of();
-                        }
-                        analyzer.put(normalize(nodeEntry.getName()), list);
-                    }
-
-                    builder.analyzer(analyzerName, new Analyzer(null, JsonData.of(analyzer)));
-                } else { // try to compose the analyzer
-                    builder.tokenizer("custom_tokenizer", tb ->
-                            tb.definition(loadTokenizer(defaultAnalyzer.getChildNode(FulltextIndexConstants.ANL_TOKENIZER))));
-
-                    LinkedHashMap<String, TokenFilterDefinition> tokenFilters = loadFilters(
-                            defaultAnalyzer.getChildNode(FulltextIndexConstants.ANL_FILTERS),
-                            TokenFilterFactory::lookupClass, TokenFilterDefinition::new
-                    );
-                    tokenFilters.forEach((key, value) -> builder.filter(key, fn -> fn.definition(value)));
-
-                    LinkedHashMap<String, CharFilterDefinition> charFilters = loadFilters(
-                            defaultAnalyzer.getChildNode(FulltextIndexConstants.ANL_CHAR_FILTERS),
-                            CharFilterFactory::lookupClass, CharFilterDefinition::new
-                    );
-                    charFilters.forEach((key, value) -> builder.charFilter(key, fn -> fn.definition(value)));
-
-                    builder.analyzer(analyzerName, bf -> bf.custom(CustomAnalyzer.of(cab ->
-                            cab.tokenizer("custom_tokenizer")
-                                    .filter(List.copyOf(tokenFilters.keySet()))
-                                    .charFilter(List.copyOf(charFilters.keySet()))
-                    )));
-                }
-                return builder;
+                String childName = cne.getName();
+                String targetName = FulltextIndexConstants.ANL_DEFAULT.equals(childName) ? analyzerName : childName;
+                // internal tokenizer/filter/char-filter keys are shared across all analyzers registered on the
+                // same builder, so they need to be prefixed per-analyzer to avoid collisions between them.
+                String namePrefix = childName + "_";
+                buildCustomAnalyzer(cne.getNodeState(), targetName, namePrefix, builder);
             }
+            return builder;
         }
         return null;
+    }
+
+    private static void buildCustomAnalyzer(NodeState analyzerState, String targetName, String namePrefix,
+                                             IndexSettingsAnalysis.Builder builder) {
+        Map<String, Object> analyzer;
+        try {
+            analyzer = convertNodeState(analyzerState);
+        } catch (IOException e) {
+            LOG.warn("Can not load analyzer; using an empty configuration", e);
+            analyzer = Map.of();
+        }
+        String builtIn = analyzerState.getString(FulltextIndexConstants.ANL_CLASS);
+        if (builtIn == null) {
+            builtIn = analyzerState.getString(FulltextIndexConstants.ANL_NAME);
+        }
+        if (builtIn != null) {
+            analyzer.put(ANALYZER_TYPE, normalize(builtIn));
+
+            // content params, usually stop words
+            for (ChildNodeEntry nodeEntry : analyzerState.getChildNodeEntries()) {
+                List<String> list;
+                try {
+                    list = loadContent(nodeEntry.getNodeState(), nodeEntry.getName(), NOOP_TRANSFORMATION);
+                } catch (IOException e) {
+                    LOG.warn("Unable to load analyzer content for entry '" + nodeEntry.getName() + "'; using empty list", e);
+                    list = List.of();
+                }
+                analyzer.put(normalize(nodeEntry.getName()), list);
+            }
+
+            builder.analyzer(targetName, new Analyzer(null, JsonData.of(analyzer)));
+        } else { // try to compose the analyzer
+            String tokenizerName = namePrefix + "tokenizer";
+            builder.tokenizer(tokenizerName, tb ->
+                    tb.definition(loadTokenizer(analyzerState.getChildNode(FulltextIndexConstants.ANL_TOKENIZER))));
+
+            LinkedHashMap<String, TokenFilterDefinition> tokenFilters = loadFilters(
+                    analyzerState.getChildNode(FulltextIndexConstants.ANL_FILTERS),
+                    TokenFilterFactory::lookupClass, TokenFilterDefinition::new
+            );
+            tokenFilters.forEach((key, value) -> builder.filter(namePrefix + key, fn -> fn.definition(value)));
+
+            LinkedHashMap<String, CharFilterDefinition> charFilters = loadFilters(
+                    analyzerState.getChildNode(FulltextIndexConstants.ANL_CHAR_FILTERS),
+                    CharFilterFactory::lookupClass, CharFilterDefinition::new
+            );
+            charFilters.forEach((key, value) -> builder.charFilter(namePrefix + key, fn -> fn.definition(value)));
+
+            List<String> filterNames = tokenFilters.keySet().stream()
+                    .map(key -> namePrefix + key).collect(Collectors.toList());
+            List<String> charFilterNames = charFilters.keySet().stream()
+                    .map(key -> namePrefix + key).collect(Collectors.toList());
+
+            builder.analyzer(targetName, bf -> bf.custom(CustomAnalyzer.of(cab ->
+                    cab.tokenizer(tokenizerName)
+                            .filter(filterNames)
+                            .charFilter(charFilterNames)
+            )));
+        }
     }
 
     @NotNull
