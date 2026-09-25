@@ -23,10 +23,15 @@ import java.io.PrintWriter;
 
 import org.apache.felix.inventory.Format;
 import org.apache.felix.inventory.InventoryPrinter;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.json.Base64BlobSerializer;
 import org.apache.jackrabbit.oak.json.JsonSerializer;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
+import org.apache.jackrabbit.oak.plugins.index.diff.DiffIndex;
+import org.apache.jackrabbit.oak.plugins.index.diff.DiffIndexMerger;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -69,6 +74,17 @@ public class IndexDefinitionPrinter implements InventoryPrinter {
                 NodeState idxState = NodeStateUtils.getNode(root, indexPath);
                 createSerializer(json).serialize(idxState);
             }
+            // The "diff" indexes (diff.index / diff.index.optimizer) are not oak:QueryIndexDefinition nodes, so they
+            // are not returned by the IndexPathService and would otherwise be missing from the output. Add them
+            // explicitly, rendering their diff.json payload as inline JSON so the pending diff is readable.
+            for (String name : new String[] {DiffIndexMerger.DIFF_INDEX, DiffIndexMerger.DIFF_INDEX_OPTIMIZER}) {
+                String diffPath = "/oak:index/" + name;
+                NodeState idxState = NodeStateUtils.getNode(root, diffPath);
+                if (idxState.exists()) {
+                    json.key(diffPath);
+                    serializeDiffIndex(json, idxState);
+                }
+            }
             json.endObject();
             printWriter.print(JsopBuilder.prettyPrint(json.toString()));
         }
@@ -80,5 +96,45 @@ public class IndexDefinitionPrinter implements InventoryPrinter {
 
     private JsonSerializer createSerializer(JsopBuilder json) {
         return new JsonSerializer(json, filter, new Base64BlobSerializer());
+    }
+
+    /**
+     * Serialize a diff index node, inlining its {@code diff.json} payload as JSON. All other file child nodes are
+     * rendered as base64 blobs, for backward compatibility.
+     */
+    private void serializeDiffIndex(JsopBuilder json, NodeState idxState) {
+        json.object();
+        JsonSerializer serializer = createSerializer(json);
+        // definition properties (mirror the default filter, which drops :childOrder)
+        for (PropertyState p : idxState.getProperties()) {
+            if (":childOrder".equals(p.getName())) {
+                continue;
+            }
+            json.key(p.getName());
+            serializer.serialize(p);
+        }
+        // non-hidden child nodes other than diff.json, rendered normally
+        for (ChildNodeEntry child : idxState.getChildNodeEntries()) {
+            String childName = child.getName();
+            if (childName.startsWith(":") || "diff.json".equals(childName)) {
+                continue;
+            }
+            json.key(childName);
+            createSerializer(json).serialize(child.getNodeState());
+        }
+        // diff.json: inline the JSON payload instead of a base64 blob
+        NodeState content = idxState.getChildNode("diff.json").getChildNode("jcr:content");
+        String diff = content.exists() ? DiffIndex.tryReadString(content.getProperty("jcr:data")) : null;
+        if (diff != null) {
+            json.key("diff.json");
+            try {
+                // Parse and re-serialize so a malformed diff.json cannot corrupt the whole output.
+                JsonObject.fromJson(diff, true).toJson(json);
+            } catch (Exception e) {
+                // Not valid JSON - keep the endpoint well-formed by emitting the raw payload as a string.
+                json.value(diff);
+            }
+        }
+        json.endObject();
     }
 }
