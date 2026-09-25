@@ -91,6 +91,14 @@ public class Template {
     @Nullable
     private final String childName;
 
+    /**
+     * Cached hash code. Lazily computed by {@link #hashCode()} and never
+     * reset, relying on {@code Template} being immutable once constructed.
+     * {@code 0} means "not yet computed"; a benign race just recomputes the
+     * same value, as with {@link String#hashCode()}.
+     */
+    private int hash;
+
     Template(@NotNull SegmentReader reader,
              @Nullable PropertyState primaryType,
              @Nullable PropertyState mixinTypes,
@@ -154,6 +162,13 @@ public class Template {
         return mixinTypes;
     }
 
+    /**
+     * Returns the property templates of this template. The returned array is
+     * not a defensive copy and must be treated as read-only, as mutating it
+     * would invalidate the cached {@link #hashCode()}.
+     *
+     * @return property templates
+     */
     PropertyTemplate[] getPropertyTemplates() {
         return properties;
     }
@@ -307,8 +322,17 @@ public class Template {
 
     @Override
     public int hashCode() {
-        return Objects.hash(primaryType, mixinTypes,
-                Arrays.asList(properties), getTemplateType(), childName);
+        int result = hash;
+        if (result == 0) {
+            result = 1;
+            result = 31 * result + Objects.hashCode(primaryType);
+            result = 31 * result + Objects.hashCode(mixinTypes);
+            result = 31 * result + Arrays.hashCode(properties);
+            result = 31 * result + Short.hashCode(getTemplateType());
+            result = 31 * result + Objects.hashCode(childName);
+            hash = result;
+        }
+        return result;
     }
 
     @Override
