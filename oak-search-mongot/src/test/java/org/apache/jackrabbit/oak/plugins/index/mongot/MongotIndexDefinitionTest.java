@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.mongot;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.mongot.util.MongotIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -112,6 +113,26 @@ public class MongotIndexDefinitionTest {
         assertEquals(java.util.List.of(3, 9),
                 java.util.Arrays.stream(configured.getQueryFetchSizes()).boxed().toList());
         assertEquals(1_234L, configured.getQueryTimeoutMillis());
+    }
+
+    @Test
+    public void readsStoredSourceFromTheReindexedDefinition() {
+        assertFalse(newDefinition("defaults").isStoredSource());
+
+        NodeBuilder root = EmptyNodeState.EMPTY_NODE.builder();
+        NodeBuilder definitionBuilder = root.child(INDEX_DEFINITIONS_NAME).child("stored");
+        definitionBuilder.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
+        definitionBuilder.setProperty(TYPE_PROPERTY_NAME, MongotIndexDefinition.TYPE_MONGOT);
+        definitionBuilder.setProperty(MongotIndexDefinition.STORED_SOURCE, true);
+        assertTrue(new MongotIndexDefinition(root.getNodeState(),
+                definitionBuilder.getNodeState(), "/oak:index/stored").isStoredSource());
+
+        // Enabling it on the live definition has no effect until a reindex refreshes the
+        // stored definition, so queries never ask an old search index for stored fields.
+        definitionBuilder.child(IndexDefinition.INDEX_DEFINITION_NODE)
+                .setProperty(TYPE_PROPERTY_NAME, MongotIndexDefinition.TYPE_MONGOT);
+        assertFalse(new MongotIndexDefinition(root.getNodeState(),
+                definitionBuilder.getNodeState(), "/oak:index/stored").isStoredSource());
     }
 
     @Test

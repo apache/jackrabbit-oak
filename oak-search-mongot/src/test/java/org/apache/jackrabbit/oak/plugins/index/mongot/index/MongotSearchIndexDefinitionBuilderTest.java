@@ -29,9 +29,44 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
 public class MongotSearchIndexDefinitionBuilderTest {
+
+    @Test
+    public void storesPostSearchFieldsOnlyWhenStoredSourceIsEnabled() {
+        assertNull(MongotSearchIndexDefinitionBuilder.build(definition(builder()))
+                .get("storedSource"));
+
+        IndexDefinitionBuilder builder = builder();
+        builder.getBuilderTree().setProperty(MongotIndexDefinition.STORED_SOURCE, true);
+        Document searchDefinition = MongotSearchIndexDefinitionBuilder.build(definition(builder));
+
+        assertEquals(new Document("include",
+                        MongoFieldNames.POST_SEARCH_FIELDS.stream().sorted().toList()),
+                searchDefinition.get("storedSource"));
+    }
+
+    @Test
+    public void storesFullTextWithStoredSourceOnlyWhenExcerptsCanHighlightIt() {
+        IndexDefinitionBuilder withoutExcerpts = builder();
+        withoutExcerpts.getBuilderTree().setProperty(MongotIndexDefinition.STORED_SOURCE, true);
+        withoutExcerpts.indexRule("nt:base").property("title").analyzed().nodeScopeIndex();
+        Document fields = MongotSearchIndexDefinitionBuilder.build(definition(withoutExcerpts))
+                .get("mappings", Document.class).get("fields", Document.class);
+        assertEquals(new Document("type", "string").append("store", false)
+                        .append("analyzer", "oak_default").append("searchAnalyzer", "lucene.standard"),
+                fields.get(MongoFieldNames.FULLTEXT));
+
+        IndexDefinitionBuilder withExcerpts = builder();
+        withExcerpts.getBuilderTree().setProperty(MongotIndexDefinition.STORED_SOURCE, true);
+        withExcerpts.indexRule("nt:base").property("title").analyzed().nodeScopeIndex()
+                .useInExcerpt();
+        assertNull(MongotSearchIndexDefinitionBuilder.build(definition(withExcerpts))
+                .get("mappings", Document.class).get("fields", Document.class)
+                .get(MongoFieldNames.FULLTEXT));
+    }
 
     @Test
     public void mapsOakDefaultAnalyzer() {
