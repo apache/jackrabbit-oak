@@ -34,8 +34,10 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.security.user.monitor.UserMonitor;
 import org.apache.jackrabbit.oak.security.user.query.UserQueryManager;
+import org.apache.jackrabbit.oak.spi.audit.AuditDispatch;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.audit.SecurityAuditDomain;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -86,6 +88,13 @@ public class UserManagerImpl implements UserManager {
 
     private UserQueryManager queryManager;
     private ReadOnlyNodeTypeManager ntMgr;
+
+    // Guards against repeated WARN logging when audit-event path resolution
+    // fails during a successful group update (see recordSingleMembershipAuditEvent
+    // / recordBulkMembershipAuditEvent). The first occurrence on this
+    // UserManager is logged at WARN (audit-completeness signal); subsequent
+    // ones drop to DEBUG to avoid log flooding.
+    private boolean auditPathResolutionWarned;
     
     private final DynamicMembershipService dynamicMembership;
     private DynamicMembershipProvider dynamicMembershipProvider;
@@ -372,6 +381,9 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an error occurs.
      */
     void onGroupUpdate(@NotNull Group group, boolean isRemove, @NotNull Authorizable member) throws RepositoryException {
+        if (AuditDispatch.isEnabledFor(SecurityAuditDomain.DOMAIN)) {
+            recordSingleMembershipAuditEvent(group, isRemove, member);
+        }
         for (GroupAction action : filterGroupActions()) {
             if (isRemove) {
                 action.onMemberRemoved(group, member, root, namePathMapper);
@@ -394,6 +406,9 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an error occurs.
      */
     void onGroupUpdate(@NotNull Group group, boolean isRemove, boolean isContentId, @NotNull Set<String> memberIds, @NotNull Set<String> failedIds) throws RepositoryException {
+        if (AuditDispatch.isEnabledFor(SecurityAuditDomain.DOMAIN)) {
+            recordBulkMembershipAuditEvent(group, isRemove, isContentId, memberIds, failedIds);
+        }
         for (GroupAction action : filterGroupActions()) {
             if (isRemove) {
                 action.onMembersRemoved(group, memberIds, failedIds, root, namePathMapper);
@@ -404,6 +419,68 @@ public class UserManagerImpl implements UserManager {
                     action.onMembersAdded(group, memberIds, failedIds, root, namePathMapper);
                 }
             }
+        }
+    }
+
+    /**
+     * Records a single-member audit event for the given group update.
+     * Fires only on success — the upstream {@code MembershipWriter}
+     * does not invoke {@code onGroupUpdate} for the failure path.
+     */
+    private void recordSingleMembershipAuditEvent(@NotNull Group group, boolean isRemove, @NotNull Authorizable member) {
+        try {
+            String groupPath = group.getPath();
+            String memberId = member.getID();
+            String memberPath = member.getPath();
+            AuditDispatch.record(root, isRemove
+                    ? UserAuditEvents.memberRemoved(groupPath, memberId, memberPath)
+                    : UserAuditEvents.memberAdded(groupPath, memberId, memberPath));
+        } catch (RepositoryException e) {
+            // Path resolution failed — drop the event rather than fail the
+            // surrounding group update. It is an audit-completeness signal:
+            // a successful membership change produced no audit event.
+            warnAuditPathResolutionFailed("failed to resolve path for group membership update, not recording the audit event", e);
+        }
+    }
+
+    /**
+     * Records a bulk-membership audit event when {@code memberIds} is
+     * non-empty. {@code memberIds} is the successful subset (failed
+     * entries already filtered by {@code MembershipWriter}); when every
+     * entry failed, {@code memberIds} is empty and no event is emitted.
+     * {@code failedIds} is carried through to the listener for audit
+     * completeness — listeners can distinguish "happened" vs "rejected".
+     */
+    private void recordBulkMembershipAuditEvent(@NotNull Group group, boolean isRemove, boolean isContentId, @NotNull Set<String> memberIds, @NotNull Set<String> failedIds) {
+        if (memberIds.isEmpty()) {
+            return;
+        }
+        try {
+            String groupPath = group.getPath();
+            AuditDispatch.record(root, isRemove
+                    ? UserAuditEvents.membersRemovedBulk(groupPath, memberIds, isContentId, failedIds)
+                    : UserAuditEvents.membersAddedBulk(groupPath, memberIds, isContentId, failedIds));
+        } catch (RepositoryException e) {
+            warnAuditPathResolutionFailed("failed to resolve group path for bulk membership update, not recording audit event", e);
+        }
+    }
+
+    /**
+     * Logs an audit-completeness WARN the first time path resolution fails
+     * while capturing a membership audit event during an otherwise
+     * successful group update; subsequent occurrences on this
+     * {@code UserManagerImpl} drop to DEBUG to avoid log flooding. The
+     * event is dropped either way — audit capture never fails the
+     * surrounding group update.
+     */
+    private void warnAuditPathResolutionFailed(@NotNull String detail, @NotNull RepositoryException e) {
+        if (auditPathResolutionWarned) {
+            log.debug("Skipping audit event: {} (further occurrences suppressed)", detail, e);
+        } else {
+            auditPathResolutionWarned = true;
+            log.warn("Skipping audit event: {}. A successful group update produced no audit event " +
+                    "because path resolution failed; audit completeness is affected. Further " +
+                    "occurrences on this UserManager are logged at DEBUG.", detail, e);
         }
     }
 
