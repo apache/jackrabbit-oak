@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.index.ConfigHelper;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.internal.ElasticFeatureToggles;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
@@ -57,13 +58,6 @@ public class ElasticBulkProcessorHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticBulkProcessorHandler.class);
     private static final LogSilencer LOG_SILENCER = new LogSilencer(Duration.ofSeconds(5).toMillis(), 50);
-
-    public static final String FT_OAK_12415 = "FT_OAK-12415";
-    /**
-     * When {@code true} (default), update operations set {@code retry_on_conflict} so Elasticsearch re-applies
-     * a conflicting update instead of dropping it. Set to {@code false} to revert to the legacy behaviour.
-     */
-    public static final AtomicBoolean FT_OAK_12415_ENABLE = new AtomicBoolean(true);
 
     /**
      * Keeps information about an index that is being written by the bulk processor
@@ -263,7 +257,7 @@ public class ElasticBulkProcessorHandler {
      */
     BulkOperation buildUpdateOperation(String indexName, String id, ElasticDocument document) {
         // null leaves the field out, i.e. the legacy request
-        Integer retries = FT_OAK_12415_ENABLE.get() && retryOnConflict > 0 ? retryOnConflict : null;
+        Integer retries = ElasticFeatureToggles.FT_OAK_12415_ENABLE.get() && retryOnConflict > 0 ? retryOnConflict : null;
         if (document.getPropertiesToRemove().isEmpty()) {
             return BulkOperation.of(op ->
                     op.update(uf -> uf.index(indexName).id(id)

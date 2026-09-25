@@ -42,4 +42,12 @@ public final class ElasticFeatureToggles {
      */
     public static final String FT_OAK_12366 = "FT_OAK-12366";
     public static final AtomicBoolean FT_OAK_12366_DISABLE = new AtomicBoolean(false);
+
+    /**
+     * Feature toggle for OAK-12415: set {@code retry_on_conflict} on Elasticsearch bulk update operations so a
+     * version conflict is re-applied server-side instead of dropped (which would leave the document stale).
+     * Enabled by default (bug fix). Set to {@code false} to revert to the legacy behaviour (no retries).
+     */
+    public static final String FT_OAK_12415 = "FT_OAK-12415";
+    public static final AtomicBoolean FT_OAK_12415_ENABLE = new AtomicBoolean(true);
 }
