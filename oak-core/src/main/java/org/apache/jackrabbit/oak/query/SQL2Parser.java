@@ -688,10 +688,18 @@ public class SQL2Parser {
     }
 
     private DynamicOperandImpl parseDynamicOperand() throws ParseException {
+        if (currentTokenType == VALUE) {
+            // a literal or null, for example "if([alias], path(), null)"
+            PropertyValue v = currentValue;
+            read();
+            return factory.literalOperand(v, escapeStringLiteral(v.getValue(Type.STRING)));
+        }
         boolean identifier = currentTokenType == IDENTIFIER;
         String name = readName();
         if (identifier && readIf("(")) {
             return parseExpressionFunction(name);
+        } else if (identifier && "NULL".equalsIgnoreCase(name)) {
+            return factory.literalOperand(null, "null");
         } else {
             return parsePropertyValue(name);
         }
@@ -740,8 +748,27 @@ public class SQL2Parser {
             PropertyValueImpl pv = parsePropertyValue(readName());
             read(",");
             op = factory.propertyValue(pv.getSelectorName(), pv.getPropertyName(), readString().getValue(Type.STRING));
+        } else if ("IF".equalsIgnoreCase(functionName)) {
+            DynamicOperandImpl condition = parseDynamicOperand();
+            read(",");
+            DynamicOperandImpl trueValue = parseDynamicOperand();
+            read(",");
+            DynamicOperandImpl falseValue = parseDynamicOperand();
+            op = factory.ifOperand(condition, trueValue, falseValue);
+        } else if ("EXISTS".equalsIgnoreCase(functionName)) {
+            op = factory.existsOperand(parseDynamicOperand());
+        } else if ("OP".equalsIgnoreCase(functionName)) {
+            if (!settings.isOpFunctionEnabled()) {
+                throw getSyntaxError("The feature to support 'OP' is not enabled");
+            }
+            DynamicOperandImpl a = parseDynamicOperand();
+            read(",");
+            DynamicOperandImpl operator = parseDynamicOperand();
+            read(",");
+            DynamicOperandImpl b = parseDynamicOperand();
+            op = factory.op(a, operator, b);
         } else {
-            throw getSyntaxError("LENGTH, FIRST, NAME, LOCALNAME, PATH, SCORE, COALESCE, LOWER, UPPER, or PROPERTY");
+            throw getSyntaxError("LENGTH, FIRST, NAME, LOCALNAME, PATH, SCORE, COALESCE, LOWER, UPPER, PROPERTY, IF, or EXISTS");
         }
         read(")");
         return op;

@@ -113,6 +113,12 @@ public class FilterTest {
                 "path=*, property=[function*length*@test=[..10]], " +
                 "test=[is not null]])", createFilterSQL(sql2).toString());
 
+        sql2 = "select [jcr:path] from [nt:base] where length(lower([test])) <= 10";
+        assertEquals("Filter(query=select [jcr:path] from [nt:base] " +
+                "where length(lower([test])) <= 10, " +
+                "path=*, property=[function*length*lower*@test=[..10]], function*lower*@test=[is not null], " +
+                "test=[is not null]])", createFilterSQL(sql2).toString());
+
         sql2 = "select [jcr:path] from [nt:base] where length([data/test]) > 2";
         assertEquals("Filter(query=select [jcr:path] from [nt:base] " +
                 "where length([data/test]) > 2, " +
@@ -139,6 +145,15 @@ public class FilterTest {
                 "where first([jcr:mixinTypes]) >= '', " +
                 "path=*, property=[function*first*@jcr:mixinTypes=[]])", createFilterSQL(sql2).toString());
 
+        sql2 = "select [jcr:path] from [nt:base] where exists([jcr:mixinTypes]) = true";
+        assertEquals("Filter(query=select [jcr:path] from [nt:base] " +
+                "where exists([jcr:mixinTypes]) = true, " +
+                "path=*, property=[function*exists*@jcr:mixinTypes=[true]])", createFilterSQL(sql2).toString());
+
+        sql2 = "select [jcr:path] from [nt:base] where if(exists([alias]), path(), null) > ''";
+        assertEquals("Filter(query=select [jcr:path] from [nt:base] " +
+                "where if(exists([alias]), path(), null) > '', " +
+                "path=*, property=[function*if*exists*@alias*@:path*null=[]])", createFilterSQL(sql2).toString());
     }
 
     @Test

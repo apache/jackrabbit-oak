@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.InitialContentHelper;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -30,6 +31,7 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.junit.After;
 import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
@@ -41,12 +43,15 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class LuceneFunctionIndexCommonTest extends FunctionIndexCommonTest {
 
     private ExecutorService executorService = Executors.newFixedThreadPool(2);
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
+    private LuceneTestRepositoryBuilder luceneTestRepositoryBuilder;
 
     protected Tree createIndex(String name, Set<String> propNames) {
         Tree index = root.getTree("/");
@@ -68,7 +73,7 @@ public class LuceneFunctionIndexCommonTest extends FunctionIndexCommonTest {
 
     @Override
     protected ContentRepository createRepository() {
-        LuceneTestRepositoryBuilder luceneTestRepositoryBuilder = new LuceneTestRepositoryBuilder(executorService, temporaryFolder);
+        luceneTestRepositoryBuilder = new LuceneTestRepositoryBuilder(executorService, temporaryFolder);
         luceneTestRepositoryBuilder.setNodeStore(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT));
         repositoryOptionsUtil = luceneTestRepositoryBuilder.build();
         indexOptions = new LuceneIndexOptions();
@@ -84,6 +89,46 @@ public class LuceneFunctionIndexCommonTest extends FunctionIndexCommonTest {
     @After
     public void shutdownExecutor() {
         executorService.shutdown();
+    }
+
+    /**
+     * An index whose only indexed property is a function that evaluates to
+     * null for most nodes must stay "sparse": it should contain a Lucene
+     * document only for the nodes where the function is not null, not one
+     * document per node.
+     */
+    @Test
+    public void sparseIndexForIfExistsFunction() throws CommitFailedException {
+        Tree index = createIndex("aliasPath", Set.of());
+        Tree func = index.addChild(FulltextIndexConstants.INDEX_RULES)
+                .addChild("nt:base")
+                .addChild(FulltextIndexConstants.PROP_NODE)
+                .addChild("aliasPath");
+        func.setProperty(FulltextIndexConstants.PROP_FUNCTION, "if(exists([alias]), path(), null)");
+
+        Tree test = root.getTree("/").addChild("test");
+        int withAlias = 0;
+        for (int idx = 0; idx < 10; idx++) {
+            Tree n = test.addChild("n" + idx);
+            n.setProperty(JcrConstants.JCR_PRIMARYTYPE, "nt:unstructured", Type.NAME);
+            if (idx % 3 == 0) {
+                n.setProperty("alias", "a" + idx);
+                withAlias++;
+            }
+        }
+        root.commit();
+
+        int expectedDocs = withAlias;
+        assertEventually(() -> {
+            LuceneIndexProvider provider = (LuceneIndexProvider) luceneTestRepositoryBuilder.getIndexProvider();
+            LuceneIndexNode indexNode = provider.getTracker().acquireIndexNode("/oak:index/aliasPath");
+            assertNotNull(indexNode);
+            try {
+                assertEquals(expectedDocs, indexNode.getSearcher().getIndexReader().numDocs());
+            } finally {
+                indexNode.release();
+            }
+        });
     }
 
 }

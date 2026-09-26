@@ -67,6 +67,8 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     public static final String FT_IGNORE_LIMIT_IN_INDEX_SELECTION = "FT_OAK-12057";
 
+    public static final String FT_OP_FUNCTION = "FT_OAK-12406";
+
     public static final String FT_XML_NAME_CHARS_IN_PATH = "FT_OAK-12364";
 
     public static final int DEFAULT_PREFETCH_COUNT = Integer.getInteger(OAK_QUERY_PREFETCH_COUNT, -1);
@@ -127,6 +129,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     private Feature sortUnionQueryLegacyModeFeature;
     private Feature optimizeXPathUnion;
     private Feature ignoreLimitInIndexSelectionFeature;
+    private Feature opFunctionFeature;
     private Feature xmlNameCharsInPathFeature;
 
     private String autoOptionsMappingJson = "{}";
@@ -258,6 +261,15 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     public boolean isIgnoreLimitInIndexSelection() {
         // enabled if the feature toggle is not used
         return ignoreLimitInIndexSelectionFeature == null || ignoreLimitInIndexSelectionFeature.isEnabled();
+    }
+
+    public void setOpFunctionFeature(@Nullable Feature feature) {
+        this.opFunctionFeature = feature;
+    }
+
+    public boolean isOpFunctionEnabled() {
+        // the op(a, operator, b) function is disabled by default
+        return opFunctionFeature != null && opFunctionFeature.isEnabled();
     }
 
     public void setXmlNameCharsInPathFeature(@Nullable Feature feature) {

@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.index.search.util;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import java.util.Arrays;
 
@@ -148,6 +149,14 @@ public class FunctionIndexProcessorTest {
                 "function*coalesce*coalesce*@jcr:content/foo2*@jcr:content/foo*coalesce*@a:b*@c:d");
         checkConvert("jcr:first(jcr:content/@foo2)",
                 "function*first*@jcr:content/foo2");
+        checkConvert("jcr:if(jcr:exists(@alias), fn:path(), null)",
+                "function*if*exists*@alias*@:path*null");
+        checkConvert("jcr:if(jcr:exists(@alias), fn:path(), jcr:null())",
+                "function*if*exists*@alias*@:path*null");
+        checkConvert("jcr:exists(jcr:content/@foo2)",
+                "function*exists*@jcr:content/foo2");
+        checkConvert("jcr:op(@a, '+', @b)",
+                "function*op*@a*'+'*@b");
     }
 
     @Test
@@ -196,6 +205,220 @@ public class FunctionIndexProcessorTest {
                 "function*coalesce*coalesce*@jcr:content/foo2*@jcr:content/foo*coalesce*@a:b*@c:d");
         checkConvert("first([jcr:content/foo2])",
                 "function*first*@jcr:content/foo2");
+        checkConvert("if(exists([alias]), path(), null)",
+                "function*if*exists*@alias*@:path*null");
+        checkConvert("exists([alias])",
+                "function*exists*@alias");
+        checkConvert("op([a], '+', [b])",
+                "function*op*@a*'+'*@b");
+        // the '*' operator must not be confused with the token separator
+        checkConvert("op([a], '*', [b])",
+                "function*op*@a*'*'*@b");
+        checkConvert("op([a], 'is not', [b])",
+                "function*op*@a*'is not'*@b");
+    }
+
+    @Test
+    public void ifFunction() {
+        // "if" returns the chosen operand's PropertyState as-is (keeping its
+        // original name/type), unlike lower/upper/coalesce which rename to "value"
+        // condition missing -> falseValue
+        assertEquals("f = false-value",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("t", "true-value").setProperty("f", "false-value").getNodeState(),
+                new String[]{"function", "if", "@cond", "@t", "@f"}).toString());
+        // condition = 0 -> falseValue
+        assertEquals("f = false-value",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("cond", 0L).
+                    setProperty("t", "true-value").setProperty("f", "false-value").getNodeState(),
+                new String[]{"function", "if", "@cond", "@t", "@f"}).toString());
+        // condition = false -> falseValue
+        assertEquals("f = false-value",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("cond", false).
+                    setProperty("t", "true-value").setProperty("f", "false-value").getNodeState(),
+                new String[]{"function", "if", "@cond", "@t", "@f"}).toString());
+        // condition = true -> trueValue
+        assertEquals("t = true-value",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("cond", true).
+                    setProperty("t", "true-value").setProperty("f", "false-value").getNodeState(),
+                new String[]{"function", "if", "@cond", "@t", "@f"}).toString());
+        // condition = non-zero number -> trueValue
+        assertEquals("t = true-value",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("cond", 1L).
+                    setProperty("t", "true-value").setProperty("f", "false-value").getNodeState(),
+                new String[]{"function", "if", "@cond", "@t", "@f"}).toString());
+        // condition = non-empty string -> trueValue
+        assertEquals("t = true-value",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("cond", "anything").
+                    setProperty("t", "true-value").setProperty("f", "false-value").getNodeState(),
+                new String[]{"function", "if", "@cond", "@t", "@f"}).toString());
+        // falseValue itself missing -> null
+        assertNull(FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("t", "true-value").getNodeState(),
+                new String[]{"function", "if", "@cond", "@t", "@f"}));
+        // sparse index scenario: if(exists([alias]), path(), null)
+        assertEquals("value = /content",
+                FunctionIndexProcessor.tryCalculateValue("/content",
+                EMPTY_NODE.builder().setProperty("alias", "a").getNodeState(),
+                new String[]{"function", "if", "exists", "@alias", "@:path", "null"}).toString());
+        assertNull(FunctionIndexProcessor.tryCalculateValue("/content",
+                EMPTY_NODE.builder().getNodeState(),
+                new String[]{"function", "if", "exists", "@alias", "@:path", "null"}));
+    }
+
+    @Test
+    public void existsFunction() {
+        assertEquals("value = true",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("data", "Hello").getNodeState(),
+                new String[]{"function", "exists", "@data"}).toString());
+        assertEquals("value = false",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().getNodeState(),
+                new String[]{"function", "exists", "@data"}).toString());
+    }
+
+    @Test
+    public void coalesceWithStringLiteral() {
+        // literal operands are not specific to op() -- they are supported
+        // wherever a property reference or nested function is, e.g. as a
+        // fallback default value for coalesce()
+        checkConvert("coalesce([foo], 'default')",
+                "function*coalesce*@foo*'default'");
+        checkConvert("coalesce('default', [foo])",
+                "function*coalesce*'default'*@foo");
+
+        // foo present -> foo wins
+        assertEquals("value = Hello",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("foo", "Hello").getNodeState(),
+                new String[]{"function", "coalesce", "@foo", "'default'"}).toString());
+        // foo missing -> literal fallback is used
+        assertEquals("value = default",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().getNodeState(),
+                new String[]{"function", "coalesce", "@foo", "'default'"}).toString());
+    }
+
+    @Test
+    public void literalWithEscapedQuote() {
+        // a single quote within a string literal is escaped as two single
+        // quotes (''), the same convention used by SQL2Parser; full
+        // round-trip: parse -> tokenize -> evaluate
+        String polish = FunctionIndexProcessor.convertToPolishNotation("coalesce([foo], 'it''s a test')");
+        assertEquals("function*coalesce*@foo*'it''s a test'", polish);
+
+        String[] code = FunctionIndexProcessor.getFunctionCode(polish);
+        assertEquals("[function, coalesce, @foo, 'it''s a test']", Arrays.toString(code));
+
+        assertEquals("value = it's a test",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().getNodeState(),
+                code).toString());
+    }
+
+    @Test
+    public void opMultiplyLiteralRoundTrip() {
+        // full round-trip: parse -> tokenize -> evaluate, for the '*' operator
+        // literal specifically, since '*' is also the Polish-notation token
+        // separator
+        String polish = FunctionIndexProcessor.convertToPolishNotation("op([a], '*', [b])");
+        String[] code = FunctionIndexProcessor.getFunctionCode(polish);
+        assertEquals("[function, op, @a, '*', @b]", Arrays.toString(code));
+        assertEquals("value = 6.0",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("a", 2L).setProperty("b", 3L).getNodeState(),
+                code).toString());
+    }
+
+    @Test
+    public void opFunction() {
+        // math
+        assertEquals("value = 3.0",
+                calcOp("a", 1L, "b", 2L, "+").toString());
+        assertEquals("value = -1.0",
+                calcOp("a", 1L, "b", 2L, "-").toString());
+        assertEquals("value = 6.0",
+                calcOp("a", 2L, "b", 3L, "*").toString());
+        assertEquals("value = 2.0",
+                calcOp("a", 4L, "b", 2L, "/").toString());
+        // math with a missing operand -> null
+        assertNull(FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("b", 2L).getNodeState(),
+                new String[]{"function", "op", "@a", "'+'", "@b"}));
+        // math with a non-numeric operand -> null
+        assertNull(FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("a", "not-a-number").setProperty("b", 2L).getNodeState(),
+                new String[]{"function", "op", "@a", "'+'", "@b"}));
+
+        // comparisons
+        assertEquals("value = true", calcOp("a", 1L, "b", 2L, "<").toString());
+        assertEquals("value = false", calcOp("a", 2L, "b", 2L, "<").toString());
+        assertEquals("value = true", calcOp("a", 2L, "b", 2L, "<=").toString());
+        assertEquals("value = true", calcOp("a", 2L, "b", 1L, ">").toString());
+        assertEquals("value = true", calcOp("a", 2L, "b", 2L, ">=").toString());
+        assertEquals("value = true", calcOp("a", 2L, "b", 2L, "=").toString());
+        assertEquals("value = false", calcOp("a", 2L, "b", 3L, "=").toString());
+        assertEquals("value = true", calcOp("a", 2L, "b", 3L, "<>").toString());
+        // comparisons with a missing operand -> null
+        assertNull(FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("b", 2L).getNodeState(),
+                new String[]{"function", "op", "@a", "'='", "@b"}));
+
+        // is / is not: null is comparable
+        assertEquals("value = true",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().getNodeState(),
+                new String[]{"function", "op", "@a", "'is'", "@b"}).toString());
+        assertEquals("value = false",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("b", 2L).getNodeState(),
+                new String[]{"function", "op", "@a", "'is'", "@b"}).toString());
+        assertEquals("value = true",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("b", 2L).getNodeState(),
+                new String[]{"function", "op", "@a", "'is not'", "@b"}).toString());
+
+        // and / or, three-valued logic
+        assertEquals("value = true", calcOp3("a", true, "b", true, "and").toString());
+        assertEquals("value = false", calcOp3("a", true, "b", false, "and").toString());
+        assertEquals("value = true", calcOp3("a", false, "b", true, "or").toString());
+        assertEquals("value = true", calcOp3("a", true, "b", false, "or").toString());
+        // false and null -> false; true or null -> true (determinate despite missing operand)
+        assertEquals("value = false",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("a", false).getNodeState(),
+                new String[]{"function", "op", "@a", "'and'", "@b"}).toString());
+        assertEquals("value = true",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("a", true).getNodeState(),
+                new String[]{"function", "op", "@a", "'or'", "@b"}).toString());
+        // true and null -> null (unknown); false or null -> null
+        assertNull(FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("a", true).getNodeState(),
+                new String[]{"function", "op", "@a", "'and'", "@b"}));
+        assertNull(FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("a", false).getNodeState(),
+                new String[]{"function", "op", "@a", "'or'", "@b"}));
+    }
+
+    private static org.apache.jackrabbit.oak.api.PropertyState calcOp(
+            String aName, long aValue, String bName, long bValue, String operator) {
+        return FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty(aName, aValue).setProperty(bName, bValue).getNodeState(),
+                new String[]{"function", "op", "@" + aName, "'" + operator + "'", "@" + bName});
+    }
+
+    private static org.apache.jackrabbit.oak.api.PropertyState calcOp3(
+            String aName, boolean aValue, String bName, boolean bValue, String operator) {
+        return FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty(aName, aValue).setProperty(bName, bValue).getNodeState(),
+                new String[]{"function", "op", "@" + aName, "'" + operator + "'", "@" + bName});
     }
 
     private static void checkConvert(String function, String expectedPolishNotation) {
