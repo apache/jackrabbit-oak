@@ -223,13 +223,13 @@ final class MongotIndex extends FulltextIndex {
                     MongotResultAdapter.excerpts(result, request.excerptColumns()),
                     null, null);
         }, documents::close);
-        // Use a query-specific $count aggregation instead of rows::getSize: the latter
-        // would fully drain the streaming cursor (in aggregateCursor()'s batches) the
-        // moment anything calls Cursor.getSize()/JCR's RowIterator.getSize() - a common
+        // Use a query-specific count instead of rows::getSize: the latter would fully
+        // drain the streaming cursor (in aggregateCursor()'s batches) the moment
+        // anything calls Cursor.getSize()/JCR's RowIterator.getSize() - a common
         // "N results found" UI pattern - even when the caller never intends to iterate
-        // all rows. $count is cheap (server-side count, no document bodies returned)
-        // and, unlike the unused getSizeEstimator(IndexPlan) override above, reflects
-        // this query's actual filter rather than the whole index's document count.
+        // all rows. countMatches() asks mongot for the match count through the search
+        // metadata rather than appending a $count stage, which would re-execute the
+        // query and drain every matching document from mongot into mongod.
         SizeEstimator sizeEstimator = () -> countMatches(collection, pipeline, definition);
         return new FulltextPathCursor(rows, NEVER_REWOUND, plan,
                 plan.getFilter().getQueryLimits(), sizeEstimator);
@@ -238,11 +238,50 @@ final class MongotIndex extends FulltextIndex {
     private static long countMatches(MongoCollection<Document> collection,
                                      List<Document> pipeline,
                                      MongotIndexDefinition definition) {
+        Document search = searchOnlyPipeline(pipeline);
+        if (search != null) {
+            // The count option is evaluated inside mongot and returned through the
+            // search metadata as a single document, without fetching or sorting any
+            // matching documents. Appending a $count stage to the pipeline instead
+            // would re-execute the query and stream every match from mongot into
+            // mongod just to count it.
+            Document searchMeta = new Document("$searchMeta",
+                    new Document(search).append("count",
+                            new Document("type", "total")));
+            try (MongoCursor<Document> cursor = aggregateCursor(collection,
+                    List.of(searchMeta), definition)) {
+                if (cursor.hasNext()) {
+                    Document count = cursor.next().get("count", Document.class);
+                    if (count != null && count.get("total") instanceof Number total) {
+                        return total.longValue();
+                    }
+                }
+                return 0L;
+            }
+        }
+        // The plan has stages after $search ($match filters or $sort) whose effect the
+        // search metadata cannot see, so count with a trailing $count stage. This
+        // still runs in mongod against the full result stream; pushing those stages
+        // into the search operator would let this path use the metadata count too.
         List<Document> countPipeline = new ArrayList<>(pipeline);
         countPipeline.add(new Document("$count", "n"));
         try (MongoCursor<Document> cursor = aggregateCursor(collection, countPipeline, definition)) {
             return cursor.hasNext() ? ((Number) cursor.next().get("n")).longValue() : 0L;
         }
+    }
+
+    /**
+     * Returns the {@code $search} stage when the pipeline is a bare
+     * {@code [$search, $project]} pair, i.e. when no post-search stage filters or
+     * reorders the matches and a metadata count would be exact; {@code null} otherwise.
+     */
+    private static Document searchOnlyPipeline(List<Document> pipeline) {
+        if (pipeline.size() == 2
+                && pipeline.get(0).containsKey("$search")
+                && pipeline.get(1).containsKey("$project")) {
+            return (Document) pipeline.get(0).get("$search");
+        }
+        return null;
     }
 
     private static Cursor cursor(List<FulltextResultRow> rows, IndexPlan plan) {
