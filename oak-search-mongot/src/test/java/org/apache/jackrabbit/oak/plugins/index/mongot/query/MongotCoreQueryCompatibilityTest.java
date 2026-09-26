@@ -120,6 +120,22 @@ public class MongotCoreQueryCompatibilityTest {
     }
 
     @Test
+    public void exactSizeOfABareSearchCountsInsideMongotWithoutACountStage() throws Exception {
+        String query = "select [jcr:path] from [nt:unstructured] as s where "
+                + "contains(s.[jcr:title], 'mongodb')";
+        long searchMetaStages = stageCount("$searchMeta");
+        long countStages = stageCount("$count");
+
+        assertEquals(4, repository.query(query, "JCR-SQL2")
+                .getSize(Result.SizePrecision.EXACT, Long.MAX_VALUE));
+
+        // The count comes from the search metadata, computed inside mongot, rather
+        // than from a re-executed pipeline that streams every hit into mongod.
+        assertEquals(searchMetaStages + 1, stageCount("$searchMeta"));
+        assertEquals(countStages, stageCount("$count"));
+    }
+
+    @Test
     public void orderingLimitOffsetAndResultSize() throws Exception {
         String query = "select [jcr:path] from [nt:unstructured] as s where "
                 + "contains(s.[jcr:title], 'mongodb') and isdescendantnode(s, '/content/site') "
