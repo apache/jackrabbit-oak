@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.plugins.index.mongot.MongotSearchConnectionRule
 import org.apache.jackrabbit.oak.plugins.index.mongot.MongotTestRepositoryBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.bson.Document;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -116,6 +117,29 @@ public class MongotCoreQueryCompatibilityTest {
                 repository.paths(base + "ischildnode(s, '/content/site') order by s.[price]", "JCR-SQL2"));
         assertEquals(List.of("/content/site/a", "/content/site/d", "/content/site/b"),
                 repository.paths(base + "isdescendantnode(s, '/content/site') order by s.[price]", "JCR-SQL2"));
+    }
+
+    @Test
+    public void exactSizeOfABareSearchCountsInsideMongotWithoutACountStage() throws Exception {
+        String query = "select [jcr:path] from [nt:unstructured] as s where "
+                + "contains(s.[jcr:title], 'mongodb')";
+        long searchMetaStages = stageCount("$searchMeta");
+        long countStages = stageCount("$count");
+
+        assertEquals(4, repository.query(query, "JCR-SQL2")
+                .getSize(Result.SizePrecision.EXACT, Long.MAX_VALUE));
+
+        // The count comes from the search metadata, computed inside mongot, rather
+        // than from a re-executed pipeline that streams every hit into mongod.
+        assertEquals(searchMetaStages + 1, stageCount("$searchMeta"));
+        assertEquals(countStages, stageCount("$count"));
+    }
+
+    private static long stageCount(String stage) {
+        Number count = mongo.getDatabase().runCommand(new Document("serverStatus", 1))
+                .get("metrics", Document.class).get("aggStageCounters", Document.class)
+                .get(stage, Number.class);
+        return count == null ? 0 : count.longValue();
     }
 
     @Test
