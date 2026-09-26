@@ -26,29 +26,46 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * {@code Cache} wrapper exposing the number of read accesses and the
- * number of misses ot the underlying cache via the {@link StatisticsProvider}.
+ * number of misses of the underlying cache via the {@link StatisticsProvider}.
  */
-public class CacheAccessTracker<K, V> implements Cache<K,V> {
+public class CacheAccessTracker<K, V> implements Cache<K, V> {
+    @NotNull
     private final Cache<K, V> delegate;
+    @NotNull
     private final CounterStats accessCount;
+    @NotNull
     private final CounterStats missCount;
+
+    /**
+     * Create a new wrapper exposing access statistics via the already registered
+     * {@code accessCount}/{@code missCount}, letting callers that construct many
+     * short-lived wrappers around the same kind of cache (e.g. one per record written)
+     * reuse already-registered statistics instead of re-registering them on every call.
+     */
+    public CacheAccessTracker(
+            @NotNull Cache<K, V> delegate,
+            @NotNull CounterStats accessCount,
+            @NotNull CounterStats missCount) {
+        this.delegate = delegate;
+        this.accessCount = accessCount;
+        this.missCount = missCount;
+    }
 
     /**
      * Create a new wrapper exposing the access statistics under the given
      * {@code name} to the passed {@code statisticsProvider}.
-     * @param name                 name under which to expose the access statistics
-     * @param statisticsProvider   statistics provider where the access statistics is recorded to
-     * @param delegate             the underlying, wrapped cache.
+     *
+     * @deprecated use {@link #CacheAccessTracker(Cache, CounterStats, CounterStats)}
+     * with registered counters instead.
      */
+    @Deprecated
     public CacheAccessTracker(
             @NotNull String name,
             @NotNull StatisticsProvider statisticsProvider,
             @NotNull Cache<K, V> delegate) {
-        this.delegate = delegate;
-        this.accessCount = statisticsProvider.getCounterStats(
-                name + ".access-count", StatsOptions.DEFAULT);
-        this.missCount = statisticsProvider.getCounterStats(
-                name + ".miss-count", StatsOptions.DEFAULT);
+        this(delegate,
+                statisticsProvider.getCounterStats(name + ".access-count", StatsOptions.DEFAULT),
+                statisticsProvider.getCounterStats(name + ".miss-count", StatsOptions.DEFAULT));
     }
 
     @Override
