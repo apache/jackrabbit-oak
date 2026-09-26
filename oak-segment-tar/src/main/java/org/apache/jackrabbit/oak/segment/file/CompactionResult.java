@@ -166,6 +166,15 @@ abstract class CompactionResult {
             RecordId getCompactedRootId() {
                 return compactedRootId;
             }
+
+            // A standalone cleanup() call (no compaction ran in this JVM) still needs to journal
+            // the GC state if the current head is already a compacted generation that was never
+            // recorded in this store's own gc.log - e.g. a cold standby that received a compacted
+            // head via sync and is now reclaiming the superseded generation locally.
+            @Override
+            boolean requiresGCJournalEntry() {
+                return currentGeneration.isCompacted();
+            }
         };
     }
 
