@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.plugins.index.mongot.MongotSearchConnectionRule
 import org.apache.jackrabbit.oak.plugins.index.mongot.MongotTestRepositoryBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.bson.Document;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -303,10 +302,7 @@ public class MongotCoreQueryCompatibilityTest {
     }
 
     private static long stageCount(String stage) {
-        Number count = mongo.getDatabase().runCommand(new Document("serverStatus", 1))
-                .get("metrics", Document.class).get("aggStageCounters", Document.class)
-                .get(stage, Number.class);
-        return count == null ? 0 : count.longValue();
+        return repository.stageCount(stage);
     }
 
     private static void assertMonotonic(List<Double> values, boolean ascending) {
