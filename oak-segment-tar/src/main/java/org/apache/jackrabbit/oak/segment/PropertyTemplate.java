@@ -71,13 +71,15 @@ public class PropertyTemplate implements Comparable<PropertyTemplate> {
 
     //--------------------------------------------------------< Comparable >--
 
+    private static final Comparator<PropertyTemplate> COMPARATOR =
+            Comparator.comparingInt(PropertyTemplate::hashCode)
+                    .thenComparing(PropertyTemplate::getName)
+                    .thenComparing(PropertyTemplate::getType);
+
     @Override
     public int compareTo(@NotNull PropertyTemplate template) {
         requireNonNull(template);
-        return Comparator.comparingInt(PropertyTemplate::hashCode)
-                .thenComparing(PropertyTemplate::getName)
-                .thenComparing(PropertyTemplate::getType)
-                .compare(this, template);
+        return COMPARATOR.compare(this, template);
     }
 
     //------------------------------------------------------------< Object >--

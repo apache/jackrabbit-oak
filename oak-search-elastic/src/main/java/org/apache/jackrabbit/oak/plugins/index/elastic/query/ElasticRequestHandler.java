@@ -36,6 +36,7 @@ import co.elastic.clients.elasticsearch.core.search.HighlightField;
 import co.elastic.clients.elasticsearch.core.search.InnerHits;
 import co.elastic.clients.elasticsearch.core.search.PhraseSuggester;
 import co.elastic.clients.json.JsonpUtils;
+import co.elastic.clients.util.NamedValue;
 import co.elastic.clients.util.ObjectBuilder;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -262,7 +263,7 @@ public class ElasticRequestHandler {
         //TODO with addition of :enricher status for inference. All documents will now have :enricher for inference enabled indexes.
         // as as result mlt is now returning all documents.
         // find a better way so that these fields can be easily managed.
-        List<String> keys = elasticIndexDefinition.getPropertiesByName().entrySet().stream().map(Map.Entry::getKey).collect(Collectors.toList());
+        List<String> keys = elasticIndexDefinition.getPropertiesByName().keySet().stream().toList();
         List<String> simFields = new ArrayList<>();
         keys.forEach(key -> {
                 simFields.add(key);
@@ -293,7 +294,7 @@ public class ElasticRequestHandler {
         }
         StringBuilder sb = new StringBuilder();
         for (String field : simFields) {
-            if (sb.length() > 0) {
+            if (!sb.isEmpty()) {
                 sb.append(",");
             }
             sb.append(field);
@@ -531,7 +532,7 @@ public class ElasticRequestHandler {
                 .field(FieldNames.SPELLCHECK)
                 .size(10)
                 .directGenerator(d -> d.field(FieldNames.SPELLCHECK).suggestMode(SuggestMode.Missing).size(10))
-                .collate(c -> c.query(q -> q.source(queryString.toString())))
+                .collate(c -> c.query(q -> q.source(ss -> ss.scriptString(queryString.toString()))))
         );
     }
 
@@ -777,7 +778,7 @@ public class ElasticRequestHandler {
                 final ElasticIndexDefinition.InferenceDefinition.Query query = q;
                 List<ElasticIndexDefinition.InferenceDefinition.Property> properties = elasticIndexDefinition.inferenceDefinition.properties.stream()
                         .filter(pd -> pd.model.equals(query.model))
-                        .collect(Collectors.toList());
+                        .toList();
                 if (!properties.isEmpty()) {
                     InferenceService inferenceService = InferenceServiceManager.getInstance(q.serviceUrl, q.model);
                     List<Float> embeddings = inferenceService.embeddings(queryText, (int) q.timeout);
@@ -950,14 +951,11 @@ public class ElasticRequestHandler {
             return null;
         }
 
-        Map<String, HighlightField> excerpts = indexPlan.getFilter().getPropertyRestrictions().stream()
+        List<NamedValue<HighlightField>> excerpts = indexPlan.getFilter().getPropertyRestrictions().stream()
                 .filter(pr -> pr.propertyName.startsWith(QueryConstants.REP_EXCERPT))
                 .map(this::excerptField)
                 .distinct()
-                .collect(Collectors.toMap(
-                        Function.identity(),
-                        field -> HighlightField.of(hf -> hf))
-                );
+                .map(f -> new NamedValue<>(f, HighlightField.of(hf -> hf))).toList();
 
         if (excerpts.isEmpty()) {
             return null;

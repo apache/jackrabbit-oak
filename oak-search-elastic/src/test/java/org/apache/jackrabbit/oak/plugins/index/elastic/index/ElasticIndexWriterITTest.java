@@ -35,11 +35,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.testcontainers.containers.ToxiproxyContainer;
+import org.testcontainers.toxiproxy.ToxiproxyContainer;
 import org.testcontainers.utility.DockerImageName;
+
+import java.io.IOException;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 
@@ -81,6 +84,12 @@ public class ElasticIndexWriterITTest {
         this.nodeStore = new MemoryNodeStore(INITIAL_CONTENT);
     }
 
+    @After
+    public void tearDown() throws IOException {
+        if (toxiproxy.isRunning()) {
+            toxiproxy.stop();
+        }
+    }
 
     @Test
     public void writerRecoversFromDisconnection() throws Exception {
@@ -95,7 +104,7 @@ public class ElasticIndexWriterITTest {
         ElasticIndexDefinition definition = new ElasticIndexDefinition(root, nodeState, indexName, connection.getIndexPrefix());
         ElasticBulkProcessorHandler bulkProcessorHandler = new ElasticBulkProcessorHandler(connection);
         bulkProcessorHandler.registerIndex(connection.getIndexPrefix() + "." + indexName, definition, builder.child("oak:index").getChildNode(indexName), CommitInfo.EMPTY, false);
-        ElasticIndexWriter writer = new ElasticIndexWriter(indexTracker, connection, definition, bulkProcessorHandler,
+        ElasticIndexWriter writer = new EagerElasticIndexWriter(indexTracker, connection, definition, bulkProcessorHandler,
                 new ElasticRetryPolicy(10, 1000, 5, 100), false
         );
 

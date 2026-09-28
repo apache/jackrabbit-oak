@@ -101,6 +101,46 @@ public final class Validate {
     }
 
     /**
+     * Checks the specified expression. Overload for integral primitives to avoid autoboxing.
+     *
+     * @param expression
+     *            to check
+     * @param messageTemplate
+     *            to use in exception (using {@link String#format} syntax)
+     * @param arg
+     *            the single message argument
+     * @throws IllegalArgumentException
+     *             when false
+     */
+    public static void checkArgument(boolean expression, @NotNull String messageTemplate, long arg) {
+        if (expression && !CHECKMESSAGETEMPLATE) {
+            Objects.requireNonNull(messageTemplate);
+        } else {
+            checkArgument(expression, messageTemplate, (Object) arg);
+        }
+    }
+
+    /**
+     * Checks the specified expression. Overload for floating-point primitives to avoid autoboxing.
+     *
+     * @param expression
+     *            to check
+     * @param messageTemplate
+     *            to use in exception (using {@link String#format} syntax)
+     * @param arg
+     *            the single message argument
+     * @throws IllegalArgumentException
+     *             when false
+     */
+    public static void checkArgument(boolean expression, @NotNull String messageTemplate, double arg) {
+        if (expression && !CHECKMESSAGETEMPLATE) {
+            Objects.requireNonNull(messageTemplate);
+        } else {
+            checkArgument(expression, messageTemplate, (Object) arg);
+        }
+    }
+
+    /**
      * Checks whether the specified expression is true
      *
      * @param expression expression to checks

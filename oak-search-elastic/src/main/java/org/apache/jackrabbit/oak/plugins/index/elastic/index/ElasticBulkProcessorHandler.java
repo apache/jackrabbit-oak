@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 import co.elastic.clients.elasticsearch._helpers.bulk.BulkIngester;
 import co.elastic.clients.elasticsearch._helpers.bulk.BulkListener;
 import co.elastic.clients.elasticsearch._types.ErrorCause;
+import co.elastic.clients.elasticsearch._types.ScriptSource;
 import co.elastic.clients.elasticsearch.core.BulkRequest;
 import co.elastic.clients.elasticsearch.core.BulkResponse;
 import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
@@ -260,7 +261,7 @@ public class ElasticBulkProcessorHandler {
             // Add the update operation with the script
             add(BulkOperation.of(op -> op.update(uf ->
                             uf.index(indexName).id(id).action(uaf ->
-                                    uaf.script(s -> s.source(script.toString()).params("document", JsonData.of(document)))
+                                    uaf.script(s -> s.source(ScriptSource.of(ss -> ss.scriptString(script.toString()))).params("document", JsonData.of(document)))
                                             .upsert(document)))),
                     context);
         }

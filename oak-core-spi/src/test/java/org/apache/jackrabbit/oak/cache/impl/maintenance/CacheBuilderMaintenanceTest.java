@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.cache.impl;
+package org.apache.jackrabbit.oak.cache.impl.maintenance;
 
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;

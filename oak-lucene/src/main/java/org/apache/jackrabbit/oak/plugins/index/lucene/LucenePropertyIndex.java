@@ -732,7 +732,24 @@ public class LucenePropertyIndex extends FulltextIndex {
 
     @Override
     protected LuceneIndexNode acquireIndexNode(String indexPath) {
-        if (NON_LAZY) {
+        return acquireIndexNode(indexPath, NON_LAZY);
+    }
+
+    /**
+     * Package-private so tests can exercise the lazy-index branch directly,
+     * by passing {@code nonLazy=false}, instead of depending on the
+     * {@code oak.lucene.nonLazyIndex} system property - which {@link #NON_LAZY}
+     * only ever reads once, the first time this class is loaded in the JVM.
+     */
+    LuceneIndexNode acquireIndexNode(String indexPath, boolean nonLazy) {
+        if (nonLazy) {
+            return tracker.acquireIndexNode(indexPath);
+        }
+        if (!tracker.isIndexReady(indexPath)) {
+            // Try to open the index now, instead of returning a lazy
+            // placeholder. The placeholder always looks fine at first, so a
+            // broken index would only show up as a confusing error later,
+            // when a query tries to actually read from it.
             return tracker.acquireIndexNode(indexPath);
         }
         return new LazyLuceneIndexNode(tracker, indexPath);

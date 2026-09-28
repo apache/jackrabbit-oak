@@ -18,18 +18,23 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import co.elastic.clients.elasticsearch.ElasticsearchAsyncClient;
 import co.elastic.clients.transport.ElasticsearchTransport;
-import org.apache.http.Header;
-import org.apache.http.HttpHost;
-import org.apache.http.message.BasicHeader;
-import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.RestClientBuilder;
+import co.elastic.clients.transport.instrumentation.NoopInstrumentation;
+import co.elastic.clients.transport.rest5_client.Rest5ClientTransport;
+import co.elastic.clients.transport.rest5_client.low_level.Rest5Client;
+import co.elastic.clients.transport.rest5_client.low_level.Rest5ClientBuilder;
+import org.apache.jackrabbit.oak.plugins.index.elastic.internal.ElasticFeatureToggles;
+import org.apache.hc.client5.http.config.TlsConfig;
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.hc.core5.http2.HttpVersionPolicy;
+import org.apache.hc.core5.util.Timeout;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
-import co.elastic.clients.transport.rest_client.RestClientTransport;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -67,11 +72,20 @@ public class ElasticConnection implements Closeable {
     protected static final int DEFAULT_MAX_RETRY_TIME = 0;
     protected static final int ES_SOCKET_TIMEOUT = 120000;
 
+    // see ElasticFeatureToggles.FT_OAK_12366
+    static final TlsConfig HTTP1_TLS_CONFIG = TlsConfig.custom()
+            .setVersionPolicy(HttpVersionPolicy.FORCE_HTTP_1)
+            .build();
+
     /**
      * Feature toggle for OAK-12234: process Elastic async responses on a dedicated executor instead of the JDK
      * {@link ForkJoinPool#commonPool() common pool}. Enabled by default (bug fix). When the toggle is flipped the
      * shared {@link #FT_OAK_12234_DISABLE} flag is set to {@code true} and response handling falls back to the common
      * pool, restoring the previous behaviour.
+     * <p>
+     * Note: this toggle predates the convention (see {@link ElasticFeatureToggles}) of keeping feature toggle flags
+     * out of exported packages, and has already shipped in a release, so it cannot be moved without breaking the
+     * OSGi API baseline. Do not add new toggles here -- use {@link ElasticFeatureToggles} instead.
      */
     public static final String FT_OAK_12234 = "FT_OAK-12234";
     public static final AtomicBoolean FT_OAK_12234_DISABLE = new AtomicBoolean(false);
@@ -135,22 +149,26 @@ public class ElasticConnection implements Closeable {
         if (clients == null) {
             synchronized (this) {
                 if (clients == null) {
-                    RestClientBuilder builder = RestClient.builder(new HttpHost(host, port, scheme));
+                    Rest5ClientBuilder builder = Rest5Client.builder(new HttpHost(scheme, host, port));
                     if (apiKeyId != null && !apiKeyId.isEmpty() &&
                             apiKeySecret != null && !apiKeySecret.isEmpty()) {
                         String apiKeyAuth = Base64.getEncoder().encodeToString(
                                 (apiKeyId + ":" + apiKeySecret).getBytes(StandardCharsets.UTF_8)
                         );
-                        Header[] headers = new Header[]{new BasicHeader("Authorization", "ApiKey " + apiKeyAuth)};
-                        builder.setDefaultHeaders(headers);
+                        builder.setDefaultHeaders(new Header[]{new BasicHeader("Authorization", "ApiKey " + apiKeyAuth)});
                     }
-                    builder.setRequestConfigCallback(
-                            requestConfigBuilder -> requestConfigBuilder.setSocketTimeout(ES_SOCKET_TIMEOUT));
+                    builder.setConnectionConfigCallback(
+                            connectConf -> connectConf.setSocketTimeout(Timeout.ofMilliseconds(ES_SOCKET_TIMEOUT))
+                    );
+                    if (!ElasticFeatureToggles.FT_OAK_12366_DISABLE.get()) {
+                        builder.setConnectionManagerCallback(connManager ->
+                                connManager.setDefaultTlsConfig(HTTP1_TLS_CONFIG));
+                    }
 
-                    RestClient httpClient = builder.build();
+                    Rest5Client httpClient = builder.build();
 
-                    ElasticsearchTransport transport = new RestClientTransport(
-                            httpClient, new JacksonJsonpMapper());
+                    ElasticsearchTransport transport = new Rest5ClientTransport(
+                            httpClient, new JacksonJsonpMapper(), null, NoopInstrumentation.INSTANCE);
                     ElasticsearchClient esClient = new ElasticsearchClient(transport);
                     ElasticsearchAsyncClient esAsyncClient = new ElasticsearchAsyncClient(transport);
                     clients = new Clients(esClient, esAsyncClient);

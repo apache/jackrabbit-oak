@@ -501,6 +501,15 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
     }
 
     @Test
+    public void testXmlNameCharsInPathAreQueryable() throws Exception {
+        root.getTree("/").addChild("content").addChild("m\u00b7d").addChild("child");
+        root.commit();
+
+        assertQuery("/jcr:root/content/m\u00b7d/element(*, nt:base)", "xpath",
+                List.of("/content/m\u00b7d/child"));
+    }
+
+    @Test
     public void testLowercaseOnArrays() throws Exception {
         // OAK-1829
         Tree content = root.getTree("/").addChild("content");

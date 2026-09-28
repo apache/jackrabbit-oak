@@ -73,6 +73,11 @@ public class FulltextIndexPlanner {
     public static final int DEFAULT_PROPERTY_WEIGHT = Integer.getInteger("oak.fulltext.defaultPropertyWeight", 5);
 
     /**
+     * Upper bound for the direct-children (ISCHILDNODE) cost estimate (OAK-12401).
+     */
+    static final int DIRECT_CHILDREN_ESTIMATE_CAP = 1000;
+
+    /**
      * Default weight used for null/not-null cost estimation when no explicit weight is configured.
      * Corresponds to the heuristic that such conditions match ~20% of indexed entries.
      */
@@ -106,6 +111,16 @@ public class FulltextIndexPlanner {
      * Default is {@code false} (feature disabled). Wired to {@link #FT_OAK_12221} at runtime.
      */
     public static final AtomicBoolean FT_OAK_12221_ENABLE = new AtomicBoolean(false);
+
+    /**
+     * Feature toggle for OAK-12401: caps the direct-children (ISCHILDNODE) cost estimate at 1000.
+     */
+    public static final String FT_OAK_12401 = "FT_OAK-12401";
+
+    /**
+     * Kill switch for the OAK-12401 cap; {@code true} reverts to the uncapped {@code minNumDocs / 2}.
+     */
+    public static final AtomicBoolean FT_OAK_12401_DISABLE = new AtomicBoolean(false);
 
     /**
      * IndexPlan Attribute name which refers to the name of the fields that should be used for facets.
@@ -960,8 +975,8 @@ public class FulltextIndexPlanner {
                 // then the result size is at most 1.
                 minNumDocs = 1;
             } else if (pathRestriction == PathRestriction.DIRECT_CHILDREN) {
-                // We restrict to direct children: assume at most 50% are there.
-                minNumDocs /= 2;
+                // We restrict to direct children: assume at most 50%, but at most 1000 (OAK-12401).
+                minNumDocs = FT_OAK_12401_DISABLE.get() ? minNumDocs / 2 : Math.min(minNumDocs / 2, DIRECT_CHILDREN_ESTIMATE_CAP);
             } else if (pathRestriction != PathRestriction.NO_RESTRICTION) {
                 // Other restriction: assume at most 90%.
                 // This is important if we have
@@ -1079,7 +1094,8 @@ public class FulltextIndexPlanner {
             if (pathRestriction == PathRestriction.EXACT || pathRestriction == PathRestriction.PARENT) {
                 minNumDocs = 1;
             } else if (pathRestriction == PathRestriction.DIRECT_CHILDREN) {
-                minNumDocs /= 2;
+                // direct children: at most 50%, but at most 1000 (OAK-12401)
+                minNumDocs = FT_OAK_12401_DISABLE.get() ? minNumDocs / 2 : Math.min(minNumDocs / 2, DIRECT_CHILDREN_ESTIMATE_CAP);
             } else if (pathRestriction != PathRestriction.NO_RESTRICTION) {
                 minNumDocs = (int) (minNumDocs * 0.9);
             }

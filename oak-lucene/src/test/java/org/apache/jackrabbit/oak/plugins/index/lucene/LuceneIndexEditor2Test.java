@@ -69,11 +69,13 @@ public class LuceneIndexEditor2Test {
     @Before
     public void resetToggles() {
         FulltextIndexEditor.FT_OAK_12244_DISABLE.set(false);
+        FulltextIndexEditor.FT_OAK_12365_DISABLE.set(false);
     }
 
     @After
     public void restoreToggles() {
         FulltextIndexEditor.FT_OAK_12244_DISABLE.set(false);
+        FulltextIndexEditor.FT_OAK_12365_DISABLE.set(false);
     }
 
     private final NodeState root = INITIAL_CONTENT;
@@ -306,6 +308,120 @@ public class LuceneIndexEditor2Test {
         builder.child("a").removeProperty(JcrConstants.JCR_MIXINTYPES);
         hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
         assertFalse("Mixin tracking disabled: removing mixin should not trigger deleteDocument", writer.deletedPaths.contains("/a"));
+    }
+
+    @Test
+    public void nodeLosesLastAggregatedPropertyTriggersDocumentDeletion() throws Exception {
+        // OAK-12365: root's rule/type is unchanged; only the aggregated child content disappears.
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("jcr:content/status").propertyIndex();
+        defnb.aggregateRule("nt:base").include("*");
+
+        NodeState defnState = defnb.build();
+        IndexDefinition defn = new IndexDefinition(root, defnState, indexPath);
+        LuceneIndexEditorContext ctx = newContext(defnState.builder(), defn, true);
+        EditorHook hook = createHook(ctx);
+
+        updateBefore(defnb);
+
+        // Commit 1: aggregated child property present — root must be indexed
+        NodeBuilder builder = before.builder();
+        builder.child("a").child("jcr:content").setProperty("status", "published");
+        before = hook.processCommit(root, builder.getNodeState(), CommitInfo.EMPTY);
+        assertTrue("Root with aggregated property should be indexed", writer.docs.containsKey("/a"));
+
+        // Commit 2: last aggregated property removed, root's own rule/type unchanged —
+        // stale root document must be deleted
+        builder = before.builder();
+        builder.child("a").child("jcr:content").removeProperty("status");
+        hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+        assertTrue("Removing the last aggregated property should trigger deleteDocument for the root",
+                writer.deletedPaths.contains("/a"));
+    }
+
+    @Test
+    public void nodeLosesLastAggregatedPropertyTriggersDocumentDeletionWhenMixinToggleDisabled() throws Exception {
+        // Fix lives in addOrUpdate(), so it also covers the legacy (FT_OAK_12244 disabled) path.
+        FulltextIndexEditor.FT_OAK_12244_DISABLE.set(true);
+
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("jcr:content/status").propertyIndex();
+        defnb.aggregateRule("nt:base").include("*");
+
+        NodeState defnState = defnb.build();
+        IndexDefinition defn = new IndexDefinition(root, defnState, indexPath);
+        LuceneIndexEditorContext ctx = newContext(defnState.builder(), defn, true);
+        EditorHook hook = createHook(ctx);
+
+        updateBefore(defnb);
+
+        // Commit 1: aggregated child property present — root must be indexed
+        NodeBuilder builder = before.builder();
+        builder.child("a").child("jcr:content").setProperty("status", "published");
+        before = hook.processCommit(root, builder.getNodeState(), CommitInfo.EMPTY);
+        assertTrue("Root with aggregated property should be indexed", writer.docs.containsKey("/a"));
+
+        // Commit 2: last aggregated property removed — stale root document must still be
+        // deleted even with mixin-transition tracking disabled
+        builder = before.builder();
+        builder.child("a").child("jcr:content").removeProperty("status");
+        hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+        assertTrue("Removing the last aggregated property should trigger deleteDocument regardless of FT_OAK_12244",
+                writer.deletedPaths.contains("/a"));
+    }
+
+    @Test
+    public void nodeLosesLastAggregatedPropertyDoesNotTriggerDeletionWhenOak12365ToggleDisabled() throws Exception {
+        FulltextIndexEditor.FT_OAK_12365_DISABLE.set(true);
+
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("jcr:content/status").propertyIndex();
+        defnb.aggregateRule("nt:base").include("*");
+
+        NodeState defnState = defnb.build();
+        IndexDefinition defn = new IndexDefinition(root, defnState, indexPath);
+        LuceneIndexEditorContext ctx = newContext(defnState.builder(), defn, true);
+        EditorHook hook = createHook(ctx);
+
+        updateBefore(defnb);
+
+        NodeBuilder builder = before.builder();
+        builder.child("a").child("jcr:content").setProperty("status", "published");
+        before = hook.processCommit(root, builder.getNodeState(), CommitInfo.EMPTY);
+        assertTrue("Root with aggregated property should be indexed", writer.docs.containsKey("/a"));
+
+        builder = before.builder();
+        builder.child("a").child("jcr:content").removeProperty("status");
+        hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+        assertFalse("OAK-12365 disabled: removing the last aggregated property should not trigger deleteDocument",
+                writer.deletedPaths.contains("/a"));
+    }
+
+    @Test
+    public void nodeKeepsOneOfMultipleAggregatedPropertiesDoesNotTriggerDeletion() throws Exception {
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("jcr:content/status").propertyIndex();
+        defnb.indexRule("nt:base").property("jcr:content/type").propertyIndex();
+        defnb.aggregateRule("nt:base").include("*");
+
+        NodeState defnState = defnb.build();
+        IndexDefinition defn = new IndexDefinition(root, defnState, indexPath);
+        LuceneIndexEditorContext ctx = newContext(defnState.builder(), defn, true);
+        EditorHook hook = createHook(ctx);
+
+        updateBefore(defnb);
+
+        NodeBuilder builder = before.builder();
+        builder.child("a").child("jcr:content").setProperty("status", "published");
+        builder.child("a").child("jcr:content").setProperty("type", "page");
+        before = hook.processCommit(root, builder.getNodeState(), CommitInfo.EMPTY);
+        assertTrue("Root with aggregated properties should be indexed", writer.docs.containsKey("/a"));
+
+        builder = before.builder();
+        builder.child("a").child("jcr:content").removeProperty("status");
+        hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+        assertFalse("Removing one of several aggregated properties should not delete the root document",
+                writer.deletedPaths.contains("/a"));
     }
 
     private void updateBefore(LuceneIndexDefinitionBuilder defnb) {

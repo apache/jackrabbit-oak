@@ -25,8 +25,8 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument
 import org.apache.jackrabbit.oak.plugins.document.util.Utils
-import org.codehaus.groovy.tools.shell.CommandSupport
-import org.codehaus.groovy.tools.shell.Groovysh
+import org.apache.groovy.groovysh.CommandSupport
+import org.apache.groovy.groovysh.Groovysh
 import groovy.cli.picocli.CliBuilder
 
 class ExportRelevantDocumentsCommand extends CommandSupport {
