@@ -58,18 +58,41 @@ public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchi
     @Override
     public void writeSegment(long msb, long lsb, @NotNull byte[] data, int offset, int size, int generation,
             int fullGeneration, boolean compacted) throws IOException {
-        created = true;
+        RemoteSegmentArchiveEntry entry = newEntry(msb, lsb, size, generation, fullGeneration, compacted);
+        writeArchiveEntry(entry, data, offset, size);
+        addEntry(entry);
+        monitor.written(size);
+    }
 
-        RemoteSegmentArchiveEntry entry = new RemoteSegmentArchiveEntry(msb, lsb, entries++, size, generation, fullGeneration, compacted);
+    @Override
+    public void recoverSegment(long msb, long lsb, @NotNull byte[] data, int offset, int size, int generation,
+            int fullGeneration, boolean compacted) throws IOException {
+        RemoteSegmentArchiveEntry entry = newEntry(msb, lsb, size, generation, fullGeneration, compacted);
+        if (!doTryReuseArchiveEntry(entry)) {
+            writeArchiveEntry(entry, data, offset, size);
+            monitor.written(size);
+        }
+        addEntry(entry);
+    }
+
+    private RemoteSegmentArchiveEntry newEntry(long msb, long lsb, int size, int generation, int fullGeneration,
+            boolean compacted) {
+        created = true;
+        return new RemoteSegmentArchiveEntry(msb, lsb, entries++, size, generation, fullGeneration, compacted);
+    }
+
+    private void addEntry(RemoteSegmentArchiveEntry entry) {
+        index.put(entry.getUuid(), entry);
+        totalLength += entry.getLength();
+    }
+
+    private void writeArchiveEntry(RemoteSegmentArchiveEntry entry, byte[] data, int offset, int size)
+            throws IOException {
         if (queue.isPresent()) {
             queue.get().addToQueue(entry, data, offset, size);
         } else {
             doWriteArchiveEntry(entry, data, offset, size);
         }
-        index.put(entry.getUuid(), entry);
-
-        totalLength += size;
-        monitor.written(size);
     }
 
     @Override
@@ -160,6 +183,16 @@ public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchi
     @Override
     public int getMaxEntryCount() {
         return RemoteUtilities.MAX_ENTRY_COUNT;
+    }
+
+    /**
+     * Attempts to reuse an existing segment during recovery.
+     *
+     * @param indexEntry the archive index entry to recover
+     * @return {@code true} if the segment already exists and can be reused
+     */
+    protected boolean doTryReuseArchiveEntry(RemoteSegmentArchiveEntry indexEntry) throws IOException {
+        return false;
     }
 
     /**
