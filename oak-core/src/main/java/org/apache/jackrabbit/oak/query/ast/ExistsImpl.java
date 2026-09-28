@@ -127,4 +127,20 @@ public class ExistsImpl extends DynamicOperandImpl {
         return null;
     }
 
+    @Override
+    public int hashCode() {
+        return operand.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+        if (this == that) {
+            return true;
+        } else if (that instanceof ExistsImpl) {
+            return operand.equals(((ExistsImpl) that).operand);
+        } else {
+            return false;
+        }
+    }
+
 }

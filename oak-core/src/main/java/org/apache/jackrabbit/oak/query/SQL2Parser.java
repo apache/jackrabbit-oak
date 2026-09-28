@@ -689,7 +689,7 @@ public class SQL2Parser {
 
     private DynamicOperandImpl parseDynamicOperand() throws ParseException {
         if (currentTokenType == VALUE) {
-            // a literal or null, for example "if([alias], path(), null)"
+            // a literal or null
             PropertyValue v = currentValue;
             read();
             return factory.literalOperand(v, escapeStringLiteral(v.getValue(Type.STRING)));

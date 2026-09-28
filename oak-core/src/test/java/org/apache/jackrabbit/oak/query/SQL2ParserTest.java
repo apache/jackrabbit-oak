@@ -172,9 +172,14 @@ public class SQL2ParserTest {
     @Test
     public void testCoalesceWithStringLiteral() throws ParseException {
         // a literal is a valid dynamic operand anywhere, not just for op()
-        p.parse("SELECT * FROM [nt:base] WHERE COALESCE([a], 'default')='default'");
-
-        p.parse("SELECT * FROM [nt:base] WHERE COALESCE('default', [a])='default'");
+        Query q = p.parse("SELECT * FROM [nt:base] WHERE COALESCE([a], 'default')='default'");
+        assertEquals("select [nt:base].[jcr:primaryType] as [nt:base.jcr:primaryType] " +
+                "from [nt:base] as [nt:base] " +
+                "where coalesce([nt:base].[a], 'default') = 'default'", q.toString());
+        q = p.parse("SELECT * FROM [nt:base] WHERE COALESCE('default', [a])='default'");
+        assertEquals("select [nt:base].[jcr:primaryType] as [nt:base.jcr:primaryType] " +
+                "from [nt:base] as [nt:base] " +
+                "where coalesce('default', [nt:base].[a]) = 'default'", q.toString());
     }
 
     @Test
@@ -225,13 +230,22 @@ public class SQL2ParserTest {
 
     @Test
     public void testExists() throws ParseException {
-        p.parse("SELECT * FROM [nt:base] WHERE EXISTS([alias])=true");
+        Query q = p.parse("SELECT * FROM [nt:base] WHERE EXISTS([alias])=true");
+        assertEquals("select [nt:base].[jcr:primaryType] as [nt:base.jcr:primaryType] " +
+                "from [nt:base] as [nt:base] " +
+                "where exists([nt:base].[alias]) = cast('true' as boolean)", q.toString());
 
-        p.parse("SELECT * FROM [nt:base] WHERE EXISTS(UPPER([alias]))=true");
+        q = p.parse("SELECT * FROM [nt:base] WHERE EXISTS(UPPER([alias]))=true");
+        assertEquals("select [nt:base].[jcr:primaryType] as [nt:base.jcr:primaryType] " +
+                "from [nt:base] as [nt:base] " +
+                "where exists(upper([nt:base].[alias])) = cast('true' as boolean)", q.toString());
 
         // XPath uses the "jcr:" prefix
-        p.parse(new XPathToSQL2Converter()
+        q = p.parse(new XPathToSQL2Converter()
                 .convert("//*[jcr:exists(@alias) = true()]"));
+        assertEquals("select [a].[jcr:path] as [jcr:path], [a].[jcr:score] as [jcr:score], [a].[jcr:primaryType] as [a.jcr:primaryType] " +
+                "from [nt:base] as [a] " +
+                "where exists([a].[alias]) = cast('true' as boolean)", q.toString());
     }
 
     @Test(expected = ParseException.class)

@@ -24,6 +24,7 @@ import java.util.Set;
 
 import javax.jcr.PropertyType;
 
+import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
@@ -109,6 +110,23 @@ public class LiteralOperandImpl extends DynamicOperandImpl {
     @Override
     public OrderEntry getOrderEntry(SelectorImpl s, OrderingImpl o) {
         return null;
+    }
+
+    @Override
+    public boolean equals(Object that) {
+        if (this == that) {
+            return true;
+        } else if (that instanceof LiteralOperandImpl) {
+            LiteralOperandImpl t = (LiteralOperandImpl) that;
+            return value.equals(t.value) && functionToken.equals(t.functionToken);
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(value, functionToken);
     }
 
 }

@@ -23,6 +23,7 @@ import java.util.Set;
 
 import javax.jcr.PropertyType;
 
+import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
@@ -144,6 +145,25 @@ public class IfImpl extends DynamicOperandImpl {
                 OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);
         }
         return null;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(condition, trueValue, falseValue);
+    }
+
+    @Override
+    public boolean equals(Object that) {
+        if (this == that) {
+            return true;
+        } else if (that instanceof IfImpl) {
+            IfImpl t = (IfImpl) that;
+            return condition.equals(t.condition)
+                    && trueValue.equals(t.trueValue)
+                    && falseValue.equals(t.falseValue);
+        } else {
+            return false;
+        }
     }
 
 }
