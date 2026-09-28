@@ -42,17 +42,18 @@ public final class MongotSearchIndexManager {
     }
 
     public void ensureSearchIndex(MongotIndexDefinition definition) {
-        ensureSearchIndex(definition, definition.getCollectionName());
+        ensureSearchIndex(definition, definition.getCollectionName(), false);
     }
 
-    void ensureSearchIndex(MongotIndexDefinition definition, String collectionName) {
+    void ensureSearchIndex(MongotIndexDefinition definition, String collectionName,
+                           boolean nextGeneration) {
         if (!connection.getDatabase().listCollectionNames().into(new ArrayList<>())
                 .contains(collectionName)) {
             connection.getDatabase().createCollection(collectionName);
         }
         ensureSynonyms(definition);
         MongoCollection<Document> collection = connection.getDatabase().getCollection(collectionName);
-        Document desiredDefinition = MongotSearchIndexDefinitionBuilder.build(definition);
+        Document desiredDefinition = MongotSearchIndexDefinitionBuilder.build(definition, nextGeneration);
         for (Document index : collection.listSearchIndexes()) {
             if (definition.getSearchIndexName().equals(index.getString("name"))) {
                 Document latestDefinition = index.get("latestDefinition", Document.class);

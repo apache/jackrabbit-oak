@@ -39,6 +39,7 @@ import org.junit.Test;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class MongotCoreQueryCompatibilityTest {
@@ -166,6 +167,7 @@ public class MongotCoreQueryCompatibilityTest {
     @Test
     public void indexingCycleKeepsTheSearchIndexQueryable() throws Exception {
         Document before = repository.collection().listSearchIndexes().first();
+        assertNotNull(before.toJson(), before.get("latestVersion"));
 
         repository.mutate(root -> root.child("unrelated")
                 .setProperty(JCR_PRIMARYTYPE, "nt:unstructured", Type.NAME)

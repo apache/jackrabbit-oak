@@ -101,7 +101,7 @@ public final class MongotIndexWriter implements FulltextIndexWriter<MongoDocumen
     @Override
     public boolean close(long timestamp) throws IOException {
         if (updated) {
-            searchIndexManager.ensureSearchIndex(definition, collectionName);
+            searchIndexManager.ensureSearchIndex(definition, collectionName, reindex);
             if (reindex) {
                 searchIndexManager.awaitSearchIndexReady(definition, collectionName);
             }
@@ -111,6 +111,10 @@ public final class MongotIndexWriter implements FulltextIndexWriter<MongoDocumen
             if (reindex) {
                 definitionBuilder.setProperty(
                         MongotIndexDefinition.PROP_COLLECTION_SEED, collectionSeed);
+                definitionBuilder.setProperty(MongotIndexDefinition.PROP_SERVED_STORED_SOURCE,
+                        definition.isStoredSource(true));
+                definitionBuilder.setProperty(MongotIndexDefinition.PROP_SERVED_FULL_TEXT_STORED,
+                        definition.isFullTextStored(true));
             }
         }
         return updated;

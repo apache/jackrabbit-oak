@@ -47,8 +47,7 @@ public final class MongoFieldNames {
     // Every field the query pipeline reads on mongod after $search. Storing these on mongot
     // lets queries skip loading full documents, whose full-text fields are the large part.
     public static final List<String> POST_SEARCH_FIELDS = List.of(PATH, PARENT, ANCESTORS,
-            DEPTH, PRIMARY_TYPE, MIXIN_TYPES, NULL_PROPERTIES, NOT_NULL_PROPERTIES, TYPED,
-            ORDERED, FACET);
+            DEPTH, PRIMARY_TYPE, MIXIN_TYPES, NULL_PROPERTIES, TYPED, ORDERED, FACET);
 
     private static final Base64.Encoder PROPERTY_ENCODER = Base64.getUrlEncoder().withoutPadding();
 

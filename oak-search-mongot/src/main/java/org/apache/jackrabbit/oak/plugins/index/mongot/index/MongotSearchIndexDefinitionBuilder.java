@@ -69,6 +69,10 @@ final class MongotSearchIndexDefinitionBuilder {
     }
 
     static Document build(MongotIndexDefinition definition) {
+        return build(definition, false);
+    }
+
+    static Document build(MongotIndexDefinition definition, boolean nextGeneration) {
         Analyzer analyzer = analyzer(definition.getDefinitionNodeState());
         Document fields = new Document();
         fields.append(MongoFieldNames.SYNC_TOKEN, new Document("type", "token"));
@@ -86,7 +90,7 @@ final class MongotSearchIndexDefinitionBuilder {
         if (definition.isSpellcheckEnabled()) {
             fields.append(MongoFieldNames.SPELLCHECK, new Document("type", "string"));
         }
-        if (!definition.isFullTextStored()) {
+        if (!definition.isFullTextStored(nextGeneration)) {
             Document fullText = new Document("type", "string").append("store", false);
             if (analyzer.name() != null) {
                 fullText.append("analyzer", analyzer.name())
@@ -111,7 +115,7 @@ final class MongotSearchIndexDefinitionBuilder {
             mappings.append("fields", fields);
         }
         Document result = new Document("mappings", mappings);
-        if (definition.isStoredSource()) {
+        if (definition.isStoredSource(nextGeneration)) {
             // Mongot reports the include list sorted. Emitting the same order keeps
             // MongotSearchIndexManager from resubmitting, and so rebuilding, the index.
             result.append("storedSource", new Document("include",

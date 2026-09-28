@@ -39,6 +39,8 @@ public final class MongotIndexDefinition extends IndexDefinition {
     public static final String QUERY_FETCH_SIZES = "queryFetchSizes";
     public static final String QUERY_TIMEOUT_MS = "queryTimeoutMs";
     public static final String STORED_SOURCE = "storedSource";
+    public static final String PROP_SERVED_STORED_SOURCE = ":storedSource";
+    public static final String PROP_SERVED_FULL_TEXT_STORED = ":fullTextStored";
 
     private static final int[] DEFAULT_QUERY_FETCH_SIZES = {10, 100, 1000};
     private static final long DEFAULT_QUERY_TIMEOUT_MILLIS = 60_000L;
@@ -48,7 +50,9 @@ public final class MongotIndexDefinition extends IndexDefinition {
     private final String searchIndexName;
     private final int[] queryFetchSizes;
     private final long queryTimeoutMillis;
+    private final boolean storedSourceRequested;
     private final boolean storedSource;
+    private final boolean fullTextStoredRequested;
     private final boolean fullTextStored;
 
     public MongotIndexDefinition(NodeState root, NodeState definition, String indexPath) {
@@ -64,13 +68,18 @@ public final class MongotIndexDefinition extends IndexDefinition {
         if (queryTimeoutMillis <= 0) {
             throw new IllegalArgumentException(QUERY_TIMEOUT_MS + " must be positive");
         }
-        // Read from the stored definition, which only changes on reindex: Mongot rejects
-        // returnStoredSource against a search index that was built without storedSource.
-        this.storedSource = getDefinitionNodeState().getBoolean(STORED_SOURCE);
+        this.storedSourceRequested = definition.getBoolean(STORED_SOURCE);
+        // Mongot rejects returnStoredSource against a search index built without storedSource,
+        // and highlighting against a full-text field it does not store. The served values change
+        // only when a reindex publishes a new collection generation.
+        this.storedSource = definition.getBoolean(PROP_SERVED_STORED_SOURCE);
         // Mongot reads a hit's stored fields together, so a stored copy of the large full-text
         // field makes stored-source reads slower than document lookups. Keep it only when
         // excerpts need it for highlighting.
-        this.fullTextStored = !storedSource || hasExcerptProperties();
+        this.fullTextStoredRequested = !storedSourceRequested || hasExcerptProperties();
+        this.fullTextStored = definition.hasProperty(PROP_SERVED_FULL_TEXT_STORED)
+                ? definition.getBoolean(PROP_SERVED_FULL_TEXT_STORED)
+                : !storedSource;
     }
 
     public String getCollectionName() {
@@ -97,12 +106,26 @@ public final class MongotIndexDefinition extends IndexDefinition {
         return queryTimeoutMillis;
     }
 
+    /** Whether the served collection generation stores its post-search fields. */
     public boolean isStoredSource() {
-        return storedSource;
+        return isStoredSource(false);
     }
 
+    /**
+     * @param nextGeneration {@code true} for the generation a reindex builds from the current
+     *                       definition, {@code false} for the served one
+     */
+    public boolean isStoredSource(boolean nextGeneration) {
+        return nextGeneration ? storedSourceRequested : storedSource;
+    }
+
+    /** Whether the served collection generation stores the full-text field for highlighting. */
     public boolean isFullTextStored() {
-        return fullTextStored;
+        return isFullTextStored(false);
+    }
+
+    public boolean isFullTextStored(boolean nextGeneration) {
+        return nextGeneration ? fullTextStoredRequested : fullTextStored;
     }
 
     private boolean hasExcerptProperties() {
