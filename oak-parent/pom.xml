@@ -365,7 +365,7 @@
         <plugin>
           <groupId>org.jacoco</groupId>
           <artifactId>jacoco-maven-plugin</artifactId>
-          <version>0.8.13</version>
+          <version>0.8.15</version>
         </plugin>
         <!-- generates aggregate (cross-module) coverage reports, https://github.com/olamy/jacoco-aggregator-maven-plugin
             only enable this plugin (without inheritance) in the root module, as this is an aggregator plugin
