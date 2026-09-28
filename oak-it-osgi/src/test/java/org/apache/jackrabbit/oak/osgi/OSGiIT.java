@@ -36,6 +36,7 @@ import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.sling.testing.paxexam.SlingOptions;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Configuration;
@@ -81,13 +82,17 @@ public class OSGiIT {
 
                 mavenBundle().groupId("com.github.ben-manes.caffeine").artifactId("caffeine").version("3.1.8"),
 
+                mavenBundle("jakarta.servlet", "jakarta.servlet-api", "5.0.0"),
+
+                // required for slf4j 2.0.x
+                SlingOptions.spyfly(),
                 frameworkProperty("repository.home").value("target"),
                 systemProperties(new SystemPropertyOption("felix.fileinstall.dir").value(getConfigDir())),
                 jarBundles(),
                 jpmsOptions());
     }
 
-    private Option jpmsOptions(){
+    static Option jpmsOptions(){
         DefaultCompositeOption composite = new DefaultCompositeOption();
         if (Version.parseVersion(System.getProperty("java.specification.version")).getMajor() > 1){
             if (java.nio.file.Files.exists(java.nio.file.FileSystems.getFileSystem(URI.create("jrt:/")).getPath("modules", "java.se.ee"))){
@@ -108,11 +113,11 @@ public class OSGiIT {
         return composite;
     }
 
-    private String getConfigDir(){
+    static String getConfigDir(){
         return new File(new File("src", "test"), "config").getAbsolutePath();
     }
 
-    private Option jarBundles() throws MalformedURLException {
+    static Option jarBundles() throws MalformedURLException {
         DefaultCompositeOption composite = new DefaultCompositeOption();
         for (File bundle : new File("target", "test-bundles").listFiles()) {
             if (bundle.getName().endsWith(".jar") && bundle.isFile()) {

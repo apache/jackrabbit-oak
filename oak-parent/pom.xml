@@ -58,10 +58,17 @@
     <mongo.version>3.6</mongo.version>
     <segment.db>SegmentMK</segment.db>
     <lucene.version>4.7.2</lucene.version>
+<<<<<<< HEAD
     <mongo.driver.version>5.4.0</mongo.driver.version>
     <slf4j.api.version>1.7.36</slf4j.api.version>
     <slf4j.version>1.7.36</slf4j.version> <!-- sync with logback version -->
     <logback.version>1.2.13</logback.version>
+=======
+    <mongo.driver.version>5.3.1</mongo.driver.version>
+    <slf4j.api.version>2.0.18</slf4j.api.version>
+    <slf4j.version>2.0.18</slf4j.version> <!-- sync with logback version -->
+    <logback.version>1.6.3</logback.version>
+>>>>>>> 9c21906754 (OAK-10339: Migrate to SLF4J 2.x)
     <h2.version>2.1.214</h2.version>
     <tika.version>1.28.5</tika.version>
     <derby.version>10.16.1.1</derby.version>
