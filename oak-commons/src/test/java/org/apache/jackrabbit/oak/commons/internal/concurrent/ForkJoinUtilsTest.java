@@ -44,7 +44,7 @@ public class ForkJoinUtilsTest {
                 .map(i -> Map.entry(i, isInCommonPool(Thread.currentThread())))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         assertThat(results)
-                .hasSizeBetween(9, 10) // account for the main thread executing an item
+                .hasSize(9) // the main thread is filtered out
                 .allSatisfy((key, value) -> {
                     assertThat(key).isBetween(0, 9);
                     assertThat(value).isTrue();
@@ -168,12 +168,13 @@ public class ForkJoinUtilsTest {
                     if (isMainThread) {
                         try {
                             // make sure "main" thread processes at most one item
-                            latch.await(100, TimeUnit.MILLISECONDS);
+                            latch.await(5, TimeUnit.SECONDS);
                         } catch (InterruptedException e) {
                             throw new RuntimeException(e);
                         }
+                    } else {
+                        latch.countDown();
                     }
-                    latch.countDown();
                     return !isMainThread;
                 });
     }
