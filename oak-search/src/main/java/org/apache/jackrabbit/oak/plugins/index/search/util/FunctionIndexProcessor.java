@@ -47,6 +47,7 @@ public class FunctionIndexProcessor {
     private String remaining;
 
     private static final PropertyState EMPTY_PROPERTY_STATE = EmptyPropertyState.emptyProperty("empty", Type.STRINGS);
+    private static final String VALUE = "value";
 
     protected FunctionIndexProcessor(String function) {
         this.remaining = function;
@@ -86,7 +87,7 @@ public class FunctionIndexProcessor {
                 String propertyName = token.substring(1);
                 ps = getProperty(path, state, propertyName);
             } else if (isQuotedLiteral(token)) {
-                ps = PropertyStates.createProperty("value", unquote(token), Type.STRING);
+                ps = PropertyStates.createProperty(VALUE, unquote(token), Type.STRING);
             } else if ("null".equals(token)) {
                 ps = null;
             } else {
@@ -143,7 +144,8 @@ public class FunctionIndexProcessor {
             if (inLiteral) {
                 current.append(c);
                 if (c == '\'') {
-                    if (i + 1 < functionDescription.length() && functionDescription.charAt(i + 1) == '\'') {
+                    if (i + 1 < functionDescription.length()
+                            && functionDescription.charAt(i + 1) == '\'') {
                         // an escaped quote within the literal
                         current.append('\'');
                         i++;
@@ -176,7 +178,7 @@ public class FunctionIndexProcessor {
                     falseValue;
         } else if ("exists".equals(functionName)) {
             PropertyState operand = stack.pop();
-            return PropertyStates.createProperty("value",
+            return PropertyStates.createProperty(VALUE,
                     operand != EMPTY_PROPERTY_STATE, Type.BOOLEAN);
         } else if ("op".equals(functionName)) {
             PropertyState a = stack.pop();
@@ -190,7 +192,7 @@ public class FunctionIndexProcessor {
                 return null;
             }
             Type<?> type = result.getType();
-            return PropertyStates.createProperty("value", result.getValue(type), type);
+            return PropertyStates.createProperty(VALUE, result.getValue(type), type);
         }
         PropertyState ps = stack.pop();
         if ("coalesce".equals(functionName)) {
@@ -237,10 +239,10 @@ public class FunctionIndexProcessor {
         }
         PropertyState result;
         if (values.size() == 1) {
-            result = PropertyStates.createProperty("value", values.get(0), type);
+            result = PropertyStates.createProperty(VALUE, values.get(0), type);
         } else {
             type = type.getArrayType();
-            result = PropertyStates.createProperty("value", values, type);
+            result = PropertyStates.createProperty(VALUE, values, type);
         }
         return result;
     }
@@ -258,13 +260,13 @@ public class FunctionIndexProcessor {
         }
         PropertyState ps;
         if (":localname".equals(propertyName)) {
-            ps = PropertyStates.createProperty("value",
+            ps = PropertyStates.createProperty(VALUE,
                     getLocalName(PathUtils.getName(path)), Type.STRING);
         } else if (":name".equals(propertyName)) {
-            ps = PropertyStates.createProperty("value",
+            ps = PropertyStates.createProperty(VALUE,
                     PathUtils.getName(path), Type.STRING);
         } else if (":path".equals(propertyName)) {
-            ps = PropertyStates.createProperty("value",
+            ps = PropertyStates.createProperty(VALUE,
                    path, Type.STRING);
         } else {
             ps = state.getProperty(propertyName);

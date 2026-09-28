@@ -82,20 +82,28 @@ public class FunctionIndexUtils {
      *         operators listed above
      */
     public static PropertyValue processOp(PropertyValue a, PropertyValue operator, PropertyValue b) {
+        if (operator == null) {
+            return null;
+        }
         String op = operator.getValue(Type.STRING);
+        if (op == null) {
+            return null;
+        }
         switch (op) {
         case "is":
             return PropertyValues.newBoolean(isSame(a, b));
         case "is not":
             return PropertyValues.newBoolean(!isSame(a, b));
         case "and": {
-            Boolean result = and3(toBoolean3(a), toBoolean3(b));
+            Boolean result = andOrNull(toBooleanOrNull(a), toBooleanOrNull(b));
             return result == null ? null : PropertyValues.newBoolean(result);
         }
         case "or": {
-            Boolean result = or3(toBoolean3(a), toBoolean3(b));
+            Boolean result = orOrNull(toBooleanOrNull(a), toBooleanOrNull(b));
             return result == null ? null : PropertyValues.newBoolean(result);
         }
+        default:
+            // continue
         }
         if (a == null || b == null) {
             return null;
@@ -113,10 +121,7 @@ public class FunctionIndexUtils {
             return PropertyValues.newBoolean(a.compareTo(b) < 0);
         case "<=":
             return PropertyValues.newBoolean(a.compareTo(b) <= 0);
-        case "+":
-        case "-":
-        case "*":
-        case "/": {
+        case "+", "-", "*", "/": {
             Double da = toDoubleOrNull(a);
             Double db = toDoubleOrNull(b);
             if (da == null || db == null) {
@@ -160,7 +165,7 @@ public class FunctionIndexUtils {
      * @param v the value, or null if missing
      * @return {@link #isTruthy}, or null if the value is missing
      */
-    private static Boolean toBoolean3(PropertyValue v) {
+    private static Boolean toBooleanOrNull(PropertyValue v) {
         if (v == null) {
             return null;
         }
@@ -170,7 +175,7 @@ public class FunctionIndexUtils {
     /**
      * Three-valued (SQL-style) logical "and".
      */
-    private static Boolean and3(Boolean a, Boolean b) {
+    private static Boolean andOrNull(Boolean a, Boolean b) {
         if (Boolean.FALSE.equals(a) || Boolean.FALSE.equals(b)) {
             return false;
         }
@@ -183,7 +188,7 @@ public class FunctionIndexUtils {
     /**
      * Three-valued (SQL-style) logical "or".
      */
-    private static Boolean or3(Boolean a, Boolean b) {
+    private static Boolean orOrNull(Boolean a, Boolean b) {
         if (Boolean.TRUE.equals(a) || Boolean.TRUE.equals(b)) {
             return true;
         }

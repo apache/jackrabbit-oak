@@ -271,15 +271,31 @@ public class SQL2ParserTest {
     public void testOpWhenEnabled() throws ParseException {
         SQL2Parser opParser = createTestSQL2Parser(createSettingsWithOpEnabled());
 
-        opParser.parse("SELECT * FROM [nt:base] WHERE OP([a], '+', [b])=3");
+        Query q = opParser.parse("SELECT * FROM [nt:base] WHERE OP([a], '+', [b])=3");
+        assertEquals("select [nt:base].[jcr:primaryType] as [nt:base.jcr:primaryType] " +
+                "from [nt:base] as [nt:base] " +
+                "where op([nt:base].[a], '+', [nt:base].[b]) = 3", q.toString());
         opParser.parse("SELECT * FROM [nt:base] WHERE OP([a], '=', [b])=true");
+        assertEquals("select [nt:base].[jcr:primaryType] as [nt:base.jcr:primaryType] " +
+                "from [nt:base] as [nt:base] " +
+                "where op([nt:base].[a], '+', [nt:base].[b]) = 3", q.toString());
         opParser.parse("SELECT * FROM [nt:base] WHERE OP([a], 'is not', [b])=true");
+        assertEquals("select [nt:base].[jcr:primaryType] as [nt:base.jcr:primaryType] " +
+                "from [nt:base] as [nt:base] " +
+                "where op([nt:base].[a], '+', [nt:base].[b]) = 3", q.toString());
+
         // the '*' operator literal must not confuse the parser/tokenizer
         opParser.parse("SELECT * FROM [nt:base] WHERE OP([a], '*', [b])=6");
+        assertEquals("select [nt:base].[jcr:primaryType] as [nt:base.jcr:primaryType] " +
+                "from [nt:base] as [nt:base] " +
+                "where op([nt:base].[a], '+', [nt:base].[b]) = 3", q.toString());
 
         // XPath uses the "jcr:" prefix
         opParser.parse(new XPathToSQL2Converter()
                 .convert("//*[jcr:op(@a, '+', @b) = 3]"));
+        assertEquals("select [nt:base].[jcr:primaryType] as [nt:base.jcr:primaryType] " +
+                "from [nt:base] as [nt:base] " +
+                "where op([nt:base].[a], '+', [nt:base].[b]) = 3", q.toString());
     }
 
     private static SQL2Parser createTestSQL2Parser(QueryEngineSettings settings) {
