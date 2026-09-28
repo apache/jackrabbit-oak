@@ -16,34 +16,55 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.mongot;
 
+import java.time.Duration;
+
+import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
+import org.apache.jackrabbit.oak.cache.api.LoadingCache;
 import org.apache.jackrabbit.oak.plugins.index.mongot.index.MongoFieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.bson.Document;
 
 import static com.mongodb.client.model.Filters.exists;
 
 public final class MongotIndexStatistics implements IndexStatistics {
 
+    private static final long MAX_SIZE = Long.getLong("oak.mongot.statsMaxSize", 10_000L);
+    private static final long EXPIRE_SECONDS = Long.getLong("oak.mongot.statsExpireSeconds", 10 * 60L);
+    private static final long REFRESH_SECONDS = Long.getLong("oak.mongot.statsRefreshSeconds", 60L);
+    private static final String ALL_DOCUMENTS = "";
+
     private final MongoConnection connection;
     private final MongotIndexDefinition definition;
+    // Oak's planner reads these counts for every query. Like the Elasticsearch index, serve
+    // them from a cache so planning does not cost a round trip to MongoDB per count.
+    private final LoadingCache<String, Integer> counts;
 
     MongotIndexStatistics(MongoConnection connection, MongotIndexDefinition definition) {
         this.connection = connection;
         this.definition = definition;
+        this.counts = CacheBuilder.<String, Integer>newBuilder()
+                .maximumSize(MAX_SIZE)
+                .expireAfterWrite(Duration.ofSeconds(EXPIRE_SECONDS))
+                .refreshAfterWrite(Duration.ofSeconds(REFRESH_SECONDS))
+                .build(this::countDocuments);
     }
 
     @Override
     public int numDocs() {
-        return (int) Math.min(Integer.MAX_VALUE,
-                connection.getCollection(definition).countDocuments());
+        return counts.get(ALL_DOCUMENTS);
     }
 
     @Override
     public int getDocCountFor(String key) {
-        String field = FieldNames.NULL_PROPS.equals(key)
+        return counts.get(FieldNames.NULL_PROPS.equals(key)
                 ? MongoFieldNames.NULL_PROPERTIES
-                : MongoFieldNames.TYPED + "." + MongoFieldNames.encodeProperty(key);
-        return (int) Math.min(Integer.MAX_VALUE,
-                connection.getCollection(definition).countDocuments(exists(field)));
+                : MongoFieldNames.TYPED + "." + MongoFieldNames.encodeProperty(key));
+    }
+
+    private int countDocuments(String field) {
+        long count = connection.getCollection(definition).countDocuments(
+                ALL_DOCUMENTS.equals(field) ? new Document() : exists(field));
+        return (int) Math.min(Integer.MAX_VALUE, count);
     }
 }
