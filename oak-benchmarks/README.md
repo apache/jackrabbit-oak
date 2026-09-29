@@ -96,22 +96,23 @@ that we used to produce earlier.
 
 Finally the benchmark runner supports the following repository fixtures:
 
-| Fixture                      | Description                                                    |
-|------------------------------|----------------------------------------------------------------|
-| Jackrabbit                   | Jackrabbit with the default embedded Derby  bundle PM          |
-| Oak-Memory                   | Oak with default in-memory storage                             |
-| Oak-MemoryNS                 | Oak with default in-memory NodeStore                           |
-| Oak-Mongo                    | Oak with the default Mongo backend                             |
-| Oak-Mongo-DS                 | Oak with the default Mongo backend and DataStore               |
-| Oak-MongoNS                  | Oak with the Mongo NodeStore                                   |
-| Oak-Segment-Tar              | Oak with the Segment Tar backend                               |
-| Oak-Segment-Tar-DS           | Oak with the Segment Tar backend and DataStore                 |
-| Oak-Segment-Azure            | Oak with the Azure Segment backend                             |
-| Oak-RDB                      | Oak with the DocumentMK/RDB persistence                        |
-| Oak-RDB-DS                   | Oak with the DocumentMK/RDB persistence and DataStore          |
-| Oak-Composite-Store          | Oak with the Composite Node store with Segment Tar backend     |
-| Oak-Composite-Memory-Store   | Oak with the Composite Node store with in-memory NodeStore     |
-| Oak-Composite-Mongo-Store    | Oak with the Composite Node store with Mongo backend           |
+| Fixture                    | Description                                               |
+|----------------------------|-----------------------------------------------------------|
+| Jackrabbit                 | Jackrabbit with the default embedded Derby  bundle PM     |
+| Oak-Memory                 | Oak with default in-memory storage                        |
+| Oak-MemoryNS               | Oak with default in-memory NodeStore                      |
+| Oak-Mongo                  | Oak with the default Mongo backend                        |
+| Oak-Mongo-DS               | Oak with the default Mongo backend and DataStore          |
+| Oak-MongoNS                | Oak with the Mongo NodeStore                              |
+| Oak-Segment-Tar            | Oak with the Segment Tar backend                          |
+| Oak-Segment-Tar-DS         | Oak with the Segment Tar backend and DataStore            |
+| Oak-Segment-Azure          | Oak with the Azure Segment backend                        |
+| Oak-Segment-Azure-Tar      | Oak with the Azure Segment Tar backend                    |
+| Oak-RDB                    | Oak with the DocumentMK/RDB persistence                   |
+| Oak-RDB-DS                 | Oak with the DocumentMK/RDB persistence and DataStore     |
+| Oak-Composite-Store        | Oak with the Composite Node store with Segment Tar backend |
+| Oak-Composite-Memory-Store | Oak with the Composite Node store with in-memory NodeStore |
+| Oak-Composite-Mongo-Store  | Oak with the Composite Node store with Mongo backend      |
 
 
 (Note that for Oak-RDB, the required JDBC drivers either need to be embedded
