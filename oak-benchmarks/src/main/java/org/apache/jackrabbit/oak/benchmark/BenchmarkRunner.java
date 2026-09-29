@@ -216,6 +216,7 @@ public class BenchmarkRunner {
                                 benchmarkOptions.getFlatStructure().value(options),
                                 benchmarkOptions.getReport().value(options)),
                         new CreateNodesBenchmark(),
+                        new DocumentCacheBenchmark(),
                         new ManyNodes(options.has(benchmarkOptions.getVerbose())),
                         new ObservationTest(),
                         new RevisionGCTest(),
