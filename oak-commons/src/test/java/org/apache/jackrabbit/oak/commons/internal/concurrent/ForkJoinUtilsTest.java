@@ -24,30 +24,34 @@ import org.junit.Test;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class ForkJoinUtilsTest {
 
     @Test
     public void isInCommonPool() {
-        Map<Integer, Boolean> results = getParallelTestStream()
+        Map<Integer, String> results = getParallelTestStream()
                 .boxed()
-                .map(i -> Map.entry(i, isInCommonPool(Thread.currentThread())))
+                .map(i -> Map.entry(i, isInCommonPool(Thread.currentThread())
+                        ? "common" : Thread.currentThread().getName()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         assertThat(results)
-                .hasSize(9) // the main thread is filtered out
+                .hasSize(10) // the main thread is filtered out
                 .allSatisfy((key, value) -> {
                     assertThat(key).isBetween(0, 9);
-                    assertThat(value).isTrue();
+                    assertThat(value).isIn("common", "main");
+                })
+                .anySatisfy((key, value) -> {
+                    assertThat(value)
+                            .as("expected at least one execution in the commonPool")
+                            .isEqualTo("common");
                 });
     }
 
@@ -135,9 +139,10 @@ public class ForkJoinUtilsTest {
                         "should start with 'inner-pool-'"));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void submitInCustomPoolWithInvalidParallelism() {
-        ForkJoinUtils.submitInCustomPool("custom-pool", 0, () -> {});
+        assertThatThrownBy(() -> ForkJoinUtils.submitInCustomPool("custom-pool", 0, () -> {}))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     private static boolean isInCommonPool(Thread thread) {
@@ -158,24 +163,6 @@ public class ForkJoinUtilsTest {
     }
 
     private static @NotNull IntStream getParallelTestStream() {
-        CountDownLatch latch = new CountDownLatch(9);
-        return IntStream.range(0, 10)
-                .parallel()
-                // the "main" thread is used in conjunction with the common pool, but is not itself in the common pool
-                .filter(i -> {
-                    Thread thread = Thread.currentThread();
-                    boolean isMainThread = Objects.equals(thread.getName(), "main");
-                    if (isMainThread) {
-                        try {
-                            // make sure "main" thread processes at most one item
-                            latch.await(5, TimeUnit.SECONDS);
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }
-                    } else {
-                        latch.countDown();
-                    }
-                    return !isMainThread;
-                });
+        return IntStream.range(0, 10).parallel();
     }
 }
