@@ -43,7 +43,7 @@ public class ForkJoinUtilsTest {
                         ? "common" : Thread.currentThread().getName()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         assertThat(results)
-                .hasSize(10) // the main thread is filtered out
+                .hasSize(10)
                 .allSatisfy((key, value) -> {
                     assertThat(key).isBetween(0, 9);
                     assertThat(value).isIn("common", "main");
