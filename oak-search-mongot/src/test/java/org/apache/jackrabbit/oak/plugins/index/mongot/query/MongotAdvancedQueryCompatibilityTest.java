@@ -23,6 +23,7 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.mongot.MongotIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.mongot.MongotSearchConnectionRule;
 import org.apache.jackrabbit.oak.plugins.index.mongot.MongotTestRepositoryBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
@@ -43,12 +44,17 @@ public class MongotAdvancedQueryCompatibilityTest {
     @ClassRule
     public static final MongotSearchConnectionRule mongo = new MongotSearchConnectionRule();
 
-    private static MongotTestRepositoryBuilder.Fixture repository;
+    static MongotTestRepositoryBuilder.Fixture repository;
 
     @BeforeClass
     public static void createRepository() throws Exception {
+        createRepository(false);
+    }
+
+    static void createRepository(boolean storedSource) throws Exception {
         MongotTestRepositoryBuilder builder = new MongotTestRepositoryBuilder(mongo);
         IndexDefinitionBuilder definition = builder.definition();
+        definition.getBuilderTree().setProperty(MongotIndexDefinition.STORED_SOURCE, storedSource);
         configure(definition.indexRule("nt:base"));
         configure(definition.indexRule("nt:unstructured"));
         definition.aggregateRule("nt:unstructured", "jcr:content");
@@ -183,7 +189,7 @@ public class MongotAdvancedQueryCompatibilityTest {
         assertTrue(plan, plan.contains("mongot:"));
     }
 
-    private static String plan(String query) throws Exception {
+    static String plan(String query) throws Exception {
         return repository.query("explain " + query, "JCR-SQL2")
                 .getRows().iterator().next().getValue("plan").getValue(Type.STRING);
     }

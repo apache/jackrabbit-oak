@@ -29,9 +29,46 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
 public class MongotSearchIndexDefinitionBuilderTest {
+
+    @Test
+    public void storesPostSearchFieldsOnlyWhenStoredSourceIsEnabled() {
+        assertNull(MongotSearchIndexDefinitionBuilder.build(definition(builder()), true)
+                .get("storedSource"));
+        // Until a reindex publishes it, the served generation keeps its original mapping.
+        assertNull(MongotSearchIndexDefinitionBuilder.build(storedSource(builder()), false)
+                .get("storedSource"));
+
+        Document searchDefinition = MongotSearchIndexDefinitionBuilder.build(
+                storedSource(builder()), true);
+
+        // The fields read after $search, in the sorted order mongot reports back.
+        assertEquals(new Document("include", List.of("_ancestors", "_depth", "_mixinTypes",
+                        "_nullProperties", "_parent", "_path", "_primaryType", "facet", "ordered",
+                        "typed")),
+                searchDefinition.get("storedSource"));
+    }
+
+    @Test
+    public void storesFullTextWithStoredSourceOnlyWhenExcerptsCanHighlightIt() {
+        IndexDefinitionBuilder withoutExcerpts = builder();
+        withoutExcerpts.indexRule("nt:base").property("title").analyzed().nodeScopeIndex();
+        Document fields = MongotSearchIndexDefinitionBuilder.build(storedSource(withoutExcerpts), true)
+                .get("mappings", Document.class).get("fields", Document.class);
+        assertEquals(new Document("type", "string").append("store", false)
+                        .append("analyzer", "oak_default").append("searchAnalyzer", "lucene.standard"),
+                fields.get(MongoFieldNames.FULLTEXT));
+
+        IndexDefinitionBuilder withExcerpts = builder();
+        withExcerpts.indexRule("nt:base").property("title").analyzed().nodeScopeIndex()
+                .useInExcerpt();
+        assertNull(MongotSearchIndexDefinitionBuilder.build(storedSource(withExcerpts), true)
+                .get("mappings", Document.class).get("fields", Document.class)
+                .get(MongoFieldNames.FULLTEXT));
+    }
 
     @Test
     public void mapsOakDefaultAnalyzer() {
@@ -519,6 +556,12 @@ public class MongotSearchIndexDefinitionBuilderTest {
 
     private static MongotIndexDefinition definition(IndexDefinitionBuilder builder) {
         return new MongotIndexDefinition(EmptyNodeState.EMPTY_NODE, builder.build(),
+                "/oak:index/analyzer");
+    }
+
+    private static MongotIndexDefinition storedSource(IndexDefinitionBuilder builder) {
+        return new MongotIndexDefinition(EmptyNodeState.EMPTY_NODE, builder.build().builder()
+                .setProperty(MongotIndexDefinition.STORED_SOURCE, true).getNodeState(),
                 "/oak:index/analyzer");
     }
 }

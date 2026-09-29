@@ -66,6 +66,10 @@ What is implemented
   synthetic `$search` stage;
 - lazy normal-result retrieval using a bounded Mongo aggregation cursor,
   `queryFetchSizes`, and `queryTimeoutMs`;
+- opt-in `storedSource=true` (effective after reindex): the Search index stores
+  the fields read after `$search`, and queries return them instead of loading
+  full documents. The node-level full text is then kept for highlighting only
+  when a property sets `useInExcerpt`, so `rep:excerpt(.)` needs one;
 - repository property updates and removals, exact and subtree deletion,
   moves, aggregate refresh, and availability-preserving full reindex;
 - Oak common-suite coverage for property indexes, full text, transformed path

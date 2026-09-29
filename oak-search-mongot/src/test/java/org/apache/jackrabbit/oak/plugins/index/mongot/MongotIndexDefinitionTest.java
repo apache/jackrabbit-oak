@@ -115,6 +115,33 @@ public class MongotIndexDefinitionTest {
     }
 
     @Test
+    public void servesStoredSourceOnlyOnceAReindexHasPublishedIt() {
+        MongotIndexDefinition defaults = newDefinition("defaults");
+        assertFalse(defaults.isStoredSource());
+        assertTrue(defaults.isFullTextStored());
+
+        NodeBuilder root = EmptyNodeState.EMPTY_NODE.builder();
+        NodeBuilder definitionBuilder = root.child(INDEX_DEFINITIONS_NAME).child("stored");
+        definitionBuilder.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
+        definitionBuilder.setProperty(TYPE_PROPERTY_NAME, MongotIndexDefinition.TYPE_MONGOT);
+        definitionBuilder.setProperty(MongotIndexDefinition.STORED_SOURCE, true);
+
+        // The property alone is only a request; the served generation doesn't store fields yet.
+        MongotIndexDefinition requested = new MongotIndexDefinition(root.getNodeState(),
+                definitionBuilder.getNodeState(), "/oak:index/stored");
+        assertTrue(requested.isStoredSource(true));
+        assertFalse(requested.isStoredSource());
+        assertTrue(requested.isFullTextStored());
+
+        definitionBuilder.setProperty(MongotIndexDefinition.PROP_SERVED_STORED_SOURCE, true);
+        definitionBuilder.setProperty(MongotIndexDefinition.PROP_SERVED_FULL_TEXT_STORED, false);
+        MongotIndexDefinition served = new MongotIndexDefinition(root.getNodeState(),
+                definitionBuilder.getNodeState(), "/oak:index/stored");
+        assertTrue(served.isStoredSource());
+        assertFalse(served.isFullTextStored());
+    }
+
+    @Test
     public void rejectsUnusableQueryBatchAndTimeoutProperties() {
         assertThrows(IllegalArgumentException.class,
                 () -> configuredDefinition(java.util.List.of(), 1_000));
