@@ -819,6 +819,20 @@ public class IteratorUtilsTest {
     }
 
     @Test
+    // OAK-12410
+    public void testChainedIteratorsAfterHasNextCall() {
+        Iterator<String> subChain = IteratorUtils.chainedIterator(
+                Collections.singleton("a").iterator(),
+                Collections.singleton("b").iterator());
+        Assert.assertTrue(subChain.hasNext());
+        Iterator<String> mainChain = IteratorUtils.chainedIterator(subChain, Collections.singleton("c").iterator());
+        Assert.assertEquals("a", mainChain.next());
+        Assert.assertEquals("b", mainChain.next());
+        Assert.assertEquals("c", mainChain.next());
+        Assert.assertFalse(mainChain.hasNext());
+    }
+
+    @Test
     public void testFilterWithMatchingElements() {
         List<Integer> list = Arrays.asList(1, 2, 3, 4, 5);
         Iterator<Integer> filtered = IteratorUtils.filter(list.iterator(), n -> n % 2 == 0);
