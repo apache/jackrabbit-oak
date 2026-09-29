@@ -1048,8 +1048,6 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
         System.setProperty(QueryEngineSettings.OAK_QUERY_OP_FUNCTION, "true");
         try {
             String function = "if(op([reindexCount], '>', 'lon:0'), path(), null)";
-            // same as the "custom.reindex" definition, except that it is synchronous,
-            // because this test repository does not run the "async" indexing lane
             IndexDefinitionBuilder idxb = indexOptions.createIndexDefinitionBuilder()
                     .noAsync()
                     .evaluatePathRestrictions()
@@ -1060,7 +1058,6 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
                     .propertyIndex().ordered();
             idxb.build(root.getTree("/").getChild("oak:index").addChild("custom.reindex"));
             root.commit();
-
             Tree oakIndex = root.getTree("/oak:index");
             Tree a = oakIndex.addChild("a");
             a.setProperty("type", "disabled");
@@ -1070,20 +1067,14 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
             b.setProperty("reindexCount", 0L);
             oakIndex.addChild("c").setProperty("type", "disabled");
             root.commit();
-
             String query = "select * from [nt:base] " +
                     "where " + function + " > '/' " +
                     "and isdescendantnode('/oak:index') " +
                     "order by " + function + " " +
                     "option(index tag [reindex])";
-            assertEventually(() -> {
-                assertThat(explain(query), containsString("/oak:index/custom.reindex"));
-                List<String> result = executeQuery(query, SQL2);
-                assertThat(result.toString(), result.contains("/oak:index/a"));
-                Assert.assertFalse(result.toString(), result.contains("/oak:index/b"));
-                Assert.assertFalse(result.toString(), result.contains("/oak:index/c"));
-                assertEquals(result.stream().sorted().collect(Collectors.toList()), result);
-            });
+            assertEventually(() -> assertPlanAndQuery(
+                    query,
+                    "/oak:index/custom.reindex", List.of("/oak:index/a")));
         } finally {
             if (old == null) {
                 System.clearProperty(QueryEngineSettings.OAK_QUERY_OP_FUNCTION);
