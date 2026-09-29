@@ -67,7 +67,7 @@
     <derby.version>10.16.1.1</derby.version>
     <!-- DO NOT upgrade to non-LTS versions of jackson; see https://github.com/FasterXML/jackson/wiki/Jackson-Releases -->
     <jackson.version>2.21.7</jackson.version>
-    <jackson.annotations.version>2.21.7</jackson.annotations.version> <!-- not necessarily aligned with other jackson modules -->
+    <jackson.annotations.version>2.21</jackson.annotations.version> <!-- not necessarily aligned with other jackson modules -->
     <testcontainers.version>2.0.5</testcontainers.version>
     <pax-exam.version>4.14.0</pax-exam.version>
     <pax-url.version>2.6.17</pax-url.version>
