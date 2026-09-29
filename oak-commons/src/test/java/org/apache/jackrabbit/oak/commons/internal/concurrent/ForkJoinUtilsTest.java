@@ -27,20 +27,39 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assume.assumeTrue;
 
 public class ForkJoinUtilsTest {
 
     @Test
     public void isInCommonPool() {
+        int parallelism = ForkJoinPool.commonPool().getParallelism();
+        assumeTrue(
+                "Expected ForkJoinPool.commonPool() to have parallelism greater than 2, was " + parallelism,
+                parallelism > 2);
+
         Map<Integer, String> results = getParallelTestStream()
                 .boxed()
-                .map(i -> Map.entry(i, isInCommonPool(Thread.currentThread())
-                        ? "common" : Thread.currentThread().getName()))
+                .map(i -> {
+                    String threadLabel;
+                    if (isInCommonPool(Thread.currentThread())) {
+                        threadLabel = "common";
+                    } else {
+                        threadLabel = Thread.currentThread().getName();
+                        try {
+                            TimeUnit.MILLISECONDS.sleep(10);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+                    return Map.entry(i, threadLabel);
+                })
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         assertThat(results)
                 .hasSize(10)
