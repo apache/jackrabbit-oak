@@ -24,6 +24,7 @@ import static org.junit.Assert.assertNull;
 
 import java.util.Arrays;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.junit.Test;
@@ -303,6 +304,29 @@ public class FunctionIndexProcessorTest {
                 FunctionIndexProcessor.tryCalculateValue("x",
                 EMPTY_NODE.builder().getNodeState(),
                 new String[]{"function", "coalesce", "@foo", "'default'"}).toString());
+    }
+
+    @Test
+    public void typedLiteral() {
+        String polish = FunctionIndexProcessor.convertToPolishNotation("if(op([a], '>', 'lon:0'), path(), null)");
+        assertEquals("function*if*op*@a*'>'*'lon:0'*@:path*null", polish);
+        String[] code = FunctionIndexProcessor.getFunctionCode(polish);
+        assertEquals("value = /x",
+                FunctionIndexProcessor.tryCalculateValue("/x",
+                EMPTY_NODE.builder().setProperty("a", 2L).getNodeState(), code).toString());
+        assertNull(FunctionIndexProcessor.tryCalculateValue("/x",
+                EMPTY_NODE.builder().setProperty("a", 0L).getNodeState(), code));
+
+        PropertyState ps = FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().getNodeState(),
+                new String[]{"function", "if", "'boo:true'", "'lon:5'", "null"});
+        assertEquals(Type.LONG, ps.getType());
+        assertEquals(5L, (long) ps.getValue(Type.LONG));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void typedLiteralInvalid() {
+        FunctionIndexProcessor.convertToPolishNotation("coalesce([a], 'lon:abc')");
     }
 
     @Test

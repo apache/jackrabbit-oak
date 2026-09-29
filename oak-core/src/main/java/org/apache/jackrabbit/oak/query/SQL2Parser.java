@@ -56,6 +56,7 @@ import org.apache.jackrabbit.oak.query.ast.SourceImpl;
 import org.apache.jackrabbit.oak.query.ast.StaticOperandImpl;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsData.QueryExecutionStats;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.FunctionIndexUtils;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -688,11 +689,18 @@ public class SQL2Parser {
     }
 
     private DynamicOperandImpl parseDynamicOperand() throws ParseException {
-        if (currentTokenType == PLUS || currentTokenType == MINUS || currentTokenType == VALUE) {
-            // string or number literal
-            StaticOperandImpl s = parseStaticOperand();
-            PropertyValue v = s.currentValue();
-            return factory.literalOperand(v, escapeStringLiteral(v.getValue(Type.STRING)));
+        if (currentTokenType == VALUE) {
+            if (currentValue.getType() != Type.STRING) {
+                throw getSyntaxError("string literal");
+            }
+            String text = currentValue.getValue(Type.STRING);
+            read();
+            try {
+                PropertyValue v = FunctionIndexUtils.parseLiteral(text);
+                return factory.literalOperand(v, escapeStringLiteral(text));
+            } catch (IllegalArgumentException e) {
+                throw getSyntaxError("valid literal of the given type");
+            }
         }
         boolean identifier = currentTokenType == IDENTIFIER;
         String name = readName();

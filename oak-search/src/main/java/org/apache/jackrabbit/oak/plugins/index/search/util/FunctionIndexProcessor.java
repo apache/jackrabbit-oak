@@ -87,7 +87,9 @@ public class FunctionIndexProcessor {
                 String propertyName = token.substring(1);
                 ps = getProperty(path, state, propertyName);
             } else if (isQuotedLiteral(token)) {
-                ps = PropertyStates.createProperty(VALUE, unquote(token), Type.STRING);
+                PropertyValue v = FunctionIndexUtils.parseLiteral(unquote(token));
+                Type<?> type = v.getType();
+                ps = PropertyStates.createProperty(VALUE, v.getValue(type), type);
             } else if ("null".equals(token)) {
                 ps = null;
             } else {
@@ -357,6 +359,9 @@ public class FunctionIndexProcessor {
                     break;
                 }
             }
+            // fail early (when parsing the index definition) if the value
+            // can not be converted to the type given by the prefix
+            FunctionIndexUtils.parseLiteral(literal.toString().replace("''", "'"));
             return "'" + literal + "'";
         }
 

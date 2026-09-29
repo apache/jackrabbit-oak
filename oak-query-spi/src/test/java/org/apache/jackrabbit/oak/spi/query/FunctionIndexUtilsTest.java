@@ -38,6 +38,28 @@ public class FunctionIndexUtilsTest {
     // ---------- isTruthy ----------
 
     @Test
+    public void parseLiteral() {
+        assertEquals(PropertyValues.newString("hello"), FunctionIndexUtils.parseLiteral("hello"));
+        assertEquals(PropertyValues.newString(""), FunctionIndexUtils.parseLiteral(""));
+        assertEquals(PropertyValues.newString("lon:0"), FunctionIndexUtils.parseLiteral("str:lon:0"));
+        assertEquals(PropertyValues.newLong(0L), FunctionIndexUtils.parseLiteral("lon:0"));
+        assertEquals(PropertyValues.newLong(-3L), FunctionIndexUtils.parseLiteral("lon:-3"));
+        assertEquals(PropertyValues.newDouble(1.5), FunctionIndexUtils.parseLiteral("dou:1.5"));
+        assertEquals(PropertyValues.newDecimal(new BigDecimal("1.50")), FunctionIndexUtils.parseLiteral("dec:1.50"));
+        assertEquals(PropertyValues.newBoolean(true), FunctionIndexUtils.parseLiteral("boo:true"));
+        assertEquals(Type.DATE, FunctionIndexUtils.parseLiteral("dat:2026-01-01T00:00:00.000Z").getType());
+        // unknown prefixes, and strings that merely contain a colon, stay strings
+        assertEquals(PropertyValues.newString("abc:x"), FunctionIndexUtils.parseLiteral("abc:x"));
+        assertEquals(PropertyValues.newString("http://x"), FunctionIndexUtils.parseLiteral("http://x"));
+        assertEquals(PropertyValues.newString(":blobId:x"), FunctionIndexUtils.parseLiteral(":blobId:x"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void parseLiteralInvalidLong() {
+        FunctionIndexUtils.parseLiteral("lon:abc");
+    }
+
+    @Test
     public void isTruthy_missing() {
         assertFalse(FunctionIndexUtils.isTruthy(null));
     }

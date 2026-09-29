@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.junit.Assert;
 import org.junit.Test;
@@ -1039,6 +1040,57 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
         assertEventually(() -> assertPlanAndQuery(
                 "select * from [nt:base] where exists([alias]) = true",
                 "/oak:index/test1", List.of("/a")));
+    }
+
+    @Test
+    public void opFunctionConditionalPathQuery() throws Exception {
+        String old = System.getProperty(QueryEngineSettings.OAK_QUERY_OP_FUNCTION);
+        System.setProperty(QueryEngineSettings.OAK_QUERY_OP_FUNCTION, "true");
+        try {
+            String function = "if(op([reindexCount], '>', 'lon:0'), path(), null)";
+            // same as the "custom.reindex" definition, except that it is synchronous,
+            // because this test repository does not run the "async" indexing lane
+            IndexDefinitionBuilder idxb = indexOptions.createIndexDefinitionBuilder()
+                    .noAsync()
+                    .evaluatePathRestrictions()
+                    .includedPaths("/oak:index")
+                    .queryPaths("/oak:index")
+                    .tags("reindex");
+            idxb.indexRule("nt:base").property("test", null).function(function)
+                    .propertyIndex().ordered();
+            idxb.build(root.getTree("/").getChild("oak:index").addChild("custom.reindex"));
+            root.commit();
+
+            Tree oakIndex = root.getTree("/oak:index");
+            Tree a = oakIndex.addChild("a");
+            a.setProperty("type", "disabled");
+            a.setProperty("reindexCount", 2L);
+            Tree b = oakIndex.addChild("b");
+            b.setProperty("type", "disabled");
+            b.setProperty("reindexCount", 0L);
+            oakIndex.addChild("c").setProperty("type", "disabled");
+            root.commit();
+
+            String query = "select * from [nt:base] " +
+                    "where " + function + " > '/' " +
+                    "and isdescendantnode('/oak:index') " +
+                    "order by " + function + " " +
+                    "option(index tag [reindex])";
+            assertEventually(() -> {
+                assertThat(explain(query), containsString("/oak:index/custom.reindex"));
+                List<String> result = executeQuery(query, SQL2);
+                assertThat(result.toString(), result.contains("/oak:index/a"));
+                Assert.assertFalse(result.toString(), result.contains("/oak:index/b"));
+                Assert.assertFalse(result.toString(), result.contains("/oak:index/c"));
+                assertEquals(result.stream().sorted().collect(Collectors.toList()), result);
+            });
+        } finally {
+            if (old == null) {
+                System.clearProperty(QueryEngineSettings.OAK_QUERY_OP_FUNCTION);
+            } else {
+                System.setProperty(QueryEngineSettings.OAK_QUERY_OP_FUNCTION, old);
+            }
+        }
     }
 
     /*

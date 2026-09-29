@@ -22,6 +22,8 @@ import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.json.TypeCodes;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 
 /**
@@ -40,6 +42,28 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 public class FunctionIndexUtils {
 
     private FunctionIndexUtils() {
+    }
+
+    /**
+     * Parse the (unquoted) text of a string literal that is used as an operand
+     * of a function, for example "hello". The text may start with a type code
+     * as used in Oak's JSON format (see {@link TypeCodes}), in which case
+     * the value is converted to that type. Otherwise, the value is the text
+     * itself, as a string.
+     *
+     * @param text the literal text, without quotes
+     * @return the value
+     * @throws IllegalArgumentException if the value can not be converted to
+     *         the given type
+     */
+    public static PropertyValue parseLiteral(String text) {
+        int split = TypeCodes.split(text);
+        int type = TypeCodes.decodeType(split, text);
+        if (type == PropertyType.UNDEFINED || type == PropertyType.BINARY) {
+            return PropertyValues.newString(text);
+        }
+        String value = TypeCodes.decodeName(split, text);
+        return PropertyValues.create(PropertyStates.createProperty("value", value, type));
     }
 
     /**

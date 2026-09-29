@@ -99,7 +99,7 @@ public class LiteralOperandImpl extends DynamicOperandImpl {
 
     @Override
     int getPropertyType() {
-        return PropertyType.STRING;
+        return value == null ? PropertyType.STRING : value.getType().tag();
     }
 
     @Override

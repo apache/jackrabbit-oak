@@ -183,6 +183,28 @@ public class SQL2ParserTest {
     }
 
     @Test
+    public void testTypedLiteral() throws ParseException {
+        // the function token is the same as the one FunctionIndexProcessor creates
+        Query q = p.parse("SELECT * FROM [nt:base] WHERE COALESCE([a], 'lon:0') > 1");
+        assertTrue(q.toString(), q.toString().contains("coalesce([nt:base].[a], 'lon:0')"));
+    }
+
+    @Test(expected = ParseException.class)
+    public void testNumberLiteralNotSupported() throws ParseException {
+        p.parse("SELECT * FROM [nt:base] WHERE COALESCE([a], 0) > 1");
+    }
+
+    @Test(expected = ParseException.class)
+    public void testSignedNumberLiteralNotSupported() throws ParseException {
+        p.parse("SELECT * FROM [nt:base] WHERE COALESCE([a], +0) > 1");
+    }
+
+    @Test(expected = ParseException.class)
+    public void testInvalidTypedLiteral() throws ParseException {
+        p.parse("SELECT * FROM [nt:base] WHERE COALESCE([a], 'lon:abc') > 1");
+    }
+
+    @Test
     public void testCoalesceWithEscapedQuoteLiteral() throws ParseException {
         // a single quote within a literal is escaped as two single quotes;
         // the resulting function-restriction token must round-trip with the
