@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
@@ -33,6 +34,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.io.File;
 import java.io.IOException;
@@ -135,6 +137,29 @@ public class AsyncQueueTest {
 
         assertEquals(emptyList(), putActions);
         assertEquals(NEW_VAL, nodeCache.getIfPresent(k));
+    }
+
+    @Test
+    public void loadedItemEvictedBeforeReturnShouldBePersisted() {
+        PathRev k = generatePathRev();
+        AtomicReference<NodeCache<PathRev, StringValue>> cacheRef = new AtomicReference<>();
+        Cache<PathRev, StringValue> memCache = Mockito.spy(
+                new CacheLIRS.Builder<PathRev, StringValue>().maximumSize(10).build().asOakCache());
+        Mockito.doAnswer(invocation -> {
+            StringValue loaded = (StringValue) invocation.callRealMethod();
+            // simulate an async eviction callback landing before get() returns
+            cacheRef.get().evicted(k, loaded, EvictionCause.SIZE);
+            return loaded;
+        }).when(memCache).get(Mockito.eq(k), Mockito.any());
+        NodeCache<PathRev, StringValue> cache = (NodeCache<PathRev, StringValue>) pCache.wrap(
+                builderProvider.newBuilder().getNodeStore(), null, memCache, CacheType.NODE);
+        cacheRef.set(cache);
+        CacheWriteQueueWrapper writeQueue = new CacheWriteQueueWrapper(cache.writeQueue);
+        cache.writeQueue = writeQueue;
+
+        assertEquals(VAL, cache.get(k, key -> VAL));
+
+        assertEquals(asList(k), writeQueue.putActions);
     }
 
     private PathRev generatePathRev() {

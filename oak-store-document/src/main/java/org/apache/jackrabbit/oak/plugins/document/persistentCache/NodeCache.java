@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import org.apache.jackrabbit.oak.cache.api.Cache;
@@ -220,14 +221,17 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
         // Track entry load time
         TimerStats.Context ctx = stats.startLoaderTimer();
         try {
+            AtomicBoolean loadedByCaller = new AtomicBoolean();
             value = memCache.get(key, k -> {
                 V loaded = mappingFunction.apply(k);
                 if (loaded != null) {
-                    memCacheMetadata.put(k, loaded);
+                    // count the access before the value becomes evictable
+                    memCacheMetadata.increment(k, loaded);
+                    loadedByCaller.set(true);
                 }
                 return loaded;
             });
-            if (value != null) {
+            if (value != null && !loadedByCaller.get()) {
                 memCacheMetadata.incrementIfPresent(key, value);
             }
             ctx.stop();
