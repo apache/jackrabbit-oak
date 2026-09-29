@@ -115,9 +115,11 @@ Run the clean qualification gate with the Atlas SRV connection string:
 Use the Atlas-generated SRV connection string without
 `directConnection=true`.
 
-The clean gate reports 468 tests, 0 failures, 0 errors, and 4 inherited Oak
-skips, including the importer, commit, generation, and streaming contracts.
-There are no connector-owned ignored tests or expected-failure lane.
+The clean gate reports 0 failures, 0 errors, and 4 skips, including the
+importer, commit, generation, and streaming contracts. The skips are the
+inherited analyzer suite, ignored as a class because stock Mongot rejects some
+of its analysis components, and three inherited Oak skips; see
+[COMPATIBILITY.md](COMPATIBILITY.md). There is no expected-failure lane.
 
 Focused end-to-end query evidence:
 
@@ -151,21 +153,15 @@ The module is packaged as an OSGi bundle:
 
     mvn -pl oak-search-mongot -am -DskipTests package
 
-The deployable artifact is:
-
-    oak-search-mongot/target/oak-search-mongot-2.5-SNAPSHOT.jar
-
-A prebuilt copy from this source tree is checked in at
-[dist/oak-search-mongot-2.5-SNAPSHOT.jar](dist/oak-search-mongot-2.5-SNAPSHOT.jar).
-Its bundle identity, checksum, and runtime requirements are recorded in the
-[distribution notes](dist/README.md).
+The deployable artifact is `oak-search-mongot/target/oak-search-mongot-<version>.jar`,
+where `<version>` is the Oak version of this source tree.
 
 Install that bundle into a compatible Oak OSGi runtime, together with the
-runtime bundles it imports. The current build expects the matching Oak API and
-`oak-search` packages plus the MongoDB Java Driver 5.3 bundle set
-(`mongodb-driver-sync`, `mongodb-driver-core`, `bson`, and
-`bson-record-codec`); those dependencies are not embedded in the connector
-JAR. Do not install the `*-tests.jar` artifact.
+runtime bundles it imports. The bundle embeds the `oak-search` classes it uses,
+because `oak-search` exports no packages, and imports the matching Oak API
+packages plus the MongoDB Java Driver 5.x bundle set (`mongodb-driver-sync`,
+`mongodb-driver-core`, and `bson`, version 5.4 or later); the driver is not
+embedded in the connector JAR. Do not install the `*-tests.jar` artifact.
 
 Configure the component PID after installing the bundle:
 
@@ -194,11 +190,8 @@ property `type=mongot`.
 Evaluator delivery
 ------------------
 
-This repository includes both the [connector source](src/main/java/) and a
-prebuilt, version-matched
-[OSGi bundle](dist/oak-search-mongot-2.5-SNAPSHOT.jar), so the initial
-evaluation does not require packaging the connector. The source is available
-for inspection and for rebuilding against a different Oak baseline.
+Build the connector bundle from this source tree, as described above, so that
+it matches the Oak version it is deployed with.
 MongoDB provisions the compatible custom Mongot build behind the Atlas cluster;
 no Mongot binary or configuration is distributed to the evaluator. The source
 qualification suite requires the repository and Atlas access. Runtime use

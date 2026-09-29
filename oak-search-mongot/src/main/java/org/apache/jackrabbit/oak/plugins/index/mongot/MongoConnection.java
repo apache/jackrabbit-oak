@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.mongot;
 
+import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
@@ -34,6 +35,11 @@ public final class MongoConnection implements AutoCloseable {
 
     public static MongoConnection create(String connectionString, String databaseName) {
         return new MongoConnection(MongoClients.create(connectionString), databaseName);
+    }
+
+    // Lets tests attach a command listener and observe only the connector's own commands.
+    static MongoConnection create(MongoClientSettings settings, String databaseName) {
+        return new MongoConnection(MongoClients.create(settings), databaseName);
     }
 
     public MongoDatabase getDatabase() {

@@ -83,7 +83,8 @@ public final class MongotTestRepositoryBuilder {
     public Fixture build() throws Exception {
         root.child("oak:index").setChildNode(INDEX_NAME, definition.build());
         MemoryNodeStore store = new MemoryNodeStore(root.getNodeState());
-        MongoConnection connection = MongoConnection.create(
+        MongotCommandRecorder commands = new MongotCommandRecorder();
+        MongoConnection connection = commands.connect(
                 mongo.getConnectionString(), mongo.getDatabaseName());
         AsyncIndexUpdate async = new AsyncIndexUpdate("async", store,
                 new MongotIndexEditorProvider(connection, null));
@@ -102,7 +103,7 @@ public final class MongotTestRepositoryBuilder {
                 .with(new OpenSecurityProvider())
                 .with(new MongotIndexProvider(tracker))
                 .createContentRepository();
-        return new Fixture(connection, repository.login(null, null), store, async, tracker);
+        return new Fixture(connection, commands, repository.login(null, null), store, async, tracker);
     }
 
     public static final class Fixture implements AutoCloseable {
@@ -112,8 +113,10 @@ public final class MongotTestRepositoryBuilder {
         private final MemoryNodeStore store;
         private final AsyncIndexUpdate async;
         private final MongotIndexTracker tracker;
+        private final MongotCommandRecorder commands;
 
         private Fixture(MongoConnection connection,
+                        MongotCommandRecorder commands,
                         ContentSession session,
                         MemoryNodeStore store,
                         AsyncIndexUpdate async,
@@ -123,6 +126,7 @@ public final class MongotTestRepositoryBuilder {
             this.store = store;
             this.async = async;
             this.tracker = tracker;
+            this.commands = commands;
         }
 
         public void mutate(Consumer<NodeBuilder> mutation) throws CommitFailedException {
@@ -135,6 +139,11 @@ public final class MongotTestRepositoryBuilder {
             async.run();
             assertFalse("Async Mongot indexing failed", async.isFailing());
             tracker.update(store.getRoot());
+        }
+
+        /** Number of aggregations this fixture's connector sent whose pipeline contains the stage. */
+        public long stageCount(String stage) {
+            return commands.stageCount(stage);
         }
 
         public MongoCollection<Document> collection() {

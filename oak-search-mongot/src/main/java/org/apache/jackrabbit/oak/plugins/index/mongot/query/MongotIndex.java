@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import com.mongodb.MongoCommandException;
 import com.mongodb.client.AggregateIterable;
@@ -223,13 +224,13 @@ final class MongotIndex extends FulltextIndex {
                     MongotResultAdapter.excerpts(result, request.excerptColumns()),
                     null, null);
         }, documents::close);
-        // Use a query-specific $count aggregation instead of rows::getSize: the latter
-        // would fully drain the streaming cursor (in aggregateCursor()'s batches) the
-        // moment anything calls Cursor.getSize()/JCR's RowIterator.getSize() - a common
+        // Use a query-specific count instead of rows::getSize: the latter would fully
+        // drain the streaming cursor (in aggregateCursor()'s batches) the moment
+        // anything calls Cursor.getSize()/JCR's RowIterator.getSize() - a common
         // "N results found" UI pattern - even when the caller never intends to iterate
-        // all rows. $count is cheap (server-side count, no document bodies returned)
-        // and, unlike the unused getSizeEstimator(IndexPlan) override above, reflects
-        // this query's actual filter rather than the whole index's document count.
+        // all rows. countMatches() asks mongot for the match count through the search
+        // metadata rather than appending a $count stage, which would re-execute the
+        // query and drain every matching document from mongot into mongod.
         SizeEstimator sizeEstimator = () -> countMatches(collection, pipeline, definition);
         return new FulltextPathCursor(rows, NEVER_REWOUND, plan,
                 plan.getFilter().getQueryLimits(), sizeEstimator);
@@ -238,11 +239,54 @@ final class MongotIndex extends FulltextIndex {
     private static long countMatches(MongoCollection<Document> collection,
                                      List<Document> pipeline,
                                      MongotIndexDefinition definition) {
-        List<Document> countPipeline = new ArrayList<>(pipeline);
+        Document search = searchOnlyPipeline(pipeline);
+        if (search != null) {
+            // The count option is evaluated inside mongot and returned through the
+            // search metadata as a single document, without fetching or sorting any
+            // matching documents. Appending a $count stage to the pipeline instead
+            // would re-execute the query and stream every match from mongot into
+            // mongod just to count it.
+            Document searchMeta = new Document("$searchMeta",
+                    new Document(search).append("count",
+                            new Document("type", "total")));
+            try (MongoCursor<Document> cursor = aggregateCursor(collection,
+                    List.of(searchMeta), definition)) {
+                if (cursor.hasNext()) {
+                    Document count = cursor.next().get("count", Document.class);
+                    if (count != null && count.get("total") instanceof Number total) {
+                        return total.longValue();
+                    }
+                }
+                return 0L;
+            }
+        }
+        // The plan has stages after $search ($match filters or $sort) whose effect the
+        // search metadata cannot see, so count with a trailing $count stage. This
+        // still runs in mongod against the full result stream; pushing those stages
+        // into the search operator would let this path use the metadata count too.
+        // Sorting and projecting do not change the count, and $sort blocks on every hit.
+        List<Document> countPipeline = pipeline.stream()
+                .filter(stage -> !stage.containsKey("$sort") && !stage.containsKey("$set")
+                        && !stage.containsKey("$project"))
+                .collect(Collectors.toCollection(ArrayList::new));
         countPipeline.add(new Document("$count", "n"));
         try (MongoCursor<Document> cursor = aggregateCursor(collection, countPipeline, definition)) {
             return cursor.hasNext() ? ((Number) cursor.next().get("n")).longValue() : 0L;
         }
+    }
+
+    /**
+     * Returns the {@code $search} stage when the pipeline is a bare
+     * {@code [$search, $project]} pair, i.e. when no post-search stage filters or
+     * reorders the matches and a metadata count would be exact; {@code null} otherwise.
+     */
+    private static Document searchOnlyPipeline(List<Document> pipeline) {
+        if (pipeline.size() == 2
+                && pipeline.get(0).containsKey("$search")
+                && pipeline.get(1).containsKey("$project")) {
+            return (Document) pipeline.get(0).get("$search");
+        }
+        return null;
     }
 
     private static Cursor cursor(List<FulltextResultRow> rows, IndexPlan plan) {
@@ -284,9 +328,6 @@ final class MongotIndex extends FulltextIndex {
                                                          List<Document> pipeline,
                                                          MongotIndexDefinition definition) {
         boolean usesSearch = !pipeline.isEmpty() && pipeline.get(0).containsKey("$search");
-        if (usesSearch) {
-            requireSearchIndex(collection, definition.getSearchIndexName());
-        }
         long deadline = System.nanoTime()
                 + TimeUnit.MILLISECONDS.toNanos(SEARCH_READINESS_TIMEOUT_MILLIS);
         while (true) {
@@ -316,11 +357,19 @@ final class MongotIndex extends FulltextIndex {
                 AggregateIterable<Document> aggregation = collection.aggregate(pipeline)
                         .batchSize(batchSize)
                         .maxTime(definition.getQueryTimeoutMillis(), TimeUnit.MILLISECONDS);
-                return aggregation.iterator();
+                MongoCursor<Document> cursor = aggregation.iterator();
+                // $search against a missing index returns no hits instead of failing, so
+                // confirm the index exists only when there are none, not on every query.
+                if (usesSearch && !cursor.hasNext()) {
+                    requireSearchIndex(collection, definition.getSearchIndexName());
+                }
+                return cursor;
             } catch (MongoCommandException e) {
                 if (!isSearchIndexStarting(e) || System.nanoTime() >= deadline) {
                     throw e;
                 }
+                // Fail fast when the index is missing or failed instead of waiting for it.
+                requireSearchIndex(collection, definition.getSearchIndexName());
                 try {
                     TimeUnit.MILLISECONDS.sleep(SEARCH_READINESS_RETRY_MILLIS);
                 } catch (InterruptedException interrupted) {
@@ -445,6 +494,11 @@ final class MongotIndex extends FulltextIndex {
                         entry.getOrder() == OrderEntry.Order.ASCENDING ? 1 : -1);
                 requiredSortValues.append(field, new Document("$exists", true));
             }
+        }
+        if (sort.equals(new Document("_score", -1))) {
+            // $search already returns hits by descending score; sorting again would block.
+            sort.clear();
+            scoreMaterialized = false;
         }
         if (!sort.isEmpty()) {
             // Oak's ordered indexes only expose rows that have a value for every

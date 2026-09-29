@@ -43,11 +43,7 @@
         <configuration>
           <instructions>
             <Export-Package>!*</Export-Package>
-            <Embed-Dependency>
-              oak-search;scope=compile|runtime;inline=true,
-
-              *;scope=compile|runtime
-            </Embed-Dependency>
+            <Embed-Dependency>oak-search;scope=compile|runtime;inline=true</Embed-Dependency>
           </instructions>
         </configuration>
       </plugin>
