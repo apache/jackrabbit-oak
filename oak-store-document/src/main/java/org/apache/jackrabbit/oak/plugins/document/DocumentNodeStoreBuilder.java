@@ -105,6 +105,11 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
             "oak.documentMK.manyChildren", 50);
 
     /**
+     * Whether to use CacheLIRS when the Caffeine feature toggle is disabled.
+     */
+    private static final boolean LIRS_CACHE = !Boolean.getBoolean("oak.documentMK.guavaCache");
+
+    /**
      * Feature toggle name for {@link #FT_CAFFEINE_CACHE_ENABLED}.
      */
     static final String FT_CAFFEINE_CACHE = "FT_CAFFEINE_CACHE_OAK-12425";
@@ -1093,7 +1098,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
             long maxWeight,
             final Set<EvictionListener<K, V>> listeners) {
         // do not use LIRS cache when maxWeight is zero (OAK-6953)
-        if (!FT_CAFFEINE_CACHE_ENABLED.get() && maxWeight > 0) {
+        if (!FT_CAFFEINE_CACHE_ENABLED.get() && LIRS_CACHE && maxWeight > 0) {
             return CacheLIRS.<K, V>newBuilder()
                     .module(module)
                     .weigher((key, value) -> weigher.weigh(key, value))

@@ -52,7 +52,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * is a best-effort option - it may happen that cache values won't have their
  * metadata entries.
  */
-public class CacheMetadata<K> {
+public class CacheMetadata<K, V> {
 
     private final ConcurrentMap<K, MetadataEntry> metadataMap = new ConcurrentHashMap<>();
 
@@ -66,25 +66,25 @@ public class CacheMetadata<K> {
         this.enabled = false;
     }
 
-    void put(K key) {
+    void put(K key, V value) {
         if (!enabled) {
             return;
         }
-        getOrCreate(key, false);
+        getOrCreate(key, value, false);
     }
 
-    void putFromPersistenceAndIncrement(K key) {
+    void putFromPersistenceAndIncrement(K key, V value) {
         if (!enabled) {
             return;
         }
-        getOrCreate(key, true).incrementCount();
+        getOrCreate(key, value, true).incrementCount();
     }
 
-    void increment(K key) {
+    void increment(K key, V value) {
         if (!enabled) {
             return;
         }
-        getOrCreate(key, false).incrementCount();
+        getOrCreate(key, value, false).incrementCount();
     }
 
     MetadataEntry remove(Object key) {
@@ -94,22 +94,15 @@ public class CacheMetadata<K> {
         return metadataMap.remove(key);
     }
 
-    void putAll(Iterable<?> keys) {
+    MetadataEntry remove(K key, V value) {
         if (!enabled) {
-            return;
+            return null;
         }
-        for (Object k : keys) {
-            getOrCreate((K) k, false);
+        MetadataEntry metadata = metadataMap.get(key);
+        if (metadata != null && metadata.isFor(value) && metadataMap.remove(key, metadata)) {
+            return metadata;
         }
-    }
-
-    void incrementAll(Iterable<?> keys) {
-        if (!enabled) {
-            return;
-        }
-        for (Object k : keys) {
-            getOrCreate((K) k, false).incrementCount();
-        }
+        return null;
     }
 
     void removeAll(Iterable<?> keys) {
@@ -128,17 +121,14 @@ public class CacheMetadata<K> {
         metadataMap.clear();
     }
 
-    private MetadataEntry getOrCreate(K key, boolean readFromPersistentCache) {
+    private MetadataEntry getOrCreate(K key, V value, boolean readFromPersistentCache) {
         if (!enabled) {
             return null;
         }
-        MetadataEntry metadata = metadataMap.get(key);
-        if (metadata == null) {
-            MetadataEntry newEntry = new MetadataEntry(readFromPersistentCache);
-            MetadataEntry oldEntry = metadataMap.putIfAbsent(key, newEntry);
-            metadata = oldEntry == null ? newEntry : oldEntry;
-        }
-        return metadata;
+        return metadataMap.compute(key, (k, metadata) ->
+                metadata != null && metadata.isFor(value)
+                        ? metadata
+                        : new MetadataEntry(value, readFromPersistentCache));
     }
 
 
@@ -146,10 +136,17 @@ public class CacheMetadata<K> {
 
         private final AtomicLong accessCount = new AtomicLong();
 
+        private final Object value;
+
         private final boolean readFromPersistentCache;
 
-        private MetadataEntry(boolean readFromPersistentCache) {
+        private MetadataEntry(Object value, boolean readFromPersistentCache) {
+            this.value = value;
             this.readFromPersistentCache = readFromPersistentCache;
+        }
+
+        boolean isFor(Object value) {
+            return this.value == value;
         }
 
         void incrementCount() {
