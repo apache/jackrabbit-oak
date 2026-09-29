@@ -17,8 +17,10 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.SplittableRandom;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -47,7 +49,10 @@ import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
  * {@code java -Xmx2g -jar target/oak-benchmarks-*.jar
  * benchmark DocumentCacheBenchmark Oak-MemoryNS}. Workload size can be adjusted with
  * {@code -Ddocument.cache.entries}, {@code -Ddocument.cache.operations}, and
- * {@code -Ddocument.cache.threads}.</p>
+ * {@code -Ddocument.cache.threads}. Individual policies/scenarios can be selected with
+ * {@code -Ddocument.cache.policies} and {@code -Ddocument.cache.scenarios}. Use
+ * {@code -Ddocument.cache.caffeine.maximumWeightMultiplier} to evaluate a different memory
+ * allocation for Caffeine.</p>
  */
 public final class DocumentCacheBenchmark extends Benchmark {
 
@@ -55,11 +60,18 @@ public final class DocumentCacheBenchmark extends Benchmark {
     private static final int OPERATIONS = Integer.getInteger("document.cache.operations", 2_000_000);
     private static final int THREADS = Integer.getInteger("document.cache.threads",
             Math.max(2, Runtime.getRuntime().availableProcessors()));
+    private static final double CAFFEINE_MAXIMUM_WEIGHT_MULTIPLIER =
+            Double.parseDouble(System.getProperty(
+                    "document.cache.caffeine.maximumWeightMultiplier", "1.0"));
     private static final int WARMUP_OPERATIONS = Math.max(10_000, OPERATIONS / 10);
     private static final int VALUE_LENGTH = 256;
     private static final int LIRS_AVERAGE_WEIGHT = 2_000;
     private static final long RANDOM_SEED = 42L;
     private static final double[] WORKING_SET_RATIOS = {0.5, 1.0, 2.0};
+    private static final Set<String> SELECTED_SCENARIOS = selectedValues(
+            "document.cache.scenarios", Scenario.values());
+    private static final Set<String> SELECTED_POLICIES = selectedValues(
+            "document.cache.policies", Policy.values());
     private static final EmpiricalWeigher WEIGHER = new EmpiricalWeigher();
     private static final int ENTRY_WEIGHT = WEIGHER.weigh(value(0), value(0));
     private static final long MAXIMUM_WEIGHT = (long) CACHE_ENTRIES * ENTRY_WEIGHT;
@@ -82,7 +94,8 @@ public final class DocumentCacheBenchmark extends Benchmark {
             @Override
             Cache<StringValue, StringValue> createCache() {
                 return CacheBuilder.<StringValue, StringValue>newBuilder()
-                        .maximumWeight(MAXIMUM_WEIGHT)
+                        .maximumWeight((long) (MAXIMUM_WEIGHT
+                                * CAFFEINE_MAXIMUM_WEIGHT_MULTIPLIER))
                         .weigher(WEIGHER::weigh)
                         .recordStats()
                         .build();
@@ -113,10 +126,15 @@ public final class DocumentCacheBenchmark extends Benchmark {
                 + "   evictions backendLoads");
 
         for (Scenario scenario : Scenario.values()) {
+            if (!SELECTED_SCENARIOS.contains(scenario.name())) {
+                continue;
+            }
             for (double ratio : WORKING_SET_RATIOS) {
                 int workingSetSize = Math.max(1, (int) (CACHE_ENTRIES * ratio));
                 for (Policy policy : Policy.values()) {
-                    runScenario(policy, scenario, workingSetSize, WARMUP_OPERATIONS);
+                    if (!SELECTED_POLICIES.contains(policy.name())) {
+                        continue;
+                    }
                     Result result = runScenario(policy, scenario, workingSetSize, OPERATIONS);
                     printResult(scenario, ratio, policy, result);
                 }
@@ -129,16 +147,27 @@ public final class DocumentCacheBenchmark extends Benchmark {
         Cache<StringValue, StringValue> cache = policy.createCache();
         List<StringValue> keys = createValues(workingSetSize);
         AtomicLong backendLoads = new AtomicLong();
+        runOperations(cache, keys, scenario, WARMUP_OPERATIONS, backendLoads);
+        cache.cleanUp();
+        CacheStatsSnapshot initialStats = cache.stats();
+        long initialBackendLoads = backendLoads.get();
         long start = System.nanoTime();
-        long completed;
-        if (scenario == Scenario.CONCURRENT) {
-            completed = runConcurrent(cache, keys, operations, backendLoads);
-        } else {
-            completed = runSingleThreaded(cache, keys, scenario, operations, backendLoads);
-        }
+        long completed = runOperations(cache, keys, scenario, operations, backendLoads);
         long elapsed = System.nanoTime() - start;
         cache.cleanUp();
-        return new Result(elapsed, completed, backendLoads.get(), cache.stats());
+        return new Result(elapsed, completed, backendLoads.get() - initialBackendLoads,
+                cache.stats().minus(initialStats));
+    }
+
+    private static long runOperations(Cache<StringValue, StringValue> cache,
+                                      List<StringValue> keys,
+                                      Scenario scenario,
+                                      int operations,
+                                      AtomicLong backendLoads) {
+        if (scenario == Scenario.CONCURRENT) {
+            return runConcurrent(cache, keys, operations, backendLoads);
+        }
+        return runSingleThreaded(cache, keys, scenario, operations, backendLoads);
     }
 
     private static long runSingleThreaded(Cache<StringValue, StringValue> cache,
@@ -259,8 +288,20 @@ public final class DocumentCacheBenchmark extends Benchmark {
         if (THREADS <= 0) {
             throw new IllegalArgumentException("document.cache.threads must be greater than 0");
         }
+        if (CAFFEINE_MAXIMUM_WEIGHT_MULTIPLIER <= 0) {
+            throw new IllegalArgumentException(
+                    "document.cache.caffeine.maximumWeightMultiplier must be greater than 0");
+        }
         if (VALUE_LENGTH < 32) {
             throw new IllegalStateException("VALUE_LENGTH must leave room for fixed-width keys");
         }
+    }
+
+    private static Set<String> selectedValues(String propertyName, Enum<?>[] values) {
+        String configured = System.getProperty(propertyName);
+        if (configured == null || configured.isBlank()) {
+            return Arrays.stream(values).map(Enum::name).collect(java.util.stream.Collectors.toSet());
+        }
+        return Set.of(configured.toUpperCase(Locale.ROOT).split(","));
     }
 }
