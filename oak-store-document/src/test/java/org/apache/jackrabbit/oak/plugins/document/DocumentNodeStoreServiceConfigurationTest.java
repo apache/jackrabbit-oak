@@ -69,7 +69,7 @@ public class DocumentNodeStoreServiceConfigurationTest {
         assertEquals(DocumentNodeStoreService.DEFAULT_DB, config.db());
         assertEquals(DocumentNodeStoreService.DEFAULT_SO_KEEP_ALIVE, config.socketKeepAlive());
         assertEquals(DocumentNodeStoreService.DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS, config.mongoLeaseSocketTimeout());
-        assertEquals(DocumentNodeStoreService.DEFAULT_CACHE, config.cache());
+        assertEquals(320, config.cache());
         assertEquals(DocumentMK.Builder.DEFAULT_NODE_CACHE_PERCENTAGE, config.nodeCachePercentage());
         assertEquals(DocumentMK.Builder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE, config.prevDocCachePercentage());
         assertEquals(DocumentMK.Builder.DEFAULT_CHILDREN_CACHE_PERCENTAGE, config.childrenCachePercentage());

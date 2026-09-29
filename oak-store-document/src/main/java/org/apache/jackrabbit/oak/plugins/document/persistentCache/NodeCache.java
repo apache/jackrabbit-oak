@@ -341,6 +341,12 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
     @Override
     public void evicted(K key, V value, EvictionCause cause) {
         if (async && Objects.nonNull(cause) && EVICTION_CAUSES.contains(cause) && value != null) {
+            // A Caffeine removal notification may arrive after the key was reinserted. Do not let
+            // the stale notification remove the new entry's metadata or persist the old value.
+            V currentValue = memCache.asMap().get(key);
+            if (currentValue != null && currentValue != value) {
+                return;
+            }
             CacheMetadata.MetadataEntry metadata = memCacheMetadata.remove(key);
             boolean qualifiesToPersist = true;
             if (metadata != null && metadata.isReadFromPersistentCache()) {

@@ -24,6 +24,8 @@ import java.util.Map;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.api.Cache;
+import org.apache.jackrabbit.oak.cache.impl.caffeine.CaffeineCacheAdapter;
+import org.apache.jackrabbit.oak.cache.impl.lirs.LirsLoadingCacheAdapter;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
@@ -32,6 +34,7 @@ import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCach
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCacheStats;
 import org.apache.jackrabbit.oak.plugins.document.util.RevisionsKey;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -46,6 +49,29 @@ public class DocumentNodeStoreBuilderTest {
 
     @Rule
     public final TemporaryFolder temp = new TemporaryFolder(new File("target"));
+
+    @After
+    public void resetCaffeineCacheFeature() {
+        DocumentNodeStoreBuilder.FT_CAFFEINE_CACHE_ENABLED.set(true);
+    }
+
+    @Test
+    public void usesCaffeineCacheByDefault() {
+        Cache<CacheValue, NodeDocument> cache = DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder()
+                .buildDocumentCache(new MemoryDocumentStore());
+
+        Assert.assertTrue(cache instanceof CaffeineCacheAdapter);
+    }
+
+    @Test
+    public void usesLirsCacheWhenCaffeineFeatureIsDisabled() {
+        DocumentNodeStoreBuilder.FT_CAFFEINE_CACHE_ENABLED.set(false);
+
+        Cache<CacheValue, NodeDocument> cache = DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder()
+                .buildDocumentCache(new MemoryDocumentStore());
+
+        Assert.assertTrue(cache instanceof LirsLoadingCacheAdapter);
+    }
 
     @Test
     public void buildNodeDocumentCacheReturnsNonNull() {

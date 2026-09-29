@@ -50,6 +50,8 @@ public class AsyncQueueTest {
 
     private static final StringValue VAL = new StringValue("xyz");
 
+    private static final StringValue NEW_VAL = new StringValue("abc");
+
     private PersistentCache pCache;
 
     private List<PathRev> putActions;
@@ -118,6 +120,21 @@ public class AsyncQueueTest {
         nodeCache.getIfPresent(k);
         flush();
         assertEquals(asList(k), putActions);
+    }
+
+    @Test
+    public void staleEvictionShouldNotPersistReinsertedValue() {
+        PathRev k = generatePathRev();
+        nodeCache.put(k, VAL);
+        nodeCache.getIfPresent(k);
+        nodeCache.invalidate(k);
+        nodeCache.put(k, NEW_VAL);
+        nodeCache.getIfPresent(k);
+
+        nodeCache.evicted(k, VAL, EvictionCause.SIZE);
+
+        assertEquals(emptyList(), putActions);
+        assertEquals(NEW_VAL, nodeCache.getIfPresent(k));
     }
 
     private PathRev generatePathRev() {
