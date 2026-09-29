@@ -186,7 +186,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
     public V getIfPresent(K key) {
         V value = memCache.getIfPresent(key);
         if (value != null) {
-            memCacheMetadata.increment(key, value);
+            memCacheMetadata.incrementIfPresent(key, value);
             return value;
         }
 
@@ -220,8 +220,16 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
         // Track entry load time
         TimerStats.Context ctx = stats.startLoaderTimer();
         try {
-            value = memCache.get(key, mappingFunction);
-            memCacheMetadata.increment(key, value);
+            value = memCache.get(key, k -> {
+                V loaded = mappingFunction.apply(k);
+                if (loaded != null) {
+                    memCacheMetadata.put(k, loaded);
+                }
+                return loaded;
+            });
+            if (value != null) {
+                memCacheMetadata.incrementIfPresent(key, value);
+            }
             ctx.stop();
             if (!async) {
                 write((K) key, value);
@@ -238,7 +246,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
     public Map<K, V> getAllPresent(
             Iterable<? extends K> keys) {
         Map<K, V> result = memCache.getAllPresent(keys);
-        result.forEach(memCacheMetadata::increment);
+            result.forEach(memCacheMetadata::incrementIfPresent);
         return result;
     }
 
@@ -337,7 +345,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
     public void evicted(K key, V value, EvictionCause cause) {
         if (async && Objects.nonNull(cause) && EVICTION_CAUSES.contains(cause) && value != null) {
             CacheMetadata.MetadataEntry metadata = memCacheMetadata.remove(key, value);
-            if (metadata == null && memCache.asMap().containsKey(key)) {
+            if (metadata == null) {
                 return;
             }
             boolean qualifiesToPersist = true;

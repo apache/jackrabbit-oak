@@ -35,17 +35,15 @@ import java.util.concurrent.atomic.AtomicLong;
  * - metadata.put()
  * - cache.put()
  *
- * 3. For increment():
+ * 3. For incrementIfPresent():
  *
- * - metadata.increment()
  * - cache.get()
- * - (metadata.remove() if value doesn't exists in cache)
+ * - metadata.incrementIfPresent()
  *
- * 4. For incrementAll():
+ * 4. For bulk lookup:
  *
- * - metadata.incrementAll()
  * - cache.getAll()
- * - (metadata.removeAll() on keys that returned nulls)
+ * - metadata.incrementIfPresent() for returned values
  *
  * Preserving this order will allow to avoid leaked values in the metadata without
  * an extra synchronization between cache and metadata operations. This strategy
@@ -85,6 +83,18 @@ public class CacheMetadata<K, V> {
             return;
         }
         getOrCreate(key, value, false).incrementCount();
+    }
+
+    void incrementIfPresent(K key, V value) {
+        if (!enabled) {
+            return;
+        }
+        metadataMap.computeIfPresent(key, (k, metadata) -> {
+            if (metadata.isFor(value)) {
+                metadata.incrementCount();
+            }
+            return metadata;
+        });
     }
 
     MetadataEntry remove(Object key) {
