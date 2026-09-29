@@ -31,16 +31,15 @@ The clean release gate is:
 mvn -pl oak-search-mongot clean verify
 ```
 
-The qualified build reports **468 tests, 0 failures, 0 errors, and 4 inherited
-skips**. There are no connector-owned `@Ignore` methods and no opt-in failing
+Against the stock `mongodb/mongodb-atlas-local` test server, the build reports
+**0 failures, 0 errors, and 4 skips**. There is no opt-in failing
 qualification lane.
 
-The four skips come from the upstream Oak test sources rather than this
-connector:
+The skips are:
 
-| Upstream test | Why it cannot qualify this backend |
+| Skipped test | Why it cannot qualify this backend |
 | --- | --- |
-| `analyzerWithHyphenationCompoundWord` | The inherited fixture contains literal placeholder XML (`<...>`) and is already ignored upstream. |
+| `MongotFullTextAnalyzerCommonTest` (whole class) | Ignored at class level: 15 of its 55 inherited analyzer contracts configure Lucene token or character filters, stemmers, or options that stock Mongot rejects when the search index is created. Surefire reports the class as one skip. |
 | `ambiguousSubtreeIndexWithDescendantConstraint` | OAK-3992 hard-codes Lucene-specific plan behavior before backend execution. |
 | `unionOnTwoDescendants` | OAK-3993 is rejected by Oak's shared SQL2 parser before an index plugin is invoked. |
 | `descendantTestWithIndexTagExplainWithNoData` | The shared Oak planner chooses traversal for an empty index despite the tag; the inherited test is already ignored with that explanation. |
@@ -127,7 +126,7 @@ tests are supporting diagnostics, not the compatibility verdict.
 | Facets | SUPPORTED | All 14 inherited secure, insecure, and statistical cases execute and pass. |
 | Excerpts and highlighting | SUPPORTED | All 9 excerpt cases plus the inherited aggregate excerpt contract pass. |
 | Suggestions and spellcheck | SUPPORTED | Base and descendant contracts pass; only the two upstream OAK-3992/OAK-3993 tests remain skipped. |
-| Built-in and composed analyzers | SUPPORTED | 54 executable inherited analyzer contracts pass; the one upstream placeholder fixture remains skipped. |
+| Built-in and composed analyzers | PARTIAL | The inherited analyzer suite is ignored as a class: 15 of its 55 contracts use analysis components that stock Mongot rejects. |
 | Dynamic boost | SUPPORTED | All 12 inherited cases pass, including analyzed terms, exclusions, confidence ordering, and similarity-tag reranking. |
 | Similarity and vectors | SUPPORTED FOR POC | SQL2/XPath similarity, more-like-this, vector mapping/storage/ranking, lexical filtering, and explain output pass. Candidate and relevance tuning remain workload work, not missing plumbing. |
 | Updates, deletes, moves, reindex | SUPPORTED | Incremental mutation, subtree deletion, move, aggregate refresh, long-path identity, stale-document exclusion, and atomic generation handoff tests pass. Superseded-generation deletion is deliberately deferred to a future cleaner. |
@@ -143,7 +142,7 @@ tests are supporting diagnostics, not the compatibility verdict.
 | Common suite | Result |
 | --- | --- |
 | `FullTextIndexCommonTest` | 14/14 pass |
-| `PropertyIndexCommonTest` | 20/20 pass |
+| `PropertyIndexCommonTest` | 21/21 pass |
 | `IndexPathRestrictionCommonTest` | 7/7 pass |
 | `OrderByCommonTest` | 14/14 pass |
 | `FunctionIndexCommonTest` | 21/21 pass |
@@ -155,7 +154,7 @@ tests are supporting diagnostics, not the compatibility verdict.
 | `ExcerptTest` | 9/9 pass |
 | Suggestion suites | 19 pass, 2 upstream skips |
 | Spellcheck suites | 10/10 pass |
-| `FullTextAnalyzerCommonTest` | 54 pass, 1 upstream skip |
+| `FullTextAnalyzerCommonTest` | Not run: ignored as a class (1 skip). With the ignore removed, 39 pass, 15 error because stock Mongot rejects their analyzers, and 1 upstream skip |
 | `DynamicBoostCommonTest` | 12/12 pass |
 | Result-size suites | 2/2 pass |
 | `IndexImporterReindexTest` | 1/1 pass |

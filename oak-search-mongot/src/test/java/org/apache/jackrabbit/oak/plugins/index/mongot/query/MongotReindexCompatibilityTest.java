@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.mongot.query;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.mongot.MongotIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.mongot.MongotSearchConnectionRule;
 import org.apache.jackrabbit.oak.plugins.index.mongot.MongotTestRepositoryBuilder;
@@ -34,6 +35,9 @@ import static com.mongodb.client.model.Filters.eq;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 public class MongotReindexCompatibilityTest {
 
@@ -90,6 +94,23 @@ public class MongotReindexCompatibilityTest {
                     eq(MongoFieldNames.ID, "/content/stale")));
             assertEquals(0, fixture.collection().countDocuments(
                     eq(MongoFieldNames.ANCESTORS, "/content")));
+        }
+    }
+
+    @Test
+    public void droppedSearchIndexFailsTheQueryInsteadOfReturningNoResults() throws Exception {
+        MongotTestRepositoryBuilder builder = titleBuilder();
+        content(builder.root(), "keep", "current-title");
+
+        try (MongotTestRepositoryBuilder.Fixture fixture = builder.build()) {
+            fixture.collection().dropSearchIndex(fixture.indexDefinition().getSearchIndexName());
+            TestUtil.assertEventually(() -> assertFalse(
+                    fixture.collection().listSearchIndexes().iterator().hasNext()), 30_000);
+
+            // $search against a missing index returns no hits rather than an error.
+            IllegalStateException failure = assertThrows(IllegalStateException.class,
+                    () -> fixture.paths(titleQuery("current-title"), "JCR-SQL2"));
+            assertTrue(failure.getMessage(), failure.getMessage().contains("is unavailable"));
         }
     }
 
