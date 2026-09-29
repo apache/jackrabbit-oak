@@ -43,7 +43,8 @@ import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
  * <p>The benchmark uses the Oak cache API, {@link EmpiricalWeigher}, fixed-size
  * {@link StringValue} keys and values, and identical maximum weights. It covers steady-state
  * reads, a drifting active set, explicit invalidation followed by reload, and concurrent reads.
- * Each scenario runs with working sets at 0.5, 1, and 2 times the configured cache capacity.</p>
+ * Each scenario runs with working sets at 0.5, 1, 2, 5, and 10 times the configured cache
+ * capacity.</p>
  *
  * <p>Run with:
  * {@code java -Xmx2g -jar target/oak-benchmarks-*.jar
@@ -60,14 +61,12 @@ public final class DocumentCacheBenchmark extends Benchmark {
     private static final int OPERATIONS = Integer.getInteger("document.cache.operations", 2_000_000);
     private static final int THREADS = Integer.getInteger("document.cache.threads",
             Math.max(2, Runtime.getRuntime().availableProcessors()));
-    private static final double CAFFEINE_MAXIMUM_WEIGHT_MULTIPLIER =
-            Double.parseDouble(System.getProperty(
-                    "document.cache.caffeine.maximumWeightMultiplier", "1.0"));
     private static final int WARMUP_OPERATIONS = Math.max(10_000, OPERATIONS / 10);
     private static final int VALUE_LENGTH = 256;
+    // Match DocumentNodeStoreBuilder's production CacheLIRS configuration.
     private static final int LIRS_AVERAGE_WEIGHT = 2_000;
     private static final long RANDOM_SEED = 42L;
-    private static final double[] WORKING_SET_RATIOS = {0.5, 1.0, 2.0};
+    private static final double[] WORKING_SET_RATIOS = {0.5, 1.0, 2.0, 5.0, 10.0};
     private static final Set<String> SELECTED_SCENARIOS = selectedValues(
             "document.cache.scenarios", Scenario.values());
     private static final Set<String> SELECTED_POLICIES = selectedValues(
@@ -79,7 +78,7 @@ public final class DocumentCacheBenchmark extends Benchmark {
     private enum Policy {
         CACHE_LIRS {
             @Override
-            Cache<StringValue, StringValue> createCache() {
+            Cache<StringValue, StringValue> createCache(double maximumWeightMultiplier) {
                 return CacheLIRS.<StringValue, StringValue>newBuilder()
                         .maximumWeight(MAXIMUM_WEIGHT)
                         .averageWeight(LIRS_AVERAGE_WEIGHT)
@@ -92,17 +91,17 @@ public final class DocumentCacheBenchmark extends Benchmark {
         },
         CAFFEINE {
             @Override
-            Cache<StringValue, StringValue> createCache() {
+            Cache<StringValue, StringValue> createCache(double maximumWeightMultiplier) {
                 return CacheBuilder.<StringValue, StringValue>newBuilder()
                         .maximumWeight((long) (MAXIMUM_WEIGHT
-                                * CAFFEINE_MAXIMUM_WEIGHT_MULTIPLIER))
+                                * maximumWeightMultiplier))
                         .weigher(WEIGHER::weigh)
                         .recordStats()
                         .build();
             }
         };
 
-        abstract Cache<StringValue, StringValue> createCache();
+        abstract Cache<StringValue, StringValue> createCache(double maximumWeightMultiplier);
     }
 
     private enum Scenario {
@@ -118,10 +117,13 @@ public final class DocumentCacheBenchmark extends Benchmark {
 
     @Override
     public void run(Iterable<RepositoryFixture> fixtures) {
-        validateConfiguration();
+        double caffeineMaximumWeightMultiplier = caffeineMaximumWeightMultiplier();
+        validateConfiguration(caffeineMaximumWeightMultiplier);
         System.out.printf(Locale.ROOT,
-                "%nDocumentCacheBenchmark cacheEntries=%,d maxWeight=%,d operations=%,d threads=%d%n",
-                CACHE_ENTRIES, MAXIMUM_WEIGHT, OPERATIONS, THREADS);
+                "%nDocumentCacheBenchmark cacheEntries=%,d maxWeight=%,d operations=%,d threads=%d"
+                        + " caffeineMaximumWeightMultiplier=%.2f%n",
+                CACHE_ENTRIES, MAXIMUM_WEIGHT, OPERATIONS, THREADS,
+                caffeineMaximumWeightMultiplier);
         System.out.println("scenario       ratio policy          ops/s      ns/op    hit%      misses"
                 + "   evictions backendLoads");
 
@@ -135,7 +137,8 @@ public final class DocumentCacheBenchmark extends Benchmark {
                     if (!SELECTED_POLICIES.contains(policy.name())) {
                         continue;
                     }
-                    Result result = runScenario(policy, scenario, workingSetSize, OPERATIONS);
+                    Result result = runScenario(policy, scenario, workingSetSize, OPERATIONS,
+                            caffeineMaximumWeightMultiplier);
                     printResult(scenario, ratio, policy, result);
                 }
             }
@@ -143,8 +146,9 @@ public final class DocumentCacheBenchmark extends Benchmark {
     }
 
     private static Result runScenario(Policy policy, Scenario scenario, int workingSetSize,
-                                      int operations) {
-        Cache<StringValue, StringValue> cache = policy.createCache();
+                                      int operations, double caffeineMaximumWeightMultiplier) {
+        Cache<StringValue, StringValue> cache =
+                policy.createCache(caffeineMaximumWeightMultiplier);
         List<StringValue> keys = createValues(workingSetSize);
         AtomicLong backendLoads = new AtomicLong();
         runOperations(cache, keys, scenario, WARMUP_OPERATIONS, backendLoads);
@@ -153,10 +157,13 @@ public final class DocumentCacheBenchmark extends Benchmark {
         long initialBackendLoads = backendLoads.get();
         long start = System.nanoTime();
         long completed = runOperations(cache, keys, scenario, operations, backendLoads);
-        long elapsed = System.nanoTime() - start;
         cache.cleanUp();
-        return new Result(elapsed, completed, backendLoads.get() - initialBackendLoads,
+        long elapsed = System.nanoTime() - start;
+        Result result = new Result(elapsed, completed, backendLoads.get() - initialBackendLoads,
                 cache.stats().minus(initialStats));
+        cache.invalidateAll();
+        cache.cleanUp();
+        return result;
     }
 
     private static long runOperations(Cache<StringValue, StringValue> cache,
@@ -278,7 +285,18 @@ public final class DocumentCacheBenchmark extends Benchmark {
                 result.stats.evictionCount(), result.backendLoads);
     }
 
-    private static void validateConfiguration() {
+    private static double caffeineMaximumWeightMultiplier() {
+        String value = System.getProperty(
+                "document.cache.caffeine.maximumWeightMultiplier", "1.0");
+        try {
+            return Double.parseDouble(value);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(
+                    "document.cache.caffeine.maximumWeightMultiplier must be a number: " + value, e);
+        }
+    }
+
+    private static void validateConfiguration(double caffeineMaximumWeightMultiplier) {
         if (CACHE_ENTRIES <= 0) {
             throw new IllegalArgumentException("document.cache.entries must be greater than 0");
         }
@@ -288,7 +306,8 @@ public final class DocumentCacheBenchmark extends Benchmark {
         if (THREADS <= 0) {
             throw new IllegalArgumentException("document.cache.threads must be greater than 0");
         }
-        if (CAFFEINE_MAXIMUM_WEIGHT_MULTIPLIER <= 0) {
+        if (!Double.isFinite(caffeineMaximumWeightMultiplier)
+                || caffeineMaximumWeightMultiplier <= 0) {
             throw new IllegalArgumentException(
                     "document.cache.caffeine.maximumWeightMultiplier must be greater than 0");
         }
