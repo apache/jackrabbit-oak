@@ -47,20 +47,4 @@ public class AwsTarWriterTest extends TarWriterTest {
     protected SegmentArchiveManager getSegmentArchiveManager() {
         return new AwsArchiveManager(directory, new IOMonitorAdapter(), monitor);
     }
-
-    @Override
-    protected SegmentArchiveManager getFailingSegmentArchiveManager() {
-        IOMonitorAdapter ioMonitor = new IOMonitorAdapter();
-        return new AwsArchiveManager(directory, ioMonitor, monitor) {
-            @Override
-            public SegmentArchiveWriter create(String archiveName) {
-                return new AwsSegmentArchiveWriter(directory.withDirectory(archiveName), archiveName, ioMonitor, monitor) {
-                    @Override
-                    public void writeGraph(byte[] data) throws IOException {
-                        throw new IOException("test");
-                    }
-                };
-            }
-        };
-    }
 }

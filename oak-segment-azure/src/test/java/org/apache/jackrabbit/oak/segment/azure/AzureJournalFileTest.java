@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.stream.Collectors.toList;
+import static org.apache.jackrabbit.oak.segment.azure.AzurePersistence.WriteMode.FOLDER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -68,7 +69,7 @@ public class AzureJournalFileTest {
 
         WriteAccessController writeAccessController = new WriteAccessController();
         writeAccessController.enableWriting();
-        AzurePersistence azurePersistence = new AzurePersistence(readBlobContainerClient, writeBlobContainerClient, noRetryBlobContainerClient, rootPrefix, null, 50);
+        AzurePersistence azurePersistence = new AzurePersistence(readBlobContainerClient, writeBlobContainerClient, noRetryBlobContainerClient, rootPrefix, FOLDER, null, 50);
         repositoryLock = azurePersistence.lockRepository();
         journal = azurePersistence.getJournalFile();
     }
