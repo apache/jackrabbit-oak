@@ -68,7 +68,15 @@ public class GCJournal {
             @NotNull GCGeneration gcGeneration, long nodes, @NotNull String root
     ) {
         GCJournalEntry current = read();
-        if (current.getGcGeneration().equals(gcGeneration)) {
+        GCGeneration currentGeneration = current.getGcGeneration();
+        // Compare generation and fullGeneration only, not isCompacted: the on-disk journal
+        // format never persists isCompacted (GCJournalEntry.fromString always deserializes it
+        // as false), so comparing the full GCGeneration would wrongly treat every persist() of
+        // an already-journaled, still-compacted generation as new after a restart (e.g. a
+        // standalone cleanup() on a store re-opened with an already-compacted head), causing a
+        // duplicate entry to be written on every such restart.
+        if (currentGeneration.getGeneration() == gcGeneration.getGeneration()
+                && currentGeneration.getFullGeneration() == gcGeneration.getFullGeneration()) {
             // failed compaction, only update the journal if the generation
             // increases
             return;
