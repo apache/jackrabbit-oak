@@ -299,7 +299,10 @@ public class IndexVersionSelectionIT {
                 // mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-databind").version("2.22.0"),
 
                 mavenBundle().groupId("com.github.ben-manes.caffeine").artifactId("caffeine").version("3.1.8"),
+                mavenBundle("jakarta.servlet", "jakarta.servlet-api", "5.0.0"),
 
+                // required for slf4j 2.0.x
+                OSGiIT.spyflyOptions(),
                 frameworkProperty("repository.home").value("target"),
 
                 systemProperties(new SystemPropertyOption("felix.fileinstall.dir").value(getConfigDir())),
