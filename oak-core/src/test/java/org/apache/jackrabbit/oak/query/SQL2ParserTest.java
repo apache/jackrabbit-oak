@@ -298,6 +298,30 @@ public class SQL2ParserTest {
                 "where op([nt:base].[a], '+', [nt:base].[b]) = 3", q.toString());
     }
 
+    @Test
+    public void opFunctionEnabledBySystemProperty() throws ParseException {
+        QueryEngineSettings settings = new QueryEngineSettings();
+        Feature disabled = mock(Feature.class);
+        settings.setOpFunctionFeature(disabled);
+        assertFalse(settings.isOpFunctionEnabled());
+
+        String old = System.getProperty(QueryEngineSettings.OAK_QUERY_OP_FUNCTION);
+        System.setProperty(QueryEngineSettings.OAK_QUERY_OP_FUNCTION, "true");
+        try {
+            assertTrue(settings.isOpFunctionEnabled());
+            settings.setOpFunctionFeature(null);
+            assertTrue(settings.isOpFunctionEnabled());
+            createTestSQL2Parser(settings).parse("SELECT * FROM [nt:base] WHERE OP([a], '+', [b])=3");
+        } finally {
+            if (old == null) {
+                System.clearProperty(QueryEngineSettings.OAK_QUERY_OP_FUNCTION);
+            } else {
+                System.setProperty(QueryEngineSettings.OAK_QUERY_OP_FUNCTION, old);
+            }
+        }
+        assertFalse(settings.isOpFunctionEnabled());
+    }
+
     private static SQL2Parser createTestSQL2Parser(QueryEngineSettings settings) {
         QueryStatsData data = new QueryStatsData("", "");
         return new SQL2Parser(NamePathMapper.DEFAULT, nodeTypes, settings, data.new QueryExecutionStats());

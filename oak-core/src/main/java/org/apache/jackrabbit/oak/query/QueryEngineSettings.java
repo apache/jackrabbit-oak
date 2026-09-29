@@ -69,6 +69,8 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     public static final String FT_OP_FUNCTION = "FT_OAK-12406";
 
+    public static final String OAK_QUERY_OP_FUNCTION = "oak.query.opFunction";
+
     public static final String FT_XML_NAME_CHARS_IN_PATH = "FT_OAK-12364";
 
     public static final int DEFAULT_PREFETCH_COUNT = Integer.getInteger(OAK_QUERY_PREFETCH_COUNT, -1);
@@ -268,8 +270,10 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     }
 
     public boolean isOpFunctionEnabled() {
-        // the op(a, operator, b) function is disabled by default
-        return opFunctionFeature != null && opFunctionFeature.isEnabled();
+        // the op(a, operator, b) function is disabled by default;
+        // it is enabled by either the feature toggle or the system property
+        return Boolean.getBoolean(OAK_QUERY_OP_FUNCTION) ||
+                (opFunctionFeature != null && opFunctionFeature.isEnabled());
     }
 
     public void setXmlNameCharsInPathFeature(@Nullable Feature feature) {

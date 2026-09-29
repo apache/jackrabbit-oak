@@ -109,16 +109,16 @@ public class SQL2Parser {
     private boolean supportSQL1;
 
     private NamePathMapper namePathMapper;
-    
+
     private final QueryEngineSettings settings;
-    
+
     private boolean literalUsageLogged;
 
     private final QueryExecutionStats stats;
 
     /**
      * Create a new parser. A parser can be re-used, but it is not thread safe.
-     * 
+     *
      * @param namePathMapper the name-path mapper to use
      * @param nodeTypes the nodetypes
      * @param settings the query engine settings
@@ -233,10 +233,10 @@ public class SQL2Parser {
 
         return q;
     }
-    
+
     /**
      * as {@link #parse(String, boolean)} by providing {@code true} to the initialisation flag.
-     * 
+     *
      * @param query
      * @return the parsed query
      * @throws ParseException
@@ -244,7 +244,7 @@ public class SQL2Parser {
     public Query parse(final String query) throws ParseException {
         return parse(query, true);
     }
-    
+
     private QueryImpl parseSelect() throws ParseException {
         read("SELECT");
         boolean distinct = readIf("DISTINCT");
@@ -326,7 +326,7 @@ public class SQL2Parser {
             throw getSyntaxError("0-9");
         }
     }
-    
+
     private String readLabel() throws ParseException {
         String label = readName();
         if (!label.matches("[a-zA-Z0-9_]*") || label.isEmpty() || label.length() > 128) {
@@ -545,7 +545,7 @@ public class SQL2Parser {
     private PropertyExistenceImpl getPropertyExistence(PropertyValueImpl p) throws ParseException {
         return factory.propertyExistence(p.getSelectorName(), p.getPropertyName());
     }
-    
+
     private PropertyInexistenceImpl getPropertyInexistence(PropertyValueImpl p) throws ParseException {
         return factory.propertyInexistence(p.getSelectorName(), p.getPropertyName());
     }
@@ -658,7 +658,7 @@ public class SQL2Parser {
             } else {
                 selectorName = getOnlySelectorName();
             }
-            c = factory.spellcheck(selectorName, parseStaticOperand());            
+            c = factory.spellcheck(selectorName, parseStaticOperand());
         } else if ("SUGGEST".equalsIgnoreCase(functionName)) {
             String selectorName;
             if (currentTokenType == IDENTIFIER) {
@@ -688,10 +688,10 @@ public class SQL2Parser {
     }
 
     private DynamicOperandImpl parseDynamicOperand() throws ParseException {
-        if (currentTokenType == VALUE) {
-            // a literal or null
-            PropertyValue v = currentValue;
-            read();
+        if (currentTokenType == PLUS || currentTokenType == MINUS || currentTokenType == VALUE) {
+            // string or number literal
+            StaticOperandImpl s = parseStaticOperand();
+            PropertyValue v = s.currentValue();
             return factory.literalOperand(v, escapeStringLiteral(v.getValue(Type.STRING)));
         }
         boolean identifier = currentTokenType == IDENTIFIER;
@@ -1010,7 +1010,7 @@ public class SQL2Parser {
         }
         return list;
     }
-    
+
     private boolean readOptionalAlias(ColumnOrWildcard column) throws ParseException {
         if (readIf("AS")) {
             column.columnName = readName();
@@ -1169,7 +1169,7 @@ public class SQL2Parser {
                     type = CHAR_SPECIAL_1;
                     break;
                 }
-                types[i] = type = CHAR_IGNORE;                
+                types[i] = type = CHAR_IGNORE;
                 startLoop = i;
                 i += 2;
                 checkRunOver(i, len, startLoop);
@@ -1177,7 +1177,7 @@ public class SQL2Parser {
                     i++;
                     checkRunOver(i, len, startLoop);
                 }
-                i++;          
+                i++;
                 break;
             case '[':
                 types[i] = type = CHAR_BRACKETED;
@@ -1525,7 +1525,7 @@ public class SQL2Parser {
 
     /**
      * Whether the given statement is an internal query.
-     *  
+     *
      * @param statement the statement
      * @return true for an internal query
      */
