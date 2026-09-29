@@ -307,6 +307,7 @@ public class DocumentNodeStoreService {
         cancelInvalidationFeature = Feature.newFeature(FT_NAME_CANCEL_INVALIDATION, whiteboard);
         docStoreAvoidMergeLockFeature = Feature.newFeature(FT_NAME_AVOID_MERGE_LOCK, whiteboard);
         prevNoPropCacheFeature = Feature.newFeature(FT_NAME_PREV_NO_PROP_CACHE, whiteboard);
+        // OAK-12425: default-on toggle; Feature.newFeature() always starts disabled
         addRegistration(whiteboard.register(FeatureToggle.class,
                 new FeatureToggle(DocumentNodeStoreBuilder.FT_CAFFEINE_CACHE,
                         DocumentNodeStoreBuilder.FT_CAFFEINE_CACHE_ENABLED),

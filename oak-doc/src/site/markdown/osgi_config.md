@@ -243,7 +243,7 @@ Name | Default | Description | Since
 mongouri | mongodb://localhost:27017 | Specifies the [MongoURI][1] required to connect to Mongo Database | 1.0
 db | oak | Name of the database in Mongo | 1.0
 socketKeepAlive | true (was 'false' before 1.10) | Enables socket keep-alive for MongoDB connections | 1.8.0, 1.6.2, 1.4.16
-cache | 256 | Cache size in MB. This is distributed among various caches used in DocumentNodeStore | 1.0
+cache | 320 | Cache size in MB. This is distributed among various caches used in DocumentNodeStore | 1.0
 customBlobStore | false | Boolean value indicating that custom `BlobStore` to use. | 1.0
 maxReplicationLagInSecs | 21600 (6 hours) | Determines the duration beyond which it can be safely assumed that state on secondary would be consistent with primary and its safe to read from them. (See [OAK-1645][OAK-1645]) | 1.0.2
 blobGcMaxAgeInSecs | 86400 (24 hrs) | Blob Garbage Collector (GC) logic would only consider those blobs for GC which are not accessed recently (currentTime - lastModifiedTime > blobGcMaxAgeInSecs). For example as per default only those blobs which have been created 24 hrs ago would be considered for GC. It is strongly advised to not set this property to a very low value of say a few minutes but only set it to a hour at a minimum. This is to ensure that the NodeStore(s) have had the time to flush out its internal data structures to persistence and the references to recently added blobs are accounted. | 1.0

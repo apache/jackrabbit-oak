@@ -18,7 +18,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.junit.Assert;
@@ -54,6 +60,34 @@ public class CacheMetadataTest {
         Assert.assertNotNull(entry);
         Assert.assertEquals(2, entry.getAccessCount());
         Assert.assertFalse(entry.isReadFromPersistentCache());
+    }
+
+    @Test
+    public void concurrentIncrementsOfNewValueShareOneEntry() throws Exception {
+        int threads = 8;
+        for (int i = 0; i < 200; i++) {
+            metadata.clear();
+            CyclicBarrier barrier = new CyclicBarrier(threads);
+            ExecutorService executor = Executors.newFixedThreadPool(threads);
+            try {
+                List<Future<?>> futures = new ArrayList<>();
+                for (int t = 0; t < threads; t++) {
+                    futures.add(executor.submit(() -> {
+                        barrier.await();
+                        metadata.increment(KEY, value);
+                        return null;
+                    }));
+                }
+                for (Future<?> future : futures) {
+                    future.get(10, TimeUnit.SECONDS);
+                }
+            } finally {
+                executor.shutdownNow();
+            }
+            CacheMetadata.MetadataEntry entry = metadata.remove(KEY, value);
+            Assert.assertNotNull(entry);
+            Assert.assertEquals(threads, entry.getAccessCount());
+        }
     }
 
     @Test

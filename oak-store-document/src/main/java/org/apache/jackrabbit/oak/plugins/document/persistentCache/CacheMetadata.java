@@ -137,6 +137,16 @@ public class CacheMetadata<K, V> {
         if (existing != null && existing.isFor(value)) {
             return existing;
         }
+        if (existing == null) {
+            MetadataEntry created = new MetadataEntry(value, readFromPersistentCache);
+            existing = metadataMap.putIfAbsent(key, created);
+            if (existing == null) {
+                return created;
+            }
+            if (existing.isFor(value)) {
+                return existing;
+            }
+        }
         return metadataMap.compute(key, (k, metadata) ->
                 metadata != null && metadata.isFor(value)
                         ? metadata

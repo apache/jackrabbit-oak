@@ -117,9 +117,11 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     /**
      * Whether newly built caches use Caffeine instead of CacheLIRS. Changing
      * it at runtime only affects caches built afterwards, e.g. after the
-     * DocumentNodeStore is restarted.
+     * DocumentNodeStore is restarted. Non-OSGi deployments can disable it
+     * with {@code -Doak.documentMK.caffeineCache=false}.
      */
-    static final AtomicBoolean FT_CAFFEINE_CACHE_ENABLED = new AtomicBoolean(true);
+    static final AtomicBoolean FT_CAFFEINE_CACHE_ENABLED = new AtomicBoolean(
+            Boolean.parseBoolean(System.getProperty("oak.documentMK.caffeineCache", "true")));
 
     /**
      * Number of content updates that need to happen before the updates
