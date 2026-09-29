@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -32,6 +33,8 @@ import org.junit.After;
 import org.junit.Test;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import org.apache.hc.core5.http2.HttpVersionPolicy;
+import org.apache.jackrabbit.oak.plugins.index.elastic.internal.ElasticFeatureToggles;
 
 public class ElasticConnectionTest {
 
@@ -43,9 +46,18 @@ public class ElasticConnectionTest {
                 LocalDate.now().isBefore(LocalDate.of(2027, 6, 2)));
     }
 
+    @Test
+    public void ft_oak_12366_toggleShouldBeRemoved() {
+        // Time-bombed: if this test fails, the feature toggle FT_OAK_12366 and its guard in
+        // ElasticConnection#getClients should be cleaned up — the fix has been in production long enough.
+        assertTrue("Feature toggle " + ElasticFeatureToggles.FT_OAK_12366 + " is overdue for removal",
+                LocalDate.now().isBefore(LocalDate.of(2027, 9, 15)));
+    }
+
     @After
     public void resetToggle() {
         ElasticConnection.FT_OAK_12234_DISABLE.set(false);
+        ElasticFeatureToggles.FT_OAK_12366_DISABLE.set(false);
         System.clearProperty(ElasticConnection.PROP_RESPONSE_THREAD_POOL_SIZE);
     }
 
@@ -123,6 +135,28 @@ public class ElasticConnectionTest {
         ElasticConnection.FT_OAK_12234_DISABLE.set(true);
         try (ElasticConnection connection = defaultConnection()) {
             assertSame(ForkJoinPool.commonPool(), connection.getResponseExecutor());
+        }
+    }
+
+    @Test
+    public void http1TlsConfigForcesHttp1() {
+        // OAK-12366: bulk ingestion (up to 8MB payloads) has been observed to trigger H2 stream resets when
+        // multiplexed over a single HTTP/2 connection, so the client is forced down to HTTP/1.1 by default.
+        assertEquals(HttpVersionPolicy.FORCE_HTTP_1, ElasticConnection.HTTP1_TLS_CONFIG.getHttpVersionPolicy());
+    }
+
+    @Test
+    public void connectionBuildsWithHttp1ToggleEnabled() throws IOException {
+        try (ElasticConnection connection = defaultConnection()) {
+            assertNotNull(connection.getClient());
+        }
+    }
+
+    @Test
+    public void connectionBuildsWithHttp1ToggleDisabled() throws IOException {
+        ElasticFeatureToggles.FT_OAK_12366_DISABLE.set(true);
+        try (ElasticConnection connection = defaultConnection()) {
+            assertNotNull(connection.getClient());
         }
     }
 

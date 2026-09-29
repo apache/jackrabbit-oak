@@ -589,6 +589,10 @@ public class Oak {
             LOG.info("Registered ignore limit in index selection feature: " + QueryEngineSettings.FT_IGNORE_LIMIT_IN_INDEX_SELECTION);
             closer.register(ignoreLimitInIndexSelection);
             queryEngineSettings.setIgnoreLimitInIndexSelectionFeature(ignoreLimitInIndexSelection);
+            Feature xmlNameCharsInPath = newFeature(QueryEngineSettings.FT_XML_NAME_CHARS_IN_PATH, whiteboard);
+            LOG.info("Registered XML name characters in path feature: " + QueryEngineSettings.FT_XML_NAME_CHARS_IN_PATH);
+            closer.register(xmlNameCharsInPath);
+            queryEngineSettings.setXmlNameCharsInPathFeature(xmlNameCharsInPath);
         }
 
         return this;
@@ -1007,6 +1011,10 @@ public class Oak {
 
         public void setIgnoreLimitInIndexSelectionFeature(@Nullable Feature feature) {
             settings.setIgnoreLimitInIndexSelectionFeature(feature);
+        }
+
+        public void setXmlNameCharsInPathFeature(@Nullable Feature feature) {
+            settings.setXmlNameCharsInPathFeature(feature);
         }
 
         @Override

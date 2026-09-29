@@ -84,7 +84,7 @@ public class ElasticIndexCleaner implements Runnable {
                     .cat().indices(r -> r
                             .index(elasticConnection.getIndexPrefix() + "*")
                             .expandWildcards(ExpandWildcard.Open));
-            String[] remoteIndices = indicesRes.valueBody()
+            String[] remoteIndices = indicesRes.indices()
                     .stream().map(IndicesRecord::index).toArray(String[]::new);
             if (remoteIndices.length == 0) {
                 LOG.debug("No remote index found with prefix {}", indexPrefix);

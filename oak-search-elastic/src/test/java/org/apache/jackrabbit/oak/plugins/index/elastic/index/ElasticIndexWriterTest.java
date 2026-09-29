@@ -101,7 +101,7 @@ public class ElasticIndexWriterTest {
         // report "nothing provisioned" so that path no-ops in tests that don't exercise it directly.
         when(elasticsearchClientMock.indices()).thenReturn(indicesClientMock);
         when(indicesClientMock.getAlias(ArgumentMatchers.<Function<GetAliasRequest.Builder, ObjectBuilder<GetAliasRequest>>>any()))
-                .thenReturn(GetAliasResponse.of(r -> r.result(Collections.emptyMap())));
+                .thenReturn(GetAliasResponse.of(r -> r.aliases(Collections.emptyMap())));
         // In this test we are explicitly disabling inference as bulkprocessor
         // is called with update document if inference is enabled.
         InferenceConfig.reInitialize(new MemoryNodeStore(), "/oak:index/:inferenceConfig", false);

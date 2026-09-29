@@ -167,8 +167,8 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
 
         assertEventually(() -> {
             List<String> paths = executeQuery("select [jcr:path] from [nt:base] where similar(., '/test/a')", SQL2, true, true);
-            assertEquals(paths.size(), 3);
-            assertEquals(paths.get(2), "/test/b");
+            assertEquals(3, paths.size());
+            assertEquals("/test/b", paths.get(2));
         });
     }
 
@@ -193,7 +193,7 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
                         .fields(similarityFieldName1)
                 );
 
-        Map<String, TypeFieldMappings> mappings = mappingsResponse.result();
+        Map<String, TypeFieldMappings> mappings = mappingsResponse.fieldMappings();
         assertEquals("More than one index found", 1, mappings.size());
         Map<String, FieldMapping> typeFieldMappings = mappings.entrySet().iterator().next().getValue().mappings();
         Property v = typeFieldMappings.get(similarityFieldName1).mapping().get(similarityFieldName1);
