@@ -89,12 +89,10 @@ public class CacheMetadata<K, V> {
         if (!enabled) {
             return;
         }
-        metadataMap.computeIfPresent(key, (k, metadata) -> {
-            if (metadata.isFor(value)) {
-                metadata.incrementCount();
-            }
-            return metadata;
-        });
+        MetadataEntry metadata = metadataMap.get(key);
+        if (metadata != null && metadata.isFor(value)) {
+            metadata.incrementCount();
+        }
     }
 
     MetadataEntry remove(Object key) {
@@ -134,6 +132,10 @@ public class CacheMetadata<K, V> {
     private MetadataEntry getOrCreate(K key, V value, boolean readFromPersistentCache) {
         if (!enabled) {
             return null;
+        }
+        MetadataEntry existing = metadataMap.get(key);
+        if (existing != null && existing.isFor(value)) {
+            return existing;
         }
         return metadataMap.compute(key, (k, metadata) ->
                 metadata != null && metadata.isFor(value)

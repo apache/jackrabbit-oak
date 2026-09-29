@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.cache.api.Cache;
+import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
 import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
@@ -39,11 +40,19 @@ import org.mockito.Mockito;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class AsyncQueueTest {
 
@@ -162,6 +171,217 @@ public class AsyncQueueTest {
         assertEquals(asList(k), writeQueue.putActions);
     }
 
+    @Test
+    public void delayedEvictionOfInvalidatedValueShouldNotBePersisted() {
+        PathRev k = generatePathRev();
+        nodeCache.put(k, VAL);
+        nodeCache.getIfPresent(k);
+        nodeCache.invalidate(k);
+
+        nodeCache.evicted(k, VAL, EvictionCause.SIZE);
+
+        assertEquals(emptyList(), putActions);
+        assertEquals(asList(k), invalidateActions);
+    }
+
+    @Test
+    public void reinsertedValueShouldBePersistedAfterStaleEviction() {
+        PathRev k = generatePathRev();
+        nodeCache.put(k, VAL);
+        nodeCache.getIfPresent(k);
+        nodeCache.invalidate(k);
+        nodeCache.put(k, NEW_VAL);
+        nodeCache.getIfPresent(k);
+        nodeCache.evicted(k, VAL, EvictionCause.SIZE);
+
+        flush();
+
+        assertEquals(asList(k), putActions);
+    }
+
+    @Test
+    public void staleEvictionShouldNotConsumeMetadataOfReplacedValue() {
+        PathRev k = generatePathRev();
+        nodeCache.put(k, VAL);
+        nodeCache.getIfPresent(k);
+        nodeCache.put(k, NEW_VAL);
+        nodeCache.getIfPresent(k);
+
+        nodeCache.evicted(k, VAL, EvictionCause.SIZE);
+        assertEquals(emptyList(), putActions);
+
+        flush();
+        assertEquals(asList(k), putActions);
+    }
+
+    @Test
+    public void staleEvictionShouldNotConsumeMetadataOfBulkReadValue() {
+        NodeCache<PathRev, StringValue> cache = newNodeCache(
+                CacheBuilder.<PathRev, StringValue>newBuilder().maximumSize(100).build());
+        List<PathRev> cachePutActions = ((CacheWriteQueueWrapper) cache.writeQueue).putActions;
+        PathRev k = generatePathRev();
+        cache.put(k, VAL);
+        cache.put(k, NEW_VAL);
+        assertEquals(NEW_VAL, cache.getAllPresent(asList(k)).get(k));
+
+        cache.evicted(k, VAL, EvictionCause.SIZE);
+        assertEquals(emptyList(), cachePutActions);
+
+        cache.evicted(k, NEW_VAL, EvictionCause.SIZE);
+        assertEquals(asList(k), cachePutActions);
+    }
+
+    @Test
+    public void staleEvictionOfPersistedValueShouldNotSuppressNewValue() {
+        PathRev k = generatePathRev();
+        nodeCache.put(k, VAL);
+        nodeCache.getIfPresent(k);
+        flush();
+        assertEquals(asList(k), putActions);
+        putActions.clear();
+
+        StringValue persisted = nodeCache.getIfPresent(k); // loaded from persistent cache
+        assertEquals(VAL, persisted);
+        nodeCache.put(k, NEW_VAL);
+        assertEquals(NEW_VAL, nodeCache.getIfPresent(k));
+        nodeCache.evicted(k, persisted, EvictionCause.SIZE);
+        assertEquals(emptyList(), putActions);
+
+        // k is hot in LIRS, so evict it explicitly instead of flushing
+        nodeCache.evicted(k, NEW_VAL, EvictionCause.SIZE);
+        assertEquals(asList(k), putActions);
+    }
+
+    @Test
+    public void caffeineEvictionShouldPersistUsedValues() throws Exception {
+        AtomicReference<NodeCache<PathRev, StringValue>> cacheRef = new AtomicReference<>();
+        Cache<PathRev, StringValue> memCache = CacheBuilder.<PathRev, StringValue>newBuilder()
+                .maximumSize(10)
+                .evictionListener((key, value, cause) -> cacheRef.get().evicted(key, value, cause))
+                .build();
+        NodeCache<PathRev, StringValue> cache = newNodeCache(memCache);
+        cacheRef.set(cache);
+        List<PathRev> cachePutActions = ((CacheWriteQueueWrapper) cache.writeQueue).putActions;
+
+        List<PathRev> unused = new ArrayList<>();
+        for (int i = 0; i < 100; i++) {
+            PathRev used = generatePathRev();
+            cache.put(used, new StringValue("used-" + i));
+            cache.getIfPresent(used);
+            PathRev notUsed = generatePathRev();
+            cache.put(notUsed, new StringValue("unused-" + i));
+            unused.add(notUsed);
+        }
+        memCache.cleanUp();
+
+        long deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(10);
+        while (cachePutActions.size() < 50 && System.currentTimeMillis() < deadline) {
+            Thread.sleep(10);
+        }
+        assertTrue("expected used values to be persisted, got " + cachePutActions.size(),
+                cachePutActions.size() >= 50);
+        synchronized (cachePutActions) {
+            for (PathRev k : unused) {
+                assertFalse("unused value persisted: " + k, cachePutActions.contains(k));
+            }
+        }
+    }
+
+    @Test
+    public void getAllPresentShouldTrackOnlyPresentKeys() {
+        NodeCache<PathRev, StringValue> cache = newNodeCache(
+                CacheBuilder.<PathRev, StringValue>newBuilder().maximumSize(100).build());
+        List<PathRev> cachePutActions = ((CacheWriteQueueWrapper) cache.writeQueue).putActions;
+        PathRev present = generatePathRev();
+        PathRev absent = generatePathRev();
+        cache.put(present, VAL);
+
+        assertEquals(1, cache.getAllPresent(asList(present, absent)).size());
+
+        cache.evicted(absent, NEW_VAL, EvictionCause.SIZE);
+        assertEquals(emptyList(), cachePutActions);
+        cache.evicted(present, VAL, EvictionCause.SIZE);
+        assertEquals(asList(present), cachePutActions);
+    }
+
+    @Test
+    public void concurrentStaleEvictionAndReinsertShouldPersistOnlyNewValue() throws Exception {
+        assertConcurrentStaleEviction((cache, k, newValue) -> {
+            cache.put(k, newValue);
+            cache.getIfPresent(k);
+        });
+    }
+
+    @Test
+    public void concurrentStaleEvictionAndInvalidateReinsertShouldPersistOnlyNewValue() throws Exception {
+        assertConcurrentStaleEviction((cache, k, newValue) -> {
+            cache.invalidate(k);
+            cache.put(k, newValue);
+            cache.getIfPresent(k);
+        });
+    }
+
+    @Test
+    public void concurrentStaleEvictionAndReloadShouldPersistOnlyNewValue() throws Exception {
+        assertConcurrentStaleEviction((cache, k, newValue) -> {
+            cache.invalidate(k);
+            cache.get(k, key -> newValue);
+        });
+    }
+
+    /**
+     * Races a delayed eviction callback of an unused old value against a
+     * replacement of the same key, then evicts the new value and verifies
+     * that only new values reach the persistent cache.
+     */
+    private void assertConcurrentStaleEviction(Replacement replacement) throws Exception {
+        NodeCache<PathRev, StringValue> cache = newNodeCache(
+                CacheBuilder.<PathRev, StringValue>newBuilder().maximumSize(10_000).build());
+        CacheWriteQueueWrapper writeQueue = (CacheWriteQueueWrapper) cache.writeQueue;
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            int iterations = 500;
+            for (int i = 0; i < iterations; i++) {
+                PathRev k = generatePathRev();
+                StringValue oldValue = new StringValue("old-" + i);
+                StringValue newValue = new StringValue("new-" + i);
+                cache.put(k, oldValue);
+                CyclicBarrier barrier = new CyclicBarrier(2);
+                Future<?> eviction = executor.submit(() -> {
+                    barrier.await();
+                    cache.evicted(k, oldValue, EvictionCause.SIZE);
+                    return null;
+                });
+                Future<?> replace = executor.submit(() -> {
+                    barrier.await();
+                    replacement.apply(cache, k, newValue);
+                    return null;
+                });
+                eviction.get(10, TimeUnit.SECONDS);
+                replace.get(10, TimeUnit.SECONDS);
+                cache.evicted(k, newValue, EvictionCause.SIZE);
+            }
+            List<String> expected = new ArrayList<>();
+            for (int i = 0; i < iterations; i++) {
+                expected.add("new-" + i);
+            }
+            assertEquals(expected, writeQueue.putValues);
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    private NodeCache<PathRev, StringValue> newNodeCache(Cache<PathRev, StringValue> memCache) {
+        NodeCache<PathRev, StringValue> cache = (NodeCache<PathRev, StringValue>) pCache.wrap(
+                builderProvider.newBuilder().getNodeStore(), null, memCache, CacheType.NODE);
+        cache.writeQueue = new CacheWriteQueueWrapper(cache.writeQueue);
+        return cache;
+    }
+
+    private interface Replacement {
+        void apply(NodeCache<PathRev, StringValue> cache, PathRev key, StringValue newValue);
+    }
+
     private PathRev generatePathRev() {
         return new PathRev(Path.fromString("/" + id++), new RevisionVector(new Revision(0, 0, 0)));
     }
@@ -176,9 +396,11 @@ public class AsyncQueueTest {
 
         private final CacheWriteQueue<PathRev, StringValue>  wrapped;
 
-        private final List<PathRev> putActions = new ArrayList<>();
+        private final List<PathRev> putActions = Collections.synchronizedList(new ArrayList<>());
 
-        private final List<PathRev> invalidateActions = new ArrayList<>();
+        private final List<String> putValues = Collections.synchronizedList(new ArrayList<>());
+
+        private final List<PathRev> invalidateActions = Collections.synchronizedList(new ArrayList<>());
 
         public CacheWriteQueueWrapper(CacheWriteQueue<PathRev, StringValue>  wrapped) {
             super(null, null, null);
@@ -188,6 +410,7 @@ public class AsyncQueueTest {
         @Override
         public boolean addPut(PathRev key, StringValue value) {
             putActions.add(key);
+            putValues.add(value.asString());
             return wrapped.addPut(key, value);
         }
 

@@ -250,7 +250,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
     public Map<K, V> getAllPresent(
             Iterable<? extends K> keys) {
         Map<K, V> result = memCache.getAllPresent(keys);
-            result.forEach(memCacheMetadata::incrementIfPresent);
+        result.forEach(memCacheMetadata::incrementIfPresent);
         return result;
     }
 
@@ -353,10 +353,10 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
                 return;
             }
             boolean qualifiesToPersist = true;
-            if (metadata != null && metadata.isReadFromPersistentCache()) {
+            if (metadata.isReadFromPersistentCache()) {
                 qualifiesToPersist = false;
                 stats.markPutRejectedAlreadyPersisted();
-            } else if (metadata != null && metadata.getAccessCount() < 1) {
+            } else if (metadata.getAccessCount() < 1) {
                 qualifiesToPersist = false;
                 stats.markPutRejectedEntryNotUsed();
             } else if (!type.shouldCache(nodeStore, key)){

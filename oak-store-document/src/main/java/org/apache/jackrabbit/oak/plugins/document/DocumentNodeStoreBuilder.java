@@ -115,7 +115,9 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     static final String FT_CAFFEINE_CACHE = "FT_CAFFEINE_CACHE_OAK-12425";
 
     /**
-     * Whether newly built caches use Caffeine instead of CacheLIRS.
+     * Whether newly built caches use Caffeine instead of CacheLIRS. Changing
+     * it at runtime only affects caches built afterwards, e.g. after the
+     * DocumentNodeStore is restarted.
      */
     static final AtomicBoolean FT_CAFFEINE_CACHE_ENABLED = new AtomicBoolean(true);
 
