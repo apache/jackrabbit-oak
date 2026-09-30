@@ -23,6 +23,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.SplittableRandom;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -34,6 +35,7 @@ import org.apache.jackrabbit.oak.cache.EmpiricalWeigher;
 import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
 import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
+import org.apache.jackrabbit.oak.cache.api.EvictionListener;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 
@@ -74,6 +76,9 @@ public final class DocumentCacheBenchmark extends Benchmark {
     private static final EmpiricalWeigher WEIGHER = new EmpiricalWeigher();
     private static final int ENTRY_WEIGHT = WEIGHER.weigh(value(0), value(0));
     private static final long MAXIMUM_WEIGHT = (long) CACHE_ENTRIES * ENTRY_WEIGHT;
+    // Mirrors DocumentNodeStoreBuilder, which always registers eviction forwarding to its listener set.
+    private static final Set<EvictionListener<StringValue, StringValue>> LISTENERS =
+            new CopyOnWriteArraySet<>();
 
     private enum Policy {
         CACHE_LIRS {
@@ -85,6 +90,11 @@ public final class DocumentCacheBenchmark extends Benchmark {
                         .weigher(WEIGHER::weigh)
                         .segmentCount(16)
                         .recordStats()
+                        .evictionCallback((key, value, cause) -> {
+                            for (EvictionListener<StringValue, StringValue> l : LISTENERS) {
+                                l.onEviction(key, value, CacheLIRS.toOakCause(cause));
+                            }
+                        })
                         .build()
                         .asOakCache();
             }
@@ -97,6 +107,11 @@ public final class DocumentCacheBenchmark extends Benchmark {
                                 * maximumWeightMultiplier))
                         .weigher(WEIGHER::weigh)
                         .recordStats()
+                        .evictionListener((key, value, cause) -> {
+                            for (EvictionListener<StringValue, StringValue> l : LISTENERS) {
+                                l.onEviction(key, value, cause);
+                            }
+                        })
                         .build();
             }
         };
