@@ -35,15 +35,13 @@ import java.util.concurrent.atomic.AtomicLong;
  * - metadata.put()
  * - cache.put()
  *
- * 3. For incrementIfPresent():
+ * 3. For lookups (single and bulk):
  *
+ * - metadata.incrementIfPresent(key)
  * - cache.get()
- * - metadata.incrementIfPresent()
  *
- * 4. For bulk lookup:
- *
- * - cache.getAll()
- * - metadata.incrementIfPresent() for returned values
+ * Counting before the lookup ensures a concurrent eviction sees the access.
+ * incrementIfPresent() never creates entries, so a miss does not leak metadata.
  *
  * Preserving this order will allow to avoid leaked values in the metadata without
  * an extra synchronization between cache and metadata operations. This strategy
@@ -91,6 +89,16 @@ public class CacheMetadata<K, V> {
         }
         MetadataEntry metadata = metadataMap.get(key);
         if (metadata != null && metadata.isFor(value)) {
+            metadata.incrementCount();
+        }
+    }
+
+    void incrementIfPresent(Object key) {
+        if (!enabled) {
+            return;
+        }
+        MetadataEntry metadata = metadataMap.get(key);
+        if (metadata != null) {
             metadata.incrementCount();
         }
     }

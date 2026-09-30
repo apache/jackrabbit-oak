@@ -117,6 +117,21 @@ public class CacheMetadataTest {
     }
 
     @Test
+    public void incrementIfPresentByKeyCountsCurrentEntry() {
+        metadata.put(KEY, value);
+        metadata.incrementIfPresent(KEY);
+
+        Assert.assertEquals(1, metadata.remove(KEY, value).getAccessCount());
+    }
+
+    @Test
+    public void incrementIfPresentByKeyDoesNotCreateEntry() {
+        metadata.incrementIfPresent(KEY);
+
+        Assert.assertNull(metadata.remove(KEY));
+    }
+
+    @Test
     public void removeWithOtherValueKeepsEntry() {
         metadata.increment(KEY, value);
 
@@ -168,6 +183,7 @@ public class CacheMetadataTest {
         metadata.increment(KEY, value);
         metadata.putFromPersistenceAndIncrement(KEY, value);
         metadata.incrementIfPresent(KEY, value);
+        metadata.incrementIfPresent(KEY);
         metadata.removeAll(List.of(KEY));
         metadata.clear();
 

@@ -50,8 +50,9 @@ import org.junit.rules.TemporaryFolder;
 
 /**
  * Tests for {@link DocumentNodeStoreBuilder} cache configuration.
- * These assertions intentionally avoid third-party cache types so the same
- * tests can run across cache implementation changes.
+ * Apart from the cache implementation selection tests, these assertions
+ * intentionally avoid third-party cache types so the same tests can run
+ * across cache implementation changes.
  */
 public class DocumentNodeStoreBuilderTest {
 
