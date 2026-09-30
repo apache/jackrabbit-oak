@@ -194,7 +194,9 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
             name = "LIRS Cache Segment Count",
             description = "The number of segments in the LIRS cache " +
                     "(default 16, a higher count means higher concurrency " +
-                    "but slightly lower cache hit rate)")
+                    "but slightly lower cache hit rate). " +
+                    "Only used when the LIRS cache is enabled (feature toggle " +
+                    "FT_CAFFEINE_CACHE_OAK-12425 disabled); ignored by the default Caffeine cache.")
     int cacheSegmentCount() default DEFAULT_CACHE_SEGMENT_COUNT;
 
     @AttributeDefinition(
@@ -202,7 +204,9 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
             description = "The delay to move entries to the head of the queue " +
                     "in the LIRS cache " +
                     "(default 16, a higher value means higher concurrency " +
-                    "but slightly lower cache hit rate)")
+                    "but slightly lower cache hit rate). " +
+                    "Only used when the LIRS cache is enabled (feature toggle " +
+                    "FT_CAFFEINE_CACHE_OAK-12425 disabled); ignored by the default Caffeine cache.")
     int cacheStackMoveDistance() default DEFAULT_CACHE_STACK_MOVE_DISTANCE;
 
     @AttributeDefinition(

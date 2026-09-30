@@ -1118,18 +1118,17 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
                     })
                     .build().asOakCache();
         }
-        CacheBuilder<K, V> builder = CacheBuilder.<K, V>newBuilder()
+        // always register: NodeCache joins listeners only after build, else its metadata leaks and async persistence stops
+        return CacheBuilder.<K, V>newBuilder()
                 .maximumWeight(maxWeight)
                 .weigher(weigher::weigh)
-                .recordStats();
-        if (!listeners.isEmpty()) {
-            builder = builder.evictionListener((k, v, cause) -> {
-                for (EvictionListener<K, V> l : listeners) {
-                    l.evicted(k, v, cause);
-                }
-            });
-        }
-        return builder.build();
+                .recordStats()
+                .evictionListener((k, v, cause) -> {
+                    for (EvictionListener<K, V> l : listeners) {
+                        l.evicted(k, v, cause);
+                    }
+                })
+                .build();
     }
 
     /**

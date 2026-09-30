@@ -18,14 +18,18 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.File;
 import java.util.HashMap;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.cache.impl.caffeine.CaffeineCacheAdapter;
 import org.apache.jackrabbit.oak.cache.impl.lirs.LirsLoadingCacheAdapter;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
@@ -34,6 +38,10 @@ import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCach
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCacheStats;
 import org.apache.jackrabbit.oak.plugins.document.util.RevisionsKey;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
+import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
+import org.apache.jackrabbit.oak.stats.MeterStats;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -219,6 +227,70 @@ public class DocumentNodeStoreBuilderTest {
         } finally {
             closeCaches(reopenedBuilder);
         }
+    }
+
+    @Test
+    public void sizeEvictionReachesAsyncPersistentCache() throws Exception {
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        StatisticsProvider statsProvider = new DefaultStatisticsProvider(executor);
+        DocumentNodeStoreBuilder<?> builder = DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder()
+                .memoryCacheSize(1024 * 1024)
+                .setStatisticsProvider(statsProvider)
+                .setPersistentCache(temp.newFolder().getAbsolutePath() + ",+asyncDiff");
+        try {
+            Cache<CacheValue, StringValue> cache = builder.buildMemoryDiffCache();
+            MeterStats persistedPuts = statsProvider.getMeter(
+                    "PersistentCache.NodeCache.diff.CACHE_PUT", StatsOptions.DEFAULT);
+            String payload = "x".repeat(4096);
+            for (int i = 0; i < 100; i++) {
+                MemoryDiffCache.Key key = new MemoryDiffCache.Key(
+                        Path.fromString("/evict-" + i),
+                        new RevisionVector(new Revision(1, 0, 1)),
+                        new RevisionVector(new Revision(2, 0, 1)));
+                cache.put(key, StringValue.fromString(payload));
+                cache.getIfPresent(key);
+            }
+            // removal listeners run asynchronously on the cache maintenance executor
+            long deadline = System.currentTimeMillis() + 10_000;
+            while (persistedPuts.getCount() == 0 && System.currentTimeMillis() < deadline) {
+                Thread.sleep(10);
+            }
+
+            Assert.assertTrue("Expected evicted entries to be handed to the persistent cache",
+                    persistedPuts.getCount() > 0);
+        } finally {
+            closeCaches(builder);
+            new ExecutorCloser(executor).close();
+        }
+    }
+
+    @Test
+    public void zeroWeightEvictionReachesAsyncPersistentCache() throws Exception {
+        DocumentNodeStoreBuilder<?> builder = DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder()
+                .memoryCacheSize(0)
+                .setPersistentCache(temp.newFolder().getAbsolutePath() + ",+asyncDiff");
+        try {
+            Cache<CacheValue, StringValue> cache = builder.buildMemoryDiffCache();
+            for (int i = 0; i < 100; i++) {
+                cache.put(new MemoryDiffCache.Key(
+                        Path.fromString("/evict-" + i),
+                        new RevisionVector(new Revision(1, 0, 1)),
+                        new RevisionVector(new Revision(2, 0, 1))), StringValue.fromString("x"));
+            }
+            // zero-capacity caches evict synchronously; each eviction must clear the NodeCache metadata
+            Object metadata = readField(cache, "memCacheMetadata");
+            Map<?, ?> metadataMap = (Map<?, ?>) readField(metadata, "metadataMap");
+            Assert.assertTrue("Expected evictions to reach NodeCache, leaked metadata: " + metadataMap.size(),
+                    metadataMap.isEmpty());
+        } finally {
+            closeCaches(builder);
+        }
+    }
+
+    private static Object readField(Object target, String name) throws Exception {
+        Field field = target.getClass().getDeclaredField(name);
+        field.setAccessible(true);
+        return field.get(target);
     }
 
     private static void closeCaches(DocumentNodeStoreBuilder<?> builder) {
