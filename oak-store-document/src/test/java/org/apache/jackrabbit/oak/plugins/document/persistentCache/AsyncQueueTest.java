@@ -25,12 +25,14 @@ import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
+import org.apache.jackrabbit.oak.plugins.document.MemoryDiffCache;
 import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.PathRev;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.async.CacheWriteQueue;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
+import org.h2.mvstore.WriteBuffer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -39,6 +41,7 @@ import org.mockito.Mockito;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -76,7 +79,7 @@ public class AsyncQueueTest {
     @Before
     public void setup() throws IOException {
         FileUtils.deleteDirectory(new File("target/cacheTest"));
-        pCache = new PersistentCache("target/cacheTest");
+        pCache = new PersistentCache("target/cacheTest,+asyncDiff");
         final AtomicReference<NodeCache<PathRev, StringValue>> nodeCacheRef = new AtomicReference<NodeCache<PathRev, StringValue>>();
         CacheLIRS<PathRev, StringValue> lirs = new CacheLIRS.Builder<PathRev, StringValue>().maximumSize(1).evictionCallback((key, value, cause) -> {
             if (nodeCacheRef.get() != null) {
@@ -131,6 +134,35 @@ public class AsyncQueueTest {
         nodeCache.getIfPresent(k);
         flush();
         assertEquals(asList(k), putActions);
+    }
+
+    @Test
+    public void receivedBroadcastReplacesMetadataWithoutPersistingStaleValue() {
+        NodeCache<MemoryDiffCache.Key, StringValue> cache = newDiffCache(
+                CacheBuilder.<MemoryDiffCache.Key, StringValue>newBuilder().maximumSize(100).build());
+        DiffCacheWriteQueueWrapper writeQueue = (DiffCacheWriteQueueWrapper) cache.writeQueue;
+        MemoryDiffCache.Key key = new MemoryDiffCache.Key(Path.fromString("/broadcast"),
+                RevisionVector.fromString("r1-0-1"), RevisionVector.fromString("r2-0-1"));
+        StringValue receivedValue = new StringValue("received");
+        cache.put(key, VAL);
+        cache.getIfPresent(key);
+
+        WriteBuffer broadcast = new WriteBuffer(1024);
+        CacheType.DIFF.writeKey(broadcast, key);
+        broadcast.put((byte) 1);
+        CacheType.DIFF.writeValue(broadcast, receivedValue);
+        ByteBuffer buffer = broadcast.getBuffer();
+        buffer.rewind();
+        cache.receive(buffer);
+
+        cache.evicted(key, VAL, EvictionCause.SIZE);
+        assertEquals(emptyList(), writeQueue.putActions);
+
+        StringValue cachedValue = cache.getIfPresent(key);
+        assertEquals(receivedValue, cachedValue);
+        cache.evicted(key, cachedValue, EvictionCause.SIZE);
+        assertEquals(asList(key), writeQueue.putActions);
+        assertEquals(Collections.singletonList("received"), writeQueue.putValues);
     }
 
     @Test
@@ -378,6 +410,15 @@ public class AsyncQueueTest {
         return cache;
     }
 
+    private NodeCache<MemoryDiffCache.Key, StringValue> newDiffCache(
+            Cache<MemoryDiffCache.Key, StringValue> memCache) {
+        NodeCache<MemoryDiffCache.Key, StringValue> cache =
+                (NodeCache<MemoryDiffCache.Key, StringValue>) pCache.wrap(
+                        builderProvider.newBuilder().getNodeStore(), null, memCache, CacheType.DIFF);
+        cache.writeQueue = new DiffCacheWriteQueueWrapper(cache.writeQueue);
+        return cache;
+    }
+
     private interface Replacement {
         void apply(NodeCache<PathRev, StringValue> cache, PathRev key, StringValue newValue);
     }
@@ -417,6 +458,27 @@ public class AsyncQueueTest {
         public boolean addInvalidate(Iterable<PathRev> keys) {
             invalidateActions.addAll(ListUtils.toList(keys));
             return wrapped.addInvalidate(keys);
+        }
+    }
+
+    private static class DiffCacheWriteQueueWrapper extends CacheWriteQueue<MemoryDiffCache.Key, StringValue> {
+
+        private final CacheWriteQueue<MemoryDiffCache.Key, StringValue> wrapped;
+
+        private final List<MemoryDiffCache.Key> putActions = new ArrayList<>();
+
+        private final List<String> putValues = new ArrayList<>();
+
+        public DiffCacheWriteQueueWrapper(CacheWriteQueue<MemoryDiffCache.Key, StringValue> wrapped) {
+            super(null, null, null);
+            this.wrapped = wrapped;
+        }
+
+        @Override
+        public boolean addPut(MemoryDiffCache.Key key, StringValue value) {
+            putActions.add(key);
+            putValues.add(value.asString());
+            return wrapped.addPut(key, value);
         }
     }
 
