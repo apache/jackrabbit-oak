@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration.newGCGeneration;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
@@ -38,6 +39,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 import org.apache.jackrabbit.oak.stats.NoopStats;
 import org.jetbrains.annotations.NotNull;
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -46,6 +48,11 @@ public class TarWriterTest {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
+
+    @After
+    public void resetRecoveryFeature() {
+        TarReader.FT_OPTIMIZED_REMOTE_RECOVERY_OAK_12422_ENABLED.set(true);
+    }
 
     protected TestFileStoreMonitor monitor = new TestFileStoreMonitor();
 
@@ -118,6 +125,70 @@ public class TarWriterTest {
             written += bytes;
         }
 
+    }
+
+    @Test
+    public void recoveryUsesRecoverSegment() throws Exception {
+        boolean[] recovered = {false};
+        IOMonitorAdapter ioMonitor = new IOMonitorAdapter();
+        File segmentstoreDir = folder.newFolder();
+        SegmentArchiveManager archiveManager = new SegmentTarManager(
+                segmentstoreDir, monitor, ioMonitor, false, false) {
+            @Override
+            public @NotNull SegmentArchiveWriter create(String archiveName) {
+                return new SegmentTarWriter(new File(segmentstoreDir, archiveName), monitor, ioMonitor) {
+                    @Override
+                    public void recoverSegment(long msb, long lsb, byte[] data, int offset, int size,
+                            int generation, int fullGeneration, boolean isCompacted) throws IOException {
+                        recovered[0] = true;
+                        writeSegment(msb, lsb, data, offset, size, generation, fullGeneration, isCompacted);
+                    }
+                };
+            }
+        };
+
+        try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
+            writer.recoverEntry(0, 0, new byte[42], 0, 42, newGCGeneration(0, 0, false));
+        }
+
+        assertTrue(recovered[0]);
+    }
+
+    @Test
+    public void recoveryCanBeDisabled() throws Exception {
+        boolean[] recovered = {false};
+        boolean[] written = {false};
+        IOMonitorAdapter ioMonitor = new IOMonitorAdapter();
+        File segmentstoreDir = folder.newFolder();
+        SegmentArchiveManager archiveManager = new SegmentTarManager(
+                segmentstoreDir, monitor, ioMonitor, false, false) {
+            @Override
+            public @NotNull SegmentArchiveWriter create(String archiveName) {
+                return new SegmentTarWriter(new File(segmentstoreDir, archiveName), monitor, ioMonitor) {
+                    @Override
+                    public void recoverSegment(long msb, long lsb, byte[] data, int offset, int size,
+                            int generation, int fullGeneration, boolean isCompacted) throws IOException {
+                        recovered[0] = true;
+                        super.recoverSegment(msb, lsb, data, offset, size, generation, fullGeneration, isCompacted);
+                    }
+
+                    @Override
+                    public void writeSegment(long msb, long lsb, byte[] data, int offset, int size,
+                            int generation, int fullGeneration, boolean isCompacted) throws IOException {
+                        written[0] = true;
+                        super.writeSegment(msb, lsb, data, offset, size, generation, fullGeneration, isCompacted);
+                    }
+                };
+            }
+        };
+        TarReader.FT_OPTIMIZED_REMOTE_RECOVERY_OAK_12422_ENABLED.set(false);
+
+        try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
+            writer.recoverEntry(0, 0, new byte[42], 0, 42, newGCGeneration(0, 0, false));
+        }
+
+        assertFalse(recovered[0]);
+        assertTrue(written[0]);
     }
 
     @Test
