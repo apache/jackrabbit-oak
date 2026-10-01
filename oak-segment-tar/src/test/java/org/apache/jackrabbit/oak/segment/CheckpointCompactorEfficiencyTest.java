@@ -44,6 +44,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -76,6 +77,12 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
  * @see <a href="https://issues.apache.org/jira/browse/OAK-12134">OAK-12134</a>
  */
 class CheckpointCompactorEfficiencyTest {
+
+    private static final int WIDTH = 1000;
+
+    // Nodes a correct retry may compact beyond the changed children (their ancestor spine plus the
+    // concurrent-checkpoint structure).
+    private static final int RETRY_SPINE_OVERHEAD = 32;
 
     @RegisterExtension
     FileStoreParameterResolver fileStoreParameterResolver = new FileStoreParameterResolver(b -> b.withSegmentCacheSize(4));
@@ -160,13 +167,150 @@ class CheckpointCompactorEfficiencyTest {
                 "as all changes during compaction should have been included into the compacted state");
     }
 
+    @ParameterizedTest
+    @MethodSource("scenarios")
+    void retryAfterConcurrentCheckpointProcessesOnlyTheDelta(Class<? extends Compactor> classUnderTest, CompactionStrategy compactionStrategy, FileStore fileStore, NodeStore nodeStore)
+            throws CommitFailedException, IOException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+        int changedChildren = 3;
+        long retryCompactedNodes = runRetryCycle(classUnderTest, compactionStrategy, fileStore, nodeStore, changedChildren, true);
+        assertTrue(retryCompactedNodes <= changedChildren + RETRY_SPINE_OVERHEAD,
+                classUnderTest.getSimpleName() + " compacted " + retryCompactedNodes + " node states in a single retry "
+                        + "cycle after " + changedChildren + " children changed under a " + WIDTH + "-wide node "
+                        + "(expected <= " + (changedChildren + RETRY_SPINE_OVERHEAD) + "). A checkpoint was created "
+                        + "during the cycle, so the live root is the 2nd super-root and its diff base is the compacted "
+                        + "state - a different GC generation than the live root - which defeats MapRecord record-id "
+                        + "bucket pruning and re-compacts the whole map.");
+    }
+
+    @ParameterizedTest
+    @MethodSource("scenarios")
+    void retryWithoutConcurrentCheckpointProcessesOnlyTheDelta(Class<? extends Compactor> classUnderTest, CompactionStrategy compactionStrategy, FileStore fileStore, NodeStore nodeStore)
+            throws CommitFailedException, IOException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+        int changedChildren = 3;
+        long retryCompactedNodes = runRetryCycle(classUnderTest, compactionStrategy, fileStore, nodeStore, changedChildren, false);
+        assertTrue(retryCompactedNodes <= changedChildren + RETRY_SPINE_OVERHEAD,
+                classUnderTest.getSimpleName() + " compacted " + retryCompactedNodes + " node states in a retry cycle "
+                        + "with no concurrently-created checkpoint (expected <= " + (changedChildren + RETRY_SPINE_OVERHEAD)
+                        + "). Without an added checkpoint the live root is the first super-root and its diff base is "
+                        + "same-generation, so pruning must apply regardless of compactor.");
+    }
+
+    @ParameterizedTest
+    @MethodSource("scenarios")
+    void everyRetryCycleProcessesOnlyTheDelta(Class<? extends Compactor> classUnderTest, CompactionStrategy compactionStrategy, FileStore fileStore, NodeStore nodeStore)
+            throws CommitFailedException, IOException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+        int retryCycles = 4;
+
+        NodeBuilder builder = nodeStore.getRoot().builder();
+        NodeBuilder wide = builder.child("wide");
+        for (int i = 0; i < WIDTH; i++) {
+            wide.child("c" + i).setProperty("v", (long) i);
+        }
+        nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        GCNodeWriteMonitor monitor = new GCNodeWriteMonitor(-1, GCMonitor.EMPTY);
+        Compactor compactor = createCompactor(classUnderTest, fileStore, monitor);
+
+        SegmentNodeState headBeforeChanges = fileStore.getHead();
+        int idx = 0;
+        touch(nodeStore, idx++);
+        nodeStore.checkpoint(60_000, Map.of("name", "cp0"));
+        SegmentNodeState head = fileStore.getHead();
+        CompactedNodeState compacted = compactionStrategy.compact(compactor, headBeforeChanges, head);
+        assertNotNull(compacted);
+
+        // mirror the AbstractCompactionStrategy retry loop: compact(head, newHead, compacted), advance head.
+        // Each cycle changes 2 children with a checkpoint in between.
+        int changedPerCycle = 2;
+        long[] perCycle = new long[retryCycles];
+        for (int c = 0; c < retryCycles; c++) {
+            touch(nodeStore, idx++);
+            nodeStore.checkpoint(60_000, Map.of("name", "cp" + (c + 1)));
+            touch(nodeStore, idx++);
+            SegmentNodeState newHead = fileStore.getHead();
+
+            long before = monitor.getCompactedNodes();
+            compacted = compactor.compact(head, newHead, compacted, Canceller.newCanceller());
+            assertNotNull(compacted);
+            perCycle[c] = monitor.getCompactedNodes() - before;
+            head = newHead;
+        }
+
+        for (int c = 0; c < retryCycles; c++) {
+            assertTrue(perCycle[c] <= changedPerCycle + RETRY_SPINE_OVERHEAD,
+                    classUnderTest.getSimpleName() + " per-cycle node counts " + Arrays.toString(perCycle) + ": cycle "
+                            + (c + 1) + " compacted " + perCycle[c] + " node states (expected <= "
+                            + (changedPerCycle + RETRY_SPINE_OVERHEAD) + " each). A count that stays flat near the "
+                            + WIDTH + "-wide map width means the retry cycles never converge - each re-reads the whole "
+                            + "tree because the diff base is in a different GC generation than the live root.");
+        }
+    }
+
+    private long runRetryCycle(Class<? extends Compactor> classUnderTest, CompactionStrategy compactionStrategy,
+                               FileStore fileStore, NodeStore nodeStore, int changedChildren, boolean checkpointDuringCycle)
+            throws CommitFailedException, IOException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+        NodeBuilder builder = nodeStore.getRoot().builder();
+        NodeBuilder wide = builder.child("wide");
+        for (int i = 0; i < WIDTH; i++) {
+            wide.child("c" + i).setProperty("v", (long) i);
+        }
+        nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        GCNodeWriteMonitor monitor = new GCNodeWriteMonitor(-1, GCMonitor.EMPTY);
+        Compactor compactor = createCompactor(classUnderTest, fileStore, monitor);
+
+        SegmentNodeState headBeforeChanges = fileStore.getHead();
+        touch(nodeStore, WIDTH - 1);
+        nodeStore.checkpoint(60_000, Map.of("name", "before"));
+        SegmentNodeState head = fileStore.getHead();
+        CompactedNodeState partiallyCompacted = compactionStrategy.compact(compactor, headBeforeChanges, head);
+        assertNotNull(partiallyCompacted);
+
+        // concurrent changes during compaction: touch `changedChildren` distinct children. When a checkpoint is
+        // created mid-way, the children touched after it make the live root differ from that checkpoint, so the
+        // live root becomes a 2nd super-root whose diff base is the (target-generation) compacted state.
+        int beforeCheckpoint = checkpointDuringCycle ? (changedChildren + 1) / 2 : changedChildren;
+        for (int i = 0; i < beforeCheckpoint; i++) {
+            touch(nodeStore, i);
+        }
+        if (checkpointDuringCycle) {
+            nodeStore.checkpoint(60_000, Map.of("name", "concurrent"));
+        }
+        for (int i = beforeCheckpoint; i < changedChildren; i++) {
+            touch(nodeStore, i);
+        }
+
+        assertFalse(fileStore.getRevisions().setHead(head.getRecordId(), partiallyCompacted.getRecordId()));
+        SegmentNodeState newHead = fileStore.getHead();
+
+        long compactedBefore = monitor.getCompactedNodes();
+        CompactedNodeState compacted = compactor.compact(head, newHead, partiallyCompacted, Canceller.newCanceller());
+        long retryCompactedNodes = monitor.getCompactedNodes() - compactedBefore;
+
+        assertNotNull(compacted);
+        assertTrue(fileStore.getRevisions().setHead(newHead.getRecordId(), compacted.getRecordId()));
+        assertEquals(compacted, newHead, "retry compaction must fully reconcile the concurrent writes");
+
+        return retryCompactedNodes;
+    }
+
+    private static void touch(NodeStore nodeStore, int childIndex) throws CommitFailedException {
+        NodeBuilder builder = nodeStore.getRoot().builder();
+        builder.child("wide").child("c" + childIndex).setProperty("v", 1000L + childIndex);
+        nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+
     private static @NotNull Compactor createCompactor(Class<? extends Compactor> classUnderTest, FileStore fileStore)
+            throws NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException {
+        return createCompactor(classUnderTest, fileStore, new GCNodeWriteMonitor(-1, GCMonitor.EMPTY));
+    }
+
+    private static @NotNull Compactor createCompactor(Class<? extends Compactor> classUnderTest, FileStore fileStore, GCNodeWriteMonitor compactionMonitor)
             throws NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException {
         GCGeneration baseGeneration = fileStore.getHead().getGcGeneration();
         GCGeneration partialGeneration = baseGeneration.nextPartial();
         GCGeneration targetGeneration = baseGeneration.nextFull();
         GCIncrement increment = new GCIncrement(baseGeneration, partialGeneration, targetGeneration);
-        GCNodeWriteMonitor compactionMonitor = new GCNodeWriteMonitor(-1, GCMonitor.EMPTY);
         SegmentWriterFactory writerFactory = generation -> defaultSegmentWriterBuilder("c")
                 .withGeneration(generation)
                 .build(fileStore);
