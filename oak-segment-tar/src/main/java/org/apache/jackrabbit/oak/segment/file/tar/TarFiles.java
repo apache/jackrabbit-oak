@@ -42,6 +42,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -49,6 +50,7 @@ import java.util.stream.Stream;
 
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.internal.concurrent.ForkJoinUtils;
@@ -407,14 +409,20 @@ public class TarFiles implements Closeable {
     }
 
     public void init() throws IOException {
+        long initStartNanos = System.nanoTime();
+
         Map<Integer, Map<Character, String>> map = collectFiles(archiveManager);
         Integer[] indices = map.keySet().toArray(new Integer[map.size()]);
         Arrays.sort(indices);
+        long discoveryEndNanos = System.nanoTime();
+        long discoveryNanos = discoveryEndNanos - initStartNanos;
+        log.info("TarFiles init: discovered {} archive(s) in {}", indices.length, formatDuration(discoveryNanos));
 
         // TAR readers are stored in descending index order. The following loop
         // iterates the indices in ascending order, but prepends - instead of
         // appending - the corresponding TAR readers to the linked list. This
         // results in a properly ordered linked list.
+        long openEndNanos = discoveryEndNanos;
         if (indices.length > 0) {
             try {
                 ForkJoinUtils
@@ -443,6 +451,8 @@ public class TarFiles implements Closeable {
             } catch (UncheckedIOException e) {
                 throw e.getCause();
             }
+            openEndNanos = System.nanoTime();
+            log.info("TarFiles init: opened {} archive(s) in {}", indices.length, formatDuration(openEndNanos - discoveryEndNanos));
         }
 
         if (!readOnly) {
@@ -452,8 +462,21 @@ public class TarFiles implements Closeable {
             }
             writer = new TarWriter(archiveManager, writeNumber, segmentCount);
         }
+        long endNanos = System.nanoTime();
+        long writerSetupNanos = endNanos - openEndNanos;
+        log.info("TarFiles init: writer setup took {}", formatDuration(writerSetupNanos));
+
+        log.info("TarFiles init: completed in {} (discovery {}, open {}, writer setup {})",
+                formatDuration(endNanos - initStartNanos),
+                formatDuration(discoveryNanos),
+                formatDuration(openEndNanos - discoveryEndNanos),
+                formatDuration(writerSetupNanos));
 
         initialised = true;
+    }
+
+    private static String formatDuration(long nanos) {
+        return TimeDurationFormatter.forLogging().format(nanos, TimeUnit.NANOSECONDS);
     }
 
     private void checkInitialised() {
@@ -710,6 +733,7 @@ public class TarFiles implements Closeable {
 
     public CleanupResult cleanup(CleanupContext context) throws IOException {
         checkInitialised();
+        long totalStartNanos = System.nanoTime();
         CleanupResult result = new CleanupResult();
         result.removableFiles = new ArrayList<>();
         result.reclaimedSegmentIds = new HashSet<>();
@@ -730,6 +754,8 @@ public class TarFiles implements Closeable {
         } finally {
             lock.readLock().unlock();
         }
+        long cycleWriterNanos = System.nanoTime() - totalStartNanos;
+        log.info("TarFiles cleanup: cycled writer in {}", formatDuration(cycleWriterNanos));
 
         Map<TarReader, TarReader> cleaned = new LinkedHashMap<>();
 
@@ -740,6 +766,7 @@ public class TarFiles implements Closeable {
 
         Set<UUID> reclaim = new HashSet<>();
 
+        long markStartNanos = System.nanoTime();
         for (TarReader reader : cleaned.keySet()) {
             if (shutdown) {
                 result.interrupted = true;
@@ -747,6 +774,9 @@ public class TarFiles implements Closeable {
             }
             reader.mark(references, reclaim, context);
         }
+        long sweepStartNanos = System.nanoTime();
+        long markNanos = sweepStartNanos - markStartNanos;
+        log.info("TarFiles cleanup: mark phase processed {} reader(s) in {}", cleaned.size(), formatDuration(markNanos));
 
         for (TarReader reader : cleaned.keySet()) {
             if (shutdown) {
@@ -755,12 +785,19 @@ public class TarFiles implements Closeable {
             }
             cleaned.put(reader, reader.sweep(reclaim, result.reclaimedSegmentIds));
         }
+        long sweepNanos = System.nanoTime() - sweepStartNanos;
+        log.info("TarFiles cleanup: sweep phase took {}", formatDuration(sweepNanos));
 
         Node closeables;
         long reclaimed;
 
         Node swept;
+        long sweptListNanos = 0;
+        long casPublishNanos = 0;
+        int attempts = 0;
         while (true) {
+            long sweptListStartNanos = System.nanoTime();
+            attempts++;
             closeables = null;
             reclaimed = 0;
 
@@ -816,6 +853,8 @@ public class TarFiles implements Closeable {
             // to it. We have to reverse it before we save it into `readers`.
 
             swept = reverse(swept);
+            long casStartNanos = System.nanoTime();
+            sweptListNanos += casStartNanos - sweptListStartNanos;
 
             // Following is a compare-and-set operation. We based the
             // computation of `swept` of a specific value of `readers`. If
@@ -827,6 +866,7 @@ public class TarFiles implements Closeable {
             try {
                 if (readers == head) {
                     readers = swept;
+                    casPublishNanos += System.nanoTime() - casStartNanos;
                     break;
                 } else {
                     head = readers;
@@ -834,12 +874,17 @@ public class TarFiles implements Closeable {
             } finally {
                 lock.writeLock().unlock();
             }
+            casPublishNanos += System.nanoTime() - casStartNanos;
         }
+        log.info("TarFiles cleanup: built swept reader list in {} across {} attempt(s), CAS publish took {}",
+                formatDuration(sweptListNanos), attempts, formatDuration(casPublishNanos));
+
         readerCount.dec(getSize(head) - getSize(swept));
         segmentCount.dec(getSegmentCount(head) - getSegmentCount(swept));
 
         result.reclaimedSize -= reclaimed;
 
+        long closeStartNanos = System.nanoTime();
         for (TarReader closeable : iterable(closeables)) {
             try {
                 closeable.close();
@@ -848,6 +893,18 @@ public class TarFiles implements Closeable {
             }
             result.removableFiles.add(closeable.getFileName());
         }
+        long endNanos = System.nanoTime();
+        long closeNanos = endNanos - closeStartNanos;
+        log.info("TarFiles cleanup: closed {} superseded reader(s) in {}", result.removableFiles.size(), formatDuration(closeNanos));
+
+        log.info("TarFiles cleanup: completed in {} (cycle writer {}, mark {}, sweep {}, swept list build {}, CAS publish {}, close readers {})",
+                formatDuration(endNanos - totalStartNanos),
+                formatDuration(cycleWriterNanos),
+                formatDuration(markNanos),
+                formatDuration(sweepNanos),
+                formatDuration(sweptListNanos),
+                formatDuration(casPublishNanos),
+                formatDuration(closeNanos));
 
         return result;
     }
