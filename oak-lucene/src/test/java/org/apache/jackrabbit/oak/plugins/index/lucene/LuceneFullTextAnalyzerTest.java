@@ -17,9 +17,11 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.FullTextAnalyzerCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -80,5 +82,65 @@ public class LuceneFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
     @Ignore("Shingle does not seem to work well in lucene")
     public void fulltextSearchWithShingle() throws Exception {
         super.fulltextSearchWithShingle();
+    }
+
+    // OAK-12360: a property's own analyzer reference must apply at real index/query
+    // time (not just to the in-memory Analyzer object), while a sibling property
+    // without one keeps using the index's default analyzer.
+    @Test
+    public void perPropertyAnalyzerAppliesOnlyToDeclaredProperty() throws Exception {
+        Tree index = setup(List.of("title", "body"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild("titleAnalyzer");
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "whitespace");
+
+            idx.getChild(FulltextIndexConstants.INDEX_RULES).getChild("nt:base")
+                    .getChild(FulltextIndexConstants.PROP_NODE).getChild("title")
+                    .setProperty(FulltextIndexConstants.PROP_ANALYZER, "titleAnalyzer");
+        });
+
+        Tree content = root.getTree("/").addChild("content");
+        Tree a = content.addChild("a");
+        a.setProperty("title", "Hello World");
+        a.setProperty("body", "Hello World");
+        root.commit();
+
+        assertEventually(() -> {
+            // "title" uses the whitespace tokenizer (no lower-casing): case-sensitive match.
+            assertQuery("//*[jcr:contains(@title, 'Hello')]", XPATH, List.of("/content/a"));
+            assertQuery("//*[jcr:contains(@title, 'hello')]", XPATH, List.of());
+            // "body" keeps the index's default (lower-casing) analyzer: case-insensitive match.
+            assertQuery("//*[jcr:contains(@body, 'hello')]", XPATH, List.of("/content/a"));
+            assertQuery("//*[jcr:contains(@body, 'Hello')]", XPATH, List.of("/content/a"));
+        });
+    }
+
+    // OAK-12360: the aggregated :fulltext field (jcr:contains(., ...)) is a known
+    // limitation - it always uses the index's default analyzer, even for a property
+    // that declares its own. Locks in the real end-to-end behavior, not just the
+    // in-memory Analyzer map construction.
+    @Test
+    public void perPropertyAnalyzerDoesNotApplyToAggregatedFulltextField() throws Exception {
+        setup(List.of("title"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild("titleAnalyzer");
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "whitespace");
+
+            idx.getChild(FulltextIndexConstants.INDEX_RULES).getChild("nt:base")
+                    .getChild(FulltextIndexConstants.PROP_NODE).getChild("title")
+                    .setProperty(FulltextIndexConstants.PROP_ANALYZER, "titleAnalyzer");
+        });
+
+        Tree content = root.getTree("/").addChild("content");
+        content.addChild("a").setProperty("title", "Hello World");
+        root.commit();
+
+        assertEventually(() -> {
+            // Property-specific field: custom analyzer, case-sensitive.
+            assertQuery("//*[jcr:contains(@title, 'Hello')]", XPATH, List.of("/content/a"));
+            assertQuery("//*[jcr:contains(@title, 'hello')]", XPATH, List.of());
+            // Aggregated :fulltext field: always the default analyzer, case-insensitive,
+            // regardless of "title"'s own override.
+            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH, List.of("/content/a"));
+            assertQuery("//*[jcr:contains(., 'hello')]", XPATH, List.of("/content/a"));
+        });
     }
 }
