@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.plugins.index.importer.AsyncLaneSwitcher;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexerInfo;
 import org.apache.jackrabbit.oak.plugins.index.inventory.IndexDefinitionPrinter;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -74,6 +75,8 @@ public class IndexerSupport {
      * Index lane name which is used for indexing
      */
     private static final String REINDEX_LANE = "offline-reindex-async";
+
+    private static final Set<String> FULLTEXT_INDEX_TYPES = Set.of("lucene", "elasticsearch");
     private Map<String, String> checkpointInfo = Collections.emptyMap();
     protected final IndexHelper indexHelper;
     private File localIndexDir;
@@ -167,6 +170,7 @@ public class IndexerSupport {
             //TODO Do it only for lucene indexes for now
             NodeBuilder idxBuilder = childBuilder(builder, indexPath, false);
             Validate.checkState(idxBuilder.exists(), "No index definition found at path [%s]", indexPath);
+            checkIndexRulesExist(idxBuilder, indexPath);
 
             idxBuilder.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
             AsyncLaneSwitcher.switchLane(idxBuilder, REINDEX_LANE);
@@ -174,6 +178,19 @@ public class IndexerSupport {
 
         copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         LOG.info("Switched the async lane for indexes at {} to {} and marked them for reindex", indexHelper.getIndexPaths(), REINDEX_LANE);
+    }
+
+    /**
+     * Fails if a fulltext index definition has no indexRules child node. Without it, Oak would
+     * generate a rule that indexes all nodes and all property types.
+     */
+    static void checkIndexRulesExist(NodeBuilder idxBuilder, String indexPath) {
+        String type = idxBuilder.getString(IndexConstants.TYPE_PROPERTY_NAME);
+        if (type != null && FULLTEXT_INDEX_TYPES.contains(type) && !idxBuilder.hasChildNode(FulltextIndexConstants.INDEX_RULES)) {
+            throw new IllegalStateException("Index definition at [" + indexPath + "] has no '"
+                    + FulltextIndexConstants.INDEX_RULES + "' child node. One possible root cause is that the"
+                    + " filter in the index definition is on \"oak:index\", and there is an \"include\" pattern.");
+        }
     }
 
     public void postIndexWork(NodeStore copyOnWriteStore) throws CommitFailedException, IOException {

@@ -65,6 +65,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class ReindexIT extends LuceneAbstractIndexCommandTest {
@@ -364,6 +365,41 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
 
         assertThat(indexPaths, hasItem("/oak:index/nodetype"));
         assertThat(indexPaths, hasItem("/oak:index/barIndex"));
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-12431">OAK-12431</a>
+     */
+    @Test
+    public void newIndexDefinitionWithoutIndexRules() throws Exception {
+        createTestData(true);
+        fixture.close();
+
+        String json = "{\n" +
+                "  \"/oak:index/barIndex\": {\n" +
+                "    \"compatVersion\": 2,\n" +
+                "    \"type\": \"lucene\",\n" +
+                "    \"async\": \"async\",\n" +
+                "    \"jcr:primaryType\": \"oak:QueryIndexDefinition\"\n" +
+                "  }\n" +
+                "}";
+
+        File jsonFile = temporaryFolder.newFile();
+        Files.writeString(jsonFile.toPath(), json);
+
+        String[] args = {
+                "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
+                "--index-out-dir="  + temporaryFolder.newFolder().getAbsolutePath(),
+                "--index-definitions-file=" + jsonFile.getAbsolutePath(),
+                "--reindex",
+                "--read-write",
+                "--", // -- indicates that options have ended and rest needs to be treated as non option
+                fixture.getDir().getAbsolutePath()
+        };
+
+        assertThrows(IllegalStateException.class, () -> new IndexCommand().execute(args));
+        assertThat(errContent.toString(), containsString(
+                "Index definition at [/oak:index/barIndex] has no 'indexRules' child node"));
     }
 
     private void indexBarPropertyAlso(IndexRepositoryFixture fixture2) throws IOException, RepositoryException {
