@@ -172,7 +172,11 @@ abstract class Expression {
         public static Expression newBoolean(boolean value) {
             return new Literal(String.valueOf(value), String.valueOf(value));
         }
-    
+
+        static Literal newNull() {
+            return new Literal("null", "null");
+        }
+
         static Literal newNumber(String s) {
             return new Literal(s, s);
         }

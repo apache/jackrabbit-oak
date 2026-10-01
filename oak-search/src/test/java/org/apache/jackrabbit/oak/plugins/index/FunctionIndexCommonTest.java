@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.junit.Assert;
 import org.junit.Test;
@@ -967,6 +968,120 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
         assertEventually(() -> assertPlanAndQuery(
                 "select * from [nt:base] where lower(coalesce([jcr:content/foo2], coalesce([jcr:content/foo], localname()))) = 'bar'",
                 "/oak:index/test1", List.of("/a", "/b", "/bar")));
+    }
+
+    @Test
+    public void coalesceWithLiteralQuery() throws Exception {
+        // a literal is a valid coalesce() operand, not just a property or
+        // nested function -- useful as a fallback default value
+        IndexDefinitionBuilder idxb = indexOptions.createIndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("foo", null).function(
+                "coalesce([jcr:content/foo2], 'defaultAlias')");
+
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+        idx.setProperty(PathFilter.PROP_EXCLUDED_PATHS, List.of("/jcr:system", "/oak:index"), Type.STRINGS);
+        root.commit();
+
+        Tree rootTree = root.getTree("/");
+        rootTree.addChild("a").addChild("jcr:content").setProperty("foo2", "custom");
+        rootTree.addChild("b");
+
+        root.commit();
+
+        // "/" and "/a/jcr:content" also lack their own "jcr:content/foo2" child,
+        // so they legitimately fall back to the literal too
+        assertEventually(() -> assertPlanAndQuery(
+                "select * from [nt:base] where coalesce([jcr:content/foo2], 'defaultAlias') = 'defaultAlias'",
+                "/oak:index/test1", List.of("/", "/a/jcr:content", "/b")));
+    }
+
+    @Test
+    public void ifFunctionQuery() throws Exception {
+        IndexDefinitionBuilder idxb = indexOptions.createIndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("foo", null).function("if([cond], [t], [f])");
+
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+        root.commit();
+
+        Tree rootTree = root.getTree("/");
+        Tree a = rootTree.addChild("a");
+        a.setProperty("cond", true);
+        a.setProperty("t", "yes");
+        a.setProperty("f", "no");
+        Tree b = rootTree.addChild("b");
+        b.setProperty("cond", false);
+        b.setProperty("t", "yes2");
+        b.setProperty("f", "no2");
+
+        root.commit();
+
+        assertEventually(() -> assertPlanAndQuery(
+                "select * from [nt:base] where if([cond], [t], [f]) = 'yes'",
+                "/oak:index/test1", List.of("/a")));
+    }
+
+    @Test
+    public void existsFunctionQuery() throws Exception {
+        IndexDefinitionBuilder idxb = indexOptions.createIndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("foo", null).function("exists([alias])");
+
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+        root.commit();
+
+        Tree rootTree = root.getTree("/");
+        rootTree.addChild("a").setProperty("alias", "x");
+        rootTree.addChild("b");
+
+        root.commit();
+
+        assertEventually(() -> assertPlanAndQuery(
+                "select * from [nt:base] where exists([alias]) = true",
+                "/oak:index/test1", List.of("/a")));
+    }
+
+    @Test
+    public void opFunctionConditionalPathQuery() throws Exception {
+        String old = System.getProperty(QueryEngineSettings.OAK_QUERY_OP_FUNCTION);
+        System.setProperty(QueryEngineSettings.OAK_QUERY_OP_FUNCTION, "true");
+        try {
+            String function = "if(op([reindexCount], '>', 'lon:0'), path(), null)";
+            IndexDefinitionBuilder idxb = indexOptions.createIndexDefinitionBuilder()
+                    .noAsync()
+                    .evaluatePathRestrictions()
+                    .includedPaths("/oak:index")
+                    .queryPaths("/oak:index")
+                    .tags("reindex");
+            idxb.indexRule("nt:base").property("test", null).function(function)
+                    .propertyIndex().ordered();
+            idxb.build(root.getTree("/").getChild("oak:index").addChild("custom.reindex"));
+            root.commit();
+            Tree oakIndex = root.getTree("/oak:index");
+            Tree a = oakIndex.addChild("a");
+            a.setProperty("type", "disabled");
+            a.setProperty("reindexCount", 2L);
+            Tree b = oakIndex.addChild("b");
+            b.setProperty("type", "disabled");
+            b.setProperty("reindexCount", 0L);
+            oakIndex.addChild("c").setProperty("type", "disabled");
+            root.commit();
+            String query = "select * from [nt:base] " +
+                    "where " + function + " > '/' " +
+                    "and isdescendantnode('/oak:index') " +
+                    "order by " + function + " " +
+                    "option(index tag [reindex])";
+            assertEventually(() -> assertPlanAndQuery(
+                    query,
+                    "/oak:index/custom.reindex", List.of("/oak:index/a")));
+        } finally {
+            if (old == null) {
+                System.clearProperty(QueryEngineSettings.OAK_QUERY_OP_FUNCTION);
+            } else {
+                System.setProperty(QueryEngineSettings.OAK_QUERY_OP_FUNCTION, old);
+            }
+        }
     }
 
     /*

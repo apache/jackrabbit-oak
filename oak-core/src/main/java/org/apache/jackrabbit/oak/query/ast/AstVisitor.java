@@ -35,6 +35,14 @@ public interface AstVisitor {
 
     boolean visit(FirstImpl node);
 
+    boolean visit(IfImpl node);
+
+    boolean visit(ExistsImpl node);
+
+    boolean visit(OpImpl node);
+
+    boolean visit(LiteralOperandImpl node);
+
     boolean visit(ColumnImpl node);
 
     boolean visit(ComparisonImpl node);

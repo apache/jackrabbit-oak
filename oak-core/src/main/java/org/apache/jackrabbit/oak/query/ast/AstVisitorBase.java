@@ -147,6 +147,36 @@ public abstract class AstVisitorBase implements AstVisitor {
     }
 
     /**
+     * Calls accept on the three operands in the if node.
+     */
+    @Override
+    public boolean visit(IfImpl node) {
+        node.getCondition().accept(this);
+        node.getTrueValue().accept(this);
+        node.getFalseValue().accept(this);
+        return true;
+    }
+
+    /**
+     * Calls accept on the dynamic operand in the exists node.
+     */
+    @Override
+    public boolean visit(ExistsImpl node) {
+        return node.getOperand().accept(this);
+    }
+
+    /**
+     * Calls accept on the three operands in the op node.
+     */
+    @Override
+    public boolean visit(OpImpl node) {
+        node.getOperand1().accept(this);
+        node.getOperator().accept(this);
+        node.getOperand2().accept(this);
+        return true;
+    }
+
+    /**
      * Calls accept on the constraint in the NOT node.
      */
     @Override
