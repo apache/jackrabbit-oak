@@ -243,7 +243,7 @@ Name | Default | Description | Since
 mongouri | mongodb://localhost:27017 | Specifies the [MongoURI][1] required to connect to Mongo Database | 1.0
 db | oak | Name of the database in Mongo | 1.0
 socketKeepAlive | true (was 'false' before 1.10) | Enables socket keep-alive for MongoDB connections | 1.8.0, 1.6.2, 1.4.16
-cache | 256 | Cache size in MB. This is distributed among various caches used in DocumentNodeStore | 1.0
+cache | 320 | Cache size in MB. This is distributed among various caches used in DocumentNodeStore | 1.0
 customBlobStore | false | Boolean value indicating that custom `BlobStore` to use. | 1.0
 maxReplicationLagInSecs | 21600 (6 hours) | Determines the duration beyond which it can be safely assumed that state on secondary would be consistent with primary and its safe to read from them. (See [OAK-1645][OAK-1645]) | 1.0.2
 blobGcMaxAgeInSecs | 86400 (24 hrs) | Blob Garbage Collector (GC) logic would only consider those blobs for GC which are not accessed recently (currentTime - lastModifiedTime > blobGcMaxAgeInSecs). For example as per default only those blobs which have been created 24 hrs ago would be considered for GC. It is strongly advised to not set this property to a very low value of say a few minutes but only set it to a hour at a minimum. This is to ensure that the NodeStore(s) have had the time to flush out its internal data structures to persistence and the references to recently added blobs are accounted. | 1.0
@@ -260,8 +260,8 @@ prevDocCachePercentage | 4 | Percentage of `cache` allocated for `prevDocCache`.
 childrenCachePercentage | 15 (was 10 until 1.5.14) | Percentage of `cache` allocated for `childrenCache`. See [Caching][doc-cache] | 1.0.12
 diffCachePercentage | 30 (was 5 until 1.5.14) | Percentage of `cache` allocated for `diffCache`. See [Caching][doc-cache] | 1.0.12
 docChildrenCachePercentage | 0 (was 3 until 1.5.6) | Percentage of `cache` allocated for `docChildrenCache`. See [Caching][doc-cache] (Removed since 1.5.6) | 1.0.12
-cacheSegmentCount | 16 | The number of segments in the LIRS cache | 1.0.15, 1.2.3, 1.3.0
-cacheStackMoveDistance | 16 | The delay to move entries to the head of the queue in the LIRS cache | 1.0.15, 1.2.3, 1.3.0
+cacheSegmentCount | 16 | The number of segments in the LIRS cache (ignored by the default Caffeine cache, see `FT_CAFFEINE_CACHE_OAK-12425`; toggling it requires a DocumentNodeStore restart) | 1.0.15, 1.2.3, 1.3.0
+cacheStackMoveDistance | 16 | The delay to move entries to the head of the queue in the LIRS cache (ignored by the default Caffeine cache, see `FT_CAFFEINE_CACHE_OAK-12425`; toggling it requires a DocumentNodeStore restart) | 1.0.15, 1.2.3, 1.3.0
 sharedDSRepoId | "" | Custom SharedDataStore repositoryId. Used when custom blobstore configured. Should be unique among the repositories sharing the datastore. | 1.2.11
 blobTrackSnapshotIntervalInSecs | 0 | The blob ids cached/tracked locally are synchronized with the DataStore at this interval. Any additions and deletions will be visible to other cluster nodes or repositories connected to the shared DatStore after this. This should be less than the blobGcMaxAgeInSecs parameter above and the frequency of blob gc. A value of `0` disables blob ID tracking (default since Oak 2.4.0). See [Blob tracker][blobtracker]. | 1.5.6 
 updateLimit | 100000 | The number of updates kept in memory until changes are written to a branch in the DocumentStore | 1.7.0  

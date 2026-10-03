@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.cache.api.CacheStatsSnapshot;
 import org.apache.jackrabbit.oak.cache.api.EvictionCause;
 import org.apache.jackrabbit.oak.cache.CacheValue;
-import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache.GenerationCache;
@@ -58,7 +57,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
     private final CacheType type;
     private final DataType keyType;
     private final DataType valueType;
-    private final CacheMetadata<K> memCacheMetadata;
+    private final CacheMetadata<K, V> memCacheMetadata;
     private final DocumentNodeStore nodeStore;
     private final boolean async;
     CacheWriteQueue<K, V> writeQueue;
@@ -81,7 +80,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
         map = new MultiGenerationMap<K, V>();
         keyType = new KeyDataType(type);
         valueType = new ValueDataType(docNodeStore, docStore, type);
-        this.memCacheMetadata = new CacheMetadata<K>();
+        this.memCacheMetadata = new CacheMetadata<K, V>();
         if (async) {
             this.writeQueue = new CacheWriteQueue<K, V>(dispatcher, cache, map);
             LOG.info("The persistent cache {} writes will be asynchronous", type);
@@ -126,7 +125,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
         V v = map.get(key);
         ctx.stop();
         if (v != null) {
-            memCacheMetadata.putFromPersistenceAndIncrement(key);
+            memCacheMetadata.putFromPersistenceAndIncrement(key, v);
         }
         return v;
     }
@@ -140,10 +139,10 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
             }
             if (v.isCurrentGeneration() && !cache.needSwitch()) {
                 // don't persist again on eviction
-                memCacheMetadata.putFromPersistenceAndIncrement(key);
+                memCacheMetadata.putFromPersistenceAndIncrement(key, v.getValue());
             } else {
                 // persist again during eviction
-                memCacheMetadata.increment(key);
+                memCacheMetadata.increment(key, v.getValue());
             }
             return v.getValue();
         } finally {
@@ -185,11 +184,10 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
     @Override
     @Nullable
     public V getIfPresent(K key) {
-        memCacheMetadata.increment(key);
+        // count before the lookup, so a concurrent eviction sees this access
+        memCacheMetadata.incrementIfPresent(key);
         V value = memCache.getIfPresent(key);
-        if (value == null) {
-            memCacheMetadata.remove(key);
-        } else {
+        if (value != null) {
             return value;
         }
 
@@ -223,8 +221,17 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
         // Track entry load time
         TimerStats.Context ctx = stats.startLoaderTimer();
         try {
-            memCacheMetadata.increment(key);
-            value = memCache.get(key, mappingFunction);
+            value = memCache.get(key, k -> {
+                V loaded = mappingFunction.apply(k);
+                if (loaded != null) {
+                    // count the access before the value becomes evictable
+                    memCacheMetadata.increment(k, loaded);
+                }
+                return loaded;
+            });
+            if (value != null) {
+                memCacheMetadata.incrementIfPresent(key, value);
+            }
             ctx.stop();
             if (!async) {
                 write((K) key, value);
@@ -240,16 +247,13 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
     @Override
     public Map<K, V> getAllPresent(
             Iterable<? extends K> keys) {
-        Iterable<K> typedKeys = (Iterable<K>) keys;
-        memCacheMetadata.incrementAll(keys);
-        Map<K, V> result = memCache.getAllPresent(keys);
-        memCacheMetadata.removeAll(IterableUtils.filter(typedKeys, x -> !result.keySet().contains(x)));
-        return result;
+        keys.forEach(memCacheMetadata::incrementIfPresent);
+        return memCache.getAllPresent(keys);
     }
 
     @Override
     public void put(K key, V value) {
-        memCacheMetadata.put(key);
+        memCacheMetadata.put(key, value);
         memCache.put(key, value);
         if (!async) {
             write((K) key, value);
@@ -326,7 +330,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
             memCacheMetadata.remove(key);
         } else {
             value = (V) valueType.read(buff);
-            memCacheMetadata.put(key);
+            memCacheMetadata.put(key, value);
             memCache.put(key, value);
         }
         stats.markRecvBroadcast();
@@ -341,12 +345,15 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
     @Override
     public void evicted(K key, V value, EvictionCause cause) {
         if (async && Objects.nonNull(cause) && EVICTION_CAUSES.contains(cause) && value != null) {
-            CacheMetadata.MetadataEntry metadata = memCacheMetadata.remove(key);
+            CacheMetadata.MetadataEntry metadata = memCacheMetadata.remove(key, value);
+            if (metadata == null) {
+                return;
+            }
             boolean qualifiesToPersist = true;
-            if (metadata != null && metadata.isReadFromPersistentCache()) {
+            if (metadata.isReadFromPersistentCache()) {
                 qualifiesToPersist = false;
                 stats.markPutRejectedAlreadyPersisted();
-            } else if (metadata != null && metadata.getAccessCount() < 1) {
+            } else if (metadata.getAccessCount() < 1) {
                 qualifiesToPersist = false;
                 stats.markPutRejectedEntryNotUsed();
             } else if (!type.shouldCache(nodeStore, key)){

@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -81,7 +82,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     private static final Logger LOG = LoggerFactory.getLogger(DocumentNodeStoreBuilder.class);
 
-    public static final long DEFAULT_MEMORY_CACHE_SIZE = 256 * 1024 * 1024;
+    public static final long DEFAULT_MEMORY_CACHE_SIZE = 320 * 1024 * 1024;
     public static final int DEFAULT_NODE_CACHE_PERCENTAGE = 34;
     public static final int DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE = 1;
     public static final int DEFAULT_PREV_DOC_CACHE_PERCENTAGE = 4;
@@ -104,9 +105,23 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
             "oak.documentMK.manyChildren", 50);
 
     /**
-     * Whether to use the CacheLIRS (default) or the Guava cache implementation.
+     * Whether to use CacheLIRS when the Caffeine feature toggle is disabled.
      */
     private static final boolean LIRS_CACHE = !Boolean.getBoolean("oak.documentMK.guavaCache");
+
+    /**
+     * Feature toggle name for {@link #FT_CAFFEINE_CACHE_ENABLED}.
+     */
+    static final String FT_CAFFEINE_CACHE = "FT_CAFFEINE_CACHE_OAK-12425";
+
+    /**
+     * Whether newly built caches use Caffeine instead of CacheLIRS. Changing
+     * it at runtime only affects caches built afterwards, e.g. after the
+     * DocumentNodeStore is restarted. Non-OSGi deployments can disable it
+     * with {@code -Doak.documentMK.caffeineCache=false}.
+     */
+    static final AtomicBoolean FT_CAFFEINE_CACHE_ENABLED = new AtomicBoolean(
+            Boolean.parseBoolean(System.getProperty("oak.documentMK.caffeineCache", "true")));
 
     /**
      * Number of content updates that need to happen before the updates
@@ -1087,7 +1102,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
             long maxWeight,
             final Set<EvictionListener<K, V>> listeners) {
         // do not use LIRS cache when maxWeight is zero (OAK-6953)
-        if (LIRS_CACHE && maxWeight > 0) {
+        if (!FT_CAFFEINE_CACHE_ENABLED.get() && LIRS_CACHE && maxWeight > 0) {
             return CacheLIRS.<K, V>newBuilder()
                     .module(module)
                     .weigher((key, value) -> weigher.weigh(key, value))
@@ -1103,18 +1118,17 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
                     })
                     .build().asOakCache();
         }
-        CacheBuilder<K, V> builder = CacheBuilder.<K, V>newBuilder()
+        // always register: NodeCache joins listeners only after build, else its metadata leaks and async persistence stops
+        return CacheBuilder.<K, V>newBuilder()
                 .maximumWeight(maxWeight)
                 .weigher(weigher::weigh)
-                .recordStats();
-        if (!listeners.isEmpty()) {
-            builder = builder.evictionListener((k, v, cause) -> {
-                for (EvictionListener<K, V> l : listeners) {
-                    l.evicted(k, v, cause);
-                }
-            });
-        }
-        return builder.build();
+                .recordStats()
+                .evictionListener((k, v, cause) -> {
+                    for (EvictionListener<K, V> l : listeners) {
+                        l.evicted(k, v, cause);
+                    }
+                })
+                .build();
     }
 
     /**

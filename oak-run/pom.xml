@@ -184,6 +184,7 @@
             <exclude>**/merge.txt</exclude>
             <exclude>**/mergeIndexes.txt</exclude>
             <exclude>**/*.json</exclude>
+            <exclude>oak.workDir_IS_UNDEFINED/**</exclude>
           </excludes>
         </configuration>
       </plugin>
