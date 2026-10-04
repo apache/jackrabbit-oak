@@ -1041,7 +1041,7 @@ public class AeronConsensusEngine implements ClusteredService {
                 totalMembers,
                 requiredAcks
             ),
-            "ack-segment-persisted"
+            "ack-segment-persisted proposalId=" + proposalId
         );
     }
 

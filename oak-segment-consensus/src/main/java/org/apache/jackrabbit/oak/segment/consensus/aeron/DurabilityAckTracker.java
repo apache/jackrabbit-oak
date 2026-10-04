@@ -74,6 +74,8 @@ final class DurabilityAckTracker {
         }
         if (current.completed) {
             if (repeatedSuccessAck[0] && current.outcome.success) {
+                log.info("Re-emitting durability ACK for proposal {} on repeated ack from member {}; "
+                    + "the previous ACK was not applied", proposalId, memberId);
                 return current.outcome;
             }
             log.debug("Dropping durability ack for completed proposal {} from member {} (success={})",
