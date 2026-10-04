@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.segment.consensus.aeron;
 import io.aeron.cluster.client.AeronCluster;
 import io.aeron.cluster.codecs.CloseReason;
 import org.agrona.DirectBuffer;
+import org.agrona.concurrent.BackoffIdleStrategy;
 import org.agrona.concurrent.IdleStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,13 +111,12 @@ final class AeronInternalIngressClientManager implements AutoCloseable {
 
     AeronInternalIngressClientManager(Supplier<AeronInternalClusterClientConnector> connectorSupplier,
                                       AeronIngressEndpointPlanner ingressEndpointPlanner,
-                                      Supplier<String> aeronDirectorySupplier,
-                                      Supplier<IdleStrategy> idleStrategySupplier) {
+                                      Supplier<String> aeronDirectorySupplier) {
         this(
             connectorSupplier,
             ingressEndpointPlanner,
             aeronDirectorySupplier,
-            idleStrategySupplier,
+            ownerIdleStrategy(),
             newDaemonExecutor(),
             System::currentTimeMillis,
             DEFAULT_KEEPALIVE_INTERVAL_MS,
@@ -636,6 +636,16 @@ final class AeronInternalIngressClientManager implements AutoCloseable {
         synchronized (monitor) {
             monitor.notifyAll();
         }
+    }
+
+    /**
+     * The owner thread's own idle strategy, for offer retries and the AeronCluster.Context; never the
+     * clustered service's cluster.idleStrategy(), which is the service agent itself.
+     */
+    private static Supplier<IdleStrategy> ownerIdleStrategy() {
+        IdleStrategy idleStrategy = new BackoffIdleStrategy(
+            1, 10, TimeUnit.MICROSECONDS.toNanos(1), TimeUnit.MILLISECONDS.toNanos(1));
+        return () -> idleStrategy;
     }
 
     private static ScheduledExecutorService newDaemonExecutor() {

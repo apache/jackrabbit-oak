@@ -361,8 +361,7 @@ public class AeronConsensusEngine implements ClusteredService {
         this.internalIngressClientManager = new AeronInternalIngressClientManager(
             () -> internalClusterClientConnector,
             internalIngressEndpointPlanner,
-            () -> aeronDirectoryName,
-            () -> idleStrategy
+            () -> aeronDirectoryName
         );
         this.leaderDiscoveryService = AeronEngineComponentFactory.createLeaderDiscoveryService(nodeIdToUrl, peerUrls, selfUrl);
         this.messageDispatcher = AeronEngineComponentFactory.createMessageDispatcher(

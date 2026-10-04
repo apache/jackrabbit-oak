@@ -21,6 +21,7 @@ import io.aeron.cluster.codecs.CloseReason;
 import io.aeron.cluster.service.ClientSession;
 import io.aeron.cluster.service.Cluster;
 import org.agrona.DirectBuffer;
+import org.agrona.concurrent.IdleStrategy;
 import org.agrona.concurrent.NoOpIdleStrategy;
 import org.apache.jackrabbit.oak.segment.consensus.security.EthereumWallet;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -41,10 +42,13 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -119,6 +123,54 @@ public class AeronIngressSingleOwnerTest {
         assertTrue("stale client was closed", recorder.count("close") > 0);
         assertEquals("AeronCluster calls came from threads " + recorder.threads, 1, recorder.threads.size());
         assertFalse("offers overlapped", recorder.overlap.get());
+    }
+
+    /**
+     * cluster.idleStrategy() is the ClusteredServiceAgent itself; its idle() runs agent duty work
+     * (ClusteredServiceAgent.java:418-448), so only the service thread may use it.
+     */
+    @Test
+    public void ingressOwnerAndCallerPathsNeverUseTheServiceAgentIdleStrategy() throws Exception {
+        AtomicInteger agentIdleCalls = new AtomicInteger();
+        IdleStrategy agentIdleStrategy = new IdleStrategy() {
+            @Override
+            public void idle(int workCount) {
+                agentIdleCalls.incrementAndGet();
+            }
+
+            @Override
+            public void idle() {
+                agentIdleCalls.incrementAndGet();
+            }
+
+            @Override
+            public void reset() {
+                agentIdleCalls.incrementAndGet();
+            }
+        };
+        AeronCluster client = mock(AeronCluster.class);
+        when(client.clusterSessionId()).thenReturn(5L);
+        when(client.sendKeepAlive()).thenReturn(true);
+        when(client.offer(any(DirectBuffer.class), anyInt(), anyInt()))
+            .thenReturn(io.aeron.Publication.BACK_PRESSURED, io.aeron.Publication.ADMIN_ACTION, 64L);
+        AtomicReference<IdleStrategy> clientIdleStrategy = new AtomicReference<>();
+        AeronInternalClusterClientConnector connector = mock(AeronInternalClusterClientConnector.class);
+        when(connector.connectOnce(any(), any(), any(), any())).thenAnswer(invocation -> {
+            clientIdleStrategy.set(invocation.getArgument(3));
+            return AeronInternalClusterClientConnector.ConnectAttemptResult.success(client);
+        });
+
+        AeronConsensusEngine engine = newEngine(connector);
+        setField(engine, "idleStrategy", agentIdleStrategy);
+        try {
+            assertTrue(engine.sendWriteThroughIngressWithId("0xabc", "/content/a", "page", "m", "sig", null, "p-1"));
+        } finally {
+            engine.onTerminate(mock(Cluster.class));
+        }
+
+        assertEquals("agent idle strategy calls", 0, agentIdleCalls.get());
+        assertNotNull(clientIdleStrategy.get());
+        assertNotSame(agentIdleStrategy, clientIdleStrategy.get());
     }
 
     private AeronConsensusEngine newEngine(AeronInternalClusterClientConnector connector) throws Exception {
