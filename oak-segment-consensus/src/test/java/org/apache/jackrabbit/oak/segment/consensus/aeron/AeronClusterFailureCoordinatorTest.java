@@ -181,4 +181,31 @@ public class AeronClusterFailureCoordinatorTest {
         assertEquals(1, callbackCalls.get());
         verify(crashHandler, never()).handleCrash(org.mockito.ArgumentMatchers.any());
     }
+
+    /**
+     * Aeron runs the termination hook before the agent's error handler, so for a FATAL apply failure the
+     * hook starts the shutdown first; the FATAL error that follows must still record the crash, once.
+     */
+    @Test
+    public void fatalErrorAfterTerminationHookStillRecordsTheCrashOnce() {
+        CrashHandler crashHandler = mock(CrashHandler.class);
+        when(crashHandler.shouldStop(org.mockito.ArgumentMatchers.any(AeronException.class))).thenReturn(true);
+        AtomicInteger shutdownCalls = new AtomicInteger();
+        AeronClusterFailureCoordinator coordinator = new AeronClusterFailureCoordinator(
+            crashHandler,
+            Runnable::run,
+            new AtomicBoolean(false),
+            millis -> { },
+            shutdownCalls::incrementAndGet,
+            () -> () -> { }
+        );
+
+        coordinator.onAeronTermination("Clustered Service");
+        ErrorHandler handler = coordinator.decorate(throwable -> { });
+        handler.onError(new org.agrona.concurrent.AgentTerminationException(new AeronException("apply failed", FATAL)));
+        handler.onError(new AeronException("again", FATAL));
+
+        assertEquals(1, shutdownCalls.get());
+        verify(crashHandler).handleCrash(org.mockito.ArgumentMatchers.any(AeronException.class));
+    }
 }

@@ -316,11 +316,11 @@ public class MessageDispatcher {
             case SimpleMessageHeader.TEMPLATE_ID_SEGMENT_PERSISTED:
                 return handleSegmentPersisted(buffer, payloadOffset, payloadLength);
                 
-                case SimpleMessageHeader.TEMPLATE_ID_QUEUE_SEGMENT:
+            case SimpleMessageHeader.TEMPLATE_ID_QUEUE_SEGMENT:
             case SimpleMessageHeader.TEMPLATE_ID_ACK_SEGMENT_PERSISTED:
-                    // No longer sent: durability is decided from SEGMENT_PERSISTED; older logs may still hold them
-                    log.debug("Ignoring legacy durability entry templateId={}", header.templateId);
-                    return true;
+                // No longer sent: durability is decided from SEGMENT_PERSISTED; older logs may still hold them
+                log.debug("Ignoring legacy durability entry templateId={}", header.templateId);
+                return true;
 
             case SimpleMessageHeader.TEMPLATE_ID_START_TRANSACTION:
                 return handleStartTransaction(buffer, payloadOffset, payloadLength);

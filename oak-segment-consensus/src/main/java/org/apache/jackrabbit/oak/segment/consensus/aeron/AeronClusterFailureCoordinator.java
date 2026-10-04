@@ -36,6 +36,7 @@ final class AeronClusterFailureCoordinator {
     private final CrashHandler crashHandler;
     private final Executor executor;
     private final AtomicBoolean shutdownRequested;
+    private final AtomicBoolean crashRecorded = new AtomicBoolean();
     private final Sleeper sleeper;
     private final Runnable shutdownAction;
     private final Supplier<Runnable> shutdownCallbackSupplier;
@@ -119,7 +120,7 @@ final class AeronClusterFailureCoordinator {
         }
 
         AeronException ex = (AeronException) error;
-        if (!crashHandler.shouldStop(ex) || !requestShutdown()) {
+        if (!crashHandler.shouldStop(ex)) {
             return;
         }
 
@@ -129,8 +130,15 @@ final class AeronClusterFailureCoordinator {
         log.error("   Category: {}", ex.category());
         log.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
-        crashHandler.handleCrash(ex);
-        log.warn("📛 Crash state: {}", crashHandler.getState());
+        // Record the crash even when Aeron's termination hook already started the shutdown for this
+        // same failure (the hook runs before the agent's error handler), so crash-loop state is kept.
+        if (crashRecorded.compareAndSet(false, true)) {
+            crashHandler.handleCrash(ex);
+            log.warn("📛 Crash state: {}", crashHandler.getState());
+        }
+        if (!requestShutdown()) {
+            return;
+        }
 
         executor.execute(() -> {
             try {

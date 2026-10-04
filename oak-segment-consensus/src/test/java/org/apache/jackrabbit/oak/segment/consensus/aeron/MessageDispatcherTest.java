@@ -697,19 +697,8 @@ public class MessageDispatcherTest {
         });
         dispatcher.setDurabilityCallback(new MessageDispatcher.DurabilityCallback() {
             @Override
-            public void onQueueSegment(String proposalId, int totalMembers, int requiredAcks) {
-                throw termination;
-            }
-
-            @Override
             public void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success,
                                            String error) {
-                throw termination;
-            }
-
-            @Override
-            public void onAckSegmentPersisted(String proposalId, boolean success, String durableHead, String error,
-                                              int totalMembers, int requiredAcks) {
                 throw termination;
             }
         });
@@ -740,12 +729,8 @@ public class MessageDispatcherTest {
             {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_GC_VOTE),
                 "{\"proposalId\":\"gc\",\"validatorId\":1,\"approve\":true}"},
             {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_GC_EXECUTE), "{\"proposalId\":\"gc\",\"executorId\":1}"},
-            {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_QUEUE_SEGMENT),
-                "{\"proposalId\":\"p\",\"totalMembers\":3,\"requiredAcks\":2}"},
             {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_SEGMENT_PERSISTED),
                 "{\"proposalId\":\"p\",\"memberId\":1,\"success\":true}"},
-            {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_ACK_SEGMENT_PERSISTED),
-                "{\"proposalId\":\"p\",\"success\":true,\"totalMembers\":3,\"requiredAcks\":2}"},
             {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_START_TRANSACTION), "{\"transactionId\":\"t\"}"},
             {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_COMMIT_TRANSACTION), "{\"transactionId\":\"t\"}"},
             {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_ABORT_TRANSACTION), "{\"transactionId\":\"t\"}"},
