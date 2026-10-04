@@ -34,6 +34,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -108,6 +109,19 @@ public class ReplicatedDurabilityDecisionTest {
 
         assertEquals(Arrays.asList("0:p-lost-ack:DURABLE:h1"), decisions);
         verify(ingress, after(300L).never()).offer(any(MutableDirectBuffer.class), eq(0), anyInt());
+    }
+
+    @Test
+    public void theProposalQueueCanReadADecisionTheLogAlreadyMade() throws Exception {
+        AeronConsensusEngine engine = newEngine("lookup");
+        dispatch(engine, persisted("p-ok", 0, true, "h0", null));
+        dispatch(engine, persisted("p-ok", 1, true, "h1", null));
+        dispatch(engine, persisted("p-open", 0, true, "h0", null));
+
+        assertTrue(engine.durabilityDecision("p-ok").durable);
+        assertEquals("h0", engine.durabilityDecision("p-ok").durableHead);
+        assertNull(engine.durabilityDecision("p-open"));
+        assertNull(engine.durabilityDecision("p-unknown"));
     }
 
     @Test

@@ -27,6 +27,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Queue;
 
@@ -36,6 +37,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -91,6 +94,54 @@ public class ProposalQueueDurabilityRecoveryTest {
         assertEquals(ProposalState.PROCESSED, proposal.getState());
         assertEquals(DurabilityState.ACKED, proposal.getDurabilityState());
         assertEquals(1, proposal.getRetryCount());
+    }
+
+    @Test
+    public void aDecisionTheLogAlreadyMadeEndsRecoveryWithoutResending() throws Exception {
+        queueManager.setReplicatedDurability(id -> proposal.getProposalId().equals(id)
+            ? new ReplicatedDurability.Decision(true, "h-log", null)
+            : null);
+
+        sweep(System.currentTimeMillis() + HOUR_MS);
+
+        assertEquals(ProposalState.PROCESSED, proposal.getState());
+        assertEquals(DurabilityState.ACKED, proposal.getDurabilityState());
+        assertEquals("h-log", queueManager.getProposalStatus(proposal.getProposalId()).getDurableHead());
+        assertEquals(0, proposal.getRetryCount());
+    }
+
+    @Test
+    public void aFailureTheLogAlreadyDecidedFailsDurabilityWithItsError() throws Exception {
+        queueManager.setReplicatedDurability(id -> new ReplicatedDurability.Decision(false, null, "disk full"));
+
+        sweep(System.currentTimeMillis() + HOUR_MS);
+
+        assertProcessedWithFailedDurability("disk full");
+        assertEquals(0, proposal.getRetryCount());
+    }
+
+    @Test
+    public void aRestoredProposalTheLogAlreadyDecidedIsNotResent() throws Exception {
+        Path persistenceDir = Files.createTempDirectory("proposal-restore-decided");
+        new ProposalPersistenceStore(persistenceDir).save(List.of(proposal));
+        RaftAppendCallback restoredAppend = mock(RaftAppendCallback.class);
+        ProposalQueueManagerOptimized restored = new ProposalQueueManagerOptimized(
+            mock(EvmBridge.class), restoredAppend, new BackpressureManager(), mock(BeaconChainClient.class),
+            persistenceDir.toString());
+        restored.setReplicatedDurability(id -> new ReplicatedDurability.Decision(true, "h-log", null));
+        try {
+            restored.start();
+
+            QueuedProposal restoredProposal = restored.getProposal(proposal.getProposalId());
+            assertEquals(ProposalState.PROCESSED, restoredProposal.getState());
+            assertEquals(DurabilityState.ACKED, restoredProposal.getDurabilityState());
+            assertEquals(0, restoredProposal.getRetryCount());
+            Thread.sleep(300L);
+            verify(restoredAppend, never()).tryAppendProposalWithId(
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+        } finally {
+            restored.stop();
+        }
     }
 
     @Test

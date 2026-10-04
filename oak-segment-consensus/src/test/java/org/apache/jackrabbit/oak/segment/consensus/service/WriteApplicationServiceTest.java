@@ -46,6 +46,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
 import static org.mockito.ArgumentMatchers.any;
 
 public class WriteApplicationServiceTest {
@@ -358,8 +359,9 @@ public class WriteApplicationServiceTest {
         assertEquals(1L, longProperty(walletNode, "contentCount"));
         assertEquals(1L, longProperty(walletNode, "totalWrites"));
         assertEquals("proposal-replay", stringProperty(contentNode, "oak:proposalId"));
-        assertEquals("a duplicate replay persisted nothing new, so it must not ack again", 1, durableCount.get());
-        verify(flushService).onChangeApplied(any());
+        assertEquals("a duplicate still reports durability; the engine skips reports the log already holds",
+            2, durableCount.get());
+        verify(flushService, times(2)).onChangeApplied(any());
     }
 
     @Test

@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.InOrder;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -47,6 +48,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -99,7 +102,9 @@ public class ConsensusServicesInitializerTest {
 
         verify(evmBridge).start();
         verify(beaconClient, never()).startBackgroundPolling();
-        verify(proposalQueueManager).start();
+        InOrder durabilityBeforeRestore = inOrder(proposalQueueManager);
+        durabilityBeforeRestore.verify(proposalQueueManager).setReplicatedDurability(any());
+        durabilityBeforeRestore.verify(proposalQueueManager).start();
         verify(testContext.httpServer).registerSelfValidator(testContext.walletAddress);
 
         assertSame(proposalQueueManager, testContext.serverContext.proposalQueueManager);

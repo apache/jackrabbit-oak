@@ -93,6 +93,13 @@ final class DurabilityTally {
     }
 
     /**
+     * @return the decision for the proposal, or {@code null} if it is undecided or no longer tracked
+     */
+    synchronized Outcome decision(String proposalId) {
+        return decided.get(proposalId);
+    }
+
+    /**
      * Whether the log already holds what {@code memberId} would report for the proposal.
      */
     synchronized boolean hasReported(String proposalId, int memberId) {

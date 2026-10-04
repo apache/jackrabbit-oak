@@ -29,6 +29,7 @@ import org.agrona.concurrent.IdleStrategy;
 import org.apache.jackrabbit.oak.segment.consensus.config.BlockchainConfig;
 import org.apache.jackrabbit.oak.segment.consensus.eth.BeaconChainClient;
 import org.apache.jackrabbit.oak.segment.consensus.leader.ValidatorRole;
+import org.apache.jackrabbit.oak.segment.consensus.queue.ReplicatedDurability;
 import org.apache.jackrabbit.oak.segment.consensus.service.AppliedLogPosition;
 import org.apache.jackrabbit.oak.segment.consensus.service.MutationAuditMetadata;
 import org.apache.jackrabbit.oak.segment.consensus.util.SegmentReplicator;
@@ -951,6 +952,16 @@ public class AeronConsensusEngine implements ClusteredService {
             ingressControlPayloadBuilder.buildAbortTransaction(transactionId, correlationId, reason, getIngressTerm()),
             "abort-transaction"
         );
+    }
+
+    /**
+     * The durability decision the log has made for a proposal, while the tally still tracks it. Thread-safe.
+     */
+    public ReplicatedDurability.Decision durabilityDecision(String proposalId) {
+        DurabilityTally.Outcome outcome = durabilityTally.decision(proposalId);
+        return outcome == null
+            ? null
+            : new ReplicatedDurability.Decision(outcome.success, outcome.durableHead, outcome.error);
     }
 
     public boolean sendSegmentPersisted(String proposalId, String durableHead, boolean success, String error) {

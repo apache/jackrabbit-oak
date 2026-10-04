@@ -365,11 +365,13 @@ public class WriteApplicationService {
     }
 
     /**
-     * The proposal was persisted before and its durability report is already in the log, so a replay
-     * reports nothing again.
+     * The proposal is already in Oak, so nothing is mutated. Its durability is still reported after the next flush:
+     * the engine skips a report the log already holds, and once the durability tally no longer tracks the proposal
+     * a re-sent duplicate is the only way it is decided again.
      */
     @NotNull
     private String acknowledgeDuplicateReplay(@Nullable String proposalId) {
+        flushService.onChangeApplied(buildDurabilityCallback(proposalId));
         String currentHead = fileStore.getHead().getRecordId().toString10();
         if (headUpdateCallback != null) {
             headUpdateCallback.updateHead(currentHead);
