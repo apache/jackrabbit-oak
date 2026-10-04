@@ -311,4 +311,45 @@ public class EvmBridgeTest {
         assertEquals("Bytes32 proposal ids should also work as mock tx hashes", proposalId, proof.getTransactionHash());
         assertEquals("Registered wallet should flow into the mock proof", walletAddress, proof.getFromAddress());
     }
+
+    @Test
+    public void testMockModeSettlementLookupForUnknownProposalIsMissNotSecurityViolation() {
+        bridge.stop();
+        System.setProperty("oak.blockchain.mode", "mock");
+        BlockchainConfig.reset();
+        bridge = new SimpleEvmBridge("mock", "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0");
+        bridge.start();
+
+        String unknownProposalId = "0x4cc359f9f42dbddc32d50823371578a70f59502e75f7aa41313bfcdb668affad";
+
+        assertNull("Read lookup of an unregistered proposal should be a miss",
+                bridge.getSettlementDetailsByProposalId(unknownProposalId));
+        assertNull("Read lookup of an unknown transaction hash should be a miss",
+                bridge.getSettlementDetailsByTransactionHash(unknownProposalId));
+
+        try {
+            bridge.verifyPayment(unknownProposalId);
+            fail("verifyPayment must still enforce registerProposalWallet() for unregistered proposals");
+        } catch (IllegalStateException expected) {
+            assertTrue(expected.getMessage().contains("SECURITY VIOLATION"));
+        }
+    }
+
+    @Test
+    public void testMockModeSettlementLookupForRegisteredProposalStillResolves() {
+        bridge.stop();
+        System.setProperty("oak.blockchain.mode", "mock");
+        BlockchainConfig.reset();
+        bridge = new SimpleEvmBridge("mock", "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0");
+        bridge.start();
+
+        String proposalId = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+        String walletAddress = "0x1234567890123456789012345678901234567890";
+        bridge.registerProposalWallet(proposalId, walletAddress);
+
+        SettlementDetails details = bridge.getSettlementDetailsByProposalId(proposalId);
+        assertNotNull("Registered proposal should still resolve settlement details in mock mode", details);
+        assertEquals(proposalId, details.getProposalId());
+        assertEquals(walletAddress, details.getFromAddress());
+    }
 }

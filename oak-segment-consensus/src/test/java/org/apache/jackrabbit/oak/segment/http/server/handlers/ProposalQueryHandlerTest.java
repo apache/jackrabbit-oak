@@ -16,9 +16,11 @@
  */
 package org.apache.jackrabbit.oak.segment.http.server.handlers;
 
+import org.apache.jackrabbit.oak.segment.consensus.config.BlockchainConfig;
 import org.apache.jackrabbit.oak.segment.consensus.evm.EvmBridge;
 import org.apache.jackrabbit.oak.segment.consensus.evm.PaymentProof;
 import org.apache.jackrabbit.oak.segment.consensus.evm.SettlementDetails;
+import org.apache.jackrabbit.oak.segment.consensus.evm.impl.SimpleEvmBridge;
 import org.apache.jackrabbit.oak.segment.consensus.queue.DurabilityState;
 import org.apache.jackrabbit.oak.segment.consensus.queue.ProposalQueueManagerOptimized;
 import org.apache.jackrabbit.oak.segment.consensus.queue.ProposalState;
@@ -160,6 +162,33 @@ public class ProposalQueryHandlerTest {
 
         verify(response).setStatus(HttpServletResponse.SC_NOT_FOUND);
         assertTrue(body.toString().contains("\"error\":\"Settlement details not found\""));
+    }
+
+    @Test
+    public void testGetSettlementByProposalIdReturnsNotFoundForUnregisteredProposalInMockMode() throws Exception {
+        String previousMode = System.getProperty("oak.blockchain.mode");
+        System.setProperty("oak.blockchain.mode", "mock");
+        BlockchainConfig.reset();
+        try {
+            SimpleEvmBridge mockBridge = new SimpleEvmBridge("mock", "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0");
+            ProposalQueryHandler mockBridgeHandler = newHandler(queueManager, mockBridge);
+            when(request.getRequestURI()).thenReturn(
+                "/v1/settlement/proposals/0x4cc359f9f42dbddc32d50823371578a70f59502e75f7aa41313bfcdb668affad");
+
+            mockBridgeHandler.handleGetSettlementByProposalId(request, response);
+
+            verify(response).setStatus(HttpServletResponse.SC_NOT_FOUND);
+            assertTrue(body.toString().contains("\"code\":\"not_found\""));
+            assertTrue(body.toString().contains("\"error\":\"Settlement details not found\""));
+            assertTrue(!body.toString().contains("SECURITY VIOLATION"));
+        } finally {
+            if (previousMode == null) {
+                System.clearProperty("oak.blockchain.mode");
+            } else {
+                System.setProperty("oak.blockchain.mode", previousMode);
+            }
+            BlockchainConfig.reset();
+        }
     }
 
     @Test

@@ -147,7 +147,13 @@ public class SimpleEvmBridge implements EvmBridge {
     @Override
     @Nullable
     public SettlementDetails getSettlementDetailsByProposalId(@NotNull String proposalId) {
-        PaymentProof proof = verifyPayment(proposalId);
+        // Read path: a proposal this bridge never registered (or no longer retains)
+        // is a lookup miss, not a security violation. verifyPayment() keeps its
+        // fail-hard registerProposalWallet() enforcement for the queue/settlement path.
+        PaymentProof proof = payments.get(proposalId);
+        if (proof == null && proposalToWalletMapping.containsKey(proposalId)) {
+            proof = verifyPayment(proposalId);
+        }
         return proof != null ? SettlementDetails.fromProof(getNetworkName(), proof) : null;
     }
 
