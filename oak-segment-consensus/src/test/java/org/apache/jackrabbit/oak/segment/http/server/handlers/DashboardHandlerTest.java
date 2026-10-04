@@ -34,6 +34,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -159,6 +160,49 @@ public class DashboardHandlerTest {
     }
 
     @Test
+    public void testHandleDashboardRendersAeronTermDegradedPostureAndMembers() throws Exception {
+        Map<String, Object> nativeState = new HashMap<>();
+        nativeState.put("role", "FOLLOWER");
+        nativeState.put("memberId", 0);
+        nativeState.put("memberCount", 3);
+        nativeState.put("term", 5);
+        nativeState.put("currentLeader", "http://127.0.0.1:8092");
+        nativeState.put("members", Arrays.asList(
+            member(2, "FOLLOWER", "http://127.0.0.1:8094"),
+            member(0, "FOLLOWER", "http://localhost:8090"),
+            member(1, "LEADER", "http://127.0.0.1:8092")));
+
+        String html = renderDashboard(new DashboardHandler(aeronContext(nativeState, 2)));
+
+        assertTrue(html.contains("<div class=\"k\">Term</div><div class=\"v\">5</div>"));
+        assertTrue(html.contains("<div class=\"k\">Reachable</div><div class=\"v\">2/3</div>"));
+        assertTrue(html.contains("posture-warn"));
+        assertTrue(html.contains("Quorum held, 1 unreachable"));
+        assertTrue(html.contains("<li class=\"member is-self\"><a class=\"member-name\" href=\"http://localhost:8090/\""));
+        assertTrue(html.contains("<li class=\"member is-leader\"><a class=\"member-name\" href=\"http://127.0.0.1:8092/\""));
+        assertTrue(html.contains("<span class=\"member-self\">this node</span>"));
+        assertTrue(html.indexOf("Node 0</a>") < html.indexOf("Node 1</a>"));
+        assertTrue(html.indexOf("Node 1</a>") < html.indexOf("Node 2</a>"));
+    }
+
+    @Test
+    public void testHandleDashboardRendersNoQuorumAndDoesNotLinkNonHttpMembers() throws Exception {
+        Map<String, Object> nativeState = new HashMap<>();
+        nativeState.put("role", "FOLLOWER");
+        nativeState.put("memberId", 0);
+        nativeState.put("memberCount", 3);
+        nativeState.put("members", Arrays.asList(member(0, "FOLLOWER", "javascript:alert(1)")));
+
+        String html = renderDashboard(new DashboardHandler(aeronContext(nativeState, 1)));
+
+        assertTrue(html.contains("<div class=\"k\">Quorum</div><div class=\"v\">NO (2)</div>"));
+        assertTrue(html.contains("posture-bad"));
+        assertTrue(html.contains("No quorum"));
+        assertTrue(html.contains("<span class=\"member-name\">Node 0</span>"));
+        assertFalse(html.contains("javascript:alert"));
+    }
+
+    @Test
     public void testHandleDashboardDerivesLeaderFromCurrentLeaderUrlWhenIdsMissing() throws Exception {
         StringWriter body = new StringWriter();
         HttpServletResponse response = mock(HttpServletResponse.class);
@@ -233,6 +277,7 @@ public class DashboardHandlerTest {
         assertTrue(html.contains("<div class=\"k\">Leader</div><div class=\"v\">UNKNOWN</div>"));
         assertTrue(html.contains("<div class=\"k\">Reachable</div><div class=\"v\">UNKNOWN</div>"));
         assertTrue(html.contains("<div class=\"k\">Quorum</div><div class=\"v\">UNKNOWN</div>"));
+        assertTrue(html.contains("posture-unknown"));
     }
 
     @Test
@@ -361,6 +406,25 @@ public class DashboardHandlerTest {
         assertTrue(html.contains("href=\"/api-browser\""));
         assertTrue(html.contains(">" + activeLabel + "</a>"));
         assertTrue(html.contains("href=\"" + activeHref + "\" class=\"nav-link active\" aria-current=\"page\">" + activeLabel + "</a>"));
+    }
+
+    private static ServerContext aeronContext(Map<String, Object> nativeState, int reachable) {
+        ServerContext context = newContext();
+        AeronConsensusEngine engine = mock(AeronConsensusEngine.class);
+        when(engine.getNativeClusterState()).thenReturn(nativeState);
+        when(engine.getReachableValidatorCount()).thenReturn(reachable);
+        when(engine.getLastHeartbeatTime()).thenReturn(System.currentTimeMillis());
+        context.aeronConsensusEngine = engine;
+        return context;
+    }
+
+    private static Map<String, Object> member(int memberId, String role, String url) {
+        Map<String, Object> member = new HashMap<>();
+        member.put("memberId", memberId);
+        member.put("role", role);
+        member.put("url", url);
+        member.put("status", "ACTIVE");
+        return member;
     }
 
     private static ServerContext newContext() {

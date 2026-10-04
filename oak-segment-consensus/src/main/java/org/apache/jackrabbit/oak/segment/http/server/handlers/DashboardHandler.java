@@ -83,8 +83,9 @@ public class DashboardHandler {
         final String nodeId = nodeIdInt >= 0 ? String.valueOf(nodeIdInt) : "UNKNOWN";
         final int leaderNodeInt = resolveLeaderNodeId(clusterState, role, nodeIdInt);
         final String leaderNode = leaderNodeInt >= 0 ? String.valueOf(leaderNodeInt) : "UNKNOWN";
-        final long termValue = asLong(clusterState.get("leadershipTerm"),
-            asLong(clusterState.get("leadershipTermId"), 0L));
+        final long termValue = asLong(clusterState.get("term"),
+            asLong(clusterState.get("leadershipTerm"),
+                asLong(clusterState.get("leadershipTermId"), 0L)));
         final String term = String.valueOf(termValue);
         final int membersValue = asInt(clusterState.get("memberCount"),
             asInt(clusterState.get("clusterMemberCount"), 0));
@@ -104,10 +105,14 @@ public class DashboardHandler {
         final String quorum = quorumKnown
             ? (hasQuorum ? "YES" : "NO") + " (" + quorumRequired + ")"
             : "UNKNOWN";
+        final String[] posture = resolvePosture(quorumKnown, hasQuorum, reachableValue, membersValue);
         final String[] modeTokens = resolveModeTemplateTokens();
         final String modeClass = modeTokens[0];
         final String modeLabel = modeTokens[1];
         Map<String, String> tokens = buildSharedTemplateTokens("dashboard", modeClass, modeLabel);
+        tokens.put("{{POSTURE_TONE}}", posture[0]);
+        tokens.put("{{POSTURE_LABEL}}", posture[1]);
+        tokens.put("{{MEMBER_LIST}}", buildMemberList(clusterState.get("members"), nodeIdInt));
         tokens.put("{{VERSION}}", FormatUtils.escapeHtml(version));
         tokens.put("{{ROLE}}", FormatUtils.escapeHtml(role));
         tokens.put("{{NODE_ID}}", FormatUtils.escapeHtml(nodeId));
@@ -446,6 +451,59 @@ public class DashboardHandler {
             .replace("{{NAV_API_BROWSER_CURRENT}}", apiBrowserActive ? "aria-current=\"page\"" : "")
             .replace("{{MODE_CLASS}}", modeClass)
             .replace("{{MODE_LABEL}}", modeLabel);
+    }
+
+    private String[] resolvePosture(boolean quorumKnown, boolean hasQuorum, int reachable, int members) {
+        if (!quorumKnown) {
+            return new String[] { "unknown", "Posture unknown" };
+        }
+        if (!hasQuorum) {
+            return new String[] { "bad", "No quorum" };
+        }
+        if (members > 0 && reachable < members) {
+            return new String[] { "warn", "Quorum held, " + (members - reachable) + " unreachable" };
+        }
+        return new String[] { "ok", "Quorum healthy" };
+    }
+
+    /**
+     * Cluster members as list items, ordered by member id. Roles come from the
+     * cluster-state view; reachability is reported in aggregate, not per member.
+     */
+    private String buildMemberList(Object membersValue, int selfMemberId) {
+        if (!(membersValue instanceof List)) {
+            return "";
+        }
+        List<Map<String, Object>> members = new ArrayList<>();
+        for (Object member : (List<?>) membersValue) {
+            Map<String, Object> entry = asMap(member);
+            if (!entry.isEmpty()) {
+                members.add(entry);
+            }
+        }
+        members.sort((a, b) -> Integer.compare(asInt(a.get("memberId"), Integer.MAX_VALUE), asInt(b.get("memberId"), Integer.MAX_VALUE)));
+        StringBuilder html = new StringBuilder();
+        for (Map<String, Object> member : members) {
+            int memberId = asInt(member.get("memberId"), -1);
+            String role = safeString(member.get("role"), "UNKNOWN").toUpperCase();
+            String url = safeString(member.get("url"), "");
+            boolean leader = "LEADER".equals(role);
+            boolean self = memberId >= 0 && memberId == selfMemberId;
+            String label = "Node " + (memberId >= 0 ? memberId : "?");
+            html.append("<li class=\"member").append(leader ? " is-leader" : "").append(self ? " is-self" : "").append("\">");
+            if (url.startsWith("http://") || url.startsWith("https://")) {
+                html.append("<a class=\"member-name\" href=\"").append(FormatUtils.escapeHtml(url.endsWith("/") ? url : url + "/")).append("\" title=\"")
+                    .append(FormatUtils.escapeHtml(url)).append("\">").append(label).append("</a>");
+            } else {
+                html.append("<span class=\"member-name\">").append(label).append("</span>");
+            }
+            html.append("<span class=\"member-role\">").append(FormatUtils.escapeHtml(role)).append("</span>");
+            if (self) {
+                html.append("<span class=\"member-self\">this node</span>");
+            }
+            html.append("</li>");
+        }
+        return html.toString();
     }
 
     private String buildExternalDashboardLink(String externalDashboardUrl) {
