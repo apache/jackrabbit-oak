@@ -733,8 +733,9 @@ public class AeronConsensusEngine implements ClusteredService {
     }
 
     /**
-     * Reads the snapshot metadata. Store files are never touched: the Oak store persists itself, and the log is
-     * replayed only after the snapshot position, so the store must already hold everything up to the snapshot.
+     * Reads the snapshot metadata and restores the durability tally. Store files are never touched: the Oak store
+     * persists itself, and the log is replayed only after the snapshot position, so the store must already hold
+     * everything up to the snapshot.
      */
     private void restoreSnapshotOnStart(Image snapshotImage) {
         SnapshotService.SnapshotState snapshot;
@@ -752,6 +753,7 @@ public class AeronConsensusEngine implements ClusteredService {
                 store, snapshot.applied));
         }
         currentEthereumEpoch = snapshot.epoch;
+        durabilityTally.restore(snapshot.durability);
         // Log replay resumes after the snapshot position, past the term event in force, so restore it here.
         if (snapshot.leadershipTermId >= 0) {
             currentTerm = (int) snapshot.leadershipTermId;
@@ -788,8 +790,9 @@ public class AeronConsensusEngine implements ClusteredService {
     
     /**
      * Invoked on every member at the same log position when the leader's consensus module appends a SNAPSHOT
-     * action. Writes only the applied watermark and term, after Oak is flushed so the persisted store is at least
-     * that far. Any failure propagates: Aeron then acknowledges the snapshot as failed and does not record it.
+     * action. Writes the applied watermark, the term and the durability tally, after Oak is flushed so the
+     * persisted store is at least that far. Any failure propagates: Aeron then acknowledges the snapshot as failed
+     * and does not record it.
      */
     @Override
     public void onTakeSnapshot(io.aeron.ExclusivePublication snapshotPublication) {
@@ -801,7 +804,7 @@ public class AeronConsensusEngine implements ClusteredService {
         }
         snapshotService.createSnapshot(snapshotPublication, idleStrategy(), new SnapshotService.SnapshotState(
             applied, leadershipTermKnown ? currentTerm : -1L, currentEthereumEpoch,
-            fileStore.getHead().getRecordId().toString10()));
+            fileStore.getHead().getRecordId().toString10(), durabilityTally.snapshotEntries()));
         snapshotTrigger.onSnapshotTaken(System.currentTimeMillis());
     }
     

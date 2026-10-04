@@ -661,6 +661,50 @@ public class AeronConsensusEngineTest {
     }
 
     @Test
+    public void aMemberRestoredFromASnapshotDecidesAProposalWhoseReportsStraddleIt() throws Exception {
+        List<String> threeMembers = List.of("http://peer-1:8080", "http://peer-2:8080");
+        SnapshotService snapshotService = mock(SnapshotService.class);
+        AeronConsensusEngine source = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), snapshotService,
+            new AeronBackgroundCoordinator(), new MemoryNodeStore(), threeMembers);
+        IdleStrategy idleStrategy = mock(IdleStrategy.class);
+        setField(source, "idleStrategy", idleStrategy);
+        segmentPersisted(source, "p-straddling", 0, 1_000L);
+        segmentPersisted(source, "p-decided", 0, 1_000L);
+        segmentPersisted(source, "p-decided", 1, 1_000L);
+        io.aeron.ExclusivePublication publication = mock(io.aeron.ExclusivePublication.class);
+
+        source.onTakeSnapshot(publication);
+
+        ArgumentCaptor<SnapshotService.SnapshotState> state = ArgumentCaptor.forClass(SnapshotService.SnapshotState.class);
+        verify(snapshotService).createSnapshot(eq(publication), eq(idleStrategy), state.capture());
+        Image snapshotImage = mock(Image.class);
+        SnapshotService restoreService = mock(SnapshotService.class);
+        when(restoreService.restoreSnapshot(snapshotImage, idleStrategy)).thenReturn(state.getValue());
+        AeronConsensusEngine restored = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), restoreService,
+            new AeronBackgroundCoordinator(new RecordingTaskScheduler(), 2000L, 3000L, 5000L), new MemoryNodeStore(),
+            threeMembers);
+        restored.onStart(snapshotCluster(Cluster.Role.FOLLOWER, idleStrategy), snapshotImage);
+        AeronConsensusEngine.DurabilityStatusCallback decisions =
+            mock(AeronConsensusEngine.DurabilityStatusCallback.class);
+        restored.setDurabilityStatusCallback(decisions);
+
+        segmentPersisted(restored, "p-straddling", 1, 2_000L);
+        segmentPersisted(restored, "p-decided", 2, 2_000L);
+        segmentPersisted(restored, "p-decided", 1, 2_000L);
+
+        verify(decisions).onDurable("p-straddling", "head");
+        verify(decisions, never()).onDurable(eq("p-decided"), any());
+    }
+
+    private static void segmentPersisted(AeronConsensusEngine engine, String proposalId, int memberId, long clusterTime)
+        throws Exception {
+        AeronEncodedMessage entry =
+            new AeronIngressControlPayloadBuilder().buildSegmentPersisted(proposalId, memberId, true, "head", null);
+        MessageDispatcher dispatcher = (MessageDispatcher) getField(engine, "messageDispatcher");
+        assertTrue(dispatcher.dispatch(clusterTime, entry.buffer, 0, entry.totalLength));
+    }
+
+    @Test
     public void ingressOmitsTermUntilTheFirstTermEventThenStampsTheLogTerm() throws Exception {
         AeronConsensusEngine engine = createEngine();
         io.aeron.cluster.client.AeronCluster client = installHealthyClient(engine, Cluster.Role.LEADER);

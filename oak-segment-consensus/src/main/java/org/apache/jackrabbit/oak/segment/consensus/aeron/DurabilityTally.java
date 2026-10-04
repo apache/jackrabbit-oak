@@ -16,9 +16,11 @@
  */
 package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.IntSupplier;
@@ -29,7 +31,8 @@ import java.util.function.ToLongFunction;
  * same order, so every member decides a proposal (durable on a majority, or no longer able to be) at the
  * same log entry, including when the whole log is replayed into a fresh JVM.
  * A proposal is forgotten {@link #RETENTION_MS} of log time after its first report or its decision, so forgetting
- * is decided by the log as well.
+ * is decided by the log as well. The tally is part of the Aeron snapshot, so a member restored from a snapshot
+ * continues from the same state as the members that applied the log before it.
  * Mutated only on the clustered service thread; {@link #hasReported} may be read from other threads.
  */
 final class DurabilityTally {
@@ -98,6 +101,65 @@ final class DurabilityTally {
         }
         Votes votes = pending.get(proposalId);
         return votes != null && votes.acked.contains(memberId);
+    }
+
+    /**
+     * The tracked proposals as JSON values, undecided then decided, each in log order, for the Aeron snapshot.
+     */
+    synchronized List<Map<String, Object>> snapshotEntries() {
+        List<Map<String, Object>> entries = new ArrayList<>(pending.size() + decided.size());
+        pending.forEach((proposalId, votes) -> {
+            Map<String, Object> entry = entry(proposalId, votes.firstReportAt, votes.durableHead, votes.error);
+            entry.put("acked", new ArrayList<>(votes.acked));
+            entry.put("failed", new ArrayList<>(votes.failed));
+            entries.add(entry);
+        });
+        decided.forEach((proposalId, outcome) -> {
+            Map<String, Object> entry = entry(proposalId, outcome.decidedAt, outcome.durableHead, outcome.error);
+            entry.put("success", outcome.success);
+            entries.add(entry);
+        });
+        return entries;
+    }
+
+    /**
+     * Replaces the tracked proposals with those of {@link #snapshotEntries()}.
+     */
+    synchronized void restore(List<Map<String, Object>> entries) {
+        pending.clear();
+        decided.clear();
+        for (Map<String, Object> entry : entries) {
+            String proposalId = (String) entry.get("proposalId");
+            long since = ((Number) entry.get("since")).longValue();
+            String durableHead = (String) entry.get("durableHead");
+            String error = (String) entry.get("error");
+            Object success = entry.get("success");
+            if (success instanceof Boolean) {
+                decided.put(proposalId, new Outcome((Boolean) success, durableHead, error, since));
+                continue;
+            }
+            Votes votes = new Votes(since);
+            members(entry.get("acked"), votes.acked);
+            members(entry.get("failed"), votes.failed);
+            votes.durableHead = durableHead;
+            votes.error = error;
+            pending.put(proposalId, votes);
+        }
+    }
+
+    private static Map<String, Object> entry(String proposalId, long since, String durableHead, String error) {
+        Map<String, Object> entry = new LinkedHashMap<>();
+        entry.put("proposalId", proposalId);
+        entry.put("since", since);
+        entry.put("durableHead", durableHead);
+        entry.put("error", error);
+        return entry;
+    }
+
+    private static void members(Object json, Set<Integer> into) {
+        for (Object member : (List<?>) json) {
+            into.add(((Number) member).intValue());
+        }
     }
 
     /** Entries are inserted in log order, so the eldest come first. */

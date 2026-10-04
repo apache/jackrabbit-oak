@@ -18,7 +18,9 @@ package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.jackrabbit.oak.segment.http.server.util.JsonParser;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.segment.consensus.aeron.DurabilityTally.RETENTION_MS;
@@ -78,6 +80,52 @@ public class DurabilityTallyTest {
         List<String> first = apply(times, ids, members);
         assertEquals(List.of("3:q", "4:p"), first);
         assertEquals(first, apply(times, ids, members));
+    }
+
+    @Test
+    public void aTallyRestoredFromItsSnapshotEntriesContinuesExactlyLikeTheOriginal() {
+        DurabilityTally original = new DurabilityTally(() -> 3);
+        original.record("old", 0, true, "h-old", null, 0L);
+        original.record("straddling", 0, true, "h-s", null, 10L);
+        original.record("failing", 0, false, null, "disk full", 20L);
+        original.record("decided", 1, true, "h-d", null, 30L);
+        original.record("decided", 2, true, "h-d2", null, 30L);
+
+        List<Map<String, Object>> entries = new ArrayList<>();
+        for (Map<String, Object> entry : original.snapshotEntries()) {
+            entries.add(JsonParser.parseObject(JsonParser.toJson(entry)));
+        }
+        DurabilityTally restored = new DurabilityTally(() -> 3);
+        restored.record("lost-on-restore", 0, true, "h", null, 5L);
+        restored.restore(entries);
+
+        assertFalse(restored.hasReported("lost-on-restore", 0));
+        long[] times = {40L, 41L, 42L, RETENTION_MS + 15L, RETENTION_MS + 16L};
+        String[] ids = {"straddling", "failing", "decided", "old", "straddling"};
+        int[] members = {1, 1, 0, 1, 2};
+        boolean[] success = {true, false, true, true, true};
+        List<String> expected = continueWith(original, times, ids, members, success);
+        assertEquals(List.of("0:straddling:DURABLE:h-s", "1:failing:FAILED:disk full"), expected);
+        assertEquals(expected, continueWith(restored, times, ids, members, success));
+        for (String id : new String[] {"old", "straddling", "failing", "decided"}) {
+            for (int member = 0; member < 3; member++) {
+                assertEquals(id + "/" + member, original.hasReported(id, member), restored.hasReported(id, member));
+            }
+        }
+    }
+
+    private static List<String> continueWith(DurabilityTally tally, long[] times, String[] ids, int[] members,
+                                             boolean[] success) {
+        List<String> decisions = new ArrayList<>();
+        for (int i = 0; i < times.length; i++) {
+            DurabilityTally.Outcome outcome = tally.record(ids[i], members[i], success[i],
+                success[i] ? "h-" + i : null, success[i] ? null : "io", times[i]);
+            if (outcome != null) {
+                decisions.add(i + ":" + ids[i] + (outcome.success ? ":DURABLE:" + outcome.durableHead
+                    : ":FAILED:" + outcome.error));
+            }
+        }
+        return decisions;
     }
 
     private static List<String> apply(long[] times, String[] ids, int[] members) {

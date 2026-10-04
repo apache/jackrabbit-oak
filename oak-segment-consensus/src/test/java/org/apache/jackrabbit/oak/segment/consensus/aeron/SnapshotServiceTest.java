@@ -30,6 +30,11 @@ import org.apache.jackrabbit.oak.segment.consensus.service.AppliedLogPosition;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -43,7 +48,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * The service snapshot carries only the applied-log watermark, the term and diagnostics; never store files.
+ * The service snapshot carries the applied-log watermark, the term, diagnostics and the durability tally; never
+ * store files.
  */
 public class SnapshotServiceTest {
 
@@ -69,7 +75,34 @@ public class SnapshotServiceTest {
         assertEquals(4L, read.leadershipTermId);
         assertEquals(17, read.epoch);
         assertEquals("head-1", read.head);
+        assertTrue(read.durability.isEmpty());
         verify(publication, times(1)).offer(any(DirectBuffer.class), anyInt(), anyInt());
+    }
+
+    @Test
+    public void durabilityEntriesRoundTripInOrderAsOneFramePerEntry() {
+        List<Map<String, Object>> entries = Arrays.asList(
+            entry("p-pending", "acked", Arrays.asList(0L), "failed", Arrays.asList(2L), "error", "disk \"full\""),
+            entry("p-decided", "success", true, "durableHead", "head-7"));
+        SnapshotService.SnapshotState written =
+            new SnapshotService.SnapshotState(new AppliedLogPosition(4096L, 0, 3L), 3L, 1, "head-1", entries);
+        ExclusivePublication publication = mock(ExclusivePublication.class);
+        List<byte[]> offered = new ArrayList<>();
+        when(publication.offer(any(DirectBuffer.class), anyInt(), anyInt())).thenAnswer(invocation -> {
+            DirectBuffer buffer = invocation.getArgument(0);
+            byte[] frame = new byte[(int) invocation.getArgument(2)];
+            buffer.getBytes((int) invocation.getArgument(1), frame);
+            offered.add(frame);
+            return 128L;
+        });
+
+        service.createSnapshot(publication, mock(IdleStrategy.class), written);
+        SnapshotService.SnapshotState read =
+            service.restoreSnapshot(imageOf(offered.toArray(new byte[0][])), mock(IdleStrategy.class));
+
+        assertEquals(3, offered.size());
+        assertEquals(written.applied, read.applied);
+        assertEquals(entries, read.durability);
     }
 
     @Test
@@ -118,7 +151,7 @@ public class SnapshotServiceTest {
             assertTrue(e.getMessage(), e.getMessage().contains("unsupported"));
         }
         try {
-            service.restoreSnapshot(imageOf(null), mock(IdleStrategy.class));
+            service.restoreSnapshot(imageOf(), mock(IdleStrategy.class));
             fail("Expected an empty snapshot to be rejected");
         } catch (ClusterException e) {
             assertTrue(e.getMessage(), e.getMessage().contains("no"));
@@ -129,6 +162,18 @@ public class SnapshotServiceTest {
         return new SnapshotService.SnapshotState(new AppliedLogPosition(64L, 0, 0L), 0L, -1, "head");
     }
 
+    private static Map<String, Object> entry(String proposalId, Object... fields) {
+        Map<String, Object> entry = new LinkedHashMap<>();
+        entry.put("proposalId", proposalId);
+        entry.put("since", 1_000L);
+        entry.put("durableHead", null);
+        entry.put("error", null);
+        for (int i = 0; i < fields.length; i += 2) {
+            entry.put((String) fields[i], fields[i + 1]);
+        }
+        return entry;
+    }
+
     private static byte[] frame(String json) {
         byte[] payload = json.getBytes(StandardCharsets.UTF_8);
         UnsafeBuffer buffer = new UnsafeBuffer(new byte[SimpleMessageHeader.ENCODED_LENGTH + payload.length]);
@@ -137,17 +182,17 @@ public class SnapshotServiceTest {
         return buffer.byteArray();
     }
 
-    /** An image that delivers {@code frame} (if any) as one unfragmented message, then ends. */
-    private static Image imageOf(byte[] frame) {
+    /** An image that delivers each frame as one unfragmented message per poll, then ends. */
+    private static Image imageOf(byte[]... frames) {
         Image image = mock(Image.class);
-        boolean[] delivered = {frame == null};
-        when(image.isEndOfStream()).thenAnswer(invocation -> delivered[0]);
+        int[] delivered = {0};
+        when(image.isEndOfStream()).thenAnswer(invocation -> delivered[0] == frames.length);
         when(image.poll(any(), anyInt())).thenAnswer(invocation -> {
             FragmentAssembler assembler = invocation.getArgument(0);
             Header header = mock(Header.class);
             when(header.flags()).thenReturn((byte) 0xC0);
+            byte[] frame = frames[delivered[0]++];
             assembler.onFragment(new UnsafeBuffer(frame), 0, frame.length, header);
-            delivered[0] = true;
             return 1;
         });
         return image;

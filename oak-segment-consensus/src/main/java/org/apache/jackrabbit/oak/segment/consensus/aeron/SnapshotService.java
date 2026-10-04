@@ -30,14 +30,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
  * Writes and reads the clustered service's Aeron snapshot.
  *
- * <p>The snapshot holds only metadata: the Oak applied-log watermark, the leadership term and the Ethereum
- * epoch in force, plus the Oak head record id for diagnostics. Oak content is never streamed: the store
+ * <p>The snapshot holds the Oak applied-log watermark, the leadership term and the Ethereum epoch in force, the
+ * Oak head record id for diagnostics, then one frame per proposal tracked by the durability tally. Snapshots
+ * without durability frames restore with an empty tally. Oak content is never streamed: the store
  * persists itself and records the watermark with every replicated merge, so on restart the store only has to
  * be at least as far as the snapshot. Each member snapshots its own store at the same log position.
  */
@@ -53,40 +57,56 @@ public class SnapshotService {
         public final int epoch;
         /** Oak head record id when the snapshot was taken; diagnostics only, never compared. */
         public final String head;
+        /** Durability tally entries, as written by {@code DurabilityTally#snapshotEntries}. */
+        public final List<Map<String, Object>> durability;
 
         public SnapshotState(AppliedLogPosition applied, long leadershipTermId, int epoch, String head) {
+            this(applied, leadershipTermId, epoch, head, Collections.emptyList());
+        }
+
+        public SnapshotState(AppliedLogPosition applied, long leadershipTermId, int epoch, String head,
+                             List<Map<String, Object>> durability) {
             this.applied = applied;
             this.leadershipTermId = leadershipTermId;
             this.epoch = epoch;
             this.head = head;
+            this.durability = durability;
         }
     }
 
     /**
-     * Offers the snapshot metadata. Uses Aeron's own snapshot offer loop: back pressure idles on the cluster
-     * idle strategy, a CLOSED, NOT_CONNECTED or MAX_POSITION_EXCEEDED publication throws ClusterException and an
-     * interrupt throws AgentTerminationException, so a failed snapshot is never acknowledged as taken.
+     * Offers the snapshot metadata, then the durability entries. Uses Aeron's own snapshot offer loop: back
+     * pressure idles on the cluster idle strategy, a CLOSED, NOT_CONNECTED or MAX_POSITION_EXCEEDED publication
+     * throws ClusterException and an interrupt throws AgentTerminationException, so a failed snapshot is never
+     * acknowledged as taken.
      */
     public void createSnapshot(ExclusivePublication publication, IdleStrategy idleStrategy, SnapshotState state) {
-        byte[] json = encode(state).getBytes(StandardCharsets.UTF_8);
-        UnsafeBuffer buffer = new UnsafeBuffer(new byte[SimpleMessageHeader.ENCODED_LENGTH + json.length]);
-        SimpleMessageHeader.encode(buffer, 0, json.length, SimpleMessageHeader.TEMPLATE_ID_SNAPSHOT);
-        buffer.putBytes(SimpleMessageHeader.ENCODED_LENGTH, json);
-        new MetadataWriter(publication, idleStrategy).write(buffer, buffer.capacity());
-        log.info("📸 Snapshot written: applied {}, term {}, head {}", state.applied, state.leadershipTermId, state.head);
+        FrameWriter writer = new FrameWriter(publication, idleStrategy);
+        writer.write(SimpleMessageHeader.TEMPLATE_ID_SNAPSHOT, encode(state));
+        for (Map<String, Object> entry : state.durability) {
+            writer.write(SimpleMessageHeader.TEMPLATE_ID_SNAPSHOT_DURABILITY, JsonParser.toJson(entry));
+        }
+        log.info("📸 Snapshot written: applied {}, term {}, head {}, {} durability entries", state.applied,
+            state.leadershipTermId, state.head, state.durability.size());
     }
 
     /**
-     * Reads the snapshot metadata to the end of the snapshot image.
+     * Reads the snapshot to the end of the snapshot image.
      *
      * @throws ClusterException if the image holds no metadata in this format
      */
     public SnapshotState restoreSnapshot(Image snapshotImage, IdleStrategy idleStrategy) {
         SnapshotState[] state = new SnapshotState[1];
+        List<Map<String, Object>> durability = new ArrayList<>();
         FragmentAssembler assembler = new FragmentAssembler((buffer, offset, length, header) -> {
-            String payload = payload(buffer, offset, length);
-            if (payload != null) {
-                state[0] = decode(payload);
+            if (length < SimpleMessageHeader.ENCODED_LENGTH) {
+                return;
+            }
+            int templateId = SimpleMessageHeader.decode(buffer, offset).templateId;
+            if (templateId == SimpleMessageHeader.TEMPLATE_ID_SNAPSHOT) {
+                state[0] = decode(payload(buffer, offset, length));
+            } else if (templateId == SimpleMessageHeader.TEMPLATE_ID_SNAPSHOT_DURABILITY) {
+                durability.add(JsonParser.parseObject(payload(buffer, offset, length)));
             }
         });
         idleStrategy.reset();
@@ -96,9 +116,10 @@ public class SnapshotService {
         if (state[0] == null) {
             throw new ClusterException("Aeron snapshot holds no " + FORMAT + " metadata");
         }
-        log.info("📦 Snapshot read: applied {}, term {}, head {}", state[0].applied, state[0].leadershipTermId,
-            state[0].head);
-        return state[0];
+        log.info("📦 Snapshot read: applied {}, term {}, head {}, {} durability entries", state[0].applied,
+            state[0].leadershipTermId, state[0].head, durability.size());
+        return new SnapshotState(state[0].applied, state[0].leadershipTermId, state[0].epoch, state[0].head,
+            durability);
     }
 
     static String encode(SnapshotState state) {
@@ -135,22 +156,22 @@ public class SnapshotService {
     }
 
     private static String payload(DirectBuffer buffer, int offset, int length) {
-        if (length < SimpleMessageHeader.ENCODED_LENGTH
-                || SimpleMessageHeader.decode(buffer, offset).templateId != SimpleMessageHeader.TEMPLATE_ID_SNAPSHOT) {
-            return null;
-        }
         byte[] bytes = new byte[length - SimpleMessageHeader.ENCODED_LENGTH];
         buffer.getBytes(offset + SimpleMessageHeader.ENCODED_LENGTH, bytes);
         return new String(bytes, StandardCharsets.UTF_8);
     }
 
-    private static final class MetadataWriter extends SnapshotTaker {
-        MetadataWriter(ExclusivePublication publication, IdleStrategy idleStrategy) {
+    private static final class FrameWriter extends SnapshotTaker {
+        FrameWriter(ExclusivePublication publication, IdleStrategy idleStrategy) {
             super(publication, idleStrategy, null);
         }
 
-        void write(DirectBuffer buffer, int length) {
-            offer(buffer, 0, length);
+        void write(int templateId, String json) {
+            byte[] payload = json.getBytes(StandardCharsets.UTF_8);
+            UnsafeBuffer buffer = new UnsafeBuffer(new byte[SimpleMessageHeader.ENCODED_LENGTH + payload.length]);
+            SimpleMessageHeader.encode(buffer, 0, payload.length, templateId);
+            buffer.putBytes(SimpleMessageHeader.ENCODED_LENGTH, payload);
+            offer(buffer, 0, buffer.capacity());
         }
     }
 }
