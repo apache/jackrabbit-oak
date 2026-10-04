@@ -20,9 +20,6 @@ import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.consensus.genesis.CanonicalGenesisContent;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,18 +28,19 @@ final class GenesisInitializer {
 
     private static final Logger log = LoggerFactory.getLogger(GenesisInitializer.class);
 
-    private final NodeStore nodeStore;
     private final FileStore fileStore;
-    private final String genesisValidatorUrl;
     private final CanonicalGenesisContent canonicalGenesisContent;
 
-    GenesisInitializer(NodeStore nodeStore, FileStore fileStore, BlobStore blobStore, String genesisValidatorUrl) {
-        this.nodeStore = nodeStore;
+    GenesisInitializer(NodeStore nodeStore, FileStore fileStore, BlobStore blobStore) {
         this.fileStore = fileStore;
-        this.genesisValidatorUrl = genesisValidatorUrl;
         this.canonicalGenesisContent = new CanonicalGenesisContent(nodeStore, blobStore);
     }
 
+    /**
+     * Verifies an existing genesis. A missing genesis is left alone: it is created only by applying the GENESIS
+     * entry of the consensus log, with the proposer's timestamp and the applied-log watermark. A merge here would
+     * use this node's clock and make the later GENESIS entry a no-op on this node only.
+     */
     void initializeGenesisContent() {
         try {
             if (canonicalGenesisContent.exists()) {
@@ -53,17 +51,10 @@ final class GenesisInitializer {
                 return;
             }
 
-            log.info("   🎂 Creating canonical wallet-scoped genesis at {}", CanonicalGenesisContent.getGenesisPath());
-
-            NodeBuilder rootBuilder = nodeStore.getRoot().builder();
-            canonicalGenesisContent.populate(rootBuilder, System.currentTimeMillis(), genesisValidatorUrl);
-            nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-            log.info("   ✅ Canonical genesis created");
-            logGenesisHead();
+            log.info("   ⏭️  No genesis yet - it is created from the consensus log");
         } catch (Exception e) {
-            log.error("   ❌ FATAL: Failed to create or verify canonical genesis: {}", e.getMessage(), e);
-            throw new RuntimeException("Genesis creation failed - cannot start network", e);
+            log.error("   ❌ FATAL: Failed to verify canonical genesis: {}", e.getMessage(), e);
+            throw new RuntimeException("Genesis verification failed - cannot start network", e);
         }
     }
 

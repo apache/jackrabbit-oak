@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
-import org.agrona.concurrent.AgentTerminationException;
 import org.apache.jackrabbit.oak.segment.consensus.genesis.CanonicalGenesisContent;
 import org.apache.jackrabbit.oak.segment.consensus.service.AppliedLogPosition;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -52,31 +51,36 @@ final class AeronGenesisInitializer {
         initializeGenesisContent(GenesisProposal.fromJson(proposalJson), logPosition);
     }
 
+    /**
+     * Applies the first GENESIS entry of the log; later ones find genesis present and change nothing. A failure
+     * (for example the blob store refusing the genesis image) propagates so that this member stops instead of
+     * running on without genesis while the others have it.
+     */
     void initializeGenesisContent(GenesisProposal proposal, AppliedLogPosition logPosition) {
         log.info("Creating deterministic genesis from replicated proposal: validator={}, timestamp={}",
             proposal.getGenesisValidatorUrl(), proposal.getTimestamp());
 
-        try {
-            if (canonicalGenesisContent.exists()) {
-                log.info("Canonical genesis already exists - skipping duplicate genesis application");
-                return;
-            }
+        if (canonicalGenesisContent.exists()) {
+            log.info("Canonical genesis already exists - skipping duplicate genesis application");
+            return;
+        }
 
-            NodeBuilder rootBuilder = nodeStore.getRoot().builder();
+        NodeBuilder rootBuilder = nodeStore.getRoot().builder();
+        try {
             canonicalGenesisContent.populate(rootBuilder, proposal.getTimestamp(), proposal.getGenesisValidatorUrl());
             if (logPosition != null) {
                 logPosition.writeTo(rootBuilder);
             }
             nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-            String newHead = fileStore.getHead().getRecordId().toString10();
-            log.info("Genesis committed deterministically - validator={}, timestamp={}, head={}",
-                proposal.getGenesisValidatorUrl(), proposal.getTimestamp(), newHead);
-        } catch (AgentTerminationException e) {
+        } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Exception during genesis creation", e);
+            throw new IllegalStateException("Genesis could not be applied on this member", e);
         }
+
+        String newHead = fileStore.getHead().getRecordId().toString10();
+        log.info("Genesis committed deterministically - validator={}, timestamp={}, head={}",
+            proposal.getGenesisValidatorUrl(), proposal.getTimestamp(), newHead);
     }
 
     static final class GenesisProposal {

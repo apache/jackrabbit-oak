@@ -31,7 +31,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.Date;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 /**
  * Canonical authoring surface for OakChain genesis content.
@@ -53,6 +56,9 @@ public final class CanonicalGenesisContent {
     private static final String CHAIN_ID = "oak-blockchain-aem";
     private static final String VERSION = "1.0.0";
     private static final String CANONICAL_GENESIS_PATH = WalletPathUtil.getContentPath(GENESIS_ADDRESS) + "/genesis";
+    // java.util.Date#toString layout, fixed to UTC: the date is replicated content, so it must not follow the JVM zone.
+    private static final DateTimeFormatter GENESIS_DATE =
+        DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss zzz yyyy", Locale.US).withZone(ZoneId.of("UTC"));
 
     private final NodeStore nodeStore;
     private final BlobStore blobStore;
@@ -95,7 +101,7 @@ public final class CanonicalGenesisContent {
 
     public void populate(NodeBuilder rootBuilder, long timestamp, String genesisValidatorUrl) throws Exception {
         long normalizedTimestamp = Math.max(0L, timestamp);
-        String genesisDate = new Date(normalizedTimestamp).toString();
+        String genesisDate = GENESIS_DATE.format(Instant.ofEpochMilli(normalizedTimestamp));
         String genesisValidator = normalizeGenesisValidatorUrl(genesisValidatorUrl);
         String genesisHost = extractHost(genesisValidator);
 

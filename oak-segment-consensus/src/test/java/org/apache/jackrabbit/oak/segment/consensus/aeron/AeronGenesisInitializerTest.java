@@ -25,9 +25,14 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
+import java.io.IOException;
+import java.util.TimeZone;
+
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
@@ -128,6 +133,113 @@ public class AeronGenesisInitializerTest {
         assertEquals(Long.valueOf(10L), genesis.getProperty("genesisTimestamp").getValue(Type.LONG));
         assertEquals("http://leader-0:8090", genesis.getProperty("genesisValidator").getValue(Type.STRING));
         verify(blobStore, times(1)).writeBlob(any());
+    }
+
+    @Test
+    public void genesisCreatesShardedContentWithDefaultNetworkInfo() throws Exception {
+        MemoryNodeStore nodeStore = new MemoryNodeStore();
+        FileStore fileStore = mock(FileStore.class, RETURNS_DEEP_STUBS);
+        when(fileStore.getHead().getRecordId().toString10()).thenReturn("head-10");
+
+        new AeronGenesisInitializer(fileStore, nodeStore, null)
+            .initializeGenesisContent(AeronGenesisInitializer.GenesisProposal.create(42L, null).toJson());
+
+        NodeState genesis = getGenesisNode(nodeStore.getRoot());
+        NodeState protocol = genesis.getChildNode("protocol");
+        NodeState contract = genesis.getChildNode("content-contract");
+        NodeState gettingStarted = genesis.getChildNode("getting-started");
+        NodeState apiConsensus = genesis.getChildNode("api").getChildNode("consensus");
+        NodeState imageContent = genesis.getChildNode("do-it-live.jpeg").getChildNode("jcr:content");
+        NodeState ipfs = genesis.getChildNode("ipfs");
+
+        assertTrue(genesis.exists());
+        assertEquals("DO IT LIVE!", genesis.getProperty("message").getValue(Type.STRING));
+        assertEquals("oak-blockchain-aem", genesis.getProperty("chainId").getValue(Type.STRING));
+        assertEquals(CanonicalGenesisContent.getGenesisPath(), genesis.getProperty("canonicalGenesisPath").getValue(Type.STRING));
+        assertEquals("http://localhost:8090", protocol.getProperty("genesisValidator").getValue(Type.STRING));
+        assertEquals("localhost", protocol.getProperty("genesisHost").getValue(Type.STRING));
+        assertEquals("Below /content the shape is intentionally open and may evolve.",
+            contract.getProperty("contentShapeStatus").getValue(Type.STRING));
+        assertEquals("GET /v1/explorer/content/nav and pick a clusterId.",
+            gettingStarted.getChildNode("3-browse-genesis").getProperty("step-1").getValue(Type.STRING));
+        assertEquals("Consensus status and cluster health",
+            apiConsensus.getProperty("GET_v1_consensus_status").getValue(Type.STRING));
+        assertTrue(imageContent.getProperty("jcr:data").getValue(Type.BINARY) instanceof org.apache.jackrabbit.oak.api.Blob);
+        assertEquals(false, ipfs.getProperty("enabled").getValue(Type.BOOLEAN));
+    }
+
+    @Test
+    public void genesisUsesBlobStoreAndSkipsRecreatingExistingGenesis() throws Exception {
+        String genesisBlobId = "QmYwAPJzv5CZsnAzt8auVZRnGi2C4gYQqbiZ9erjRzCQXD#1024";
+        MemoryNodeStore nodeStore = new MemoryNodeStore();
+        FileStore fileStore = mock(FileStore.class, RETURNS_DEEP_STUBS);
+        BlobStore blobStore = mock(BlobStore.class);
+        when(fileStore.getHead().getRecordId().toString10()).thenReturn("head-10");
+        when(blobStore.writeBlob(any())).thenReturn(genesisBlobId);
+        AeronGenesisInitializer initializer = new AeronGenesisInitializer(fileStore, nodeStore, blobStore);
+        String proposal = AeronGenesisInitializer.GenesisProposal.create(42L, "https://validator.example:8090").toJson();
+
+        initializer.initializeGenesisContent(proposal);
+        initializer.initializeGenesisContent(proposal);
+
+        NodeState genesis = getGenesisNode(nodeStore.getRoot());
+        NodeState protocol = genesis.getChildNode("protocol");
+        NodeState imageContent = genesis.getChildNode("do-it-live.jpeg").getChildNode("jcr:content");
+        NodeState ipfs = genesis.getChildNode("ipfs");
+
+        assertEquals("https://validator.example:8090", protocol.getProperty("genesisValidator").getValue(Type.STRING));
+        assertEquals("validator.example", protocol.getProperty("genesisHost").getValue(Type.STRING));
+        assertEquals(genesisBlobId, imageContent.getProperty("jcr:blobId").getValue(Type.STRING));
+        assertEquals("QmYwAPJzv5CZsnAzt8auVZRnGi2C4gYQqbiZ9erjRzCQXD", ipfs.getProperty("genesisImageCid").getValue(Type.STRING));
+        assertTrue(ipfs.getProperty("enabled").getValue(Type.BOOLEAN));
+        verify(blobStore, times(1)).writeBlob(any());
+    }
+
+    @Test
+    public void genesisContentDoesNotDependOnTheJvmTimeZone() {
+        TimeZone original = TimeZone.getDefault();
+        try {
+            TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+            NodeState utc = applyGenesis(1_700_000_000_000L);
+            TimeZone.setDefault(TimeZone.getTimeZone("America/Los_Angeles"));
+            NodeState losAngeles = applyGenesis(1_700_000_000_000L);
+
+            assertEquals(utc, losAngeles);
+            NodeState genesis = getGenesisNode(losAngeles);
+            assertEquals("Tue Nov 14 22:13:20 UTC 2023", genesis.getProperty("genesisDate").getValue(Type.STRING));
+            assertEquals("Tue Nov 14 22:13:20 UTC 2023",
+                genesis.getChildNode("protocol").getProperty("genesisDate").getValue(Type.STRING));
+        } finally {
+            TimeZone.setDefault(original);
+        }
+    }
+
+    @Test
+    public void genesisBlobFailureIsNotSwallowed() throws Exception {
+        MemoryNodeStore nodeStore = new MemoryNodeStore();
+        BlobStore blobStore = mock(BlobStore.class);
+        when(blobStore.writeBlob(any())).thenThrow(new IOException("IPFS unreachable"));
+        AeronGenesisInitializer initializer =
+            new AeronGenesisInitializer(mock(FileStore.class, RETURNS_DEEP_STUBS), nodeStore, blobStore);
+
+        try {
+            initializer.initializeGenesisContent(
+                AeronGenesisInitializer.GenesisProposal.create(42L, "http://leader:8090").toJson(),
+                new AppliedLogPosition(256L, 0, 0L));
+            fail("this member carried on without genesis");
+        } catch (RuntimeException e) {
+            assertTrue(e.getCause() instanceof IOException);
+        }
+        assertFalse(getGenesisNode(nodeStore.getRoot()).exists());
+        assertEquals(AppliedLogPosition.NONE, AppliedLogPosition.read(nodeStore.getRoot()));
+    }
+
+    private static NodeState applyGenesis(long timestamp) {
+        MemoryNodeStore nodeStore = new MemoryNodeStore();
+        new AeronGenesisInitializer(mock(FileStore.class, RETURNS_DEEP_STUBS), nodeStore, null)
+            .initializeGenesisContent(AeronGenesisInitializer.GenesisProposal.create(timestamp, "http://leader:8090").toJson(),
+                new AppliedLogPosition(256L, 0, 0L));
+        return nodeStore.getRoot();
     }
 
     private static NodeState getGenesisNode(NodeState root) {
