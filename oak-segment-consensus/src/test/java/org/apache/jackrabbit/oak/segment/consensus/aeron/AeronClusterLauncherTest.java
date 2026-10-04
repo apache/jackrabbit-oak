@@ -202,24 +202,25 @@ public class AeronClusterLauncherTest {
     }
 
     @Test
-    public void launchMediaDriverRetriesWhenActiveDriverDetected() throws Exception {
+    public void launchMediaDriverRefusesActiveDriverWithoutDeletingItsDirectory() throws Exception {
         File aeronDir = tempFolder.newFolder("active-driver");
         Files.write(new File(aeronDir, "driver.lock").toPath(), "lock".getBytes(StandardCharsets.UTF_8));
 
         AtomicInteger attempts = new AtomicInteger();
-        ClusteredMediaDriver expected = mock(ClusteredMediaDriver.class);
         AeronClusterLauncher launcher = newLauncher(contexts -> {
-            if (attempts.getAndIncrement() == 0) {
-                throw new ActiveDriverException("ERROR - active driver detected");
-            }
-            return expected;
+            attempts.incrementAndGet();
+            throw new ActiveDriverException("Active media driver detected: " + aeronDir + "/cnc.dat");
         });
 
-        ClusteredMediaDriver resolved = launcher.launchMediaDriver(contexts(), aeronDir.getAbsolutePath());
-
-        assertSame(expected, resolved);
-        assertEquals(2, attempts.get());
-        assertFalse(aeronDir.exists());
+        try {
+            launcher.launchMediaDriver(contexts(), aeronDir.getAbsolutePath());
+            fail("Expected refusal");
+        } catch (IllegalStateException expected) {
+            assertTrue(expected.getMessage().contains(aeronDir.getAbsolutePath()));
+            assertTrue(expected.getCause() instanceof ActiveDriverException);
+        }
+        assertEquals(1, attempts.get());
+        assertTrue(new File(aeronDir, "driver.lock").exists());
     }
 
     @Test
@@ -239,39 +240,35 @@ public class AeronClusterLauncherTest {
     }
 
     @Test
-    public void launchMediaDriverRetriesWhenArchiveMarkFileIsStale() throws Exception {
+    public void launchMediaDriverRefusesActiveArchiveMarkFileWithoutDeletingIt() throws Exception {
         File archiveDir = tempFolder.newFolder("cluster-node", "archive");
         File archiveMark = new File(archiveDir, "archive-mark.dat");
         Files.write(archiveMark.toPath(), "stale".getBytes(StandardCharsets.UTF_8));
 
         AtomicInteger attempts = new AtomicInteger();
-        ClusteredMediaDriver expected = mock(ClusteredMediaDriver.class);
         AeronClusterLauncher launcher = newLauncher(contexts -> {
-            if (attempts.getAndIncrement() == 0) {
-                throw new IllegalStateException("active mark file detected: " + archiveMark.getAbsolutePath());
-            }
-            return expected;
+            attempts.incrementAndGet();
+            throw new IllegalStateException("active mark file detected: " + archiveMark.getAbsolutePath());
         });
 
-        ClusteredMediaDriver resolved = launcher.launchMediaDriver(contexts(), tempFolder.getRoot().getAbsolutePath());
-
-        assertSame(expected, resolved);
-        assertEquals(2, attempts.get());
-        assertFalse(archiveMark.exists());
+        try {
+            launcher.launchMediaDriver(contexts(), tempFolder.getRoot().getAbsolutePath());
+            fail("Expected refusal");
+        } catch (IllegalStateException expected) {
+            assertTrue(expected.getMessage().contains(archiveDir.getAbsolutePath()));
+        }
+        assertEquals(1, attempts.get());
+        assertTrue(archiveMark.exists());
     }
 
     @Test
     public void launchMediaDriverUsesFreshContextsForRetryAttempts() throws Exception {
-        File archiveDir = tempFolder.newFolder("cluster-node-copy", "archive");
-        File archiveMark = new File(archiveDir, "archive-mark.dat");
-        Files.write(archiveMark.toPath(), "stale".getBytes(StandardCharsets.UTF_8));
-
         List<AeronClusterContextFactory.LaunchContexts> attempts = new ArrayList<>();
         ClusteredMediaDriver expected = mock(ClusteredMediaDriver.class);
         AeronClusterLauncher launcher = newLauncher(contexts -> {
             attempts.add(contexts);
             if (attempts.size() == 1) {
-                throw new IllegalStateException("active mark file detected: " + archiveMark.getAbsolutePath());
+                throw new DriverTimeoutException("FATAL - CnC file is created but not initialised");
             }
             return expected;
         });
@@ -293,7 +290,7 @@ public class AeronClusterLauncherTest {
     }
 
     @Test
-    public void launchMediaDriverRetriesAcrossMultipleStaleMarkFiles() throws Exception {
+    public void launchMediaDriverStopsAtTheFirstActiveMarkFile() throws Exception {
         File archiveDir = tempFolder.newFolder("cluster-node-marks", "archive");
         File clusterDir = new File(tempFolder.getRoot(), "cluster-node-marks/cluster");
         assertTrue(clusterDir.mkdirs());
@@ -303,28 +300,27 @@ public class AeronClusterLauncherTest {
         Files.write(clusterMark.toPath(), "stale".getBytes(StandardCharsets.UTF_8));
 
         AtomicInteger attempts = new AtomicInteger();
-        ClusteredMediaDriver expected = mock(ClusteredMediaDriver.class);
         AeronClusterLauncher launcher = newLauncher(contexts -> {
             int attempt = attempts.getAndIncrement();
             if (attempt == 0) {
                 throw new IllegalStateException("active mark file detected: " + archiveMark.getAbsolutePath());
             }
-            if (attempt == 1) {
-                throw new IllegalStateException("active mark file detected: " + clusterMark.getAbsolutePath());
-            }
-            return expected;
+            throw new IllegalStateException("active mark file detected: " + clusterMark.getAbsolutePath());
         });
 
-        ClusteredMediaDriver resolved = launcher.launchMediaDriver(contexts(), tempFolder.getRoot().getAbsolutePath());
-
-        assertSame(expected, resolved);
-        assertEquals(3, attempts.get());
-        assertFalse(archiveMark.exists());
-        assertFalse(clusterMark.exists());
+        try {
+            launcher.launchMediaDriver(contexts(), tempFolder.getRoot().getAbsolutePath());
+            fail("Expected refusal");
+        } catch (IllegalStateException expected) {
+            assertTrue(expected.getMessage().contains(archiveMark.getAbsolutePath()));
+        }
+        assertEquals(1, attempts.get());
+        assertTrue(archiveMark.exists());
+        assertTrue(clusterMark.exists());
     }
 
     @Test
-    public void launchClusteredServiceContainerRetriesAcrossMultipleStaleMarkFiles() throws Exception {
+    public void launchClusteredServiceContainerRefusesActiveMarkFilesWithoutDeletingThem() throws Exception {
         File clusterDir = tempFolder.newFolder("service-container-cluster");
         File clusterMark = new File(clusterDir, "cluster-mark.dat");
         File serviceMark = new File(clusterDir, "cluster-mark-service-0.dat");
@@ -332,44 +328,36 @@ public class AeronClusterLauncherTest {
         Files.write(serviceMark.toPath(), "stale".getBytes(StandardCharsets.UTF_8));
 
         AtomicInteger attempts = new AtomicInteger();
-        ClusteredServiceContainer expected = mock(ClusteredServiceContainer.class);
         AeronClusterLauncher launcher = newLauncher(
             contexts -> mock(ClusteredMediaDriver.class),
             context -> {
                 int attempt = attempts.getAndIncrement();
                 if (attempt == 0) {
-                    throw new IllegalStateException("active mark file detected: " + clusterMark.getAbsolutePath());
-                }
-                if (attempt == 1) {
                     throw new IllegalStateException("active mark file detected: " + serviceMark.getAbsolutePath());
                 }
-                return expected;
+                throw new IllegalStateException("active mark file detected: " + clusterMark.getAbsolutePath());
             }
         );
 
-        ClusteredServiceContainer resolved = launcher.launchClusteredServiceContainer(contexts());
-
-        assertSame(expected, resolved);
-        assertEquals(3, attempts.get());
-        assertFalse(clusterMark.exists());
-        assertFalse(serviceMark.exists());
+        try {
+            launcher.launchClusteredServiceContainer(contexts());
+            fail("Expected refusal");
+        } catch (IllegalStateException expected) {
+            assertTrue(expected.getMessage().contains(clusterDir.getAbsolutePath()));
+        }
+        assertEquals(1, attempts.get());
+        assertTrue(clusterMark.exists());
+        assertTrue(serviceMark.exists());
     }
 
     @Test
-    public void launchClusteredServiceContainerUsesFreshContextsForRetryAttempts() throws Exception {
-        File clusterDir = tempFolder.newFolder("service-container-copy");
-        File serviceMark = new File(clusterDir, "cluster-mark-service-0.dat");
-        Files.write(serviceMark.toPath(), "stale".getBytes(StandardCharsets.UTF_8));
-
+    public void launchClusteredServiceContainerUsesAFreshContext() throws Exception {
         List<ClusteredServiceContainer.Context> attempts = new ArrayList<>();
         ClusteredServiceContainer expected = mock(ClusteredServiceContainer.class);
         AeronClusterLauncher launcher = newLauncher(
             contexts -> mock(ClusteredMediaDriver.class),
             context -> {
                 attempts.add(context);
-                if (attempts.size() == 1) {
-                    throw new IllegalStateException("active mark file detected: " + serviceMark.getAbsolutePath());
-                }
                 return expected;
             }
         );
@@ -378,8 +366,7 @@ public class AeronClusterLauncherTest {
         ClusteredServiceContainer resolved = launcher.launchClusteredServiceContainer(original);
 
         assertSame(expected, resolved);
-        assertEquals(2, attempts.size());
-        assertTrue(attempts.get(0) != attempts.get(1));
+        assertEquals(1, attempts.size());
         assertTrue(original.clusteredServiceContext != attempts.get(0));
     }
 

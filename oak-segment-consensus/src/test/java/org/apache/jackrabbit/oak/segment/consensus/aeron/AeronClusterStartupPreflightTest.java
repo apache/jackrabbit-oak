@@ -60,12 +60,11 @@ public class AeronClusterStartupPreflightTest {
         assertFalse(configuredAeronDir.exists());
         assertFalse(result.hasCrashMarkers);
         assertFalse(result.staleDriverDirectoryDetected);
-        assertFalse(result.staleDriverDirectoryDeleted);
         assertFalse(result.forceBootstrap);
     }
 
     @Test
-    public void runCleansStaleDriverDirectoryAndReportsCrashMarkers() throws Exception {
+    public void runReportsCrashMarkersAndLeavesTheDriverDirectoryToTheMediaDriver() throws Exception {
         File staleDriverDir = tempFolder.newFolder("stale-driver");
         Files.write(
             new File(staleDriverDir, "driver.lock").toPath(),
@@ -82,9 +81,8 @@ public class AeronClusterStartupPreflightTest {
 
         assertTrue(result.hasCrashMarkers);
         assertTrue(result.staleDriverDirectoryDetected);
-        assertTrue(result.staleDriverDirectoryDeleted);
         assertTrue(result.forceBootstrap);
-        assertFalse(staleDriverDir.exists());
+        assertTrue(new File(staleDriverDir, "driver.lock").exists());
     }
 
     @Test
@@ -99,7 +97,6 @@ public class AeronClusterStartupPreflightTest {
 
         assertFalse(result.hasCrashMarkers);
         assertFalse(result.staleDriverDirectoryDetected);
-        assertFalse(result.staleDriverDirectoryDeleted);
         assertFalse(result.forceBootstrap);
     }
 
@@ -117,7 +114,6 @@ public class AeronClusterStartupPreflightTest {
         assertTrue(emptyDriverDir.exists());
         assertFalse(result.hasCrashMarkers);
         assertFalse(result.staleDriverDirectoryDetected);
-        assertFalse(result.staleDriverDirectoryDeleted);
         assertFalse(result.forceBootstrap);
     }
 }

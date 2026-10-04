@@ -70,6 +70,8 @@ final class AeronClusterContextFactory {
         int clusterBasePort = AeronClusterTopology.getPortBase();
         MediaDriver.Context mediaDriverContext = new MediaDriver.Context()
                 .aeronDirectoryName(aeronDirName)
+                // Keep Aeron's start check: refuse a live driver, else save the old error log and recreate the dir.
+                .dirDeleteOnStart(false)
                 .threadingMode(ThreadingMode.SHARED)
                 .termBufferSparseFile(true)
                 .socketSndbufLength(socketSndbufLength)

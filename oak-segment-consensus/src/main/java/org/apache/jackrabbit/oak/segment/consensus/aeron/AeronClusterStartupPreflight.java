@@ -41,37 +41,13 @@ final class AeronClusterStartupPreflight {
         File aeronDir = new File(aeronDirectoryName);
         boolean hasCrashMarkers = crashHandler != null && crashHandler.hasCrashed();
         boolean staleDriverDirectoryDetected = hasResidualDriverState(aeronDir);
-        boolean staleDriverDirectoryDeleted = false;
 
-        if (hasCrashMarkers || staleDriverDirectoryDetected) {
-            if (hasCrashMarkers) {
-                log.warn("⚠️  Crash markers detected from previous run: {}", crashHandler.getState());
-            }
-            if (staleDriverDirectoryDetected) {
-                log.warn("⚠️  Stale MediaDriver directory detected: {}", aeronDirectoryName);
-                log.warn("   This may cause ActiveDriverException if MediaDriver didn't shut down cleanly");
-            }
-
-            try {
-                File lockFile = new File(aeronDir, "driver.lock");
-                if (lockFile.exists()) {
-                    log.debug("MediaDriver lock file exists: {}", lockFile.getAbsolutePath());
-                }
-            } catch (Exception e) {
-                log.debug("Could not check MediaDriver lock file: {}", e.getMessage());
-            }
-
-            if (aeronDir.exists()) {
-                log.warn("🧹 Cleaning up stale MediaDriver directory: {}", aeronDirectoryName);
-                try {
-                    IoUtil.delete(aeronDir, true);
-                    staleDriverDirectoryDeleted = true;
-                    log.info("✅ Cleaned up stale MediaDriver directory");
-                } catch (Exception e) {
-                    log.warn("⚠️  Failed to clean up MediaDriver directory: {}", e.getMessage());
-                    log.warn("   You may need to manually delete: {}", aeronDirectoryName);
-                }
-            }
+        if (hasCrashMarkers) {
+            log.warn("⚠️  Crash markers detected from previous run: {}", crashHandler.getState());
+        }
+        if (staleDriverDirectoryDetected) {
+            log.info("MediaDriver directory {} exists; the driver refuses to start if its owner is alive, "
+                + "otherwise saves its error log next to it and recreates it", aeronDirectoryName);
         }
 
         boolean forceBootstrap = crashHandler != null && crashHandler.shouldForceBootstrap();
@@ -82,7 +58,6 @@ final class AeronClusterStartupPreflight {
         return new PreflightResult(
             hasCrashMarkers,
             staleDriverDirectoryDetected,
-            staleDriverDirectoryDeleted,
             forceBootstrap
         );
     }
@@ -135,16 +110,13 @@ final class AeronClusterStartupPreflight {
     static final class PreflightResult {
         final boolean hasCrashMarkers;
         final boolean staleDriverDirectoryDetected;
-        final boolean staleDriverDirectoryDeleted;
         final boolean forceBootstrap;
 
         PreflightResult(boolean hasCrashMarkers,
                         boolean staleDriverDirectoryDetected,
-                        boolean staleDriverDirectoryDeleted,
                         boolean forceBootstrap) {
             this.hasCrashMarkers = hasCrashMarkers;
             this.staleDriverDirectoryDetected = staleDriverDirectoryDetected;
-            this.staleDriverDirectoryDeleted = staleDriverDirectoryDeleted;
             this.forceBootstrap = forceBootstrap;
         }
     }

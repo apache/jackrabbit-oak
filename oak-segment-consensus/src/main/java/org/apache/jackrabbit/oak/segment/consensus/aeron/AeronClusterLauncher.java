@@ -27,7 +27,6 @@ import io.aeron.exceptions.DriverTimeoutException;
 import io.aeron.driver.MediaDriver;
 import io.aeron.driver.ThreadingMode;
 import org.agrona.ErrorHandler;
-import org.agrona.IoUtil;
 import org.agrona.concurrent.ShutdownSignalBarrier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -412,29 +411,24 @@ public class AeronClusterLauncher {
                     throw ex;
                 }
             } catch (ActiveDriverException ex) {
-                if (attempt == 4 || !deleteDriverDirectoryIfActiveDriverDetected(ex, aeronDirName)) {
-                    throw ex;
-                }
+                throw new IllegalStateException("Aeron media driver directory " + aeronDirName
+                    + " is active: its cnc.dat heartbeat is younger than driverTimeoutMs="
+                    + contexts.mediaDriverContext.driverTimeoutMs() + ", so another process owns it. "
+                    + "Refusing to start; stop that process (a killed driver stays active until its heartbeat "
+                    + "ages past the timeout). The directory is not deleted.", ex);
             } catch (IllegalStateException ex) {
-                if (attempt == 4 || !deleteMarkFileIfActiveMarkDetected(ex)) {
-                    throw ex;
-                }
+                throw refuseActiveMarkFile(ex);
             }
         }
         throw new IllegalStateException("Aeron ClusteredMediaDriver launch did not complete");
     }
 
     ClusteredServiceContainer launchClusteredServiceContainer(AeronClusterContextFactory.LaunchContexts contexts) {
-        for (int attempt = 1; attempt <= 4; attempt++) {
-            try {
-                return containerLaunchInvoker.launch(contexts.freshCopy().clusteredServiceContext);
-            } catch (IllegalStateException ex) {
-                if (attempt == 4 || !deleteMarkFileIfActiveMarkDetected(ex)) {
-                    throw ex;
-                }
-            }
+        try {
+            return containerLaunchInvoker.launch(contexts.freshCopy().clusteredServiceContext);
+        } catch (IllegalStateException ex) {
+            throw refuseActiveMarkFile(ex);
         }
-        throw new IllegalStateException("Aeron ClusteredServiceContainer launch did not complete");
     }
     
     /**
@@ -544,57 +538,20 @@ public class AeronClusterLauncher {
         return true;
     }
 
-    static boolean deleteDriverDirectoryIfActiveDriverDetected(ActiveDriverException ex, String aeronDirName) {
-        String message = ex.getMessage();
-        if (message == null || !message.contains("ERROR - active driver detected")) {
-            return false;
-        }
-        File aeronDir = new File(aeronDirName);
-        log.warn(
-            "Detected stale Aeron MediaDriver directory at {}. Deleting and retrying MediaDriver launch...",
-            aeronDir.getAbsolutePath()
-        );
-        try {
-            if (aeronDir.exists()) {
-                IoUtil.delete(aeronDir, true);
-            }
-        } catch (Exception cleanupError) {
-            log.warn(
-                "Failed to delete Aeron MediaDriver directory at {}. Retrying MediaDriver launch anyway...",
-                aeronDir.getAbsolutePath(),
-                cleanupError
-            );
-        }
-        return true;
-    }
-
-    static boolean deleteMarkFileIfActiveMarkDetected(IllegalStateException ex) {
+    /**
+     * Agrona reports a cluster or archive mark file whose activity timestamp is within the component's
+     * liveness timeout as "active mark file detected: path". Its owner may be alive, so never delete it.
+     */
+    static IllegalStateException refuseActiveMarkFile(IllegalStateException ex) {
         String message = ex.getMessage();
         String prefix = "active mark file detected:";
         if (message == null || !message.contains(prefix)) {
-            return false;
+            return ex;
         }
-
-        String pathText = message.substring(message.indexOf(prefix) + prefix.length()).trim();
-        if (pathText.isEmpty()) {
-            return false;
-        }
-
-        Path markFile = Path.of(pathText);
-        log.warn(
-            "Detected stale Aeron mark file at {}. Deleting and retrying MediaDriver launch...",
-            markFile
-        );
-        try {
-            Files.deleteIfExists(markFile);
-        } catch (IOException ioEx) {
-            log.warn(
-                "Failed to delete Aeron mark file at {}. Retrying MediaDriver launch anyway...",
-                markFile,
-                ioEx
-            );
-        }
-        return true;
+        File markFile = new File(message.substring(message.indexOf(prefix) + prefix.length()).trim());
+        return new IllegalStateException("Aeron mark file " + markFile + " is active, so another process owns "
+            + markFile.getAbsoluteFile().getParent() + ". Refusing to start; stop that process (a killed one stays "
+            + "active until the liveness timeout passes). Mark files are never deleted.", ex);
     }
 
     static final class SessionTimeoutConfig {
