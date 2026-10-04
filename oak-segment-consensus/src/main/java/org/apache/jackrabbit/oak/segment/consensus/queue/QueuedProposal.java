@@ -62,6 +62,7 @@ public class QueuedProposal implements java.io.Serializable {
     private volatile int retryCount = 0; // Number of times this proposal has been retried
     private volatile long lastRetryTimestamp = 0; // Timestamp of last retry attempt
     private volatile long verifiedTimestampMs = 0; // Timestamp when proposal entered verified release scheduling
+    private volatile boolean appendedToLog; // Set when a PROCESSED proposal is re-queued for replay
 
     // Durability tracking (ADR 026)
     private volatile DurabilityState durabilityState = DurabilityState.PENDING;
@@ -373,6 +374,14 @@ public class QueuedProposal implements java.io.Serializable {
      */
     public long getLastRetryTimestamp() {
         return lastRetryTimestamp;
+    }
+
+    boolean isAppendedToLog() {
+        return appendedToLog;
+    }
+
+    void markAppendedToLog() {
+        this.appendedToLog = true;
     }
 
     void restoreRetryState(int retryCount, long lastRetryTimestamp) {

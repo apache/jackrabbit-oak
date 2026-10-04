@@ -2042,11 +2042,14 @@ public class ProposalQueueManagerOptimized {
                         log.error("❌ Batch exceeded max retries ({}) - rejecting {} proposals", 
                             maxRetryCount, batch.size());
                         for (QueuedProposal proposal : batch) {
-                            transitionProposalToRejected(
-                                proposal,
-                                "Exceeded max retry count (" + maxRetryCount + ") after Aeron send failures: "
-                                    + e.getMessage()
-                            );
+                            String reason = "Exceeded max retry count (" + maxRetryCount + ") after Aeron send failures: "
+                                + e.getMessage();
+                            if (proposal.isAppendedToLog()) {
+                                transitionProposalToProcessed(proposal);
+                                failProcessedDurability(proposal, reason);
+                            } else {
+                                transitionProposalToRejected(proposal, reason);
+                            }
                         }
                         persistProposals();
                     } else {
@@ -2161,6 +2164,7 @@ public class ProposalQueueManagerOptimized {
         }
 
         rollbackTerminalState(proposal, ProposalState.PROCESSED);
+        proposal.markAppendedToLog();
         proposal.setState(ProposalState.VERIFIED);
         proposal.setRejectionReason(null);
         proposal.overrideTimeoutTimestamp(nowMs + restoreTimeoutMs);

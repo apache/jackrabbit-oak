@@ -23,13 +23,20 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.util.List;
+import java.util.Queue;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Recovery of processed proposals whose durability ack is still pending.
@@ -39,6 +46,7 @@ public class ProposalQueueDurabilityRecoveryTest {
     private static final String WALLET = "0x742d35cc6634c0532925a3b844bc9e7595f0beb0";
     private static final long HOUR_MS = 3_600_000L;
 
+    private RaftAppendCallback raftAppendCallback;
     private ProposalQueueManagerOptimized queueManager;
     private QueuedProposal proposal;
 
@@ -46,7 +54,7 @@ public class ProposalQueueDurabilityRecoveryTest {
     public void setUp() {
         queueManager = new ProposalQueueManagerOptimized(
             mock(EvmBridge.class),
-            mock(RaftAppendCallback.class),
+            raftAppendCallback = mock(RaftAppendCallback.class),
             new BackpressureManager(),
             mock(BeaconChainClient.class)
         );
@@ -103,6 +111,65 @@ public class ProposalQueueDurabilityRecoveryTest {
         sweep(System.currentTimeMillis() + HOUR_MS);
 
         assertProcessedWithFailedDurability("payload sidecar missing");
+    }
+
+    @Test
+    public void exhaustedSendFailuresOfReplayedProposalKeepProcessedAndFailDurability() throws Exception {
+        sweep(System.currentTimeMillis() + HOUR_MS);
+        assertEquals(ProposalState.VERIFIED, proposal.getState());
+
+        failSendsUntilRetriesExhausted();
+
+        assertProcessedWithFailedDurability("Exceeded max retry count");
+    }
+
+    @Test
+    public void exhaustedSendFailuresOfNeverSentProposalStillReject() throws Exception {
+        proposal.setState(ProposalState.VERIFIED);
+
+        failSendsUntilRetriesExhausted();
+
+        assertEquals(ProposalState.REJECTED, proposal.getState());
+        assertTrue(proposal.getRejectionReason().contains("Aeron send failures"));
+    }
+
+    @Test
+    public void appendedToLogMarkerSurvivesPersistence() throws Exception {
+        sweep(System.currentTimeMillis() + HOUR_MS);
+        ProposalPersistenceStore store =
+            new ProposalPersistenceStore(Files.createTempDirectory("proposal-appended-marker"));
+        QueuedProposal neverSent = new QueuedProposal(
+            "0xp-never-sent", "0xtx", null, 1L, 2L, ProposalState.VERIFIED);
+
+        store.save(List.of(proposal, neverSent));
+        List<QueuedProposal> restored = store.load();
+
+        assertTrue(restored.get(0).isAppendedToLog());
+        assertFalse(restored.get(1).isAppendedToLog());
+    }
+
+    private void failSendsUntilRetriesExhausted() throws Exception {
+        when(raftAppendCallback.tryAppendProposalWithId(
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), any()
+        )).thenThrow(new IllegalStateException("ingress down"));
+        while (proposal.getRetryCount() < maxRetryCount()) {
+            proposal.incrementRetryCount();
+        }
+        Field running = ProposalQueueManagerOptimized.class.getDeclaredField("running");
+        running.setAccessible(true);
+        running.setBoolean(queueManager, true);
+        Field batchQueueField = ProposalQueueManagerOptimized.class.getDeclaredField("batchQueue");
+        batchQueueField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        Queue<List<QueuedProposal>> batchQueue = (Queue<List<QueuedProposal>>) batchQueueField.get(queueManager);
+        batchQueue.offer(List.of(proposal));
+
+        Class<?> senderClass = Class.forName(ProposalQueueManagerOptimized.class.getName() + "$AeronSenderAgent");
+        Constructor<?> constructor = senderClass.getDeclaredConstructor(ProposalQueueManagerOptimized.class);
+        constructor.setAccessible(true);
+        org.agrona.concurrent.Agent sender = (org.agrona.concurrent.Agent) constructor.newInstance(queueManager);
+        sender.doWork();
+        running.setBoolean(queueManager, false);
     }
 
     private void assertProcessedWithFailedDurability(String expectedError) {
