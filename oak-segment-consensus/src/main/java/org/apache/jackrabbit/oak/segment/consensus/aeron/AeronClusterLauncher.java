@@ -273,11 +273,11 @@ public class AeronClusterLauncher {
             driverTimeoutMs
         );
         
-        // Consensus Module Context (use IP addresses for cluster members)
-        // Note: Aeron Cluster automatically manages snapshot intervals based on log size
-        // Snapshots are taken periodically by the leader to enable faster recovery
-        // Default behavior: snapshot after significant log growth (typically ~1024 entries)
-        log.info("📸 Aeron snapshot management: automatic (leader-controlled)");
+        // Aeron never snapshots on its own; the service's SnapshotTrigger toggles ClusterControl SNAPSHOT on the leader.
+        log.info("📸 Aeron snapshots: leader requests one every {} ms or {} entries (0 = off); "
+                + "each holds only the Oak applied-log watermark and the archive log is never purged",
+            Long.getLong(SnapshotTrigger.INTERVAL_MS_PROPERTY, SnapshotTrigger.DEFAULT_INTERVAL_MS),
+            Long.getLong(SnapshotTrigger.ENTRY_INTERVAL_PROPERTY, SnapshotTrigger.DEFAULT_ENTRY_INTERVAL));
         SessionTimeoutConfig sessionTimeoutConfig = resolveSessionTimeoutConfig();
         log.info(
             "⏱️  Aeron session timeout: {} minute(s) [source={}, env={}]",

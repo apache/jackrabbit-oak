@@ -42,9 +42,8 @@ final class AeronEngineComponentFactory {
         return new org.apache.jackrabbit.oak.segment.consensus.queue.BackpressureManager();
     }
 
-    static SnapshotService createSnapshotService(org.apache.jackrabbit.oak.segment.file.FileStore fileStore,
-                                                 String storeDirectory) {
-        return new SnapshotService(fileStore, storeDirectory);
+    static SnapshotService createSnapshotService() {
+        return new SnapshotService();
     }
 
     static LeaderDiscoveryService createLeaderDiscoveryService(java.util.Map<Integer, String> nodeIdToUrl,

@@ -367,67 +367,78 @@ public class AeronConsensusEngineTest {
     }
 
     @Test
-    public void onStartRestoresSnapshotAndUpdatesEpochWhenHeadMatches() {
-        FileStore fileStore = mock(FileStore.class, RETURNS_DEEP_STUBS);
-        when(fileStore.getHead().getRecordId().toString()).thenReturn("head-1");
+    public void onStartRestoresSnapshotMetadataWhenTheStoreHasItsWatermark() {
         SnapshotService snapshotService = mock(SnapshotService.class);
-        SnapshotService.SnapshotState snapshotState =
-            new SnapshotService.SnapshotState("head-1", 42, 1234L, 1);
         Image snapshotImage = mock(Image.class);
         IdleStrategy idleStrategy = mock(IdleStrategy.class);
-        Cluster cluster = mock(Cluster.class, RETURNS_DEEP_STUBS);
-        when(cluster.role()).thenReturn(Cluster.Role.LEADER);
-        when(cluster.idleStrategy()).thenReturn(idleStrategy);
-        when(snapshotService.restoreSnapshot(snapshotImage, idleStrategy)).thenReturn(snapshotState);
-
-        AeronConsensusEngine engine = createEngine(fileStore, snapshotService);
+        Cluster cluster = snapshotCluster(Cluster.Role.LEADER, idleStrategy);
+        when(snapshotService.restoreSnapshot(snapshotImage, idleStrategy)).thenReturn(
+            new SnapshotService.SnapshotState(new AppliedLogPosition(200L, 0, 3L), 3L, 42, "head-1"));
+        AeronConsensusEngine engine = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), snapshotService,
+            new AeronBackgroundCoordinator(), storeWithWatermark(new AppliedLogPosition(200L, 0, 3L)));
 
         engine.onStart(cluster, snapshotImage);
 
         verify(snapshotService).restoreSnapshot(snapshotImage, idleStrategy);
         assertEquals(42, engine.getCurrentEpoch());
+        assertEquals(3, engine.getCurrentTerm());
         assertTrue(engine.isLeader());
     }
 
     @Test
-    public void onStartWithSnapshotAndNoStateStartsFresh() {
+    public void onStartRefusesSnapshotWhenTheStoreIsBehindIt() {
         SnapshotService snapshotService = mock(SnapshotService.class);
         Image snapshotImage = mock(Image.class);
         IdleStrategy idleStrategy = mock(IdleStrategy.class);
-        Cluster cluster = mock(Cluster.class, RETURNS_DEEP_STUBS);
-        when(cluster.role()).thenReturn(Cluster.Role.LEADER);
-        when(cluster.idleStrategy()).thenReturn(idleStrategy);
-        when(snapshotService.restoreSnapshot(snapshotImage, idleStrategy)).thenReturn(null);
-
-        AeronConsensusEngine engine = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), snapshotService);
-
-        engine.onStart(cluster, snapshotImage);
-
-        assertEquals(0, engine.getCurrentEpoch());
-    }
-
-    @Test
-    public void onStartFailsWhenSnapshotHeadDoesNotMatchFileStore() {
-        FileStore fileStore = mock(FileStore.class, RETURNS_DEEP_STUBS);
-        when(fileStore.getHead().getRecordId().toString()).thenReturn("file-head");
-        SnapshotService snapshotService = mock(SnapshotService.class);
-        Image snapshotImage = mock(Image.class);
-        IdleStrategy idleStrategy = mock(IdleStrategy.class);
-        Cluster cluster = mock(Cluster.class, RETURNS_DEEP_STUBS);
-        when(cluster.role()).thenReturn(Cluster.Role.LEADER);
-        when(cluster.idleStrategy()).thenReturn(idleStrategy);
+        Cluster cluster = snapshotCluster(Cluster.Role.FOLLOWER, idleStrategy);
         when(snapshotService.restoreSnapshot(snapshotImage, idleStrategy)).thenReturn(
-            new SnapshotService.SnapshotState("snapshot-head", 7, 999L, 1)
-        );
-
-        AeronConsensusEngine engine = createEngine(fileStore, snapshotService);
+            new SnapshotService.SnapshotState(new AppliedLogPosition(200L, 1, 3L), 3L, 7, "snapshot-head"));
+        AeronConsensusEngine engine = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), snapshotService,
+            new AeronBackgroundCoordinator(), storeWithWatermark(new AppliedLogPosition(200L, 0, 3L)));
 
         try {
             engine.onStart(cluster, snapshotImage);
-            fail("Expected snapshot mismatch to fail startup");
+            fail("Expected a store behind the snapshot to fail startup");
+        } catch (RuntimeException e) {
+            assertTrue(e.getMessage(), e.getMessage().contains("behind the Aeron snapshot"));
+            assertTrue(e.getMessage(), e.getMessage().contains("--fresh"));
+        }
+    }
+
+    @Test
+    public void onStartFailsWhenTheSnapshotHoldsNoMetadata() {
+        SnapshotService snapshotService = mock(SnapshotService.class);
+        Image snapshotImage = mock(Image.class);
+        IdleStrategy idleStrategy = mock(IdleStrategy.class);
+        when(snapshotService.restoreSnapshot(snapshotImage, idleStrategy))
+            .thenThrow(new io.aeron.cluster.client.ClusterException("no metadata"));
+        AeronConsensusEngine engine = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), snapshotService);
+
+        try {
+            engine.onStart(snapshotCluster(Cluster.Role.LEADER, idleStrategy), snapshotImage);
+            fail("Expected an unreadable snapshot to fail startup");
         } catch (RuntimeException e) {
             assertTrue(e.getMessage().contains("Snapshot load failed"));
         }
+    }
+
+    private static Cluster snapshotCluster(Cluster.Role role, IdleStrategy idleStrategy) {
+        Cluster cluster = mock(Cluster.class, RETURNS_DEEP_STUBS);
+        when(cluster.role()).thenReturn(role);
+        when(cluster.idleStrategy()).thenReturn(idleStrategy);
+        return cluster;
+    }
+
+    private static MemoryNodeStore storeWithWatermark(AppliedLogPosition watermark) {
+        MemoryNodeStore store = new MemoryNodeStore();
+        NodeBuilder root = store.getRoot().builder();
+        watermark.writeTo(root);
+        try {
+            store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+        return store;
     }
 
     @Test
@@ -507,23 +518,85 @@ public class AeronConsensusEngineTest {
     }
 
     @Test
-    public void onTakeSnapshotDelegatesToSnapshotService() throws Exception {
+    public void onTakeSnapshotFlushesOakThenWritesWatermarkTermEpochAndHead() throws Exception {
         SnapshotService snapshotService = mock(SnapshotService.class);
-        AeronConsensusEngine engine = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), snapshotService);
+        FileStore fileStore = mock(FileStore.class, RETURNS_DEEP_STUBS);
+        when(fileStore.getHead().getRecordId().toString10()).thenReturn("head-9");
+        AeronConsensusEngine engine = createEngine(fileStore, snapshotService, new AeronBackgroundCoordinator(),
+            storeWithWatermark(new AppliedLogPosition(300L, 1, 5L)));
         io.aeron.ExclusivePublication publication = mock(io.aeron.ExclusivePublication.class);
         IdleStrategy idleStrategy = mock(IdleStrategy.class);
         setField(engine, "idleStrategy", idleStrategy);
         setField(engine, "currentEthereumEpoch", 17);
+        applyTermEvent(engine, 5);
 
         engine.onTakeSnapshot(publication);
 
-        verify(snapshotService).createSnapshot(publication, idleStrategy, 17, -1L);
+        ArgumentCaptor<SnapshotService.SnapshotState> state = ArgumentCaptor.forClass(SnapshotService.SnapshotState.class);
+        org.mockito.InOrder order = org.mockito.Mockito.inOrder(fileStore, snapshotService);
+        order.verify(fileStore).flush();
+        order.verify(snapshotService).createSnapshot(eq(publication), eq(idleStrategy), state.capture());
+        assertEquals(new AppliedLogPosition(300L, 1, 5L), state.getValue().applied);
+        assertEquals(5L, state.getValue().leadershipTermId);
+        assertEquals(17, state.getValue().epoch);
+        assertEquals("head-9", state.getValue().head);
+    }
+
+    @Test
+    public void onTakeSnapshotPropagatesOakFlushFailure() throws Exception {
+        SnapshotService snapshotService = mock(SnapshotService.class);
+        FileStore fileStore = mock(FileStore.class, RETURNS_DEEP_STUBS);
+        org.mockito.Mockito.doThrow(new java.io.IOException("disk full")).when(fileStore).flush();
+        AeronConsensusEngine engine = createEngine(fileStore, snapshotService, new AeronBackgroundCoordinator(),
+            new MemoryNodeStore());
+
+        try {
+            engine.onTakeSnapshot(mock(io.aeron.ExclusivePublication.class));
+            fail("Expected the snapshot to fail");
+        } catch (RuntimeException e) {
+            assertTrue(e.getMessage(), e.getMessage().contains("flush"));
+        }
+        verify(snapshotService, never()).createSnapshot(any(), any(), any());
+    }
+
+    @Test
+    public void onTakeSnapshotPropagatesClosedSnapshotPublication() {
+        AeronConsensusEngine engine = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), new SnapshotService(),
+            new AeronBackgroundCoordinator(), new MemoryNodeStore());
+        io.aeron.ExclusivePublication publication = mock(io.aeron.ExclusivePublication.class);
+        when(publication.offer(any(DirectBuffer.class), anyInt(), anyInt())).thenReturn(io.aeron.Publication.CLOSED);
+
+        try {
+            engine.onTakeSnapshot(publication);
+            fail("Expected the snapshot to fail");
+        } catch (io.aeron.cluster.client.ClusterException e) {
+            assertTrue(e.getMessage(), e.getMessage().contains("closed"));
+        }
+    }
+
+    @Test
+    public void snapshotTriggerFiresOnlyOnTheLeader() throws Exception {
+        AtomicInteger toggles = new AtomicInteger();
+        AeronConsensusEngine engine = createEngine();
+        setField(engine, "ingressHandler", mock(AeronIngressHandler.class));
+        setField(engine, "snapshotTrigger", new SnapshotTrigger(0L, 1L, () -> toggles.incrementAndGet() > 0, 0L));
+        Cluster cluster = mock(Cluster.class);
+        setField(engine, "cluster", cluster);
+
+        when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
+        engine.onSessionMessage(mock(ClientSession.class), 1L, mock(DirectBuffer.class), 0, 8, mock(Header.class));
+        assertEquals(0, toggles.get());
+
+        when(cluster.role()).thenReturn(Cluster.Role.LEADER);
+        engine.onSessionMessage(mock(ClientSession.class), 2L, mock(DirectBuffer.class), 0, 8, mock(Header.class));
+        assertEquals(1, toggles.get());
     }
 
     @Test
     public void snapshotCarriesLogDerivedTermAndRestoreReappliesIt() throws Exception {
         SnapshotService snapshotService = mock(SnapshotService.class);
-        AeronConsensusEngine source = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), snapshotService);
+        AeronConsensusEngine source = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), snapshotService,
+            new AeronBackgroundCoordinator(), new MemoryNodeStore());
         io.aeron.ExclusivePublication publication = mock(io.aeron.ExclusivePublication.class);
         IdleStrategy idleStrategy = mock(IdleStrategy.class);
         setField(source, "idleStrategy", idleStrategy);
@@ -531,21 +604,17 @@ public class AeronConsensusEngineTest {
 
         source.onTakeSnapshot(publication);
 
-        verify(snapshotService).createSnapshot(publication, idleStrategy, -1, 5L);
+        ArgumentCaptor<SnapshotService.SnapshotState> state = ArgumentCaptor.forClass(SnapshotService.SnapshotState.class);
+        verify(snapshotService).createSnapshot(eq(publication), eq(idleStrategy), state.capture());
+        assertEquals(5L, state.getValue().leadershipTermId);
 
-        FileStore fileStore = mock(FileStore.class, RETURNS_DEEP_STUBS);
-        when(fileStore.getHead().getRecordId().toString()).thenReturn("head-1");
         Image snapshotImage = mock(Image.class);
-        Cluster cluster = mock(Cluster.class, RETURNS_DEEP_STUBS);
-        when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
-        when(cluster.idleStrategy()).thenReturn(idleStrategy);
         SnapshotService restoreService = mock(SnapshotService.class);
-        when(restoreService.restoreSnapshot(snapshotImage, idleStrategy))
-            .thenReturn(new SnapshotService.SnapshotState("head-1", 0, 1L, 0, 5L));
-        AeronConsensusEngine restored = createEngine(fileStore, restoreService,
-            new AeronBackgroundCoordinator(new RecordingTaskScheduler(), 2000L, 3000L, 5000L), mockNodeStore);
+        when(restoreService.restoreSnapshot(snapshotImage, idleStrategy)).thenReturn(state.getValue());
+        AeronConsensusEngine restored = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), restoreService,
+            new AeronBackgroundCoordinator(new RecordingTaskScheduler(), 2000L, 3000L, 5000L), new MemoryNodeStore());
 
-        restored.onStart(cluster, snapshotImage);
+        restored.onStart(snapshotCluster(Cluster.Role.FOLLOWER, idleStrategy), snapshotImage);
 
         assertEquals(5, restored.getCurrentTerm());
     }

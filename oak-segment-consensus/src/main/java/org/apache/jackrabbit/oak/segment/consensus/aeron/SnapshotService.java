@@ -17,447 +17,140 @@
 package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
 import io.aeron.ExclusivePublication;
+import io.aeron.FragmentAssembler;
 import io.aeron.Image;
+import io.aeron.cluster.client.ClusterException;
+import io.aeron.cluster.service.SnapshotTaker;
+import org.agrona.DirectBuffer;
 import org.agrona.concurrent.IdleStrategy;
 import org.agrona.concurrent.UnsafeBuffer;
-import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.osgi.service.component.annotations.Activate;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.ConfigurationPolicy;
-import org.osgi.service.component.annotations.Deactivate;
+import org.apache.jackrabbit.oak.segment.consensus.service.AppliedLogPosition;
+import org.apache.jackrabbit.oak.segment.http.server.util.JsonParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
- * Service responsible for creating and restoring Aeron Cluster snapshots.
- * 
- * <p>Extracted from AeronConsensusEngine to isolate snapshot logic and improve testability.
- * Handles streaming TAR files and journal.log to snapshot publication, and restoring
- * state from snapshot images.
- * 
- * <p><strong>OSGi Component:</strong> Lifecycle managed, requires FileStore injection.
- * 
- * <p><strong>Responsibilities:</strong>
- * <ul>
- *   <li>Stream FileStore TAR files to Aeron snapshot publication</li>
- *   <li>Stream journal.log to snapshot publication</li>
- *   <li>Restore FileStore state from snapshot image</li>
- *   <li>Handle snapshot metadata (HEAD, epoch, timestamp)</li>
- * </ul>
+ * Writes and reads the clustered service's Aeron snapshot.
+ *
+ * <p>The snapshot holds only metadata: the Oak applied-log watermark, the leadership term and the Ethereum
+ * epoch in force, plus the Oak head record id for diagnostics. Oak content is never streamed: the store
+ * persists itself and records the watermark with every replicated merge, so on restart the store only has to
+ * be at least as far as the snapshot. Each member snapshots its own store at the same log position.
  */
-@Component(
-    service = SnapshotService.class,
-    immediate = true,
-    configurationPolicy = ConfigurationPolicy.OPTIONAL,
-    property = {
-        "service.description=Aeron Snapshot Service",
-        "service.vendor=Apache Software Foundation"
-    }
-)
 public class SnapshotService {
-    
+
     private static final Logger log = LoggerFactory.getLogger(SnapshotService.class);
-    
-    private FileStore fileStore;
-    private String storeDirectory;
-    
-    /**
-     * Snapshot state metadata.
-     */
-    public static class SnapshotState {
-        public final String head;
-        public final int epoch;
-        public final long timestamp;
-        public final int fileCount;
-        /** Aeron leadership term in force at the snapshot position, or -1 if the snapshot predates it. */
+    static final String FORMAT = "oak-applied-watermark-v1";
+
+    public static final class SnapshotState {
+        public final AppliedLogPosition applied;
+        /** Aeron leadership term in force at the snapshot position, or -1 if not yet known. */
         public final long leadershipTermId;
-        
-        public SnapshotState(String head, int epoch, long timestamp, int fileCount) {
-            this(head, epoch, timestamp, fileCount, -1L);
-        }
+        public final int epoch;
+        /** Oak head record id when the snapshot was taken; diagnostics only, never compared. */
+        public final String head;
 
-        public SnapshotState(String head, int epoch, long timestamp, int fileCount, long leadershipTermId) {
-            this.head = head;
-            this.epoch = epoch;
-            this.timestamp = timestamp;
-            this.fileCount = fileCount;
+        public SnapshotState(AppliedLogPosition applied, long leadershipTermId, int epoch, String head) {
+            this.applied = applied;
             this.leadershipTermId = leadershipTermId;
+            this.epoch = epoch;
+            this.head = head;
         }
     }
-    
+
     /**
-     * Create a new snapshot service (default constructor for OSGi).
+     * Offers the snapshot metadata. Uses Aeron's own snapshot offer loop: back pressure idles on the cluster
+     * idle strategy, a CLOSED, NOT_CONNECTED or MAX_POSITION_EXCEEDED publication throws ClusterException and an
+     * interrupt throws AgentTerminationException, so a failed snapshot is never acknowledged as taken.
      */
-    public SnapshotService() {
-        this.fileStore = null;
-        this.storeDirectory = null;
-    }
-    
-    /**
-     * Create a new snapshot service with dependencies (for programmatic use).
-     * 
-     * @param fileStore Oak FileStore instance
-     * @param storeDirectory path to segment store directory
-     */
-    public SnapshotService(FileStore fileStore, String storeDirectory) {
-        this.fileStore = fileStore;
-        this.storeDirectory = storeDirectory;
-    }
-    
-    /**
-     * OSGi lifecycle: Activate component.
-     */
-    @Activate
-    protected void activate() {
-        log.info("✅ SnapshotService activated: directory={}", storeDirectory);
-    }
-    
-    /**
-     * OSGi lifecycle: Deactivate component.
-     */
-    @Deactivate
-    protected void deactivate() {
-        log.info("✅ SnapshotService deactivated");
-    }
-    
-    /**
-     * Set FileStore (for OSGi injection).
-     */
-    public void setFileStore(FileStore fileStore) {
-        this.fileStore = fileStore;
-        log.debug("FileStore injected");
-    }
-    
-    /**
-     * Set store directory (for OSGi injection).
-     */
-    public void setStoreDirectory(String storeDirectory) {
-        this.storeDirectory = storeDirectory;
-        log.debug("Store directory set: {}", storeDirectory);
-    }
-    
-    /**
-     * Create a snapshot and stream to Aeron publication.
-     * 
-     * @param pub snapshot publication
-     * @param idleStrategy idle strategy for publication
-     * @throws Exception if snapshot creation fails
-     */
-    public void createSnapshot(ExclusivePublication pub, IdleStrategy idleStrategy) throws Exception {
-        createSnapshot(pub, idleStrategy, 0);
-    }
-    
-    /**
-     * Create a snapshot and stream to Aeron publication with epoch tracking.
-     * 
-     * @param pub snapshot publication
-     * @param idleStrategy idle strategy for publication
-     * @param currentEpoch current Ethereum epoch for snapshot metadata
-     * @throws Exception if snapshot creation fails
-     */
-    public void createSnapshot(ExclusivePublication pub, IdleStrategy idleStrategy, int currentEpoch) throws Exception {
-        createSnapshot(pub, idleStrategy, currentEpoch, -1L);
+    public void createSnapshot(ExclusivePublication publication, IdleStrategy idleStrategy, SnapshotState state) {
+        byte[] json = encode(state).getBytes(StandardCharsets.UTF_8);
+        UnsafeBuffer buffer = new UnsafeBuffer(new byte[SimpleMessageHeader.ENCODED_LENGTH + json.length]);
+        SimpleMessageHeader.encode(buffer, 0, json.length, SimpleMessageHeader.TEMPLATE_ID_SNAPSHOT);
+        buffer.putBytes(SimpleMessageHeader.ENCODED_LENGTH, json);
+        new MetadataWriter(publication, idleStrategy).write(buffer, buffer.capacity());
+        log.info("📸 Snapshot written: applied {}, term {}, head {}", state.applied, state.leadershipTermId, state.head);
     }
 
     /**
-     * Create a snapshot that also records the Aeron leadership term in force at the snapshot position.
-     * Log replay after loading the snapshot starts past that term's event, so the term must travel here.
+     * Reads the snapshot metadata to the end of the snapshot image.
      *
-     * @param leadershipTermId current leadership term, or -1 if unknown (not written)
-     */
-    public void createSnapshot(ExclusivePublication pub, IdleStrategy idleStrategy, int currentEpoch,
-                               long leadershipTermId) throws Exception {
-        log.info("📸 Creating Aeron snapshot...");
-        
-        // Get current HEAD
-        String currentHead = fileStore.getHead().getRecordId().toString();
-        long currentTimestamp = System.currentTimeMillis();
-        
-        log.info("Snapshot state - HEAD: {}, Epoch: {}, Dir: {}", currentHead, currentEpoch, storeDirectory);
-        
-        // Send metadata first
-        sendSnapshotMetadata(pub, idleStrategy, currentHead, currentEpoch, currentTimestamp, leadershipTermId);
-        
-        // Stream TAR files
-        streamTarFiles(pub, idleStrategy);
-        
-        // Stream journal.log
-        streamJournal(pub, idleStrategy);
-        
-        log.info("✅ Snapshot complete: head={}, epoch={}", currentHead, currentEpoch);
-    }
-    
-    /**
-     * Restore state from snapshot image.
-     * 
-     * <p>This method reads frames from the Aeron snapshot image and restores
-     * the FileStore state. The restoration process:
-     * <ol>
-     *   <li>Read metadata frame (HEAD, epoch, timestamp)</li>
-     *   <li>Read TAR file frames and write to storeDirectory</li>
-     *   <li>Read journal.log frame and write to storeDirectory</li>
-     *   <li>Return SnapshotState for verification</li>
-     * </ol>
-     * 
-     * <p><strong>Test Scenarios:</strong>
-     * <ul>
-     *   <li><strong>Empty node joining:</strong> Node with no data receives full snapshot</li>
-     *   <li><strong>Stale node rejoining:</strong> Node behind on log receives snapshot to catch up</li>
-     *   <li><strong>Node recovery after crash:</strong> Node restores from last snapshot</li>
-     * </ul>
-     * 
-     * @param snapshotImage Aeron snapshot image
-     * @return snapshot state metadata, or null if restoration fails
-     */
-    public SnapshotState restoreSnapshot(Image snapshotImage) {
-        return restoreSnapshot(snapshotImage, new org.agrona.concurrent.BusySpinIdleStrategy());
-    }
-
-    /**
-     * Restore state from snapshot image with explicit idle strategy.
-     *
-     * @param snapshotImage Aeron snapshot image
-     * @param idleStrategy idle strategy for polling the snapshot image
-     * @return snapshot state metadata, or null if restoration fails
+     * @throws ClusterException if the image holds no metadata in this format
      */
     public SnapshotState restoreSnapshot(Image snapshotImage, IdleStrategy idleStrategy) {
-        log.info("📦 Restoring from Aeron snapshot...");
-
-        if (storeDirectory == null) {
-            log.error("Cannot restore snapshot: storeDirectory not set");
-            return null;
-        }
-
-        File storeDir = new File(storeDirectory);
-        if (!storeDir.exists() && !storeDir.mkdirs()) {
-            log.error("Cannot create store directory: {}", storeDirectory);
-            return null;
-        }
-        SnapshotRestoreSession restoreSession = new SnapshotRestoreSession(storeDir);
-
-        io.aeron.FragmentAssembler fragmentAssembler = new io.aeron.FragmentAssembler(
-            (buffer, offset, length, header) -> {
-                try {
-                    restoreSession.onFragment(buffer, offset, length);
-                } catch (Exception e) {
-                    log.error("❌ Failed to process snapshot fragment", e);
-                }
+        SnapshotState[] state = new SnapshotState[1];
+        FragmentAssembler assembler = new FragmentAssembler((buffer, offset, length, header) -> {
+            String payload = payload(buffer, offset, length);
+            if (payload != null) {
+                state[0] = decode(payload);
             }
-        );
-
-        IdleStrategy strategy = idleStrategy != null
-            ? idleStrategy
-            : new org.agrona.concurrent.BusySpinIdleStrategy();
-
-        strategy.reset();
-        int fragmentsPolled = 0;
-        while (!snapshotImage.isEndOfStream()) {
-            int fragments = snapshotImage.poll(fragmentAssembler, 20);
-            if (fragments > 0) {
-                fragmentsPolled += fragments;
-            }
-            strategy.idle(fragments);
-        }
-        try {
-            SnapshotState snapshotState = restoreSession.complete();
-            if (snapshotState == null) {
-                return null;
-            }
-
-            log.info("✅ Snapshot restored: head={}, epoch={}, files={}, fragments={}",
-                snapshotState.head, snapshotState.epoch, snapshotState.fileCount, fragmentsPolled);
-            return snapshotState;
-        } finally {
-            restoreSession.close();
-        }
-    }
-    
-    /**
-     * Check if a node needs snapshot restoration.
-     * 
-     * <p>This is used to determine if a node joining the cluster should
-     * request a snapshot instead of replaying the entire log.</p>
-     * 
-     * @param localHead current local HEAD (null if empty)
-     * @param clusterHead cluster's current HEAD
-     * @param logPosition current log position
-     * @param clusterLogPosition cluster's log position
-     * @return true if snapshot restoration is recommended
-     */
-    public boolean needsSnapshotRestoration(String localHead, String clusterHead,
-                                           long logPosition, long clusterLogPosition) {
-        // Empty node - definitely needs snapshot
-        if (localHead == null || localHead.isEmpty()) {
-            log.info("🔄 Empty node detected - snapshot restoration required");
-            return true;
-        }
-        
-        // Stale node - too far behind on log
-        long logGap = clusterLogPosition - logPosition;
-        long SNAPSHOT_THRESHOLD = 1000; // If more than 1000 entries behind, use snapshot
-        
-        if (logGap > SNAPSHOT_THRESHOLD) {
-            log.info("🔄 Stale node detected - {} entries behind, snapshot restoration recommended", logGap);
-            return true;
-        }
-        
-        // Node is reasonably up-to-date, can replay log
-        return false;
-    }
-    
-    /**
-     * Validate restored snapshot against expected state.
-     * 
-     * @param restored the restored snapshot state
-     * @param expectedHead expected HEAD (from cluster)
-     * @return true if snapshot is valid
-     */
-    public boolean validateSnapshot(SnapshotState restored, String expectedHead) {
-        if (restored == null) {
-            log.error("Snapshot validation failed: null state");
-            return false;
-        }
-        
-        if (restored.head == null || restored.head.isEmpty()) {
-            log.error("Snapshot validation failed: no HEAD in restored state");
-            return false;
-        }
-        
-        if (expectedHead != null && !restored.head.equals(expectedHead)) {
-            log.warn("Snapshot HEAD mismatch: restored={}, expected={}", restored.head, expectedHead);
-            // This might be okay if the snapshot is slightly behind
-        }
-        
-        if (restored.fileCount == 0) {
-            log.warn("Snapshot validation warning: no files restored");
-        }
-        
-        log.info("✅ Snapshot validated: head={}, epoch={}, files={}", 
-                restored.head, restored.epoch, restored.fileCount);
-        return true;
-    }
-    
-    /**
-     * Send snapshot metadata frame with SBE header.
-     */
-    private void sendSnapshotMetadata(ExclusivePublication pub, IdleStrategy idleStrategy,
-                                     String head, int epoch, long timestamp,
-                                     long leadershipTermId) throws Exception {
-        
-        // Use ethereumEpoch field name for compatibility with AeronConsensusEngine
-        String json = String.format("{\"type\":\"metadata\",\"head\":\"%s\",\"ethereumEpoch\":%d,\"timestamp\":%d%s}",
-                                   head, epoch, timestamp,
-                                   leadershipTermId >= 0 ? ",\"leadershipTermId\":" + leadershipTermId : "");
-        
-        byte[] jsonBytes = json.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-        int totalLength = SimpleMessageHeader.ENCODED_LENGTH + jsonBytes.length;
-        UnsafeBuffer buffer = new UnsafeBuffer(new byte[totalLength]);
-        
-        // Encode SBE header
-        SimpleMessageHeader.encode(buffer, 0, jsonBytes.length, SimpleMessageHeader.TEMPLATE_ID_SNAPSHOT);
-        
-        // Copy JSON payload after header
-        buffer.putBytes(SimpleMessageHeader.ENCODED_LENGTH, jsonBytes);
-        
-        offerWithRetry(pub, idleStrategy, buffer, 0, totalLength);
-        
-        log.debug("📤 Sent snapshot metadata: head={}", head);
-    }
-    
-    /**
-     * Stream all TAR files to snapshot publication.
-     */
-    private void streamTarFiles(ExclusivePublication pub, IdleStrategy idleStrategy) throws Exception {
-        File storeDir = new File(storeDirectory);
-        File[] tarFiles = storeDir.listFiles((dir, name) -> name.endsWith(".tar"));
-        
-        if (tarFiles == null || tarFiles.length == 0) {
-            log.debug("No TAR files to stream");
-            return;
-        }
-        
-        log.info("📤 Streaming {} TAR files...", tarFiles.length);
-        
-        for (File tarFile : tarFiles) {
-            streamFile(pub, idleStrategy, tarFile, "tar");
-        }
-    }
-    
-    /**
-     * Stream journal.log to snapshot publication.
-     */
-    private void streamJournal(ExclusivePublication pub, IdleStrategy idleStrategy) throws Exception {
-        File journalFile = new File(storeDirectory, "journal.log");
-        
-        if (!journalFile.exists()) {
-            log.debug("No journal.log to stream");
-            return;
-        }
-        
-        log.info("📤 Streaming journal.log...");
-        streamFile(pub, idleStrategy, journalFile, "journal");
-    }
-    
-    /**
-     * Stream a single file to snapshot publication with SBE header.
-     * 
-     * <p>First sends a file_header JSON message, then streams file chunks.
-     */
-    private void streamFile(ExclusivePublication pub, IdleStrategy idleStrategy, 
-                           File file, String fileType) throws Exception {
-        
-        final int CHUNK_SIZE = 1024 * 1024; // 1 MB chunks
-        byte[] chunkBuffer = new byte[CHUNK_SIZE];
-        
-        // Send file header first
-        String headerJson = String.format(
-            "{\"type\":\"file_header\",\"fileType\":\"%s\",\"fileName\":\"%s\",\"fileSize\":%d}",
-            fileType, file.getName(), file.length()
-        );
-        byte[] headerBytes = headerJson.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-        int headerTotalLength = SimpleMessageHeader.ENCODED_LENGTH + headerBytes.length;
-        UnsafeBuffer headerBuffer = new UnsafeBuffer(new byte[headerTotalLength]);
-        SimpleMessageHeader.encode(headerBuffer, 0, headerBytes.length, SimpleMessageHeader.TEMPLATE_ID_SNAPSHOT);
-        headerBuffer.putBytes(SimpleMessageHeader.ENCODED_LENGTH, headerBytes);
-        offerWithRetry(pub, idleStrategy, headerBuffer, 0, headerTotalLength);
-        
-        // Stream file chunks
-        try (FileInputStream fis = new FileInputStream(file)) {
-            long totalBytes = 0;
-            int bytesRead;
-            
-            while ((bytesRead = fis.read(chunkBuffer)) != -1) {
-                // Chunk format: [SBE header][chunk data]
-                int chunkTotalLength = SimpleMessageHeader.ENCODED_LENGTH + bytesRead;
-                UnsafeBuffer buffer = new UnsafeBuffer(new byte[chunkTotalLength]);
-                
-                // Encode SBE header
-                SimpleMessageHeader.encode(buffer, 0, bytesRead, SimpleMessageHeader.TEMPLATE_ID_SNAPSHOT);
-                
-                // Copy chunk data
-                buffer.putBytes(SimpleMessageHeader.ENCODED_LENGTH, chunkBuffer, 0, bytesRead);
-                
-                offerWithRetry(pub, idleStrategy, buffer, 0, chunkTotalLength);
-                
-                totalBytes += bytesRead;
-            }
-            
-            log.debug("✅ Streamed {}: {} bytes", file.getName(), totalBytes);
-        }
-    }
-    
-    /**
-     * Offer buffer to publication with retry.
-     */
-    private void offerWithRetry(ExclusivePublication pub, IdleStrategy idleStrategy,
-                               UnsafeBuffer buffer, int offset, int length) {
-        
+        });
         idleStrategy.reset();
-        while (pub.offer(buffer, offset, length) < 0) {
-            idleStrategy.idle();
+        while (!snapshotImage.isEndOfStream()) {
+            idleStrategy.idle(snapshotImage.poll(assembler, 10));
+        }
+        if (state[0] == null) {
+            throw new ClusterException("Aeron snapshot holds no " + FORMAT + " metadata");
+        }
+        log.info("📦 Snapshot read: applied {}, term {}, head {}", state[0].applied, state[0].leadershipTermId,
+            state[0].head);
+        return state[0];
+    }
+
+    static String encode(SnapshotState state) {
+        Map<String, Object> json = new LinkedHashMap<>();
+        json.put("format", FORMAT);
+        json.put("appliedLogPosition", state.applied.position());
+        json.put("appliedLogItem", (long) state.applied.item());
+        json.put("appliedTerm", state.applied.term());
+        json.put("leadershipTermId", state.leadershipTermId);
+        json.put("ethereumEpoch", (long) state.epoch);
+        json.put("head", state.head);
+        return JsonParser.toJson(json);
+    }
+
+    static SnapshotState decode(String payload) {
+        Map<String, Object> json = JsonParser.parseObject(payload);
+        if (!FORMAT.equals(json.get("format"))) {
+            throw new ClusterException("unsupported Aeron snapshot format: " + json.get("format")
+                + " (expected " + FORMAT + "; snapshots that streamed store files are no longer restored)");
+        }
+        AppliedLogPosition applied = new AppliedLogPosition(
+            number(json, "appliedLogPosition"), (int) number(json, "appliedLogItem"), number(json, "appliedTerm"));
+        Object head = json.get("head");
+        return new SnapshotState(applied, number(json, "leadershipTermId"), (int) number(json, "ethereumEpoch"),
+            head instanceof String ? (String) head : null);
+    }
+
+    private static long number(Map<String, Object> json, String field) {
+        Object value = json.get(field);
+        if (!(value instanceof Number)) {
+            throw new ClusterException("Aeron snapshot metadata is missing " + field);
+        }
+        return ((Number) value).longValue();
+    }
+
+    private static String payload(DirectBuffer buffer, int offset, int length) {
+        if (length < SimpleMessageHeader.ENCODED_LENGTH
+                || SimpleMessageHeader.decode(buffer, offset).templateId != SimpleMessageHeader.TEMPLATE_ID_SNAPSHOT) {
+            return null;
+        }
+        byte[] bytes = new byte[length - SimpleMessageHeader.ENCODED_LENGTH];
+        buffer.getBytes(offset + SimpleMessageHeader.ENCODED_LENGTH, bytes);
+        return new String(bytes, StandardCharsets.UTF_8);
+    }
+
+    private static final class MetadataWriter extends SnapshotTaker {
+        MetadataWriter(ExclusivePublication publication, IdleStrategy idleStrategy) {
+            super(publication, idleStrategy, null);
+        }
+
+        void write(DirectBuffer buffer, int length) {
+            offer(buffer, 0, length);
         }
     }
 }

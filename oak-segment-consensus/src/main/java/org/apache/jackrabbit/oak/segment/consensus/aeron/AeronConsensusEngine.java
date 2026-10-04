@@ -149,6 +149,8 @@ public class AeronConsensusEngine implements ClusteredService {
     private AeronInternalClusterClientConnector internalClusterClientConnector;
     private final AeronInternalIngressClientManager internalIngressClientManager;
     private final HeadStateService headStateService;
+    private SnapshotTrigger snapshotTrigger =
+        SnapshotTrigger.fromSystemProperties(() -> SnapshotTrigger.toggleSnapshot(this.cluster), System.currentTimeMillis());
     
     // Aeron Cluster components
     private Cluster cluster;
@@ -301,7 +303,7 @@ public class AeronConsensusEngine implements ClusteredService {
             String storeDirectory,
             org.apache.jackrabbit.oak.spi.blob.BlobStore blobStore) {
         this(fileStore, nodeStore, selfUrl, peerUrls, wallet, storeDirectory, blobStore,
-            AeronEngineComponentFactory.createSnapshotService(fileStore, storeDirectory),
+            AeronEngineComponentFactory.createSnapshotService(),
             new AeronBackgroundCoordinator());
     }
 
@@ -349,7 +351,7 @@ public class AeronConsensusEngine implements ClusteredService {
         // ✅ PRODUCTION REFACTOR: Initialize service layer components
         this.snapshotService = snapshotService != null
             ? snapshotService
-            : AeronEngineComponentFactory.createSnapshotService(fileStore, storeDirectory);
+            : AeronEngineComponentFactory.createSnapshotService();
         this.genesisInitializer = new AeronGenesisInitializer(fileStore, nodeStore, blobStore);
         this.backgroundCoordinator = backgroundCoordinator != null
             ? backgroundCoordinator
@@ -748,58 +750,37 @@ public class AeronConsensusEngine implements ClusteredService {
         log.info("Aeron Cluster service started successfully");
     }
 
+    /**
+     * Reads the snapshot metadata. Store files are never touched: the Oak store persists itself, and the log is
+     * replayed only after the snapshot position, so the store must already hold everything up to the snapshot.
+     */
     private void restoreSnapshotOnStart(Image snapshotImage) {
-        log.info("Loading snapshot from image");
-
+        SnapshotService.SnapshotState snapshot;
         try {
-            SnapshotService.SnapshotState snapshotState = snapshotService.restoreSnapshot(
-                snapshotImage,
-                idleStrategy != null ? idleStrategy : new org.agrona.concurrent.BusySpinIdleStrategy()
-            );
-
-            if (snapshotState == null) {
-                log.warn("Snapshot image present but no snapshot data found - starting fresh");
-                return;
-            }
-
-            log.info(
-                "Snapshot metadata - HEAD: {}, Epoch: {}, Timestamp: {}",
-                snapshotState.head,
-                snapshotState.epoch,
-                snapshotState.timestamp
-            );
-            verifySnapshotHead(snapshotState);
-            currentEthereumEpoch = snapshotState.epoch;
-            // Log replay resumes after the snapshot position, past the term event in force, so restore it here.
-            if (snapshotState.leadershipTermId >= 0) {
-                currentTerm = (int) snapshotState.leadershipTermId;
-                leadershipTermKnown = true;
-            }
-            log.info("Snapshot loaded successfully - HEAD verified: {}", snapshotState.head);
-        } catch (Exception e) {
-            log.error("Failed to load snapshot", e);
+            snapshot = snapshotService.restoreSnapshot(snapshotImage, idleStrategy());
+        } catch (RuntimeException e) {
             throw new RuntimeException("Snapshot load failed - cannot start with inconsistent state", e);
         }
+        AppliedLogPosition store = messageDispatcher.getReplayFloor();
+        if (store.compareTo(snapshot.applied) < 0) {
+            throw new IllegalStateException(String.format(
+                "Oak store is behind the Aeron snapshot: store applied %s, snapshot applied %s. The log is replayed "
+                    + "only after the snapshot, so the missing entries would never be applied. Restore the Oak store "
+                    + "that belongs to this cluster directory, or start with --fresh to reset both.",
+                store, snapshot.applied));
+        }
+        currentEthereumEpoch = snapshot.epoch;
+        // Log replay resumes after the snapshot position, past the term event in force, so restore it here.
+        if (snapshot.leadershipTermId >= 0) {
+            currentTerm = (int) snapshot.leadershipTermId;
+            leadershipTermKnown = true;
+        }
+        log.info("Snapshot loaded: snapshot applied {}, store applied {}, term {}", snapshot.applied, store,
+            snapshot.leadershipTermId);
     }
 
-    private void verifySnapshotHead(SnapshotService.SnapshotState snapshotState) {
-        String fileStoreHead = fileStore.getHead().getRecordId().toString();
-        if (snapshotState.head.equals(fileStoreHead)) {
-            return;
-        }
-
-        log.error(
-            "CRITICAL: HEAD mismatch - Snapshot: {}, FileStore: {}. Validators must start from identical state. Solution: Copy segmentstore from validator-0 before starting.",
-            snapshotState.head,
-            fileStoreHead
-        );
-        throw new IllegalStateException(
-            String.format(
-                "FileStore HEAD (%s) doesn't match snapshot HEAD (%s). Validators must start from identical state. Copy segmentstore from validator-0 to other validators before starting.",
-                fileStoreHead,
-                snapshotState.head
-            )
-        );
+    private IdleStrategy idleStrategy() {
+        return idleStrategy != null ? idleStrategy : new org.agrona.concurrent.BusySpinIdleStrategy();
     }
     
     @Override
@@ -823,23 +804,23 @@ public class AeronConsensusEngine implements ClusteredService {
         internalIngressClientManager.handleClusterSessionClose(session.id(), closeReason);
     }
     
+    /**
+     * Invoked on every member at the same log position when the leader's consensus module appends a SNAPSHOT
+     * action. Writes only the applied watermark and term, after Oak is flushed so the persisted store is at least
+     * that far. Any failure propagates: Aeron then acknowledges the snapshot as failed and does not record it.
+     */
     @Override
     public void onTakeSnapshot(io.aeron.ExclusivePublication snapshotPublication) {
-        log.info("Taking FileStore snapshot");
-        
+        AppliedLogPosition applied = AppliedLogPosition.read(nodeStore.getRoot());
         try {
-            // Use idleStrategy if available
-            org.agrona.concurrent.IdleStrategy strategy = idleStrategy != null 
-                ? idleStrategy 
-                : new org.agrona.concurrent.BusySpinIdleStrategy();
-            
-            // ✅ REFACTORED: Delegate to SnapshotService
-            snapshotService.createSnapshot(
-                snapshotPublication, strategy, currentEthereumEpoch, leadershipTermKnown ? currentTerm : -1L);
-            
-        } catch (Exception e) {
-            log.error("Failed to take snapshot", e);
+            fileStore.flush();
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException("Oak flush before Aeron snapshot failed", e);
         }
+        snapshotService.createSnapshot(snapshotPublication, idleStrategy(), new SnapshotService.SnapshotState(
+            applied, leadershipTermKnown ? currentTerm : -1L, currentEthereumEpoch,
+            fileStore.getHead().getRecordId().toString10()));
+        snapshotTrigger.onSnapshotTaken(System.currentTimeMillis());
     }
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -854,6 +835,8 @@ public class AeronConsensusEngine implements ClusteredService {
         // Deterministic state machine: ALL nodes process messages in same order
         if (ingressHandler != null) {
             ingressHandler.handleMessage(session, timestamp, buffer, offset, length, header, cluster);
+            snapshotTrigger.onEntryApplied(cluster != null && cluster.role() == Cluster.Role.LEADER,
+                System.currentTimeMillis());
         } else {
             markHeartbeat();
             log.debug("📨 onSessionMessage() called - session: {}, length: {}, role: {}, timestamp: {}",

@@ -16,355 +16,140 @@
  */
 package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
-import org.junit.Before;
+import io.aeron.ExclusivePublication;
+import io.aeron.FragmentAssembler;
+import io.aeron.Image;
+import io.aeron.Publication;
+import io.aeron.cluster.client.ClusterException;
+import io.aeron.logbuffer.Header;
+import org.agrona.DirectBuffer;
+import org.agrona.concurrent.AgentTerminationException;
+import org.agrona.concurrent.IdleStrategy;
+import org.agrona.concurrent.UnsafeBuffer;
+import org.apache.jackrabbit.oak.segment.consensus.service.AppliedLogPosition;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import java.nio.charset.StandardCharsets;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for {@link SnapshotService}.
- * 
- * <p>Tests cover:
- * <ul>
- *   <li>Snapshot state metadata</li>
- *   <li>Snapshot restoration decision logic</li>
- *   <li>Snapshot validation</li>
- * </ul>
- * 
- * <p><strong>Test Scenarios for Cluster Restoration:</strong>
- * <ol>
- *   <li><strong>Empty node joining:</strong> A new node with no data joins the cluster
- *       and needs to receive a full snapshot to bootstrap.</li>
- *   <li><strong>Stale node rejoining:</strong> A node that was offline for a while
- *       rejoins and is too far behind on the log to replay efficiently.</li>
- *   <li><strong>Node recovery after crash:</strong> A node that crashed restores
- *       from its last snapshot and replays recent log entries.</li>
- * </ol>
+ * The service snapshot carries only the applied-log watermark, the term and diagnostics; never store files.
  */
 public class SnapshotServiceTest {
-    
-    private SnapshotService snapshotService;
-    
-    @Before
-    public void setUp() {
-        snapshotService = new SnapshotService();
-    }
-    
-    // ========================================================================
-    // SnapshotState Tests
-    // ========================================================================
-    
+
+    private final SnapshotService service = new SnapshotService();
+
     @Test
-    public void testSnapshotStateCreation() {
-        SnapshotService.SnapshotState state = new SnapshotService.SnapshotState(
-            "abc123", 42, System.currentTimeMillis(), 5
-        );
-        
-        assertEquals("abc123", state.head);
-        assertEquals(42, state.epoch);
-        assertEquals(5, state.fileCount);
-        assertTrue(state.timestamp > 0);
+    public void metadataRoundTripsThroughThePublicationAndTheSnapshotImage() {
+        SnapshotService.SnapshotState written =
+            new SnapshotService.SnapshotState(new AppliedLogPosition(4096L, 2, 3L), 4L, 17, "head-1");
+        ExclusivePublication publication = mock(ExclusivePublication.class);
+        byte[][] offered = new byte[1][];
+        when(publication.offer(any(DirectBuffer.class), anyInt(), anyInt())).thenAnswer(invocation -> {
+            DirectBuffer buffer = invocation.getArgument(0);
+            offered[0] = new byte[(int) invocation.getArgument(2)];
+            buffer.getBytes((int) invocation.getArgument(1), offered[0]);
+            return 128L;
+        });
+
+        service.createSnapshot(publication, mock(IdleStrategy.class), written);
+        SnapshotService.SnapshotState read = service.restoreSnapshot(imageOf(offered[0]), mock(IdleStrategy.class));
+
+        assertEquals(written.applied, read.applied);
+        assertEquals(4L, read.leadershipTermId);
+        assertEquals(17, read.epoch);
+        assertEquals("head-1", read.head);
+        verify(publication, times(1)).offer(any(DirectBuffer.class), anyInt(), anyInt());
     }
-    
+
     @Test
-    public void testSnapshotStateNullHead() {
-        SnapshotService.SnapshotState state = new SnapshotService.SnapshotState(
-            null, 0, System.currentTimeMillis(), 0
-        );
-        
-        assertNull(state.head);
-        assertEquals(0, state.epoch);
-        assertEquals(0, state.fileCount);
+    public void backPressureIsRetriedOnTheIdleStrategy() {
+        ExclusivePublication publication = mock(ExclusivePublication.class);
+        when(publication.offer(any(DirectBuffer.class), anyInt(), anyInt()))
+            .thenReturn(Publication.BACK_PRESSURED, Publication.ADMIN_ACTION, 64L);
+        IdleStrategy idle = mock(IdleStrategy.class);
+
+        service.createSnapshot(publication, idle, state());
+
+        verify(idle, times(2)).idle();
     }
-    
-    // ========================================================================
-    // needsSnapshotRestoration Tests
-    // ========================================================================
-    
+
     @Test
-    public void testEmptyNodeNeedsSnapshot() {
-        // Scenario: Empty node joining cluster
-        boolean needsSnapshot = snapshotService.needsSnapshotRestoration(
-            null,           // localHead - empty
-            "abc123",       // clusterHead
-            0,              // logPosition
-            5000            // clusterLogPosition
-        );
-        
-        assertTrue("Empty node should need snapshot", needsSnapshot);
+    public void closedOrFullPublicationFailsTheSnapshot() {
+        for (long result : new long[] {Publication.CLOSED, Publication.MAX_POSITION_EXCEEDED, Publication.NOT_CONNECTED}) {
+            ExclusivePublication publication = mock(ExclusivePublication.class);
+            when(publication.offer(any(DirectBuffer.class), anyInt(), anyInt())).thenReturn(result);
+            try {
+                service.createSnapshot(publication, mock(IdleStrategy.class), state());
+                fail("Expected failure for offer result " + result);
+            } catch (ClusterException expected) {
+                // the snapshot is not acknowledged as taken
+            }
+        }
     }
-    
-    @Test
-    public void testEmptyStringHeadNeedsSnapshot() {
-        boolean needsSnapshot = snapshotService.needsSnapshotRestoration(
-            "",             // localHead - empty string
-            "abc123",       // clusterHead
-            0,              // logPosition
-            5000            // clusterLogPosition
-        );
-        
-        assertTrue("Empty string head should need snapshot", needsSnapshot);
+
+    @Test(expected = AgentTerminationException.class)
+    public void agentTerminationFromTheIdleStrategyIsRethrown() {
+        ExclusivePublication publication = mock(ExclusivePublication.class);
+        when(publication.offer(any(DirectBuffer.class), anyInt(), anyInt())).thenReturn(Publication.BACK_PRESSURED);
+        IdleStrategy idle = mock(IdleStrategy.class);
+        doThrow(new AgentTerminationException("interrupted")).when(idle).idle();
+
+        service.createSnapshot(publication, idle, state());
     }
-    
+
     @Test
-    public void testStaleNodeNeedsSnapshot() {
-        // Scenario: Stale node rejoining - too far behind
-        boolean needsSnapshot = snapshotService.needsSnapshotRestoration(
-            "old-head",     // localHead
-            "new-head",     // clusterHead
-            100,            // logPosition - far behind
-            5000            // clusterLogPosition
-        );
-        
-        assertTrue("Stale node (4900 entries behind) should need snapshot", needsSnapshot);
+    public void snapshotWithoutWatermarkMetadataIsRejected() {
+        String legacy = "{\"type\":\"metadata\",\"head\":\"h\",\"ethereumEpoch\":1,\"timestamp\":2}";
+        try {
+            service.restoreSnapshot(imageOf(frame(legacy)), mock(IdleStrategy.class));
+            fail("Expected the store-streaming snapshot format to be rejected");
+        } catch (ClusterException e) {
+            assertTrue(e.getMessage(), e.getMessage().contains("unsupported"));
+        }
+        try {
+            service.restoreSnapshot(imageOf(null), mock(IdleStrategy.class));
+            fail("Expected an empty snapshot to be rejected");
+        } catch (ClusterException e) {
+            assertTrue(e.getMessage(), e.getMessage().contains("no"));
+        }
     }
-    
-    @Test
-    public void testSlightlyBehindNodeDoesNotNeedSnapshot() {
-        // Scenario: Node is slightly behind but can replay log
-        boolean needsSnapshot = snapshotService.needsSnapshotRestoration(
-            "recent-head",  // localHead
-            "new-head",     // clusterHead
-            4500,           // logPosition - only 500 behind
-            5000            // clusterLogPosition
-        );
-        
-        assertFalse("Node only 500 entries behind should not need snapshot", needsSnapshot);
+
+    private static SnapshotService.SnapshotState state() {
+        return new SnapshotService.SnapshotState(new AppliedLogPosition(64L, 0, 0L), 0L, -1, "head");
     }
-    
-    @Test
-    public void testUpToDateNodeDoesNotNeedSnapshot() {
-        // Scenario: Node is up-to-date
-        boolean needsSnapshot = snapshotService.needsSnapshotRestoration(
-            "current-head", // localHead
-            "current-head", // clusterHead
-            5000,           // logPosition
-            5000            // clusterLogPosition
-        );
-        
-        assertFalse("Up-to-date node should not need snapshot", needsSnapshot);
+
+    private static byte[] frame(String json) {
+        byte[] payload = json.getBytes(StandardCharsets.UTF_8);
+        UnsafeBuffer buffer = new UnsafeBuffer(new byte[SimpleMessageHeader.ENCODED_LENGTH + payload.length]);
+        SimpleMessageHeader.encode(buffer, 0, payload.length, SimpleMessageHeader.TEMPLATE_ID_SNAPSHOT);
+        buffer.putBytes(SimpleMessageHeader.ENCODED_LENGTH, payload);
+        return buffer.byteArray();
     }
-    
-    @Test
-    public void testExactlyAtThresholdNeedsSnapshot() {
-        // Scenario: Node is exactly at the threshold (1000 entries behind)
-        boolean needsSnapshot = snapshotService.needsSnapshotRestoration(
-            "old-head",     // localHead
-            "new-head",     // clusterHead
-            4000,           // logPosition - exactly 1000 behind
-            5000            // clusterLogPosition
-        );
-        
-        assertFalse("Node exactly at threshold should not need snapshot", needsSnapshot);
-    }
-    
-    @Test
-    public void testJustOverThresholdNeedsSnapshot() {
-        // Scenario: Node is just over the threshold (1001 entries behind)
-        boolean needsSnapshot = snapshotService.needsSnapshotRestoration(
-            "old-head",     // localHead
-            "new-head",     // clusterHead
-            3999,           // logPosition - 1001 behind
-            5000            // clusterLogPosition
-        );
-        
-        assertTrue("Node 1001 entries behind should need snapshot", needsSnapshot);
-    }
-    
-    // ========================================================================
-    // validateSnapshot Tests
-    // ========================================================================
-    
-    @Test
-    public void testValidateSnapshotSuccess() {
-        SnapshotService.SnapshotState state = new SnapshotService.SnapshotState(
-            "abc123", 42, System.currentTimeMillis(), 5
-        );
-        
-        boolean valid = snapshotService.validateSnapshot(state, "abc123");
-        
-        assertTrue("Valid snapshot should pass validation", valid);
-    }
-    
-    @Test
-    public void testValidateSnapshotNullState() {
-        boolean valid = snapshotService.validateSnapshot(null, "abc123");
-        
-        assertFalse("Null state should fail validation", valid);
-    }
-    
-    @Test
-    public void testValidateSnapshotNullHead() {
-        SnapshotService.SnapshotState state = new SnapshotService.SnapshotState(
-            null, 42, System.currentTimeMillis(), 5
-        );
-        
-        boolean valid = snapshotService.validateSnapshot(state, "abc123");
-        
-        assertFalse("Null head should fail validation", valid);
-    }
-    
-    @Test
-    public void testValidateSnapshotEmptyHead() {
-        SnapshotService.SnapshotState state = new SnapshotService.SnapshotState(
-            "", 42, System.currentTimeMillis(), 5
-        );
-        
-        boolean valid = snapshotService.validateSnapshot(state, "abc123");
-        
-        assertFalse("Empty head should fail validation", valid);
-    }
-    
-    @Test
-    public void testValidateSnapshotHeadMismatch() {
-        // Head mismatch is a warning, not a failure (snapshot might be slightly behind)
-        SnapshotService.SnapshotState state = new SnapshotService.SnapshotState(
-            "old-head", 42, System.currentTimeMillis(), 5
-        );
-        
-        boolean valid = snapshotService.validateSnapshot(state, "new-head");
-        
-        assertTrue("Head mismatch should still pass (warning only)", valid);
-    }
-    
-    @Test
-    public void testValidateSnapshotNullExpectedHead() {
-        SnapshotService.SnapshotState state = new SnapshotService.SnapshotState(
-            "abc123", 42, System.currentTimeMillis(), 5
-        );
-        
-        boolean valid = snapshotService.validateSnapshot(state, null);
-        
-        assertTrue("Null expected head should pass (no comparison)", valid);
-    }
-    
-    @Test
-    public void testValidateSnapshotZeroFiles() {
-        // Zero files is a warning, not a failure
-        SnapshotService.SnapshotState state = new SnapshotService.SnapshotState(
-            "abc123", 42, System.currentTimeMillis(), 0
-        );
-        
-        boolean valid = snapshotService.validateSnapshot(state, "abc123");
-        
-        assertTrue("Zero files should still pass (warning only)", valid);
-    }
-    
-    // ========================================================================
-    // Service Lifecycle Tests
-    // ========================================================================
-    
-    @Test
-    public void testServiceCreation() {
-        SnapshotService service = new SnapshotService();
-        assertNotNull(service);
-    }
-    
-    @Test
-    public void testServiceWithDependencies() {
-        // Note: FileStore is complex to mock, so we just test null handling
-        SnapshotService service = new SnapshotService(null, "/tmp/test-store");
-        assertNotNull(service);
-    }
-    
-    @Test
-    public void testSetStoreDirectory() {
-        SnapshotService service = new SnapshotService();
-        service.setStoreDirectory("/tmp/test-store");
-        // No exception means success
-    }
-    
-    // ========================================================================
-    // Restoration Scenario Documentation
-    // ========================================================================
-    
-    /**
-     * Test scenario: Empty node joining cluster.
-     * 
-     * <p>Steps:
-     * <ol>
-     *   <li>New node starts with empty FileStore</li>
-     *   <li>Node connects to Aeron cluster</li>
-     *   <li>needsSnapshotRestoration() returns true (localHead is null)</li>
-     *   <li>Node requests snapshot from leader</li>
-     *   <li>Leader streams TAR files and journal.log</li>
-     *   <li>Node restores files to storeDirectory</li>
-     *   <li>Node validates snapshot and starts serving</li>
-     * </ol>
-     */
-    @Test
-    public void documentEmptyNodeJoiningScenario() {
-        // This test documents the expected flow
-        
-        // Step 1: Check if restoration needed
-        boolean needsSnapshot = snapshotService.needsSnapshotRestoration(
-            null, "cluster-head", 0, 5000
-        );
-        assertTrue(needsSnapshot);
-        
-        // Step 2: After restoration, validate
-        SnapshotService.SnapshotState restored = new SnapshotService.SnapshotState(
-            "cluster-head", 42, System.currentTimeMillis(), 10
-        );
-        boolean valid = snapshotService.validateSnapshot(restored, "cluster-head");
-        assertTrue(valid);
-    }
-    
-    /**
-     * Test scenario: Stale node rejoining cluster.
-     * 
-     * <p>Steps:
-     * <ol>
-     *   <li>Node was offline for extended period</li>
-     *   <li>Node reconnects to Aeron cluster</li>
-     *   <li>needsSnapshotRestoration() returns true (log gap > threshold)</li>
-     *   <li>Node requests snapshot instead of replaying entire log</li>
-     *   <li>After snapshot, node replays recent log entries</li>
-     * </ol>
-     */
-    @Test
-    public void documentStaleNodeRejoiningScenario() {
-        // This test documents the expected flow
-        
-        // Step 1: Check if restoration needed (5000 entries behind)
-        boolean needsSnapshot = snapshotService.needsSnapshotRestoration(
-            "old-head", "new-head", 0, 5000
-        );
-        assertTrue(needsSnapshot);
-        
-        // Step 2: After restoration, validate
-        SnapshotService.SnapshotState restored = new SnapshotService.SnapshotState(
-            "snapshot-head", 40, System.currentTimeMillis(), 10
-        );
-        boolean valid = snapshotService.validateSnapshot(restored, "snapshot-head");
-        assertTrue(valid);
-        
-        // Step 3: Node would then replay log entries from snapshot-head to new-head
-    }
-    
-    /**
-     * Test scenario: Node recovery after crash.
-     * 
-     * <p>Steps:
-     * <ol>
-     *   <li>Node crashes unexpectedly</li>
-     *   <li>Node restarts and loads last local snapshot</li>
-     *   <li>needsSnapshotRestoration() may return false if recent snapshot exists</li>
-     *   <li>Node replays log entries since last snapshot</li>
-     *   <li>Node rejoins cluster</li>
-     * </ol>
-     */
-    @Test
-    public void documentNodeRecoveryScenario() {
-        // This test documents the expected flow
-        
-        // Step 1: Node has recent local state (only 100 entries behind)
-        boolean needsSnapshot = snapshotService.needsSnapshotRestoration(
-            "recent-head", "current-head", 4900, 5000
-        );
-        assertFalse("Recent node should replay log, not snapshot", needsSnapshot);
-        
-        // Step 2: Node replays 100 log entries to catch up
-        // (handled by Aeron Cluster log replay)
+
+    /** An image that delivers {@code frame} (if any) as one unfragmented message, then ends. */
+    private static Image imageOf(byte[] frame) {
+        Image image = mock(Image.class);
+        boolean[] delivered = {frame == null};
+        when(image.isEndOfStream()).thenAnswer(invocation -> delivered[0]);
+        when(image.poll(any(), anyInt())).thenAnswer(invocation -> {
+            FragmentAssembler assembler = invocation.getArgument(0);
+            Header header = mock(Header.class);
+            when(header.flags()).thenReturn((byte) 0xC0);
+            assembler.onFragment(new UnsafeBuffer(frame), 0, frame.length, header);
+            delivered[0] = true;
+            return 1;
+        });
+        return image;
     }
 }
