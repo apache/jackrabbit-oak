@@ -21,7 +21,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.segment.consensus.config.IpfsGatewayUrls;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.http.server.util.JsonParser;
@@ -497,21 +496,13 @@ public class WriteApplicationService {
             // Store raw blob ID
             contentNode.setProperty("jcr:blobId", blobId);
             
-            // Handle IPFS CID
+            // Only the CID carried in the proposal (decided by the ingesting node): a lookup here would differ per node.
             if (ipfsCid != null && !ipfsCid.isEmpty()) {
                 contentNode.setProperty("ipfsCid", ipfsCid);
                 contentNode.setProperty("ipfsGateway", IpfsGatewayUrls.gatewayUrl(ipfsCid));
-                log.info("✅ Binary stored with client-provided IPFS CID: jcr:blobId={}, ipfsCid={}", blobId, ipfsCid);
+                log.info("✅ Binary stored with proposal IPFS CID: jcr:blobId={}, ipfsCid={}", blobId, ipfsCid);
             } else {
-                // Try to derive CID from validator's IPFSDataStore (legacy path)
-                String derivedCid = tryDeriveCidFromBlobStore(blobStore, blobId);
-                if (derivedCid != null) {
-                    contentNode.setProperty("ipfsCid", derivedCid);
-                    contentNode.setProperty("ipfsGateway", IpfsGatewayUrls.gatewayUrl(derivedCid));
-                    log.info("✅ Binary stored with validator-derived IPFS CID (legacy): jcr:blobId={}, ipfsCid={}", blobId, derivedCid);
-                } else {
-                    log.info("✅ Binary stored (no IPFS CID - client should provide): jcr:blobId={}", blobId);
-                }
+                log.info("✅ Binary stored (proposal carries no IPFS CID): jcr:blobId={}", blobId);
             }
             
         } catch (Exception e) {
@@ -524,44 +515,6 @@ public class WriteApplicationService {
         }
     }
     
-    /**
-     * Try to derive IPFS CID from validator's BlobStore (legacy path).
-     */
-    @Nullable
-    private String tryDeriveCidFromBlobStore(BlobStore blobStore, String blobId) {
-        if (!(blobStore instanceof DataStoreBlobStore)) {
-            return null;
-        }
-        
-        try {
-            DataStoreBlobStore dsBlobStore = (DataStoreBlobStore) blobStore;
-            Object dataStore = dsBlobStore.getDataStore();
-            
-            // Check if it's an IPFSDataStore
-            if (dataStore != null && 
-                dataStore.getClass().getName().contains("IPFSDataStore")) {
-                
-                // Use reflection to call getCID method
-                java.lang.reflect.Method getCidMethod = dataStore.getClass().getMethod("getCID", String.class);
-                
-                // Try a few times (async upload may still be in progress)
-                for (int retry = 0; retry < 5; retry++) {
-                    Object result = getCidMethod.invoke(dataStore, blobId);
-                    if (result != null) {
-                        return result.toString();
-                    }
-                    if (retry < 4) {
-                        Thread.sleep(200);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.debug("Could not get IPFS CID from validator: {}", e.getMessage());
-        }
-        
-        return null;
-    }
-
     @NotNull
     private NodeStore requireNodeStore() {
         NodeStore nodeStore = nodeStoreSupplier.get();

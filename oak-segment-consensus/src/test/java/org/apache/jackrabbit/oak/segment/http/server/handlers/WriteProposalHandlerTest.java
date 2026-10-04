@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.segment.http.server.handlers;
 
+import org.apache.jackrabbit.oak.blob.cloud.ipfs.IPFSDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.segment.consensus.aeron.AeronConsensusEngine;
 import org.apache.jackrabbit.oak.segment.consensus.config.BlockchainConfig;
 import org.apache.jackrabbit.oak.segment.consensus.gc.GCAccountManager;
@@ -910,6 +912,35 @@ public class WriteProposalHandlerTest {
 
         verify(response).setStatus(HttpServletResponse.SC_ACCEPTED);
         assertTrue(body.toString().contains("\"status\":\"accepted\""));
+    }
+
+    @Test
+    public void validatorHostedBinaryCarriesTheIpfsCidDeterminedAtIngest() throws Exception {
+        System.setProperty("oak.blockchain.mode", "mock");
+        System.setProperty("oak.proposal.validator.binary.upload.enabled", "true");
+        BlockchainConfig.reset();
+
+        ServerContext context = readyContext();
+        ProposalQueueManagerOptimized queueManager = mock(ProposalQueueManagerOptimized.class);
+        IPFSDataStore ipfs = mock(IPFSDataStore.class);
+        DataStoreBlobStore blobStore = mock(DataStoreBlobStore.class);
+        when(blobStore.getDataStore()).thenReturn(ipfs);
+        when(blobStore.writeBlob(any(java.io.InputStream.class))).thenReturn("blob-1#3");
+        when(ipfs.getCID("blob-1#3")).thenReturn("bafyIngested");
+        context.proposalQueueManager = queueManager;
+        context.blobStore = blobStore;
+        context.blobStoreType = "ipfs";
+        context.registeredClients.put("client-1", new ClientRegistration("client-1", "http://author", VALID_WALLET.toLowerCase()));
+        HttpServletRequest request = request();
+        when(request.getContentType()).thenReturn("multipart/form-data; boundary=test");
+        Collection<Part> parts = multipartParts();
+        when(request.getParts()).thenReturn(parts);
+
+        new WriteProposalHandler(context).handleProposeWrite(request, responseWithBody(new StringWriter()));
+
+        verify(queueManager).queueProposal(
+            anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString(),
+            nullable(String.class), eq("blob-1#3"), anyString(), eq("bafyIngested"));
     }
 
     @Test

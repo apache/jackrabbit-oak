@@ -18,7 +18,9 @@ package org.apache.jackrabbit.oak.segment.consensus.service;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.blob.cloud.ipfs.IPFSDataStore;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -28,10 +30,13 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -39,6 +44,7 @@ import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.any;
 
@@ -273,6 +279,31 @@ public class WriteApplicationServiceTest {
     }
 
     @Test
+    public void binaryWriteStoresTheSameContentOnMembersWithDifferentIpfsIndexesAndNeverAsksIpfs() {
+        IPFSDataStore indexed = mock(IPFSDataStore.class);
+        when(indexed.getCID(any())).thenReturn("bafyIndexedOnlyHere");
+        IPFSDataStore notIndexed = mock(IPFSDataStore.class);
+
+        NodeState memberA = applyBinaryWrite(indexed, null);
+        NodeState memberB = applyBinaryWrite(notIndexed, null);
+
+        assertEquals(nonBinaryProperties(memberA), nonBinaryProperties(memberB));
+        assertFalse(memberA.hasProperty("ipfsCid"));
+        verifyNoInteractions(indexed, notIndexed);
+    }
+
+    @Test
+    public void binaryWriteStoresTheCidCarriedInTheProposal() {
+        IPFSDataStore dataStore = mock(IPFSDataStore.class);
+        when(dataStore.getCID(any())).thenReturn("bafyLocal");
+
+        NodeState content = applyBinaryWrite(dataStore, "bafyFromProposal");
+
+        assertEquals("bafyFromProposal", stringProperty(content, "ipfsCid"));
+        verifyNoInteractions(dataStore);
+    }
+
+    @Test
     public void testApplyWriteIsIdempotentForDuplicateProposalReplay() {
         FileStore fileStore = fileStoreWithHeads("prev-head", "new-head");
         MemoryNodeStore nodeStore = new MemoryNodeStore();
@@ -477,6 +508,27 @@ public class WriteApplicationServiceTest {
             fileStoreWithHeads("prev-head", "new-head"), nodeStore, null, mock(FileStoreFlushService.class));
         service.applyWrite(WALLET, PATH, "page", message, "0xsig", null, null, null, null, "proposal-1");
         return contentNode(nodeStore, PATH);
+    }
+
+    private static NodeState applyBinaryWrite(IPFSDataStore localIpfs, String proposalCid) {
+        DataStoreBlobStore blobStore = mock(DataStoreBlobStore.class);
+        when(blobStore.getDataStore()).thenReturn(localIpfs);
+        MemoryNodeStore nodeStore = new MemoryNodeStore();
+        WriteApplicationService service = new WriteApplicationService(
+            fileStoreWithHeads("prev-head", "new-head"), nodeStore, blobStore, mock(FileStoreFlushService.class));
+        service.applyWriteWithAuditMetadata(WALLET, PATH, "file", "m", "0xsig", null, "blob-1#3", "image/png",
+            proposalCid, MutationAuditMetadata.write(null, null, "p-1", null, null, null, null).withClusterTimestamp(1_000L));
+        return contentNode(nodeStore, PATH);
+    }
+
+    private static Map<String, String> nonBinaryProperties(NodeState node) {
+        Map<String, String> properties = new TreeMap<>();
+        for (PropertyState property : node.getProperties()) {
+            if (property.getType() != Type.BINARY) {
+                properties.put(property.getName(), property.getValue(Type.STRING));
+            }
+        }
+        return properties;
     }
 
     private static FileStore fileStoreWithHeads(String previousHead, String newHead) {
