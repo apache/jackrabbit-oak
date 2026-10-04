@@ -718,6 +718,10 @@ public class AeronConsensusEngine implements ClusteredService {
             log.debug("Followers will receive genesis via Aeron replication (no manual sync needed)");
         }
         
+        // Fail-stop before replay if the log is not the one this store was built from.
+        LogStoreGuard.checkOnStart(messageDispatcher.getReplayFloor(), snapshotImage != null,
+            () -> LogStoreGuard.lastRecordedTerm(cluster.context().clusterDir()));
+
         // Map Aeron Cluster role to our ValidatorRole
         updateRoleFromCluster(cluster.role());
         
@@ -1774,6 +1778,7 @@ public class AeronConsensusEngine implements ClusteredService {
                                          int logSessionId,
                                          java.util.concurrent.TimeUnit timeUnit,
                                          int appVersion) {
+        LogStoreGuard.checkTermEvent(messageDispatcher.getReplayFloor(), leadershipTermId, termBaseLogPosition);
         currentTerm = (int) leadershipTermId;
         leadershipTermKnown = true;
         String leaderUrl = nodeIdToUrl.get(leaderMemberId);

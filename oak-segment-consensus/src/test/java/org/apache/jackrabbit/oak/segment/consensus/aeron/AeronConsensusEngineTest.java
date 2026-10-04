@@ -367,11 +367,12 @@ public class AeronConsensusEngineTest {
     }
 
     @Test
-    public void onStartRestoresSnapshotMetadataWhenTheStoreHasItsWatermark() {
+    public void onStartRestoresSnapshotMetadataWhenTheStoreHasItsWatermark() throws Exception {
         SnapshotService snapshotService = mock(SnapshotService.class);
         Image snapshotImage = mock(Image.class);
         IdleStrategy idleStrategy = mock(IdleStrategy.class);
         Cluster cluster = snapshotCluster(Cluster.Role.LEADER, idleStrategy);
+        when(cluster.context().clusterDir()).thenReturn(clusterDirWithTerms(0L, 1L, 2L, 3L));
         when(snapshotService.restoreSnapshot(snapshotImage, idleStrategy)).thenReturn(
             new SnapshotService.SnapshotState(new AppliedLogPosition(200L, 0, 3L), 3L, 42, "head-1"));
         AeronConsensusEngine engine = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), snapshotService,
@@ -420,6 +421,16 @@ public class AeronConsensusEngineTest {
         } catch (RuntimeException e) {
             assertTrue(e.getMessage().contains("Snapshot load failed"));
         }
+    }
+
+    private File clusterDirWithTerms(long... terms) throws Exception {
+        File dir = tempFolder.newFolder();
+        try (io.aeron.cluster.RecordingLog recordingLog = new io.aeron.cluster.RecordingLog(dir, true)) {
+            for (long term : terms) {
+                recordingLog.appendTerm(1L, term, term * 100L, 0L);
+            }
+        }
+        return dir;
     }
 
     private static Cluster snapshotCluster(Cluster.Role role, IdleStrategy idleStrategy) {
@@ -483,6 +494,7 @@ public class AeronConsensusEngineTest {
         Cluster cluster = mock(Cluster.class, RETURNS_DEEP_STUBS);
         when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
         when(cluster.idleStrategy()).thenReturn(mock(IdleStrategy.class));
+        when(cluster.context().clusterDir()).thenReturn(clusterDirWithTerms(0L));
         engine.onStart(cluster, null);
         AeronEncodedMessage replayed = new AeronIngressWritePayloadBuilder()
             .buildWriteProposal("0xabc", "/oak-chain/a/b/c/old", "page", "m", "sig", null, null, "p-old");
