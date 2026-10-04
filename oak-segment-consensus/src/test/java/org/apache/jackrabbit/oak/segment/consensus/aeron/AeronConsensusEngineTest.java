@@ -696,6 +696,37 @@ public class AeronConsensusEngineTest {
         verify(decisions, never()).onDurable(eq("p-decided"), any());
     }
 
+    @Test
+    public void snapshotCarriesTheReplicatedGcProposalsAndRestoreHandsThemBack() throws Exception {
+        List<Map<String, Object>> gcProposals = List.of(Map.of("proposalId", "gc-1"));
+        AeronConsensusEngine.GCApplicationCallback gc = mock(AeronConsensusEngine.GCApplicationCallback.class);
+        when(gc.snapshotProposals()).thenReturn(gcProposals);
+        SnapshotService snapshotService = mock(SnapshotService.class);
+        AeronConsensusEngine source = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), snapshotService,
+            new AeronBackgroundCoordinator(), new MemoryNodeStore());
+        source.setGCCallback(gc);
+        IdleStrategy idleStrategy = mock(IdleStrategy.class);
+        setField(source, "idleStrategy", idleStrategy);
+        io.aeron.ExclusivePublication publication = mock(io.aeron.ExclusivePublication.class);
+
+        source.onTakeSnapshot(publication);
+
+        ArgumentCaptor<SnapshotService.SnapshotState> state = ArgumentCaptor.forClass(SnapshotService.SnapshotState.class);
+        verify(snapshotService).createSnapshot(eq(publication), eq(idleStrategy), state.capture());
+        assertEquals(gcProposals, state.getValue().gcProposals);
+        Image snapshotImage = mock(Image.class);
+        SnapshotService restoreService = mock(SnapshotService.class);
+        when(restoreService.restoreSnapshot(snapshotImage, idleStrategy)).thenReturn(state.getValue());
+        AeronConsensusEngine restored = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), restoreService,
+            new AeronBackgroundCoordinator(new RecordingTaskScheduler(), 2000L, 3000L, 5000L), new MemoryNodeStore());
+        AeronConsensusEngine.GCApplicationCallback restoredGc = mock(AeronConsensusEngine.GCApplicationCallback.class);
+        restored.setGCCallback(restoredGc);
+
+        restored.onStart(snapshotCluster(Cluster.Role.FOLLOWER, idleStrategy), snapshotImage);
+
+        verify(restoredGc).restoreProposals(gcProposals);
+    }
+
     private static void segmentPersisted(AeronConsensusEngine engine, String proposalId, int memberId, long clusterTime)
         throws Exception {
         AeronEncodedMessage entry =

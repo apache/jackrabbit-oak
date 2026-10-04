@@ -23,6 +23,10 @@ import org.apache.jackrabbit.oak.segment.http.server.SegmentHttpServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 final class AeronClusterCallbackBinder {
 
     private static final Logger log = LoggerFactory.getLogger(AeronClusterCallbackBinder.class);
@@ -86,6 +90,23 @@ final class AeronClusterCallbackBinder {
                     return;
                 }
                 manager.applyReplicatedExecute(proposalId, executorId);
+            }
+
+            @Override
+            public List<Map<String, Object>> snapshotProposals() {
+                GCProposalManager manager = httpServer.getContext().gcProposalManager;
+                return manager != null ? manager.snapshotProposals() : Collections.emptyList();
+            }
+
+            @Override
+            public void restoreProposals(List<Map<String, Object>> proposals) {
+                GCProposalManager manager = httpServer.getContext().gcProposalManager;
+                if (manager == null) {
+                    log.warn("⚠️  GC proposal manager not initialized - {} snapshot GC proposals dropped",
+                        proposals.size());
+                    return;
+                }
+                manager.restoreProposals(proposals);
             }
         });
         log.info("   ✅ GC application callback configured");

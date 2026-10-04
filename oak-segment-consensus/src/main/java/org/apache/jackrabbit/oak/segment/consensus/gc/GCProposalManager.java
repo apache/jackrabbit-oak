@@ -275,6 +275,63 @@ public class GCProposalManager {
     }
     
     /**
+     * The replicated state of every proposal, as JSON values for the Aeron snapshot. Called on the clustered
+     * service thread, which is the only writer of everything captured except a finished execution's state.
+     */
+    public List<Map<String, Object>> snapshotProposals() {
+        List<Map<String, Object>> entries = new ArrayList<>();
+        for (GCProposal proposal : proposals.values()) {
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("proposalId", proposal.proposalId);
+            entry.put("proposerWallet", proposal.proposerWallet);
+            entry.put("targetRevision", proposal.targetRevision);
+            entry.put("estimatedReclaimableSizeMB", proposal.estimatedReclaimableSizeMB);
+            entry.put("estimatedCostUSDC", proposal.estimatedCostUSDC.toPlainString());
+            entry.put("createdAt", proposal.createdAt);
+            entry.put("expiresAt", proposal.expiresAt);
+            entry.put("state", proposal.state.name());
+            List<Object> votes = new ArrayList<>();
+            for (GCVote vote : proposal.votes.values()) {
+                Map<String, Object> json = new LinkedHashMap<>();
+                json.put("validatorId", vote.validatorId);
+                json.put("approve", vote.approve);
+                json.put("reason", vote.reason);
+                json.put("timestamp", vote.timestamp);
+                votes.add(json);
+            }
+            entry.put("votes", votes);
+            entries.add(entry);
+        }
+        return entries;
+    }
+
+    /**
+     * Replaces the proposals with those of {@link #snapshotProposals()}. Never schedules or starts execution.
+     */
+    public void restoreProposals(List<Map<String, Object>> entries) {
+        proposals.clear();
+        for (Map<String, Object> entry : entries) {
+            GCProposal proposal = new GCProposal();
+            proposal.proposalId = (String) entry.get("proposalId");
+            proposal.proposerWallet = (String) entry.get("proposerWallet");
+            proposal.targetRevision = (String) entry.get("targetRevision");
+            proposal.estimatedReclaimableSizeMB = ((Number) entry.get("estimatedReclaimableSizeMB")).longValue();
+            proposal.estimatedCostUSDC = new BigDecimal((String) entry.get("estimatedCostUSDC"));
+            proposal.fragmentationCostUSDC = BigDecimal.ZERO;
+            proposal.createdAt = ((Number) entry.get("createdAt")).longValue();
+            proposal.expiresAt = ((Number) entry.get("expiresAt")).longValue();
+            for (Object json : (List<?>) entry.get("votes")) {
+                Map<?, ?> vote = (Map<?, ?>) json;
+                proposal.addVote(((Number) vote.get("validatorId")).intValue(), (Boolean) vote.get("approve"),
+                    (String) vote.get("reason"), ((Number) vote.get("timestamp")).longValue());
+            }
+            proposal.state = GCProposal.GCProposalState.valueOf((String) entry.get("state"));
+            proposals.put(proposal.proposalId, proposal);
+        }
+        log.info("Restored {} GC proposals from the Aeron snapshot", proposals.size());
+    }
+
+    /**
      * Check if proposal has quorum.
      */
     public boolean hasQuorum(String proposalId) {

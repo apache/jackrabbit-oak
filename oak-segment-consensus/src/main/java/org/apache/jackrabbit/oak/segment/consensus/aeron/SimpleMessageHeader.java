@@ -55,6 +55,8 @@ public class SimpleMessageHeader {
     public static final int TEMPLATE_ID_ABORT_TRANSACTION = 113;
     /** One proposal tracked by the durability tally; snapshot stream only. */
     public static final int TEMPLATE_ID_SNAPSHOT_DURABILITY = 114;
+    /** One replicated GC proposal with its votes; snapshot stream only. */
+    public static final int TEMPLATE_ID_SNAPSHOT_GC_PROPOSAL = 115;
     
     // Schema ID and version (arbitrary values for our custom messages)
     private static final int SCHEMA_ID = 1;

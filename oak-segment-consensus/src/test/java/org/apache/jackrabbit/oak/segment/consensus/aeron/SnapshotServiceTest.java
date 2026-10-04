@@ -80,12 +80,17 @@ public class SnapshotServiceTest {
     }
 
     @Test
-    public void durabilityEntriesRoundTripInOrderAsOneFramePerEntry() {
+    public void durabilityAndGcEntriesRoundTripInOrderAsOneFramePerEntry() {
         List<Map<String, Object>> entries = Arrays.asList(
             entry("p-pending", "acked", Arrays.asList(0L), "failed", Arrays.asList(2L), "error", "disk \"full\""),
             entry("p-decided", "success", true, "durableHead", "head-7"));
-        SnapshotService.SnapshotState written =
-            new SnapshotService.SnapshotState(new AppliedLogPosition(4096L, 0, 3L), 3L, 1, "head-1", entries);
+        Map<String, Object> vote = new LinkedHashMap<>();
+        vote.put("validatorId", 1L);
+        vote.put("approve", true);
+        List<Map<String, Object>> gcProposals = Arrays.asList(
+            entry("gc-1", "state", "VOTING", "votes", Arrays.asList(vote)));
+        SnapshotService.SnapshotState written = new SnapshotService.SnapshotState(
+            new AppliedLogPosition(4096L, 0, 3L), 3L, 1, "head-1", entries, gcProposals);
         ExclusivePublication publication = mock(ExclusivePublication.class);
         List<byte[]> offered = new ArrayList<>();
         when(publication.offer(any(DirectBuffer.class), anyInt(), anyInt())).thenAnswer(invocation -> {
@@ -100,9 +105,10 @@ public class SnapshotServiceTest {
         SnapshotService.SnapshotState read =
             service.restoreSnapshot(imageOf(offered.toArray(new byte[0][])), mock(IdleStrategy.class));
 
-        assertEquals(3, offered.size());
+        assertEquals(4, offered.size());
         assertEquals(written.applied, read.applied);
         assertEquals(entries, read.durability);
+        assertEquals(gcProposals, read.gcProposals);
     }
 
     @Test

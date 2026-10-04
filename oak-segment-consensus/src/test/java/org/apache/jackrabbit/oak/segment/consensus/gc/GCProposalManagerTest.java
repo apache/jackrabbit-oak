@@ -21,10 +21,12 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import org.apache.jackrabbit.oak.segment.consensus.evm.EvmBridge;
 import org.apache.jackrabbit.oak.segment.consensus.evm.impl.SimplePaymentProof;
 import org.apache.jackrabbit.oak.segment.consensus.fragmentation.FragmentationTracker;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.http.server.util.JsonParser;
 import org.junit.After;
 import org.junit.Test;
 
@@ -37,6 +39,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -340,6 +343,65 @@ public class GCProposalManagerTest {
         assertEquals("gc-proposal-13", history.get(1).proposalId);
         assertEquals(1, manager.getGCHistory(1).size());
         assertEquals("gc-proposal-14", manager.getGCHistory(1).get(0).proposalId);
+    }
+
+    @Test
+    public void aManagerRestoredFromItsSnapshotDecidesLaterVotesLikeTheOriginal() {
+        GCProposalManager original = newManager(null, null, null, 3, () -> false);
+        original.applyReplicatedProposal("gc-straddling", "0xwallet", "rev-1", 64L, "2.50", 1_000L);
+        original.voteOnProposal("gc-straddling", 0, true, "ok", 2_000L);
+        original.voteOnProposal("gc-straddling", 1, true, "ok", 3_000L);
+        original.applyReplicatedProposal("gc-rejected", "0xwallet", null, 1L, "0", 1_000L);
+        for (int validator = 0; validator < 3; validator++) {
+            original.voteOnProposal("gc-rejected", validator, false, "no", 2_000L);
+        }
+
+        GCProposalManager restored = newManager(null, null, null, 3, () -> false);
+        restored.applyReplicatedProposal("gc-not-in-snapshot", "0xwallet", null, 1L, "0", 1_000L);
+        restored.restoreProposals(throughJson(original.snapshotProposals()));
+
+        assertNull(restored.getProposal("gc-not-in-snapshot"));
+        for (GCProposalManager manager : List.of(original, restored)) {
+            manager.voteOnProposal("gc-straddling", 2, true, "ok", 4_000L);
+            manager.voteOnProposal("gc-straddling", 0, false, "again", 4_000L);
+
+            GCProposal straddling = manager.getProposal("gc-straddling");
+            assertEquals(GCProposal.GCProposalState.APPROVED, straddling.state);
+            assertEquals(3, straddling.getApproveVoteCount());
+            assertEquals("rev-1", straddling.targetRevision);
+            assertEquals(64L, straddling.estimatedReclaimableSizeMB);
+            assertEquals(new BigDecimal("2.50"), straddling.estimatedCostUSDC);
+            assertEquals(1_000L + GCProposal.DEFAULT_TTL_MS, straddling.expiresAt);
+            assertEquals(GCProposal.GCProposalState.REJECTED, manager.getProposal("gc-rejected").state);
+        }
+    }
+
+    @Test
+    public void restoringAnApprovedProposalNeverStartsExecution() throws Exception {
+        GCProposalManager original = newManager(null, null, null, 3, () -> false);
+        original.applyReplicatedProposal("gc-approved", "0xwallet", null, 1L, "0", 1_000L);
+        for (int validator = 0; validator < 3; validator++) {
+            original.voteOnProposal("gc-approved", validator, true, "ok", 2_000L);
+        }
+        FileStore fileStore = mock(FileStore.class);
+        GCProposalManager restored = newManager(fileStore, null, null, 3, () -> true);
+        List<String> requested = Collections.synchronizedList(new ArrayList<>());
+        restored.setExecutionRequester(proposalId -> requested.add(proposalId));
+
+        restored.restoreProposals(throughJson(original.snapshotProposals()));
+        Thread.sleep(200L);
+
+        assertEquals(GCProposal.GCProposalState.APPROVED, restored.getProposal("gc-approved").state);
+        assertTrue(requested.isEmpty());
+        verify(fileStore, never()).cleanup();
+    }
+
+    private static List<Map<String, Object>> throughJson(List<Map<String, Object>> entries) {
+        List<Map<String, Object>> parsed = new ArrayList<>();
+        for (Map<String, Object> entry : entries) {
+            parsed.add(JsonParser.parseObject(JsonParser.toJson(entry)));
+        }
+        return parsed;
     }
 
     private GCProposalManager newManager() {
