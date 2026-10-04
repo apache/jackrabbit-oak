@@ -275,6 +275,46 @@ public class DeleteApplicationServiceTest {
         verify(flushService).onChangeApplied(any());
     }
 
+    @Test
+    public void deleteDecrementsWalletContentCountOnlyWhenANodeIsRemoved() {
+        MemoryNodeStore nodeStore = new MemoryNodeStore();
+        FileStore fileStore = fileStoreWithHeads("prev-head", "new-head");
+        FileStoreFlushService flushService = mock(FileStoreFlushService.class);
+        WriteApplicationService writes = new WriteApplicationService(fileStore, nodeStore, null, flushService);
+        DeleteApplicationService deletes = new DeleteApplicationService(fileStore, nodeStore, flushService);
+        String content = "/oak-chain/aa/bb/cc/" + WALLET + "/Acme/content/";
+        for (int i = 1; i <= 3; i++) {
+            writes.applyWrite(WALLET, content + "doc-" + i, "page", "m", "0xsig", null, null, null, null, "p-" + i);
+        }
+
+        deletes.applyDelete(WALLET, content + "doc-1", "0xsig", "d-1");
+        assertEquals(2L, walletLong(nodeStore, "contentCount"));
+        assertEquals("totalWrites counts writes ever applied", 3L, walletLong(nodeStore, "totalWrites"));
+
+        deletes.applyDelete(WALLET, content + "doc-1", "0xsig", "d-2");
+        assertEquals(2L, walletLong(nodeStore, "contentCount"));
+    }
+
+    @Test
+    public void deleteNeverTakesContentCountBelowZero() throws Exception {
+        MemoryNodeStore nodeStore = seededNodeStore(EXISTING_PATH);
+        NodeBuilder root = nodeStore.getRoot().builder();
+        root.getChildNode("oak-chain").getChildNode("aa").getChildNode("bb").getChildNode("cc").getChildNode(WALLET)
+            .setProperty("contentCount", 0L);
+        nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        new DeleteApplicationService(fileStoreWithHeads("prev-head", "new-head"), nodeStore,
+            mock(FileStoreFlushService.class)).applyDelete(WALLET, EXISTING_PATH, "0xsig", "d-1");
+
+        assertFalse(nodeAt(nodeStore, EXISTING_PATH).exists());
+        assertEquals(0L, walletLong(nodeStore, "contentCount"));
+    }
+
+    private static long walletLong(MemoryNodeStore nodeStore, String property) {
+        return nodeAt(nodeStore, "/oak-chain/aa/bb/cc/" + WALLET).getProperty(property)
+            .getValue(org.apache.jackrabbit.oak.api.Type.LONG);
+    }
+
     private static FileStore fileStoreWithHeads(String previousHead, String currentHead) {
         FileStore fileStore = mock(FileStore.class, RETURNS_DEEP_STUBS);
         when(fileStore.getHead().getRecordId().toString()).thenReturn(previousHead);
