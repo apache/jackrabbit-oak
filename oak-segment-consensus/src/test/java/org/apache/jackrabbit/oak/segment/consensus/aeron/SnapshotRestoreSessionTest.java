@@ -16,7 +16,11 @@
  */
 package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
+import io.aeron.ExclusivePublication;
+import org.agrona.DirectBuffer;
+import org.agrona.concurrent.IdleStrategy;
 import org.agrona.concurrent.UnsafeBuffer;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -28,6 +32,11 @@ import java.nio.file.Files;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class SnapshotRestoreSessionTest {
 
@@ -71,6 +80,31 @@ public class SnapshotRestoreSessionTest {
         assertEquals(7, state.epoch);
         assertEquals(99L, state.timestamp);
         assertEquals(0, state.fileCount);
+    }
+
+    @Test
+    public void leadershipTermRoundTripsThroughSnapshotMetadata() throws Exception {
+        assertEquals(5L, roundTripLeadershipTerm(5L));
+        assertEquals("snapshots without the field restore as unknown", -1L, roundTripLeadershipTerm(-1L));
+    }
+
+    private long roundTripLeadershipTerm(long leadershipTermId) throws Exception {
+        FileStore fileStore = mock(FileStore.class, RETURNS_DEEP_STUBS);
+        when(fileStore.getHead().getRecordId().toString()).thenReturn("head-3");
+        SnapshotService service = new SnapshotService(fileStore, tempFolder.newFolder().getAbsolutePath());
+        ExclusivePublication publication = mock(ExclusivePublication.class);
+        SnapshotRestoreSession session = new SnapshotRestoreSession(tempFolder.newFolder());
+        when(publication.offer(any(DirectBuffer.class), anyInt(), anyInt())).thenAnswer(invocation -> {
+            session.onFragment(invocation.getArgument(0), invocation.getArgument(1), invocation.getArgument(2));
+            return 1L;
+        });
+
+        service.createSnapshot(publication, mock(IdleStrategy.class), 3, leadershipTermId);
+
+        SnapshotService.SnapshotState state = session.complete();
+        assertEquals("head-3", state.head);
+        assertEquals(3, state.epoch);
+        return state.leadershipTermId;
     }
 
     @Test

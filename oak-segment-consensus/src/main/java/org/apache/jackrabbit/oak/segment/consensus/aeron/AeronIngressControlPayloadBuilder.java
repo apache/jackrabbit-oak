@@ -22,7 +22,7 @@ final class AeronIngressControlPayloadBuilder {
                                               String correlationId,
                                               long timeoutMs,
                                               String initiatorWallet,
-                                              int term) {
+                                              Integer term) {
         StringBuilder json = new StringBuilder();
         json.append("{");
         json.append("\"transactionId\":\"").append(escapeJson(transactionId)).append("\"");
@@ -33,21 +33,21 @@ final class AeronIngressControlPayloadBuilder {
             json.append(",\"initiatorWallet\":\"").append(escapeJson(initiatorWallet)).append("\"");
         }
         json.append(",\"timeoutMs\":").append(timeoutMs > 0 ? timeoutMs : 30000L);
-        json.append(",\"term\":").append(term);
+        appendTerm(json, term);
         json.append("}");
         return AeronIngressPayloadSupport.encode(SimpleMessageHeader.TEMPLATE_ID_START_TRANSACTION, json.toString());
     }
 
     AeronEncodedMessage buildCommitTransaction(String transactionId,
                                                String correlationId,
-                                               int term) {
+                                               Integer term) {
         StringBuilder json = new StringBuilder();
         json.append("{");
         json.append("\"transactionId\":\"").append(escapeJson(transactionId)).append("\"");
         if (correlationId != null && !correlationId.isEmpty()) {
             json.append(",\"correlationId\":\"").append(escapeJson(correlationId)).append("\"");
         }
-        json.append(",\"term\":").append(term);
+        appendTerm(json, term);
         json.append("}");
         return AeronIngressPayloadSupport.encode(SimpleMessageHeader.TEMPLATE_ID_COMMIT_TRANSACTION, json.toString());
     }
@@ -55,7 +55,7 @@ final class AeronIngressControlPayloadBuilder {
     AeronEncodedMessage buildAbortTransaction(String transactionId,
                                               String correlationId,
                                               String reason,
-                                              int term) {
+                                              Integer term) {
         StringBuilder json = new StringBuilder();
         json.append("{");
         json.append("\"transactionId\":\"").append(escapeJson(transactionId)).append("\"");
@@ -65,9 +65,15 @@ final class AeronIngressControlPayloadBuilder {
         if (reason != null && !reason.isEmpty()) {
             json.append(",\"reason\":\"").append(escapeJson(reason)).append("\"");
         }
-        json.append(",\"term\":").append(term);
+        appendTerm(json, term);
         json.append("}");
         return AeronIngressPayloadSupport.encode(SimpleMessageHeader.TEMPLATE_ID_ABORT_TRANSACTION, json.toString());
+    }
+
+    private static void appendTerm(StringBuilder json, Integer term) {
+        if (term != null) {
+            json.append(",\"term\":").append(term.intValue());
+        }
     }
 
     AeronEncodedMessage buildQueueSegment(String proposalId, int totalMembers, int requiredAcks) {

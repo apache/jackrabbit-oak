@@ -52,6 +52,13 @@ public class AeronIngressControlPayloadBuilderTest {
     }
 
     @Test
+    public void transactionCommandsOmitUnknownTerm() {
+        assertFalse(builder.buildStartTransaction("tx-4", null, 0L, null, null).json.contains("\"term\""));
+        assertFalse(builder.buildCommitTransaction("tx-4", null, null).json.contains("\"term\""));
+        assertFalse(builder.buildAbortTransaction("tx-4", null, null, null).json.contains("\"term\""));
+    }
+
+    @Test
     public void abortTransactionIncludesReasonWhenPresent() {
         AeronEncodedMessage encoded = builder.buildAbortTransaction("tx-3", "corr-3", "quota exceeded", 7);
 

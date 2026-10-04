@@ -107,14 +107,14 @@ public class AeronConsensusEngineTest {
     }
 
     @Test
-    public void roleChangeToLeaderUpdatesRoleTermAndLeaderUrl() {
+    public void roleChangeToLeaderUpdatesRoleAndLeaderUrlButNotTerm() {
         AeronConsensusEngine engine = createEngine();
 
         assertEquals(0, engine.getCurrentTerm());
 
         engine.onRoleChange(Cluster.Role.LEADER);
 
-        assertEquals(1, engine.getCurrentTerm());
+        assertEquals("term comes only from the log", 0, engine.getCurrentTerm());
         assertTrue(engine.isLeader());
         assertEquals("http://self:8080", engine.getCurrentLeader());
     }
@@ -237,6 +237,7 @@ public class AeronConsensusEngineTest {
         when(cluster.memberId()).thenReturn(7);
         when(cluster.time()).thenReturn(12345L);
         setField(engine, "cluster", cluster);
+        applyTermEvent(engine, 4);
 
         engine.onRoleChange(Cluster.Role.LEADER);
 
@@ -244,7 +245,7 @@ public class AeronConsensusEngineTest {
         assertEquals(1, history.size());
         assertEquals(Cluster.Role.LEADER, history.get(0).newRole);
         assertEquals(7, history.get(0).memberId);
-        assertEquals(1, history.get(0).term);
+        assertEquals(4, history.get(0).term);
         assertTrue(history.get(0).timestamp > 0L);
         assertEquals(12345L, history.get(0).clusterTime);
     }
@@ -477,7 +478,52 @@ public class AeronConsensusEngineTest {
 
         engine.onTakeSnapshot(publication);
 
-        verify(snapshotService).createSnapshot(publication, idleStrategy, 17);
+        verify(snapshotService).createSnapshot(publication, idleStrategy, 17, -1L);
+    }
+
+    @Test
+    public void snapshotCarriesLogDerivedTermAndRestoreReappliesIt() throws Exception {
+        SnapshotService snapshotService = mock(SnapshotService.class);
+        AeronConsensusEngine source = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), snapshotService);
+        io.aeron.ExclusivePublication publication = mock(io.aeron.ExclusivePublication.class);
+        IdleStrategy idleStrategy = mock(IdleStrategy.class);
+        setField(source, "idleStrategy", idleStrategy);
+        applyTermEvent(source, 5);
+
+        source.onTakeSnapshot(publication);
+
+        verify(snapshotService).createSnapshot(publication, idleStrategy, -1, 5L);
+
+        FileStore fileStore = mock(FileStore.class, RETURNS_DEEP_STUBS);
+        when(fileStore.getHead().getRecordId().toString()).thenReturn("head-1");
+        Image snapshotImage = mock(Image.class);
+        Cluster cluster = mock(Cluster.class, RETURNS_DEEP_STUBS);
+        when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
+        when(cluster.idleStrategy()).thenReturn(idleStrategy);
+        SnapshotService restoreService = mock(SnapshotService.class);
+        when(restoreService.restoreSnapshot(snapshotImage, idleStrategy))
+            .thenReturn(new SnapshotService.SnapshotState("head-1", 0, 1L, 0, 5L));
+        AeronConsensusEngine restored = createEngine(fileStore, restoreService,
+            new AeronBackgroundCoordinator(new RecordingTaskScheduler(), 2000L, 3000L, 5000L), mockNodeStore);
+
+        restored.onStart(cluster, snapshotImage);
+
+        assertEquals(5, restored.getCurrentTerm());
+    }
+
+    @Test
+    public void ingressOmitsTermUntilTheFirstTermEventThenStampsTheLogTerm() throws Exception {
+        AeronConsensusEngine engine = createEngine();
+        io.aeron.cluster.client.AeronCluster client = installHealthyClient(engine, Cluster.Role.LEADER);
+
+        assertTrue(engine.sendDeleteThroughIngress("0xabc", "/content/a", "sig-1", "p-0"));
+        assertFalse(captureOffer(client).json.contains("\"term\""));
+
+        applyTermEvent(engine, 3);
+        client = installHealthyClient(engine, Cluster.Role.LEADER);
+
+        assertTrue(engine.sendDeleteThroughIngress("0xabc", "/content/b", "sig-2", "p-1"));
+        assertTrue(captureOffer(client).json.contains("\"term\":3"));
     }
 
     @Test
@@ -494,7 +540,7 @@ public class AeronConsensusEngineTest {
     }
 
     @Test
-    public void refreshLeaderTermIfNeededSyncsTermFromLeaderEndpoint() throws Exception {
+    public void refreshLeaderLogPositionReadsLogPositionButNeverTheLeadersTerm() throws Exception {
         AeronConsensusEngine engine = createEngine();
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
@@ -514,11 +560,11 @@ public class AeronConsensusEngineTest {
                 (LeaderDiscoveryService) getField(engine, "leaderDiscoveryService");
             leaderDiscoveryService.setKnownLeader("http://127.0.0.1:" + server.getAddress().getPort(), 3);
 
-            Method method = AeronConsensusEngine.class.getDeclaredMethod("refreshLeaderTermIfNeeded", boolean.class);
+            Method method = AeronConsensusEngine.class.getDeclaredMethod("refreshLeaderLogPositionIfNeeded", boolean.class);
             method.setAccessible(true);
             method.invoke(engine, true);
 
-            assertEquals(7, engine.getCurrentTerm());
+            assertEquals(2, engine.getCurrentTerm());
             assertEquals(300L, engine.getReplicationLagStatus().get("leaderLogPosition"));
             assertEquals(300L, engine.getReplicationLagStatus().get("replicationLag"));
         } finally {
@@ -533,7 +579,7 @@ public class AeronConsensusEngineTest {
         when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
         when(cluster.logPosition()).thenReturn(0L);
         setField(engine, "cluster", cluster);
-        setField(engine, "lastLeaderTermFetchMs", System.currentTimeMillis());
+        setField(engine, "lastLeaderLogPositionFetchMs", System.currentTimeMillis());
 
         engine.updateLeaderLogPosition(0L);
 
@@ -837,7 +883,7 @@ public class AeronConsensusEngineTest {
     public void sendStartTransactionOffersTransactionMessageWithTerm() throws Exception {
         AeronConsensusEngine engine = createEngine();
         io.aeron.cluster.client.AeronCluster client = installHealthyClient(engine, Cluster.Role.LEADER);
-        setField(engine, "currentTerm", 7);
+        applyTermEvent(engine, 7);
 
         assertTrue(engine.sendStartTransactionThroughIngress("tx-1", "corr-1", 5000L, "0xabc"));
 
@@ -854,7 +900,7 @@ public class AeronConsensusEngineTest {
     public void sendDeleteThroughIngressOffersDeleteProposal() throws Exception {
         AeronConsensusEngine engine = createEngine();
         io.aeron.cluster.client.AeronCluster client = installHealthyClient(engine, Cluster.Role.LEADER);
-        setField(engine, "currentTerm", 4);
+        applyTermEvent(engine, 4);
 
         assertTrue(engine.sendDeleteThroughIngress("0xabc", "/content/site", "sig-1", "proposal-2"));
 
@@ -870,7 +916,7 @@ public class AeronConsensusEngineTest {
     public void sendWriteThroughIngressWithIdOffersWriteProposal() throws Exception {
         AeronConsensusEngine engine = createEngine();
         io.aeron.cluster.client.AeronCluster client = installHealthyClient(engine, Cluster.Role.LEADER);
-        setField(engine, "currentTerm", 9);
+        applyTermEvent(engine, 9);
 
         assertTrue(engine.sendWriteThroughIngressWithId(
             "0xabc",
@@ -895,7 +941,7 @@ public class AeronConsensusEngineTest {
     public void sendWriteThroughIngressWithBinaryOffersBlobMetadata() throws Exception {
         AeronConsensusEngine engine = createEngine();
         io.aeron.cluster.client.AeronCluster client = installHealthyClient(engine, Cluster.Role.LEADER);
-        setField(engine, "currentTerm", 11);
+        applyTermEvent(engine, 11);
 
         assertTrue(engine.sendWriteThroughIngress(
             "0xabc",
@@ -964,7 +1010,7 @@ public class AeronConsensusEngineTest {
     public void sendWriteBatchThroughIngressOffersWriteBatchMessage() throws Exception {
         AeronConsensusEngine engine = createEngine();
         io.aeron.cluster.client.AeronCluster client = installHealthyClient(engine, Cluster.Role.LEADER);
-        setField(engine, "currentTerm", 13);
+        applyTermEvent(engine, 13);
 
         QueuedProposal first = proposal("proposal-5");
         first.setWalletAddress("0xaaa");
@@ -1106,6 +1152,78 @@ public class AeronConsensusEngineTest {
         } finally {
             peer.stop(0);
         }
+    }
+
+    /**
+     * The stale-term decision runs in the replicated apply path, so it must be a pure function of
+     * the log: members with different role histories, and a fresh member replaying from the start,
+     * must apply and skip exactly the same proposals.
+     */
+    @Test
+    public void staleTermDecisionsAreIdenticalAcrossRoleHistoriesAndReplay() {
+        List<String> expected = List.of("p0a", "p0b", "p1a", "p1b");
+
+        // Led term 0, stepped down when term 1 started.
+        List<String> formerLeader = applyTermLog(createQuietEngine(), 0, Cluster.Role.LEADER, 3, Cluster.Role.FOLLOWER);
+        // Followed in term 0, won the election for term 1.
+        List<String> newLeader = applyTermLog(createQuietEngine(), 3, Cluster.Role.LEADER, -1, null);
+        // Fresh member replaying the log without any role change.
+        List<String> replay = applyTermLog(createQuietEngine(), -1, null, -1, null);
+
+        assertEquals("[formerLeader, newLeader, replay]",
+            List.of(expected, expected, expected), List.of(formerLeader, newLeader, replay));
+    }
+
+    /**
+     * Feeds: term event 0, proposals stamped 0, term event 1, a late proposal stamped 0,
+     * proposals stamped 1. Role changes are injected before the given log step.
+     */
+    private List<String> applyTermLog(AeronConsensusEngine engine,
+                                      int firstRoleChangeStep, Cluster.Role firstRole,
+                                      int secondRoleChangeStep, Cluster.Role secondRole) {
+        List<String> applied = new ArrayList<>();
+        MessageDispatcher dispatcher = new MessageDispatcher(new MessageDispatcher.WriteCallback() {
+            @Override
+            public void applyWrite(String walletAddress, String path, String contentType, String message,
+                                   String signature, String intentToken, String blobId, String mimeType,
+                                   String ipfsCid, String proposalId) {
+                applied.add(proposalId);
+            }
+        });
+        dispatcher.setTermProvider(engine::getCurrentTerm);
+        AeronIngressWritePayloadBuilder builder = new AeronIngressWritePayloadBuilder();
+        Object[][] log = {
+            {"term", 0}, {"p0a", 0}, {"p0b", 0}, {"term", 1}, {"late", 0}, {"p1a", 1}, {"p1b", 1}
+        };
+        for (int step = 0; step < log.length; step++) {
+            if (step == firstRoleChangeStep) {
+                engine.onRoleChange(firstRole);
+            }
+            if (step == secondRoleChangeStep) {
+                engine.onRoleChange(secondRole);
+            }
+            String entry = (String) log[step][0];
+            int term = (Integer) log[step][1];
+            if ("term".equals(entry)) {
+                engine.onNewLeadershipTermEvent(term, step * 100L, 0L, step * 100L, term,
+                    1, java.util.concurrent.TimeUnit.MILLISECONDS, 1);
+            } else {
+                AeronEncodedMessage encoded = builder.buildWriteProposal(
+                    "0xabc", "/oak-chain/" + entry, "page", entry, "sig", term, null, entry);
+                dispatcher.dispatch(step * 100L, encoded.buffer, 0, encoded.totalLength);
+            }
+        }
+        return applied;
+    }
+
+    private static void applyTermEvent(AeronConsensusEngine engine, long leadershipTermId) {
+        engine.onNewLeadershipTermEvent(leadershipTermId, 0L, 0L, 0L, 0, 1,
+            java.util.concurrent.TimeUnit.MILLISECONDS, 1);
+    }
+
+    private AeronConsensusEngine createQuietEngine() {
+        return createEngine(mockFileStore, null,
+            new AeronBackgroundCoordinator(new RecordingTaskScheduler(), 2000L, 3000L, 5000L), mockNodeStore);
     }
 
     private AeronConsensusEngine createFollowerEngine(String peerUrl) throws Exception {

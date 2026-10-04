@@ -228,11 +228,14 @@ public class AeronConsensusEngine implements ClusteredService {
     
     // Consensus state (mapped from Aeron Cluster)
     private volatile ValidatorRole currentRole = ValidatorRole.FOLLOWER;
-    // ✅ ADR 025: Track term locally (Aeron Cluster doesn't expose leadershipTermId on Cluster interface)
-    // This is updated on role changes and used as fallback when Aeron term not available
+    // ✅ ADR 025: Raft term = Aeron leadershipTermId from onNewLeadershipTermEvent, applied in log order
+    // (including replay), so the stale-term check in the replicated apply path is a pure function of
+    // the log. 0 before the first event: Aeron's first term id, and no stamped proposal is stale against it.
     private volatile int currentTerm = 0;
-    private static final long LEADER_TERM_TTL_MS = 5000;
-    private volatile long lastLeaderTermFetchMs = 0;
+    // False until a term event (or a snapshot carrying the term) has been applied; ingress omits the term until then.
+    private volatile boolean leadershipTermKnown = false;
+    private static final long LEADER_LOG_POSITION_TTL_MS = 5000;
+    private volatile long lastLeaderLogPositionFetchMs = 0;
     private volatile String currentLeader = null;
     // Heartbeat tracking handled by AeronHealthService
     private final long reachabilityCacheMs;
@@ -772,6 +775,11 @@ public class AeronConsensusEngine implements ClusteredService {
             );
             verifySnapshotHead(snapshotState);
             currentEthereumEpoch = snapshotState.epoch;
+            // Log replay resumes after the snapshot position, past the term event in force, so restore it here.
+            if (snapshotState.leadershipTermId >= 0) {
+                currentTerm = (int) snapshotState.leadershipTermId;
+                leadershipTermKnown = true;
+            }
             log.info("Snapshot loaded successfully - HEAD verified: {}", snapshotState.head);
         } catch (Exception e) {
             log.error("Failed to load snapshot", e);
@@ -831,7 +839,8 @@ public class AeronConsensusEngine implements ClusteredService {
                 : new org.agrona.concurrent.BusySpinIdleStrategy();
             
             // ✅ REFACTORED: Delegate to SnapshotService
-            snapshotService.createSnapshot(snapshotPublication, strategy, currentEthereumEpoch);
+            snapshotService.createSnapshot(
+                snapshotPublication, strategy, currentEthereumEpoch, leadershipTermKnown ? currentTerm : -1L);
             
         } catch (Exception e) {
             log.error("Failed to take snapshot", e);
@@ -962,7 +971,7 @@ public class AeronConsensusEngine implements ClusteredService {
                 correlationId,
                 timeoutMs,
                 initiatorWallet,
-                getCurrentTerm()
+                getIngressTerm()
             ),
             "start-transaction"
         );
@@ -978,7 +987,7 @@ public class AeronConsensusEngine implements ClusteredService {
             return false;
         }
         return sendTransactionMessage(
-            ingressControlPayloadBuilder.buildCommitTransaction(transactionId, correlationId, getCurrentTerm()),
+            ingressControlPayloadBuilder.buildCommitTransaction(transactionId, correlationId, getIngressTerm()),
             "commit-transaction"
         );
     }
@@ -994,7 +1003,7 @@ public class AeronConsensusEngine implements ClusteredService {
             return false;
         }
         return sendTransactionMessage(
-            ingressControlPayloadBuilder.buildAbortTransaction(transactionId, correlationId, reason, getCurrentTerm()),
+            ingressControlPayloadBuilder.buildAbortTransaction(transactionId, correlationId, reason, getIngressTerm()),
             "abort-transaction"
         );
     }
@@ -1150,7 +1159,7 @@ public class AeronConsensusEngine implements ClusteredService {
                     contentType,
                     message,
                     signature,
-                    shouldIncludeTerm() ? Integer.valueOf(getIngressTerm()) : null,
+                    getIngressTerm(),
                     ipfsCid,
                     normalizeAuditMetadata(auditMetadata, MutationAuditMetadata.Operation.WRITE)
                 );
@@ -1251,7 +1260,7 @@ public class AeronConsensusEngine implements ClusteredService {
                     contentType,
                     message,
                     signature,
-                    shouldIncludeTerm() ? Integer.valueOf(getIngressTerm()) : null,
+                    getIngressTerm(),
                     blobId,
                     mimeType,
                     ipfsCid,
@@ -1337,7 +1346,7 @@ public class AeronConsensusEngine implements ClusteredService {
                     walletAddress,
                     path,
                     signature,
-                    shouldIncludeTerm() ? Integer.valueOf(getIngressTerm()) : null,
+                    getIngressTerm(),
                     normalizeAuditMetadata(auditMetadata, MutationAuditMetadata.Operation.DELETE)
                 );
             
@@ -1416,7 +1425,7 @@ public class AeronConsensusEngine implements ClusteredService {
             AeronEncodedMessage encoded =
                 ingressWritePayloadBuilder.buildWriteBatch(
                     proposals,
-                    shouldIncludeTerm() ? Integer.valueOf(getIngressTerm()) : null
+                    getIngressTerm()
                 );
             
             log.debug("🔍DEBUG_BATCH [5]: JSON built - size: {} bytes, first 100 chars: {}", 
@@ -1811,14 +1820,7 @@ public class AeronConsensusEngine implements ClusteredService {
         long timestamp = System.currentTimeMillis();
         long clusterTime = cluster != null ? cluster.time() : -1L;
 
-        // ✅ ADR 025: Track term on role change (Aeron doesn't expose leadershipTermId on Cluster interface)
-        if (newRole == Cluster.Role.LEADER && previousRole != Cluster.Role.LEADER) {
-            currentTerm++;
-            log.info("Term incremented to: {}", currentTerm);
-        }
-        if (newRole == Cluster.Role.FOLLOWER) {
-            refreshLeaderTermIfNeeded(true);
-        }
+        // Term is not changed here: it comes from onNewLeadershipTermEvent, in log order.
 
         LeadershipChange change = new LeadershipChange(
             timestamp,
@@ -1874,6 +1876,8 @@ public class AeronConsensusEngine implements ClusteredService {
                                          int logSessionId,
                                          java.util.concurrent.TimeUnit timeUnit,
                                          int appVersion) {
+        currentTerm = (int) leadershipTermId;
+        leadershipTermKnown = true;
         String leaderUrl = nodeIdToUrl.get(leaderMemberId);
         log.info("New leadership term {} at log position {}: leader memberId={} url={}",
             leadershipTermId, logPosition, leaderMemberId, leaderUrl);
@@ -2246,38 +2250,30 @@ public class AeronConsensusEngine implements ClusteredService {
     }
     
     /**
-     * ✅ ADR 025: Get current Raft term (tracked locally on role changes).
-     * 
-     * <p>Note: Aeron Cluster's {@code Cluster} interface doesn't expose {@code leadershipTermId()}.
-     * We track term locally by incrementing on leader elections (via {@code onRoleChange()}).
-     * Term monotonically increases with each leader election, providing split-brain protection foundation.
-     * 
-     * <p>PRODUCTION_HARDENING: Term field is embedded in write/delete proposals and
-     * {@link MessageDispatcher} rejects proposals with {@code term < currentTerm}.
-     * 
+     * ✅ ADR 025: Get current Raft term: the Aeron {@code leadershipTermId} of the last
+     * {@code onNewLeadershipTermEvent} applied from the log (0 before the first event).
+     *
+     * <p>Every member applies the same term events at the same log positions, so the term seen by
+     * {@link MessageDispatcher} when it rejects proposals with {@code term < currentTerm} is the same
+     * on all members and on replay.
+     *
      * @return Current Raft term
      */
     public int getCurrentTerm() {
         return currentTerm;
     }
 
-    private int getIngressTerm() {
-        if (cluster == null) {
-            return currentTerm;
-        }
-        if (cluster.role() == Cluster.Role.LEADER) {
-            return currentTerm;
-        }
-        refreshLeaderTermIfNeeded(false);
-        return currentTerm;
+    /** Term stamped on proposals sent through ingress; null (accepted as missing) until a term is known. */
+    private Integer getIngressTerm() {
+        return leadershipTermKnown ? Integer.valueOf(currentTerm) : null;
     }
 
-    private void refreshLeaderTermIfNeeded(boolean force) {
+    private void refreshLeaderLogPositionIfNeeded(boolean force) {
         long now = System.currentTimeMillis();
-        if (!force && (now - lastLeaderTermFetchMs) < LEADER_TERM_TTL_MS) {
+        if (!force && (now - lastLeaderLogPositionFetchMs) < LEADER_LOG_POSITION_TTL_MS) {
             return;
         }
-        lastLeaderTermFetchMs = now;
+        lastLeaderLogPositionFetchMs = now;
         try {
             String leaderUrl = leaderDiscoveryService != null ? leaderDiscoveryService.discoverLeader(cluster) : null;
             if (leaderUrl == null) {
@@ -2300,14 +2296,6 @@ public class AeronConsensusEngine implements ClusteredService {
             );
             String response = reader.lines().collect(java.util.stream.Collectors.joining());
             reader.close();
-            String leaderTermValue = JsonParser.extractField(response, "term");
-            if (leaderTermValue != null) {
-                int leaderTerm = Integer.parseInt(leaderTermValue);
-                if (leaderTerm > currentTerm) {
-                    currentTerm = leaderTerm;
-                    log.info("Synced term from leader: {}", currentTerm);
-                }
-            }
             String leaderLogPositionValue = JsonParser.extractField(response, "logPosition");
             if (leaderLogPositionValue != null) {
                 long observedLeaderLogPosition = Long.parseLong(leaderLogPositionValue);
@@ -2316,12 +2304,8 @@ public class AeronConsensusEngine implements ClusteredService {
                 }
             }
         } catch (Exception e) {
-            log.debug("Failed to sync term from leader: {}", e.getMessage());
+            log.debug("Failed to fetch leader log position: {}", e.getMessage());
         }
-    }
-
-    private boolean shouldIncludeTerm() {
-        return true;
     }
     
     /**
@@ -2517,7 +2501,7 @@ public class AeronConsensusEngine implements ClusteredService {
         backgroundCoordinator.scheduleLeaderDiscovery(cluster, leaderDiscoveryService, leaderUrl -> {
             this.currentLeader = leaderUrl;
             log.info("Discovered leader via LeaderDiscoveryService: {}", leaderUrl);
-            refreshLeaderTermIfNeeded(true);
+            refreshLeaderLogPositionIfNeeded(true);
         });
     }
 
@@ -2858,7 +2842,7 @@ public class AeronConsensusEngine implements ClusteredService {
             return null;
         }
         if (cluster.role() == Cluster.Role.FOLLOWER) {
-            refreshLeaderTermIfNeeded(false);
+            refreshLeaderLogPositionIfNeeded(false);
         }
         long effectiveLeaderLogPosition = cluster.role() == Cluster.Role.LEADER
             ? cluster.logPosition()
@@ -2879,7 +2863,7 @@ public class AeronConsensusEngine implements ClusteredService {
     private boolean hasFreshLeaderLogPosition() {
         return leaderLogPosition >= 0
             && leaderLogPositionObservedAtMs > 0
-            && (System.currentTimeMillis() - leaderLogPositionObservedAtMs) <= (LEADER_TERM_TTL_MS * 2L);
+            && (System.currentTimeMillis() - leaderLogPositionObservedAtMs) <= (LEADER_LOG_POSITION_TTL_MS * 2L);
     }
     
     private void markHeartbeat() {

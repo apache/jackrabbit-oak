@@ -40,6 +40,7 @@ final class SnapshotRestoreSession implements AutoCloseable {
     private int epoch;
     private long timestamp;
     private int fileCount;
+    private long leadershipTermId = -1L;
     private boolean metadataReceived;
     private FileReceiver currentFileReceiver;
 
@@ -76,7 +77,7 @@ final class SnapshotRestoreSession implements AutoCloseable {
             log.warn("⚠️  Snapshot restoration incomplete: no metadata received");
             return null;
         }
-        return new SnapshotService.SnapshotState(head, epoch, timestamp, fileCount);
+        return new SnapshotService.SnapshotState(head, epoch, timestamp, fileCount, leadershipTermId);
     }
 
     @Override
@@ -125,6 +126,8 @@ final class SnapshotRestoreSession implements AutoCloseable {
         this.head = parsedHead;
         this.epoch = epochValue.intValue();
         this.timestamp = timestampValue;
+        Long termValue = extractJsonFieldLong(json, "leadershipTermId");
+        this.leadershipTermId = termValue != null ? termValue : -1L;
         this.metadataReceived = true;
         log.info("   ✅ Metadata received: head={}, epoch={}", head, epoch);
     }

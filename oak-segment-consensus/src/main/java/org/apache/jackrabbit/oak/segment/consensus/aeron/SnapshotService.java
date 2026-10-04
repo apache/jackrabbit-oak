@@ -72,12 +72,19 @@ public class SnapshotService {
         public final int epoch;
         public final long timestamp;
         public final int fileCount;
+        /** Aeron leadership term in force at the snapshot position, or -1 if the snapshot predates it. */
+        public final long leadershipTermId;
         
         public SnapshotState(String head, int epoch, long timestamp, int fileCount) {
+            this(head, epoch, timestamp, fileCount, -1L);
+        }
+
+        public SnapshotState(String head, int epoch, long timestamp, int fileCount, long leadershipTermId) {
             this.head = head;
             this.epoch = epoch;
             this.timestamp = timestamp;
             this.fileCount = fileCount;
+            this.leadershipTermId = leadershipTermId;
         }
     }
     
@@ -152,6 +159,17 @@ public class SnapshotService {
      * @throws Exception if snapshot creation fails
      */
     public void createSnapshot(ExclusivePublication pub, IdleStrategy idleStrategy, int currentEpoch) throws Exception {
+        createSnapshot(pub, idleStrategy, currentEpoch, -1L);
+    }
+
+    /**
+     * Create a snapshot that also records the Aeron leadership term in force at the snapshot position.
+     * Log replay after loading the snapshot starts past that term's event, so the term must travel here.
+     *
+     * @param leadershipTermId current leadership term, or -1 if unknown (not written)
+     */
+    public void createSnapshot(ExclusivePublication pub, IdleStrategy idleStrategy, int currentEpoch,
+                               long leadershipTermId) throws Exception {
         log.info("📸 Creating Aeron snapshot...");
         
         // Get current HEAD
@@ -161,7 +179,7 @@ public class SnapshotService {
         log.info("Snapshot state - HEAD: {}, Epoch: {}, Dir: {}", currentHead, currentEpoch, storeDirectory);
         
         // Send metadata first
-        sendSnapshotMetadata(pub, idleStrategy, currentHead, currentEpoch, currentTimestamp);
+        sendSnapshotMetadata(pub, idleStrategy, currentHead, currentEpoch, currentTimestamp, leadershipTermId);
         
         // Stream TAR files
         streamTarFiles(pub, idleStrategy);
@@ -326,11 +344,13 @@ public class SnapshotService {
      * Send snapshot metadata frame with SBE header.
      */
     private void sendSnapshotMetadata(ExclusivePublication pub, IdleStrategy idleStrategy,
-                                     String head, int epoch, long timestamp) throws Exception {
+                                     String head, int epoch, long timestamp,
+                                     long leadershipTermId) throws Exception {
         
         // Use ethereumEpoch field name for compatibility with AeronConsensusEngine
-        String json = String.format("{\"type\":\"metadata\",\"head\":\"%s\",\"ethereumEpoch\":%d,\"timestamp\":%d}",
-                                   head, epoch, timestamp);
+        String json = String.format("{\"type\":\"metadata\",\"head\":\"%s\",\"ethereumEpoch\":%d,\"timestamp\":%d%s}",
+                                   head, epoch, timestamp,
+                                   leadershipTermId >= 0 ? ",\"leadershipTermId\":" + leadershipTermId : "");
         
         byte[] jsonBytes = json.getBytes(java.nio.charset.StandardCharsets.UTF_8);
         int totalLength = SimpleMessageHeader.ENCODED_LENGTH + jsonBytes.length;
