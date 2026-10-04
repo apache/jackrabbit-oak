@@ -194,6 +194,8 @@ public class WriteApplicationService {
             @Nullable String ipfsCid,
             @Nullable MutationAuditMetadata auditMetadata) {
         String proposalId = auditMetadata != null ? auditMetadata.getProposalId() : null;
+        Long clusterTimestamp = auditMetadata != null ? auditMetadata.getClusterTimestamp() : null;
+        long appliedAt = clusterTimestamp != null ? clusterTimestamp : System.currentTimeMillis();
         
         try {
             log.debug("✈️  APPLYING REPLICATED WRITE: wallet={}, path={}, intentToken={}, blobId={}, ipfsCid={}", 
@@ -252,11 +254,11 @@ public class WriteApplicationService {
 
             // Enrich wallet node with metadata
             if (walletNode != null && walletNodeName != null) {
-                enrichWalletNode(walletNode, walletNodeName, walletAddress, !contentNodeExists);
+                enrichWalletNode(walletNode, walletNodeName, walletAddress, !contentNodeExists, appliedAt);
             }
             
             // Set properties
-            setContentProperties(contentNode, walletAddress, contentType, message, signature, path, proposalId);
+            setContentProperties(contentNode, walletAddress, contentType, message, signature, path, proposalId, appliedAt);
             
             // ADR 059: Record binary storage mode (client vs validator)
             if (blobId != null && !blobId.isEmpty()) {
@@ -380,12 +382,13 @@ public class WriteApplicationService {
             String message,
             String signature,
             String path,
-            @Nullable String proposalId) {
+            @Nullable String proposalId,
+            long appliedAt) {
         
         contentNode.setProperty("jcr:primaryType", "nt:unstructured");
         contentNode.setProperty("contentType", contentType != null ? contentType : "page");
         contentNode.setProperty("message", message != null ? message : "");
-        contentNode.setProperty("timestamp", System.currentTimeMillis());
+        contentNode.setProperty("timestamp", appliedAt);
         contentNode.setProperty("wallet", walletAddress);
         contentNode.setProperty("signature", signature);
         contentNode.setProperty("source", "aeron-replicated");
@@ -638,7 +641,8 @@ public class WriteApplicationService {
     private void enrichWalletNode(NodeBuilder walletNode,
                                   String walletNodeName,
                                   String walletAddress,
-                                  boolean newContentNode) {
+                                  boolean newContentNode,
+                                  long appliedAt) {
         try {
             boolean isNewWallet = !walletNode.hasProperty("wallet");
             
@@ -647,14 +651,14 @@ public class WriteApplicationService {
                 
                 walletNode.setProperty("jcr:primaryType", "nt:unstructured");
                 walletNode.setProperty("wallet", walletAddress);
-                walletNode.setProperty("walletCreated", System.currentTimeMillis());
+                walletNode.setProperty("walletCreated", appliedAt);
                 walletNode.setProperty("nodeType", "wallet-root");
                 walletNode.setProperty("description", "Wallet-scoped content root for " + walletAddress);
                 
                 // First write creates the wallet node and its initial content entry.
                 walletNode.setProperty("contentCount", 1L);
                 walletNode.setProperty("totalWrites", 1L);
-                walletNode.setProperty("lastWrite", System.currentTimeMillis());
+                walletNode.setProperty("lastWrite", appliedAt);
                 
                 log.debug("✅ Wallet node metadata initialized: {}", walletAddress);
             } else {
@@ -668,7 +672,7 @@ public class WriteApplicationService {
                 
                 walletNode.setProperty("contentCount", nextContentCount);
                 walletNode.setProperty("totalWrites", totalWrites + 1);
-                walletNode.setProperty("lastWrite", System.currentTimeMillis());
+                walletNode.setProperty("lastWrite", appliedAt);
                 
                 log.debug("📊 Wallet node updated: {} (contentCount: {}, totalWrites: {})", 
                     walletAddress, nextContentCount, totalWrites + 1);

@@ -253,13 +253,13 @@ public class MessageDispatcher {
             
             switch (header.templateId) {
                 case SimpleMessageHeader.TEMPLATE_ID_WRITE_PROPOSAL:
-                    return handleWriteProposal(buffer, payloadOffset, payloadLength);
+                    return handleWriteProposal(timestamp, buffer, payloadOffset, payloadLength);
                     
                 case SimpleMessageHeader.TEMPLATE_ID_DELETE_PROPOSAL:
-                    return handleDeleteProposal(buffer, payloadOffset, payloadLength);
+                    return handleDeleteProposal(timestamp, buffer, payloadOffset, payloadLength);
                     
                 case SimpleMessageHeader.TEMPLATE_ID_WRITE_BATCH:
-                    return handleWriteBatch(buffer, payloadOffset, payloadLength);
+                    return handleWriteBatch(timestamp, buffer, payloadOffset, payloadLength);
                     
                 case SimpleMessageHeader.TEMPLATE_ID_GC_PROPOSAL:
                     return handleGCProposal(buffer, payloadOffset, payloadLength);
@@ -315,7 +315,7 @@ public class MessageDispatcher {
      * @param payloadOffset offset to JSON payload (after SBE header)
      * @param payloadLength length of JSON payload
      */
-    private boolean handleWriteProposal(DirectBuffer buffer, int payloadOffset, int payloadLength) {
+    private boolean handleWriteProposal(long timestamp, DirectBuffer buffer, int payloadOffset, int payloadLength) {
         try {
             // Extract JSON payload
             Map<String, Object> json = readPayload(buffer, payloadOffset, payloadLength);
@@ -337,7 +337,7 @@ public class MessageDispatcher {
                 json,
                 MutationAuditMetadata.Operation.WRITE,
                 proposalId
-            );
+            ).withClusterTimestamp(timestamp);
             Long proposalTerm = longField(json, "term");
 
             if (walletAddress == null || path == null) {
@@ -376,7 +376,7 @@ public class MessageDispatcher {
      * @param payloadOffset offset to JSON payload (after SBE header)
      * @param payloadLength length of JSON payload
      */
-    private boolean handleDeleteProposal(DirectBuffer buffer, int payloadOffset, int payloadLength) {
+    private boolean handleDeleteProposal(long timestamp, DirectBuffer buffer, int payloadOffset, int payloadLength) {
         try {
             // Extract JSON payload
             Map<String, Object> json = readPayload(buffer, payloadOffset, payloadLength);
@@ -392,7 +392,7 @@ public class MessageDispatcher {
                 json,
                 MutationAuditMetadata.Operation.DELETE,
                 proposalId
-            );
+            ).withClusterTimestamp(timestamp);
             Long proposalTerm = longField(json, "term");
             
             if (walletAddress == null || path == null) {
@@ -429,7 +429,7 @@ public class MessageDispatcher {
      * @param payloadLength length of JSON payload
      * @return number of proposals successfully processed
      */
-    private boolean handleWriteBatch(DirectBuffer buffer, int payloadOffset, int payloadLength) {
+    private boolean handleWriteBatch(long timestamp, DirectBuffer buffer, int payloadOffset, int payloadLength) {
         try {
             // Extract JSON payload
             Map<String, Object> json = readPayload(buffer, payloadOffset, payloadLength);
@@ -475,7 +475,7 @@ public class MessageDispatcher {
                     proposalJson,
                     MutationAuditMetadata.Operation.WRITE,
                     proposalId
-                );
+                ).withClusterTimestamp(timestamp);
                 Long proposalTerm = longField(proposalJson, "term");
                 
                 if (walletAddress == null || path == null) {

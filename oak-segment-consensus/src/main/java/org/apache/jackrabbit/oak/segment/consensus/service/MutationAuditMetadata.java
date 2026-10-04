@@ -41,6 +41,7 @@ public final class MutationAuditMetadata {
     private final Long confirmedBlockNumber;
     private final Long ethereumObservedEpoch;
     private final Long ethereumFinalizedEpoch;
+    private final Long clusterTimestamp;
 
     public MutationAuditMetadata(@NotNull Operation operation,
                                  @Nullable String transactionId,
@@ -50,6 +51,19 @@ public final class MutationAuditMetadata {
                                  @Nullable Long confirmedBlockNumber,
                                  @Nullable Long ethereumObservedEpoch,
                                  @Nullable Long ethereumFinalizedEpoch) {
+        this(operation, transactionId, correlationId, proposalId, ethereumTxHash, confirmedBlockNumber,
+            ethereumObservedEpoch, ethereumFinalizedEpoch, null);
+    }
+
+    private MutationAuditMetadata(@NotNull Operation operation,
+                                  @Nullable String transactionId,
+                                  @Nullable String correlationId,
+                                  @Nullable String proposalId,
+                                  @Nullable String ethereumTxHash,
+                                  @Nullable Long confirmedBlockNumber,
+                                  @Nullable Long ethereumObservedEpoch,
+                                  @Nullable Long ethereumFinalizedEpoch,
+                                  @Nullable Long clusterTimestamp) {
         this.operation = Objects.requireNonNull(operation, "operation");
         this.transactionId = normalize(transactionId);
         this.correlationId = normalize(correlationId);
@@ -58,6 +72,7 @@ public final class MutationAuditMetadata {
         this.confirmedBlockNumber = confirmedBlockNumber;
         this.ethereumObservedEpoch = ethereumObservedEpoch;
         this.ethereumFinalizedEpoch = ethereumFinalizedEpoch;
+        this.clusterTimestamp = clusterTimestamp;
     }
 
     @NotNull
@@ -140,6 +155,29 @@ public final class MutationAuditMetadata {
         return ethereumFinalizedEpoch;
     }
 
+    /**
+     * Aeron cluster-log timestamp of the replicated command; identical on every member.
+     */
+    @Nullable
+    public Long getClusterTimestamp() {
+        return clusterTimestamp;
+    }
+
+    @NotNull
+    public MutationAuditMetadata withClusterTimestamp(long nextClusterTimestamp) {
+        return new MutationAuditMetadata(
+            operation,
+            transactionId,
+            correlationId,
+            proposalId,
+            ethereumTxHash,
+            confirmedBlockNumber,
+            ethereumObservedEpoch,
+            ethereumFinalizedEpoch,
+            nextClusterTimestamp
+        );
+    }
+
     @NotNull
     public MutationAuditMetadata withOperation(@NotNull Operation nextOperation) {
         if (operation == nextOperation) {
@@ -153,7 +191,8 @@ public final class MutationAuditMetadata {
             ethereumTxHash,
             confirmedBlockNumber,
             ethereumObservedEpoch,
-            ethereumFinalizedEpoch
+            ethereumFinalizedEpoch,
+            clusterTimestamp
         );
     }
 
