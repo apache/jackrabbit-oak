@@ -144,6 +144,20 @@ public class ReplicatedCommandRoundTripTest {
     }
 
     @Test
+    public void writeBatchRoutesDeleteItemsToApplyDeleteInSubmissionOrder() {
+        QueuedProposal writeA = batchItem("pid-a", "/a", QueuedProposal.ProposalType.WRITE);
+        QueuedProposal deleteP = batchItem("pid-del-p", "/p", QueuedProposal.ProposalType.DELETE);
+        QueuedProposal writeP = batchItem("pid-p", "/p", QueuedProposal.ProposalType.WRITE);
+
+        List<String> calls = new ArrayList<>();
+        assertTrue(dispatch(dispatcher(calls), writes.buildWriteBatch(Arrays.asList(writeA, deleteP, writeP), 7)));
+        assertEquals(Arrays.asList(
+            "0xw|/a|page|msg-pid-a|sig-pid-a|null|null|null|null|WRITE|null|null|pid-a|null|null|null|null",
+            "delete|0xw|/p|sig-pid-del-p|DELETE|null|null|pid-del-p|null|null|null|null",
+            "0xw|/p|page|msg-pid-p|sig-pid-p|null|null|null|null|WRITE|null|null|pid-p|null|null|null|null"), calls);
+    }
+
+    @Test
     public void gcCommandsRoundTripEveryStringField() {
         for (String s : SAMPLES) {
             List<String> calls = new ArrayList<>();
@@ -232,6 +246,17 @@ public class ReplicatedCommandRoundTripTest {
         assertEquals(Arrays.asList(
             "0xw|/p|null|null|null|null|null|null|null|WRITE|null|null|null|null|null|null|null",
             "gcVote|pid|2|true|null"), calls);
+    }
+
+    static QueuedProposal batchItem(String proposalId, String path, QueuedProposal.ProposalType type) {
+        QueuedProposal p = new QueuedProposal(proposalId, null, null, 1L, 2L, ProposalState.PENDING);
+        p.setType(type);
+        p.setWalletAddress("0xw");
+        p.setPath(path);
+        p.setContentType("page");
+        p.setMessage("msg-" + proposalId);
+        p.setSignature("sig-" + proposalId);
+        return p;
     }
 
     private static MessageDispatcher dispatcher(List<String> calls) {

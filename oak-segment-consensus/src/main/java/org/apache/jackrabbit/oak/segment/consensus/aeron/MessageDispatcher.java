@@ -460,7 +460,7 @@ public class MessageDispatcher {
                 }
                 @SuppressWarnings("unchecked")
                 Map<String, Object> proposalJson = (Map<String, Object>) entry;
-                // Parse proposal fields (batch proposals don't have "type" field - they're all writes)
+                // Items carry "operation"; items without it decode as writes
                 String walletAddress = stringField(proposalJson, "walletAddress");
                 String path = stringField(proposalJson, "path");
                 String contentType = stringField(proposalJson, "contentType");
@@ -487,8 +487,12 @@ public class MessageDispatcher {
                     continue;
                 }
                 
-                writeCallback.applyWrite(walletAddress, path, contentType, message,
-                                        signature, intentToken, blobId, mimeType, ipfsCid, auditMetadata);
+                if (auditMetadata.getOperation() == MutationAuditMetadata.Operation.DELETE) {
+                    writeCallback.applyDelete(walletAddress, path, signature, auditMetadata);
+                } else {
+                    writeCallback.applyWrite(walletAddress, path, contentType, message,
+                                            signature, intentToken, blobId, mimeType, ipfsCid, auditMetadata);
+                }
                 successCount++;
             }
             
