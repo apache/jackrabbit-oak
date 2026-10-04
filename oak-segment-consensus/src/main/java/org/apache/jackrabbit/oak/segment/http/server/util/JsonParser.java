@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.http.server.util;
 
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 
@@ -119,6 +120,36 @@ public class JsonParser {
         Map<String, Object> result = readObject(tokenizer);
         tokenizer.read(JsopReader.END);
         return result;
+    }
+
+    /**
+     * Serialize a value produced by {@link #parseObject(String)} as compact JSON.
+     */
+    public static String toJson(Object value) {
+        JsopBuilder json = new JsopBuilder();
+        write(json, value);
+        return json.toString();
+    }
+
+    private static void write(JsopBuilder json, Object value) {
+        if (value instanceof Map) {
+            json.object();
+            for (Map.Entry<?, ?> entry : ((Map<?, ?>) value).entrySet()) {
+                json.key(String.valueOf(entry.getKey()));
+                write(json, entry.getValue());
+            }
+            json.endObject();
+        } else if (value instanceof List) {
+            json.array();
+            for (Object item : (List<?>) value) {
+                write(json, item);
+            }
+            json.endArray();
+        } else if (value instanceof String) {
+            json.value((String) value);
+        } else {
+            json.encodedValue(String.valueOf(value));
+        }
     }
 
     private static Map<String, Object> readObject(JsopTokenizer t) {

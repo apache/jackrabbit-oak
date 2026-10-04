@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.segment.consensus.config.IpfsGatewayUrls;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.http.server.util.JsonParser;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -35,7 +36,10 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 
 /**
@@ -415,117 +419,46 @@ public class WriteApplicationService {
         if (!(trimmed.startsWith("{") && trimmed.endsWith("}"))) {
             return;
         }
-
-        String title = extractJsonString(trimmed, "title");
-        if (title != null) {
-            contentNode.setProperty("oak:title", title);
+        Map<String, Object> fields;
+        try {
+            fields = JsonParser.parseObject(trimmed);
+        } catch (IllegalArgumentException e) {
+            log.debug("Message is not a JSON object; skipping canonical mapping");
+            return;
         }
 
-        String body = extractJsonString(trimmed, "body");
-        if (body != null) {
-            contentNode.setProperty("oak:body", body);
+        Object title = fields.get("title");
+        if (title instanceof String) {
+            contentNode.setProperty("oak:title", (String) title);
         }
 
-        String[] tags = extractJsonStringArray(trimmed, "tags");
-        if (tags != null) {
-            contentNode.setProperty("oak:tags", java.util.Arrays.asList(tags), Type.STRINGS);
+        Object body = fields.get("body");
+        if (body instanceof String) {
+            contentNode.setProperty("oak:body", (String) body);
         }
 
-        String metaJson = extractJsonObject(trimmed, "meta");
-        if (metaJson != null) {
-            contentNode.setProperty("oak:metaJson", metaJson);
-        }
-
-        String payloadJson = extractJsonObject(trimmed, "payload");
-        if (payloadJson != null) {
-            contentNode.setProperty("oak:payloadJson", payloadJson);
-        }
-    }
-
-    private String extractJsonString(String json, String field) {
-        String fieldPrefix = "\"" + field + "\"";
-        int fieldStart = json.indexOf(fieldPrefix);
-        if (fieldStart == -1) {
-            return null;
-        }
-        int colonIndex = json.indexOf(":", fieldStart + fieldPrefix.length());
-        if (colonIndex == -1) {
-            return null;
-        }
-        int quoteStart = json.indexOf("\"", colonIndex);
-        if (quoteStart == -1) {
-            return null;
-        }
-        int quoteEnd = json.indexOf("\"", quoteStart + 1);
-        if (quoteEnd == -1) {
-            return null;
-        }
-        return json.substring(quoteStart + 1, quoteEnd);
-    }
-
-    private String extractJsonObject(String json, String field) {
-        String pattern = "\"" + field + "\":";
-        int start = json.indexOf(pattern);
-        if (start == -1) {
-            return null;
-        }
-        start = json.indexOf("{", start);
-        if (start == -1) {
-            return null;
-        }
-        int depth = 0;
-        int end = start;
-        while (end < json.length()) {
-            char c = json.charAt(end);
-            if (c == '{') {
-                depth++;
-            } else if (c == '}') {
-                depth--;
-                if (depth == 0) {
-                    return json.substring(start, end + 1);
+        Object tags = fields.get("tags");
+        if (tags instanceof List) {
+            List<String> values = new ArrayList<>();
+            for (Object tag : (List<?>) tags) {
+                if (tag instanceof String) {
+                    values.add((String) tag);
                 }
             }
-            end++;
+            if (!values.isEmpty() || ((List<?>) tags).isEmpty()) {
+                contentNode.setProperty("oak:tags", values, Type.STRINGS);
+            }
         }
-        return null;
-    }
 
-    private String[] extractJsonStringArray(String json, String field) {
-        String pattern = "\"" + field + "\":";
-        int start = json.indexOf(pattern);
-        if (start == -1) {
-            return null;
+        Object meta = fields.get("meta");
+        if (meta instanceof Map) {
+            contentNode.setProperty("oak:metaJson", JsonParser.toJson(meta));
         }
-        start = json.indexOf("[", start);
-        if (start == -1) {
-            return null;
+
+        Object payload = fields.get("payload");
+        if (payload instanceof Map) {
+            contentNode.setProperty("oak:payloadJson", JsonParser.toJson(payload));
         }
-        int end = json.indexOf("]", start);
-        if (end == -1) {
-            return null;
-        }
-        String inside = json.substring(start + 1, end).trim();
-        if (inside.isEmpty()) {
-            return new String[0];
-        }
-        java.util.List<String> values = new java.util.ArrayList<>();
-        int idx = 0;
-        while (idx < inside.length()) {
-            int quoteStart = inside.indexOf("\"", idx);
-            if (quoteStart == -1) {
-                break;
-            }
-            int quoteEnd = inside.indexOf("\"", quoteStart + 1);
-            if (quoteEnd == -1) {
-                break;
-            }
-            values.add(inside.substring(quoteStart + 1, quoteEnd));
-            idx = quoteEnd + 1;
-        }
-        if (values.isEmpty()) {
-            return null;
-        }
-        return values.toArray(new String[0]);
     }
     
     /**

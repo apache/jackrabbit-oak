@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.segment.consensus.service;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -431,6 +432,51 @@ public class WriteApplicationServiceTest {
         assertEquals("Acme", service.extractOrganizationFromPath(PATH));
         assertEquals(null, service.extractOrganizationFromPath("/oak-chain/aa/bb/cc/" + WALLET + "/content/doc-1"));
         assertEquals(null, service.extractOrganizationFromPath(null));
+    }
+
+    @Test
+    public void testDerivedCanonicalPropertiesDecodeEscapedJson() {
+        String title = "He said \"hi\" \\ ok\nline \u00e9 \uD83D\uDE00";
+        String body = "a } b { \"q\" \t tab \u0001 \u65e5\u672c";
+        List<String> tags = Arrays.asList("a\"b", "c\\d", "e\nf", "\uD83D\uDE00", "");
+        String meta = "{\"note\":" + JsopBuilder.encode("x \"y\" } \\") + ",\"n\":[1,-2,{\"k\":\"v\"}],"
+            + "\"ok\":true,\"z\":null,\"f\":1.5}";
+        String payload = "{\"kind\":" + JsopBuilder.encode("note \"q\"\n") + "}";
+        StringBuilder tagsJson = new StringBuilder("[");
+        for (String tag : tags) {
+            tagsJson.append(tagsJson.length() > 1 ? "," : "").append(JsopBuilder.encode(tag));
+        }
+        String message = "{\"title\":" + JsopBuilder.encode(title) + ",\"body\":" + JsopBuilder.encode(body)
+            + ",\"tags\":" + tagsJson + "]" + ",\"meta\":" + meta + ",\"payload\":" + payload + "}";
+
+        NodeState contentNode = applyMessage(message);
+
+        assertEquals(message, stringProperty(contentNode, "message"));
+        assertEquals(title, stringProperty(contentNode, "oak:title"));
+        assertEquals(body, stringProperty(contentNode, "oak:body"));
+        assertEquals(tags, stringListProperty(contentNode, "oak:tags"));
+        assertEquals(meta, stringProperty(contentNode, "oak:metaJson"));
+        assertEquals(payload, stringProperty(contentNode, "oak:payloadJson"));
+    }
+
+    @Test
+    public void testDerivedCanonicalPropertiesOnlyForTopLevelFieldsOfJsonObjects() {
+        for (String message : new String[] {"plain \"title\":\"x\"", "{\"title\":\"unterminated}", "[\"title\"]"}) {
+            NodeState contentNode = applyMessage(message);
+            assertEquals(message, stringProperty(contentNode, "message"));
+            assertNull(message, contentNode.getProperty("oak:title"));
+        }
+        NodeState nested = applyMessage("{\"meta\":{\"title\":\"nested\",\"tags\":[\"t\"]}}");
+        assertNull(nested.getProperty("oak:title"));
+        assertNull(nested.getProperty("oak:tags"));
+    }
+
+    private static NodeState applyMessage(String message) {
+        MemoryNodeStore nodeStore = new MemoryNodeStore();
+        WriteApplicationService service = new WriteApplicationService(
+            fileStoreWithHeads("prev-head", "new-head"), nodeStore, null, mock(FileStoreFlushService.class));
+        service.applyWrite(WALLET, PATH, "page", message, "0xsig", null, null, null, null, "proposal-1");
+        return contentNode(nodeStore, PATH);
     }
 
     private static FileStore fileStoreWithHeads(String previousHead, String newHead) {
