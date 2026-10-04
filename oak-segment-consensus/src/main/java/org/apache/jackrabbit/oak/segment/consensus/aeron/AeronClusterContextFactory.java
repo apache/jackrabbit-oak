@@ -27,7 +27,6 @@ import io.aeron.cluster.ConsensusModule;
 import io.aeron.cluster.service.ClusteredService;
 import io.aeron.cluster.service.ClusteredServiceContainer;
 import io.aeron.driver.MediaDriver;
-import io.aeron.driver.MinMulticastFlowControlSupplier;
 import io.aeron.driver.ThreadingMode;
 import org.agrona.ErrorHandler;
 import org.agrona.SemanticVersion;
@@ -76,7 +75,6 @@ final class AeronClusterContextFactory {
                 .termBufferSparseFile(true)
                 .socketSndbufLength(socketSndbufLength)
                 .socketRcvbufLength(socketRcvbufLength)
-                .multicastFlowControlSupplier(new MinMulticastFlowControlSupplier())
                 .terminationHook(barrier::signal)
                 .errorHandler(mediaDriverErrorHandler)
                 .publicationTermBufferLength(publicationTermBufferLength)

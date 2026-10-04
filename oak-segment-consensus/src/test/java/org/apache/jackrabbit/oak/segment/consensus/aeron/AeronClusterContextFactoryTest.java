@@ -22,6 +22,9 @@ import java.util.concurrent.TimeUnit;
 
 import io.aeron.cluster.AppVersionValidator;
 import io.aeron.cluster.service.ClusteredService;
+import io.aeron.driver.Configuration;
+import io.aeron.driver.MaxMulticastFlowControl;
+import io.aeron.driver.media.UdpChannel;
 import org.agrona.SemanticVersion;
 import org.agrona.concurrent.ShutdownSignalBarrier;
 import org.junit.Test;
@@ -219,6 +222,19 @@ public class AeronClusterContextFactoryTest {
         assertFalse(validator.isVersionCompatible(appVersion, SemanticVersion.compose(3, 0, 0)));
         assertFalse("a log written with Aeron's default appVersion must be rejected",
             validator.isVersionCompatible(appVersion, SemanticVersion.compose(0, 0, 1)));
+    }
+
+    @Test
+    public void logChannelUsesAeronsDefaultMaxMulticastFlowControl() {
+        AeronClusterContextFactory.LaunchContexts contexts = createDefault().freshCopy();
+
+        // null until conclude(), which installs Configuration.multicastFlowControlSupplier()
+        assertNull(contexts.mediaDriverContext.multicastFlowControlSupplier());
+        // the MDC log channel has no fc= parameter, so the default supplier picks Max for it
+        UdpChannel logChannel = UdpChannel.parse(contexts.consensusModuleContext.logChannel());
+        assertTrue(logChannel.isMultiDestination());
+        assertTrue(Configuration.multicastFlowControlSupplier().newInstance(logChannel, 100, 1L)
+            instanceof MaxMulticastFlowControl);
     }
 
     private static AeronClusterContextFactory.LaunchContexts createDefault() {
