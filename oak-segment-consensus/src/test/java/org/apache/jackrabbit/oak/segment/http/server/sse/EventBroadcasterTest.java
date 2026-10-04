@@ -21,18 +21,26 @@ import org.junit.Test;
 import jakarta.servlet.AsyncContext;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.io.Writer;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
 
 public class EventBroadcasterTest {
 
     @Test
-    public void testBroadcastSendsToMatchingClientsAndBuffersRecentEvents() {
+    public void testBroadcastSendsToMatchingClientsAndBuffersRecentEvents() throws Exception {
         EventBroadcaster broadcaster = new EventBroadcaster();
         try {
             StringWriter matchingBody = new StringWriter();
@@ -62,7 +70,7 @@ public class EventBroadcasterTest {
             ContentEvent event = ContentEvent.builder().id("evt-1").timestamp(100L).build();
             broadcaster.broadcast(event);
 
-            assertTrue(matchingBody.toString().contains("id: evt-1"));
+            awaitContains(matchingBody, "id: evt-1");
             assertEquals("", nonMatchingBody.toString());
             List<ContentEvent> recent = broadcaster.getRecentEvents(10);
             assertEquals(1, recent.size());
@@ -94,5 +102,85 @@ public class EventBroadcasterTest {
         } finally {
             broadcaster.shutdown();
         }
+    }
+
+    @Test
+    public void emitDoesNotWaitForASubscriberWhoseWriterBlocks() throws Exception {
+        CountDownLatch release = new CountDownLatch(1);
+        EventBroadcaster broadcaster = new EventBroadcaster();
+        ExecutorService emitter = Executors.newSingleThreadExecutor();
+        try {
+            broadcaster.addClient(client(mock(AsyncContext.class), new PrintWriter(blockingWriter(new CountDownLatch(1), release))));
+
+            Future<?> emits = emitter.submit(() -> {
+                for (int i = 0; i < 5_000; i++) {
+                    broadcaster.emitContentWrite("/content/doc-" + i, "0xwallet", "acme", "m", "0xsig", "page");
+                }
+            });
+
+            emits.get(2, TimeUnit.SECONDS);
+            assertEquals(5_000L, broadcaster.getTotalEventsBroadcast());
+        } finally {
+            release.countDown();
+            emitter.shutdownNow();
+            broadcaster.shutdown();
+        }
+    }
+
+    @Test
+    public void subscriberStuckInAWriteIsClosed() throws Exception {
+        CountDownLatch writing = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        EventBroadcaster broadcaster = new EventBroadcaster(16, 200L);
+        try {
+            AsyncContext asyncContext = mock(AsyncContext.class);
+            SSEClient stuck = client(asyncContext, new PrintWriter(blockingWriter(writing, release)));
+            broadcaster.addClient(stuck);
+
+            broadcaster.emitContentWrite("/content/doc", "0xwallet", "acme", "m", "0xsig", "page");
+
+            assertTrue(writing.await(2, TimeUnit.SECONDS));
+            verify(asyncContext, timeout(2_000)).complete();
+            assertTrue(stuck.isClosed());
+            assertEquals(0, broadcaster.getClientCount());
+        } finally {
+            release.countDown();
+            broadcaster.shutdown();
+        }
+    }
+
+    private static SSEClient client(AsyncContext asyncContext, PrintWriter writer) {
+        return new SSEClient(asyncContext, writer, new HashSet<>(), new HashSet<>(), new HashSet<>(), null, null);
+    }
+
+    /** A socket whose peer stopped reading: every write blocks until released. */
+    private static Writer blockingWriter(CountDownLatch writing, CountDownLatch release) {
+        return new Writer() {
+            @Override
+            public void write(char[] buffer, int offset, int length) {
+                writing.countDown();
+                try {
+                    release.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+
+            @Override
+            public void flush() {
+            }
+
+            @Override
+            public void close() {
+            }
+        };
+    }
+
+    private static void awaitContains(StringWriter body, String expected) throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+        while (!body.toString().contains(expected) && System.nanoTime() < deadline) {
+            Thread.sleep(10);
+        }
+        assertTrue(body.toString().contains(expected));
     }
 }
