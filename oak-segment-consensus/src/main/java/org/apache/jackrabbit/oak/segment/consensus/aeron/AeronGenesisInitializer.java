@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
+import org.agrona.concurrent.AgentTerminationException;
 import org.apache.jackrabbit.oak.segment.consensus.genesis.CanonicalGenesisContent;
 import org.apache.jackrabbit.oak.segment.consensus.service.AppliedLogPosition;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -71,6 +72,8 @@ final class AeronGenesisInitializer {
             String newHead = fileStore.getHead().getRecordId().toString10();
             log.info("Genesis committed deterministically - validator={}, timestamp={}, head={}",
                 proposal.getGenesisValidatorUrl(), proposal.getTimestamp(), newHead);
+        } catch (AgentTerminationException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Exception during genesis creation", e);
         }

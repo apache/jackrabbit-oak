@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.consensus.service;
 
+import org.agrona.concurrent.AgentTerminationException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -234,6 +235,8 @@ public class DeleteApplicationService {
             log.info("✅ Deterministic delete applied successfully - old segments remain until GC");
             return newHead;
             
+        } catch (AgentTerminationException e) {
+            throw e;
         } catch (Exception e) {
             if (durabilityCallback != null && proposalId != null && !proposalId.isEmpty()) {
                 durabilityCallback.onFailure(proposalId, e.getMessage());

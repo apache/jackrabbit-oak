@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.consensus.service;
 
+import org.agrona.concurrent.AgentTerminationException;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -332,6 +333,8 @@ public class WriteApplicationService {
             log.debug("✅ Deterministic write applied successfully");
             return newHead;
             
+        } catch (AgentTerminationException e) {
+            throw e;
         } catch (Exception e) {
             if (durabilityCallback != null && proposalId != null && !proposalId.isEmpty()) {
                 durabilityCallback.onFailure(proposalId, e.getMessage());
@@ -505,6 +508,8 @@ public class WriteApplicationService {
                 log.info("✅ Binary stored (proposal carries no IPFS CID): jcr:blobId={}", blobId);
             }
             
+        } catch (AgentTerminationException e) {
+            throw e;
         } catch (Exception e) {
             log.error("❌ Failed to create Blob from blobId {}: {}", blobId, e.getMessage());
             // Fallback: store as string reference
@@ -566,6 +571,8 @@ public class WriteApplicationService {
                 log.debug("📊 Wallet node updated: {} (contentCount: {}, totalWrites: {})", 
                     walletAddress, nextContentCount, totalWrites + 1);
             }
+        } catch (AgentTerminationException e) {
+            throw e;
         } catch (Exception e) {
             log.warn("⚠️  Failed to enrich wallet node metadata for {}: {}", walletAddress, e.getMessage());
         }
@@ -629,6 +636,8 @@ public class WriteApplicationService {
             if (cidProp != null) {
                 return cidProp.getValue(Type.STRING);
             }
+        } catch (AgentTerminationException e) {
+            throw e;
         } catch (Exception e) {
             log.debug("Node CID lookup failed: {}", e.getMessage());
         }

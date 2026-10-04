@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
 import org.agrona.DirectBuffer;
+import org.agrona.concurrent.AgentTerminationException;
 import org.apache.jackrabbit.oak.segment.consensus.service.MutationAuditMetadata;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -710,6 +711,106 @@ public class MessageDispatcherTest {
         });
         dispatcher.setTermProvider(() -> 3L);
         dispatcher.deactivate();
+    }
+
+    @Test
+    public void agentTerminationRaisedInsideApplyPropagatesOutOfDispatch() {
+        AgentTerminationException termination = new AgentTerminationException("interrupted");
+        MessageDispatcher dispatcher = new MessageDispatcher(new MessageDispatcher.WriteCallback() {
+            @Override
+            public void applyWrite(String walletAddress, String path, String contentType, String message,
+                                   String signature, String intentToken, String blobId, String mimeType,
+                                   String ipfsCid, MutationAuditMetadata auditMetadata) {
+                throw termination;
+            }
+
+            @Override
+            public void applyDelete(String walletAddress, String path, String signature,
+                                    MutationAuditMetadata auditMetadata) {
+                throw termination;
+            }
+        });
+        dispatcher.setGCCallback(new MessageDispatcher.GCCallback() {
+            @Override
+            public void applyGCProposal(String proposalId, String proposerWallet, String targetRevision,
+                                        long estimatedReclaimableSizeMB, String estimatedCostUSDC) {
+                throw termination;
+            }
+
+            @Override
+            public void applyGCVote(String proposalId, int validatorId, boolean approve, String reason) {
+                throw termination;
+            }
+
+            @Override
+            public void applyGCExecute(String proposalId, int executorId) {
+                throw termination;
+            }
+        });
+        dispatcher.setDurabilityCallback(new MessageDispatcher.DurabilityCallback() {
+            @Override
+            public void onQueueSegment(String proposalId, int totalMembers, int requiredAcks) {
+                throw termination;
+            }
+
+            @Override
+            public void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success,
+                                           String error) {
+                throw termination;
+            }
+
+            @Override
+            public void onAckSegmentPersisted(String proposalId, boolean success, String durableHead, String error,
+                                              int totalMembers, int requiredAcks) {
+                throw termination;
+            }
+        });
+        dispatcher.setTransactionCallback(new MessageDispatcher.TransactionCallback() {
+            @Override
+            public void onStartTransaction(String transactionId, String correlationId, long timeoutMs,
+                                           String initiatorWallet) {
+                throw termination;
+            }
+
+            @Override
+            public void onCommitTransaction(String transactionId, String correlationId) {
+                throw termination;
+            }
+
+            @Override
+            public void onAbortTransaction(String transactionId, String correlationId, String reason) {
+                throw termination;
+            }
+        });
+        String write = "\"walletAddress\":\"0xabc\",\"path\":\"/oak-chain/test\"";
+        String[][] messages = {
+            {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_WRITE_PROPOSAL), "{" + write + "}"},
+            {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_DELETE_PROPOSAL), "{" + write + "}"},
+            {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_WRITE_BATCH), "{\"batch\":[{" + write + "}]}"},
+            {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_GC_PROPOSAL),
+                "{\"proposalId\":\"gc\",\"proposerWallet\":\"0xabc\"}"},
+            {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_GC_VOTE),
+                "{\"proposalId\":\"gc\",\"validatorId\":1,\"approve\":true}"},
+            {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_GC_EXECUTE), "{\"proposalId\":\"gc\",\"executorId\":1}"},
+            {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_QUEUE_SEGMENT),
+                "{\"proposalId\":\"p\",\"totalMembers\":3,\"requiredAcks\":2}"},
+            {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_SEGMENT_PERSISTED),
+                "{\"proposalId\":\"p\",\"memberId\":1,\"success\":true}"},
+            {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_ACK_SEGMENT_PERSISTED),
+                "{\"proposalId\":\"p\",\"success\":true,\"totalMembers\":3,\"requiredAcks\":2}"},
+            {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_START_TRANSACTION), "{\"transactionId\":\"t\"}"},
+            {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_COMMIT_TRANSACTION), "{\"transactionId\":\"t\"}"},
+            {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_ABORT_TRANSACTION), "{\"transactionId\":\"t\"}"},
+        };
+
+        for (String[] message : messages) {
+            try {
+                dispatch(dispatcher, Integer.parseInt(message[0]), message[1]);
+                fail("template " + message[0] + " swallowed the AgentTerminationException");
+            } catch (AgentTerminationException e) {
+                assertSame(termination, e);
+            }
+        }
     }
 
     private boolean dispatch(MessageDispatcher dispatcher, int templateId, String payload) {

@@ -20,6 +20,7 @@ import io.aeron.cluster.service.ClientSession;
 import io.aeron.cluster.service.Cluster;
 import io.aeron.logbuffer.Header;
 import org.agrona.DirectBuffer;
+import org.agrona.concurrent.AgentTerminationException;
 import org.apache.jackrabbit.oak.segment.consensus.service.AppliedLogPosition;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -114,6 +115,8 @@ public class AeronIngressHandler {
                 logDispatchFailure(headerInfo.templateId);
             }
             return success;
+        } catch (AgentTerminationException e) {
+            throw e;
         } catch (Exception e) {
             log.error("❌ Failed to process replicated message", e);
             return false;

@@ -837,54 +837,11 @@ public class AeronConsensusEngine implements ClusteredService {
         // ✈️ AERON NATIVE: Handle replicated write proposals
         // This callback is invoked on ALL nodes after Aeron replicates the message via Raft
         // Deterministic state machine: ALL nodes process messages in same order
-        if (ingressHandler != null) {
-            ingressHandler.handleMessage(session, timestamp, buffer, offset, length, header, cluster);
-            snapshotTrigger.onEntryApplied(cluster != null && cluster.role() == Cluster.Role.LEADER,
-                System.currentTimeMillis());
-        } else {
-            markHeartbeat();
-            log.debug("📨 onSessionMessage() called - session: {}, length: {}, role: {}, timestamp: {}",
-                session.id(), length, cluster != null ? cluster.role() : "UNKNOWN", timestamp);
-            if (length < SimpleMessageHeader.ENCODED_LENGTH) {
-                log.warn("⚠️  Message too short: {} (minimum {} bytes for SBE header)",
-                    length, SimpleMessageHeader.ENCODED_LENGTH);
-                return;
-            }
-            try {
-                SimpleMessageHeader.HeaderInfo headerInfo = SimpleMessageHeader.decode(buffer, offset);
-                if (headerInfo.templateId == SimpleMessageHeader.TEMPLATE_ID_GENESIS_PROPOSAL) {
-                    log.info("🎬 GENESIS proposal received via Aeron - creating genesis on this node");
-                    applyGenesisCreation(readGenesisProposal(buffer, offset, length, headerInfo.blockLength), null);
-                    log.info("✅ Genesis creation complete on this node");
-                    return;
-                }
-                if (headerInfo.templateId == SimpleMessageHeader.TEMPLATE_ID_SNAPSHOT) {
-                    log.debug("📸 Snapshot message received in onSessionMessage (handled separately)");
-                    return;
-                }
-                boolean success = messageDispatcher.dispatch(timestamp, buffer, offset, length);
-                if (!success) {
-                    log.warn("⚠️  MessageDispatcher failed to process message (templateId: {})",
-                        headerInfo.templateId);
-                }
-            } catch (Exception e) {
-                log.error("❌ Failed to process replicated message", e);
-            }
-        }
+        ingressHandler.handleMessage(session, timestamp, buffer, offset, length, header, cluster);
+        snapshotTrigger.onEntryApplied(cluster != null && cluster.role() == Cluster.Role.LEADER,
+            System.currentTimeMillis());
     }
 
-    private String readGenesisProposal(DirectBuffer buffer, int offset, int length, int blockLength) {
-        int payloadOffset = offset + SimpleMessageHeader.ENCODED_LENGTH;
-        int payloadLength = Math.max(0, Math.min(blockLength, length - SimpleMessageHeader.ENCODED_LENGTH));
-        if (payloadLength == 0) {
-            return "{}";
-        }
-        byte[] payload = new byte[payloadLength];
-        buffer.getBytes(payloadOffset, payload);
-        return new String(payload, java.nio.charset.StandardCharsets.UTF_8).trim();
-    }
-    
-    
     /**
      * ✈️ AERON NATIVE: Send write proposal through Aeron ingress channel for replication.
      * 

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.consensus.server;
 
+import org.agrona.concurrent.AgentTerminationException;
 import org.apache.jackrabbit.oak.segment.consensus.aeron.AeronConsensusEngine;
 import org.apache.jackrabbit.oak.segment.consensus.gc.GCProposalManager;
 import org.apache.jackrabbit.oak.segment.consensus.service.MutationAuditMetadata;
@@ -86,6 +87,8 @@ final class AeronClusterCallbackBinder {
                 }
                 try {
                     manager.executeGC(proposalId, executorId);
+                } catch (AgentTerminationException e) {
+                    throw e;
                 } catch (Exception e) {
                     log.warn("⚠️  Failed to apply replicated GC execute for proposal {}", proposalId, e);
                 }

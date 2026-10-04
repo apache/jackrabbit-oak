@@ -29,6 +29,7 @@ import io.aeron.cluster.service.ClientSession;
 import io.aeron.cluster.service.Cluster;
 import io.aeron.logbuffer.Header;
 import org.agrona.DirectBuffer;
+import org.agrona.concurrent.AgentTerminationException;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.apache.jackrabbit.oak.segment.consensus.service.AppliedLogPosition;
 import org.junit.Before;
@@ -37,7 +38,9 @@ import org.junit.Test;
 import static io.aeron.cluster.service.Cluster.Role.LEADER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -203,6 +206,21 @@ public class AeronIngressHandlerTest {
 
         assertFalse(handler.handleMessage(session, 123L, buffer, 0, 16, header, cluster));
         assertEquals(0, suppressed.get());
+    }
+
+    @Test
+    public void handleMessagePropagatesAgentTermination() {
+        AgentTerminationException termination = new AgentTerminationException("unexpected Aeron close");
+        when(codec.decodeHeader(buffer, 0)).thenReturn(new SimpleMessageHeader.HeaderInfo(
+            8, SimpleMessageHeader.TEMPLATE_ID_WRITE_PROPOSAL, 1, 1));
+        when(dispatcher.dispatch(anyLong(), anyLong(), eq(buffer), eq(0), eq(16))).thenThrow(termination);
+
+        try {
+            handler.handleMessage(session, 123L, buffer, 0, 16, header, cluster);
+            fail("AgentTerminationException was swallowed");
+        } catch (AgentTerminationException e) {
+            assertSame(termination, e);
+        }
     }
 
     @Test

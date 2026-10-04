@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
 import org.agrona.DirectBuffer;
+import org.agrona.concurrent.AgentTerminationException;
 import org.apache.jackrabbit.oak.segment.consensus.service.AppliedLogPosition;
 import org.apache.jackrabbit.oak.segment.consensus.service.MutationAuditMetadata;
 import org.apache.jackrabbit.oak.segment.http.server.util.JsonParser;
@@ -347,6 +348,8 @@ public class MessageDispatcher {
                     return false;
             }
             
+        } catch (AgentTerminationException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Failed to dispatch message", e);
             return false;
@@ -413,6 +416,8 @@ public class MessageDispatcher {
             
             return true;
             
+        } catch (AgentTerminationException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Failed to handle write proposal", e);
             return false;
@@ -470,6 +475,8 @@ public class MessageDispatcher {
             
             return true;
             
+        } catch (AgentTerminationException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Failed to handle delete proposal", e);
             return false;
@@ -564,6 +571,8 @@ public class MessageDispatcher {
             lastBatchSize = successCount;
             return successCount > 0;
             
+        } catch (AgentTerminationException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Failed to handle write batch", e);
             return false;
@@ -693,6 +702,8 @@ public class MessageDispatcher {
             
             return true;
             
+        } catch (AgentTerminationException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Failed to handle GC proposal", e);
             return false;
@@ -737,6 +748,8 @@ public class MessageDispatcher {
             
             return true;
             
+        } catch (AgentTerminationException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Failed to handle GC vote", e);
             return false;
@@ -779,6 +792,8 @@ public class MessageDispatcher {
             
             return true;
             
+        } catch (AgentTerminationException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Failed to handle GC execute", e);
             return false;
@@ -820,6 +835,8 @@ public class MessageDispatcher {
 
             durabilityCallback.onQueueSegment(proposalId, totalMembers.intValue(), requiredAcks.intValue());
             return true;
+        } catch (AgentTerminationException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Failed to handle queue segment", e);
             return false;
@@ -854,6 +871,8 @@ public class MessageDispatcher {
                 error
             );
             return true;
+        } catch (AgentTerminationException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Failed to handle segment persisted", e);
             return false;
@@ -890,6 +909,8 @@ public class MessageDispatcher {
                 requiredAcks.intValue()
             );
             return true;
+        } catch (AgentTerminationException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Failed to handle ack segment persisted", e);
             return false;
@@ -930,6 +951,8 @@ public class MessageDispatcher {
                 initiatorWallet
             );
             return true;
+        } catch (AgentTerminationException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Failed to handle start transaction", e);
             return false;
@@ -959,6 +982,8 @@ public class MessageDispatcher {
 
             transactionCallback.onCommitTransaction(transactionId, correlationId);
             return true;
+        } catch (AgentTerminationException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Failed to handle commit transaction", e);
             return false;
@@ -989,6 +1014,8 @@ public class MessageDispatcher {
 
             transactionCallback.onAbortTransaction(transactionId, correlationId, reason);
             return true;
+        } catch (AgentTerminationException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Failed to handle abort transaction", e);
             return false;
