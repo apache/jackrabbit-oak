@@ -18,6 +18,10 @@ package org.apache.jackrabbit.oak.segment.consensus.security;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.web3j.crypto.Credentials;
+import org.web3j.crypto.Sign;
+
+import java.nio.charset.StandardCharsets;
 
 import static org.junit.Assert.*;
 import static org.junit.Assume.assumeTrue;
@@ -203,5 +207,45 @@ public class EthereumSignatureVerifierTest {
         
         // Both should produce consistent results
         assertEquals("Should handle signatures with and without 0x prefix", result1, result2);
+    }
+
+    private static final String TEST_PRIVATE_KEY =
+        "0x4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318";
+
+    @Test
+    public void testStandardPersonalSignOverNonAsciiMessagesVerifies() {
+        Credentials credentials = Credentials.create(TEST_PRIVATE_KEY);
+        String[] messages = {
+            "Hello, Blockchain AEM!",
+            "na\u00efve caf\u00e9",
+            "\u65e5\u672c\u8a9e\u306e\u30da\u30fc\u30b8",
+            "emoji \uD83D\uDE00\uD83D\uDE80",
+            "/oak-chain/aa/bb/cc/0xabc/Acme/content/\u00fcber"
+        };
+        for (String message : messages) {
+            byte[] utf8 = message.getBytes(StandardCharsets.UTF_8);
+            Sign.SignatureData sig = Sign.signPrefixedMessage(utf8, credentials.getEcKeyPair());
+            assertTrue("standard personal_sign must verify: " + message,
+                EthereumSignatureVerifier.verifySignature(message, signatureHex(sig), credentials.getAddress()));
+        }
+    }
+
+    @Test
+    public void testHashMessageMatchesEip191Utf8ByteLength() throws Exception {
+        for (String message : new String[] {"Hello", "", "caf\u00e9", "\uD83D\uDE00"}) {
+            assertArrayEquals(message,
+                Sign.getEthereumMessageHash(message.getBytes(StandardCharsets.UTF_8)),
+                EthereumSignatureVerifier.hashMessage(message));
+        }
+    }
+
+    private static String signatureHex(Sign.SignatureData signatureData) {
+        StringBuilder hex = new StringBuilder("0x");
+        for (byte[] part : new byte[][] {signatureData.getR(), signatureData.getS(), signatureData.getV()}) {
+            for (byte b : part) {
+                hex.append(String.format("%02x", b & 0xff));
+            }
+        }
+        return hex.toString();
     }
 }

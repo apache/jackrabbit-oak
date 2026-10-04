@@ -41,7 +41,7 @@ import java.util.Arrays;
  * 
  * <p>Message format (Ethereum personal_sign):
  * <pre>
- * "\x19Ethereum Signed Message:\n" + message.length + message
+ * "\x19Ethereum Signed Message:\n" + utf8ByteLength(message) + message
  * </pre>
  * 
  * @see <a href="https://eips.ethereum.org/EIPS/eip-191">EIP-191: Signed Data Standard</a>
@@ -166,7 +166,8 @@ public class EthereumSignatureVerifier {
      * @return Keccak-256 hash of the prefixed message
      */
     public static byte[] hashMessage(String message) throws Exception {
-        String prefixedMessage = ETHEREUM_MESSAGE_PREFIX + message.length() + message;
+        int utf8Length = message.getBytes(StandardCharsets.UTF_8).length;
+        String prefixedMessage = ETHEREUM_MESSAGE_PREFIX + utf8Length + message;
         return keccak256(prefixedMessage.getBytes(StandardCharsets.UTF_8));
     }
     
