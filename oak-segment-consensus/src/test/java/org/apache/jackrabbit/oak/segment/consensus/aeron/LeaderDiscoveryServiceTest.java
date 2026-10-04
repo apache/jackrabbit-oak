@@ -17,14 +17,7 @@
 package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
 import com.sun.net.httpserver.HttpServer;
-import io.aeron.Aeron;
-import io.aeron.DirectBufferVector;
-import io.aeron.cluster.service.ClientSession;
 import io.aeron.cluster.service.Cluster;
-import io.aeron.cluster.service.ClusteredServiceContainer;
-import io.aeron.logbuffer.BufferClaim;
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.IdleStrategy;
 import org.junit.Test;
 
 import java.io.OutputStream;
@@ -32,12 +25,10 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
@@ -88,7 +79,8 @@ public class LeaderDiscoveryServiceTest {
     @Test
     public void testNotifyLostLeadershipClearsTrackedLeaderState() {
         LeaderDiscoveryService service = new LeaderDiscoveryService(new HashMap<>(), Collections.emptyList());
-        service.setKnownLeader("http://leader-1:8090", 2);
+        service.setSelfUrl("http://self:8090");
+        service.notifyBecameLeader(2);
 
         service.notifyLostLeadership();
 
@@ -126,12 +118,16 @@ public class LeaderDiscoveryServiceTest {
     }
 
     @Test
-    public void testDiscoverLeaderUsesReflectionBasedLeaderMapping() {
-        Map<Integer, String> mapping = new HashMap<>();
-        mapping.put(2, "http://leader-2:8090");
-        LeaderDiscoveryService service = new LeaderDiscoveryService(mapping, Collections.emptyList());
+    public void testLostLeadershipKeepsNewerLeaderAlreadyKnownFromLog() {
+        LeaderDiscoveryService service = new LeaderDiscoveryService(new HashMap<>(), Collections.emptyList());
+        service.setSelfUrl("http://self:8090");
+        service.notifyBecameLeader(0);
+        service.setKnownLeader("http://leader-2:8090", 2);
 
-        assertEquals("http://leader-2:8090", service.discoverLeader(new ReflectiveCluster(Cluster.Role.FOLLOWER, 2)));
+        service.notifyLostLeadership();
+
+        assertEquals("http://leader-2:8090", service.getKnownLeaderUrl());
+        assertEquals(2, service.getKnownLeaderMemberId());
     }
 
     @Test
@@ -180,10 +176,12 @@ public class LeaderDiscoveryServiceTest {
     }
 
     @Test
-    public void testDiscoverLeaderHandlesUnreachablePeersAndMissingReflectionMapping() {
+    public void testDiscoverLeaderHandlesUnreachablePeers() {
         LeaderDiscoveryService service = new LeaderDiscoveryService(new HashMap<>(), List.of("http://127.0.0.1:1"));
+        Cluster follower = mock(Cluster.class);
+        when(follower.role()).thenReturn(Cluster.Role.FOLLOWER);
 
-        assertNull(service.discoverLeader(new ReflectiveCluster(Cluster.Role.FOLLOWER, 99)));
+        assertNull(service.discoverLeader(follower));
         assertNull(service.getCachedLeaderUrl());
         assertNull(service.getKnownLeaderHint());
     }
@@ -246,103 +244,5 @@ public class LeaderDiscoveryServiceTest {
         });
         server.start();
         return server;
-    }
-
-    private static final class ReflectiveCluster implements Cluster {
-        private final Role role;
-        private final int leaderMemberId;
-
-        private ReflectiveCluster(Role role, int leaderMemberId) {
-            this.role = role;
-            this.leaderMemberId = leaderMemberId;
-        }
-
-        public int leaderMemberId() {
-            return leaderMemberId;
-        }
-
-        @Override
-        public int memberId() {
-            return 0;
-        }
-
-        @Override
-        public Role role() {
-            return role;
-        }
-
-        @Override
-        public long logPosition() {
-            return 0;
-        }
-
-        @Override
-        public Aeron aeron() {
-            return null;
-        }
-
-        @Override
-        public ClusteredServiceContainer.Context context() {
-            return null;
-        }
-
-        @Override
-        public ClientSession getClientSession(long clusterSessionId) {
-            return null;
-        }
-
-        @Override
-        public Collection<ClientSession> clientSessions() {
-            return Collections.emptyList();
-        }
-
-        @Override
-        public void forEachClientSession(java.util.function.Consumer<? super ClientSession> consumer) {
-        }
-
-        @Override
-        public boolean closeClientSession(long clusterSessionId) {
-            return false;
-        }
-
-        @Override
-        public long time() {
-            return 0;
-        }
-
-        @Override
-        public TimeUnit timeUnit() {
-            return TimeUnit.MILLISECONDS;
-        }
-
-        @Override
-        public boolean scheduleTimer(long correlationId, long deadline) {
-            return false;
-        }
-
-        @Override
-        public boolean cancelTimer(long correlationId) {
-            return false;
-        }
-
-        @Override
-        public long offer(DirectBuffer buffer, int offset, int length) {
-            return 0;
-        }
-
-        @Override
-        public long offer(DirectBufferVector[] vectors) {
-            return 0;
-        }
-
-        @Override
-        public long tryClaim(int length, BufferClaim bufferClaim) {
-            return 0;
-        }
-
-        @Override
-        public IdleStrategy idleStrategy() {
-            return null;
-        }
     }
 }

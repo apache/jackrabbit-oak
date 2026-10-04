@@ -49,9 +49,9 @@ import java.util.Map;
  * <p><strong>Leader Discovery Strategy:</strong>
  * <ol>
  *   <li>Check cache (TTL 10s)</li>
- *   <li>Query Aeron cluster for leader member ID</li>
- *   <li>Map member ID to validator URL</li>
- *   <li>Fallback to peer polling if mapping fails</li>
+ *   <li>This node's own role, then the leader learned from the log
+ *       ({@code onNewLeadershipTermEvent}, mapped member ID to validator URL)</li>
+ *   <li>Fallback to peer polling only while no leader is known</li>
  * </ol>
  */
 @Component(
@@ -168,12 +168,20 @@ public class LeaderDiscoveryService {
     /**
      * Notify that this node is no longer leader.
      * Called from AeronConsensusEngine.onRoleChange() when role changes from LEADER.
+     *
+     * <p>Only clears a leader that is this node. Role changes and leadership term events are
+     * separate callbacks with no guaranteed order, so a newer leader already learned from the
+     * log must survive a late step-down notification.
      */
     public void notifyLostLeadership() {
-        // Clear known leader - we need to discover the new one
+        invalidateCache();
+        String known = knownLeaderUrl;
+        if (known != null && !known.equals(selfUrl)) {
+            log.info("🔄 This node lost leadership - keeping newer leader from the log: {}", known);
+            return;
+        }
         this.knownLeaderUrl = null;
         this.knownLeaderMemberId = -1;
-        invalidateCache();
         log.info("🔄 This node lost leadership - will discover new leader");
     }
     
@@ -243,12 +251,11 @@ public class LeaderDiscoveryService {
      * Discover leader from Aeron cluster state.
      * 
      * <p><strong>Implementation Strategy:</strong>
-     * Aeron's ClusteredService interface doesn't expose leaderMemberId() directly.
-     * However, we can determine leadership through:
+     * The {@code Cluster} interface has no leader accessor; followers learn the leader member ID from
+     * {@code ClusteredService.onNewLeadershipTermEvent}, which sets {@link #setKnownLeader}.
      * <ol>
      *   <li>Check if current node is leader via cluster.role()</li>
-     *   <li>Use tracked knownLeaderUrl from onRoleChange() callbacks</li>
-     *   <li>Map member ID to URL if we have the mapping</li>
+     *   <li>Use the known leader (from the log, or from this node's own election)</li>
      * </ol>
      */
     private String discoverFromAeronCluster(Cluster cluster) {
@@ -266,37 +273,11 @@ public class LeaderDiscoveryService {
             }
             
             // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            // STRATEGY 2: Use tracked leader from role change callbacks
+            // STRATEGY 2: Use known leader (leadership term event or own election)
             // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
             if (knownLeaderUrl != null) {
                 log.debug("Using tracked leader: {}", knownLeaderUrl);
                 return knownLeaderUrl;
-            }
-            
-            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            // STRATEGY 3: Try to get leader member ID from cluster
-            // Note: This uses reflection as a fallback since the API
-            // doesn't expose leaderMemberId() on the Cluster interface
-            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            try {
-                // Some Aeron versions expose leaderMemberId() on the implementation
-                java.lang.reflect.Method leaderMethod = cluster.getClass().getMethod("leaderMemberId");
-                Object result = leaderMethod.invoke(cluster);
-                if (result instanceof Integer) {
-                    int leaderMemberId = (Integer) result;
-                    if (leaderMemberId >= 0) {
-                        String leaderUrl = nodeIdToUrl.get(leaderMemberId);
-                        if (leaderUrl != null) {
-                            log.debug("Found leader via reflection: memberId={}, url={}", leaderMemberId, leaderUrl);
-                            return leaderUrl;
-                        }
-                    }
-                }
-            } catch (NoSuchMethodException e) {
-                // Expected - method not available in this Aeron version
-                log.trace("leaderMemberId() not available via reflection");
-            } catch (Exception e) {
-                log.debug("Reflection-based leader discovery failed: {}", e.getMessage());
             }
             
             log.debug("Could not determine leader from Aeron cluster state");

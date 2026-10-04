@@ -1051,6 +1051,91 @@ public class AeronConsensusEngineTest {
         assertFalse(engine.sendGCExecuteThroughIngress("gc-1", 5));
     }
 
+    @Test
+    public void followerResolvesLeaderFromLeadershipTermEventWithoutHttp() throws Exception {
+        AtomicInteger peerCalls = new AtomicInteger();
+        HttpServer peer = startFailingPeer(peerCalls);
+        try {
+            String peerUrl = "http://127.0.0.1:" + peer.getAddress().getPort();
+            AeronConsensusEngine engine = createFollowerEngine(peerUrl);
+
+            engine.onNewLeadershipTermEvent(3L, 100L, 0L, 0L, 2, 1, java.util.concurrent.TimeUnit.MILLISECONDS, 1);
+            ((LeaderDiscoveryService) getField(engine, "leaderDiscoveryService")).invalidateCache();
+
+            assertEquals("http://leader-2:8080", engine.getCurrentLeader());
+            assertEquals(0, peerCalls.get());
+        } finally {
+            peer.stop(0);
+        }
+    }
+
+    @Test
+    public void lateStepDownDoesNotEraseLeaderFromNewerTermEvent() throws Exception {
+        AtomicInteger peerCalls = new AtomicInteger();
+        HttpServer peer = startFailingPeer(peerCalls);
+        try {
+            String peerUrl = "http://127.0.0.1:" + peer.getAddress().getPort();
+            AeronConsensusEngine engine = createFollowerEngine(peerUrl);
+            engine.onRoleChange(Cluster.Role.LEADER);
+
+            engine.onNewLeadershipTermEvent(4L, 200L, 0L, 200L, 2, 1, java.util.concurrent.TimeUnit.MILLISECONDS, 1);
+            engine.onRoleChange(Cluster.Role.FOLLOWER);
+
+            assertEquals("http://leader-2:8080", engine.getCurrentLeaderHint());
+            assertEquals("http://leader-2:8080", engine.getCurrentLeader());
+            assertEquals(0, peerCalls.get());
+        } finally {
+            peer.stop(0);
+        }
+    }
+
+    @Test
+    public void stepDownBeforeTermEventStillLearnsNewLeaderFromLog() throws Exception {
+        AtomicInteger peerCalls = new AtomicInteger();
+        HttpServer peer = startFailingPeer(peerCalls);
+        try {
+            String peerUrl = "http://127.0.0.1:" + peer.getAddress().getPort();
+            AeronConsensusEngine engine = createFollowerEngine(peerUrl);
+            engine.onRoleChange(Cluster.Role.LEADER);
+
+            engine.onRoleChange(Cluster.Role.FOLLOWER);
+            engine.onNewLeadershipTermEvent(4L, 200L, 0L, 200L, 2, 1, java.util.concurrent.TimeUnit.MILLISECONDS, 1);
+
+            assertEquals("http://leader-2:8080", engine.getCurrentLeader());
+            assertEquals(0, peerCalls.get());
+        } finally {
+            peer.stop(0);
+        }
+    }
+
+    private AeronConsensusEngine createFollowerEngine(String peerUrl) throws Exception {
+        AeronConsensusEngine engine = createEngine(
+            mockFileStore,
+            null,
+            new AeronBackgroundCoordinator(new RecordingTaskScheduler(), 2000L, 3000L, 5000L),
+            mockNodeStore,
+            List.of(peerUrl)
+        );
+        engine.setNodeIdMapping(Map.of(0, "http://self:8080", 1, peerUrl, 2, "http://leader-2:8080"));
+        Cluster cluster = mock(Cluster.class);
+        when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
+        when(cluster.memberId()).thenReturn(0);
+        setField(engine, "cluster", cluster);
+        return engine;
+    }
+
+    /** A peer that records every request; tests assert it is never called. */
+    private static HttpServer startFailingPeer(AtomicInteger calls) throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/", exchange -> {
+            calls.incrementAndGet();
+            exchange.sendResponseHeaders(500, -1);
+            exchange.close();
+        });
+        server.start();
+        return server;
+    }
+
     private AeronConsensusEngine createEngine() {
         return createEngine(mockFileStore, null, new AeronBackgroundCoordinator(), mockNodeStore);
     }

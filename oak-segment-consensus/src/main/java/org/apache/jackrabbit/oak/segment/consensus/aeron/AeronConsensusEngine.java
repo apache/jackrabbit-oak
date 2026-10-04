@@ -1860,6 +1860,27 @@ public class AeronConsensusEngine implements ClusteredService {
         handleIngressClientRoleChange(previousRole, newRole);
         updateRoleFromCluster(newRole);
     }
+
+    /**
+     * Delivered on every member, in log order (including replay), at the start of each leadership term.
+     * This is the only place followers learn the leader identity without network I/O.
+     */
+    @Override
+    public void onNewLeadershipTermEvent(long leadershipTermId,
+                                         long logPosition,
+                                         long timestamp,
+                                         long termBaseLogPosition,
+                                         int leaderMemberId,
+                                         int logSessionId,
+                                         java.util.concurrent.TimeUnit timeUnit,
+                                         int appVersion) {
+        String leaderUrl = nodeIdToUrl.get(leaderMemberId);
+        log.info("New leadership term {} at log position {}: leader memberId={} url={}",
+            leadershipTermId, logPosition, leaderMemberId, leaderUrl);
+        if (leaderUrl != null) {
+            leaderDiscoveryService.setKnownLeader(leaderUrl, leaderMemberId);
+        }
+    }
     
     /**
      * ✈️ AERON NATIVE: Get leadership rotation history.
