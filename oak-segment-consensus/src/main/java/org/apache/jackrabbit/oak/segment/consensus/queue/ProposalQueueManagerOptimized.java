@@ -2114,7 +2114,7 @@ public class ProposalQueueManagerOptimized {
         lastProcessedRecoveryScan = nowMs;
 
         int recovered = 0;
-        int rejected = 0;
+        int failed = 0;
         for (QueuedProposal proposal : allProposals.values()) {
             if (proposal == null
                 || proposal.getState() != ProposalState.PROCESSED
@@ -2130,14 +2130,14 @@ public class ProposalQueueManagerOptimized {
             if (recoverProcessedProposalForRetry(proposal, nowMs, "stale-durability-pending")) {
                 recovered++;
             } else {
-                rejected++;
+                failed++;
             }
         }
 
-        if (recovered > 0 || rejected > 0) {
+        if (recovered > 0 || failed > 0) {
             persistProposals();
-            log.warn("♻️ Processed proposal recovery sweep completed: recovered={} rejected={} windowMs={}",
-                recovered, rejected, processedPendingRecoveryMs);
+            log.warn("♻️ Processed proposal recovery sweep completed: recovered={} durabilityFailed={} windowMs={}",
+                recovered, failed, processedPendingRecoveryMs);
         }
     }
 
@@ -2148,14 +2148,14 @@ public class ProposalQueueManagerOptimized {
             return false;
         }
         if (!hasRestorablePayload(proposal)) {
-            transitionProposalToRejected(proposal,
+            failProcessedDurability(proposal,
                 "Cannot recover processed proposal awaiting durability; payload sidecar missing");
             return false;
         }
 
         int nextRetry = proposal.incrementRetryCount();
         if (nextRetry > maxRetryCount) {
-            transitionProposalToRejected(proposal,
+            failProcessedDurability(proposal,
                 "Exceeded max retry count (" + maxRetryCount + ") while recovering processed proposal awaiting durability");
             return false;
         }
@@ -2170,6 +2170,15 @@ public class ProposalQueueManagerOptimized {
         log.warn("♻️ Re-queued processed proposal for replay: proposalId={} reason={} retry={}/{}",
             proposal.getProposalId(), reason, nextRetry, maxRetryCount);
         return true;
+    }
+
+    /**
+     * A processed proposal was already sent to the replicated log, so it must not be reported REJECTED;
+     * only its durability confirmation failed.
+     */
+    private void failProcessedDurability(QueuedProposal proposal, String reason) {
+        proposal.setDurabilityState(DurabilityState.FAILED, null, reason);
+        log.warn("Durability FAILED for processed proposal {}: {}", proposal.getProposalId(), reason);
     }
 
     private boolean isTerminalDurability(DurabilityState durabilityState) {
