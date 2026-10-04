@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
 import io.aeron.Publication;
 import io.aeron.cluster.client.AeronCluster;
-import org.agrona.MutableDirectBuffer;
+import org.agrona.DirectBuffer;
 import org.agrona.concurrent.IdleStrategy;
 import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
@@ -40,7 +40,7 @@ public class AeronEgressHandler {
 
     public OfferResult offerWithRetryResult(AeronCluster client,
                                             IdleStrategy idleStrategy,
-                                            MutableDirectBuffer messageBuffer,
+                                            DirectBuffer messageBuffer,
                                             int totalLength,
                                             String label,
                                             int maxRetries,
@@ -89,7 +89,7 @@ public class AeronEgressHandler {
 
     public boolean offerWithRetry(AeronCluster client,
                                   IdleStrategy idleStrategy,
-                                  MutableDirectBuffer messageBuffer,
+                                  DirectBuffer messageBuffer,
                                   int totalLength,
                                   String label,
                                   int maxRetries,

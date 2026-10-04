@@ -34,10 +34,6 @@ final class AeronEngineComponentFactory {
         return new AeronMessageCodec();
     }
 
-    static AeronEgressHandler createEgressHandler() {
-        return new AeronEgressHandler();
-    }
-
     static SegmentReplicator createSegmentReplicator(org.apache.jackrabbit.oak.segment.file.FileStore fileStore) {
         return new SegmentReplicator(fileStore);
     }

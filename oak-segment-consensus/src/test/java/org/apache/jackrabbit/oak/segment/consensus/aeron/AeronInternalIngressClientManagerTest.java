@@ -18,21 +18,30 @@ package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
 import io.aeron.cluster.client.AeronCluster;
 import io.aeron.cluster.codecs.CloseReason;
+import org.agrona.DirectBuffer;
 import org.agrona.concurrent.IdleStrategy;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -41,12 +50,10 @@ public class AeronInternalIngressClientManagerTest {
     @Test
     public void foreignTimeoutDoesNotTriggerReconnect() throws Exception {
         AtomicInteger connectCalls = new AtomicInteger();
-        AtomicReference<AeronCluster> current = new AtomicReference<>();
         AeronCluster client = mockBoundClient(77L, null, null);
 
         AeronInternalIngressClientManager manager = newManager(
             connectCalls,
-            current,
             () -> client,
             25L,
             10L
@@ -68,27 +75,25 @@ public class AeronInternalIngressClientManagerTest {
     @Test
     public void ownedTimeoutAndDuplicateRebindRequestsCollapseToSingleReconnect() throws Exception {
         AtomicInteger connectCalls = new AtomicInteger();
-        AtomicReference<AeronCluster> current = new AtomicReference<>();
         AeronCluster initial = mockBoundClient(77L, null, null);
         AeronCluster rebound = mockBoundClient(88L, null, null);
         AtomicInteger connectIndex = new AtomicInteger();
 
         AeronInternalIngressClientManager manager = newManager(
             connectCalls,
-            current,
             () -> connectIndex.getAndIncrement() == 0 ? initial : rebound,
             15L,
             10L
         );
         try {
             assertTrue(manager.ensureAvailable("initial", 250L));
-            assertEquals(initial, current.get());
+            assertEquals(77L, boundSessionId(manager));
 
             manager.handleClusterSessionClose(77L, CloseReason.TIMEOUT);
             manager.requestRebind("duplicate-one");
             manager.requestRebind("duplicate-two");
 
-            assertTrue(waitUntil(() -> current.get() == rebound, 1000L));
+            assertTrue(waitUntil(() -> boundSessionId(manager) == 88L, 1000L));
             assertEquals(2, connectCalls.get());
             assertEquals(88L, ((Number) manager.diagnostics().get("sessionId")).longValue());
         } finally {
@@ -99,7 +104,6 @@ public class AeronInternalIngressClientManagerTest {
     @Test
     public void sessionLimitFailureEntersCooldownWithoutTightLoop() throws Exception {
         AtomicInteger connectCalls = new AtomicInteger();
-        AtomicReference<AeronCluster> current = new AtomicReference<>();
 
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         AeronInternalIngressClientManager manager = new AeronInternalIngressClientManager(
@@ -115,8 +119,6 @@ public class AeronInternalIngressClientManagerTest {
             AeronIngressEndpointPlanner.systemFromUrls("http://self:8080", java.util.List.of("http://peer:8082")),
             () -> "target/aeron-dir",
             () -> mock(IdleStrategy.class),
-            current::get,
-            current::set,
             executor,
             System::currentTimeMillis,
             25L,
@@ -142,14 +144,12 @@ public class AeronInternalIngressClientManagerTest {
     @Test
     public void boundClientIsServicedWithPollAndKeepAlive() throws Exception {
         AtomicInteger connectCalls = new AtomicInteger();
-        AtomicReference<AeronCluster> current = new AtomicReference<>();
         AtomicInteger polls = new AtomicInteger();
         AtomicInteger keepAlives = new AtomicInteger();
         AeronCluster client = mockBoundClient(55L, polls, keepAlives);
 
         AeronInternalIngressClientManager manager = newManager(
             connectCalls,
-            current,
             () -> client,
             20L,
             10L
@@ -171,7 +171,6 @@ public class AeronInternalIngressClientManagerTest {
     @Test
     public void rapidSendFailuresCollapseToSingleReconnectAndCloseStaleClientBeforeReuse() throws Exception {
         AtomicInteger connectCalls = new AtomicInteger();
-        AtomicReference<AeronCluster> current = new AtomicReference<>();
         AtomicBoolean initialClosed = new AtomicBoolean(false);
         AtomicBoolean reboundObservedClosed = new AtomicBoolean(false);
         AtomicInteger connectIndex = new AtomicInteger();
@@ -185,7 +184,6 @@ public class AeronInternalIngressClientManagerTest {
         AeronCluster rebound = mockBoundClient(88L, null, null);
         AeronInternalIngressClientManager manager = newManager(
             connectCalls,
-            current,
             () -> {
                 if (connectIndex.getAndIncrement() == 0) {
                     return initial;
@@ -198,13 +196,13 @@ public class AeronInternalIngressClientManagerTest {
         );
         try {
             assertTrue(manager.ensureAvailable("initial", 250L));
-            assertEquals(initial, current.get());
+            assertEquals(77L, boundSessionId(manager));
 
             manager.notifySendFailure("offer-closed");
             manager.notifySendFailure("offer-not-connected");
 
             assertTrue(manager.ensureAvailable("rebound", 1000L));
-            assertEquals(rebound, current.get());
+            assertEquals(88L, boundSessionId(manager));
             assertEquals(2, connectCalls.get());
             assertTrue(reboundObservedClosed.get());
             assertEquals(88L, ((Number) manager.diagnostics().get("sessionId")).longValue());
@@ -214,12 +212,89 @@ public class AeronInternalIngressClientManagerTest {
         }
     }
 
+    @Test
+    public void offerStillQueuedAtDeadlineTimesOutAndIsNeverSent() throws Exception {
+        AeronCluster client = mockBoundClient(55L, null, null);
+        when(client.offer(any(DirectBuffer.class), anyInt(), anyInt())).thenReturn(64L);
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        AeronInternalIngressClientManager manager =
+            newManager(new AtomicInteger(), () -> client, 1000L, 1000L, executor);
+        CountDownLatch release = new CountDownLatch(1);
+        try {
+            assertTrue(manager.ensureAvailable("initial", 1000L));
+            executor.execute(() -> awaitQuietly(release));
+
+            assertEquals(AeronInternalIngressClientManager.SendResult.TIMEOUT,
+                manager.offer(new UnsafeBuffer(new byte[8]), 8, "busy-owner", 50L));
+
+            release.countDown();
+            assertEquals(AeronInternalIngressClientManager.SendResult.SENT,
+                manager.offer(new UnsafeBuffer(new byte[8]), 8, "after-release", 1000L));
+            verify(client, times(1)).offer(any(DirectBuffer.class), anyInt(), anyInt());
+        } finally {
+            release.countDown();
+            manager.close();
+        }
+    }
+
+    @Test
+    public void offerAsyncDoesNotWaitForTheOwnerAndReportsTheResultFromIt() throws Exception {
+        AeronCluster client = mockBoundClient(55L, null, null);
+        when(client.offer(any(DirectBuffer.class), anyInt(), anyInt())).thenReturn(64L);
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        AeronInternalIngressClientManager manager =
+            newManager(new AtomicInteger(), () -> client, 1000L, 1000L, executor);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicReference<AeronInternalIngressClientManager.SendResult> result = new AtomicReference<>();
+        AtomicReference<Thread> resultThread = new AtomicReference<>();
+        AtomicReference<Thread> ownerThread = new AtomicReference<>();
+        try {
+            assertTrue(manager.ensureAvailable("initial", 1000L));
+            executor.execute(() -> {
+                ownerThread.set(Thread.currentThread());
+                awaitQuietly(release);
+            });
+
+            long start = System.nanoTime();
+            manager.offerAsync(new UnsafeBuffer(new byte[8]), 8, "service-thread", sendResult -> {
+                resultThread.set(Thread.currentThread());
+                result.set(sendResult);
+            });
+            assertTrue("offerAsync returned without waiting",
+                System.nanoTime() - start < TimeUnit.MILLISECONDS.toNanos(200));
+            assertNull(result.get());
+
+            release.countDown();
+            assertTrue(waitUntil(() -> result.get() != null, 1000L));
+            assertEquals(AeronInternalIngressClientManager.SendResult.SENT, result.get());
+            assertSame(ownerThread.get(), resultThread.get());
+        } finally {
+            release.countDown();
+            manager.close();
+        }
+    }
+
+    private static void awaitQuietly(CountDownLatch latch) {
+        try {
+            latch.await(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
     private static AeronInternalIngressClientManager newManager(AtomicInteger connectCalls,
-                                                                AtomicReference<AeronCluster> current,
                                                                 java.util.function.Supplier<AeronCluster> connectResultSupplier,
                                                                 long keepAliveIntervalMs,
                                                                 long pollIntervalMs) {
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        return newManager(connectCalls, connectResultSupplier, keepAliveIntervalMs, pollIntervalMs,
+            Executors.newSingleThreadScheduledExecutor());
+    }
+
+    private static AeronInternalIngressClientManager newManager(AtomicInteger connectCalls,
+                                                                java.util.function.Supplier<AeronCluster> connectResultSupplier,
+                                                                long keepAliveIntervalMs,
+                                                                long pollIntervalMs,
+                                                                ScheduledExecutorService executor) {
         return new AeronInternalIngressClientManager(
             () -> new AeronInternalClusterClientConnector(
                 (aeronDirectoryName, ingressPlan, idleStrategy) -> {
@@ -233,8 +308,6 @@ public class AeronInternalIngressClientManagerTest {
             AeronIngressEndpointPlanner.systemFromUrls("http://self:8080", java.util.List.of("http://peer:8082")),
             () -> "target/aeron-dir",
             () -> mock(IdleStrategy.class),
-            current::get,
-            current::set,
             executor,
             System::currentTimeMillis,
             keepAliveIntervalMs,
@@ -243,6 +316,11 @@ public class AeronInternalIngressClientManagerTest {
             80L,
             5L
         );
+    }
+
+    private static long boundSessionId(AeronInternalIngressClientManager manager) {
+        Object sessionId = manager.diagnostics().get("sessionId");
+        return sessionId == null ? -1L : ((Number) sessionId).longValue();
     }
 
     private static AeronCluster mockBoundClient(long sessionId,
