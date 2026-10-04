@@ -277,6 +277,7 @@ final class AeronInternalIngressClientManager implements AutoCloseable {
         }
         if (client.isClosed()) {
             clientOpen = false;
+            notifySendFailure("client closed (" + label + ")");
             return SendResult.CLOSED;
         }
         AeronEgressHandler.OfferResult result = egressHandler.offerWithRetryResult(
@@ -284,9 +285,13 @@ final class AeronInternalIngressClientManager implements AutoCloseable {
         switch (result) {
             case SENT:
                 return SendResult.SENT;
+            case BACK_PRESSURED:
+                return SendResult.BACK_PRESSURED;
             case NOT_CONNECTED:
+                notifySendFailure("not connected (" + label + ")");
                 return SendResult.NOT_CONNECTED;
             default:
+                notifySendFailure(result + " (" + label + ")");
                 return SendResult.CLOSED;
         }
     }
@@ -582,8 +587,8 @@ final class AeronInternalIngressClientManager implements AutoCloseable {
             long now = clock.getAsLong();
             if (now - lastKeepAliveAtMs >= keepAliveIntervalMs) {
                 if (!client.sendKeepAlive()) {
-                    log.warn("⚠️  Internal ingress keepalive failed for session {}", client.clusterSessionId());
-                    notifySendFailure("keepalive_failed");
+                    // Back-pressured; retried on the next tick. A lost connection surfaces via pollEgress/isClosed.
+                    log.debug("Internal ingress keepalive back-pressured for session {}", clusterSessionId);
                     return;
                 }
                 lastKeepAliveAtMs = now;

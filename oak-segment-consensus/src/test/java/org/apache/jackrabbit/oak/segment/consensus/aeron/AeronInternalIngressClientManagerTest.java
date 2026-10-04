@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
+import io.aeron.Publication;
 import io.aeron.cluster.client.AeronCluster;
 import io.aeron.cluster.codecs.CloseReason;
 import org.agrona.DirectBuffer;
@@ -41,6 +42,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -270,6 +272,104 @@ public class AeronInternalIngressClientManagerTest {
             assertSame(ownerThread.get(), resultThread.get());
         } finally {
             release.countDown();
+            manager.close();
+        }
+    }
+
+    @Test
+    public void backPressureIsReturnedToTheCallerWithoutClosingTheSession() throws Exception {
+        AtomicInteger connectCalls = new AtomicInteger();
+        AeronCluster client = mockBoundClient(55L, null, null);
+        when(client.offer(any(DirectBuffer.class), anyInt(), anyInt())).thenReturn(Publication.BACK_PRESSURED);
+        AeronInternalIngressClientManager manager = newManager(connectCalls, () -> client, 1000L, 1000L);
+        try {
+            assertTrue(manager.ensureAvailable("initial", 1000L));
+
+            assertEquals(AeronInternalIngressClientManager.SendResult.BACK_PRESSURED,
+                manager.offer(new UnsafeBuffer(new byte[8]), 8, "write", 1000L));
+
+            Thread.sleep(50L);
+            verify(client, never()).close();
+            assertEquals(1, connectCalls.get());
+            assertTrue(manager.ensureAvailable("still bound", 0L));
+        } finally {
+            manager.close();
+        }
+    }
+
+    @Test
+    public void adminActionIsRetriedWithoutClosingTheSession() throws Exception {
+        AeronCluster client = mockBoundClient(55L, null, null);
+        when(client.offer(any(DirectBuffer.class), anyInt(), anyInt()))
+            .thenReturn(Publication.ADMIN_ACTION, Publication.BACK_PRESSURED, 64L);
+        AeronInternalIngressClientManager manager = newManager(new AtomicInteger(), () -> client, 1000L, 1000L);
+        try {
+            assertTrue(manager.ensureAvailable("initial", 1000L));
+
+            assertEquals(AeronInternalIngressClientManager.SendResult.SENT,
+                manager.offer(new UnsafeBuffer(new byte[8]), 8, "write", 1000L));
+            verify(client, times(3)).offer(any(DirectBuffer.class), anyInt(), anyInt());
+            verify(client, never()).close();
+        } finally {
+            manager.close();
+        }
+    }
+
+    @Test
+    public void closedPublicationRebindsTheSession() throws Exception {
+        assertOfferResultRebinds(Publication.CLOSED, AeronInternalIngressClientManager.SendResult.CLOSED);
+    }
+
+    @Test
+    public void maxPositionExceededRebindsTheSession() throws Exception {
+        assertOfferResultRebinds(Publication.MAX_POSITION_EXCEEDED, AeronInternalIngressClientManager.SendResult.CLOSED);
+    }
+
+    @Test
+    public void persistentNotConnectedRebindsTheSession() throws Exception {
+        assertOfferResultRebinds(Publication.NOT_CONNECTED, AeronInternalIngressClientManager.SendResult.NOT_CONNECTED);
+    }
+
+    @Test
+    public void backPressuredKeepAliveDoesNotCloseTheSession() throws Exception {
+        AtomicInteger connectCalls = new AtomicInteger();
+        AtomicInteger keepAlives = new AtomicInteger();
+        AeronCluster client = mockBoundClient(55L, null, null);
+        when(client.sendKeepAlive()).thenAnswer(invocation -> {
+            keepAlives.incrementAndGet();
+            return false;
+        });
+        AeronInternalIngressClientManager manager = newManager(connectCalls, () -> client, 5L, 5L);
+        try {
+            assertTrue(manager.ensureAvailable("initial", 1000L));
+            assertTrue(waitUntil(() -> keepAlives.get() >= 3, 1000L));
+
+            verify(client, never()).close();
+            assertEquals(1, connectCalls.get());
+            assertEquals(55L, boundSessionId(manager));
+        } finally {
+            manager.close();
+        }
+    }
+
+    private static void assertOfferResultRebinds(long offerResult,
+                                                 AeronInternalIngressClientManager.SendResult expected) throws Exception {
+        AtomicInteger connectCalls = new AtomicInteger();
+        AeronCluster stale = mockBoundClient(77L, null, null);
+        when(stale.offer(any(DirectBuffer.class), anyInt(), anyInt())).thenReturn(offerResult);
+        AeronCluster rebound = mockBoundClient(88L, null, null);
+        AtomicInteger connectIndex = new AtomicInteger();
+        AeronInternalIngressClientManager manager = newManager(
+            connectCalls, () -> connectIndex.getAndIncrement() == 0 ? stale : rebound, 1000L, 1000L);
+        try {
+            assertTrue(manager.ensureAvailable("initial", 1000L));
+
+            assertEquals(expected, manager.offer(new UnsafeBuffer(new byte[8]), 8, "write", 1000L));
+
+            assertTrue(waitUntil(() -> boundSessionId(manager) == 88L, 1000L));
+            verify(stale).close();
+            assertEquals(2, connectCalls.get());
+        } finally {
             manager.close();
         }
     }

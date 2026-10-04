@@ -1069,7 +1069,6 @@ public class AeronConsensusEngine implements ClusteredService {
                 log.debug("✅ Durability message sent ({})", label);
                 return;
             }
-            internalIngressClientManager.notifySendFailure(result + " for " + messageType);
             scheduleDurabilityRetry(encoded, label, attempt, result.name());
         });
         return true;
@@ -1654,20 +1653,21 @@ public class AeronConsensusEngine implements ClusteredService {
     }
 
     /**
-     * Offers through the ingress owner thread with a bounded wait; on a failed (not timed-out) offer,
-     * rebinds the client and retries once.
+     * Offers through the ingress owner thread with a bounded wait. Back-pressure and timeouts are returned
+     * to the caller as "not sent"; when the session was lost (the owner then rebinds it), waits for the
+     * rebind and retries once.
      */
     private boolean sendEncodedMessage(AeronEncodedMessage encoded,
                                        String messageType,
                                        Runnable onSuccess) {
         AeronInternalIngressClientManager.SendResult result = offerThroughOwner(encoded, messageType);
-        if (result == AeronInternalIngressClientManager.SendResult.TIMEOUT) {
-            log.warn("⚠️  {} not sent: ingress owner busy for {}ms", messageType, INGRESS_CLIENT_REQUEST_WAIT_MS);
+        if (result == AeronInternalIngressClientManager.SendResult.BACK_PRESSURED
+                || result == AeronInternalIngressClientManager.SendResult.TIMEOUT) {
+            log.warn("⚠️  {} not sent ({}) - caller retries", messageType, result);
             return false;
         }
         if (result != AeronInternalIngressClientManager.SendResult.SENT) {
-            log.warn("⚠️  {} send failed ({}) - rebinding internal ingress client and retrying once", messageType, result);
-            internalIngressClientManager.notifySendFailure(result + " for " + messageType);
+            log.warn("⚠️  {} send failed ({}) - waiting for ingress rebind and retrying once", messageType, result);
             if (!internalIngressClientManager.ensureAvailable(messageType, INGRESS_CLIENT_REQUEST_WAIT_MS)) {
                 log.error("❌ Retry rebind failed - cannot send {}", messageType);
                 return false;

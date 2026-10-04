@@ -1008,6 +1008,41 @@ public class AeronConsensusEngineTest {
     }
 
     @Test
+    public void backPressuredWriteFailsWithoutClosingTheIngressSession() throws Exception {
+        AeronConsensusEngine engine = createEngine();
+        io.aeron.cluster.client.AeronCluster client = installHealthyClient(engine, Cluster.Role.LEADER);
+        when(client.offer(any(MutableDirectBuffer.class), eq(0), anyInt())).thenReturn(io.aeron.Publication.BACK_PRESSURED);
+        AeronInternalClusterClientConnector connector =
+            (AeronInternalClusterClientConnector) getField(engine, "internalClusterClientConnector");
+
+        assertFalse(engine.sendWriteThroughIngressWithId(
+            "0xabc", "/content/write", "page", "{}", "sig-2", null, "proposal-bp"));
+
+        Thread.sleep(50L);
+        verify(client, never()).close();
+        verify(connector, times(1)).connectOnce(any(), any(), any(), any());
+    }
+
+    @Test
+    public void backPressuredDurabilityMessageIsRetriedWithoutClosingTheIngressSession() throws Exception {
+        RecordingTaskScheduler scheduler = new RecordingTaskScheduler();
+        AeronConsensusEngine engine = createEngine(
+            mockFileStore,
+            null,
+            new AeronBackgroundCoordinator(scheduler, 2000L, 3000L, 5000L),
+            mockNodeStore
+        );
+        io.aeron.cluster.client.AeronCluster client = installHealthyClient(engine, Cluster.Role.FOLLOWER);
+        when(client.offer(any(MutableDirectBuffer.class), eq(0), anyInt())).thenReturn(io.aeron.Publication.BACK_PRESSURED);
+
+        assertTrue(engine.sendSegmentPersisted("proposal-bp", "head-1", true, null));
+
+        assertTrue(waitUntil(() -> scheduler.tasks.size() == 1, 1500L));
+        assertEquals("aeron-durability-retry-segment-persisted-1", scheduler.tasks.get(0).name);
+        verify(client, never()).close();
+    }
+
+    @Test
     public void sendWriteBatchThroughIngressOffersWriteBatchMessage() throws Exception {
         AeronConsensusEngine engine = createEngine();
         io.aeron.cluster.client.AeronCluster client = installHealthyClient(engine, Cluster.Role.LEADER);
