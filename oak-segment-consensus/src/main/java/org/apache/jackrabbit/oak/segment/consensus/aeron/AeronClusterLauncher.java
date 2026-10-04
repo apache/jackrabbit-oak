@@ -36,7 +36,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -65,12 +64,10 @@ public class AeronClusterLauncher {
     private static final String MEDIA_DRIVER_TIMEOUT_MS_PROPERTY = "oak.cluster.media.driver.timeout.ms";
     private static final String PUBLICATION_TERM_BUFFER_LENGTH_PROPERTY = "oak.cluster.publication.term.buffer.length.bytes";
     private static final String CLUSTER_TERM_LENGTH_PROPERTY = "oak.cluster.term.length.bytes";
-    private static final int DEFAULT_SESSION_TIMEOUT_MINUTES = 20;
-    private static final int DEV_SESSION_TIMEOUT_MINUTES = 2;
-    private static final int STAGING_SESSION_TIMEOUT_MINUTES = 5;
+    // Our only ingress clients are internal and send a keepalive every second.
+    private static final long DEFAULT_SESSION_TIMEOUT_SECONDS = 30;
+    private static final String SESSION_TIMEOUT_SECONDS_PROPERTY = "oak.cluster.session.timeout.seconds";
     private static final String SESSION_TIMEOUT_MINUTES_PROPERTY = "oak.cluster.session.timeout.minutes";
-    private static final String CLUSTER_ENVIRONMENT_PROPERTY = "oak.cluster.environment";
-    private static final String CLUSTER_ENVIRONMENT_ENV = "OAK_CLUSTER_ENV";
     
     private final int nodeId;
     private final List<String> hostnames;
@@ -278,12 +275,8 @@ public class AeronClusterLauncher {
             Long.getLong(SnapshotTrigger.INTERVAL_MS_PROPERTY, SnapshotTrigger.DEFAULT_INTERVAL_MS),
             Long.getLong(SnapshotTrigger.ENTRY_INTERVAL_PROPERTY, SnapshotTrigger.DEFAULT_ENTRY_INTERVAL));
         SessionTimeoutConfig sessionTimeoutConfig = resolveSessionTimeoutConfig();
-        log.info(
-            "⏱️  Aeron session timeout: {} minute(s) [source={}, env={}]",
-            sessionTimeoutConfig.timeoutMinutes,
-            sessionTimeoutConfig.source,
-            sessionTimeoutConfig.environment
-        );
+        log.info("⏱️  Aeron session timeout: {} s [source={}]",
+            TimeUnit.NANOSECONDS.toSeconds(sessionTimeoutConfig.timeoutNs), sessionTimeoutConfig.source);
 
         AeronClusterContextFactory.LaunchContexts contexts = AeronClusterContextFactory.create(
             nodeId,
@@ -448,36 +441,15 @@ public class AeronClusterLauncher {
     }
 
     static SessionTimeoutConfig resolveSessionTimeoutConfig() {
-        String explicit = System.getProperty(SESSION_TIMEOUT_MINUTES_PROPERTY);
-        Integer explicitMinutes = parsePositiveInt(explicit);
-        if (explicitMinutes != null) {
-            return new SessionTimeoutConfig(
-                explicitMinutes,
-                TimeUnit.MINUTES.toNanos(explicitMinutes),
-                "system-property",
-                "override"
-            );
+        Integer seconds = parsePositiveInt(System.getProperty(SESSION_TIMEOUT_SECONDS_PROPERTY));
+        if (seconds != null) {
+            return new SessionTimeoutConfig(TimeUnit.SECONDS.toNanos(seconds), SESSION_TIMEOUT_SECONDS_PROPERTY);
         }
-
-        String environment = firstNonBlank(
-            System.getProperty(CLUSTER_ENVIRONMENT_PROPERTY),
-            System.getenv(CLUSTER_ENVIRONMENT_ENV)
-        );
-        String normalized = environment == null ? "prod" : environment.trim().toLowerCase(Locale.ROOT);
-        int minutes;
-        if ("dev".equals(normalized) || "development".equals(normalized) || "local".equals(normalized) || "test".equals(normalized)) {
-            minutes = DEV_SESSION_TIMEOUT_MINUTES;
-        } else if ("staging".equals(normalized) || "stage".equals(normalized) || "preprod".equals(normalized)) {
-            minutes = STAGING_SESSION_TIMEOUT_MINUTES;
-        } else {
-            minutes = DEFAULT_SESSION_TIMEOUT_MINUTES;
+        Integer minutes = parsePositiveInt(System.getProperty(SESSION_TIMEOUT_MINUTES_PROPERTY));
+        if (minutes != null) {
+            return new SessionTimeoutConfig(TimeUnit.MINUTES.toNanos(minutes), SESSION_TIMEOUT_MINUTES_PROPERTY);
         }
-        return new SessionTimeoutConfig(
-            minutes,
-            TimeUnit.MINUTES.toNanos(minutes),
-            "environment-profile",
-            normalized
-        );
+        return new SessionTimeoutConfig(TimeUnit.SECONDS.toNanos(DEFAULT_SESSION_TIMEOUT_SECONDS), "default");
     }
 
     private static Integer parsePositiveInt(String value) {
@@ -499,16 +471,6 @@ public class AeronClusterLauncher {
 
     private static int resolveClusterTermLengthBytes() {
         return getPositiveIntProperty(CLUSTER_TERM_LENGTH_PROPERTY, DEFAULT_CLUSTER_TERM_LENGTH_BYTES);
-    }
-
-    private static String firstNonBlank(String first, String second) {
-        if (first != null && !first.trim().isEmpty()) {
-            return first;
-        }
-        if (second != null && !second.trim().isEmpty()) {
-            return second;
-        }
-        return null;
     }
 
     private void performShutdown() {
@@ -555,16 +517,12 @@ public class AeronClusterLauncher {
     }
 
     static final class SessionTimeoutConfig {
-        final int timeoutMinutes;
         final long timeoutNs;
         final String source;
-        final String environment;
 
-        SessionTimeoutConfig(int timeoutMinutes, long timeoutNs, String source, String environment) {
-            this.timeoutMinutes = timeoutMinutes;
+        SessionTimeoutConfig(long timeoutNs, String source) {
             this.timeoutNs = timeoutNs;
             this.source = source;
-            this.environment = environment;
         }
     }
 

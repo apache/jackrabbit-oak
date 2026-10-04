@@ -60,60 +60,65 @@ public class AeronClusterLauncherTest {
     public void clearProperties() {
         System.clearProperty("oak.cluster.environment");
         System.clearProperty("oak.cluster.session.timeout.minutes");
+        System.clearProperty("oak.cluster.session.timeout.seconds");
     }
 
     @Test
-    public void explicitTimeoutOverrideWins() {
-        System.setProperty("oak.cluster.environment", "dev");
+    public void secondsPropertyWinsOverMinutes() {
+        System.setProperty("oak.cluster.session.timeout.seconds", "15");
         System.setProperty("oak.cluster.session.timeout.minutes", "7");
 
         AeronClusterLauncher.SessionTimeoutConfig config = AeronClusterLauncher.resolveSessionTimeoutConfig();
 
-        assertEquals(7, config.timeoutMinutes);
+        assertEquals(TimeUnit.SECONDS.toNanos(15), config.timeoutNs);
+        assertEquals("oak.cluster.session.timeout.seconds", config.source);
+    }
+
+    @Test
+    public void minutesPropertyIsStillHonoured() {
+        System.setProperty("oak.cluster.session.timeout.minutes", "7");
+
+        AeronClusterLauncher.SessionTimeoutConfig config = AeronClusterLauncher.resolveSessionTimeoutConfig();
+
         assertEquals(TimeUnit.MINUTES.toNanos(7), config.timeoutNs);
-        assertEquals("system-property", config.source);
+        assertEquals("oak.cluster.session.timeout.minutes", config.source);
     }
 
     @Test
-    public void devProfileUsesTwoMinutes() {
-        System.setProperty("oak.cluster.environment", "dev");
+    public void defaultIsThirtySecondsWhateverTheEnvironment() {
+        for (String environment : new String[] {"dev", "staging", "prod", "custom"}) {
+            System.setProperty("oak.cluster.environment", environment);
 
-        AeronClusterLauncher.SessionTimeoutConfig config = AeronClusterLauncher.resolveSessionTimeoutConfig();
+            AeronClusterLauncher.SessionTimeoutConfig config = AeronClusterLauncher.resolveSessionTimeoutConfig();
 
-        assertEquals(2, config.timeoutMinutes);
-        assertEquals("environment-profile", config.source);
-        assertEquals("dev", config.environment);
+            assertEquals(environment, TimeUnit.SECONDS.toNanos(30), config.timeoutNs);
+            assertEquals("default", config.source);
+        }
     }
 
     @Test
-    public void stagingProfileUsesFiveMinutes() {
-        System.setProperty("oak.cluster.environment", "staging");
+    public void invalidValuesFallThroughToTheNextSource() {
+        System.setProperty("oak.cluster.session.timeout.seconds", "nope");
+        System.setProperty("oak.cluster.session.timeout.minutes", "3");
+        assertEquals(TimeUnit.MINUTES.toNanos(3), AeronClusterLauncher.resolveSessionTimeoutConfig().timeoutNs);
 
-        AeronClusterLauncher.SessionTimeoutConfig config = AeronClusterLauncher.resolveSessionTimeoutConfig();
-
-        assertEquals(5, config.timeoutMinutes);
-        assertEquals("staging", config.environment);
+        System.setProperty("oak.cluster.session.timeout.minutes", "0");
+        assertEquals(TimeUnit.SECONDS.toNanos(30), AeronClusterLauncher.resolveSessionTimeoutConfig().timeoutNs);
     }
 
     @Test
-    public void unknownProfileFallsBackToProductionDefault() {
-        System.setProperty("oak.cluster.environment", "custom");
+    public void resolvedTimeoutReachesTheConsensusModuleContext() {
+        System.setProperty("oak.cluster.session.timeout.seconds", "12");
 
-        AeronClusterLauncher.SessionTimeoutConfig config = AeronClusterLauncher.resolveSessionTimeoutConfig();
+        AeronClusterContextFactory.LaunchContexts contexts = AeronClusterContextFactory.create(
+            0, new File("target/aeron-session-timeout"), mock(ClusteredService.class), "aeron-test-dir",
+            "127.0.0.1", List.of("127.0.0.1"), mock(org.agrona.concurrent.ShutdownSignalBarrier.class),
+            component -> { }, 131072, 131072, 65536, 10_000, 65536,
+            AeronClusterLauncher.resolveSessionTimeoutConfig(),
+            throwable -> { }, throwable -> { }, throwable -> { });
 
-        assertEquals(20, config.timeoutMinutes);
-        assertEquals("custom", config.environment);
-    }
-
-    @Test
-    public void invalidExplicitTimeoutFallsBackToProfile() {
-        System.setProperty("oak.cluster.environment", "stage");
-        System.setProperty("oak.cluster.session.timeout.minutes", "nope");
-
-        AeronClusterLauncher.SessionTimeoutConfig config = AeronClusterLauncher.resolveSessionTimeoutConfig();
-
-        assertEquals(5, config.timeoutMinutes);
-        assertEquals("environment-profile", config.source);
+        assertEquals(TimeUnit.SECONDS.toNanos(12), contexts.consensusModuleContext.sessionTimeoutNs());
+        assertEquals(TimeUnit.SECONDS.toNanos(12), contexts.freshCopy().consensusModuleContext.sessionTimeoutNs());
     }
 
     @Test
@@ -132,10 +137,6 @@ public class AeronClusterLauncherTest {
 
         System.setProperty("aeron.socket.so_sndbuf", "32");
         assertEquals(32, invokeGetPositiveIntProperty("aeron.socket.so_sndbuf", 16));
-
-        assertEquals("first", invokeFirstNonBlank("first", "second"));
-        assertEquals("second", invokeFirstNonBlank(" ", "second"));
-        assertNull(invokeFirstNonBlank(" ", null));
     }
 
     @Test
@@ -408,12 +409,6 @@ public class AeronClusterLauncherTest {
         Method method = AeronClusterLauncher.class.getDeclaredMethod("getPositiveIntProperty", String.class, int.class);
         method.setAccessible(true);
         return (Integer) method.invoke(null, key, defaultValue);
-    }
-
-    private static String invokeFirstNonBlank(String first, String second) throws Exception {
-        Method method = AeronClusterLauncher.class.getDeclaredMethod("firstNonBlank", String.class, String.class);
-        method.setAccessible(true);
-        return (String) method.invoke(null, first, second);
     }
 
     private static String invokeGetHostname(AeronClusterLauncher launcher) throws Exception {

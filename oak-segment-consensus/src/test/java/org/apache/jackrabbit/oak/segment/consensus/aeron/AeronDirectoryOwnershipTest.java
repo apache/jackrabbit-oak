@@ -188,7 +188,7 @@ public class AeronDirectoryOwnershipTest {
             65536,
             10_000,
             65536,
-            new AeronClusterLauncher.SessionTimeoutConfig(1, TimeUnit.MINUTES.toNanos(1), "test", "test"),
+            new AeronClusterLauncher.SessionTimeoutConfig(TimeUnit.MINUTES.toNanos(1), "test"),
             throwable -> { },
             throwable -> { },
             throwable -> { }

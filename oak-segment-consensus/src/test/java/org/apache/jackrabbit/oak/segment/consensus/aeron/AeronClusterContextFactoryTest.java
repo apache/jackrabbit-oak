@@ -55,7 +55,7 @@ public class AeronClusterContextFactoryTest {
                 65536,
                 60000,
                 524288,
-                new AeronClusterLauncher.SessionTimeoutConfig(5, TimeUnit.MINUTES.toNanos(5), "test", "staging"),
+                new AeronClusterLauncher.SessionTimeoutConfig(TimeUnit.MINUTES.toNanos(5), "test"),
                 throwable -> { },
                 throwable -> { },
                 throwable -> { }
@@ -95,7 +95,7 @@ public class AeronClusterContextFactoryTest {
             65536,
             60000,
             524288,
-            new AeronClusterLauncher.SessionTimeoutConfig(5, TimeUnit.MINUTES.toNanos(5), "test", "staging"),
+            new AeronClusterLauncher.SessionTimeoutConfig(TimeUnit.MINUTES.toNanos(5), "test"),
             throwable -> { },
             throwable -> { },
             throwable -> { }
@@ -125,7 +125,7 @@ public class AeronClusterContextFactoryTest {
             131072,
             45000,
             262144,
-            new AeronClusterLauncher.SessionTimeoutConfig(7, TimeUnit.MINUTES.toNanos(7), "test", "dev"),
+            new AeronClusterLauncher.SessionTimeoutConfig(TimeUnit.MINUTES.toNanos(7), "test"),
             throwable -> { },
             throwable -> { },
             throwable -> { }
@@ -157,7 +157,7 @@ public class AeronClusterContextFactoryTest {
     public void createBuildsConsensusAndServiceContextsFromInputs() {
         ClusteredService clusteredService = mock(ClusteredService.class);
         AeronClusterLauncher.SessionTimeoutConfig sessionTimeoutConfig =
-            new AeronClusterLauncher.SessionTimeoutConfig(5, TimeUnit.MINUTES.toNanos(5), "test", "staging");
+            new AeronClusterLauncher.SessionTimeoutConfig(TimeUnit.MINUTES.toNanos(5), "test");
         AeronClusterContextFactory.LaunchContexts contexts = AeronClusterContextFactory.create(
             1,
             new File("target/aeron-context-factory"),
@@ -236,7 +236,7 @@ public class AeronClusterContextFactoryTest {
             65536,
             60000,
             524288,
-            new AeronClusterLauncher.SessionTimeoutConfig(5, TimeUnit.MINUTES.toNanos(5), "test", "staging"),
+            new AeronClusterLauncher.SessionTimeoutConfig(TimeUnit.MINUTES.toNanos(5), "test"),
             throwable -> { },
             throwable -> { },
             throwable -> { }

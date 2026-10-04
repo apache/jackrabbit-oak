@@ -78,13 +78,13 @@ public @interface AeronClusterConfig {
 
     @AttributeDefinition(
         name = "Cluster Environment",
-        description = "Environment profile used for timeout defaults (dev/staging/prod). Optional."
+        description = "Environment label (dev/staging/prod), reported only. Optional."
     )
     String clusterEnvironment() default "";
 
     @AttributeDefinition(
         name = "Session Timeout Minutes",
-        description = "Explicit Aeron cluster session timeout in minutes. 0 = use environment profile defaults."
+        description = "Aeron cluster session timeout in minutes. 0 = 30 s default; the oak.cluster.session.timeout.seconds system property takes precedence."
     )
     int sessionTimeoutMinutes() default 0;
 
