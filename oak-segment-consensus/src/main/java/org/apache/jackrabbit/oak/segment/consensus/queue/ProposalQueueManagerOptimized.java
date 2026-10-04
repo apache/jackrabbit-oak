@@ -1747,6 +1747,16 @@ public class ProposalQueueManagerOptimized {
         }
     }
 
+    /**
+     * The exact text the client personal_signs: DELETE binds the content path, WRITE binds the message.
+     */
+    private String resolveSignedMessage(QueuedProposal proposal) {
+        if (proposal.getType() == QueuedProposal.ProposalType.DELETE) {
+            return proposal.getPath();
+        }
+        return resolveProposalMessage(proposal);
+    }
+
     private String resolveProposalMessage(QueuedProposal proposal) {
         if (proposal == null) {
             return "";
@@ -2374,7 +2384,7 @@ public class ProposalQueueManagerOptimized {
                     // This is a secondary check for proposals that bypass the API (e.g., internal)
                     // Skip in mock mode - signature verification is done at API entry in real mode
                     if (!isMockMode) {
-                        String signedMessage = resolveProposalMessage(proposal);
+                        String signedMessage = resolveSignedMessage(proposal);
                         String proposalSignature = proposal.getSignature();
 
                         if (proposalSignature == null || proposalSignature.isEmpty()) {

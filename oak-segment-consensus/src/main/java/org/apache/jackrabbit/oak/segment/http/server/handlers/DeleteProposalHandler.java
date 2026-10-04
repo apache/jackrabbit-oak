@@ -250,6 +250,17 @@ public class DeleteProposalHandler {
                 return;
             }
 
+            // A delete signature is an EIP-191 personal_sign over exactly the contentPath.
+            if (!blockchainConfig.isMockMode()
+                && !org.apache.jackrabbit.oak.segment.consensus.security.EthereumSignatureVerifier
+                    .verifySignature(contentPath, signature, normalizedWallet)) {
+                context.apiRejectedRequests.incrementAndGet();
+                log.warn("❌ API REJECTED: Delete signature verification failed for wallet {}", normalizedWallet);
+                ApiErrorUtil.sendJsonError(response, HttpServletResponse.SC_UNAUTHORIZED,
+                    "Signature verification failed. The signature must be a personal_sign over contentPath by the claimed wallet.");
+                return;
+            }
+
             // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
             // GC DEBT TRACKING: Track debt when content is deleted (deferred cost)
             // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
