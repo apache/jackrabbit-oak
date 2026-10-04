@@ -158,12 +158,22 @@ public class MessageDispatcherTest {
     }
 
     @Test
-    public void testWriteProposalWithoutCallbackRejected() {
+    public void testWriteProposalWithoutCallbackFails() {
         MessageDispatcher dispatcher = new MessageDispatcher();
         dispatcher.setTermProvider(() -> 1L);
 
-        assertFalse(dispatch(dispatcher, SimpleMessageHeader.TEMPLATE_ID_WRITE_PROPOSAL,
-            "{\"walletAddress\":\"0xabc\",\"path\":\"/oak-chain/test\",\"term\":1}"));
+        assertMissingCallbackFails(dispatcher, SimpleMessageHeader.TEMPLATE_ID_WRITE_PROPOSAL,
+            "{\"walletAddress\":\"0xabc\",\"path\":\"/oak-chain/test\",\"term\":1}");
+    }
+
+    /** A missing callback is this node's wiring, not the entry: skipping it would diverge, so it must fail. */
+    private void assertMissingCallbackFails(MessageDispatcher dispatcher, int templateId, String payload) {
+        try {
+            dispatch(dispatcher, templateId, payload);
+            fail("a member without a write callback skipped the entry");
+        } catch (IllegalStateException expected) {
+            assertTrue(expected.getMessage().contains("callback"));
+        }
     }
 
     @Test
@@ -221,11 +231,11 @@ public class MessageDispatcherTest {
     }
 
     @Test
-    public void testWriteBatchRejectsInvalidFormatAndMissingCallback() {
+    public void testWriteBatchRejectsInvalidFormatAndFailsWithoutCallback() {
         MessageDispatcher dispatcher = new MessageDispatcher();
 
-        assertFalse(dispatch(dispatcher, SimpleMessageHeader.TEMPLATE_ID_WRITE_BATCH,
-            "{\"batch\":[{\"walletAddress\":\"0x1\",\"path\":\"/ok\"}]}"));
+        assertMissingCallbackFails(dispatcher, SimpleMessageHeader.TEMPLATE_ID_WRITE_BATCH,
+            "{\"batch\":[{\"walletAddress\":\"0x1\",\"path\":\"/ok\"}]}");
         dispatcher.setCallbacks(new MessageDispatcher.WriteCallback() {
             @Override
             public void applyWrite(String walletAddress, String path, String contentType, String message, String signature,
@@ -292,12 +302,12 @@ public class MessageDispatcherTest {
     }
 
     @Test
-    public void testDeleteProposalRejectsMissingFieldsAndMissingCallback() {
+    public void testDeleteProposalRejectsMissingFieldsAndFailsWithoutCallback() {
         MessageDispatcher dispatcher = new MessageDispatcher();
         dispatcher.setTermProvider(() -> 5L);
 
-        assertFalse(dispatch(dispatcher, SimpleMessageHeader.TEMPLATE_ID_DELETE_PROPOSAL,
-            "{\"walletAddress\":\"0xabc\",\"path\":\"/oak-chain/test\",\"term\":5}"));
+        assertMissingCallbackFails(dispatcher, SimpleMessageHeader.TEMPLATE_ID_DELETE_PROPOSAL,
+            "{\"walletAddress\":\"0xabc\",\"path\":\"/oak-chain/test\",\"term\":5}");
 
         dispatcher.setCallbacks(new MessageDispatcher.WriteCallback() {
             @Override

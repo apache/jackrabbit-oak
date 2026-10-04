@@ -155,7 +155,7 @@ public class DeleteApplicationService {
             String[] pathParts = path.split("/");
             if (pathParts.length < 2) {
                 log.error("❌ Invalid path format: {} (expected: /oak-chain/...)", path);
-                throw new IllegalArgumentException("Invalid path format: " + path);
+                throw new InvalidProposalException("Invalid path format: " + path);
             }
             
             // Build node structure and navigate to target

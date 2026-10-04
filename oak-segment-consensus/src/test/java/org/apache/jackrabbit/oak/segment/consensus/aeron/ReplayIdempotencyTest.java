@@ -209,9 +209,14 @@ public class ReplayIdempotencyTest {
             return this;
         }
 
+        /** Stops at the first failure, as a member does (the failure stops its service and process). */
         void apply(List<Entry> log) {
-            for (Entry entry : log) {
-                dispatcher.dispatch(entry.timestamp, entry.position, entry.message.buffer, 0, entry.message.totalLength);
+            try {
+                for (Entry entry : log) {
+                    dispatcher.dispatch(entry.timestamp, entry.position, entry.message.buffer, 0, entry.message.totalLength);
+                }
+            } catch (IllegalStateException crashed) {
+                assertEquals("simulated crash", crashed.getMessage());
             }
         }
 

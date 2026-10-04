@@ -22,6 +22,7 @@ import io.aeron.cluster.service.ClientSession;
 import io.aeron.logbuffer.Header;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.AgentTerminationException;
 import org.agrona.concurrent.IdleStrategy;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.segment.consensus.queue.ProposalState;
@@ -505,6 +506,34 @@ public class AeronConsensusEngineTest {
         engine.onSessionMessage(mock(ClientSession.class), 2L, fresh.buffer, 0, fresh.totalLength, headerAt(640L));
 
         assertEquals(List.of("/oak-chain/a/b/c/new@position=640 item=0 term=0"), applied);
+    }
+
+    @Test
+    public void nodeLocalApplyFailureStopsThisMemberThroughTheFatalPath() throws Exception {
+        AeronConsensusEngine engine = createEngine();
+        engine.setWriteApplicationCallback(new AeronConsensusEngine.WriteApplicationCallback() {
+            @Override
+            public void applyReplicatedWrite(String walletAddress, String path, String contentType, String message,
+                                             String signature, String intentToken, String blobId, String mimeType,
+                                             String ipfsCid, org.apache.jackrabbit.oak.segment.consensus.service.MutationAuditMetadata auditMetadata) {
+                throw new RuntimeException("Failed to apply replicated write",
+                    new java.io.IOException("No space left on device"));
+            }
+        });
+        setField(engine, "cluster", mock(Cluster.class));
+        AeronEncodedMessage write = new AeronIngressWritePayloadBuilder()
+            .buildWriteProposal("0xabc", "/oak-chain/a/b/c/doc", "page", "m", "sig", null, null, "p-1");
+
+        try {
+            engine.onSessionMessage(mock(ClientSession.class), 1L, write.buffer, 0, write.totalLength, headerAt(640L));
+            fail("a node-local apply failure was swallowed");
+        } catch (AgentTerminationException e) {
+            assertTrue(e.getCause() instanceof io.aeron.exceptions.AeronException);
+            assertEquals(io.aeron.exceptions.AeronException.Category.FATAL,
+                ((io.aeron.exceptions.AeronException) e.getCause()).category());
+            assertTrue(e.getMessage(), e.getMessage().contains("640"));
+            assertTrue(e.getCause().getCause().getCause() instanceof java.io.IOException);
+        }
     }
 
     private static Header headerAt(long position) {

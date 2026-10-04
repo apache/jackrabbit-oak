@@ -21,8 +21,10 @@ import io.aeron.cluster.codecs.CloseReason;
 import io.aeron.cluster.service.ClientSession;
 import io.aeron.cluster.service.Cluster;
 import io.aeron.cluster.service.ClusteredService;
+import io.aeron.exceptions.AeronException;
 import io.aeron.logbuffer.Header;
 import org.agrona.DirectBuffer;
+import org.agrona.concurrent.AgentTerminationException;
 import org.agrona.concurrent.IdleStrategy;
 import org.apache.jackrabbit.oak.segment.consensus.config.BlockchainConfig;
 import org.apache.jackrabbit.oak.segment.consensus.eth.BeaconChainClient;
@@ -837,9 +839,31 @@ public class AeronConsensusEngine implements ClusteredService {
         // ✈️ AERON NATIVE: Handle replicated write proposals
         // This callback is invoked on ALL nodes after Aeron replicates the message via Raft
         // Deterministic state machine: ALL nodes process messages in same order
-        ingressHandler.handleMessage(session, timestamp, buffer, offset, length, header, cluster);
+        try {
+            ingressHandler.handleMessage(session, timestamp, buffer, offset, length, header, cluster);
+        } catch (AgentTerminationException e) {
+            throw e;
+        } catch (RuntimeException | Error e) {
+            throw applyFailStop(e, header != null ? header.position() : -1L);
+        }
         snapshotTrigger.onEntryApplied(cluster != null && cluster.role() == Cluster.Role.LEADER,
             System.currentTimeMillis());
+    }
+
+    /**
+     * An entry that failed to apply for any reason other than a deterministic rejection (those return normally) may
+     * have failed on this member only: Aeron would still advance past it, so this member must stop instead.
+     * Throwing {@link AgentTerminationException} ends the service agent before the next entry; Agrona's AgentRunner
+     * hands it to the service error handler, where the FATAL cause takes the existing fail-stop path
+     * ({@link AeronClusterFailureCoordinator}: crash marker, Aeron shutdown, then the process-exit callback).
+     * On restart the entry is above the applied watermark and is applied again.
+     */
+    static AgentTerminationException applyFailStop(Throwable cause, long logPosition) {
+        log.error("❌ Applying the log entry ending at position {} failed on this member - stopping it", logPosition,
+            cause);
+        return new AgentTerminationException("apply of log entry ending at position " + logPosition + " failed",
+            new AeronException("node-local apply failure at log position " + logPosition, cause,
+                AeronException.Category.FATAL));
     }
 
     /**

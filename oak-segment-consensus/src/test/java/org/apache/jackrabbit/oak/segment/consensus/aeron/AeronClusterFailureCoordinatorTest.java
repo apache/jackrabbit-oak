@@ -18,11 +18,17 @@ package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.aeron.exceptions.AeronException;
 import org.agrona.ErrorHandler;
+import org.agrona.concurrent.Agent;
+import org.agrona.concurrent.AgentRunner;
+import org.agrona.concurrent.AgentTerminationException;
+import org.agrona.concurrent.SleepingMillisIdleStrategy;
 import org.junit.Test;
 
 import static io.aeron.exceptions.AeronException.Category.FATAL;
@@ -65,6 +71,48 @@ public class AeronClusterFailureCoordinatorTest {
         assertEquals(1, sleeps.size());
         assertEquals(2000L, sleeps.get(0).longValue());
         verify(crashHandler).handleCrash(org.mockito.ArgumentMatchers.any(AeronException.class));
+    }
+
+    /**
+     * A clustered-service agent that stops itself with a FATAL cause (as the service does on a node-local apply
+     * failure) reaches the process-exit callback through Agrona's AgentRunner error handling.
+     */
+    @Test
+    public void serviceAgentTerminatedWithAFatalCauseExitsTheProcess() throws Exception {
+        CrashHandler crashHandler = mock(CrashHandler.class);
+        when(crashHandler.shouldStop(org.mockito.ArgumentMatchers.any(AeronException.class))).thenReturn(true);
+        CountDownLatch exited = new CountDownLatch(1);
+        AtomicInteger dutyCycles = new AtomicInteger();
+        AeronClusterFailureCoordinator coordinator = new AeronClusterFailureCoordinator(
+            crashHandler,
+            Runnable::run,
+            new AtomicBoolean(false),
+            millis -> { },
+            () -> { },
+            () -> exited::countDown
+        );
+        Agent service = new Agent() {
+            @Override
+            public int doWork() {
+                dutyCycles.incrementAndGet();
+                throw new AgentTerminationException("apply failed",
+                    new AeronException("node-local apply failure", new java.io.IOException("disk full"), FATAL));
+            }
+
+            @Override
+            public String roleName() {
+                return "clustered-service";
+            }
+        };
+        AgentRunner runner = new AgentRunner(new SleepingMillisIdleStrategy(1), coordinator.decorate(t -> { }),
+            null, service);
+        try {
+            AgentRunner.startOnThread(runner);
+            assertTrue(exited.await(5, TimeUnit.SECONDS));
+            assertEquals("the agent stops at the failure", 1, dutyCycles.get());
+        } finally {
+            runner.close();
+        }
     }
 
     @Test

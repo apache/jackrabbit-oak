@@ -215,12 +215,12 @@ public class WriteApplicationService {
             String[] pathParts = path.split("/");
             if (pathParts.length < 4) {
                 log.error("❌ Invalid path format: {} (expected: /oak-chain/{shard}/content/...)", path);
-                throw new IllegalArgumentException("Invalid path format: " + path);
+                throw new InvalidProposalException("Invalid path format: " + path);
             }
             
             // Security check: signature must not be null
             if (signature == null) {
-                throw new IllegalStateException(
+                throw new InvalidProposalException(
                     "SECURITY VIOLATION: Signature is null in replicated write. " +
                     "This indicates Aeron message corruption or validation bypass. " +
                     "Path: " + path + ", Wallet: " + walletAddress
@@ -485,38 +485,26 @@ public class WriteApplicationService {
             return;
         }
         
-        try {
-            // Create proper Blob object from blob ID
-            Blob blob = new BlobStoreBlob(blobStore, blobId);
-            
-            // Set as proper BINARY type property
-            contentNode.setProperty("jcr:data", blob, Type.BINARY);
-            
-            if (mimeType != null && !mimeType.isEmpty()) {
-                contentNode.setProperty("jcr:mimeType", mimeType);
-            }
-            
-            // Store raw blob ID
-            contentNode.setProperty("jcr:blobId", blobId);
-            
-            // Only the CID carried in the proposal (decided by the ingesting node): a lookup here would differ per node.
-            if (ipfsCid != null && !ipfsCid.isEmpty()) {
-                contentNode.setProperty("ipfsCid", ipfsCid);
-                contentNode.setProperty("ipfsGateway", IpfsGatewayUrls.gatewayUrl(ipfsCid));
-                log.info("✅ Binary stored with proposal IPFS CID: jcr:blobId={}, ipfsCid={}", blobId, ipfsCid);
-            } else {
-                log.info("✅ Binary stored (proposal carries no IPFS CID): jcr:blobId={}", blobId);
-            }
-            
-        } catch (AgentTerminationException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("❌ Failed to create Blob from blobId {}: {}", blobId, e.getMessage());
-            // Fallback: store as string reference
-            contentNode.setProperty("jcr:data", blobId);
-            if (mimeType != null && !mimeType.isEmpty()) {
-                contentNode.setProperty("jcr:mimeType", mimeType);
-            }
+        // Create proper Blob object from blob ID
+        Blob blob = new BlobStoreBlob(blobStore, blobId);
+        
+        // Set as proper BINARY type property
+        contentNode.setProperty("jcr:data", blob, Type.BINARY);
+        
+        if (mimeType != null && !mimeType.isEmpty()) {
+            contentNode.setProperty("jcr:mimeType", mimeType);
+        }
+        
+        // Store raw blob ID
+        contentNode.setProperty("jcr:blobId", blobId);
+        
+        // Only the CID carried in the proposal (decided by the ingesting node): a lookup here would differ per node.
+        if (ipfsCid != null && !ipfsCid.isEmpty()) {
+            contentNode.setProperty("ipfsCid", ipfsCid);
+            contentNode.setProperty("ipfsGateway", IpfsGatewayUrls.gatewayUrl(ipfsCid));
+            log.info("✅ Binary stored with proposal IPFS CID: jcr:blobId={}, ipfsCid={}", blobId, ipfsCid);
+        } else {
+            log.info("✅ Binary stored (proposal carries no IPFS CID): jcr:blobId={}", blobId);
         }
     }
     
@@ -537,44 +525,38 @@ public class WriteApplicationService {
                                   String walletAddress,
                                   boolean newContentNode,
                                   long appliedAt) {
-        try {
-            boolean isNewWallet = !walletNode.hasProperty("wallet");
+        boolean isNewWallet = !walletNode.hasProperty("wallet");
+        
+        if (isNewWallet) {
+            log.info("🆕 Creating new wallet node with metadata: {}", walletNodeName);
             
-            if (isNewWallet) {
-                log.info("🆕 Creating new wallet node with metadata: {}", walletNodeName);
-                
-                walletNode.setProperty("jcr:primaryType", "nt:unstructured");
-                walletNode.setProperty("wallet", walletAddress);
-                walletNode.setProperty("walletCreated", appliedAt);
-                walletNode.setProperty("nodeType", "wallet-root");
-                walletNode.setProperty("description", "Wallet-scoped content root for " + walletAddress);
-                
-                // First write creates the wallet node and its initial content entry.
-                walletNode.setProperty("contentCount", 1L);
-                walletNode.setProperty("totalWrites", 1L);
-                walletNode.setProperty("lastWrite", appliedAt);
-                
-                log.debug("✅ Wallet node metadata initialized: {}", walletAddress);
-            } else {
-                // Update existing wallet node
-                PropertyState contentCountProp = walletNode.getProperty("contentCount");
-                PropertyState totalWritesProp = walletNode.getProperty("totalWrites");
-                
-                long contentCount = contentCountProp != null ? contentCountProp.getValue(Type.LONG) : 0L;
-                long totalWrites = totalWritesProp != null ? totalWritesProp.getValue(Type.LONG) : 0L;
-                long nextContentCount = contentCount + (newContentNode ? 1L : 0L);
-                
-                walletNode.setProperty("contentCount", nextContentCount);
-                walletNode.setProperty("totalWrites", totalWrites + 1);
-                walletNode.setProperty("lastWrite", appliedAt);
-                
-                log.debug("📊 Wallet node updated: {} (contentCount: {}, totalWrites: {})", 
-                    walletAddress, nextContentCount, totalWrites + 1);
-            }
-        } catch (AgentTerminationException e) {
-            throw e;
-        } catch (Exception e) {
-            log.warn("⚠️  Failed to enrich wallet node metadata for {}: {}", walletAddress, e.getMessage());
+            walletNode.setProperty("jcr:primaryType", "nt:unstructured");
+            walletNode.setProperty("wallet", walletAddress);
+            walletNode.setProperty("walletCreated", appliedAt);
+            walletNode.setProperty("nodeType", "wallet-root");
+            walletNode.setProperty("description", "Wallet-scoped content root for " + walletAddress);
+            
+            // First write creates the wallet node and its initial content entry.
+            walletNode.setProperty("contentCount", 1L);
+            walletNode.setProperty("totalWrites", 1L);
+            walletNode.setProperty("lastWrite", appliedAt);
+            
+            log.debug("✅ Wallet node metadata initialized: {}", walletAddress);
+        } else {
+            // Update existing wallet node
+            PropertyState contentCountProp = walletNode.getProperty("contentCount");
+            PropertyState totalWritesProp = walletNode.getProperty("totalWrites");
+            
+            long contentCount = contentCountProp != null ? contentCountProp.getValue(Type.LONG) : 0L;
+            long totalWrites = totalWritesProp != null ? totalWritesProp.getValue(Type.LONG) : 0L;
+            long nextContentCount = contentCount + (newContentNode ? 1L : 0L);
+            
+            walletNode.setProperty("contentCount", nextContentCount);
+            walletNode.setProperty("totalWrites", totalWrites + 1);
+            walletNode.setProperty("lastWrite", appliedAt);
+            
+            log.debug("📊 Wallet node updated: {} (contentCount: {}, totalWrites: {})", 
+                walletAddress, nextContentCount, totalWrites + 1);
         }
     }
     

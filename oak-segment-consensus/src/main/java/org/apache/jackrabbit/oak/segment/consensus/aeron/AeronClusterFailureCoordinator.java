@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 
 import io.aeron.exceptions.AeronException;
 import org.agrona.ErrorHandler;
+import org.agrona.concurrent.AgentTerminationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,11 +97,15 @@ final class AeronClusterFailureCoordinator {
     }
 
     private void maybeScheduleFatalShutdown(Throwable throwable) {
-        if (!(throwable instanceof AeronException) || crashHandler == null) {
+        // The clustered service stops its agent with an AgentTerminationException that carries the FATAL cause.
+        Throwable error = throwable instanceof AgentTerminationException && throwable.getCause() instanceof AeronException
+            ? throwable.getCause()
+            : throwable;
+        if (!(error instanceof AeronException) || crashHandler == null) {
             return;
         }
 
-        AeronException ex = (AeronException) throwable;
+        AeronException ex = (AeronException) error;
         if (!crashHandler.shouldStop(ex) || !requestShutdown()) {
             return;
         }

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.segment.consensus.aeron;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.AgentTerminationException;
 import org.apache.jackrabbit.oak.segment.consensus.service.AppliedLogPosition;
+import org.apache.jackrabbit.oak.segment.consensus.service.InvalidProposalException;
 import org.apache.jackrabbit.oak.segment.consensus.service.MutationAuditMetadata;
 import org.apache.jackrabbit.oak.segment.http.server.util.JsonParser;
 import org.osgi.service.component.annotations.Activate;
@@ -272,87 +273,79 @@ public class MessageDispatcher {
      *                    every member; -1 when unknown, which disables the watermark
      */
     public boolean dispatch(long timestamp, long logPosition, DirectBuffer buffer, int offset, int length) {
-        try {
-            // Validate minimum message length for SBE header
-            if (length < SimpleMessageHeader.ENCODED_LENGTH) {
-                log.warn("⚠️  Message too short: {} bytes (minimum {} for SBE header)", 
-                    length, SimpleMessageHeader.ENCODED_LENGTH);
-                return false;
-            }
-            
-            // Decode SBE header using SimpleMessageHeader
-            SimpleMessageHeader.HeaderInfo header = SimpleMessageHeader.decode(buffer, offset);
-            
-            log.debug("📬 Received message: templateId={}, blockLength={}, length={}", 
-                header.templateId, header.blockLength, length);
-            
-            // Validate payload length matches header
-            int payloadLength = length - SimpleMessageHeader.ENCODED_LENGTH;
-            if (payloadLength < header.blockLength) {
-                log.warn("⚠️  Message payload shorter than header blockLength: {} < {}", 
-                    payloadLength, header.blockLength);
-                return false;
-            }
-            
-            // Decode the whole frame: blockLength is 16 bits and wraps for JSON payloads over 64 KiB
-            int payloadOffset = offset + SimpleMessageHeader.ENCODED_LENGTH;
-            
-            switch (header.templateId) {
-                case SimpleMessageHeader.TEMPLATE_ID_WRITE_PROPOSAL:
-                    return handleWriteProposal(timestamp, logPosition, buffer, payloadOffset, payloadLength);
-                    
-                case SimpleMessageHeader.TEMPLATE_ID_DELETE_PROPOSAL:
-                    return handleDeleteProposal(timestamp, logPosition, buffer, payloadOffset, payloadLength);
-                    
-                case SimpleMessageHeader.TEMPLATE_ID_WRITE_BATCH:
-                    return handleWriteBatch(timestamp, logPosition, buffer, payloadOffset, payloadLength);
-                    
-                case SimpleMessageHeader.TEMPLATE_ID_GC_PROPOSAL:
-                    return handleGCProposal(buffer, payloadOffset, payloadLength);
-                    
-                case SimpleMessageHeader.TEMPLATE_ID_GC_VOTE:
-                    return handleGCVote(buffer, payloadOffset, payloadLength);
-                    
-                case SimpleMessageHeader.TEMPLATE_ID_GC_EXECUTE:
-                    return handleGCExecute(buffer, payloadOffset, payloadLength);
-                    
-                case SimpleMessageHeader.TEMPLATE_ID_QUEUE_SEGMENT:
-                    return handleQueueSegment(buffer, payloadOffset, payloadLength);
-                    
-                case SimpleMessageHeader.TEMPLATE_ID_SEGMENT_PERSISTED:
-                    return handleSegmentPersisted(buffer, payloadOffset, payloadLength);
-                    
-                case SimpleMessageHeader.TEMPLATE_ID_ACK_SEGMENT_PERSISTED:
-                    return handleAckSegmentPersisted(buffer, payloadOffset, payloadLength);
-
-                case SimpleMessageHeader.TEMPLATE_ID_START_TRANSACTION:
-                    return handleStartTransaction(buffer, payloadOffset, payloadLength);
-
-                case SimpleMessageHeader.TEMPLATE_ID_COMMIT_TRANSACTION:
-                    return handleCommitTransaction(buffer, payloadOffset, payloadLength);
-
-                case SimpleMessageHeader.TEMPLATE_ID_ABORT_TRANSACTION:
-                    return handleAbortTransaction(buffer, payloadOffset, payloadLength);
-                    
-                case SimpleMessageHeader.TEMPLATE_ID_GENESIS_PROPOSAL:
-                    log.info("🎬 GENESIS proposal received - delegating to genesis callback");
-                    // Genesis is handled specially by AeronConsensusEngine
-                    return true;
-                    
-                case SimpleMessageHeader.TEMPLATE_ID_SNAPSHOT:
-                    log.debug("📸 Snapshot message received (handled separately)");
-                    return true;
-                    
-                default:
-                    log.warn("Unknown template ID: {}", header.templateId);
-                    return false;
-            }
-            
-        } catch (AgentTerminationException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Failed to dispatch message", e);
+        // Validate minimum message length for SBE header
+        if (length < SimpleMessageHeader.ENCODED_LENGTH) {
+            log.warn("⚠️  Message too short: {} bytes (minimum {} for SBE header)", 
+                length, SimpleMessageHeader.ENCODED_LENGTH);
             return false;
+        }
+        
+        // Decode SBE header using SimpleMessageHeader
+        SimpleMessageHeader.HeaderInfo header = SimpleMessageHeader.decode(buffer, offset);
+        
+        log.debug("📬 Received message: templateId={}, blockLength={}, length={}", 
+            header.templateId, header.blockLength, length);
+        
+        // Validate payload length matches header
+        int payloadLength = length - SimpleMessageHeader.ENCODED_LENGTH;
+        if (payloadLength < header.blockLength) {
+            log.warn("⚠️  Message payload shorter than header blockLength: {} < {}", 
+                payloadLength, header.blockLength);
+            return false;
+        }
+        
+        // Decode the whole frame: blockLength is 16 bits and wraps for JSON payloads over 64 KiB
+        int payloadOffset = offset + SimpleMessageHeader.ENCODED_LENGTH;
+        
+        switch (header.templateId) {
+            case SimpleMessageHeader.TEMPLATE_ID_WRITE_PROPOSAL:
+                return handleWriteProposal(timestamp, logPosition, buffer, payloadOffset, payloadLength);
+                
+            case SimpleMessageHeader.TEMPLATE_ID_DELETE_PROPOSAL:
+                return handleDeleteProposal(timestamp, logPosition, buffer, payloadOffset, payloadLength);
+                
+            case SimpleMessageHeader.TEMPLATE_ID_WRITE_BATCH:
+                return handleWriteBatch(timestamp, logPosition, buffer, payloadOffset, payloadLength);
+                
+            case SimpleMessageHeader.TEMPLATE_ID_GC_PROPOSAL:
+                return handleGCProposal(buffer, payloadOffset, payloadLength);
+                
+            case SimpleMessageHeader.TEMPLATE_ID_GC_VOTE:
+                return handleGCVote(buffer, payloadOffset, payloadLength);
+                
+            case SimpleMessageHeader.TEMPLATE_ID_GC_EXECUTE:
+                return handleGCExecute(buffer, payloadOffset, payloadLength);
+                
+            case SimpleMessageHeader.TEMPLATE_ID_QUEUE_SEGMENT:
+                return handleQueueSegment(buffer, payloadOffset, payloadLength);
+                
+            case SimpleMessageHeader.TEMPLATE_ID_SEGMENT_PERSISTED:
+                return handleSegmentPersisted(buffer, payloadOffset, payloadLength);
+                
+            case SimpleMessageHeader.TEMPLATE_ID_ACK_SEGMENT_PERSISTED:
+                return handleAckSegmentPersisted(buffer, payloadOffset, payloadLength);
+
+            case SimpleMessageHeader.TEMPLATE_ID_START_TRANSACTION:
+                return handleStartTransaction(buffer, payloadOffset, payloadLength);
+
+            case SimpleMessageHeader.TEMPLATE_ID_COMMIT_TRANSACTION:
+                return handleCommitTransaction(buffer, payloadOffset, payloadLength);
+
+            case SimpleMessageHeader.TEMPLATE_ID_ABORT_TRANSACTION:
+                return handleAbortTransaction(buffer, payloadOffset, payloadLength);
+                
+            case SimpleMessageHeader.TEMPLATE_ID_GENESIS_PROPOSAL:
+                log.info("🎬 GENESIS proposal received - delegating to genesis callback");
+                // Genesis is handled specially by AeronConsensusEngine
+                return true;
+                
+            case SimpleMessageHeader.TEMPLATE_ID_SNAPSHOT:
+                log.debug("📸 Snapshot message received (handled separately)");
+                return true;
+                
+            default:
+                log.warn("Unknown template ID: {}", header.templateId);
+                return false;
         }
     }
     
@@ -369,59 +362,12 @@ public class MessageDispatcher {
         if (isAlreadyApplied(entry)) {
             return true;
         }
-        try {
-            // Extract JSON payload
-            Map<String, Object> json = readPayload(buffer, payloadOffset, payloadLength);
-            
-            log.debug("✈️  Processing write proposal: {} bytes", payloadLength);
-            
-            // Parse write proposal fields
-            String walletAddress = stringField(json, "walletAddress");
-            String path = stringField(json, "path");
-            String contentType = stringField(json, "contentType");
-            String message = stringField(json, "message");
-            String signature = stringField(json, "signature");
-            String intentToken = stringField(json, "intentToken"); // ADR 020
-            String blobId = stringField(json, "blobId");
-            String mimeType = stringField(json, "mimeType");
-            String ipfsCid = stringField(json, "ipfsCid"); // ADR 016
-            String proposalId = stringField(json, "proposalId");
-            MutationAuditMetadata auditMetadata = extractAuditMetadata(
-                json,
-                MutationAuditMetadata.Operation.WRITE,
-                proposalId
-            ).withClusterTimestamp(timestamp).withAppliedLogPosition(entry);
-            Long proposalTerm = longField(json, "term");
-
-            if (walletAddress == null || path == null) {
-                log.warn("Invalid write proposal: missing required fields (wallet={}, path={})", 
-                    walletAddress != null, path != null);
-                return false;
-            }
-
-            if (isStaleTerm(proposalTerm)) {
-                return false;
-            }
-            
-            if (writeCallback == null) {
-                log.error("❌ Write callback not set - cannot apply write");
-                return false;
-            }
-            
-            // Delegate to callback
-            log.debug("✅ Applying write: wallet={}, path={}, intentToken={}", 
-                walletAddress, path, intentToken != null ? intentToken : "none");
-            writeCallback.applyWrite(walletAddress, path, contentType, message, signature, 
-                                    intentToken, blobId, mimeType, ipfsCid, auditMetadata);
-            
-            return true;
-            
-        } catch (AgentTerminationException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Failed to handle write proposal", e);
+        Map<String, Object> json = readPayloadOrNull(buffer, payloadOffset, payloadLength, "write proposal");
+        if (json == null) {
             return false;
         }
+        log.debug("✈️  Processing write proposal: {} bytes", payloadLength);
+        return applyWriteItem(json, timestamp, entry, "write proposal");
     }
     
     /**
@@ -437,50 +383,12 @@ public class MessageDispatcher {
         if (isAlreadyApplied(entry)) {
             return true;
         }
-        try {
-            // Extract JSON payload
-            Map<String, Object> json = readPayload(buffer, payloadOffset, payloadLength);
-            
-            log.debug("🗑️  Processing delete proposal: {} bytes", payloadLength);
-            
-            // Parse delete proposal fields
-            String walletAddress = stringField(json, "walletAddress");
-            String path = stringField(json, "path");
-            String signature = stringField(json, "signature");
-            String proposalId = stringField(json, "proposalId");
-            MutationAuditMetadata auditMetadata = extractAuditMetadata(
-                json,
-                MutationAuditMetadata.Operation.DELETE,
-                proposalId
-            ).withClusterTimestamp(timestamp).withAppliedLogPosition(entry);
-            Long proposalTerm = longField(json, "term");
-            
-            if (walletAddress == null || path == null) {
-                log.warn("Invalid delete proposal: missing required fields");
-                return false;
-            }
-
-            if (isStaleTerm(proposalTerm)) {
-                return false;
-            }
-            
-            if (writeCallback == null) {
-                log.error("❌ Write callback not set - cannot apply delete");
-                return false;
-            }
-            
-            // Delegate to callback
-            log.info("🗑️  Applying delete: wallet={}, path={}", walletAddress, path);
-            writeCallback.applyDelete(walletAddress, path, signature, auditMetadata);
-            
-            return true;
-            
-        } catch (AgentTerminationException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Failed to handle delete proposal", e);
+        Map<String, Object> json = readPayloadOrNull(buffer, payloadOffset, payloadLength, "delete proposal");
+        if (json == null) {
             return false;
         }
+        log.debug("🗑️  Processing delete proposal: {} bytes", payloadLength);
+        return applyDeleteItem(json, timestamp, entry, "delete proposal");
     }
     
     /**
@@ -496,86 +404,136 @@ public class MessageDispatcher {
         if (logPosition >= 0 && logPosition < replayFloor.position()) {
             return true;
         }
-        try {
-            // Extract JSON payload
-            Map<String, Object> json = readPayload(buffer, payloadOffset, payloadLength);
-            
-            log.debug("📦 Processing write batch: {} bytes", payloadLength);
-            
-            if (writeCallback == null) {
-                log.error("❌ Write callback not set - cannot apply batch");
-                return false;
+        Map<String, Object> json = readPayloadOrNull(buffer, payloadOffset, payloadLength, "write batch");
+        if (json == null) {
+            return false;
+        }
+        log.debug("📦 Processing write batch: {} bytes", payloadLength);
+        
+        // Parse batch JSON: {"batch":[{...},{...}]}
+        Object batch = json.get("batch");
+        if (!(batch instanceof List)) {
+            log.error("❌ Invalid batch format: missing batch array");
+            return false;
+        }
+        List<?> proposals = (List<?>) batch;
+        
+        log.debug("   Batch contains {} proposals", proposals.size());
+        
+        // Each item stands alone: an invalid item is skipped on every member; a node-local failure propagates
+        // and stops this member before any later item is applied.
+        int successCount = 0;
+        for (int itemIndex = 0; itemIndex < proposals.size(); itemIndex++) {
+            Object entry = proposals.get(itemIndex);
+            AppliedLogPosition itemPosition = entryPosition(logPosition, itemIndex);
+            if (isAlreadyApplied(itemPosition)) {
+                continue;
             }
-            
-            // Parse batch JSON: {"batch":[{...},{...}]}
-            Object batch = json.get("batch");
-            if (!(batch instanceof List)) {
-                log.error("❌ Invalid batch format: missing batch array");
-                return false;
+            if (!(entry instanceof Map)) {
+                log.warn("Invalid proposal in batch: not a JSON object");
+                continue;
             }
-            List<?> proposals = (List<?>) batch;
-            
-            log.debug("   Batch contains {} proposals", proposals.size());
-            
-            // Process each proposal in the batch
-            int successCount = 0;
-            for (int itemIndex = 0; itemIndex < proposals.size(); itemIndex++) {
-                Object entry = proposals.get(itemIndex);
-                AppliedLogPosition itemPosition = entryPosition(logPosition, itemIndex);
-                if (isAlreadyApplied(itemPosition)) {
-                    continue;
-                }
-                if (!(entry instanceof Map)) {
-                    log.warn("Invalid proposal in batch: not a JSON object");
-                    continue;
-                }
-                @SuppressWarnings("unchecked")
-                Map<String, Object> proposalJson = (Map<String, Object>) entry;
-                // Items carry "operation"; items without it decode as writes
-                String walletAddress = stringField(proposalJson, "walletAddress");
-                String path = stringField(proposalJson, "path");
-                String contentType = stringField(proposalJson, "contentType");
-                String message = stringField(proposalJson, "message");
-                String signature = stringField(proposalJson, "signature");
-                String intentToken = stringField(proposalJson, "intentToken");
-                String blobId = stringField(proposalJson, "blobId");
-                String mimeType = stringField(proposalJson, "mimeType");
-                String ipfsCid = stringField(proposalJson, "ipfsCid"); // ADR 016
-                String proposalId = stringField(proposalJson, "proposalId");
-                MutationAuditMetadata auditMetadata = extractAuditMetadata(
-                    proposalJson,
-                    MutationAuditMetadata.Operation.WRITE,
-                    proposalId
-                ).withClusterTimestamp(timestamp).withAppliedLogPosition(itemPosition);
-                Long proposalTerm = longField(proposalJson, "term");
-                
-                if (walletAddress == null || path == null) {
-                    log.warn("Invalid proposal in batch: missing required fields");
-                    continue;
-                }
-
-                if (isStaleTerm(proposalTerm)) {
-                    continue;
-                }
-                
-                if (auditMetadata.getOperation() == MutationAuditMetadata.Operation.DELETE) {
-                    writeCallback.applyDelete(walletAddress, path, signature, auditMetadata);
-                } else {
-                    writeCallback.applyWrite(walletAddress, path, contentType, message,
-                                            signature, intentToken, blobId, mimeType, ipfsCid, auditMetadata);
-                }
+            @SuppressWarnings("unchecked")
+            Map<String, Object> proposalJson = (Map<String, Object>) entry;
+            // Items carry "operation"; items without it decode as writes
+            boolean applied = "DELETE".equals(stringField(proposalJson, "operation"))
+                ? applyDeleteItem(proposalJson, timestamp, itemPosition, "batch item " + itemIndex)
+                : applyWriteItem(proposalJson, timestamp, itemPosition, "batch item " + itemIndex);
+            if (applied) {
                 successCount++;
             }
-            
-            log.debug("✅ Batch processed: {}/{} proposals successful", successCount, proposals.size());
-            lastBatchSize = successCount;
-            return successCount > 0;
-            
-        } catch (AgentTerminationException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Failed to handle write batch", e);
+        }
+        
+        log.debug("✅ Batch processed: {}/{} proposals successful", successCount, proposals.size());
+        lastBatchSize = successCount;
+        return successCount > 0;
+    }
+
+    private boolean applyWriteItem(Map<String, Object> json, long timestamp, AppliedLogPosition entry, String what) {
+        String walletAddress = stringField(json, "walletAddress");
+        String path = stringField(json, "path");
+        String contentType = stringField(json, "contentType");
+        String message = stringField(json, "message");
+        String signature = stringField(json, "signature");
+        String intentToken = stringField(json, "intentToken"); // ADR 020
+        String blobId = stringField(json, "blobId");
+        String mimeType = stringField(json, "mimeType");
+        String ipfsCid = stringField(json, "ipfsCid"); // ADR 016
+        MutationAuditMetadata auditMetadata = extractAuditMetadata(
+            json,
+            MutationAuditMetadata.Operation.WRITE,
+            stringField(json, "proposalId")
+        ).withClusterTimestamp(timestamp).withAppliedLogPosition(entry);
+
+        if (walletAddress == null || path == null) {
+            log.warn("Invalid {}: missing required fields (wallet={}, path={})", what,
+                walletAddress != null, path != null);
             return false;
+        }
+        if (isStaleTerm(longField(json, "term"))) {
+            return false;
+        }
+        log.debug("✅ Applying write: wallet={}, path={}, intentToken={}",
+            walletAddress, path, intentToken != null ? intentToken : "none");
+        try {
+            requireWriteCallback().applyWrite(walletAddress, path, contentType, message, signature,
+                intentToken, blobId, mimeType, ipfsCid, auditMetadata);
+        } catch (RuntimeException e) {
+            return rejectIfInvalid(e, what);
+        }
+        return true;
+    }
+
+    private boolean applyDeleteItem(Map<String, Object> json, long timestamp, AppliedLogPosition entry, String what) {
+        String walletAddress = stringField(json, "walletAddress");
+        String path = stringField(json, "path");
+        String signature = stringField(json, "signature");
+        MutationAuditMetadata auditMetadata = extractAuditMetadata(
+            json,
+            MutationAuditMetadata.Operation.DELETE,
+            stringField(json, "proposalId")
+        ).withClusterTimestamp(timestamp).withAppliedLogPosition(entry);
+
+        if (walletAddress == null || path == null) {
+            log.warn("Invalid {}: missing required fields", what);
+            return false;
+        }
+        if (isStaleTerm(longField(json, "term"))) {
+            return false;
+        }
+        log.info("🗑️  Applying delete: wallet={}, path={}", walletAddress, path);
+        try {
+            requireWriteCallback().applyDelete(walletAddress, path, signature, auditMetadata);
+        } catch (RuntimeException e) {
+            return rejectIfInvalid(e, what);
+        }
+        return true;
+    }
+
+    /** A missing callback is node-local wiring, not a property of the entry: fail rather than skip it. */
+    private WriteCallback requireWriteCallback() {
+        if (writeCallback == null) {
+            throw new IllegalStateException("Write callback not set - cannot apply replicated mutation");
+        }
+        return writeCallback;
+    }
+
+    private static boolean rejectIfInvalid(RuntimeException e, String what) {
+        if (!InvalidProposalException.isCauseOf(e)) {
+            throw e;
+        }
+        log.warn("❌ Rejected invalid {}: {}", what, e.getMessage());
+        return false;
+    }
+
+    /** Parsing is a pure function of the replicated bytes, so a parse failure is the same on every member. */
+    private static Map<String, Object> readPayloadOrNull(DirectBuffer buffer, int payloadOffset, int payloadLength,
+                                                       String what) {
+        try {
+            return readPayload(buffer, payloadOffset, payloadLength);
+        } catch (RuntimeException e) {
+            log.warn("❌ Rejected unparseable {}: {}", what, e.getMessage());
+            return null;
         }
     }
     

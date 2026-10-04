@@ -20,7 +20,6 @@ import io.aeron.cluster.service.ClientSession;
 import io.aeron.cluster.service.Cluster;
 import io.aeron.logbuffer.Header;
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.AgentTerminationException;
 import org.apache.jackrabbit.oak.segment.consensus.service.AppliedLogPosition;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -88,39 +87,33 @@ public class AeronIngressHandler {
         }
 
         // End of this entry in the cluster log; identical on every member (BoundedLogAdapter passes header.position()).
+        // Apply failures propagate: the engine stops this member rather than skip the entry.
         long logPosition = header != null ? header.position() : -1L;
-        try {
-            SimpleMessageHeader.HeaderInfo headerInfo = codec.decodeHeader(buffer, offset);
+        SimpleMessageHeader.HeaderInfo headerInfo = codec.decodeHeader(buffer, offset);
 
-            if (headerInfo.templateId == SimpleMessageHeader.TEMPLATE_ID_GENESIS_PROPOSAL) {
-                AppliedLogPosition entry = dispatcher.entryPosition(logPosition, 0);
-                if (dispatcher.isAlreadyApplied(entry)) {
-                    return true;
-                }
-                log.info("🎬 GENESIS proposal received via Aeron - creating genesis on this node");
-                if (genesisCallback != null) {
-                    genesisCallback.accept(readGenesisProposal(buffer, offset, length, headerInfo.blockLength), entry);
-                }
-                log.info("✅ Genesis creation complete on this node");
+        if (headerInfo.templateId == SimpleMessageHeader.TEMPLATE_ID_GENESIS_PROPOSAL) {
+            AppliedLogPosition entry = dispatcher.entryPosition(logPosition, 0);
+            if (dispatcher.isAlreadyApplied(entry)) {
                 return true;
             }
-
-            if (headerInfo.templateId == SimpleMessageHeader.TEMPLATE_ID_SNAPSHOT) {
-                log.debug("📸 Snapshot message received in onSessionMessage (handled separately)");
-                return true;
+            log.info("🎬 GENESIS proposal received via Aeron - creating genesis on this node");
+            if (genesisCallback != null) {
+                genesisCallback.accept(readGenesisProposal(buffer, offset, length, headerInfo.blockLength), entry);
             }
-
-            boolean success = dispatcher.dispatch(timestamp, logPosition, buffer, offset, length);
-            if (!success) {
-                logDispatchFailure(headerInfo.templateId);
-            }
-            return success;
-        } catch (AgentTerminationException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("❌ Failed to process replicated message", e);
-            return false;
+            log.info("✅ Genesis creation complete on this node");
+            return true;
         }
+
+        if (headerInfo.templateId == SimpleMessageHeader.TEMPLATE_ID_SNAPSHOT) {
+            log.debug("📸 Snapshot message received in onSessionMessage (handled separately)");
+            return true;
+        }
+
+        boolean success = dispatcher.dispatch(timestamp, logPosition, buffer, offset, length);
+        if (!success) {
+            logDispatchFailure(headerInfo.templateId);
+        }
+        return success;
     }
 
     private void logDispatchFailure(int templateId) {

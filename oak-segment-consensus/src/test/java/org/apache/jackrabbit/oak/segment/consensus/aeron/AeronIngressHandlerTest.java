@@ -224,12 +224,16 @@ public class AeronIngressHandlerTest {
     }
 
     @Test
-    public void handleMessageReturnsFalseWhenDecodingOrDispatchThrows() {
-        when(codec.decodeHeader(buffer, 0)).thenThrow(new RuntimeException("boom"));
+    public void handleMessagePropagatesDecodingOrDispatchFailures() {
+        RuntimeException failure = new RuntimeException("boom");
+        when(codec.decodeHeader(buffer, 0)).thenThrow(failure);
 
-        boolean result = handler.handleMessage(session, 123L, buffer, 0, 16, header, cluster);
-
-        assertFalse(result);
+        try {
+            handler.handleMessage(session, 123L, buffer, 0, 16, header, cluster);
+            fail("the failure was swallowed and the entry skipped");
+        } catch (RuntimeException e) {
+            assertSame(failure, e);
+        }
     }
 
     private static AtomicLong atomicLongField(Object target, String name) throws Exception {
