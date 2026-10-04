@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
 import org.agrona.DirectBuffer;
 import org.apache.jackrabbit.oak.segment.consensus.service.MutationAuditMetadata;
+import org.apache.jackrabbit.oak.segment.http.server.util.JsonParser;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
@@ -26,6 +27,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
@@ -245,45 +248,45 @@ public class MessageDispatcher {
                 return false;
             }
             
-            // Advance past header to payload
+            // Decode the whole frame: blockLength is 16 bits and wraps for JSON payloads over 64 KiB
             int payloadOffset = offset + SimpleMessageHeader.ENCODED_LENGTH;
             
             switch (header.templateId) {
                 case SimpleMessageHeader.TEMPLATE_ID_WRITE_PROPOSAL:
-                    return handleWriteProposal(buffer, payloadOffset, header.blockLength);
+                    return handleWriteProposal(buffer, payloadOffset, payloadLength);
                     
                 case SimpleMessageHeader.TEMPLATE_ID_DELETE_PROPOSAL:
-                    return handleDeleteProposal(buffer, payloadOffset, header.blockLength);
+                    return handleDeleteProposal(buffer, payloadOffset, payloadLength);
                     
                 case SimpleMessageHeader.TEMPLATE_ID_WRITE_BATCH:
-                    return handleWriteBatch(buffer, payloadOffset, header.blockLength);
+                    return handleWriteBatch(buffer, payloadOffset, payloadLength);
                     
                 case SimpleMessageHeader.TEMPLATE_ID_GC_PROPOSAL:
-                    return handleGCProposal(buffer, payloadOffset, header.blockLength);
+                    return handleGCProposal(buffer, payloadOffset, payloadLength);
                     
                 case SimpleMessageHeader.TEMPLATE_ID_GC_VOTE:
-                    return handleGCVote(buffer, payloadOffset, header.blockLength);
+                    return handleGCVote(buffer, payloadOffset, payloadLength);
                     
                 case SimpleMessageHeader.TEMPLATE_ID_GC_EXECUTE:
-                    return handleGCExecute(buffer, payloadOffset, header.blockLength);
+                    return handleGCExecute(buffer, payloadOffset, payloadLength);
                     
                 case SimpleMessageHeader.TEMPLATE_ID_QUEUE_SEGMENT:
-                    return handleQueueSegment(buffer, payloadOffset, header.blockLength);
+                    return handleQueueSegment(buffer, payloadOffset, payloadLength);
                     
                 case SimpleMessageHeader.TEMPLATE_ID_SEGMENT_PERSISTED:
-                    return handleSegmentPersisted(buffer, payloadOffset, header.blockLength);
+                    return handleSegmentPersisted(buffer, payloadOffset, payloadLength);
                     
                 case SimpleMessageHeader.TEMPLATE_ID_ACK_SEGMENT_PERSISTED:
-                    return handleAckSegmentPersisted(buffer, payloadOffset, header.blockLength);
+                    return handleAckSegmentPersisted(buffer, payloadOffset, payloadLength);
 
                 case SimpleMessageHeader.TEMPLATE_ID_START_TRANSACTION:
-                    return handleStartTransaction(buffer, payloadOffset, header.blockLength);
+                    return handleStartTransaction(buffer, payloadOffset, payloadLength);
 
                 case SimpleMessageHeader.TEMPLATE_ID_COMMIT_TRANSACTION:
-                    return handleCommitTransaction(buffer, payloadOffset, header.blockLength);
+                    return handleCommitTransaction(buffer, payloadOffset, payloadLength);
 
                 case SimpleMessageHeader.TEMPLATE_ID_ABORT_TRANSACTION:
-                    return handleAbortTransaction(buffer, payloadOffset, header.blockLength);
+                    return handleAbortTransaction(buffer, payloadOffset, payloadLength);
                     
                 case SimpleMessageHeader.TEMPLATE_ID_GENESIS_PROPOSAL:
                     log.info("🎬 GENESIS proposal received - delegating to genesis callback");
@@ -315,29 +318,27 @@ public class MessageDispatcher {
     private boolean handleWriteProposal(DirectBuffer buffer, int payloadOffset, int payloadLength) {
         try {
             // Extract JSON payload
-            byte[] jsonBytes = new byte[payloadLength];
-            buffer.getBytes(payloadOffset, jsonBytes);
-            String json = new String(jsonBytes, StandardCharsets.UTF_8).trim();
+            Map<String, Object> json = readPayload(buffer, payloadOffset, payloadLength);
             
             log.debug("✈️  Processing write proposal: {} bytes", payloadLength);
             
             // Parse write proposal fields
-            String walletAddress = extractJsonField(json, "walletAddress");
-            String path = extractJsonField(json, "path");
-            String contentType = extractJsonField(json, "contentType");
-            String message = extractJsonField(json, "message");
-            String signature = extractJsonField(json, "signature");
-            String intentToken = extractJsonField(json, "intentToken"); // ADR 020
-            String blobId = extractJsonField(json, "blobId");
-            String mimeType = extractJsonField(json, "mimeType");
-            String ipfsCid = extractJsonField(json, "ipfsCid"); // ADR 016
-            String proposalId = extractJsonField(json, "proposalId");
+            String walletAddress = stringField(json, "walletAddress");
+            String path = stringField(json, "path");
+            String contentType = stringField(json, "contentType");
+            String message = stringField(json, "message");
+            String signature = stringField(json, "signature");
+            String intentToken = stringField(json, "intentToken"); // ADR 020
+            String blobId = stringField(json, "blobId");
+            String mimeType = stringField(json, "mimeType");
+            String ipfsCid = stringField(json, "ipfsCid"); // ADR 016
+            String proposalId = stringField(json, "proposalId");
             MutationAuditMetadata auditMetadata = extractAuditMetadata(
                 json,
                 MutationAuditMetadata.Operation.WRITE,
                 proposalId
             );
-            Long proposalTerm = extractJsonLongField(json, "term");
+            Long proposalTerm = longField(json, "term");
 
             if (walletAddress == null || path == null) {
                 log.warn("Invalid write proposal: missing required fields (wallet={}, path={})", 
@@ -378,23 +379,21 @@ public class MessageDispatcher {
     private boolean handleDeleteProposal(DirectBuffer buffer, int payloadOffset, int payloadLength) {
         try {
             // Extract JSON payload
-            byte[] jsonBytes = new byte[payloadLength];
-            buffer.getBytes(payloadOffset, jsonBytes);
-            String json = new String(jsonBytes, StandardCharsets.UTF_8).trim();
+            Map<String, Object> json = readPayload(buffer, payloadOffset, payloadLength);
             
             log.debug("🗑️  Processing delete proposal: {} bytes", payloadLength);
             
             // Parse delete proposal fields
-            String walletAddress = extractJsonField(json, "walletAddress");
-            String path = extractJsonField(json, "path");
-            String signature = extractJsonField(json, "signature");
-            String proposalId = extractJsonField(json, "proposalId");
+            String walletAddress = stringField(json, "walletAddress");
+            String path = stringField(json, "path");
+            String signature = stringField(json, "signature");
+            String proposalId = stringField(json, "proposalId");
             MutationAuditMetadata auditMetadata = extractAuditMetadata(
                 json,
                 MutationAuditMetadata.Operation.DELETE,
                 proposalId
             );
-            Long proposalTerm = extractJsonLongField(json, "term");
+            Long proposalTerm = longField(json, "term");
             
             if (walletAddress == null || path == null) {
                 log.warn("Invalid delete proposal: missing required fields");
@@ -433,9 +432,7 @@ public class MessageDispatcher {
     private boolean handleWriteBatch(DirectBuffer buffer, int payloadOffset, int payloadLength) {
         try {
             // Extract JSON payload
-            byte[] jsonBytes = new byte[payloadLength];
-            buffer.getBytes(payloadOffset, jsonBytes);
-            String json = new String(jsonBytes, StandardCharsets.UTF_8).trim();
+            Map<String, Object> json = readPayload(buffer, payloadOffset, payloadLength);
             
             log.debug("📦 Processing write batch: {} bytes", payloadLength);
             
@@ -445,40 +442,41 @@ public class MessageDispatcher {
             }
             
             // Parse batch JSON: {"batch":[{...},{...}]}
-            int batchStart = json.indexOf("[");
-            int batchEnd = json.lastIndexOf("]");
-            
-            if (batchStart < 0 || batchEnd < 0) {
-                log.error("❌ Invalid batch format: {}", json.substring(0, Math.min(100, json.length())));
+            Object batch = json.get("batch");
+            if (!(batch instanceof List)) {
+                log.error("❌ Invalid batch format: missing batch array");
                 return false;
             }
-            
-            // Parse individual proposals from batch array
-            String batchContent = json.substring(batchStart + 1, batchEnd);
-            java.util.List<String> proposals = parseBatchProposals(batchContent);
+            List<?> proposals = (List<?>) batch;
             
             log.debug("   Batch contains {} proposals", proposals.size());
             
             // Process each proposal in the batch
             int successCount = 0;
-            for (String proposalJson : proposals) {
+            for (Object entry : proposals) {
+                if (!(entry instanceof Map)) {
+                    log.warn("Invalid proposal in batch: not a JSON object");
+                    continue;
+                }
+                @SuppressWarnings("unchecked")
+                Map<String, Object> proposalJson = (Map<String, Object>) entry;
                 // Parse proposal fields (batch proposals don't have "type" field - they're all writes)
-                String walletAddress = extractJsonField(proposalJson, "walletAddress");
-                String path = extractJsonField(proposalJson, "path");
-                String contentType = extractJsonField(proposalJson, "contentType");
-                String message = extractJsonField(proposalJson, "message");
-                String signature = extractJsonField(proposalJson, "signature");
-                String intentToken = extractJsonField(proposalJson, "intentToken");
-                String blobId = extractJsonField(proposalJson, "blobId");
-                String mimeType = extractJsonField(proposalJson, "mimeType");
-                String ipfsCid = extractJsonField(proposalJson, "ipfsCid"); // ADR 016
-                String proposalId = extractJsonField(proposalJson, "proposalId");
+                String walletAddress = stringField(proposalJson, "walletAddress");
+                String path = stringField(proposalJson, "path");
+                String contentType = stringField(proposalJson, "contentType");
+                String message = stringField(proposalJson, "message");
+                String signature = stringField(proposalJson, "signature");
+                String intentToken = stringField(proposalJson, "intentToken");
+                String blobId = stringField(proposalJson, "blobId");
+                String mimeType = stringField(proposalJson, "mimeType");
+                String ipfsCid = stringField(proposalJson, "ipfsCid"); // ADR 016
+                String proposalId = stringField(proposalJson, "proposalId");
                 MutationAuditMetadata auditMetadata = extractAuditMetadata(
                     proposalJson,
                     MutationAuditMetadata.Operation.WRITE,
                     proposalId
                 );
-                Long proposalTerm = extractJsonLongField(proposalJson, "term");
+                Long proposalTerm = longField(proposalJson, "term");
                 
                 if (walletAddress == null || path == null) {
                     log.warn("Invalid proposal in batch: missing required fields");
@@ -504,37 +502,6 @@ public class MessageDispatcher {
         }
     }
     
-    /**
-     * Parse batch content into individual proposal JSON strings.
-     * 
-     * <p>Handles nested JSON objects by tracking brace depth.
-     */
-    private java.util.List<String> parseBatchProposals(String batchContent) {
-        java.util.List<String> proposals = new java.util.ArrayList<>();
-        
-        int depth = 0;
-        StringBuilder currentProposal = new StringBuilder();
-        
-        for (int i = 0; i < batchContent.length(); i++) {
-            char c = batchContent.charAt(i);
-            if (c == '{') {
-                depth++;
-                currentProposal.append(c);
-            } else if (c == '}') {
-                depth--;
-                currentProposal.append(c);
-                if (depth == 0) {
-                    proposals.add(currentProposal.toString());
-                    currentProposal = new StringBuilder();
-                }
-            } else if (depth > 0) {
-                currentProposal.append(c);
-            }
-        }
-        
-        return proposals;
-    }
-
     private boolean isStaleTerm(Long proposalTerm) {
         if (termProvider == null) {
             return false;
@@ -568,65 +535,31 @@ public class MessageDispatcher {
         }
     }
     
-    /**
-     * Extract a field from JSON string (simple parser, no dependencies).
-     * 
-     * <p>Handles both quoted string values and unquoted values.
-     */
-    private String extractJsonField(String json, String field) {
-        // Handle both "field":"value" and "field": "value" (with optional whitespace)
-        String fieldPrefix = "\"" + field + "\"";
-        int fieldStart = json.indexOf(fieldPrefix);
-        if (fieldStart == -1) return null;
-        
-        // Find the colon after the field name
-        int colonIndex = json.indexOf(":", fieldStart + fieldPrefix.length());
-        if (colonIndex == -1) return null;
-        
-        // Skip optional whitespace and find the opening quote
-        int quoteStart = json.indexOf("\"", colonIndex);
-        if (quoteStart == -1) return null;
-        
-        // Find the closing quote
-        int quoteEnd = json.indexOf("\"", quoteStart + 1);
-        if (quoteEnd == -1) return null;
-        
-        return json.substring(quoteStart + 1, quoteEnd);
-    }
-    
-    /**
-     * Extract a numeric field from JSON string.
-     */
-    private Long extractJsonLongField(String json, String field) {
-        String pattern = "\"" + field + "\":";
-        int startIdx = json.indexOf(pattern);
-        if (startIdx < 0) {
-            return null;
-        }
-        startIdx += pattern.length();
-        // Skip whitespace
-        while (startIdx < json.length() && Character.isWhitespace(json.charAt(startIdx))) {
-            startIdx++;
-        }
-        // Find end of number
-        int endIdx = startIdx;
-        while (endIdx < json.length() && (Character.isDigit(json.charAt(endIdx)) || json.charAt(endIdx) == '-')) {
-            endIdx++;
-        }
-        if (endIdx == startIdx) {
-            return null;
-        }
-        try {
-            return Long.parseLong(json.substring(startIdx, endIdx));
-        } catch (NumberFormatException e) {
-            return null;
-        }
+    private static Map<String, Object> readPayload(DirectBuffer buffer, int payloadOffset, int payloadLength) {
+        byte[] jsonBytes = new byte[payloadLength];
+        buffer.getBytes(payloadOffset, jsonBytes);
+        return JsonParser.parseObject(new String(jsonBytes, StandardCharsets.UTF_8));
     }
 
-    private MutationAuditMetadata extractAuditMetadata(String json,
+    private static String stringField(Map<String, Object> json, String field) {
+        Object value = json.get(field);
+        return value instanceof String ? (String) value : null;
+    }
+
+    private static Long longField(Map<String, Object> json, String field) {
+        Object value = json.get(field);
+        return value instanceof Long ? (Long) value : null;
+    }
+
+    private static Boolean booleanField(Map<String, Object> json, String field) {
+        Object value = json.get(field);
+        return value instanceof Boolean ? (Boolean) value : null;
+    }
+
+    private MutationAuditMetadata extractAuditMetadata(Map<String, Object> json,
                                                       MutationAuditMetadata.Operation defaultOperation,
                                                       String fallbackProposalId) {
-        String operationValue = extractJsonField(json, "operation");
+        String operationValue = stringField(json, "operation");
         MutationAuditMetadata.Operation operation = defaultOperation;
         if (operationValue != null) {
             try {
@@ -635,39 +568,17 @@ public class MessageDispatcher {
                 log.debug("Ignoring unknown operation '{}' in replicated payload", operationValue);
             }
         }
-        String proposalId = extractJsonField(json, "proposalId");
+        String proposalId = stringField(json, "proposalId");
         return new MutationAuditMetadata(
             operation,
-            extractJsonField(json, "transactionId"),
-            extractJsonField(json, "correlationId"),
+            stringField(json, "transactionId"),
+            stringField(json, "correlationId"),
             proposalId != null ? proposalId : fallbackProposalId,
-            extractJsonField(json, "ethereumTxHash"),
-            extractJsonLongField(json, "confirmedBlockNumber"),
-            extractJsonLongField(json, "ethereumObservedEpoch"),
-            extractJsonLongField(json, "ethereumFinalizedEpoch")
+            stringField(json, "ethereumTxHash"),
+            longField(json, "confirmedBlockNumber"),
+            longField(json, "ethereumObservedEpoch"),
+            longField(json, "ethereumFinalizedEpoch")
         );
-    }
-    
-    /**
-     * Extract a boolean field from JSON string.
-     */
-    private Boolean extractJsonBooleanField(String json, String field) {
-        String pattern = "\"" + field + "\":";
-        int startIdx = json.indexOf(pattern);
-        if (startIdx < 0) {
-            return null;
-        }
-        startIdx += pattern.length();
-        // Skip whitespace
-        while (startIdx < json.length() && Character.isWhitespace(json.charAt(startIdx))) {
-            startIdx++;
-        }
-        if (json.regionMatches(startIdx, "true", 0, 4)) {
-            return true;
-        } else if (json.regionMatches(startIdx, "false", 0, 5)) {
-            return false;
-        }
-        return null;
     }
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -689,16 +600,14 @@ public class MessageDispatcher {
         
         try {
             // Extract JSON payload
-            byte[] jsonBytes = new byte[payloadLength];
-            buffer.getBytes(payloadOffset, jsonBytes);
-            String json = new String(jsonBytes, StandardCharsets.UTF_8).trim();
+            Map<String, Object> json = readPayload(buffer, payloadOffset, payloadLength);
             
             // Parse GC proposal fields
-            String proposalId = extractJsonField(json, "proposalId");
-            String proposerWallet = extractJsonField(json, "proposerWallet");
-            String targetRevision = extractJsonField(json, "targetRevision");
-            Long estimatedReclaimableSizeMB = extractJsonLongField(json, "estimatedReclaimableSizeMB");
-            String estimatedCostUSDC = extractJsonField(json, "estimatedCostUSDC");
+            String proposalId = stringField(json, "proposalId");
+            String proposerWallet = stringField(json, "proposerWallet");
+            String targetRevision = stringField(json, "targetRevision");
+            Long estimatedReclaimableSizeMB = longField(json, "estimatedReclaimableSizeMB");
+            String estimatedCostUSDC = stringField(json, "estimatedCostUSDC");
             
             if (proposalId == null || proposerWallet == null) {
                 log.warn("Invalid GC proposal: missing required fields (proposalId={}, proposerWallet={})", 
@@ -737,15 +646,13 @@ public class MessageDispatcher {
         
         try {
             // Extract JSON payload
-            byte[] jsonBytes = new byte[payloadLength];
-            buffer.getBytes(payloadOffset, jsonBytes);
-            String json = new String(jsonBytes, StandardCharsets.UTF_8).trim();
+            Map<String, Object> json = readPayload(buffer, payloadOffset, payloadLength);
             
             // Parse GC vote fields
-            String proposalId = extractJsonField(json, "proposalId");
-            Long validatorIdLong = extractJsonLongField(json, "validatorId");
-            Boolean approve = extractJsonBooleanField(json, "approve");
-            String reason = extractJsonField(json, "reason");
+            String proposalId = stringField(json, "proposalId");
+            Long validatorIdLong = longField(json, "validatorId");
+            Boolean approve = booleanField(json, "approve");
+            String reason = stringField(json, "reason");
             
             if (proposalId == null || validatorIdLong == null || approve == null) {
                 log.warn("Invalid GC vote: missing required fields");
@@ -783,13 +690,11 @@ public class MessageDispatcher {
         
         try {
             // Extract JSON payload
-            byte[] jsonBytes = new byte[payloadLength];
-            buffer.getBytes(payloadOffset, jsonBytes);
-            String json = new String(jsonBytes, StandardCharsets.UTF_8).trim();
+            Map<String, Object> json = readPayload(buffer, payloadOffset, payloadLength);
             
             // Parse GC execute fields
-            String proposalId = extractJsonField(json, "proposalId");
-            Long executorIdLong = extractJsonLongField(json, "executorId");
+            String proposalId = stringField(json, "proposalId");
+            Long executorIdLong = longField(json, "executorId");
             
             if (proposalId == null || executorIdLong == null) {
                 log.warn("Invalid GC execute: missing required fields");
@@ -833,13 +738,11 @@ public class MessageDispatcher {
         }
 
         try {
-            byte[] jsonBytes = new byte[payloadLength];
-            buffer.getBytes(payloadOffset, jsonBytes);
-            String json = new String(jsonBytes, StandardCharsets.UTF_8).trim();
+            Map<String, Object> json = readPayload(buffer, payloadOffset, payloadLength);
 
-            String proposalId = extractJsonField(json, "proposalId");
-            Long totalMembers = extractJsonLongField(json, "totalMembers");
-            Long requiredAcks = extractJsonLongField(json, "requiredAcks");
+            String proposalId = stringField(json, "proposalId");
+            Long totalMembers = longField(json, "totalMembers");
+            Long requiredAcks = longField(json, "requiredAcks");
 
             if (proposalId == null || totalMembers == null || requiredAcks == null) {
                 log.warn("Invalid queue segment: missing required fields (proposalId={}, totalMembers={}, requiredAcks={})",
@@ -862,15 +765,13 @@ public class MessageDispatcher {
         }
 
         try {
-            byte[] jsonBytes = new byte[payloadLength];
-            buffer.getBytes(payloadOffset, jsonBytes);
-            String json = new String(jsonBytes, StandardCharsets.UTF_8).trim();
+            Map<String, Object> json = readPayload(buffer, payloadOffset, payloadLength);
 
-            String proposalId = extractJsonField(json, "proposalId");
-            Long memberIdLong = extractJsonLongField(json, "memberId");
-            String durableHead = extractJsonField(json, "durableHead");
-            Boolean success = extractJsonBooleanField(json, "success");
-            String error = extractJsonField(json, "error");
+            String proposalId = stringField(json, "proposalId");
+            Long memberIdLong = longField(json, "memberId");
+            String durableHead = stringField(json, "durableHead");
+            Boolean success = booleanField(json, "success");
+            String error = stringField(json, "error");
 
             if (proposalId == null || memberIdLong == null || success == null) {
                 log.warn("Invalid segment persisted: missing required fields");
@@ -898,16 +799,14 @@ public class MessageDispatcher {
         }
 
         try {
-            byte[] jsonBytes = new byte[payloadLength];
-            buffer.getBytes(payloadOffset, jsonBytes);
-            String json = new String(jsonBytes, StandardCharsets.UTF_8).trim();
+            Map<String, Object> json = readPayload(buffer, payloadOffset, payloadLength);
 
-            String proposalId = extractJsonField(json, "proposalId");
-            Boolean success = extractJsonBooleanField(json, "success");
-            String durableHead = extractJsonField(json, "durableHead");
-            String error = extractJsonField(json, "error");
-            Long totalMembers = extractJsonLongField(json, "totalMembers");
-            Long requiredAcks = extractJsonLongField(json, "requiredAcks");
+            String proposalId = stringField(json, "proposalId");
+            Boolean success = booleanField(json, "success");
+            String durableHead = stringField(json, "durableHead");
+            String error = stringField(json, "error");
+            Long totalMembers = longField(json, "totalMembers");
+            Long requiredAcks = longField(json, "requiredAcks");
 
             if (proposalId == null || success == null || totalMembers == null || requiredAcks == null) {
                 log.warn("Invalid ack segment persisted: missing required fields");
@@ -940,15 +839,13 @@ public class MessageDispatcher {
         }
 
         try {
-            byte[] jsonBytes = new byte[payloadLength];
-            buffer.getBytes(payloadOffset, jsonBytes);
-            String json = new String(jsonBytes, StandardCharsets.UTF_8).trim();
+            Map<String, Object> json = readPayload(buffer, payloadOffset, payloadLength);
 
-            String transactionId = extractJsonField(json, "transactionId");
-            String correlationId = extractJsonField(json, "correlationId");
-            Long timeoutMs = extractJsonLongField(json, "timeoutMs");
-            String initiatorWallet = extractJsonField(json, "initiatorWallet");
-            Long proposalTerm = extractJsonLongField(json, "term");
+            String transactionId = stringField(json, "transactionId");
+            String correlationId = stringField(json, "correlationId");
+            Long timeoutMs = longField(json, "timeoutMs");
+            String initiatorWallet = stringField(json, "initiatorWallet");
+            Long proposalTerm = longField(json, "term");
 
             if (transactionId == null) {
                 log.warn("Invalid start transaction: missing transactionId");
@@ -978,13 +875,11 @@ public class MessageDispatcher {
         }
 
         try {
-            byte[] jsonBytes = new byte[payloadLength];
-            buffer.getBytes(payloadOffset, jsonBytes);
-            String json = new String(jsonBytes, StandardCharsets.UTF_8).trim();
+            Map<String, Object> json = readPayload(buffer, payloadOffset, payloadLength);
 
-            String transactionId = extractJsonField(json, "transactionId");
-            String correlationId = extractJsonField(json, "correlationId");
-            Long proposalTerm = extractJsonLongField(json, "term");
+            String transactionId = stringField(json, "transactionId");
+            String correlationId = stringField(json, "correlationId");
+            Long proposalTerm = longField(json, "term");
 
             if (transactionId == null) {
                 log.warn("Invalid commit transaction: missing transactionId");
@@ -1009,14 +904,12 @@ public class MessageDispatcher {
         }
 
         try {
-            byte[] jsonBytes = new byte[payloadLength];
-            buffer.getBytes(payloadOffset, jsonBytes);
-            String json = new String(jsonBytes, StandardCharsets.UTF_8).trim();
+            Map<String, Object> json = readPayload(buffer, payloadOffset, payloadLength);
 
-            String transactionId = extractJsonField(json, "transactionId");
-            String correlationId = extractJsonField(json, "correlationId");
-            String reason = extractJsonField(json, "reason");
-            Long proposalTerm = extractJsonLongField(json, "term");
+            String transactionId = stringField(json, "transactionId");
+            String correlationId = stringField(json, "correlationId");
+            String reason = stringField(json, "reason");
+            Long proposalTerm = longField(json, "term");
 
             if (transactionId == null) {
                 log.warn("Invalid abort transaction: missing transactionId");
