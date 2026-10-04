@@ -32,6 +32,7 @@ import java.util.Arrays;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -93,6 +94,23 @@ public class ConsensusStatusHandlerTest {
         assertTrue(json.contains("\"currentLeader\":\"http://validator-1:8090\""));
         assertTrue(json.contains("\"leaderKnown\":true"));
         assertTrue(json.contains("\"currentTerm\":9"));
+    }
+
+    @Test
+    public void testLocalOnlyLeaderQueryAnswersFromLocalKnowledgeWithoutDiscovery() throws Exception {
+        StringWriter body = new StringWriter();
+        HttpServletResponse response = responseWithBody(body);
+        AeronConsensusEngine engine = mock(AeronConsensusEngine.class);
+        when(engine.getCurrentRole()).thenReturn(org.apache.jackrabbit.oak.segment.consensus.leader.ValidatorRole.FOLLOWER);
+        when(engine.getCurrentLeaderHint()).thenReturn("http://validator-2:8090");
+
+        new ConsensusStatusHandler(newContext(engine)).handleGetConsensusLeader(true, response);
+
+        verify(engine, never()).getCurrentLeader();
+        String json = body.toString();
+        assertTrue(json.contains("\"contractVersion\":\"consensus.leader.v1\""));
+        assertTrue(json.contains("\"currentLeader\":\"http://validator-2:8090\""));
+        assertTrue(json.contains("\"leaderKnown\":true"));
     }
 
     private static ServerContext newContext(AeronConsensusEngine engine) {

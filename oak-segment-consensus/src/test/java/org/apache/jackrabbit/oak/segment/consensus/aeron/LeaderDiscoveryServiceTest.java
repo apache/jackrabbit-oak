@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
+import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import io.aeron.cluster.service.Cluster;
 import org.junit.Test;
@@ -25,10 +26,17 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
@@ -219,6 +227,142 @@ public class LeaderDiscoveryServiceTest {
 
         assertNull(service.discoverLeader(cluster));
         assertNull(service.getCachedLeaderUrl());
+    }
+
+    /**
+     * Two followers are each other's first peer; the leader is the second peer. Each follower's
+     * stub answers the leader endpoint the way {@code ConsensusStatusHandler} does: a plain query
+     * runs that node's own discovery, a {@code localOnly=true} query answers from local knowledge.
+     */
+    @Test
+    public void testFollowersThatAreEachOthersFirstPeerDoNotPollRecursively() throws Exception {
+        Cluster follower = mock(Cluster.class);
+        when(follower.role()).thenReturn(Cluster.Role.FOLLOWER);
+        AtomicInteger inFlight = new AtomicInteger();
+        AtomicInteger maxInFlight = new AtomicInteger();
+        AtomicInteger followerQueries = new AtomicInteger();
+        LeaderDiscoveryService[] nodes = new LeaderDiscoveryService[2];
+        HttpServer[] stubs = new HttpServer[2];
+        HttpServer leader = startServer("/v1/consensus/leader", 200, "{\"isLeader\":true}");
+        try {
+            for (int i = 0; i < 2; i++) {
+                LeaderDiscoveryService self = nodes[i] = new LeaderDiscoveryService(new HashMap<>(), new ArrayList<>());
+                stubs[i] = startLeaderEndpoint(exchange -> {
+                    followerQueries.incrementAndGet();
+                    int depth = inFlight.incrementAndGet();
+                    maxInFlight.accumulateAndGet(depth, Math::max);
+                    try {
+                        if (depth > 6) {
+                            return null; // stop a runaway loop; depth is what the test asserts on
+                        }
+                        String query = exchange.getRequestURI().getQuery();
+                        return query != null && query.contains("localOnly=true")
+                            ? self.getKnownLeaderHint()
+                            : self.discoverLeader(follower);
+                    } finally {
+                        inFlight.decrementAndGet();
+                    }
+                });
+            }
+            String leaderUrl = url(leader);
+            nodes[0].setPeerUrls(List.of(url(stubs[1]), leaderUrl));
+            nodes[1].setPeerUrls(List.of(url(stubs[0]), leaderUrl));
+
+            long start = System.nanoTime();
+            assertEquals(leaderUrl, nodes[0].discoverLeader(follower));
+            long elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+
+            assertEquals("one bounded, non-nested query to the other follower", 1, followerQueries.get());
+            assertEquals(1, maxInFlight.get());
+            assertTrue("took " + elapsedMs + " ms", elapsedMs < 1000);
+        } finally {
+            leader.stop(0);
+            for (HttpServer stub : stubs) {
+                if (stub != null) {
+                    stub.stop(0);
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testConcurrentCallersWithExpiredCacheShareOnePeerPoll() throws Exception {
+        int callers = 8;
+        AtomicInteger peerPolls = new AtomicInteger();
+        CountDownLatch release = new CountDownLatch(1);
+        HttpServer leader = startLeaderEndpoint(exchange -> {
+            peerPolls.incrementAndGet();
+            release.await(5, TimeUnit.SECONDS);
+            return "self";
+        });
+        ExecutorService pool = Executors.newFixedThreadPool(callers);
+        try {
+            String leaderUrl = url(leader);
+            LeaderDiscoveryService service = new LeaderDiscoveryService(new HashMap<>(), List.of(leaderUrl));
+            Cluster follower = mock(Cluster.class);
+            when(follower.role()).thenReturn(Cluster.Role.FOLLOWER);
+
+            CountDownLatch started = new CountDownLatch(callers);
+            List<Future<String>> results = new ArrayList<>();
+            for (int i = 0; i < callers; i++) {
+                results.add(pool.submit(() -> {
+                    started.countDown();
+                    return service.discoverLeader(follower);
+                }));
+            }
+            started.await(5, TimeUnit.SECONDS);
+            Thread.sleep(300);
+            release.countDown();
+
+            int resolved = 0;
+            for (Future<String> result : results) {
+                String leaderSeen = result.get(10, TimeUnit.SECONDS);
+                if (leaderSeen != null) {
+                    assertEquals(leaderUrl, leaderSeen);
+                    resolved++;
+                }
+            }
+            assertEquals(1, peerPolls.get());
+            assertTrue(resolved >= 1);
+            assertEquals(leaderUrl, service.discoverLeader(follower));
+            assertEquals(1, peerPolls.get());
+        } finally {
+            release.countDown();
+            pool.shutdownNow();
+            leader.stop(0);
+        }
+    }
+
+    private interface LeaderAnswer {
+        /** Returns the leader to report: null for unknown, "self" for this stub. */
+        String answer(HttpExchange exchange) throws Exception;
+    }
+
+    private static HttpServer startLeaderEndpoint(LeaderAnswer answer) throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.setExecutor(Executors.newCachedThreadPool());
+        server.createContext("/v1/consensus/leader", exchange -> {
+            String body;
+            try {
+                String leader = answer.answer(exchange);
+                body = "self".equals(leader)
+                    ? "{\"isLeader\":true}"
+                    : "{\"isLeader\":false,\"currentLeader\":" + (leader == null ? "null" : "\"" + leader + "\"") + "}";
+            } catch (Exception e) {
+                body = "{\"isLeader\":false,\"currentLeader\":null}";
+            }
+            byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, bytes.length);
+            try (OutputStream outputStream = exchange.getResponseBody()) {
+                outputStream.write(bytes);
+            }
+        });
+        server.start();
+        return server;
+    }
+
+    private static String url(HttpServer server) {
+        return "http://127.0.0.1:" + server.getAddress().getPort();
     }
 
     private static String extractJsonField(LeaderDiscoveryService service, String json, String field) throws Exception {

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.http.server;
 
+import org.apache.jackrabbit.oak.segment.consensus.aeron.LeaderDiscoveryService;
 import org.apache.jackrabbit.oak.segment.consensus.config.RuntimeConfigValueResolver;
 import org.apache.jackrabbit.oak.segment.http.server.handlers.*;
 import org.apache.jackrabbit.oak.segment.http.server.util.ApiErrorUtil;
@@ -529,7 +530,8 @@ public class RequestRouter implements AutoCloseable {
             }
 
             if ("/v1/consensus/leader".equals(path) && "GET".equals(method)) {
-                consensusApiHandler.handleGetConsensusLeader(response);
+                consensusApiHandler.handleGetConsensusLeader(
+                    "true".equals(request.getParameter(LeaderDiscoveryService.LOCAL_ONLY_PARAM)), response);
                 return;
             }
             

@@ -279,10 +279,11 @@ public class ConsensusApiHandler implements AutoCloseable {
     }
 
     /**
-     * Handle GET /v1/consensus/leader - Return canonical leader-resolution data.
+     * Handle GET /v1/consensus/leader - Return canonical leader-resolution data,
+     * optionally from local knowledge only (see {@link ConsensusStatusHandler}).
      */
-    public void handleGetConsensusLeader(HttpServletResponse response) throws IOException {
-        consensusStatusHandler.handleGetConsensusLeader(response);
+    public void handleGetConsensusLeader(boolean localOnly, HttpServletResponse response) throws IOException {
+        consensusStatusHandler.handleGetConsensusLeader(localOnly, response);
     }
     
     /**

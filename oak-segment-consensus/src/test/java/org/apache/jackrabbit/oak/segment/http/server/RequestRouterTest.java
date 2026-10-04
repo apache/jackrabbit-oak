@@ -90,6 +90,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -230,6 +231,26 @@ public class RequestRouterTest {
             verify(response).setStatus(HttpServletResponse.SC_OK);
             assertTrue(body.toString().contains("\"contractVersion\":\"consensus.leader.v1\""));
             assertTrue(body.toString().contains("\"currentLeader\":\"http://localhost:8090\""));
+        });
+    }
+
+    @Test
+    public void testConsensusLeaderRouteWithLocalOnlyDoesNotRunDiscovery() throws Exception {
+        withRoutingProperties(true, () -> {
+            ServerContext context = newContext();
+            context.aeronConsensusEngine = mock(AeronConsensusEngine.class);
+            when(context.aeronConsensusEngine.getCurrentRole()).thenReturn(ValidatorRole.FOLLOWER);
+            when(context.aeronConsensusEngine.getCurrentLeaderHint()).thenReturn("http://localhost:8092");
+
+            RequestRouter router = new RequestRouter(context);
+            HttpServletRequest request = request("GET", "/v1/consensus/leader");
+            when(request.getParameter("localOnly")).thenReturn("true");
+            HttpServletResponse response = responseWithBody();
+
+            router.route(request, response);
+
+            verify(context.aeronConsensusEngine, never()).getCurrentLeader();
+            assertTrue(body.toString().contains("\"currentLeader\":\"http://localhost:8092\""));
         });
     }
 

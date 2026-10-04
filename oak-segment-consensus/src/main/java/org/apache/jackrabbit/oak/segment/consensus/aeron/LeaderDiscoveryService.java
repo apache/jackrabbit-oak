@@ -75,10 +75,19 @@ public class LeaderDiscoveryService {
     
     /** HTTP read timeout for peer polling (ms) */
     private static final int HTTP_READ_TIMEOUT_MS = 3000;
+
+    /**
+     * Query for {@code GET /v1/consensus/leader} asking the peer to answer from local knowledge only,
+     * so a peer that does not know the leader answers "unknown" instead of polling its own peers.
+     */
+    public static final String LOCAL_ONLY_PARAM = "localOnly";
     
     private final Map<Integer, String> nodeIdToUrl;
     private final List<String> peerUrls;
     
+    private final java.util.concurrent.atomic.AtomicBoolean peerPollInFlight =
+        new java.util.concurrent.atomic.AtomicBoolean();
+
     private volatile String cachedLeaderUrl = null;
     private volatile long cachedLeaderTimestamp = 0;
     
@@ -235,16 +244,23 @@ public class LeaderDiscoveryService {
             return leaderUrl;
         }
         
-        // Fallback: poll peers
-        log.debug("Leader discovery from Aeron failed, polling peers...");
-        leaderUrl = discoverFromPeers();
-        
-        if (leaderUrl != null) {
-            cachedLeaderUrl = leaderUrl;
-            cachedLeaderTimestamp = System.currentTimeMillis();
+        // Fallback: poll peers, at most one poll per node. Concurrent callers get the last
+        // known value instead of waiting, so a slow poll never holds more than one request thread.
+        if (!peerPollInFlight.compareAndSet(false, true)) {
+            log.debug("Peer leader poll already in flight, returning last known leader");
+            return getBestKnownLeaderUrl();
         }
-        
-        return leaderUrl;
+        try {
+            log.debug("Leader discovery from Aeron failed, polling peers...");
+            leaderUrl = discoverFromPeers();
+            if (leaderUrl != null) {
+                cachedLeaderUrl = leaderUrl;
+                cachedLeaderTimestamp = System.currentTimeMillis();
+            }
+            return leaderUrl;
+        } finally {
+            peerPollInFlight.set(false);
+        }
     }
     
     /**
@@ -321,7 +337,7 @@ public class LeaderDiscoveryService {
      */
     private String pollPeerForLeader(String peerUrl) {
         try {
-            java.net.URL apiUrl = new java.net.URL(peerUrl + "/v1/consensus/leader");
+            java.net.URL apiUrl = new java.net.URL(peerUrl + "/v1/consensus/leader?" + LOCAL_ONLY_PARAM + "=true");
             java.net.HttpURLConnection conn = (java.net.HttpURLConnection) apiUrl.openConnection();
             conn.setRequestMethod("GET");
             conn.setConnectTimeout(HTTP_CONNECT_TIMEOUT_MS);
