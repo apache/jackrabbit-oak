@@ -165,12 +165,12 @@ public class DashboardHandler {
         addSourceIndexEntry(endpoints, "GET", "/v1/explorer/content/clusters/{clusterId}/provenance", "CRX/OC cluster-scoped provenance and authority facts", "CRX/OC", "explorer.content.v1", "/ops/v1/explorer/content/clusters/{clusterId}/provenance");
         addLocalUiIndexEntry(endpoints, "GET", "/explorer", "Validator-local CRX/OC read-only content explorer", "CRX/OC");
         addLocalDiagnosticIndexEntry(endpoints, "GET", "/api/explore?path=/", "Legacy CRX/OC local node tree browse API", "CRX/OC", "/ops/v1/explorer/content/*");
-        addLocalDiagnosticIndexEntry(endpoints, "GET", "/api/segments/recent", "Recent segments", "CRX/OC", "/v1/ops/snapshots/storage");
-        addLocalDiagnosticIndexEntry(endpoints, "GET", "/api/segments/tars", "TAR file listing", "CRX/OC", "/v1/ops/snapshots/storage");
-        addLocalDiagnosticIndexEntry(endpoints, "GET", "/api/blob/{blobId}", "Blob stream by blob id", "CRX/OC", null);
-        addLocalDiagnosticIndexEntry(endpoints, "GET", "/api/cid/{oakBlobId}", "CID mapping by Oak blob id", "CRX/OC", null);
-        addLocalDiagnosticIndexEntry(endpoints, "GET", "/api/cid/stats", "CID mapping stats", "CRX/OC", null);
-        addLocalDiagnosticIndexEntry(endpoints, "GET", "/api/cid/reverse/{cid}", "Reverse CID lookup", "CRX/OC", null);
+        addLocalDiagnosticIndexEntry(endpoints, "GET", "/api/segments/recent", "Recent segments", "Storage", "/v1/ops/snapshots/storage");
+        addLocalDiagnosticIndexEntry(endpoints, "GET", "/api/segments/tars", "TAR file listing", "Storage", "/v1/ops/snapshots/storage");
+        addLocalDiagnosticIndexEntry(endpoints, "GET", "/api/blob/{blobId}", "Blob stream by blob id", "Storage", null);
+        addLocalDiagnosticIndexEntry(endpoints, "GET", "/api/cid/{oakBlobId}", "CID mapping by Oak blob id", "Storage", null);
+        addLocalDiagnosticIndexEntry(endpoints, "GET", "/api/cid/stats", "CID mapping stats", "Storage", null);
+        addLocalDiagnosticIndexEntry(endpoints, "GET", "/api/cid/reverse/{cid}", "Reverse CID lookup", "Storage", null);
 
         addInternalIndexEntry(endpoints, "GET", "/v1/wallets/stats", "Wallet usage and counts", "Wallets", null);
         addInternalIndexEntry(endpoints, "GET", "/v1/wallets/content?wallet=0x...", "Wallet content query", "Wallets", null);

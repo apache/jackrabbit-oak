@@ -137,17 +137,35 @@
             overflow: hidden;
         }
 
+        /* Viewport-bounded rail: only the endpoint list scrolls (44px topbar + 28px shell padding). */
         .sidebar {
             display: flex;
             flex-direction: column;
-            min-height: calc(100vh - 122px);
             position: sticky;
-            top: 92px;
+            top: 72px;
+            height: calc(100vh - 100px);
+            min-height: 420px;
         }
 
-        .sidebar-head,
+        .sidebar-head {
+            padding: 20px 20px 0;
+        }
+
+        .sidebar-head h1 {
+            font-size: 24px;
+            line-height: 1.15;
+        }
+
+        .sidebar-head p {
+            margin: 6px 0 0;
+            color: var(--text-secondary);
+            font-size: 12.5px;
+            line-height: 1.45;
+        }
+
         .sidebar-controls {
-            padding: 22px 22px 0;
+            padding: 14px 20px 12px;
+            border-bottom: 1px solid var(--border-soft);
         }
 
         .sidebar-head h1,
@@ -169,7 +187,6 @@
             text-transform: uppercase;
         }
 
-        .sidebar-head p,
         .hero-copy p,
         .note-copy,
         .builder-copy,
@@ -190,13 +207,12 @@
 
         .search-shell {
             position: relative;
-            margin-top: 18px;
         }
 
         .search-shell::before {
             content: "";
             position: absolute;
-            inset: 14px auto auto 16px;
+            inset: 12px auto auto 14px;
             width: 12px;
             height: 12px;
             border: 2px solid var(--text-muted);
@@ -206,8 +222,8 @@
         .search-shell::after {
             content: "";
             position: absolute;
-            left: 28px;
-            top: 27px;
+            left: 26px;
+            top: 25px;
             width: 7px;
             height: 2px;
             border-radius: 999px;
@@ -229,8 +245,29 @@
         }
 
         .search-input {
-            padding: 14px 16px 14px 46px;
-            font-size: 14px;
+            padding: 10px 40px 10px 40px;
+            font-size: 13px;
+            border-radius: 12px;
+        }
+
+        .search-kbd {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            min-width: 20px;
+            padding: 1px 6px;
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            border-radius: 6px;
+            color: var(--text-muted);
+            font-family: "JetBrains Mono", monospace;
+            font-size: 11px;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .search-input:focus + .search-kbd {
+            display: none;
         }
 
         .search-input::placeholder,
@@ -252,31 +289,25 @@
         .surface-filter-bar {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 16px;
+            gap: 6px;
+            margin-top: 12px;
         }
 
         .surface-filter {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             border: 1px solid rgba(148, 163, 184, 0.14);
             background: rgba(12, 18, 33, 0.86);
             color: var(--text-secondary);
-            padding: 8px 12px;
+            padding: 4px 9px;
             border-radius: 999px;
+            font-size: 12px;
             transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease;
         }
 
         .surface-filter .count {
-            display: inline-flex;
-            min-width: 22px;
-            height: 22px;
-            align-items: center;
-            justify-content: center;
-            padding: 0 6px;
-            border-radius: 999px;
-            background: rgba(148, 163, 184, 0.08);
+            color: var(--text-muted);
             font-size: 11px;
         }
 
@@ -287,87 +318,161 @@
             background: rgba(34, 211, 238, 0.08);
         }
 
-        .catalog-meta {
-            margin-top: 14px;
-            color: var(--text-muted);
-            font-size: 12px;
-            min-height: 18px;
-        }
-
-        .endpoint-groups {
-            overflow: auto;
-            padding: 18px 18px 22px;
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-        }
-
-        .endpoint-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .endpoint-group-header {
+        .catalog-meta-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            padding: 0 4px;
+            margin-top: 10px;
+            min-height: 18px;
+        }
+
+        .catalog-meta {
             color: var(--text-muted);
-            font-size: 11px;
+            font-size: 11.5px;
+        }
+
+        .text-button {
+            flex: 0 0 auto;
+            border: none;
+            background: none;
+            padding: 0;
+            color: var(--accent-cyan);
+            font-size: 11.5px;
+        }
+
+        .text-button:hover {
+            text-decoration: underline;
+        }
+
+        .endpoint-groups {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            padding: 8px 12px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .domain-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 8px 0 2px;
+            padding: 0 8px;
+            color: var(--text-muted);
+            font-size: 10.5px;
             font-weight: 700;
-            letter-spacing: 0.12em;
+            letter-spacing: 0.14em;
             text-transform: uppercase;
+        }
+
+        .domain-label::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: var(--border-soft);
+        }
+
+        .category-toggle {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 5px 8px;
+            border: none;
+            border-radius: 10px;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 13.5px;
+            font-weight: 500;
+            text-align: left;
+        }
+
+        .category-toggle:hover {
+            color: var(--text-primary);
+            background: rgba(148, 163, 184, 0.06);
+        }
+
+        .chevron {
+            flex: 0 0 auto;
+            width: 6px;
+            height: 6px;
+            margin: 0 2px;
+            border-right: 1.5px solid currentColor;
+            border-bottom: 1.5px solid currentColor;
+            transform: rotate(-45deg);
+            transition: transform 0.15s ease;
+        }
+
+        .category-toggle[aria-expanded="true"] .chevron {
+            transform: rotate(45deg);
+        }
+
+        .category-name {
+            flex: 1;
+        }
+
+        .category.has-active > .category-toggle {
+            color: var(--accent-cyan);
         }
 
         .group-count {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            min-width: 24px;
-            height: 24px;
+            min-width: 22px;
+            height: 20px;
             padding: 0 6px;
             border-radius: 999px;
             background: rgba(148, 163, 184, 0.08);
-            letter-spacing: 0;
-            font-size: 11px;
+            color: var(--text-muted);
+            font-size: 10.5px;
+        }
+
+        .category-items {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            margin: 2px 0 6px 12px;
+            padding-left: 6px;
+            border-left: 1px solid rgba(148, 163, 184, 0.12);
         }
 
         .endpoint-button {
             border: 1px solid transparent;
-            background: rgba(6, 11, 23, 0.6);
-            border-radius: 18px;
-            padding: 14px 14px 13px;
+            background: transparent;
+            border-radius: 10px;
+            padding: 6px 8px;
             display: flex;
             align-items: flex-start;
-            gap: 12px;
+            gap: 10px;
             color: inherit;
             text-align: left;
-            transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+            transition: border-color 0.18s ease, background 0.18s ease;
         }
 
         .endpoint-button:hover {
-            transform: translateY(-1px);
-            border-color: rgba(34, 211, 238, 0.16);
-            background: rgba(12, 18, 33, 0.94);
+            background: rgba(148, 163, 184, 0.06);
         }
 
         .endpoint-button.active {
-            border-color: rgba(34, 211, 238, 0.32);
-            background: linear-gradient(180deg, rgba(18, 29, 52, 0.98) 0%, rgba(10, 16, 31, 0.98) 100%);
-            box-shadow: var(--shadow-cyan);
+            border-color: rgba(34, 211, 238, 0.3);
+            background: rgba(34, 211, 238, 0.08);
         }
 
         .method-badge {
             flex: 0 0 auto;
-            min-width: 54px;
+            min-width: 44px;
+            margin-top: 1px;
             text-align: center;
-            padding: 6px 8px;
-            border-radius: 12px;
-            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-size: 10px;
             font-weight: 700;
-            letter-spacing: 0.06em;
+            letter-spacing: 0.04em;
             text-transform: uppercase;
         }
 
@@ -399,41 +504,61 @@
         .endpoint-copy {
             display: flex;
             flex-direction: column;
-            gap: 7px;
+            gap: 1px;
             min-width: 0;
             flex: 1;
         }
 
         .endpoint-path {
             color: var(--text-primary);
-            font-size: 13px;
-            word-break: break-word;
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 12px;
+            line-height: 1.45;
+            overflow-wrap: break-word;
         }
 
         .endpoint-description {
-            color: var(--text-secondary);
-            font-size: 12px;
-            line-height: 1.45;
-        }
-
-        .endpoint-surface {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            align-self: flex-start;
             color: var(--text-muted);
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
+            font-size: 11.5px;
+            line-height: 1.35;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        .endpoint-surface::before {
-            content: "";
-            width: 6px;
-            height: 6px;
+        .endpoint-groups mark {
+            background: rgba(34, 211, 238, 0.22);
+            color: var(--text-primary);
+            border-radius: 3px;
+        }
+
+        /* Surface legend: same dot in filter chips and endpoint rows. */
+        .surface-dot {
+            flex: 0 0 auto;
+            width: 7px;
+            height: 7px;
             border-radius: 50%;
-            background: currentColor;
-            opacity: 0.9;
+            background: var(--text-muted);
+        }
+
+        .endpoint-button .surface-dot {
+            margin-top: 7px;
+        }
+
+        .surface-source {
+            background: var(--accent-cyan);
+        }
+
+        .surface-local-diagnostic {
+            background: var(--accent-amber);
+        }
+
+        .surface-local-ui {
+            background: var(--accent-purple);
+        }
+
+        .surface-internal {
+            background: #64748b;
         }
 
         .workspace {
@@ -450,7 +575,12 @@
             padding: 24px;
         }
 
+        .hero-copy {
+            min-width: 0;
+        }
+
         .hero-copy h2 {
+            overflow-wrap: anywhere;
             margin-top: 10px;
             font-size: clamp(28px, 3vw, 40px);
             line-height: 1.02;
@@ -820,7 +950,12 @@
 
             .sidebar {
                 position: static;
-                min-height: auto;
+                height: auto;
+                min-height: 0;
+            }
+
+            .endpoint-groups {
+                max-height: 60vh;
             }
 
             .hero {
@@ -875,19 +1010,23 @@
             <div class="sidebar-head">
                 <span class="eyebrow">Local diagnostic surface</span>
                 <h1>API Browser</h1>
-                <p>Single-manifest endpoint catalog powered by <code>/v1/index</code>. This surface stays local, while the broader browser contract continues to move upstream behind <code>/ops/v1/*</code>.</p>
+                <p>Single-manifest endpoint catalog powered by <code>/v1/index</code>, grouped by domain.</p>
             </div>
             <div class="sidebar-controls">
                 <div class="search-shell">
-                    <label class="visually-hidden" for="endpoint-filter">Filter endpoints</label>
-                    <input id="endpoint-filter" class="search-input" type="search" placeholder="Filter endpoints by path, description, or category">
+                    <label class="visually-hidden" for="endpoint-filter">Filter endpoints by path, description, or category</label>
+                    <input id="endpoint-filter" class="search-input" type="search" placeholder="Filter endpoints">
+                    <kbd class="search-kbd" aria-hidden="true">/</kbd>
                 </div>
                 <div id="surface-filters" class="surface-filter-bar" aria-label="Surface filters"></div>
-                <div id="catalog-meta" class="catalog-meta" aria-live="polite">Loading manifest...</div>
+                <div class="catalog-meta-row">
+                    <span id="catalog-meta" class="catalog-meta" aria-live="polite">Loading manifest...</span>
+                    <button id="toggle-all" class="text-button" type="button" hidden>Expand all</button>
+                </div>
             </div>
-            <div id="endpoint-groups" class="endpoint-groups">
+            <nav id="endpoint-groups" class="endpoint-groups" aria-label="Endpoints">
                 <div class="empty-state">Loading validator manifest...</div>
-            </div>
+            </nav>
         </aside>
 
         <section class="workspace">
@@ -1001,12 +1140,25 @@
                 "internal": "Internal"
             };
 
+            const SURFACE_ORDER = ["source", "local-diagnostic", "local-ui", "internal"];
+
+            // Presentation-only grouping of manifest categories; unknown categories land in "Other".
+            const DOMAINS = [
+                { label: "Node", categories: ["Discovery", "Health", "Configuration", "UI"] },
+                { label: "Consensus", categories: ["Consensus", "Aeron", "Registration"] },
+                { label: "Operations", categories: ["Ops Snapshots", "Events"] },
+                { label: "Content", categories: ["CRX/OC", "Storage", "Binary", "Wallets"] },
+                { label: "Settlement & GC", categories: ["Settlement", "GC", "GC Accounts", "Fragmentation"] }
+            ];
+
             const state = {
                 manifest: null,
                 endpoints: [],
                 activeEndpointKey: "",
                 surfaceFilter: "all",
-                query: ""
+                query: "",
+                expanded: new Set(),
+                searchCollapsed: new Set()
             };
 
             const dom = {
@@ -1038,7 +1190,8 @@
                 selectedSurface: document.getElementById("selected-surface"),
                 sendButton: document.getElementById("send-button"),
                 statusDot: document.getElementById("status-dot"),
-                surfaceFilters: document.getElementById("surface-filters")
+                surfaceFilters: document.getElementById("surface-filters"),
+                toggleAll: document.getElementById("toggle-all")
             };
 
             function escapeHtml(value) {
@@ -1052,6 +1205,10 @@
                 return escapeHtml(value)
                     .replace(/"/g, "&quot;")
                     .replace(/'/g, "&#39;");
+            }
+
+            function escapeRegExp(value) {
+                return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
             }
 
             function primaryMethod(methodExpression) {
@@ -1111,33 +1268,102 @@
                 return primaryMethod(endpoint.method) + " " + endpoint.path;
             }
 
-            function visibleEndpoints() {
-                const query = state.query.trim().toLowerCase();
-                return state.endpoints.filter((endpoint) => {
-                    if (state.surfaceFilter !== "all" && endpoint.surfaceClass !== state.surfaceFilter) {
-                        return false;
+            function domainIndex(category) {
+                const index = DOMAINS.findIndex((domain) => domain.categories.indexOf(category) !== -1);
+                return index === -1 ? DOMAINS.length : index;
+            }
+
+            function rankOf(list, value) {
+                const index = list.indexOf(value);
+                return index === -1 ? list.length : index;
+            }
+
+            // Domain, then category, then governed surfaces before local/internal ones, then manifest order.
+            function catalogOrder(endpoints) {
+                const firstSeen = new Map();
+                endpoints.forEach((endpoint, index) => {
+                    if (!firstSeen.has(endpoint.category)) {
+                        firstSeen.set(endpoint.category, index);
                     }
-                    if (!query) {
-                        return true;
-                    }
-                    const haystack = [
-                        endpoint.path,
-                        endpoint.description,
-                        endpoint.category,
-                        endpoint.surfaceClass,
-                        endpoint.replacement,
-                        endpoint.contractVersion
-                    ].join(" ").toLowerCase();
-                    return haystack.includes(query);
+                });
+                const sortKey = (endpoint) => {
+                    const domain = DOMAINS[domainIndex(endpoint.category)];
+                    return [
+                        domainIndex(endpoint.category),
+                        domain ? domain.categories.indexOf(endpoint.category) : firstSeen.get(endpoint.category),
+                        rankOf(SURFACE_ORDER, endpoint.surfaceClass),
+                        endpoint.index
+                    ];
+                };
+                return endpoints.slice().sort((left, right) => {
+                    const a = sortKey(left);
+                    const b = sortKey(right);
+                    return a[0] - b[0] || a[1] - b[1] || a[2] - b[2] || a[3] - b[3];
                 });
             }
 
+            function queryTerms() {
+                return state.query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+            }
+
+            function matchesQuery(endpoint, terms) {
+                if (!terms.length) {
+                    return true;
+                }
+                const haystack = [
+                    endpoint.method,
+                    endpoint.path,
+                    endpoint.description,
+                    endpoint.category,
+                    endpoint.domain,
+                    endpoint.surfaceClass,
+                    endpoint.replacement,
+                    endpoint.contractVersion
+                ].join(" ").toLowerCase();
+                return terms.every((term) => haystack.includes(term));
+            }
+
+            function visibleEndpoints() {
+                const terms = queryTerms();
+                return state.endpoints.filter((endpoint) =>
+                    (state.surfaceFilter === "all" || endpoint.surfaceClass === state.surfaceFilter)
+                    && matchesQuery(endpoint, terms));
+            }
+
             function countBySurface() {
-                const counts = { all: state.endpoints.length };
-                state.endpoints.forEach((endpoint) => {
+                const terms = queryTerms();
+                const matched = state.endpoints.filter((endpoint) => matchesQuery(endpoint, terms));
+                const counts = { all: matched.length };
+                matched.forEach((endpoint) => {
                     counts[endpoint.surfaceClass] = (counts[endpoint.surfaceClass] || 0) + 1;
                 });
                 return counts;
+            }
+
+            function highlight(value, breakAfterSlash) {
+                const terms = queryTerms();
+                const text = String(value);
+                const format = (part) => breakAfterSlash ? escapeHtml(part).replace(/\//g, "/<wbr>") : escapeHtml(part);
+                if (!terms.length) {
+                    return format(text);
+                }
+                const pattern = new RegExp("(" + terms.map(escapeRegExp).join("|") + ")", "gi");
+                return text.split(pattern).map((part, index) =>
+                    index % 2 ? "<mark>" + format(part) + "</mark>" : format(part)).join("");
+            }
+
+            function isCategoryOpen(category) {
+                return state.query.trim()
+                    ? !state.searchCollapsed.has(category)
+                    : state.expanded.has(category);
+            }
+
+            function setCategoryOpen(category, open) {
+                if (state.query.trim()) {
+                    state.searchCollapsed[open ? "delete" : "add"](category);
+                } else {
+                    state.expanded[open ? "add" : "delete"](category);
+                }
             }
 
             function renderSurfaceFilters() {
@@ -1150,8 +1376,10 @@
                 );
 
                 dom.surfaceFilters.innerHTML = orderedSurfaces.map((surface) => {
-                    const active = surface === state.surfaceFilter ? " active" : "";
-                    return "<button type=\"button\" class=\"surface-filter" + active + "\" data-surface=\"" + escapeAttribute(surface) + "\">"
+                    const active = surface === state.surfaceFilter;
+                    const dot = surface === "all" ? "" : "<span class=\"surface-dot surface-" + escapeAttribute(surface) + "\" aria-hidden=\"true\"></span>";
+                    return "<button type=\"button\" class=\"surface-filter" + (active ? " active" : "") + "\" aria-pressed=\"" + active + "\" data-surface=\"" + escapeAttribute(surface) + "\">"
+                        + dot
                         + "<span>" + escapeHtml(formatSurfaceLabel(surface)) + "</span>"
                         + "<span class=\"count\">" + escapeHtml(String(counts[surface] || 0)) + "</span>"
                         + "</button>";
@@ -1159,47 +1387,84 @@
             }
 
             function renderCatalogMeta(filteredCount) {
-                const parts = [filteredCount + " of " + state.endpoints.length + " visible"];
                 const generatedAt = formatGeneratedAt(state.manifest && state.manifest.generatedAtMs);
-                if (generatedAt) {
-                    parts.push("generated " + generatedAt);
-                }
-                dom.catalogMeta.textContent = parts.join(" | ");
+                dom.catalogMeta.textContent = filteredCount + " of " + state.endpoints.length + " visible";
+                dom.catalogMeta.title = generatedAt ? "Manifest generated " + generatedAt : "";
+            }
+
+            function renderEndpointButton(endpoint) {
+                const surfaceLabel = formatSurfaceLabel(endpoint.surfaceClass);
+                return "<button type=\"button\" class=\"endpoint-button\" data-endpoint-key=\"" + escapeAttribute(endpoint.key) + "\" title=\"" + escapeAttribute(endpoint.description) + "\">"
+                    + "<span class=\"method-badge " + methodBadgeClass(endpoint.method) + "\">" + escapeHtml(endpoint.method) + "</span>"
+                    + "<span class=\"endpoint-copy\">"
+                    + "<span class=\"endpoint-path\">" + highlight(endpoint.path, true) + "</span>"
+                    + "<span class=\"endpoint-description\">" + highlight(endpoint.description) + "</span>"
+                    + "</span>"
+                    + "<span class=\"surface-dot surface-" + escapeAttribute(endpoint.surfaceClass) + "\" title=\"" + escapeAttribute(surfaceLabel) + "\"></span>"
+                    + "<span class=\"visually-hidden\">" + escapeHtml(surfaceLabel) + "</span>"
+                    + "</button>";
+            }
+
+            function renderCategory(category, endpoints) {
+                const open = isCategoryOpen(category);
+                return "<div class=\"category\" data-category-group=\"" + escapeAttribute(category) + "\">"
+                    + "<button type=\"button\" class=\"category-toggle\" data-category=\"" + escapeAttribute(category) + "\" aria-expanded=\"" + open + "\">"
+                    + "<span class=\"chevron\" aria-hidden=\"true\"></span>"
+                    + "<span class=\"category-name\">" + escapeHtml(category) + "</span>"
+                    + "<span class=\"group-count\">" + escapeHtml(String(endpoints.length)) + "</span>"
+                    + "</button>"
+                    + (open ? "<div class=\"category-items\">" + endpoints.map(renderEndpointButton).join("") + "</div>" : "")
+                    + "</div>";
             }
 
             function renderEndpointGroups() {
                 const filtered = visibleEndpoints();
                 renderCatalogMeta(filtered.length);
                 if (!filtered.length) {
+                    dom.toggleAll.hidden = true;
                     dom.endpointGroups.innerHTML = "<div class=\"empty-state\">No endpoints match the current filter.</div>";
                     return;
                 }
 
-                const groups = new Map();
+                const domains = new Map();
                 filtered.forEach((endpoint) => {
-                    if (!groups.has(endpoint.category)) {
-                        groups.set(endpoint.category, []);
+                    if (!domains.has(endpoint.domain)) {
+                        domains.set(endpoint.domain, new Map());
                     }
-                    groups.get(endpoint.category).push(endpoint);
+                    const categories = domains.get(endpoint.domain);
+                    if (!categories.has(endpoint.category)) {
+                        categories.set(endpoint.category, []);
+                    }
+                    categories.get(endpoint.category).push(endpoint);
                 });
 
-                dom.endpointGroups.innerHTML = Array.from(groups.entries()).map(([category, endpoints]) => {
-                    const groupMarkup = endpoints.map((endpoint) => {
-                        const activeClass = endpoint.key === state.activeEndpointKey ? " active" : "";
-                        return "<button type=\"button\" class=\"endpoint-button" + activeClass + "\" data-endpoint-key=\"" + escapeAttribute(endpoint.key) + "\">"
-                            + "<span class=\"method-badge " + methodBadgeClass(endpoint.method) + "\">" + escapeHtml(endpoint.method) + "</span>"
-                            + "<span class=\"endpoint-copy\">"
-                            + "<span class=\"endpoint-path\">" + escapeHtml(endpoint.path) + "</span>"
-                            + "<span class=\"endpoint-description\">" + escapeHtml(endpoint.description) + "</span>"
-                            + "<span class=\"endpoint-surface\">" + escapeHtml(formatSurfaceLabel(endpoint.surfaceClass)) + "</span>"
-                            + "</span>"
-                            + "</button>";
-                    }).join("");
-                    return "<section class=\"endpoint-group\">"
-                        + "<div class=\"endpoint-group-header\"><span>" + escapeHtml(category) + "</span><span class=\"group-count\">" + escapeHtml(String(endpoints.length)) + "</span></div>"
-                        + groupMarkup
-                        + "</section>";
-                }).join("");
+                const categoryNames = Array.from(domains.values()).flatMap((categories) => Array.from(categories.keys()));
+                dom.toggleAll.hidden = false;
+                dom.toggleAll.textContent = categoryNames.some((category) => !isCategoryOpen(category)) ? "Expand all" : "Collapse all";
+
+                dom.endpointGroups.innerHTML = Array.from(domains.entries()).map(([domain, categories]) =>
+                    "<section class=\"domain\">"
+                    + "<h2 class=\"domain-label\">" + escapeHtml(domain) + "</h2>"
+                    + Array.from(categories.entries()).map(([category, endpoints]) => renderCategory(category, endpoints)).join("")
+                    + "</section>"
+                ).join("");
+                markActiveEndpoint();
+            }
+
+            function markActiveEndpoint() {
+                const active = findEndpointByKey(state.activeEndpointKey);
+                dom.endpointGroups.querySelectorAll("[data-endpoint-key]").forEach((button) => {
+                    const isActive = button.getAttribute("data-endpoint-key") === state.activeEndpointKey;
+                    button.classList.toggle("active", isActive);
+                    if (isActive) {
+                        button.setAttribute("aria-current", "true");
+                    } else {
+                        button.removeAttribute("aria-current");
+                    }
+                });
+                dom.endpointGroups.querySelectorAll("[data-category-group]").forEach((group) => {
+                    group.classList.toggle("has-active", Boolean(active) && group.getAttribute("data-category-group") === active.category);
+                });
             }
 
             function toggleRequestBody() {
@@ -1241,7 +1506,9 @@
 
                 dom.selectedHeading.textContent = primaryMethod(endpoint.method) + " " + endpoint.path;
                 dom.selectedDescription.textContent = endpoint.description;
-                dom.selectedCategory.textContent = endpoint.category;
+                dom.selectedCategory.textContent = endpoint.domain === endpoint.category
+                    ? endpoint.category
+                    : endpoint.domain + " / " + endpoint.category;
                 dom.selectedSurface.textContent = formatSurfaceLabel(endpoint.surfaceClass);
                 dom.selectedContract.textContent = endpoint.contractVersion || "n/a";
                 dom.selectedReplacement.textContent = endpoint.replacement || "n/a";
@@ -1258,11 +1525,19 @@
                 }
                 state.activeEndpointKey = endpoint.key;
                 renderSelectedEndpoint(endpoint);
-                renderEndpointGroups();
+                markActiveEndpoint();
                 if (syncRequest !== false) {
                     dom.methodSelect.value = primaryMethod(endpoint.method);
                     dom.pathInput.value = endpoint.path;
                     toggleRequestBody();
+                }
+            }
+
+            function endpointKeyFromHash() {
+                try {
+                    return decodeURIComponent(window.location.hash.slice(1));
+                } catch (error) {
+                    return "";
                 }
             }
 
@@ -1390,7 +1665,7 @@
                         throw new Error("HTTP " + response.status);
                     }
                     const payload = await response.json();
-                    const endpoints = Array.isArray(payload.endpoints) ? payload.endpoints.map((item) => {
+                    const endpoints = Array.isArray(payload.endpoints) ? payload.endpoints.map((item, index) => {
                         const endpoint = {
                             method: String(item.method || "GET"),
                             path: String(item.path || "/"),
@@ -1399,28 +1674,40 @@
                             surfaceClass: String(item.surfaceClass || "source"),
                             contractVersion: item.contractVersion ? String(item.contractVersion) : "",
                             replacement: item.replacement ? String(item.replacement) : "",
-                            upstreamAllowed: Boolean(item.upstreamAllowed)
+                            upstreamAllowed: Boolean(item.upstreamAllowed),
+                            index: index
                         };
                         endpoint.key = endpointKey(endpoint);
+                        const domain = DOMAINS[domainIndex(endpoint.category)];
+                        endpoint.domain = domain ? domain.label : "Other";
                         return endpoint;
                     }) : [];
 
                     state.manifest = payload;
-                    state.endpoints = endpoints;
+                    state.endpoints = catalogOrder(endpoints);
                     dom.manifestCount.textContent = String(endpoints.length);
                     dom.preferredContract.textContent = payload.preferredBrowserContract || "/ops/v1/* via edge/gateway";
                     dom.contractNotes.textContent = payload.browserContractNotes
                         || "Local HTML routes remain diagnostic-only; upstream UX should consume governed /ops/v1/* surfaces.";
 
+                    const initialEndpoint = findEndpointByKey(endpointKeyFromHash())
+                        || findEndpointByKey("GET /health")
+                        || findEndpointByKey("GET /v1/index")
+                        || state.endpoints[0]
+                        || null;
+                    if (initialEndpoint) {
+                        state.expanded.add(initialEndpoint.category);
+                    }
+
                     renderSurfaceFilters();
                     renderEndpointGroups();
-
-                    const initialEndpoint = endpoints.find((endpoint) => endpoint.key === "GET /health")
-                        || endpoints.find((endpoint) => endpoint.key === "GET /v1/index")
-                        || endpoints[0]
-                        || null;
-
                     selectEndpoint(initialEndpoint, true);
+                    const activeButton = dom.endpointGroups.querySelector(".endpoint-button.active");
+                    if (activeButton) {
+                        const list = dom.endpointGroups;
+                        const offset = activeButton.getBoundingClientRect().top - list.getBoundingClientRect().top;
+                        list.scrollTop += offset - list.clientHeight / 3;
+                    }
                 } catch (error) {
                     dom.catalogMeta.textContent = "Manifest unavailable: " + (error.message || String(error));
                     dom.endpointGroups.innerHTML = "<div class=\"empty-state\">Unable to load <code>/v1/index</code>. You can still use the request builder manually.</div>";
@@ -1432,6 +1719,15 @@
 
             dom.endpointFilter.addEventListener("input", (event) => {
                 state.query = event.target.value || "";
+                state.searchCollapsed.clear();
+                renderSurfaceFilters();
+                renderEndpointGroups();
+            });
+
+            dom.toggleAll.addEventListener("click", () => {
+                const categories = Array.from(new Set(visibleEndpoints().map((endpoint) => endpoint.category)));
+                const open = categories.some((category) => !isCategoryOpen(category));
+                categories.forEach((category) => setCategoryOpen(category, open));
                 renderEndpointGroups();
             });
 
@@ -1446,6 +1742,17 @@
             });
 
             dom.endpointGroups.addEventListener("click", (event) => {
+                const toggle = event.target.closest("[data-category]");
+                if (toggle) {
+                    const category = toggle.getAttribute("data-category");
+                    setCategoryOpen(category, !isCategoryOpen(category));
+                    renderEndpointGroups();
+                    const restored = dom.endpointGroups.querySelector("[data-category=\"" + CSS.escape(category) + "\"]");
+                    if (restored) {
+                        restored.focus();
+                    }
+                    return;
+                }
                 const button = event.target.closest("[data-endpoint-key]");
                 if (!button) {
                     return;
@@ -1453,6 +1760,7 @@
                 const endpoint = findEndpointByKey(button.getAttribute("data-endpoint-key"));
                 if (endpoint) {
                     selectEndpoint(endpoint, true);
+                    history.replaceState(null, "", "#" + encodeURI(endpoint.key));
                 }
             });
 
@@ -1467,6 +1775,13 @@
             });
 
             document.addEventListener("keydown", (event) => {
+                if (event.key === "/" && !event.metaKey && !event.ctrlKey && !event.altKey
+                    && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement && document.activeElement.tagName)) {
+                    event.preventDefault();
+                    dom.endpointFilter.focus();
+                    dom.endpointFilter.select();
+                    return;
+                }
                 if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
                     if (document.activeElement === dom.requestBody || document.activeElement === dom.pathInput) {
                         event.preventDefault();
