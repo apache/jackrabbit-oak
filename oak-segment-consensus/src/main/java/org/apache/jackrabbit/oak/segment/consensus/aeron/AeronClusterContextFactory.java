@@ -30,10 +30,23 @@ import io.aeron.driver.MediaDriver;
 import io.aeron.driver.MinMulticastFlowControlSupplier;
 import io.aeron.driver.ThreadingMode;
 import org.agrona.ErrorHandler;
+import org.agrona.SemanticVersion;
 import org.agrona.concurrent.NoOpLock;
 import org.agrona.concurrent.ShutdownSignalBarrier;
 
 final class AeronClusterContextFactory {
+
+    /**
+     * Version of the replicated log format, written into every new leadership term event and snapshot and
+     * checked by Aeron's default validator, which requires the same MAJOR on the consensus module and the
+     * service container (a mismatch terminates the member instead of replaying the log differently).
+     * <p>
+     * Bump MAJOR on any change to message encoding, message templates, apply semantics, or the inputs that
+     * make apply deterministic (cluster time, term, timers, genesis); bump MINOR or PATCH otherwise.
+     * Version 2 covers the codec, cluster timestamps, batch DELETE routing, term from the log, the applied-log
+     * watermark, the durability tally, transaction timers, deterministic genesis and contentCount decrement.
+     */
+    static final int APP_VERSION = SemanticVersion.compose(2, 0, 0);
 
     private static final String MAX_CONCURRENT_SESSIONS_PROPERTY = "oak.cluster.max.concurrent.sessions";
 
@@ -96,6 +109,7 @@ final class AeronClusterContextFactory {
                 .logChannel(AeronClusterTopology.consensusLogChannel(clusterBasePort, nodeId, myIPAddress, clusterTermLengthBytes))
                 .replicationChannel(AeronClusterTopology.replicationChannel(myIPAddress))
                 .sessionTimeoutNs(sessionTimeoutConfig.timeoutNs)
+                .appVersion(APP_VERSION)
                 .terminationHook(() -> onTermination.accept("Consensus Module"))
                 .archiveContext(aeronArchiveContext.clone());
 
@@ -110,6 +124,7 @@ final class AeronClusterContextFactory {
                         .archiveContext(aeronArchiveContext.clone())
                         .clusterDir(new File(baseDir, "cluster"))
                         .clusteredService(clusteredService)
+                        .appVersion(APP_VERSION)
                         .terminationHook(() -> onTermination.accept("Clustered Service"))
                         .errorHandler(clusteredServiceErrorHandler);
 

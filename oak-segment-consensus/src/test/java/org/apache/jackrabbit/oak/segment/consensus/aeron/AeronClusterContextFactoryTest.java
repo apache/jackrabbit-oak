@@ -20,11 +20,16 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
+import io.aeron.cluster.AppVersionValidator;
 import io.aeron.cluster.service.ClusteredService;
+import org.agrona.SemanticVersion;
 import org.agrona.concurrent.ShutdownSignalBarrier;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertSame;
 import static org.mockito.Mockito.mock;
 
@@ -194,6 +199,48 @@ public class AeronClusterContextFactoryTest {
         assertSame(clusteredService, contexts.clusteredServiceContext.clusteredService());
         assertEquals("aeron:ipc?term-length=64k", contexts.clusteredServiceContext.archiveContext().controlRequestChannel());
         assertEquals("aeron:ipc?term-length=64k", contexts.clusteredServiceContext.archiveContext().controlResponseChannel());
+    }
+
+    @Test
+    public void bothContextsCarryTheLogFormatAppVersionAndKeepAeronsMajorVersionValidator() {
+        AeronClusterContextFactory.LaunchContexts contexts = createDefault().freshCopy();
+
+        int appVersion = AeronClusterContextFactory.APP_VERSION;
+        assertEquals(2, SemanticVersion.major(appVersion));
+        assertEquals(appVersion, contexts.consensusModuleContext.appVersion());
+        assertEquals(appVersion, contexts.clusteredServiceContext.appVersion());
+        // null until conclude(), which installs AppVersionValidator.SEMANTIC_VERSIONING_VALIDATOR
+        assertNull(contexts.consensusModuleContext.appVersionValidator());
+        assertNull(contexts.clusteredServiceContext.appVersionValidator());
+
+        AppVersionValidator validator = AppVersionValidator.SEMANTIC_VERSIONING_VALIDATOR;
+        assertTrue(validator.isVersionCompatible(appVersion, SemanticVersion.compose(2, 7, 3)));
+        assertFalse(validator.isVersionCompatible(appVersion, SemanticVersion.compose(1, 0, 0)));
+        assertFalse(validator.isVersionCompatible(appVersion, SemanticVersion.compose(3, 0, 0)));
+        assertFalse("a log written with Aeron's default appVersion must be rejected",
+            validator.isVersionCompatible(appVersion, SemanticVersion.compose(0, 0, 1)));
+    }
+
+    private static AeronClusterContextFactory.LaunchContexts createDefault() {
+        return AeronClusterContextFactory.create(
+            1,
+            new File("target/aeron-context-factory"),
+            mock(ClusteredService.class),
+            "aeron-test-dir",
+            "172.20.1.8",
+            Arrays.asList("172.20.1.5", "172.20.1.6", "172.20.1.8"),
+            mock(ShutdownSignalBarrier.class),
+            component -> { },
+            16384,
+            16384,
+            65536,
+            60000,
+            524288,
+            new AeronClusterLauncher.SessionTimeoutConfig(5, TimeUnit.MINUTES.toNanos(5), "test", "staging"),
+            throwable -> { },
+            throwable -> { },
+            throwable -> { }
+        );
     }
 
     private static void restorePortBase(String previous) {

@@ -98,6 +98,24 @@ public class ClusterStateOffThreadReadTest {
         assertEquals("off-thread readers called Cluster", Arrays.asList(), clusterCalls);
     }
 
+    @Test
+    public void clusterStateSurfacesTheAppVersionOfTheLatestTermEvent() throws Exception {
+        Cluster cluster = mock(Cluster.class);
+        when(cluster.memberId()).thenReturn(0);
+        System.setProperty("oak.health.peerProbeMode", "none");
+        AeronConsensusEngine engine = new AeronConsensusEngine(mock(FileStore.class), mock(NodeStore.class),
+            "http://self:18090", Arrays.asList("http://127.0.0.1:18091"), mock(EthereumWallet.class),
+            tempFolder.newFolder("engine").getAbsolutePath(), null, new SnapshotService(),
+            new AeronBackgroundCoordinator());
+        setField(engine, "cluster", cluster);
+        engine.onRoleChange(Cluster.Role.FOLLOWER);
+
+        engine.onNewLeadershipTermEvent(5L, 0L, 0L, 0L, 1, 1, TimeUnit.MILLISECONDS,
+            org.agrona.SemanticVersion.compose(2, 3, 4));
+
+        assertEquals("2.3.4", engine.getNativeClusterState().get("appVersion"));
+    }
+
     @After
     public void clearProbeMode() {
         System.clearProperty("oak.health.peerProbeMode");

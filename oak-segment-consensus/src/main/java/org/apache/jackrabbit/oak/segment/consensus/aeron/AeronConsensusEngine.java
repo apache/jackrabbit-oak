@@ -240,6 +240,8 @@ public class AeronConsensusEngine implements ClusteredService {
     private volatile int currentTerm = 0;
     // False until a term event (or a snapshot carrying the term) has been applied; ingress omits the term until then.
     private volatile boolean leadershipTermKnown = false;
+    // appVersion of the latest term event in the log; Aeron has already checked its major against ours.
+    private volatile String logAppVersion = null;
     private static final long LEADER_LOG_POSITION_TTL_MS = 5000;
     private volatile long lastLeaderLogPositionFetchMs = 0;
     private volatile String currentLeader = null;
@@ -1708,9 +1710,10 @@ public class AeronConsensusEngine implements ClusteredService {
         publishPosition(logPosition, timestamp);
         currentTerm = (int) leadershipTermId;
         leadershipTermKnown = true;
+        logAppVersion = org.agrona.SemanticVersion.toString(appVersion);
         String leaderUrl = nodeIdToUrl.get(leaderMemberId);
-        log.info("New leadership term {} at log position {}: leader memberId={} url={}",
-            leadershipTermId, logPosition, leaderMemberId, leaderUrl);
+        log.info("New leadership term {} at log position {}: leader memberId={} url={} appVersion={}",
+            leadershipTermId, logPosition, leaderMemberId, leaderUrl, logAppVersion);
         if (leaderUrl != null) {
             leaderDiscoveryService.setKnownLeader(leaderUrl, leaderMemberId);
         }
@@ -2009,7 +2012,7 @@ public class AeronConsensusEngine implements ClusteredService {
         if (cluster == null || publishedRole == null) {
             return null;
         }
-        return clusterStateView.buildNativeClusterState(
+        java.util.Map<String, Object> state = clusterStateView.buildNativeClusterState(
             publishedRole,
             cluster.memberId(),
             publishedClusterTime,
@@ -2021,6 +2024,8 @@ public class AeronConsensusEngine implements ClusteredService {
             getCurrentEpoch(),
             getCurrentEthereumEpoch()
         );
+        state.put("appVersion", logAppVersion);
+        return state;
     }
 
     /**
