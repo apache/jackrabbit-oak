@@ -192,7 +192,7 @@ public class AeronConsensusEngineTest {
         Cluster cluster = mock(Cluster.class);
         when(cluster.memberId()).thenReturn(7);
         when(cluster.time()).thenReturn(12345L);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
 
         io.aeron.cluster.client.AeronCluster client = mock(io.aeron.cluster.client.AeronCluster.class);
         when(client.isClosed()).thenReturn(false);
@@ -227,7 +227,7 @@ public class AeronConsensusEngineTest {
 
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
 
         assertFalse(engine.isLeader());
     }
@@ -238,7 +238,7 @@ public class AeronConsensusEngineTest {
         Cluster cluster = mock(Cluster.class);
         when(cluster.memberId()).thenReturn(7);
         when(cluster.time()).thenReturn(12345L);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
         applyTermEvent(engine, 4);
 
         engine.onRoleChange(Cluster.Role.LEADER);
@@ -262,6 +262,7 @@ public class AeronConsensusEngineTest {
         TransactionLifecycleManager manager =
             (TransactionLifecycleManager) getField(engine, "transactionLifecycleManager");
         manager.onStart("tx-1", "corr-1", 1L, "0xabc", 1_000L, 100L);
+        installCluster(engine, mock(Cluster.class));
 
         engine.onTimerEvent(100L, 1_001L);
 
@@ -550,7 +551,7 @@ public class AeronConsensusEngineTest {
         DirectBuffer buffer = mock(DirectBuffer.class);
         Cluster cluster = mock(Cluster.class);
         setField(engine, "ingressHandler", ingressHandler);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
 
         engine.onSessionMessage(session, 123L, buffer, 4, 5, header);
 
@@ -679,7 +680,7 @@ public class AeronConsensusEngineTest {
         AeronConsensusEngine engine = createEngine();
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
         LeaderDiscoveryService leaderDiscoveryService =
             (LeaderDiscoveryService) getField(engine, "leaderDiscoveryService");
         leaderDiscoveryService.setKnownLeader("http://leader:8080", 2);
@@ -692,7 +693,7 @@ public class AeronConsensusEngineTest {
         AeronConsensusEngine engine = createEngine();
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
         setField(engine, "currentTerm", 2);
 
         HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
@@ -726,7 +727,7 @@ public class AeronConsensusEngineTest {
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
         when(cluster.logPosition()).thenReturn(0L);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
         setField(engine, "lastLeaderLogPositionFetchMs", System.currentTimeMillis());
 
         engine.updateLeaderLogPosition(0L);
@@ -771,7 +772,7 @@ public class AeronConsensusEngineTest {
             backgroundCoordinator,
             nodeStore
         );
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
 
         engine.onRoleChange(Cluster.Role.LEADER);
 
@@ -801,7 +802,7 @@ public class AeronConsensusEngineTest {
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(Cluster.Role.LEADER);
         when(cluster.memberId()).thenReturn(3);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
         setField(engine, "currentLeader", "http://self:8080");
 
         io.aeron.cluster.client.AeronCluster client = mock(io.aeron.cluster.client.AeronCluster.class);
@@ -828,7 +829,7 @@ public class AeronConsensusEngineTest {
         Cluster cluster = mock(Cluster.class);
         when(cluster.memberId()).thenReturn(3);
         when(cluster.time()).thenReturn(456L);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
 
         io.aeron.cluster.client.AeronCluster client = mock(io.aeron.cluster.client.AeronCluster.class);
         when(client.isClosed()).thenReturn(false);
@@ -854,7 +855,7 @@ public class AeronConsensusEngineTest {
         AeronConsensusEngine engine = createEngine();
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(Cluster.Role.LEADER);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
 
         assertFalse(engine.stepDownAsLeader());
     }
@@ -864,7 +865,7 @@ public class AeronConsensusEngineTest {
         AeronConsensusEngine engine = createEngine();
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
 
         assertFalse(engine.stepDownAsLeader());
     }
@@ -881,7 +882,7 @@ public class AeronConsensusEngineTest {
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
         when(cluster.memberId()).thenReturn(1);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
         setField(engine, "idleStrategy", mock(IdleStrategy.class));
         engine.setAeronDirectoryName(storeDirectory.getAbsolutePath() + "/aeron-test");
 
@@ -932,7 +933,7 @@ public class AeronConsensusEngineTest {
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
         when(cluster.memberId()).thenReturn(1);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
         setField(engine, "idleStrategy", mock(IdleStrategy.class));
         engine.setAeronDirectoryName(storeDirectory.getAbsolutePath() + "/aeron-test");
 
@@ -1054,7 +1055,7 @@ public class AeronConsensusEngineTest {
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(Cluster.Role.LEADER);
         when(cluster.memberId()).thenReturn(3);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
         setField(engine, "idleStrategy", mock(IdleStrategy.class));
         engine.setAeronDirectoryName(storeDirectory.getAbsolutePath() + "/aeron-test");
 
@@ -1211,7 +1212,7 @@ public class AeronConsensusEngineTest {
         AeronConsensusEngine engine = createEngine();
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
 
         assertFalse(engine.sendGCExecuteThroughIngress("gc-1", 5));
     }
@@ -1357,7 +1358,7 @@ public class AeronConsensusEngineTest {
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
         when(cluster.memberId()).thenReturn(0);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
         return engine;
     }
 
@@ -1371,6 +1372,14 @@ public class AeronConsensusEngineTest {
         });
         server.start();
         return server;
+    }
+
+    /** Installs {@code cluster} and publishes its state, as onStart does on the service thread. */
+    private static void installCluster(AeronConsensusEngine engine, Cluster cluster) throws Exception {
+        setField(engine, "cluster", cluster);
+        setField(engine, "publishedRole", cluster.role());
+        setField(engine, "publishedLogPosition", cluster.logPosition());
+        setField(engine, "publishedClusterTime", cluster.time());
     }
 
     private AeronConsensusEngine createEngine() {
@@ -1517,7 +1526,7 @@ public class AeronConsensusEngineTest {
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(role);
         when(cluster.memberId()).thenReturn(3);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
         setField(engine, "idleStrategy", mock(IdleStrategy.class));
 
         io.aeron.cluster.client.AeronCluster client = mock(io.aeron.cluster.client.AeronCluster.class);

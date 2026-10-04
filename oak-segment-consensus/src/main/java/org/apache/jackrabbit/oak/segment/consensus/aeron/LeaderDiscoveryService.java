@@ -227,7 +227,7 @@ public class LeaderDiscoveryService {
      * @param cluster Aeron cluster instance
      * @return leader URL, or null if not found
      */
-    public String discoverLeader(Cluster cluster) {
+    public String discoverLeader(Cluster.Role localRole) {
         // Check cache
         if (cachedLeaderUrl != null && 
             (System.currentTimeMillis() - cachedLeaderTimestamp) < LEADER_CACHE_TTL_MS) {
@@ -235,7 +235,7 @@ public class LeaderDiscoveryService {
         }
         
         // Discover from Aeron cluster
-        String leaderUrl = discoverFromAeronCluster(cluster);
+        String leaderUrl = discoverFromAeronCluster(localRole);
         
         if (leaderUrl != null) {
             // Update cache
@@ -270,12 +270,12 @@ public class LeaderDiscoveryService {
      * The {@code Cluster} interface has no leader accessor; followers learn the leader member ID from
      * {@code ClusteredService.onNewLeadershipTermEvent}, which sets {@link #setKnownLeader}.
      * <ol>
-     *   <li>Check if current node is leader via cluster.role()</li>
+     *   <li>Check if current node is leader (role published by the service callbacks)</li>
      *   <li>Use the known leader (from the log, or from this node's own election)</li>
      * </ol>
      */
-    private String discoverFromAeronCluster(Cluster cluster) {
-        if (cluster == null) {
+    private String discoverFromAeronCluster(Cluster.Role localRole) {
+        if (localRole == null) {
             return null;
         }
         
@@ -283,7 +283,7 @@ public class LeaderDiscoveryService {
             // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
             // STRATEGY 1: Check if WE are the leader
             // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            if (cluster.role() == Cluster.Role.LEADER) {
+            if (localRole == Cluster.Role.LEADER) {
                 log.debug("This node is leader (role check)");
                 return selfUrl;
             }

@@ -45,7 +45,10 @@ public class AeronClusterStateViewTest {
         when(cluster.logPosition()).thenReturn(5678L);
 
         Map<String, Object> state = view.buildNativeClusterState(
-            cluster,
+            cluster.role(),
+            cluster.memberId(),
+            cluster.time(),
+            cluster.logPosition(),
             "http://self:8080",
             "0xabc",
             "0xpub",
@@ -84,7 +87,10 @@ public class AeronClusterStateViewTest {
         when(cluster.logPosition()).thenReturn(11L);
 
         Map<String, Object> state = view.buildNativeClusterState(
-            cluster,
+            cluster.role(),
+            cluster.memberId(),
+            cluster.time(),
+            cluster.logPosition(),
             "http://leader:8081",
             null,
             null,
@@ -107,7 +113,7 @@ public class AeronClusterStateViewTest {
         when(cluster.role()).thenReturn(Cluster.Role.LEADER);
         when(cluster.memberId()).thenReturn(4);
 
-        assertEquals(4, view.resolveLeaderMemberId(cluster, "http://peer:8081"));
+        assertEquals(4, view.resolveLeaderMemberId(cluster.role(), cluster.memberId(), "http://peer:8081"));
     }
 
     @Test
@@ -120,7 +126,7 @@ public class AeronClusterStateViewTest {
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
 
-        assertEquals(1, view.resolveLeaderMemberId(cluster, "http://127.0.0.1:8081"));
+        assertEquals(1, view.resolveLeaderMemberId(cluster.role(), cluster.memberId(), "http://127.0.0.1:8081"));
     }
 
     @Test
@@ -130,8 +136,8 @@ public class AeronClusterStateViewTest {
         when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
         when(cluster.logPosition()).thenReturn(250L);
 
-        Map<String, Object> healthy = view.buildReplicationLagStatus(cluster, 300L, 50L);
-        Map<String, Object> unknown = view.buildReplicationLagStatus(cluster, 0L, -1L);
+        Map<String, Object> healthy = view.buildReplicationLagStatus(cluster.role(), cluster.logPosition(), 300L, 50L);
+        Map<String, Object> unknown = view.buildReplicationLagStatus(cluster.role(), cluster.logPosition(), 0L, -1L);
 
         assertEquals(Boolean.TRUE, healthy.get("healthy"));
         assertEquals(Boolean.TRUE, healthy.get("measurementAvailable"));

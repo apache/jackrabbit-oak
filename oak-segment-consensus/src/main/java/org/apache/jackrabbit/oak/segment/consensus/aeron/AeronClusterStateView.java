@@ -45,7 +45,10 @@ final class AeronClusterStateView {
         this.urlMatcher = urlMatcher;
     }
 
-    Map<String, Object> buildNativeClusterState(Cluster cluster,
+    Map<String, Object> buildNativeClusterState(Cluster.Role role,
+                                                int memberId,
+                                                long clusterTime,
+                                                long logPosition,
                                                 String leaderUrl,
                                                 String walletAddress,
                                                 String publicKey,
@@ -53,17 +56,16 @@ final class AeronClusterStateView {
                                                 int currentEpoch,
                                                 int currentEthereumEpoch) {
         Map<String, Object> state = new HashMap<>();
-        Cluster.Role role = cluster.role();
         state.put("role", role.name());
         state.put("isLeader", role == Cluster.Role.LEADER);
 
-        int selfMemberId = cluster.memberId();
+        int selfMemberId = memberId;
         if (selfMemberId < 0) {
             selfMemberId = findNodeIdByUrl(selfUrl);
         }
         state.put("memberId", selfMemberId);
-        state.put("clusterTime", cluster.time());
-        state.put("logPosition", cluster.logPosition());
+        state.put("clusterTime", clusterTime);
+        state.put("logPosition", logPosition);
         state.put("term", currentTerm);
         state.put("epoch", currentEpoch);
         state.put("ethereumEpoch", currentEthereumEpoch);
@@ -103,18 +105,18 @@ final class AeronClusterStateView {
         return state;
     }
 
-    int resolveLeaderMemberId(Cluster cluster, String currentLeader) {
-        if (cluster != null && cluster.role() == Cluster.Role.LEADER) {
-            return cluster.memberId();
+    int resolveLeaderMemberId(Cluster.Role role, int memberId, String currentLeader) {
+        if (role == Cluster.Role.LEADER) {
+            return memberId;
         }
         return findNodeIdByUrl(currentLeader);
     }
 
-    Map<String, Object> buildReplicationLagStatus(Cluster cluster, long leaderLogPosition, long lag) {
+    Map<String, Object> buildReplicationLagStatus(Cluster.Role role, long myLogPosition, long leaderLogPosition, long lag) {
         Map<String, Object> status = new HashMap<>();
         boolean measurementAvailable = lag >= 0;
-        status.put("role", cluster.role().name());
-        status.put("myLogPosition", cluster.logPosition());
+        status.put("role", role != null ? role.name() : null);
+        status.put("myLogPosition", myLogPosition);
         status.put("leaderLogPosition", measurementAvailable ? leaderLogPosition : null);
         status.put("replicationLag", measurementAvailable ? lag : null);
         status.put("lagThreshold", 1000L);

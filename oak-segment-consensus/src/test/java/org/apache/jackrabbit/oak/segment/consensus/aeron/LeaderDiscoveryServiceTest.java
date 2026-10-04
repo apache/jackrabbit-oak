@@ -105,7 +105,7 @@ public class LeaderDiscoveryServiceTest {
         service.setKnownLeader("http://leader-1:8090", 2);
 
         Cluster cluster = mock(Cluster.class);
-        assertEquals("http://leader-1:8090", service.discoverLeader(cluster));
+        assertEquals("http://leader-1:8090", service.discoverLeader(cluster.role()));
     }
 
     @Test
@@ -115,14 +115,14 @@ public class LeaderDiscoveryServiceTest {
 
         Cluster leaderCluster = mock(Cluster.class);
         when(leaderCluster.role()).thenReturn(Cluster.Role.LEADER);
-        assertEquals("http://self:8090", service.discoverLeader(leaderCluster));
+        assertEquals("http://self:8090", service.discoverLeader(leaderCluster.role()));
 
         service.invalidateCache();
         service.setKnownLeader("http://leader-2:8090", 2);
         service.invalidateCache();
         Cluster followerCluster = mock(Cluster.class);
         when(followerCluster.role()).thenReturn(Cluster.Role.FOLLOWER);
-        assertEquals("http://leader-2:8090", service.discoverLeader(followerCluster));
+        assertEquals("http://leader-2:8090", service.discoverLeader(followerCluster.role()));
     }
 
     @Test
@@ -189,7 +189,7 @@ public class LeaderDiscoveryServiceTest {
         Cluster follower = mock(Cluster.class);
         when(follower.role()).thenReturn(Cluster.Role.FOLLOWER);
 
-        assertNull(service.discoverLeader(follower));
+        assertNull(service.discoverLeader(follower.role()));
         assertNull(service.getCachedLeaderUrl());
         assertNull(service.getKnownLeaderHint());
     }
@@ -217,16 +217,6 @@ public class LeaderDiscoveryServiceTest {
         setField(service, "knownLeaderUrl", null);
 
         assertEquals("http://cached-only:8090", service.getKnownLeaderHint());
-    }
-
-    @Test
-    public void testDiscoverLeaderHandlesClusterExceptionsGracefully() {
-        LeaderDiscoveryService service = new LeaderDiscoveryService(new HashMap<>(), Collections.emptyList());
-        Cluster cluster = mock(Cluster.class);
-        when(cluster.role()).thenThrow(new IllegalStateException("boom"));
-
-        assertNull(service.discoverLeader(cluster));
-        assertNull(service.getCachedLeaderUrl());
     }
 
     /**
@@ -258,7 +248,7 @@ public class LeaderDiscoveryServiceTest {
                         String query = exchange.getRequestURI().getQuery();
                         return query != null && query.contains("localOnly=true")
                             ? self.getKnownLeaderHint()
-                            : self.discoverLeader(follower);
+                            : self.discoverLeader(follower.role());
                     } finally {
                         inFlight.decrementAndGet();
                     }
@@ -269,7 +259,7 @@ public class LeaderDiscoveryServiceTest {
             nodes[1].setPeerUrls(List.of(url(stubs[0]), leaderUrl));
 
             long start = System.nanoTime();
-            assertEquals(leaderUrl, nodes[0].discoverLeader(follower));
+            assertEquals(leaderUrl, nodes[0].discoverLeader(follower.role()));
             long elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
 
             assertEquals("one bounded, non-nested query to the other follower", 1, followerQueries.get());
@@ -307,7 +297,7 @@ public class LeaderDiscoveryServiceTest {
             for (int i = 0; i < callers; i++) {
                 results.add(pool.submit(() -> {
                     started.countDown();
-                    return service.discoverLeader(follower);
+                    return service.discoverLeader(follower.role());
                 }));
             }
             started.await(5, TimeUnit.SECONDS);
@@ -324,7 +314,7 @@ public class LeaderDiscoveryServiceTest {
             }
             assertEquals(1, peerPolls.get());
             assertTrue(resolved >= 1);
-            assertEquals(leaderUrl, service.discoverLeader(follower));
+            assertEquals(leaderUrl, service.discoverLeader(follower.role()));
             assertEquals(1, peerPolls.get());
         } finally {
             release.countDown();

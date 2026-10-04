@@ -157,6 +157,10 @@ public class AeronConsensusEngine implements ClusteredService {
     
     // Aeron Cluster components
     private Cluster cluster;
+    // Cluster is owned by the service thread; its callbacks publish copies for readers on other threads
+    private volatile Cluster.Role publishedRole;
+    private volatile long publishedLogPosition = -1L;
+    private volatile long publishedClusterTime = -1L;
     private IdleStrategy idleStrategy;
     
     // ✈️ AERON NATIVE: Ingress channel URI for client connections
@@ -674,6 +678,8 @@ public class AeronConsensusEngine implements ClusteredService {
         this.idleStrategy = cluster.idleStrategy();
         // Aeron replays the log from 0 (or the snapshot) into a store that already holds the applied entries.
         messageDispatcher.setReplayFloor(AppliedLogPosition.read(nodeStore != null ? nodeStore.getRoot() : null));
+        publishedRole = cluster.role();
+        publishPosition(cluster.logPosition(), cluster.time());
         
         // Load snapshot if present (ensures consistent initial state)
         if (snapshotImage != null) {
@@ -803,6 +809,7 @@ public class AeronConsensusEngine implements ClusteredService {
     @Override
     public void onSessionMessage(ClientSession session, long timestamp, DirectBuffer buffer, 
                                  int offset, int length, Header header) {
+        publishPosition(header.position(), timestamp);
         // ✈️ AERON NATIVE: Handle replicated write proposals
         // This callback is invoked on ALL nodes after Aeron replicates the message via Raft
         // Deterministic state machine: ALL nodes process messages in same order
@@ -1275,7 +1282,7 @@ public class AeronConsensusEngine implements ClusteredService {
         }
         
         log.debug("🔍DEBUG_BATCH [1]: sendWriteBatchThroughIngress() ENTRY - batch size: {}, role: {}", 
-            proposals.size(), cluster != null ? cluster.role() : "NO_CLUSTER");
+            proposals.size(), publishedRole);
         
         if (!ensureInternalClusterClient()) {
             log.error("❌ Internal AeronCluster client not available - cannot send batch write through ingress");
@@ -1608,6 +1615,7 @@ public class AeronConsensusEngine implements ClusteredService {
     
     @Override
     public void onTimerEvent(long correlationId, long timestamp) {
+        publishPosition(cluster.logPosition(), timestamp);
         TransactionLifecycleManager.TransitionResult result = transactionLifecycleManager.onTimer(correlationId, timestamp);
         if (result.isTimedOut()) {
             onTransactionTimedOut(result.getRecord());
@@ -1622,6 +1630,7 @@ public class AeronConsensusEngine implements ClusteredService {
     
     @Override
     public void onRoleChange(Cluster.Role newRole) {
+        publishedRole = newRole;
         log.info("Role change: {} -> {}", currentRole, newRole.name());
         markHeartbeat();
         
@@ -1696,6 +1705,7 @@ public class AeronConsensusEngine implements ClusteredService {
                                          java.util.concurrent.TimeUnit timeUnit,
                                          int appVersion) {
         LogStoreGuard.checkTermEvent(messageDispatcher.getReplayFloor(), leadershipTermId, termBaseLogPosition);
+        publishPosition(logPosition, timestamp);
         currentTerm = (int) leadershipTermId;
         leadershipTermKnown = true;
         String leaderUrl = nodeIdToUrl.get(leaderMemberId);
@@ -1773,12 +1783,12 @@ public class AeronConsensusEngine implements ClusteredService {
     /**
      * Get current validator role (LEADER, FOLLOWER, etc.).
      * 
-     * ✈️ AERON NATIVE: Uses cluster.role() directly from Aeron Cluster.
+     * ✈️ AERON NATIVE: Uses the role published by onStart/onRoleChange.
      */
     public ValidatorRole getCurrentRole() {
-        if (cluster != null) {
-            // Use Aeron's native role - this is the source of truth
-            Cluster.Role aeronRole = cluster.role();
+        Cluster.Role aeronRole = publishedRole;
+        if (aeronRole != null) {
+            // Aeron's role, as published by the service callbacks, is the source of truth
             if (aeronRole == Cluster.Role.LEADER) {
                 return ValidatorRole.LEADER;
             } else if (aeronRole == Cluster.Role.FOLLOWER) {
@@ -1791,11 +1801,12 @@ public class AeronConsensusEngine implements ClusteredService {
     /**
      * Check if this validator is currently the leader.
      * 
-     * ✈️ AERON NATIVE: Uses cluster.role() directly from Aeron Cluster.
+     * ✈️ AERON NATIVE: Uses the role published by onStart/onRoleChange.
      */
     public boolean isLeader() {
-        if (cluster != null) {
-            return cluster.role() == Cluster.Role.LEADER;
+        Cluster.Role aeronRole = publishedRole;
+        if (aeronRole != null) {
+            return aeronRole == Cluster.Role.LEADER;
         }
         return currentRole == ValidatorRole.LEADER;
     }
@@ -1818,7 +1829,7 @@ public class AeronConsensusEngine implements ClusteredService {
     public boolean isClusterHealthy() {
         // The ingress client belongs to its owner thread; health does not read it.
         return healthService.isClusterHealthy(
-            cluster,
+            publishedRole,
             this::hasQuorum,
             () -> null
         );
@@ -1833,7 +1844,7 @@ public class AeronConsensusEngine implements ClusteredService {
      */
     public String getUnhealthyReason() {
         return healthService.getUnhealthyReason(
-            cluster,
+            publishedRole,
             this::hasQuorum,
             () -> null
         );
@@ -1995,11 +2006,14 @@ public class AeronConsensusEngine implements ClusteredService {
      * @return Native cluster state map, or null if cluster not initialized
      */
     public java.util.Map<String, Object> getNativeClusterState() {
-        if (cluster == null) {
+        if (cluster == null || publishedRole == null) {
             return null;
         }
         return clusterStateView.buildNativeClusterState(
-            cluster,
+            publishedRole,
+            cluster.memberId(),
+            publishedClusterTime,
+            publishedLogPosition,
             getCurrentLeaderHint(),
             getWalletAddress(),
             getPublicKeyHex(),
@@ -2017,7 +2031,7 @@ public class AeronConsensusEngine implements ClusteredService {
             return currentLeader;
         }
 
-        if (cluster.role() == Cluster.Role.LEADER) {
+        if (publishedRole == Cluster.Role.LEADER) {
             return selfUrl;
         }
 
@@ -2055,12 +2069,12 @@ public class AeronConsensusEngine implements ClusteredService {
         }
         
         // ✈️ AERON NATIVE: If we're the leader, return self
-        if (cluster.role() == Cluster.Role.LEADER) {
+        if (publishedRole == Cluster.Role.LEADER) {
             return selfUrl;
         }
         
         // ✅ REFACTORED: Delegate to LeaderDiscoveryService
-        String leaderUrl = leaderDiscoveryService.discoverLeader(cluster);
+        String leaderUrl = leaderDiscoveryService.discoverLeader(publishedRole);
         if (leaderUrl != null) {
             this.currentLeader = leaderUrl;
             return leaderUrl;
@@ -2095,7 +2109,7 @@ public class AeronConsensusEngine implements ClusteredService {
         }
         lastLeaderLogPositionFetchMs = now;
         try {
-            String leaderUrl = leaderDiscoveryService != null ? leaderDiscoveryService.discoverLeader(cluster) : null;
+            String leaderUrl = leaderDiscoveryService != null ? leaderDiscoveryService.discoverLeader(publishedRole) : null;
             if (leaderUrl == null) {
                 return;
             }
@@ -2156,7 +2170,8 @@ public class AeronConsensusEngine implements ClusteredService {
      * @return Leader's member ID or -1 if unknown
      */
     public int getLeaderMemberId() {
-        return clusterStateView.resolveLeaderMemberId(cluster, currentLeader);
+        return clusterStateView.resolveLeaderMemberId(
+            publishedRole, cluster != null ? cluster.memberId() : -1, currentLeader);
     }
     
     /**
@@ -2170,9 +2185,8 @@ public class AeronConsensusEngine implements ClusteredService {
      * @return true if step-down initiated, false otherwise
      */
     public boolean stepDownAsLeader() {
-        if (cluster == null || cluster.role() != Cluster.Role.LEADER) {
-            log.warn("Cannot step down - not currently leader (role: {})", 
-                cluster != null ? cluster.role() : "null");
+        if (cluster == null || publishedRole != Cluster.Role.LEADER) {
+            log.warn("Cannot step down - not currently leader (role: {})", publishedRole);
             return false;
         }
         
@@ -2259,7 +2273,7 @@ public class AeronConsensusEngine implements ClusteredService {
                 memberId,
                 memberUrl,
                 System.currentTimeMillis(),
-                cluster != null ? cluster.time() : -1L
+                publishedClusterTime
             );
         }
     }
@@ -2284,7 +2298,7 @@ public class AeronConsensusEngine implements ClusteredService {
         }
         
         // ✅ REFACTORED: Delegate to LeaderDiscoveryService
-        return leaderDiscoveryService.discoverLeader(cluster);
+        return leaderDiscoveryService.discoverLeader(publishedRole);
     }
     
     /**
@@ -2318,7 +2332,7 @@ public class AeronConsensusEngine implements ClusteredService {
      * ✅ REFACTORED: Delegates to LeaderDiscoveryService for leader discovery.
      */
     private void discoverLeaderFromPeers() {
-        backgroundCoordinator.scheduleLeaderDiscovery(cluster, leaderDiscoveryService, leaderUrl -> {
+        backgroundCoordinator.scheduleLeaderDiscovery(() -> publishedRole, leaderDiscoveryService, leaderUrl -> {
             this.currentLeader = leaderUrl;
             log.info("Discovered leader via LeaderDiscoveryService: {}", leaderUrl);
             refreshLeaderLogPositionIfNeeded(true);
@@ -2640,7 +2654,7 @@ public class AeronConsensusEngine implements ClusteredService {
      * @return Number of messages behind leader, or -1 if the leader position is unknown
      */
     public long getReplicationLag() {
-        if (cluster == null || cluster.role() == Cluster.Role.LEADER) {
+        if (cluster == null || publishedRole == Cluster.Role.LEADER) {
             return 0; // Leaders have no lag
         }
         
@@ -2648,7 +2662,7 @@ public class AeronConsensusEngine implements ClusteredService {
             return -1; // Leader position unknown (haven't received heartbeat yet)
         }
         
-        long myPosition = cluster.logPosition();
+        long myPosition = publishedLogPosition;
         return Math.max(0, leaderLogPosition - myPosition);
     }
     
@@ -2661,18 +2675,21 @@ public class AeronConsensusEngine implements ClusteredService {
         if (cluster == null) {
             return null;
         }
-        if (cluster.role() == Cluster.Role.FOLLOWER) {
+        Cluster.Role role = publishedRole;
+        long myLogPosition = publishedLogPosition;
+        if (role == Cluster.Role.FOLLOWER) {
             refreshLeaderLogPositionIfNeeded(false);
         }
-        long effectiveLeaderLogPosition = cluster.role() == Cluster.Role.LEADER
-            ? cluster.logPosition()
+        long effectiveLeaderLogPosition = role == Cluster.Role.LEADER
+            ? myLogPosition
             : leaderLogPosition;
         java.util.Map<String, Object> status = clusterStateView.buildReplicationLagStatus(
-            cluster,
+            role,
+            myLogPosition,
             effectiveLeaderLogPosition,
             getReplicationLag()
         );
-        status.put("measurementAgeMs", cluster.role() == Cluster.Role.LEADER
+        status.put("measurementAgeMs", role == Cluster.Role.LEADER
             ? 0L
             : hasFreshLeaderLogPosition()
                 ? Math.max(0L, System.currentTimeMillis() - leaderLogPositionObservedAtMs)
@@ -2823,6 +2840,12 @@ public class AeronConsensusEngine implements ClusteredService {
                 reconnectInProgress = false;
             }
         }
+    }
+
+    /** Called from service callbacks only. */
+    private void publishPosition(long logPosition, long clusterTime) {
+        publishedLogPosition = logPosition;
+        publishedClusterTime = clusterTime;
     }
 
     /** Aeron's leader appends a TimerEvent at the deadline; every member applies it at the same log position. */
