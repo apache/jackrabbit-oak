@@ -110,7 +110,6 @@ public class StandbyPromotionCoordinatorTest {
         AeronClusterStartupResult startupResult = new AeronClusterStartupResult(
             null,
             launcher,
-            null,
             Collections.singletonList("validator-0"),
             7
         );
@@ -177,7 +176,6 @@ public class StandbyPromotionCoordinatorTest {
         AeronClusterStartupResult startupResult = new AeronClusterStartupResult(
             null,
             launcher,
-            null,
             Collections.singletonList("validator-0"),
             11
         );

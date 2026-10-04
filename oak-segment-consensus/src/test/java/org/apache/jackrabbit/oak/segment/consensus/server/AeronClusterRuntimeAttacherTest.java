@@ -17,15 +17,11 @@
 package org.apache.jackrabbit.oak.segment.consensus.server;
 
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
 import org.apache.jackrabbit.oak.segment.consensus.aeron.AeronClusterLauncher;
 import org.apache.jackrabbit.oak.segment.consensus.aeron.AeronPrometheusMetrics;
-import org.apache.jackrabbit.oak.segment.consensus.aeron.AeronWriteClient;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.http.server.SegmentHttpServer;
 import org.apache.jackrabbit.oak.segment.http.server.ServerContext;
@@ -36,17 +32,16 @@ import org.mockito.InOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class AeronClusterRuntimeAttacherTest {
 
     @Test
-    public void attachConnectsWriteClientAndPublishesItToHttpServer() {
+    public void attachDoesNotCreateOrConnectAnIngressClient() {
         ServerContext context = new ServerContext(
             mock(FileStore.class),
             mock(NodeStore.class),
@@ -54,38 +49,22 @@ public class AeronClusterRuntimeAttacherTest {
             "http://node-a:8080"
         );
         context.aeronPrometheusMetrics = mock(AeronPrometheusMetrics.class);
-
         SegmentHttpServer httpServer = mock(SegmentHttpServer.class);
         when(httpServer.getContext()).thenReturn(context);
-
         AeronClusterLauncher launcher = mock(AeronClusterLauncher.class);
-        when(launcher.getAeronDirectoryName()).thenReturn("aeron-dir");
-        when(launcher.getClusterBasePort()).thenReturn(AeronClusterLauncher.getPortBase());
 
-        AeronWriteClient writeClient = mock(AeronWriteClient.class);
         AeronClusterRuntimeAttacher attacher = new AeronClusterRuntimeAttacher(
-            (clientId, aeronDirectoryName, clusterHostnames, clusterBasePort, clientHostname) -> {
-                assertEquals(0, clientId);
-                assertEquals("aeron-dir", aeronDirectoryName);
-                assertEquals(Arrays.asList("node-a", "node-b"), clusterHostnames);
-                assertEquals(AeronClusterLauncher.getPortBase(), clusterBasePort);
-                assertEquals("node-a", clientHostname);
-                return writeClient;
-            },
             mock(AeronClusterRuntimeAttacher.MetricsFactory.class),
             (task, delay, unit) -> {
                 throw new AssertionError("scheduler should not run when metrics already exist");
             }
         );
 
-        AeronWriteClient attachedClient =
-            attacher.attach(httpServer, launcher, Arrays.asList("node-a", "node-b"), "node-a");
+        attacher.attach(httpServer, launcher);
 
-        assertSame(writeClient, attachedClient);
-        InOrder inOrder = inOrder(httpServer, writeClient);
-        inOrder.verify(httpServer).setAeronClusterLauncher(launcher);
-        inOrder.verify(writeClient).connect();
-        inOrder.verify(httpServer).setAeronWriteClient(writeClient);
+        verify(httpServer).setAeronClusterLauncher(launcher);
+        // The removed AeronWriteClient read the Aeron directory and ports to connect; nothing does now.
+        verifyNoInteractions(launcher);
     }
 
     @Test
@@ -101,16 +80,12 @@ public class AeronClusterRuntimeAttacherTest {
 
         AeronClusterLauncher launcher = mock(AeronClusterLauncher.class);
         io.aeron.Aeron aeron = mock(io.aeron.Aeron.class);
-        when(launcher.getAeronDirectoryName()).thenReturn("aeron-dir");
-        when(launcher.getClusterBasePort()).thenReturn(AeronClusterLauncher.getPortBase());
         when(launcher.getAeron()).thenReturn(aeron);
 
-        AeronWriteClient writeClient = mock(AeronWriteClient.class);
         AeronPrometheusMetrics metrics = mock(AeronPrometheusMetrics.class);
 
         AtomicInteger scheduled = new AtomicInteger();
         AeronClusterRuntimeAttacher attacher = new AeronClusterRuntimeAttacher(
-            (clientId, aeronDirectoryName, clusterHostnames, clusterBasePort, clientHostname) -> writeClient,
             ignored -> metrics,
             (task, delay, unit) -> {
                 scheduled.incrementAndGet();
@@ -120,7 +95,7 @@ public class AeronClusterRuntimeAttacherTest {
             }
         );
 
-        attacher.attach(httpServer, launcher, Arrays.asList("node-a"), "node-a");
+        attacher.attach(httpServer, launcher);
 
         assertEquals(1, scheduled.get());
         assertSame(metrics, context.aeronPrometheusMetrics);
@@ -141,15 +116,11 @@ public class AeronClusterRuntimeAttacherTest {
         when(httpServer.getContext()).thenReturn(context);
 
         AeronClusterLauncher launcher = mock(AeronClusterLauncher.class);
-        when(launcher.getAeronDirectoryName()).thenReturn("aeron-dir");
-        when(launcher.getClusterBasePort()).thenReturn(AeronClusterLauncher.getPortBase());
         when(launcher.getAeron()).thenReturn(null);
 
-        AeronWriteClient writeClient = mock(AeronWriteClient.class);
         AtomicInteger metricsFactoryCalls = new AtomicInteger();
 
         AeronClusterRuntimeAttacher attacher = new AeronClusterRuntimeAttacher(
-            (clientId, aeronDirectoryName, clusterHostnames, clusterBasePort, clientHostname) -> writeClient,
             aeron -> {
                 metricsFactoryCalls.incrementAndGet();
                 return mock(AeronPrometheusMetrics.class);
@@ -157,51 +128,9 @@ public class AeronClusterRuntimeAttacherTest {
             (task, delay, unit) -> task.run()
         );
 
-        attacher.attach(httpServer, launcher, Arrays.asList("node-a"), "node-a");
+        attacher.attach(httpServer, launcher);
 
         assertNull(context.aeronPrometheusMetrics);
         assertEquals(0, metricsFactoryCalls.get());
-    }
-
-    @Test
-    public void attachSwallowsWriteClientConnectFailuresButStillAttachesClient() {
-        ServerContext context = new ServerContext(
-            mock(FileStore.class),
-            mock(NodeStore.class),
-            Paths.get("target"),
-            "http://node-a:8080"
-        );
-        context.aeronPrometheusMetrics = mock(AeronPrometheusMetrics.class);
-
-        SegmentHttpServer httpServer = mock(SegmentHttpServer.class);
-        when(httpServer.getContext()).thenReturn(context);
-
-        AeronClusterLauncher launcher = mock(AeronClusterLauncher.class);
-        when(launcher.getAeronDirectoryName()).thenReturn("aeron-dir");
-        when(launcher.getClusterBasePort()).thenReturn(AeronClusterLauncher.getPortBase());
-
-        AeronWriteClient writeClient = mock(AeronWriteClient.class);
-        doThrow(new RuntimeException("connect failed")).when(writeClient).connect();
-
-        AeronClusterRuntimeAttacher attacher = new AeronClusterRuntimeAttacher(
-            (clientId, aeronDirectoryName, clusterHostnames, clusterBasePort, clientHostname) -> writeClient,
-            mock(AeronClusterRuntimeAttacher.MetricsFactory.class),
-            (task, delay, unit) -> {
-                throw new AssertionError("scheduler should not run when metrics already exist");
-            }
-        );
-
-        ListAppender<ILoggingEvent> appender = TestLogAppenderSupport.attach(AeronClusterRuntimeAttacher.class);
-        try {
-            AeronWriteClient attachedClient =
-                attacher.attach(httpServer, launcher, Arrays.asList("node-a"), "node-a");
-
-            assertSame(writeClient, attachedClient);
-            verify(httpServer).setAeronWriteClient(writeClient);
-            assertTrue(context.aeronPrometheusMetrics != null);
-            assertTrue(TestLogAppenderSupport.contains(appender, "Failed to connect AeronWriteClient"));
-        } finally {
-            TestLogAppenderSupport.detach(AeronClusterRuntimeAttacher.class, appender);
-        }
     }
 }

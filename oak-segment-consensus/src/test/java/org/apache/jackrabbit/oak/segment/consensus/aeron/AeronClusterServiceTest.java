@@ -129,7 +129,7 @@ public class AeronClusterServiceTest {
 
         service.activate(newConfig());
         setField(service, "startupResult",
-            new AeronClusterStartupResult(null, launcher, null, Collections.singletonList("validator-0"), 0));
+            new AeronClusterStartupResult(null, launcher, Collections.singletonList("validator-0"), 0));
 
         service.deactivate();
 

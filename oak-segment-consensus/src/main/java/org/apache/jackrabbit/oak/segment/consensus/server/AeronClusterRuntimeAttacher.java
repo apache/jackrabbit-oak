@@ -16,13 +16,11 @@
  */
 package org.apache.jackrabbit.oak.segment.consensus.server;
 
-import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.segment.consensus.aeron.AeronClusterLauncher;
 import org.apache.jackrabbit.oak.segment.consensus.aeron.AeronPrometheusMetrics;
-import org.apache.jackrabbit.oak.segment.consensus.aeron.AeronWriteClient;
 import org.apache.jackrabbit.oak.segment.http.server.SegmentHttpServer;
 import org.apache.jackrabbit.oak.segment.http.server.ServerContext;
 import org.slf4j.Logger;
@@ -32,14 +30,6 @@ final class AeronClusterRuntimeAttacher {
 
     private static final Logger log = LoggerFactory.getLogger(AeronClusterRuntimeAttacher.class);
 
-    interface WriteClientFactory {
-        AeronWriteClient create(int clientId,
-                                String aeronDirectoryName,
-                                List<String> clusterHostnames,
-                                int clusterBasePort,
-                                String clientHostname);
-    }
-
     interface MetricsFactory {
         AeronPrometheusMetrics create(io.aeron.Aeron aeron);
     }
@@ -48,13 +38,11 @@ final class AeronClusterRuntimeAttacher {
         void schedule(Runnable task, long delay, TimeUnit unit);
     }
 
-    private final WriteClientFactory writeClientFactory;
     private final MetricsFactory metricsFactory;
     private final DelayedTaskScheduler scheduler;
 
     AeronClusterRuntimeAttacher() {
         this(
-            AeronWriteClient::new,
             AeronPrometheusMetrics::new,
             (task, delay, unit) -> {
                 java.util.concurrent.ScheduledExecutorService executor =
@@ -70,35 +58,15 @@ final class AeronClusterRuntimeAttacher {
         );
     }
 
-    AeronClusterRuntimeAttacher(WriteClientFactory writeClientFactory,
-                                MetricsFactory metricsFactory,
+    AeronClusterRuntimeAttacher(MetricsFactory metricsFactory,
                                 DelayedTaskScheduler scheduler) {
-        this.writeClientFactory = writeClientFactory;
         this.metricsFactory = metricsFactory;
         this.scheduler = scheduler;
     }
 
-    AeronWriteClient attach(SegmentHttpServer httpServer,
-                            AeronClusterLauncher aeronClusterLauncher,
-                            List<String> hostnamesList,
-                            String clientHostname) {
-        String aeronDirectoryName = aeronClusterLauncher.getAeronDirectoryName();
-        int clusterBasePort = aeronClusterLauncher.getClusterBasePort();
-
-        AeronWriteClient aeronWriteClient =
-            writeClientFactory.create(0, aeronDirectoryName, hostnamesList, clusterBasePort, clientHostname);
-
+    void attach(SegmentHttpServer httpServer, AeronClusterLauncher aeronClusterLauncher) {
         httpServer.setAeronClusterLauncher(aeronClusterLauncher);
         scheduleMetricsInitializationIfNeeded(httpServer, aeronClusterLauncher);
-
-        try {
-            aeronWriteClient.connect();
-        } catch (Exception e) {
-            log.warn("   ⚠️  WARNING: Failed to connect AeronWriteClient: {}", e.getMessage());
-        }
-
-        httpServer.setAeronWriteClient(aeronWriteClient);
-        return aeronWriteClient;
     }
 
     private void scheduleMetricsInitializationIfNeeded(SegmentHttpServer httpServer,

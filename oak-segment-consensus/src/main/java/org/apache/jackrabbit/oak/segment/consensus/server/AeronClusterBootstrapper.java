@@ -23,7 +23,6 @@ import java.util.List;
 import org.apache.jackrabbit.oak.segment.consensus.config.RuntimeConfigValueResolver;
 import org.apache.jackrabbit.oak.segment.consensus.aeron.AeronClusterLauncher;
 import org.apache.jackrabbit.oak.segment.consensus.aeron.AeronConsensusEngine;
-import org.apache.jackrabbit.oak.segment.consensus.aeron.AeronWriteClient;
 import org.apache.jackrabbit.oak.segment.consensus.security.EthereumWallet;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.http.server.SegmentHttpServer;
@@ -140,12 +139,7 @@ public final class AeronClusterBootstrapper {
             }
         }
 
-        AeronWriteClient aeronWriteClient = new AeronClusterRuntimeAttacher().attach(
-            httpServer,
-            aeronClusterLauncher,
-            hostnamesList,
-            bootstrapPlan.clientHostname
-        );
+        new AeronClusterRuntimeAttacher().attach(httpServer, aeronClusterLauncher);
 
         try {
             new ShardRouterInitializer().initialize(httpServer, selfUrl, peerUrls, logClusterStateDetails);
@@ -154,6 +148,6 @@ public final class AeronClusterBootstrapper {
             log.warn("   -> Shard routing disabled, requests will route directly");
         }
 
-        return new AeronClusterStartupResult(aeronEngine, aeronClusterLauncher, aeronWriteClient, hostnamesList, nodeId);
+        return new AeronClusterStartupResult(aeronEngine, aeronClusterLauncher, hostnamesList, nodeId);
     }
 }
