@@ -44,6 +44,7 @@ public class AeronClusterContextFactoryTest {
                 "172.20.1.8",
                 Arrays.asList("172.20.1.5", "peer-1", "172.20.1.8"),
                 mock(ShutdownSignalBarrier.class),
+                component -> { },
                 16384,
                 16384,
                 65536,
@@ -73,6 +74,36 @@ public class AeronClusterContextFactoryTest {
     }
 
     @Test
+    public void terminationHooksOfConsensusModuleAndServiceContainerRunTheShutdownPath() {
+        java.util.List<String> terminated = new java.util.ArrayList<>();
+        AeronClusterContextFactory.LaunchContexts contexts = AeronClusterContextFactory.create(
+            1,
+            new File("target/aeron-context-factory"),
+            mock(ClusteredService.class),
+            "aeron-test-dir",
+            "172.20.1.8",
+            Arrays.asList("172.20.1.5", "172.20.1.6", "172.20.1.8"),
+            mock(ShutdownSignalBarrier.class),
+            terminated::add,
+            16384,
+            16384,
+            65536,
+            60000,
+            524288,
+            new AeronClusterLauncher.SessionTimeoutConfig(5, TimeUnit.MINUTES.toNanos(5), "test", "staging"),
+            throwable -> { },
+            throwable -> { },
+            throwable -> { }
+        );
+
+        contexts.consensusModuleContext.terminationHook().run();
+        contexts.clusteredServiceContext.terminationHook().run();
+        contexts.freshCopy().consensusModuleContext.terminationHook().run();
+
+        assertEquals(Arrays.asList("Consensus Module", "Clustered Service", "Consensus Module"), terminated);
+    }
+
+    @Test
     public void createBuildsDriverAndArchiveContextsFromInputs() {
         ClusteredService clusteredService = mock(ClusteredService.class);
         AeronClusterContextFactory.LaunchContexts contexts = AeronClusterContextFactory.create(
@@ -83,6 +114,7 @@ public class AeronClusterContextFactoryTest {
             "172.20.1.7",
             Arrays.asList("172.20.1.5", "peer-1", "172.20.1.7"),
             mock(ShutdownSignalBarrier.class),
+            component -> { },
             32768,
             65536,
             131072,
@@ -129,6 +161,7 @@ public class AeronClusterContextFactoryTest {
             "172.20.1.8",
             Arrays.asList("172.20.1.5", "peer-1", "172.20.1.8"),
             mock(ShutdownSignalBarrier.class),
+            component -> { },
             16384,
             16384,
             65536,

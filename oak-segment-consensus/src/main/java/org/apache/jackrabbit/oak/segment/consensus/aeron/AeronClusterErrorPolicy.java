@@ -53,10 +53,10 @@ final class AeronClusterErrorPolicy {
                 log.debug("🌐 P2P: DNS resolution pending for peer (will retry): {}", throwable.getClass().getSimpleName());
                 break;
             case SUPPRESS_CLUSTER_WARNING:
-                log.debug("✈️  Aeron Cluster warning (informational): {}", throwable.getMessage());
+                log.info("✈️  Aeron Cluster warning (informational): {}", throwable.getMessage());
                 break;
             case SUPPRESS_HEARTBEAT_TIMEOUT:
-                log.debug("✈️  Leader heartbeat timeout (normal during election): {}", throwable.getMessage());
+                log.info("✈️  Leader heartbeat timeout (normal during election): {}", throwable.getMessage());
                 break;
             case LOG_ERROR:
             default:

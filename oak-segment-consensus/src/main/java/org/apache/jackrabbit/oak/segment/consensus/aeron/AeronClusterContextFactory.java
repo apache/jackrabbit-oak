@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
 import java.io.File;
 import java.util.List;
+import java.util.function.Consumer;
 
 import io.aeron.archive.Archive;
 import io.aeron.archive.ArchiveThreadingMode;
@@ -43,6 +44,7 @@ final class AeronClusterContextFactory {
                                  String myIPAddress,
                                  List<String> ipAddresses,
                                  ShutdownSignalBarrier barrier,
+                                 Consumer<String> onTermination,
                                  int socketSndbufLength,
                                  int socketRcvbufLength,
                                  int publicationTermBufferLength,
@@ -94,6 +96,7 @@ final class AeronClusterContextFactory {
                 .logChannel(AeronClusterTopology.consensusLogChannel(clusterBasePort, nodeId, myIPAddress, clusterTermLengthBytes))
                 .replicationChannel(AeronClusterTopology.replicationChannel(myIPAddress))
                 .sessionTimeoutNs(sessionTimeoutConfig.timeoutNs)
+                .terminationHook(() -> onTermination.accept("Consensus Module"))
                 .archiveContext(aeronArchiveContext.clone());
 
         int maxConcurrentSessions = Integer.getInteger(MAX_CONCURRENT_SESSIONS_PROPERTY, 0);
@@ -107,6 +110,7 @@ final class AeronClusterContextFactory {
                         .archiveContext(aeronArchiveContext.clone())
                         .clusterDir(new File(baseDir, "cluster"))
                         .clusteredService(clusteredService)
+                        .terminationHook(() -> onTermination.accept("Clustered Service"))
                         .errorHandler(clusteredServiceErrorHandler);
 
         return new LaunchContexts(

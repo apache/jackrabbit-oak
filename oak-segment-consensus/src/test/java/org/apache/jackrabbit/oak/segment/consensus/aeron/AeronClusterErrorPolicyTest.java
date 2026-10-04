@@ -35,23 +35,23 @@ public class AeronClusterErrorPolicyTest {
     }
 
     @Test
-    public void handleSuppressesClusterWarnings() {
+    public void handleLogsClusterWarningsAtInfo() {
         Logger log = mock(Logger.class);
         Throwable throwable = new IllegalStateException("io.aeron.cluster.client.ClusterEvent: WARN - leader heartbeat timeout");
 
         policy.handle("Consensus Module", throwable, log);
 
-        verify(log).debug("✈️  Aeron Cluster warning (informational): {}", throwable.getMessage());
+        verify(log).info("✈️  Aeron Cluster warning (informational): {}", throwable.getMessage());
     }
 
     @Test
-    public void handleSuppressesHeartbeatTimeouts() {
+    public void handleLogsHeartbeatTimeoutsAtInfo() {
         Logger log = mock(Logger.class);
         Throwable throwable = new IllegalStateException("leader heartbeat timeout");
 
         policy.handle("Consensus Module", throwable, log);
 
-        verify(log).debug("✈️  Leader heartbeat timeout (normal during election): {}", throwable.getMessage());
+        verify(log).info("✈️  Leader heartbeat timeout (normal during election): {}", throwable.getMessage());
     }
 
     @Test

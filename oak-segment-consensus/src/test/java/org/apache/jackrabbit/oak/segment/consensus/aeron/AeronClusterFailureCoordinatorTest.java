@@ -159,4 +159,26 @@ public class AeronClusterFailureCoordinatorTest {
         assertEquals(10000L, sleeps.get(0).longValue());
         verify(crashHandler).reset();
     }
+
+    @Test
+    public void aeronTerminationRunsTheShutdownPathOnceWithoutRecordingACrash() {
+        CrashHandler crashHandler = mock(CrashHandler.class);
+        org.agrona.concurrent.ShutdownSignalBarrier barrier = mock(org.agrona.concurrent.ShutdownSignalBarrier.class);
+        AtomicInteger callbackCalls = new AtomicInteger();
+        AeronClusterFailureCoordinator coordinator = new AeronClusterFailureCoordinator(
+            crashHandler,
+            Runnable::run,
+            new AtomicBoolean(false),
+            millis -> { },
+            barrier::signal,
+            () -> callbackCalls::incrementAndGet
+        );
+
+        coordinator.onAeronTermination("Consensus Module");
+        coordinator.onAeronTermination("Clustered Service");
+
+        verify(barrier).signal();
+        assertEquals(1, callbackCalls.get());
+        verify(crashHandler, never()).handleCrash(org.mockito.ArgumentMatchers.any());
+    }
 }

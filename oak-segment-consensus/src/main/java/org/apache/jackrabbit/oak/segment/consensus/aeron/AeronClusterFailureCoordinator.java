@@ -76,6 +76,19 @@ final class AeronClusterFailureCoordinator {
         };
     }
 
+    /**
+     * Aeron terminated the consensus module or service container (termination hook, run on its agent
+     * thread): the node can no longer apply the log, so it stops serving through the same path as a
+     * FATAL error, minus the crash record.
+     */
+    void onAeronTermination(String component) {
+        if (!requestShutdown()) {
+            return;
+        }
+        log.error("🛑 Aeron {} terminated - shutting the node down", component);
+        executor.execute(this::shutdownAndNotify);
+    }
+
     boolean requestShutdown() {
         return shutdownRequested.compareAndSet(false, true);
     }
@@ -125,6 +138,15 @@ final class AeronClusterFailureCoordinator {
                 sleeper.sleep(FATAL_SHUTDOWN_DELAY_MS);
 
                 log.info("🛑 Initiating graceful shutdown due to FATAL error...");
+                shutdownAndNotify();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+    }
+
+    private void shutdownAndNotify() {
+        try {
                 shutdownAction.run();
 
                 Runnable shutdownCallback = shutdownCallbackSupplier.get();
@@ -138,7 +160,6 @@ final class AeronClusterFailureCoordinator {
             } catch (Exception e) {
                 log.error("Error during shutdown", e);
             }
-        });
     }
 
     interface Sleeper {

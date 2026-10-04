@@ -294,6 +294,7 @@ public class AeronClusterLauncher {
             myIPAddress,
             ipAddresses,
             barrier,
+            failureCoordinator::onAeronTermination,
             socketSndbufLength,
             socketRcvbufLength,
             publicationTermBufferLength,
