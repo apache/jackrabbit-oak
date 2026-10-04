@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
 import org.agrona.DirectBuffer;
+import org.apache.jackrabbit.oak.segment.consensus.service.AppliedLogPosition;
 import org.apache.jackrabbit.oak.segment.consensus.service.MutationAuditMetadata;
 import org.apache.jackrabbit.oak.segment.http.server.util.JsonParser;
 import org.osgi.service.component.annotations.Activate;
@@ -135,6 +136,7 @@ public class MessageDispatcher {
     private DurabilityCallback durabilityCallback;
     private TransactionCallback transactionCallback;
     private LongSupplier termProvider;
+    private AppliedLogPosition replayFloor = AppliedLogPosition.NONE;
     private static final long STALE_TERM_LOG_INTERVAL_MS = 5000;
     private final AtomicLong lastStaleTermLogMs = new AtomicLong(0);
     private final AtomicInteger staleTermSuppressed = new AtomicInteger(0);
@@ -226,6 +228,49 @@ public class MessageDispatcher {
      * @return true if message was successfully processed
      */
     public boolean dispatch(long timestamp, DirectBuffer buffer, int offset, int length) {
+        return dispatch(timestamp, -1L, buffer, offset, length);
+    }
+
+    /**
+     * Sets the applied watermark read from the Oak store at startup. Oak mutations of log entries at or below
+     * it are already in the store, so replay skips them: WRITE_PROPOSAL, DELETE_PROPOSAL, WRITE_BATCH items and
+     * GENESIS_PROPOSAL, which record the watermark in their own merge. Entries that rebuild in-memory or derived
+     * state are always processed: QUEUE_SEGMENT, SEGMENT_PERSISTED, ACK_SEGMENT_PERSISTED, GC_PROPOSAL, GC_VOTE,
+     * GC_EXECUTE (no Oak merge: FileStore cleanup plus in-memory proposal state) and the transaction commands.
+     */
+    public void setReplayFloor(AppliedLogPosition floor) {
+        this.replayFloor = floor != null ? floor : AppliedLogPosition.NONE;
+        log.info("Replay floor set from Oak store: {}", replayFloor);
+    }
+
+    public AppliedLogPosition getReplayFloor() {
+        return replayFloor;
+    }
+
+    /**
+     * The watermark to record with the Oak mutation of item {@code itemIndex} of the entry ending at
+     * {@code logPosition}, or null when the position is unknown (direct calls outside the cluster log).
+     */
+    AppliedLogPosition entryPosition(long logPosition, int itemIndex) {
+        if (logPosition < 0) {
+            return null;
+        }
+        return new AppliedLogPosition(logPosition, itemIndex, termProvider != null ? termProvider.getAsLong() : -1L);
+    }
+
+    boolean isAlreadyApplied(AppliedLogPosition entry) {
+        if (entry == null || !replayFloor.covers(entry.position(), entry.item())) {
+            return false;
+        }
+        log.debug("Skipping replayed entry already in the Oak store: {} (floor {})", entry, replayFloor);
+        return true;
+    }
+
+    /**
+     * @param logPosition Aeron log position at the end of the entry ({@code Header.position()}), identical on
+     *                    every member; -1 when unknown, which disables the watermark
+     */
+    public boolean dispatch(long timestamp, long logPosition, DirectBuffer buffer, int offset, int length) {
         try {
             // Validate minimum message length for SBE header
             if (length < SimpleMessageHeader.ENCODED_LENGTH) {
@@ -253,13 +298,13 @@ public class MessageDispatcher {
             
             switch (header.templateId) {
                 case SimpleMessageHeader.TEMPLATE_ID_WRITE_PROPOSAL:
-                    return handleWriteProposal(timestamp, buffer, payloadOffset, payloadLength);
+                    return handleWriteProposal(timestamp, logPosition, buffer, payloadOffset, payloadLength);
                     
                 case SimpleMessageHeader.TEMPLATE_ID_DELETE_PROPOSAL:
-                    return handleDeleteProposal(timestamp, buffer, payloadOffset, payloadLength);
+                    return handleDeleteProposal(timestamp, logPosition, buffer, payloadOffset, payloadLength);
                     
                 case SimpleMessageHeader.TEMPLATE_ID_WRITE_BATCH:
-                    return handleWriteBatch(timestamp, buffer, payloadOffset, payloadLength);
+                    return handleWriteBatch(timestamp, logPosition, buffer, payloadOffset, payloadLength);
                     
                 case SimpleMessageHeader.TEMPLATE_ID_GC_PROPOSAL:
                     return handleGCProposal(buffer, payloadOffset, payloadLength);
@@ -315,7 +360,12 @@ public class MessageDispatcher {
      * @param payloadOffset offset to JSON payload (after SBE header)
      * @param payloadLength length of JSON payload
      */
-    private boolean handleWriteProposal(long timestamp, DirectBuffer buffer, int payloadOffset, int payloadLength) {
+    private boolean handleWriteProposal(long timestamp, long logPosition, DirectBuffer buffer,
+                                        int payloadOffset, int payloadLength) {
+        AppliedLogPosition entry = entryPosition(logPosition, 0);
+        if (isAlreadyApplied(entry)) {
+            return true;
+        }
         try {
             // Extract JSON payload
             Map<String, Object> json = readPayload(buffer, payloadOffset, payloadLength);
@@ -337,7 +387,7 @@ public class MessageDispatcher {
                 json,
                 MutationAuditMetadata.Operation.WRITE,
                 proposalId
-            ).withClusterTimestamp(timestamp);
+            ).withClusterTimestamp(timestamp).withAppliedLogPosition(entry);
             Long proposalTerm = longField(json, "term");
 
             if (walletAddress == null || path == null) {
@@ -376,7 +426,12 @@ public class MessageDispatcher {
      * @param payloadOffset offset to JSON payload (after SBE header)
      * @param payloadLength length of JSON payload
      */
-    private boolean handleDeleteProposal(long timestamp, DirectBuffer buffer, int payloadOffset, int payloadLength) {
+    private boolean handleDeleteProposal(long timestamp, long logPosition, DirectBuffer buffer,
+                                         int payloadOffset, int payloadLength) {
+        AppliedLogPosition entry = entryPosition(logPosition, 0);
+        if (isAlreadyApplied(entry)) {
+            return true;
+        }
         try {
             // Extract JSON payload
             Map<String, Object> json = readPayload(buffer, payloadOffset, payloadLength);
@@ -392,7 +447,7 @@ public class MessageDispatcher {
                 json,
                 MutationAuditMetadata.Operation.DELETE,
                 proposalId
-            ).withClusterTimestamp(timestamp);
+            ).withClusterTimestamp(timestamp).withAppliedLogPosition(entry);
             Long proposalTerm = longField(json, "term");
             
             if (walletAddress == null || path == null) {
@@ -429,7 +484,11 @@ public class MessageDispatcher {
      * @param payloadLength length of JSON payload
      * @return number of proposals successfully processed
      */
-    private boolean handleWriteBatch(long timestamp, DirectBuffer buffer, int payloadOffset, int payloadLength) {
+    private boolean handleWriteBatch(long timestamp, long logPosition, DirectBuffer buffer,
+                                     int payloadOffset, int payloadLength) {
+        if (logPosition >= 0 && logPosition < replayFloor.position()) {
+            return true;
+        }
         try {
             // Extract JSON payload
             Map<String, Object> json = readPayload(buffer, payloadOffset, payloadLength);
@@ -453,7 +512,12 @@ public class MessageDispatcher {
             
             // Process each proposal in the batch
             int successCount = 0;
-            for (Object entry : proposals) {
+            for (int itemIndex = 0; itemIndex < proposals.size(); itemIndex++) {
+                Object entry = proposals.get(itemIndex);
+                AppliedLogPosition itemPosition = entryPosition(logPosition, itemIndex);
+                if (isAlreadyApplied(itemPosition)) {
+                    continue;
+                }
                 if (!(entry instanceof Map)) {
                     log.warn("Invalid proposal in batch: not a JSON object");
                     continue;
@@ -475,7 +539,7 @@ public class MessageDispatcher {
                     proposalJson,
                     MutationAuditMetadata.Operation.WRITE,
                     proposalId
-                ).withClusterTimestamp(timestamp);
+                ).withClusterTimestamp(timestamp).withAppliedLogPosition(itemPosition);
                 Long proposalTerm = longField(proposalJson, "term");
                 
                 if (walletAddress == null || path == null) {

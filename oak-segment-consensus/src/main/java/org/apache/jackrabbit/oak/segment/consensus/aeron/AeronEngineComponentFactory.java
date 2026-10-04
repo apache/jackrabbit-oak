@@ -66,7 +66,8 @@ final class AeronEngineComponentFactory {
     static AeronIngressHandler createIngressHandler(AeronMessageCodec codec,
                                                     MessageDispatcher dispatcher,
                                                     Runnable heartbeatCallback,
-                                                    java.util.function.Consumer<String> genesisCallback) {
+                                                    java.util.function.BiConsumer<String,
+                                                        org.apache.jackrabbit.oak.segment.consensus.service.AppliedLogPosition> genesisCallback) {
         AeronIngressHandler handler = new AeronIngressHandler(codec, dispatcher);
         handler.setHeartbeatCallback(heartbeatCallback);
         handler.setGenesisCallback(genesisCallback);

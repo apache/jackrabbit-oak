@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
 import org.apache.jackrabbit.oak.segment.consensus.genesis.CanonicalGenesisContent;
+import org.apache.jackrabbit.oak.segment.consensus.service.AppliedLogPosition;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -43,10 +44,14 @@ final class AeronGenesisInitializer {
     }
 
     void initializeGenesisContent(String proposalJson) {
-        initializeGenesisContent(GenesisProposal.fromJson(proposalJson));
+        initializeGenesisContent(proposalJson, null);
     }
 
-    void initializeGenesisContent(GenesisProposal proposal) {
+    void initializeGenesisContent(String proposalJson, AppliedLogPosition logPosition) {
+        initializeGenesisContent(GenesisProposal.fromJson(proposalJson), logPosition);
+    }
+
+    void initializeGenesisContent(GenesisProposal proposal, AppliedLogPosition logPosition) {
         log.info("Creating deterministic genesis from replicated proposal: validator={}, timestamp={}",
             proposal.getGenesisValidatorUrl(), proposal.getTimestamp());
 
@@ -58,6 +63,9 @@ final class AeronGenesisInitializer {
 
             NodeBuilder rootBuilder = nodeStore.getRoot().builder();
             canonicalGenesisContent.populate(rootBuilder, proposal.getTimestamp(), proposal.getGenesisValidatorUrl());
+            if (logPosition != null) {
+                logPosition.writeTo(rootBuilder);
+            }
             nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
             String newHead = fileStore.getHead().getRecordId().toString10();

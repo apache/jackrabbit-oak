@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.segment.http.server.handlers;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.segment.consensus.service.AppliedLogPosition;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -74,6 +75,20 @@ public class ExplorerApiHandlerTest {
         assertTrue(json.contains("\"enabled\":\"true\""));
         assertTrue(json.contains("\"version\":\"7\""));
         assertTrue(json.contains("\"tags\":[\"one\",\"two\"]"));
+    }
+
+    @Test
+    public void rootListingHidesTheConsensusWatermarkNode() throws Exception {
+        MemoryNodeStore nodeStore = new MemoryNodeStore();
+        NodeBuilder root = nodeStore.getRoot().builder();
+        root.child("oak-chain");
+        new AppliedLogPosition(64L, 0, 0L).writeTo(root);
+        nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        StringWriter body = new StringWriter();
+
+        new ExplorerApiHandler(nodeStore, Paths.get("/tmp/store"), null).handleExploreNode(responseWithBody(body), "/");
+
+        assertTrue(body.toString(), body.toString().contains("\"children\":[\"oak-chain\"]"));
     }
 
     @Test

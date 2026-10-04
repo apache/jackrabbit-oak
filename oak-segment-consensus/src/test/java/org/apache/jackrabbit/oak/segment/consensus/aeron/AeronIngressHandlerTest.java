@@ -18,6 +18,9 @@ package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -27,6 +30,7 @@ import io.aeron.cluster.service.Cluster;
 import io.aeron.logbuffer.Header;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
+import org.apache.jackrabbit.oak.segment.consensus.service.AppliedLogPosition;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -37,10 +41,13 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class AeronIngressHandlerTest {
+
+    private static final long LOG_POSITION = 4096L;
 
     private AeronMessageCodec codec;
     private MessageDispatcher dispatcher;
@@ -61,6 +68,7 @@ public class AeronIngressHandlerTest {
         handler = new AeronIngressHandler(codec, dispatcher);
 
         when(session.id()).thenReturn(7L);
+        when(header.position()).thenReturn(LOG_POSITION);
         when(cluster.role()).thenReturn(LEADER);
         when(codec.headerLength()).thenReturn(SimpleMessageHeader.ENCODED_LENGTH);
     }
@@ -79,7 +87,7 @@ public class AeronIngressHandlerTest {
 
         assertFalse(result);
         verify(codec, never()).decodeHeader(buffer, 0);
-        verify(dispatcher, never()).dispatch(eq(123L), eq(buffer), eq(0), eq(SimpleMessageHeader.ENCODED_LENGTH - 1));
+        verify(dispatcher, never()).dispatch(eq(123L), anyLong(), eq(buffer), eq(0), eq(SimpleMessageHeader.ENCODED_LENGTH - 1));
     }
 
     @Test
@@ -89,7 +97,7 @@ public class AeronIngressHandlerTest {
         String payload = "{\"command\":\"CREATE_GENESIS\",\"timestamp\":42,\"genesisValidator\":\"http://leader:8090\"}";
         buffer = bufferWithPayload(payload);
         handler.setHeartbeatCallback(heartbeats::incrementAndGet);
-        handler.setGenesisCallback(genesis::set);
+        handler.setGenesisCallback((json, logPosition) -> genesis.set(json));
         when(codec.decodeHeader(buffer, 0))
             .thenReturn(new SimpleMessageHeader.HeaderInfo(payload.getBytes(StandardCharsets.UTF_8).length,
                 SimpleMessageHeader.TEMPLATE_ID_GENESIS_PROPOSAL, 1, 1));
@@ -107,8 +115,28 @@ public class AeronIngressHandlerTest {
         assertTrue(result);
         assertEquals(1, heartbeats.get());
         assertEquals(payload, genesis.get());
-        verify(dispatcher, never()).dispatch(eq(123L), eq(buffer), eq(0),
+        verify(dispatcher, never()).dispatch(eq(123L), anyLong(), eq(buffer), eq(0),
             eq(SimpleMessageHeader.ENCODED_LENGTH + payload.getBytes(StandardCharsets.UTF_8).length));
+    }
+
+    @Test
+    public void genesisRecordsItsLogPositionAndIsSkippedWhenTheStoreAlreadyHasIt() {
+        String payload = "{\"command\":\"CREATE_GENESIS\",\"timestamp\":42,\"genesisValidator\":\"http://leader:8090\"}";
+        buffer = bufferWithPayload(payload);
+        int length = SimpleMessageHeader.ENCODED_LENGTH + payload.getBytes(StandardCharsets.UTF_8).length;
+        when(codec.decodeHeader(buffer, 0)).thenReturn(new SimpleMessageHeader.HeaderInfo(
+            payload.getBytes(StandardCharsets.UTF_8).length, SimpleMessageHeader.TEMPLATE_ID_GENESIS_PROPOSAL, 1, 1));
+        MessageDispatcher realDispatcher = new MessageDispatcher();
+        realDispatcher.setTermProvider(() -> 3L);
+        List<AppliedLogPosition> applied = new ArrayList<>();
+        AeronIngressHandler realHandler = new AeronIngressHandler(codec, realDispatcher);
+        realHandler.setGenesisCallback((json, logPosition) -> applied.add(logPosition));
+
+        assertTrue(realHandler.handleMessage(session, 123L, buffer, 0, length, header, cluster));
+        realDispatcher.setReplayFloor(applied.get(0));
+        assertTrue(realHandler.handleMessage(session, 123L, buffer, 0, length, header, cluster));
+
+        assertEquals(Collections.singletonList(new AppliedLogPosition(LOG_POSITION, 0, 3L)), applied);
     }
 
     @Test
@@ -125,9 +153,9 @@ public class AeronIngressHandlerTest {
         assertTrue(handler.handleMessage(session, 124L, buffer, 0,
             SimpleMessageHeader.ENCODED_LENGTH + payload.getBytes(StandardCharsets.UTF_8).length, header, cluster));
 
-        verify(dispatcher, never()).dispatch(eq(123L), eq(buffer), eq(0),
+        verify(dispatcher, never()).dispatch(eq(123L), anyLong(), eq(buffer), eq(0),
             eq(SimpleMessageHeader.ENCODED_LENGTH + payload.getBytes(StandardCharsets.UTF_8).length));
-        verify(dispatcher, never()).dispatch(eq(124L), eq(buffer), eq(0),
+        verify(dispatcher, never()).dispatch(eq(124L), anyLong(), eq(buffer), eq(0),
             eq(SimpleMessageHeader.ENCODED_LENGTH + payload.getBytes(StandardCharsets.UTF_8).length));
     }
 
@@ -135,31 +163,31 @@ public class AeronIngressHandlerTest {
     public void handleMessageDelegatesToDispatcherForRegularMessages() {
         when(codec.decodeHeader(buffer, 0))
             .thenReturn(new SimpleMessageHeader.HeaderInfo(0, 999, 1, 1));
-        when(dispatcher.dispatch(123L, buffer, 0, 16)).thenReturn(true);
+        when(dispatcher.dispatch(123L, LOG_POSITION, buffer, 0, 16)).thenReturn(true);
 
         boolean result = handler.handleMessage(session, 123L, buffer, 0, 16, header, cluster);
 
         assertTrue(result);
-        verify(dispatcher).dispatch(123L, buffer, 0, 16);
+        verify(dispatcher).dispatch(123L, LOG_POSITION, buffer, 0, 16);
     }
 
     @Test
     public void handleMessageAllowsNullClusterForNonClusterBoundTests() {
         when(codec.decodeHeader(buffer, 0))
             .thenReturn(new SimpleMessageHeader.HeaderInfo(0, 999, 1, 1));
-        when(dispatcher.dispatch(123L, buffer, 0, 16)).thenReturn(true);
+        when(dispatcher.dispatch(123L, LOG_POSITION, buffer, 0, 16)).thenReturn(true);
 
         boolean result = handler.handleMessage(session, 123L, buffer, 0, 16, header, null);
 
         assertTrue(result);
-        verify(dispatcher).dispatch(123L, buffer, 0, 16);
+        verify(dispatcher).dispatch(123L, LOG_POSITION, buffer, 0, 16);
     }
 
     @Test
     public void handleMessageRateLimitsRepeatedDispatchFailures() throws Exception {
         when(codec.decodeHeader(buffer, 0))
             .thenReturn(new SimpleMessageHeader.HeaderInfo(0, 999, 1, 1));
-        when(dispatcher.dispatch(123L, buffer, 0, 16)).thenReturn(false);
+        when(dispatcher.dispatch(123L, LOG_POSITION, buffer, 0, 16)).thenReturn(false);
         AtomicLong lastLogTime = atomicLongField(handler, "lastDispatchFailLogMs");
         AtomicInteger suppressed = atomicIntField(handler, "dispatchFailSuppressed");
 

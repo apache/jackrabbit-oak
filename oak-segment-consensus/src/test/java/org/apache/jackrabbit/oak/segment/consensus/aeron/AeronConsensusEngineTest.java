@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.segment.consensus.queue.ProposalState;
 import org.apache.jackrabbit.oak.segment.consensus.queue.QueuedProposal;
 import org.apache.jackrabbit.oak.segment.consensus.leader.ValidatorRole;
+import org.apache.jackrabbit.oak.segment.consensus.service.AppliedLogPosition;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.consensus.security.EthereumWallet;
 import org.apache.jackrabbit.oak.segment.consensus.eth.BeaconChainClient;
@@ -449,6 +450,44 @@ public class AeronConsensusEngineTest {
 
         assertEquals(1, scheduler.tasks.size());
         assertEquals("genesis-creator", scheduler.tasks.get(0).name);
+    }
+
+    @Test
+    public void onStartSkipsReplayedEntriesAtOrBelowTheStoreWatermark() throws Exception {
+        MemoryNodeStore store = new MemoryNodeStore();
+        NodeBuilder root = store.getRoot().builder();
+        new AppliedLogPosition(512L, 0, 0L).writeTo(root);
+        store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        AeronConsensusEngine engine = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), new SnapshotService(),
+            new AeronBackgroundCoordinator(new RecordingTaskScheduler(), 2000L, 3000L, 5000L), store);
+        List<String> applied = new ArrayList<>();
+        engine.setWriteApplicationCallback(new AeronConsensusEngine.WriteApplicationCallback() {
+            @Override
+            public void applyReplicatedWrite(String walletAddress, String path, String contentType, String message,
+                                             String signature, String intentToken, String blobId, String mimeType,
+                                             String ipfsCid, org.apache.jackrabbit.oak.segment.consensus.service.MutationAuditMetadata auditMetadata) {
+                applied.add(path + "@" + auditMetadata.getAppliedLogPosition());
+            }
+        });
+        Cluster cluster = mock(Cluster.class, RETURNS_DEEP_STUBS);
+        when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
+        when(cluster.idleStrategy()).thenReturn(mock(IdleStrategy.class));
+        engine.onStart(cluster, null);
+        AeronEncodedMessage replayed = new AeronIngressWritePayloadBuilder()
+            .buildWriteProposal("0xabc", "/oak-chain/a/b/c/old", "page", "m", "sig", null, null, "p-old");
+        AeronEncodedMessage fresh = new AeronIngressWritePayloadBuilder()
+            .buildWriteProposal("0xabc", "/oak-chain/a/b/c/new", "page", "m", "sig", null, null, "p-new");
+
+        engine.onSessionMessage(mock(ClientSession.class), 1L, replayed.buffer, 0, replayed.totalLength, headerAt(512L));
+        engine.onSessionMessage(mock(ClientSession.class), 2L, fresh.buffer, 0, fresh.totalLength, headerAt(640L));
+
+        assertEquals(List.of("/oak-chain/a/b/c/new@position=640 item=0 term=0"), applied);
+    }
+
+    private static Header headerAt(long position) {
+        Header header = mock(Header.class);
+        when(header.position()).thenReturn(position);
+        return header;
     }
 
     @Test

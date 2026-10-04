@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.segment.consensus.aeron;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.segment.consensus.genesis.CanonicalGenesisContent;
+import org.apache.jackrabbit.oak.segment.consensus.service.AppliedLogPosition;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -67,6 +68,20 @@ public class AeronGenesisInitializerTest {
         assertEquals(Boolean.FALSE, ipfs.getProperty("enabled").getValue(Type.BOOLEAN));
         assertEquals("Developers will choose systems with stronger guarantees over familiar platforms.",
             boldBets.getProperty("bet-5").getValue(Type.STRING));
+    }
+
+    @Test
+    public void genesisRecordsTheAppliedLogPositionInTheSameMerge() {
+        MemoryNodeStore nodeStore = new MemoryNodeStore();
+        AeronGenesisInitializer initializer =
+            new AeronGenesisInitializer(mock(FileStore.class, RETURNS_DEEP_STUBS), nodeStore, null);
+
+        initializer.initializeGenesisContent(
+            AeronGenesisInitializer.GenesisProposal.create(42L, "http://leader:8090").toJson(),
+            new AppliedLogPosition(256L, 0, 0L));
+
+        assertTrue(getGenesisNode(nodeStore.getRoot()).exists());
+        assertEquals(new AppliedLogPosition(256L, 0, 0L), AppliedLogPosition.read(nodeStore.getRoot()));
     }
 
     @Test

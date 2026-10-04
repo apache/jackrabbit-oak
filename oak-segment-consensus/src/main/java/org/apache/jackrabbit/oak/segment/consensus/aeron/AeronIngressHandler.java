@@ -20,6 +20,7 @@ import io.aeron.cluster.service.ClientSession;
 import io.aeron.cluster.service.Cluster;
 import io.aeron.logbuffer.Header;
 import org.agrona.DirectBuffer;
+import org.apache.jackrabbit.oak.segment.consensus.service.AppliedLogPosition;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -29,7 +30,7 @@ import org.slf4j.LoggerFactory;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 /**
  * Handles Aeron ingress messages and delegates to the MessageDispatcher.
@@ -45,7 +46,7 @@ public class AeronIngressHandler {
     private final AeronMessageCodec codec;
     private final MessageDispatcher dispatcher;
     private Runnable heartbeatCallback;
-    private Consumer<String> genesisCallback;
+    private BiConsumer<String, AppliedLogPosition> genesisCallback;
 
     @Activate
     public AeronIngressHandler(@Reference AeronMessageCodec codec,
@@ -58,7 +59,10 @@ public class AeronIngressHandler {
         this.heartbeatCallback = heartbeatCallback;
     }
 
-    public void setGenesisCallback(Consumer<String> genesisCallback) {
+    /**
+     * @param genesisCallback receives the genesis proposal JSON and the watermark to record in its Oak merge
+     */
+    public void setGenesisCallback(BiConsumer<String, AppliedLogPosition> genesisCallback) {
         this.genesisCallback = genesisCallback;
     }
 
@@ -82,13 +86,19 @@ public class AeronIngressHandler {
             return false;
         }
 
+        // End of this entry in the cluster log; identical on every member (BoundedLogAdapter passes header.position()).
+        long logPosition = header != null ? header.position() : -1L;
         try {
             SimpleMessageHeader.HeaderInfo headerInfo = codec.decodeHeader(buffer, offset);
 
             if (headerInfo.templateId == SimpleMessageHeader.TEMPLATE_ID_GENESIS_PROPOSAL) {
+                AppliedLogPosition entry = dispatcher.entryPosition(logPosition, 0);
+                if (dispatcher.isAlreadyApplied(entry)) {
+                    return true;
+                }
                 log.info("🎬 GENESIS proposal received via Aeron - creating genesis on this node");
                 if (genesisCallback != null) {
-                    genesisCallback.accept(readGenesisProposal(buffer, offset, length, headerInfo.blockLength));
+                    genesisCallback.accept(readGenesisProposal(buffer, offset, length, headerInfo.blockLength), entry);
                 }
                 log.info("✅ Genesis creation complete on this node");
                 return true;
@@ -99,7 +109,7 @@ public class AeronIngressHandler {
                 return true;
             }
 
-            boolean success = dispatcher.dispatch(timestamp, buffer, offset, length);
+            boolean success = dispatcher.dispatch(timestamp, logPosition, buffer, offset, length);
             if (!success) {
                 logDispatchFailure(headerInfo.templateId);
             }

@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.segment.http.server.util.ApiErrorUtil;
 import org.apache.jackrabbit.oak.segment.http.server.util.FormatUtils;
 import org.apache.jackrabbit.oak.segment.http.server.util.JsonOutputUtil;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -99,7 +100,9 @@ public class ExplorerApiHandler {
             payload.put("path", path);
             List<String> children = new ArrayList<>();
             for (String childName : node.getChildNodeNames()) {
-                children.add(childName);
+                if (!NodeStateUtils.isHidden(childName)) {
+                    children.add(childName);
+                }
             }
             payload.put("children", children);
             Map<String, Object> props = new LinkedHashMap<>();

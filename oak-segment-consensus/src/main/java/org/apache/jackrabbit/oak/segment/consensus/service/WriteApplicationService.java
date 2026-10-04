@@ -295,6 +295,9 @@ public class WriteApplicationService {
                 Collections.singletonMap("replicated", "true")
             );
             
+            if (auditMetadata != null && auditMetadata.getAppliedLogPosition() != null) {
+                auditMetadata.getAppliedLogPosition().writeTo(rootBuilder);
+            }
             try {
                 nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, commitInfo);
             } catch (CommitFailedException e) {

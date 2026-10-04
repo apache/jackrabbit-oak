@@ -27,6 +27,7 @@ import org.agrona.concurrent.IdleStrategy;
 import org.apache.jackrabbit.oak.segment.consensus.config.BlockchainConfig;
 import org.apache.jackrabbit.oak.segment.consensus.eth.BeaconChainClient;
 import org.apache.jackrabbit.oak.segment.consensus.leader.ValidatorRole;
+import org.apache.jackrabbit.oak.segment.consensus.service.AppliedLogPosition;
 import org.apache.jackrabbit.oak.segment.consensus.service.MutationAuditMetadata;
 import org.apache.jackrabbit.oak.segment.consensus.util.SegmentReplicator;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -700,6 +701,8 @@ public class AeronConsensusEngine implements ClusteredService {
         
         this.cluster = cluster;
         this.idleStrategy = cluster.idleStrategy();
+        // Aeron replays the log from 0 (or the snapshot) into a store that already holds the applied entries.
+        messageDispatcher.setReplayFloor(AppliedLogPosition.read(nodeStore != null ? nodeStore.getRoot() : null));
         
         // Load snapshot if present (ensures consistent initial state)
         if (snapshotImage != null) {
@@ -864,7 +867,7 @@ public class AeronConsensusEngine implements ClusteredService {
                 SimpleMessageHeader.HeaderInfo headerInfo = SimpleMessageHeader.decode(buffer, offset);
                 if (headerInfo.templateId == SimpleMessageHeader.TEMPLATE_ID_GENESIS_PROPOSAL) {
                     log.info("🎬 GENESIS proposal received via Aeron - creating genesis on this node");
-                    applyGenesisCreation(readGenesisProposal(buffer, offset, length, headerInfo.blockLength));
+                    applyGenesisCreation(readGenesisProposal(buffer, offset, length, headerInfo.blockLength), null);
                     log.info("✅ Genesis creation complete on this node");
                     return;
                 }
@@ -2606,8 +2609,8 @@ public class AeronConsensusEngine implements ClusteredService {
     /**
      * Apply a replicated genesis proposal on all nodes.
      */
-    private void applyGenesisCreation(String genesisProposalJson) {
-        genesisInitializer.initializeGenesisContent(genesisProposalJson);
+    private void applyGenesisCreation(String genesisProposalJson, AppliedLogPosition logPosition) {
+        genesisInitializer.initializeGenesisContent(genesisProposalJson, logPosition);
     }
     
     /**
