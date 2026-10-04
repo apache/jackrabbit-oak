@@ -76,13 +76,6 @@ final class AeronIngressControlPayloadBuilder {
         }
     }
 
-    AeronEncodedMessage buildQueueSegment(String proposalId, int totalMembers, int requiredAcks) {
-        String json = "{\"proposalId\":\"" + escapeJson(proposalId) + "\"," +
-            "\"totalMembers\":" + totalMembers + "," +
-            "\"requiredAcks\":" + requiredAcks + "}";
-        return AeronIngressPayloadSupport.encode(SimpleMessageHeader.TEMPLATE_ID_QUEUE_SEGMENT, json);
-    }
-
     AeronEncodedMessage buildSegmentPersisted(String proposalId,
                                               int memberId,
                                               boolean success,
@@ -101,28 +94,6 @@ final class AeronIngressControlPayloadBuilder {
         }
         json.append("}");
         return AeronIngressPayloadSupport.encode(SimpleMessageHeader.TEMPLATE_ID_SEGMENT_PERSISTED, json.toString());
-    }
-
-    AeronEncodedMessage buildAckSegmentPersisted(String proposalId,
-                                                 boolean success,
-                                                 String durableHead,
-                                                 String error,
-                                                 int totalMembers,
-                                                 int requiredAcks) {
-        StringBuilder json = new StringBuilder();
-        json.append("{");
-        json.append("\"proposalId\":\"").append(escapeJson(proposalId)).append("\",");
-        json.append("\"success\":").append(success).append(",");
-        json.append("\"totalMembers\":").append(totalMembers).append(",");
-        json.append("\"requiredAcks\":").append(requiredAcks);
-        if (durableHead != null && !durableHead.isEmpty()) {
-            json.append(",\"durableHead\":\"").append(escapeJson(durableHead)).append("\"");
-        }
-        if (error != null && !error.isEmpty()) {
-            json.append(",\"error\":\"").append(escapeJson(error)).append("\"");
-        }
-        json.append("}");
-        return AeronIngressPayloadSupport.encode(SimpleMessageHeader.TEMPLATE_ID_ACK_SEGMENT_PERSISTED, json.toString());
     }
 
     AeronEncodedMessage buildGcProposal(String proposalId,

@@ -134,7 +134,8 @@ public class AeronConsensusEngine implements ClusteredService {
     private final SegmentReplicator replicator;
     private final String storeDirectory;
     private final org.apache.jackrabbit.oak.segment.consensus.queue.BackpressureManager backpressureManager;
-    private final DurabilityAckTracker durabilityAckTracker = new DurabilityAckTracker();
+    private final DurabilityTally durabilityTally = new DurabilityTally(this::getTotalMemberCount);
+    private volatile int configuredClusterMembers;
     private final TransactionLifecycleManager transactionLifecycleManager;
     private final PeerProbeMode peerProbeMode;
     
@@ -406,48 +407,15 @@ public class AeronConsensusEngine implements ClusteredService {
         );
         this.messageDispatcher.setTermProvider(this::getCurrentTerm);
 
-        this.messageDispatcher.setDurabilityCallback(new MessageDispatcher.DurabilityCallback() {
-            @Override
-            public void onQueueSegment(String proposalId, int totalMembers, int requiredAcks) {
-                if (!isLeader()) {
+        this.messageDispatcher.setDurabilityCallback((proposalId, memberId, durableHead, success, error) -> {
+            DurabilityTally.Outcome outcome = durabilityTally.record(proposalId, memberId, success, durableHead, error);
+            if (outcome == null || durabilityStatusCallback == null) {
                     return;
                 }
-                durabilityAckTracker.track(proposalId, totalMembers, requiredAcks);
-            }
-
-            @Override
-            public void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success, String error) {
-                if (!isLeader()) {
-                    return;
-                }
-
-                DurabilityAckTracker.Outcome outcome = durabilityAckTracker.record(
-                    proposalId, memberId, durableHead, success, error, getTotalMemberCount(), getQuorumSize()
-                );
-                if (outcome == null || !outcome.shouldAck) {
-                    return;
-                }
-                sendAckSegmentPersisted(
-                    proposalId,
-                    outcome.success,
-                    outcome.durableHead,
-                    outcome.error,
-                    outcome.totalMembers,
-                    outcome.requiredAcks
-                );
-            }
-
-            @Override
-            public void onAckSegmentPersisted(String proposalId, boolean success, String durableHead, String error,
-                                              int totalMembers, int requiredAcks) {
-                if (durabilityStatusCallback != null) {
-                    if (success) {
-                        durabilityStatusCallback.onDurable(proposalId, durableHead);
+            if (outcome.success) {
+                durabilityStatusCallback.onDurable(proposalId, outcome.durableHead);
                     } else {
-                        durabilityStatusCallback.onFailure(proposalId, error != null ? error : "durability failed");
-                    }
-                }
-                durabilityAckTracker.complete(proposalId);
+                durabilityStatusCallback.onFailure(proposalId, outcome.error);
             }
         });
         this.messageDispatcher.setTransactionCallback(new MessageDispatcher.TransactionCallback() {
@@ -973,49 +941,18 @@ public class AeronConsensusEngine implements ClusteredService {
         );
     }
 
-    public boolean sendQueueSegment(String proposalId) {
-        if (proposalId == null || proposalId.isEmpty()) {
-            return false;
-        }
-        return sendQueueSegment(proposalId, getTotalMemberCount(), getQuorumSize());
-    }
-
-    public boolean sendQueueSegment(String proposalId, int totalMembers, int requiredAcks) {
-        if (proposalId == null || proposalId.isEmpty()) {
-            return false;
-        }
-        return sendDurabilityMessage(
-            ingressControlPayloadBuilder.buildQueueSegment(proposalId, totalMembers, requiredAcks),
-            "queue-segment"
-        );
-    }
-
     public boolean sendSegmentPersisted(String proposalId, String durableHead, boolean success, String error) {
         if (proposalId == null || proposalId.isEmpty()) {
             return false;
         }
         int memberId = cluster != null ? cluster.memberId() : -1;
+        if (durabilityTally.hasReported(proposalId, memberId)) {
+            log.debug("Durability of {} already in the log for member {} - not sending again", proposalId, memberId);
+            return true;
+        }
         return sendDurabilityMessage(
             ingressControlPayloadBuilder.buildSegmentPersisted(proposalId, memberId, success, durableHead, error),
             "segment-persisted"
-        );
-    }
-
-    public boolean sendAckSegmentPersisted(String proposalId, boolean success, String durableHead, String error,
-                                           int totalMembers, int requiredAcks) {
-        if (proposalId == null || proposalId.isEmpty()) {
-            return false;
-        }
-        return sendDurabilityMessage(
-            ingressControlPayloadBuilder.buildAckSegmentPersisted(
-                proposalId,
-                success,
-                durableHead,
-                error,
-                totalMembers,
-                requiredAcks
-            ),
-            "ack-segment-persisted proposalId=" + proposalId
         );
     }
 
@@ -2659,7 +2596,17 @@ public class AeronConsensusEngine implements ClusteredService {
         return healthService.getHeartbeatAgeMs();
     }
     
+    /**
+     * Sets the size of the configured Aeron cluster membership, the basis of every replicated quorum.
+     */
+    public void setClusterMemberCount(int clusterMembers) {
+        this.configuredClusterMembers = clusterMembers;
+    }
+
     public int getTotalMemberCount() {
+        if (configuredClusterMembers > 0) {
+            return configuredClusterMembers;
+        }
         int peers = peerUrls != null ? peerUrls.size() : 0;
         return peers + 1;
     }

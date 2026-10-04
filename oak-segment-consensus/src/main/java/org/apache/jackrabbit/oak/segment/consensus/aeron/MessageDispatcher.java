@@ -115,13 +115,10 @@ public class MessageDispatcher {
     }
 
     /**
-     * Callback interface for durability acknowledgments (ADR 026).
+     * Callback interface for per-member durability reports (ADR 026).
      */
     public interface DurabilityCallback {
-        void onQueueSegment(String proposalId, int totalMembers, int requiredAcks);
         void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success, String error);
-        void onAckSegmentPersisted(String proposalId, boolean success, String durableHead, String error,
-                                   int totalMembers, int requiredAcks);
     }
 
     /**
@@ -316,14 +313,14 @@ public class MessageDispatcher {
             case SimpleMessageHeader.TEMPLATE_ID_GC_EXECUTE:
                 return handleGCExecute(buffer, payloadOffset, payloadLength);
                 
-            case SimpleMessageHeader.TEMPLATE_ID_QUEUE_SEGMENT:
-                return handleQueueSegment(buffer, payloadOffset, payloadLength);
-                
             case SimpleMessageHeader.TEMPLATE_ID_SEGMENT_PERSISTED:
                 return handleSegmentPersisted(buffer, payloadOffset, payloadLength);
                 
+                case SimpleMessageHeader.TEMPLATE_ID_QUEUE_SEGMENT:
             case SimpleMessageHeader.TEMPLATE_ID_ACK_SEGMENT_PERSISTED:
-                return handleAckSegmentPersisted(buffer, payloadOffset, payloadLength);
+                    // No longer sent: durability is decided from SEGMENT_PERSISTED; older logs may still hold them
+                    log.debug("Ignoring legacy durability entry templateId={}", header.templateId);
+                    return true;
 
             case SimpleMessageHeader.TEMPLATE_ID_START_TRANSACTION:
                 return handleStartTransaction(buffer, payloadOffset, payloadLength);
@@ -772,35 +769,6 @@ public class MessageDispatcher {
     // DURABILITY MESSAGE HANDLERS (ADR 026)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-    private boolean handleQueueSegment(DirectBuffer buffer, int payloadOffset, int payloadLength) {
-        if (durabilityCallback == null) {
-            log.warn("⚠️  Durability callback not set - cannot process queue segment");
-            return false;
-        }
-
-        try {
-            Map<String, Object> json = readPayload(buffer, payloadOffset, payloadLength);
-
-            String proposalId = stringField(json, "proposalId");
-            Long totalMembers = longField(json, "totalMembers");
-            Long requiredAcks = longField(json, "requiredAcks");
-
-            if (proposalId == null || totalMembers == null || requiredAcks == null) {
-                log.warn("Invalid queue segment: missing required fields (proposalId={}, totalMembers={}, requiredAcks={})",
-                    proposalId, totalMembers, requiredAcks);
-                return false;
-            }
-
-            durabilityCallback.onQueueSegment(proposalId, totalMembers.intValue(), requiredAcks.intValue());
-            return true;
-        } catch (AgentTerminationException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Failed to handle queue segment", e);
-            return false;
-        }
-    }
-
     private boolean handleSegmentPersisted(DirectBuffer buffer, int payloadOffset, int payloadLength) {
         if (durabilityCallback == null) {
             log.warn("⚠️  Durability callback not set - cannot process segment persisted");
@@ -833,44 +801,6 @@ public class MessageDispatcher {
             throw e;
         } catch (Exception e) {
             log.error("Failed to handle segment persisted", e);
-            return false;
-        }
-    }
-
-    private boolean handleAckSegmentPersisted(DirectBuffer buffer, int payloadOffset, int payloadLength) {
-        if (durabilityCallback == null) {
-            log.warn("⚠️  Durability callback not set - cannot process ack segment persisted");
-            return false;
-        }
-
-        try {
-            Map<String, Object> json = readPayload(buffer, payloadOffset, payloadLength);
-
-            String proposalId = stringField(json, "proposalId");
-            Boolean success = booleanField(json, "success");
-            String durableHead = stringField(json, "durableHead");
-            String error = stringField(json, "error");
-            Long totalMembers = longField(json, "totalMembers");
-            Long requiredAcks = longField(json, "requiredAcks");
-
-            if (proposalId == null || success == null || totalMembers == null || requiredAcks == null) {
-                log.warn("Invalid ack segment persisted: missing required fields");
-                return false;
-            }
-
-            durabilityCallback.onAckSegmentPersisted(
-                proposalId,
-                success,
-                durableHead,
-                error,
-                totalMembers.intValue(),
-                requiredAcks.intValue()
-            );
-            return true;
-        } catch (AgentTerminationException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Failed to handle ack segment persisted", e);
             return false;
         }
     }

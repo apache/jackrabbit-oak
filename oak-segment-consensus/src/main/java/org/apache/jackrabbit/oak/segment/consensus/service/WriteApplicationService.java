@@ -364,12 +364,13 @@ public class WriteApplicationService {
         return existingProposalId != null && proposalId.equals(existingProposalId.getValue(Type.STRING));
     }
 
+    /**
+     * The proposal was persisted before and its durability report is already in the log, so a replay
+     * reports nothing again.
+     */
     @NotNull
     private String acknowledgeDuplicateReplay(@Nullable String proposalId) {
         String currentHead = fileStore.getHead().getRecordId().toString10();
-        if (durabilityCallback != null && proposalId != null && !proposalId.isEmpty()) {
-            durabilityCallback.onDurable(proposalId, currentHead);
-        }
         if (headUpdateCallback != null) {
             headUpdateCallback.updateHead(currentHead);
         }

@@ -780,71 +780,20 @@ public class AeronConsensusEngineTest {
     }
 
     @Test
-    public void durabilityAckFailureInvokesFailureCallbackAndClearsPendingState() throws Exception {
-        AeronConsensusEngine engine = createEngine();
+    public void durabilityFailureWithoutErrorUsesDefaultMessage() throws Exception {
+        AeronConsensusEngine engine = createEngine(List.of("http://peer-1:8080", "http://peer-2:8080"));
         AeronConsensusEngine.DurabilityStatusCallback callback =
             mock(AeronConsensusEngine.DurabilityStatusCallback.class);
         engine.setDurabilityStatusCallback(callback);
 
-        DurabilityAckTracker tracker = (DurabilityAckTracker) getField(engine, "durabilityAckTracker");
-        tracker.track("p-fail", 3, 2);
-        assertEquals(1, pendingDurabilityCount(tracker));
-
         MessageDispatcher dispatcher = (MessageDispatcher) getField(engine, "messageDispatcher");
         MessageDispatcher.DurabilityCallback durabilityCallback =
             (MessageDispatcher.DurabilityCallback) getField(dispatcher, "durabilityCallback");
-        durabilityCallback.onAckSegmentPersisted("p-fail", false, null, "disk full", 3, 2);
-
-        verify(callback).onFailure("p-fail", "disk full");
-        verify(callback, never()).onDurable("p-fail", null);
-        assertEquals(0, pendingDurabilityCount(tracker));
-    }
-
-    @Test
-    public void replayAckReEmitsLostDurabilityAckUntilApplied() throws Exception {
-        AeronConsensusEngine engine = createEngine();
-        io.aeron.cluster.client.AeronCluster client = installHealthyClient(engine, Cluster.Role.LEADER);
-        AeronConsensusEngine.DurabilityStatusCallback callback =
-            mock(AeronConsensusEngine.DurabilityStatusCallback.class);
-        engine.setDurabilityStatusCallback(callback);
-        DurabilityAckTracker tracker = (DurabilityAckTracker) getField(engine, "durabilityAckTracker");
-        MessageDispatcher dispatcher = (MessageDispatcher) getField(engine, "messageDispatcher");
-        MessageDispatcher.DurabilityCallback durabilityCallback =
-            (MessageDispatcher.DurabilityCallback) getField(dispatcher, "durabilityCallback");
-
-        durabilityCallback.onQueueSegment("p-lost-ack", 3, 2);
-        durabilityCallback.onSegmentPersisted("p-lost-ack", 0, "h1", true, null);
-        durabilityCallback.onSegmentPersisted("p-lost-ack", 1, "h1", true, null);
-        durabilityCallback.onSegmentPersisted("p-lost-ack", 2, "h1", true, null);
-        verify(client, timeout(1500L).times(1)).offer(any(MutableDirectBuffer.class), eq(0), anyInt());
-
-        // The first ACK_SEGMENT_PERSISTED is never applied; the replay makes members ack again.
-        durabilityCallback.onSegmentPersisted("p-lost-ack", 0, "h2", true, null);
-        verify(client, timeout(1500L).times(2)).offer(any(MutableDirectBuffer.class), eq(0), anyInt());
-
-        durabilityCallback.onAckSegmentPersisted("p-lost-ack", true, "h1", null, 3, 2);
-        verify(callback).onDurable("p-lost-ack", "h1");
-        assertEquals(0, pendingDurabilityCount(tracker));
-    }
-
-    @Test
-    public void durabilityAckFailureWithoutErrorUsesDefaultMessage() throws Exception {
-        AeronConsensusEngine engine = createEngine();
-        AeronConsensusEngine.DurabilityStatusCallback callback =
-            mock(AeronConsensusEngine.DurabilityStatusCallback.class);
-        engine.setDurabilityStatusCallback(callback);
-
-        DurabilityAckTracker tracker = (DurabilityAckTracker) getField(engine, "durabilityAckTracker");
-        tracker.track("p-default-error", 3, 2);
-        assertEquals(1, pendingDurabilityCount(tracker));
-
-        MessageDispatcher dispatcher = (MessageDispatcher) getField(engine, "messageDispatcher");
-        MessageDispatcher.DurabilityCallback durabilityCallback =
-            (MessageDispatcher.DurabilityCallback) getField(dispatcher, "durabilityCallback");
-        durabilityCallback.onAckSegmentPersisted("p-default-error", false, null, null, 3, 2);
+        durabilityCallback.onSegmentPersisted("p-default-error", 0, null, false, null);
+        verify(callback, never()).onFailure(any(), any());
+        durabilityCallback.onSegmentPersisted("p-default-error", 1, null, false, null);
 
         verify(callback).onFailure("p-default-error", "durability failed");
-        assertEquals(0, pendingDurabilityCount(tracker));
     }
 
     @Test
@@ -919,20 +868,6 @@ public class AeronConsensusEngineTest {
         setField(engine, "cluster", cluster);
 
         assertFalse(engine.stepDownAsLeader());
-    }
-
-    @Test
-    public void sendQueueSegmentOffersDurabilityMessage() throws Exception {
-        AeronConsensusEngine engine = createEngine();
-        io.aeron.cluster.client.AeronCluster client = installHealthyClient(engine, Cluster.Role.LEADER);
-
-        assertTrue(engine.sendQueueSegment("proposal-1", 3, 2));
-
-        CapturedOffer offer = captureOffer(client);
-        assertEquals(SimpleMessageHeader.TEMPLATE_ID_QUEUE_SEGMENT, offer.templateId);
-        assertTrue(offer.json.contains("\"proposalId\":\"proposal-1\""));
-        assertTrue(offer.json.contains("\"totalMembers\":3"));
-        assertTrue(offer.json.contains("\"requiredAcks\":2"));
     }
 
     @Test
@@ -1628,13 +1563,6 @@ public class AeronConsensusEngineTest {
         buffer.getBytes(SimpleMessageHeader.ENCODED_LENGTH, jsonBytes);
         String json = new String(jsonBytes, StandardCharsets.UTF_8);
         return new CapturedOffer(header.templateId, json);
-    }
-
-    private static int pendingDurabilityCount(DurabilityAckTracker tracker) throws Exception {
-        Field pendingField = DurabilityAckTracker.class.getDeclaredField("pending");
-        pendingField.setAccessible(true);
-        Map<?, ?> pending = (Map<?, ?>) pendingField.get(tracker);
-        return pending.size();
     }
 
     private static final class CapturedOffer {

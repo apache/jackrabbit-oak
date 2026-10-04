@@ -414,54 +414,13 @@ public class MessageDispatcherTest {
     }
 
     @Test
-    public void testDurabilityQueueSegmentDispatch() {
-        AtomicReference<String> queued = new AtomicReference<>(null);
-        MessageDispatcher dispatcher = new MessageDispatcher();
-        dispatcher.setDurabilityCallback(new MessageDispatcher.DurabilityCallback() {
-            @Override
-            public void onQueueSegment(String proposalId, int totalMembers, int requiredAcks) {
-                queued.set(proposalId + ":" + totalMembers + ":" + requiredAcks);
-            }
-
-            @Override
-            public void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success, String error) {
-            }
-
-            @Override
-            public void onAckSegmentPersisted(String proposalId, boolean success, String durableHead, String error,
-                                              int totalMembers, int requiredAcks) {
-            }
-        });
-
-        String payload = "{\"proposalId\":\"p-1\",\"totalMembers\":3,\"requiredAcks\":2}";
-        DirectBuffer buffer = bufferFor(buildMessageBytes(SimpleMessageHeader.TEMPLATE_ID_QUEUE_SEGMENT, payload));
-
-        boolean result = dispatcher.dispatch(System.currentTimeMillis(), buffer, 0,
-            SimpleMessageHeader.ENCODED_LENGTH + payload.getBytes(StandardCharsets.UTF_8).length);
-
-        assertTrue(result);
-        assertEquals("p-1:3:2", queued.get());
-    }
-
-    @Test
-    public void testDurabilitySegmentPersistedAndAckDispatch() {
+    public void testDurabilitySegmentPersistedDispatchAndLegacyAckIgnored() {
         AtomicReference<String> persisted = new AtomicReference<>(null);
-        AtomicReference<String> acked = new AtomicReference<>(null);
         MessageDispatcher dispatcher = new MessageDispatcher();
         dispatcher.setDurabilityCallback(new MessageDispatcher.DurabilityCallback() {
-            @Override
-            public void onQueueSegment(String proposalId, int totalMembers, int requiredAcks) {
-            }
-
             @Override
             public void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success, String error) {
                 persisted.set(proposalId + "|" + memberId + "|" + durableHead + "|" + success + "|" + error);
-            }
-
-            @Override
-            public void onAckSegmentPersisted(String proposalId, boolean success, String durableHead, String error,
-                                              int totalMembers, int requiredAcks) {
-                acked.set(proposalId + "|" + success + "|" + durableHead + "|" + error + "|" + totalMembers + "|" + requiredAcks);
             }
         });
 
@@ -471,35 +430,23 @@ public class MessageDispatcherTest {
             "{\"proposalId\":\"p-2\",\"success\":true,\"durableHead\":\"dh2\",\"totalMembers\":5,\"requiredAcks\":3}"));
 
         assertEquals("p-2|4|dh1|false|disk", persisted.get());
-        assertEquals("p-2|true|dh2|null|5|3", acked.get());
     }
 
     @Test
     public void testDurabilityHandlersRejectMissingCallbackAndRequiredFields() {
         MessageDispatcher dispatcher = new MessageDispatcher();
 
-        assertFalse(dispatch(dispatcher, SimpleMessageHeader.TEMPLATE_ID_QUEUE_SEGMENT,
-            "{\"proposalId\":\"p-1\",\"totalMembers\":3,\"requiredAcks\":2}"));
+        assertFalse(dispatch(dispatcher, SimpleMessageHeader.TEMPLATE_ID_SEGMENT_PERSISTED,
+            "{\"proposalId\":\"p-1\",\"memberId\":1,\"success\":true}"));
 
         dispatcher.setDurabilityCallback(new MessageDispatcher.DurabilityCallback() {
             @Override
-            public void onQueueSegment(String proposalId, int totalMembers, int requiredAcks) {
-            }
-
-            @Override
             public void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success, String error) {
-            }
-
-            @Override
-            public void onAckSegmentPersisted(String proposalId, boolean success, String durableHead, String error,
-                                              int totalMembers, int requiredAcks) {
             }
         });
 
         assertFalse(dispatch(dispatcher, SimpleMessageHeader.TEMPLATE_ID_SEGMENT_PERSISTED,
             "{\"proposalId\":\"p-1\",\"memberId\":1}"));
-        assertFalse(dispatch(dispatcher, SimpleMessageHeader.TEMPLATE_ID_ACK_SEGMENT_PERSISTED,
-            "{\"proposalId\":\"p-1\",\"success\":true,\"totalMembers\":3}"));
     }
 
     @Test
@@ -694,16 +641,7 @@ public class MessageDispatcherTest {
         });
         dispatcher.setDurabilityCallback(new MessageDispatcher.DurabilityCallback() {
             @Override
-            public void onQueueSegment(String proposalId, int totalMembers, int requiredAcks) {
-            }
-
-            @Override
             public void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success, String error) {
-            }
-
-            @Override
-            public void onAckSegmentPersisted(String proposalId, boolean success, String durableHead, String error,
-                                              int totalMembers, int requiredAcks) {
             }
         });
         dispatcher.setTransactionCallback(new MessageDispatcher.TransactionCallback() {

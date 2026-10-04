@@ -179,13 +179,9 @@ public class ReplicatedCommandRoundTripTest {
         for (String s : SAMPLES) {
             List<String> calls = new ArrayList<>();
             MessageDispatcher d = dispatcher(calls);
-            assertTrue(dispatch(d, controls.buildQueueSegment("pid" + s, 3, 2)));
             assertTrue(dispatch(d, controls.buildSegmentPersisted("pid" + s, 1, false, "head" + s, "err" + s)));
-            assertTrue(dispatch(d, controls.buildAckSegmentPersisted("pid" + s, true, "head" + s, "err" + s, 3, 2)));
             assertEquals(Arrays.asList(
-                String.join("|", "queue", "pid" + s, "3", "2"),
-                String.join("|", "persisted", "pid" + s, "1", "head" + s, "false", "err" + s),
-                String.join("|", "ack", "pid" + s, "true", "head" + s, "err" + s, "3", "2")), calls);
+                String.join("|", "persisted", "pid" + s, "1", "head" + s, "false", "err" + s)), calls);
         }
     }
 
@@ -297,23 +293,10 @@ public class ReplicatedCommandRoundTripTest {
         });
         dispatcher.setDurabilityCallback(new MessageDispatcher.DurabilityCallback() {
             @Override
-            public void onQueueSegment(String proposalId, int totalMembers, int requiredAcks) {
-                calls.add(String.join("|", "queue", proposalId, String.valueOf(totalMembers),
-                    String.valueOf(requiredAcks)));
-            }
-
-            @Override
             public void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success,
                                            String error) {
                 calls.add(String.join("|", "persisted", proposalId, String.valueOf(memberId), durableHead,
                     String.valueOf(success), error));
-            }
-
-            @Override
-            public void onAckSegmentPersisted(String proposalId, boolean success, String durableHead, String error,
-                                              int totalMembers, int requiredAcks) {
-                calls.add(String.join("|", "ack", proposalId, String.valueOf(success), durableHead, error,
-                    String.valueOf(totalMembers), String.valueOf(requiredAcks)));
             }
         });
         dispatcher.setTransactionCallback(new MessageDispatcher.TransactionCallback() {

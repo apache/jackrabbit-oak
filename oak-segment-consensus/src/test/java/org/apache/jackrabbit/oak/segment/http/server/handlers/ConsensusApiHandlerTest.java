@@ -601,7 +601,6 @@ public class ConsensusApiHandlerTest {
                     "proposal-1"
                 );
 
-                verify(aeronEngine).sendQueueSegment("proposal-1");
                 verify(aeronEngine).sendSegmentPersisted("proposal-1", "new-head", true, null);
                 verify(queueManager, never()).updateDurability("proposal-1", DurabilityState.ACKED, "new-head", null);
             } finally {
@@ -643,7 +642,6 @@ public class ConsensusApiHandlerTest {
                     "proposal-delete-1"
                 );
 
-                verify(aeronEngine).sendQueueSegment("proposal-delete-1");
                 verify(aeronEngine).sendSegmentPersisted("proposal-delete-1", "delete-head", true, null);
                 assertFalse(nodeExists(nodeStore,
                     "/oak-chain/aa/bb/cc/0x1234567890abcdef1234567890abcdef12345678/Acme/content/doc-1"));
