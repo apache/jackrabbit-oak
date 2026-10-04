@@ -412,8 +412,9 @@ public class AeronConsensusEngine implements ClusteredService {
         );
         this.messageDispatcher.setTermProvider(this::getCurrentTerm);
 
-        this.messageDispatcher.setDurabilityCallback((proposalId, memberId, durableHead, success, error) -> {
-            DurabilityTally.Outcome outcome = durabilityTally.record(proposalId, memberId, success, durableHead, error);
+        this.messageDispatcher.setDurabilityCallback((proposalId, memberId, durableHead, success, error, clusterTime) -> {
+            DurabilityTally.Outcome outcome =
+                durabilityTally.record(proposalId, memberId, success, durableHead, error, clusterTime);
             if (outcome == null || durabilityStatusCallback == null) {
                     return;
                 }

@@ -294,7 +294,7 @@ public class ReplicatedCommandRoundTripTest {
         dispatcher.setDurabilityCallback(new MessageDispatcher.DurabilityCallback() {
             @Override
             public void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success,
-                                           String error) {
+                                           String error, long clusterTime) {
                 calls.add(String.join("|", "persisted", proposalId, String.valueOf(memberId), durableHead,
                     String.valueOf(success), error));
             }

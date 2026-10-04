@@ -789,9 +789,9 @@ public class AeronConsensusEngineTest {
         MessageDispatcher dispatcher = (MessageDispatcher) getField(engine, "messageDispatcher");
         MessageDispatcher.DurabilityCallback durabilityCallback =
             (MessageDispatcher.DurabilityCallback) getField(dispatcher, "durabilityCallback");
-        durabilityCallback.onSegmentPersisted("p-default-error", 0, null, false, null);
+        durabilityCallback.onSegmentPersisted("p-default-error", 0, null, false, null, 1L);
         verify(callback, never()).onFailure(any(), any());
-        durabilityCallback.onSegmentPersisted("p-default-error", 1, null, false, null);
+        durabilityCallback.onSegmentPersisted("p-default-error", 1, null, false, null, 1L);
 
         verify(callback).onFailure("p-default-error", "durability failed");
     }

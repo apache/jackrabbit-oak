@@ -419,17 +419,19 @@ public class MessageDispatcherTest {
         MessageDispatcher dispatcher = new MessageDispatcher();
         dispatcher.setDurabilityCallback(new MessageDispatcher.DurabilityCallback() {
             @Override
-            public void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success, String error) {
-                persisted.set(proposalId + "|" + memberId + "|" + durableHead + "|" + success + "|" + error);
+            public void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success, String error,
+                                           long clusterTime) {
+                persisted.set(proposalId + "|" + memberId + "|" + durableHead + "|" + success + "|" + error + "|" + clusterTime);
             }
         });
 
-        assertTrue(dispatch(dispatcher, SimpleMessageHeader.TEMPLATE_ID_SEGMENT_PERSISTED,
-            "{\"proposalId\":\"p-2\",\"memberId\":4,\"durableHead\":\"dh1\",\"success\":false,\"error\":\"disk\"}"));
+        String payload = "{\"proposalId\":\"p-2\",\"memberId\":4,\"durableHead\":\"dh1\",\"success\":false,\"error\":\"disk\"}";
+        assertTrue(dispatcher.dispatch(42L, bufferFor(buildMessageBytes(SimpleMessageHeader.TEMPLATE_ID_SEGMENT_PERSISTED, payload)),
+            0, SimpleMessageHeader.ENCODED_LENGTH + payload.getBytes(StandardCharsets.UTF_8).length));
         assertTrue(dispatch(dispatcher, SimpleMessageHeader.TEMPLATE_ID_ACK_SEGMENT_PERSISTED,
             "{\"proposalId\":\"p-2\",\"success\":true,\"durableHead\":\"dh2\",\"totalMembers\":5,\"requiredAcks\":3}"));
 
-        assertEquals("p-2|4|dh1|false|disk", persisted.get());
+        assertEquals("p-2|4|dh1|false|disk|42", persisted.get());
     }
 
     @Test
@@ -441,7 +443,8 @@ public class MessageDispatcherTest {
 
         dispatcher.setDurabilityCallback(new MessageDispatcher.DurabilityCallback() {
             @Override
-            public void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success, String error) {
+            public void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success, String error,
+                                           long clusterTime) {
             }
         });
 
@@ -641,7 +644,8 @@ public class MessageDispatcherTest {
         });
         dispatcher.setDurabilityCallback(new MessageDispatcher.DurabilityCallback() {
             @Override
-            public void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success, String error) {
+            public void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success, String error,
+                                           long clusterTime) {
             }
         });
         dispatcher.setTransactionCallback(new MessageDispatcher.TransactionCallback() {
@@ -698,7 +702,7 @@ public class MessageDispatcherTest {
         dispatcher.setDurabilityCallback(new MessageDispatcher.DurabilityCallback() {
             @Override
             public void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success,
-                                           String error) {
+                                           String error, long clusterTime) {
                 throw termination;
             }
         });

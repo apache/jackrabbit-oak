@@ -41,6 +41,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.after;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -138,6 +139,23 @@ public class ReplicatedDurabilityDecisionTest {
         verify(ingress, after(300L).never()).offer(any(MutableDirectBuffer.class), eq(0), anyInt());
     }
 
+    @Test
+    public void decisionIsForgottenOnceItsRetentionWindowOfLogTimeHasPassed() throws Exception {
+        AeronConsensusEngine engine = newEngine("member0");
+        AeronCluster ingress = installLeaderIngress(engine);
+        long decidedAt = 1_000L;
+
+        dispatch(engine, persisted("p-old", 1, true, "h", null), decidedAt);
+        dispatch(engine, persisted("p-old", 2, true, "h", null), decidedAt);
+        dispatch(engine, persisted("p-next", 1, true, "h", null), decidedAt + DurabilityTally.RETENTION_MS - 1);
+        assertTrue(engine.sendSegmentPersisted("p-old", "h", true, null));
+        verify(ingress, after(300L).never()).offer(any(MutableDirectBuffer.class), eq(0), anyInt());
+
+        dispatch(engine, persisted("p-next", 2, true, "h", null), decidedAt + DurabilityTally.RETENTION_MS);
+        assertTrue(engine.sendSegmentPersisted("p-old", "h", true, null));
+        verify(ingress, timeout(1_000L)).offer(any(MutableDirectBuffer.class), eq(0), anyInt());
+    }
+
     private AeronEncodedMessage persisted(String proposalId, int memberId, boolean success, String head, String error) {
         return payloads.buildSegmentPersisted(proposalId, memberId, success, head, error);
     }
@@ -168,8 +186,13 @@ public class ReplicatedDurabilityDecisionTest {
     }
 
     private static boolean dispatch(AeronConsensusEngine engine, AeronEncodedMessage entry) throws Exception {
+        return dispatch(engine, entry, 1L);
+    }
+
+    private static boolean dispatch(AeronConsensusEngine engine, AeronEncodedMessage entry, long clusterTime)
+        throws Exception {
         MessageDispatcher dispatcher = (MessageDispatcher) field(engine, "messageDispatcher");
-        return dispatcher.dispatch(1L, entry.buffer, 0, entry.totalLength);
+        return dispatcher.dispatch(clusterTime, entry.buffer, 0, entry.totalLength);
     }
 
     private AeronConsensusEngine newEngine(String name) throws Exception {

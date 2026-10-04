@@ -118,7 +118,11 @@ public class MessageDispatcher {
      * Callback interface for per-member durability reports (ADR 026).
      */
     public interface DurabilityCallback {
-        void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success, String error);
+        /**
+         * @param clusterTime timestamp of the log entry
+         */
+        void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success, String error,
+                                long clusterTime);
     }
 
     /**
@@ -314,7 +318,7 @@ public class MessageDispatcher {
                 return handleGCExecute(buffer, payloadOffset, payloadLength);
                 
             case SimpleMessageHeader.TEMPLATE_ID_SEGMENT_PERSISTED:
-                return handleSegmentPersisted(buffer, payloadOffset, payloadLength);
+                return handleSegmentPersisted(timestamp, buffer, payloadOffset, payloadLength);
                 
             case SimpleMessageHeader.TEMPLATE_ID_QUEUE_SEGMENT:
             case SimpleMessageHeader.TEMPLATE_ID_ACK_SEGMENT_PERSISTED:
@@ -769,7 +773,7 @@ public class MessageDispatcher {
     // DURABILITY MESSAGE HANDLERS (ADR 026)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-    private boolean handleSegmentPersisted(DirectBuffer buffer, int payloadOffset, int payloadLength) {
+    private boolean handleSegmentPersisted(long timestamp, DirectBuffer buffer, int payloadOffset, int payloadLength) {
         if (durabilityCallback == null) {
             log.warn("⚠️  Durability callback not set - cannot process segment persisted");
             return false;
@@ -794,7 +798,8 @@ public class MessageDispatcher {
                 memberIdLong.intValue(),
                 durableHead,
                 success,
-                error
+                error,
+                timestamp
             );
             return true;
         } catch (AgentTerminationException e) {
