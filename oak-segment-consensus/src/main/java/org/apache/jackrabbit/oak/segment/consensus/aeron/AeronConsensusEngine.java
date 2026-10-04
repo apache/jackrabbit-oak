@@ -1358,17 +1358,21 @@ public class AeronConsensusEngine implements ClusteredService {
     public interface GCApplicationCallback {
         /**
          * Apply a replicated GC proposal (create proposal on all nodes).
+         *
+         * @param clusterTime cluster timestamp of the log entry
          */
         void applyGCProposal(String proposalId, String proposerWallet, String targetRevision,
-                            long estimatedReclaimableSizeMB, String estimatedCostUSDC);
+                            long estimatedReclaimableSizeMB, String estimatedCostUSDC, long clusterTime);
         
         /**
          * Apply a replicated GC vote.
+         *
+         * @param clusterTime cluster timestamp of the log entry
          */
-        void applyGCVote(String proposalId, int validatorId, boolean approve, String reason);
+        void applyGCVote(String proposalId, int validatorId, boolean approve, String reason, long clusterTime);
         
         /**
-         * Apply a replicated GC execution command (leader-initiated).
+         * Apply a replicated GC execution command. Must not block: cleanup runs off the service thread.
          */
         void applyGCExecute(String proposalId, int executorId);
     }
@@ -1387,12 +1391,12 @@ public class AeronConsensusEngine implements ClusteredService {
                 public void applyGCProposal(String proposalId, String proposerWallet, String targetRevision,
                                           long estimatedReclaimableSizeMB, String estimatedCostUSDC) {
                     callback.applyGCProposal(proposalId, proposerWallet, targetRevision,
-                                            estimatedReclaimableSizeMB, estimatedCostUSDC);
+                                            estimatedReclaimableSizeMB, estimatedCostUSDC, cluster.time());
                 }
                 
                 @Override
                 public void applyGCVote(String proposalId, int validatorId, boolean approve, String reason) {
-                    callback.applyGCVote(proposalId, validatorId, approve, reason);
+                    callback.applyGCVote(proposalId, validatorId, approve, reason, cluster.time());
                 }
                 
                 @Override
@@ -1485,7 +1489,7 @@ public class AeronConsensusEngine implements ClusteredService {
     /**
      * Send a GC execute command through Aeron ingress for cluster-wide replication.
      * 
-     * <p>Only the leader should call this after a proposal is approved.
+     * <p>Any member may send it; applying it is idempotent and only an APPROVED proposal starts executing.
      * 
      * @param proposalId the approved proposal to execute
      * @param executorId the validator executing the GC
@@ -1494,12 +1498,6 @@ public class AeronConsensusEngine implements ClusteredService {
     public boolean sendGCExecuteThroughIngress(String proposalId, int executorId) {
         if (cluster == null) {
             log.error("❌ Cluster not initialized - cannot send GC execute through ingress");
-            return false;
-        }
-        
-        // Only leader should initiate GC execution
-        if (cluster.role() != Cluster.Role.LEADER) {
-            log.warn("⚠️  Only leader can initiate GC execution (current role: {})", cluster.role());
             return false;
         }
         

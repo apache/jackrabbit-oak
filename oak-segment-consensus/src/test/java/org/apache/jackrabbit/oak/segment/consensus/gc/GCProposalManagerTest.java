@@ -58,7 +58,7 @@ public class GCProposalManagerTest {
     public void testApplyReplicatedProposalNormalizesValuesAndIsIdempotent() {
         GCProposalManager manager = newManager();
 
-        GCProposal proposal = manager.applyReplicatedProposal("gc-proposal-1", "0xwallet", "HEAD", -15L, "invalid");
+        GCProposal proposal = manager.applyReplicatedProposal("gc-proposal-1", "0xwallet", "HEAD", -15L, "invalid", 1_000L);
 
         assertNull(proposal.targetRevision);
         assertEquals(0L, proposal.estimatedReclaimableSizeMB);
@@ -66,7 +66,7 @@ public class GCProposalManagerTest {
         assertEquals(GCProposal.GCProposalState.PENDING, proposal.state);
 
         proposal.state = GCProposal.GCProposalState.REJECTED;
-        GCProposal duplicate = manager.applyReplicatedProposal("gc-proposal-1", "0xother", "rev-2", 99L, "3.00");
+        GCProposal duplicate = manager.applyReplicatedProposal("gc-proposal-1", "0xother", "rev-2", 99L, "3.00", 1_000L);
 
         assertSame(proposal, duplicate);
         assertEquals(GCProposal.GCProposalState.REJECTED, duplicate.state);
@@ -77,12 +77,12 @@ public class GCProposalManagerTest {
     @Test
     public void testVoteOnProposalReachesApproveQuorumAndIgnoresDuplicateVote() {
         GCProposalManager manager = newManager(null, null, null, 4, () -> false);
-        GCProposal proposal = manager.applyReplicatedProposal("gc-proposal-1", "0xwallet", null, 10L, "1.25");
+        GCProposal proposal = manager.applyReplicatedProposal("gc-proposal-1", "0xwallet", null, 10L, "1.25", 1_000L);
 
-        manager.voteOnProposal(proposal.proposalId, 1, true, "approve");
-        manager.voteOnProposal(proposal.proposalId, 1, true, "duplicate");
-        manager.voteOnProposal(proposal.proposalId, 2, true, "approve");
-        manager.voteOnProposal(proposal.proposalId, 3, true, "approve");
+        manager.voteOnProposal(proposal.proposalId, 1, true, "approve", 2_000L);
+        manager.voteOnProposal(proposal.proposalId, 1, true, "duplicate", 2_000L);
+        manager.voteOnProposal(proposal.proposalId, 2, true, "approve", 2_000L);
+        manager.voteOnProposal(proposal.proposalId, 3, true, "approve", 2_000L);
 
         assertEquals(GCProposal.GCProposalState.APPROVED, proposal.state);
         assertEquals(3, proposal.getTotalVoteCount());
@@ -93,11 +93,11 @@ public class GCProposalManagerTest {
     @Test
     public void testVoteOnProposalRejectsOnQuorum() {
         GCProposalManager manager = newManager(null, null, null, 4, () -> false);
-        GCProposal proposal = manager.applyReplicatedProposal("gc-proposal-2", "0xwallet", null, 10L, "1.25");
+        GCProposal proposal = manager.applyReplicatedProposal("gc-proposal-2", "0xwallet", null, 10L, "1.25", 1_000L);
 
-        manager.voteOnProposal(proposal.proposalId, 1, false, "reject");
-        manager.voteOnProposal(proposal.proposalId, 2, false, "reject");
-        manager.voteOnProposal(proposal.proposalId, 3, false, "reject");
+        manager.voteOnProposal(proposal.proposalId, 1, false, "reject", 2_000L);
+        manager.voteOnProposal(proposal.proposalId, 2, false, "reject", 2_000L);
+        manager.voteOnProposal(proposal.proposalId, 3, false, "reject", 2_000L);
 
         assertEquals(GCProposal.GCProposalState.REJECTED, proposal.state);
         assertEquals(3, proposal.getRejectVoteCount());
@@ -107,14 +107,14 @@ public class GCProposalManagerTest {
     @Test
     public void testVoteOnProposalSkipsExpiredAndNonVotableProposals() {
         GCProposalManager manager = newManager();
-        GCProposal expired = manager.applyReplicatedProposal("gc-expired", "0xwallet", null, 10L, "1.25");
-        expired.expiresAt = System.currentTimeMillis() - 1;
+        GCProposal expired = manager.applyReplicatedProposal("gc-expired", "0xwallet", null, 10L, "1.25", 1_000L);
+        expired.expiresAt = 1_999L;
 
-        GCProposal completed = manager.applyReplicatedProposal("gc-completed", "0xwallet", null, 10L, "1.25");
+        GCProposal completed = manager.applyReplicatedProposal("gc-completed", "0xwallet", null, 10L, "1.25", 1_000L);
         completed.state = GCProposal.GCProposalState.COMPLETED;
 
-        manager.voteOnProposal(expired.proposalId, 1, true, "approve");
-        manager.voteOnProposal(completed.proposalId, 1, true, "approve");
+        manager.voteOnProposal(expired.proposalId, 1, true, "approve", 2_000L);
+        manager.voteOnProposal(completed.proposalId, 1, true, "approve", 2_000L);
 
         assertEquals(0, expired.getTotalVoteCount());
         assertEquals(GCProposal.GCProposalState.PENDING, expired.state);
@@ -145,7 +145,7 @@ public class GCProposalManagerTest {
         GCProposalManager manager = newManager(null, null, evmBridge, 3, () -> true);
 
         String proposalId = "gc-proposal-3";
-        manager.applyReplicatedProposal(proposalId, "0xwallet", "HEAD", 10L, "1.25");
+        manager.applyReplicatedProposal(proposalId, "0xwallet", "HEAD", 10L, "1.25", 1_000L);
         when(evmBridge.verifyPayment(proposalId)).thenReturn(new SimplePaymentProof(
             "0xtx1",
             100L,
@@ -167,7 +167,7 @@ public class GCProposalManagerTest {
         GCProposalManager manager = newManager(null, null, evmBridge, 3, () -> true);
 
         String proposalId = "gc-proposal-4";
-        GCProposal proposal = manager.applyReplicatedProposal(proposalId, "0xwallet", "HEAD", 10L, "1.25");
+        GCProposal proposal = manager.applyReplicatedProposal(proposalId, "0xwallet", "HEAD", 10L, "1.25", 1_000L);
         when(evmBridge.verifyPayment(proposalId)).thenReturn(new SimplePaymentProof(
             "0xtx2",
             100L,
@@ -189,7 +189,7 @@ public class GCProposalManagerTest {
         EvmBridge evmBridge = mock(EvmBridge.class);
         GCProposalManager manager = newManager(null, null, evmBridge, 3, () -> true);
 
-        GCProposal proposal = manager.applyReplicatedProposal("gc-proposal-5", "0xwallet", null, 10L, "1.25");
+        GCProposal proposal = manager.applyReplicatedProposal("gc-proposal-5", "0xwallet", null, 10L, "1.25", 1_000L);
         proposal.paymentProof = "0xexisting";
         when(evmBridge.verifyPayment(proposal.proposalId)).thenReturn(new SimplePaymentProof(
             "0xexisting",
@@ -210,7 +210,7 @@ public class GCProposalManagerTest {
     public void testExecuteGCCompletesApprovedProposalAndAddsHistory() throws IOException {
         FileStore fileStore = mock(FileStore.class);
         GCProposalManager manager = newManager(fileStore, null, null, 3, () -> true);
-        GCProposal proposal = manager.applyReplicatedProposal("gc-proposal-6", "0xwallet", null, 10L, "1.25");
+        GCProposal proposal = manager.applyReplicatedProposal("gc-proposal-6", "0xwallet", null, 10L, "1.25", 1_000L);
         proposal.state = GCProposal.GCProposalState.APPROVED;
 
         GCExecutionResult result = manager.executeGC(proposal.proposalId, 7);
@@ -228,7 +228,7 @@ public class GCProposalManagerTest {
     public void testExecuteGCMarksProposalFailedWhenCleanupThrows() {
         FileStore fileStore = mock(FileStore.class);
         GCProposalManager manager = newManager(fileStore, null, null, 3, () -> true);
-        GCProposal proposal = manager.applyReplicatedProposal("gc-proposal-7", "0xwallet", null, 10L, "1.25");
+        GCProposal proposal = manager.applyReplicatedProposal("gc-proposal-7", "0xwallet", null, 10L, "1.25", 1_000L);
         proposal.state = GCProposal.GCProposalState.APPROVED;
         try {
             doThrow(new IOException("disk")).when(fileStore).cleanup();
@@ -263,7 +263,7 @@ public class GCProposalManagerTest {
             assertTrue(e.getMessage().contains("GC proposal not found"));
         }
 
-        GCProposal proposal = manager.applyReplicatedProposal("gc-proposal-8", "0xwallet", null, 10L, "1.25");
+        GCProposal proposal = manager.applyReplicatedProposal("gc-proposal-8", "0xwallet", null, 10L, "1.25", 1_000L);
         try {
             manager.executeGC(proposal.proposalId, 1);
             fail("Expected IllegalStateException");
@@ -305,15 +305,15 @@ public class GCProposalManagerTest {
         FileStore fileStore = mock(FileStore.class);
         GCProposalManager manager = newManager(fileStore, null, null, 3, () -> true);
 
-        GCProposal newestPending = manager.applyReplicatedProposal("gc-proposal-9", "0xwallet", null, 10L, "1.25");
+        GCProposal newestPending = manager.applyReplicatedProposal("gc-proposal-9", "0xwallet", null, 10L, "1.25", 1_000L);
         newestPending.createdAt = 30L;
-        GCProposal approved = manager.applyReplicatedProposal("gc-proposal-10", "0xwallet", null, 10L, "1.25");
+        GCProposal approved = manager.applyReplicatedProposal("gc-proposal-10", "0xwallet", null, 10L, "1.25", 1_000L);
         approved.createdAt = 20L;
         approved.state = GCProposal.GCProposalState.APPROVED;
-        GCProposal voting = manager.applyReplicatedProposal("gc-proposal-11", "0xwallet", null, 10L, "1.25");
+        GCProposal voting = manager.applyReplicatedProposal("gc-proposal-11", "0xwallet", null, 10L, "1.25", 1_000L);
         voting.createdAt = 10L;
         voting.state = GCProposal.GCProposalState.VOTING;
-        GCProposal rejected = manager.applyReplicatedProposal("gc-proposal-12", "0xwallet", null, 10L, "1.25");
+        GCProposal rejected = manager.applyReplicatedProposal("gc-proposal-12", "0xwallet", null, 10L, "1.25", 1_000L);
         rejected.state = GCProposal.GCProposalState.REJECTED;
 
         List<GCProposal> pending = manager.getPendingProposals();
@@ -323,12 +323,12 @@ public class GCProposalManagerTest {
         assertEquals("gc-proposal-10", pending.get(1).proposalId);
         assertEquals("gc-proposal-11", pending.get(2).proposalId);
 
-        GCProposal completedOne = manager.applyReplicatedProposal("gc-proposal-13", "0xwallet", null, 10L, "1.25");
+        GCProposal completedOne = manager.applyReplicatedProposal("gc-proposal-13", "0xwallet", null, 10L, "1.25", 1_000L);
         completedOne.state = GCProposal.GCProposalState.APPROVED;
         GCExecutionResult resultOne = manager.executeGC(completedOne.proposalId, 1);
         resultOne.timestamp = 10L;
 
-        GCProposal completedTwo = manager.applyReplicatedProposal("gc-proposal-14", "0xwallet", null, 10L, "1.25");
+        GCProposal completedTwo = manager.applyReplicatedProposal("gc-proposal-14", "0xwallet", null, 10L, "1.25", 1_000L);
         completedTwo.state = GCProposal.GCProposalState.APPROVED;
         GCExecutionResult resultTwo = manager.executeGC(completedTwo.proposalId, 2);
         resultTwo.timestamp = 20L;

@@ -41,6 +41,10 @@ import java.nio.file.Paths;
 import java.util.Collections;
 
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -196,7 +200,7 @@ public class FragmentationApiHandlerTest {
         proposal.targetRevision = "rev-1";
         proposal.estimatedReclaimableSizeMB = 64L;
         proposal.estimatedCostUSDC = new BigDecimal("6.40");
-        proposal.addVote(1, true, "looks good");
+        proposal.addVote(1, true, "looks good", 1L);
         context.gcProposalManager = gcManager;
         when(gcManager.getPendingProposals()).thenReturn(Collections.singletonList(proposal));
 
@@ -236,6 +240,7 @@ public class FragmentationApiHandlerTest {
         when(request.getContentType()).thenReturn("application/json");
         when(request.getReader()).thenReturn(readerFor("{\"walletAddress\":\"0xabc\",\"targetRevision\":null}"));
         when(gcManager.proposeGC("0xabc", null)).thenReturn(proposal);
+        context.aeronConsensusEngine = replicatingEngine();
 
         handler.handleProposeGC(request, response);
 
@@ -259,6 +264,7 @@ public class FragmentationApiHandlerTest {
         when(request.getContentType()).thenReturn("application/json");
         when(request.getReader()).thenReturn(readerFor("{\"walletAddress\":\"0xabc\",\"targetRevision\":\"rev-1\"}"));
         when(gcManager.proposeGC("0xabc", "rev-1")).thenReturn(proposal);
+        context.aeronConsensusEngine = replicatingEngine();
 
         handler.handleProposeGC(request, response);
 
@@ -298,34 +304,50 @@ public class FragmentationApiHandlerTest {
     }
 
     @Test
-    public void testExecuteGcAcceptsJsonBodyAndUsesClusterMemberId() throws Exception {
+    public void testProposeGcRecordsNothingWhenTheClusterLogIsUnavailable() throws Exception {
+        GCProposalManager gcManager = mock(GCProposalManager.class);
+        GCProposal proposal = new GCProposal();
+        proposal.proposalId = "gc-unsent";
+        proposal.proposerWallet = "0xabc";
+        AeronConsensusEngine engine = mock(AeronConsensusEngine.class);
+        context.gcProposalManager = gcManager;
+        context.aeronConsensusEngine = engine;
+        when(request.getContentType()).thenReturn("application/x-www-form-urlencoded");
+        when(request.getParameter("walletAddress")).thenReturn("0xabc");
+        when(gcManager.proposeGC("0xabc", null)).thenReturn(proposal);
+
+        handler.handleProposeGC(request, response);
+
+        verify(gcManager, never()).applyReplicatedProposal(any(), any(), any(), anyLong(), any(), anyLong());
+        verify(response).setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+    }
+
+    @Test
+    public void testExecuteGcSendsGcExecuteThroughTheLogWithClusterMemberId() throws Exception {
         GCProposalManager gcManager = mock(GCProposalManager.class);
         AeronConsensusEngine engine = mock(AeronConsensusEngine.class);
         Cluster cluster = mock(Cluster.class);
-        GCExecutionResult result = new GCExecutionResult();
-        result.proposalId = "gc-proposal-3";
-        result.executorId = 2;
-        result.success = true;
-        result.timestamp = 4567L;
-        result.actualReclaimedSizeMB = 18L;
-        result.actualCostUSDC = new BigDecimal("1.80");
-        result.filesRemoved = Collections.singletonList("data00001a.tar");
+        GCProposal proposal = new GCProposal();
+        proposal.proposalId = "gc-proposal-3";
+        proposal.state = GCProposal.GCProposalState.APPROVED;
         context.gcProposalManager = gcManager;
         context.aeronConsensusEngine = engine;
         when(engine.getCluster()).thenReturn(cluster);
         when(cluster.memberId()).thenReturn(2);
+        when(gcManager.getProposal("gc-proposal-3")).thenReturn(proposal);
+        when(engine.sendGCExecuteThroughIngress("gc-proposal-3", 2)).thenReturn(true);
         when(request.getContentType()).thenReturn("application/json");
         when(request.getReader()).thenReturn(readerFor("{\"proposalId\":\"gc-proposal-3\"}"));
-        when(gcManager.executeGC("gc-proposal-3", 2)).thenReturn(result);
 
         handler.handleExecuteGC(request, response);
 
-        verify(gcManager).executeGC("gc-proposal-3", 2);
-        verify(response).setStatus(HttpServletResponse.SC_OK);
+        verify(engine).sendGCExecuteThroughIngress("gc-proposal-3", 2);
+        verify(gcManager, never()).applyReplicatedExecute(any(), anyInt());
+        verify(response).setStatus(HttpServletResponse.SC_ACCEPTED);
         String json = body.toString();
         assertTrue(json.contains("\"proposalId\":\"gc-proposal-3\""));
         assertTrue(json.contains("\"executorId\":2"));
-        assertTrue(json.contains("\"filesRemoved\":1"));
+        assertTrue(json.contains("\"replicated\":true"));
     }
 
     @Test
@@ -346,26 +368,27 @@ public class FragmentationApiHandlerTest {
         context.gcProposalManager = gcManager;
         when(request.getContentType()).thenReturn("application/x-www-form-urlencoded");
         when(request.getParameter("proposalId")).thenReturn("missing");
-        when(gcManager.executeGC("missing", 0)).thenThrow(new IllegalArgumentException("Proposal not found"));
 
         handler.handleExecuteGC(request, response);
 
         verify(response).setStatus(HttpServletResponse.SC_NOT_FOUND);
-        assertTrue(body.toString().contains("\"error\":\"Proposal not found\""));
+        assertTrue(body.toString().contains("GC proposal not found: missing"));
     }
 
     @Test
     public void testExecuteGcReturnsBadRequestWhenProposalNotApproved() throws Exception {
         GCProposalManager gcManager = mock(GCProposalManager.class);
+        GCProposal proposal = new GCProposal();
+        proposal.proposalId = "gc-pending";
         context.gcProposalManager = gcManager;
         when(request.getContentType()).thenReturn("application/x-www-form-urlencoded");
         when(request.getParameter("proposalId")).thenReturn("gc-pending");
-        when(gcManager.executeGC("gc-pending", 0)).thenThrow(new IllegalStateException("Proposal not approved"));
+        when(gcManager.getProposal("gc-pending")).thenReturn(proposal);
 
         handler.handleExecuteGC(request, response);
 
         verify(response).setStatus(HttpServletResponse.SC_BAD_REQUEST);
-        assertTrue(body.toString().contains("\"error\":\"Proposal not approved\""));
+        assertTrue(body.toString().contains("GC proposal not approved: gc-pending"));
     }
 
     @Test
@@ -381,7 +404,7 @@ public class FragmentationApiHandlerTest {
     }
 
     @Test
-    public void testVoteGcFallsBackToQueryParametersAndReturnsProposalSummary() throws Exception {
+    public void testVoteGcWithoutTheClusterLogDoesNotChangeTheLocalTally() throws Exception {
         GCProposalManager gcManager = mock(GCProposalManager.class);
         GCProposal proposal = new GCProposal();
         proposal.proposalId = "gc-1";
@@ -395,13 +418,9 @@ public class FragmentationApiHandlerTest {
 
         handler.handleVoteGC(request, response);
 
-        verify(gcManager).voteOnProposal("gc-1", 3, false, "too expensive");
-        verify(response).setStatus(HttpServletResponse.SC_OK);
-        String json = body.toString();
-        assertTrue(json.contains("\"validatorId\":3"));
-        assertTrue(json.contains("\"approve\":false"));
-        assertTrue(json.contains("\"replicationAttempted\":false"));
-        assertTrue(json.contains("\"proposal\":{\"proposalId\":\"gc-1\""));
+        verify(gcManager, never()).voteOnProposal(any(), anyInt(), anyBoolean(), any(), anyLong());
+        verify(response).setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+        assertTrue(body.toString().contains("nothing was recorded"));
     }
 
     @Test
@@ -422,7 +441,7 @@ public class FragmentationApiHandlerTest {
         handler.handleVoteGC(request, response);
 
         verify(engine).sendGCVoteThroughIngress("gc-json", 4, true, "ship it");
-        verify(gcManager, never()).voteOnProposal("gc-json", 4, true, "ship it");
+        verify(gcManager, never()).voteOnProposal(any(), anyInt(), anyBoolean(), any(), anyLong());
         verify(response).setStatus(HttpServletResponse.SC_OK);
         String json = body.toString();
         assertTrue(json.contains("\"replicated\":true"));
@@ -550,5 +569,11 @@ public class FragmentationApiHandlerTest {
 
     private static BufferedReader readerFor(String json) {
         return new BufferedReader(new StringReader(json));
+    }
+
+    private static AeronConsensusEngine replicatingEngine() {
+        AeronConsensusEngine engine = mock(AeronConsensusEngine.class);
+        when(engine.sendGCProposalThroughIngress(any(), any(), any(), anyLong(), any())).thenReturn(true);
+        return engine;
     }
 }

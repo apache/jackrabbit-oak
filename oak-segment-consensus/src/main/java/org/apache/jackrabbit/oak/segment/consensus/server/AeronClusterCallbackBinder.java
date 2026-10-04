@@ -53,7 +53,7 @@ final class AeronClusterCallbackBinder {
         aeronEngine.setGCCallback(new AeronConsensusEngine.GCApplicationCallback() {
             @Override
             public void applyGCProposal(String proposalId, String proposerWallet, String targetRevision,
-                                        long estimatedReclaimableSizeMB, String estimatedCostUSDC) {
+                                        long estimatedReclaimableSizeMB, String estimatedCostUSDC, long clusterTime) {
                 GCProposalManager manager = httpServer.getContext().gcProposalManager;
                 if (manager == null) {
                     log.warn("⚠️  GC proposal manager not initialized - cannot apply replicated GC proposal");
@@ -64,18 +64,19 @@ final class AeronClusterCallbackBinder {
                     proposerWallet,
                     targetRevision,
                     estimatedReclaimableSizeMB,
-                    estimatedCostUSDC
+                    estimatedCostUSDC,
+                    clusterTime
                 );
             }
 
             @Override
-            public void applyGCVote(String proposalId, int validatorId, boolean approve, String reason) {
+            public void applyGCVote(String proposalId, int validatorId, boolean approve, String reason, long clusterTime) {
                 GCProposalManager manager = httpServer.getContext().gcProposalManager;
                 if (manager == null) {
                     log.warn("⚠️  GC proposal manager not initialized - cannot apply replicated GC vote");
                     return;
                 }
-                manager.voteOnProposal(proposalId, validatorId, approve, reason != null ? reason : "");
+                manager.voteOnProposal(proposalId, validatorId, approve, reason != null ? reason : "", clusterTime);
             }
 
             @Override
@@ -85,13 +86,7 @@ final class AeronClusterCallbackBinder {
                     log.warn("⚠️  GC proposal manager not initialized - cannot apply replicated GC execute");
                     return;
                 }
-                try {
-                    manager.executeGC(proposalId, executorId);
-                } catch (AgentTerminationException e) {
-                    throw e;
-                } catch (Exception e) {
-                    log.warn("⚠️  Failed to apply replicated GC execute for proposal {}", proposalId, e);
-                }
+                manager.applyReplicatedExecute(proposalId, executorId);
             }
         });
         log.info("   ✅ GC application callback configured");
