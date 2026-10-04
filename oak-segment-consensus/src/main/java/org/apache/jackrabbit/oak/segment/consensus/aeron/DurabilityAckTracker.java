@@ -19,10 +19,17 @@ package org.apache.jackrabbit.oak.segment.consensus.aeron;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Tracks durability acknowledgments until an outcome is determined.
+ * A completed success outcome is emitted again when a member that already acked acks again
+ * (a replay), so a lost ACK_SEGMENT_PERSISTED can be recovered until {@link #complete} runs.
  */
 final class DurabilityAckTracker {
+    private static final Logger log = LoggerFactory.getLogger(DurabilityAckTracker.class);
+
     private final ConcurrentHashMap<String, PendingDurability> pending = new ConcurrentHashMap<>();
 
     void track(String proposalId, int totalMembers, int requiredAcks) {
@@ -41,9 +48,11 @@ final class DurabilityAckTracker {
         if (memberId < 0) {
             return null;
         }
+        boolean[] repeatedSuccessAck = {false};
         PendingDurability current = pending.compute(proposalId, (id, existing) -> {
             PendingDurability state = existing != null ? existing : new PendingDurability(defaultTotalMembers, defaultRequiredAcks);
             if (state.completed) {
+                repeatedSuccessAck[0] = success && !state.ackedMembers.add(memberId);
                 return state;
             }
             if (success) {
@@ -60,19 +69,29 @@ final class DurabilityAckTracker {
             return state;
         });
 
-        if (current == null || current.completed) {
+        if (current == null) {
+            return null;
+        }
+        if (current.completed) {
+            if (repeatedSuccessAck[0] && current.outcome.success) {
+                return current.outcome;
+            }
+            log.debug("Dropping durability ack for completed proposal {} from member {} (success={})",
+                proposalId, memberId, success);
             return null;
         }
 
         if (current.ackedMembers.size() >= current.requiredAcks) {
+            current.outcome = new Outcome(true, true, current.durableHead, null, current.totalMembers, current.requiredAcks);
             current.completed = true;
-            return new Outcome(true, true, current.durableHead, null, current.totalMembers, current.requiredAcks);
+            return current.outcome;
         }
 
         int maxPossibleSuccess = current.totalMembers - current.failedMembers.size();
         if (maxPossibleSuccess < current.requiredAcks) {
+            current.outcome = new Outcome(true, false, current.durableHead, current.lastError, current.totalMembers, current.requiredAcks);
             current.completed = true;
-            return new Outcome(true, false, current.durableHead, current.lastError, current.totalMembers, current.requiredAcks);
+            return current.outcome;
         }
 
         return new Outcome(false, false, current.durableHead, current.lastError, current.totalMembers, current.requiredAcks);
@@ -90,6 +109,7 @@ final class DurabilityAckTracker {
         private volatile String durableHead;
         private volatile String lastError;
         private volatile boolean completed;
+        private volatile Outcome outcome;
 
         private PendingDurability(int totalMembers, int requiredAcks) {
             this.totalMembers = totalMembers;

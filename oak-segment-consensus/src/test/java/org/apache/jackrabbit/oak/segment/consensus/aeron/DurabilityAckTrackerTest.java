@@ -37,8 +37,66 @@ public class DurabilityAckTrackerTest {
         assertTrue(second.success);
         assertEquals("h1", second.durableHead);
 
-        DurabilityAckTracker.Outcome duplicate = tracker.record("p1", 1, "h1", true, null, 3, 2);
-        assertNull(duplicate);
+        DurabilityAckTracker.Outcome postQuorum = tracker.record("p1", 2, "h1", true, null, 3, 2);
+        assertNull(postQuorum);
+    }
+
+    @Test
+    public void repeatedAckFromAckedMemberReEmitsSuccessOutcome() {
+        DurabilityAckTracker tracker = new DurabilityAckTracker();
+        tracker.track("p4", 3, 2);
+        tracker.record("p4", 0, "h1", true, null, 3, 2);
+        DurabilityAckTracker.Outcome quorum = tracker.record("p4", 1, "h1", true, null, 3, 2);
+        assertTrue(quorum.shouldAck);
+
+        // The ACK for the quorum outcome was never applied, so complete() did not run.
+        // A replay makes members ack again; the outcome must be emitted again.
+        DurabilityAckTracker.Outcome replay = tracker.record("p4", 0, "h2", true, null, 3, 2);
+        assertNotNull(replay);
+        assertTrue(replay.shouldAck);
+        assertTrue(replay.success);
+        assertEquals("h1", replay.durableHead);
+        assertEquals(3, replay.totalMembers);
+        assertEquals(2, replay.requiredAcks);
+    }
+
+    @Test
+    public void postQuorumAckFromNewMemberIsReEmittedOnlyWhenRepeated() {
+        DurabilityAckTracker tracker = new DurabilityAckTracker();
+        tracker.track("p5", 3, 2);
+        tracker.record("p5", 0, "h1", true, null, 3, 2);
+        assertTrue(tracker.record("p5", 1, "h1", true, null, 3, 2).shouldAck);
+
+        assertNull(tracker.record("p5", 2, "h1", true, null, 3, 2));
+
+        DurabilityAckTracker.Outcome replay = tracker.record("p5", 2, "h2", true, null, 3, 2);
+        assertNotNull(replay);
+        assertTrue(replay.shouldAck);
+        assertTrue(replay.success);
+    }
+
+    @Test
+    public void repeatedAckAfterNegativeOutcomeIsDropped() {
+        DurabilityAckTracker tracker = new DurabilityAckTracker();
+        tracker.track("p6", 3, 3);
+        tracker.record("p6", 0, "h1", true, null, 3, 3);
+        assertFalse(tracker.record("p6", 1, null, false, "io", 3, 3).success);
+
+        assertNull(tracker.record("p6", 0, "h1", true, null, 3, 3));
+        assertNull(tracker.record("p6", 1, null, false, "io", 3, 3));
+    }
+
+    @Test
+    public void completeClearsLatchedOutcome() {
+        DurabilityAckTracker tracker = new DurabilityAckTracker();
+        tracker.track("p7", 3, 2);
+        tracker.record("p7", 0, "h1", true, null, 3, 2);
+        tracker.record("p7", 1, "h1", true, null, 3, 2);
+        tracker.complete("p7");
+
+        DurabilityAckTracker.Outcome late = tracker.record("p7", 0, "h1", true, null, 3, 2);
+        assertNotNull(late);
+        assertFalse(late.shouldAck);
     }
 
     @Test

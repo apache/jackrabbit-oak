@@ -606,6 +606,33 @@ public class AeronConsensusEngineTest {
     }
 
     @Test
+    public void replayAckReEmitsLostDurabilityAckUntilApplied() throws Exception {
+        AeronConsensusEngine engine = createEngine();
+        io.aeron.cluster.client.AeronCluster client = installHealthyClient(engine, Cluster.Role.LEADER);
+        AeronConsensusEngine.DurabilityStatusCallback callback =
+            mock(AeronConsensusEngine.DurabilityStatusCallback.class);
+        engine.setDurabilityStatusCallback(callback);
+        DurabilityAckTracker tracker = (DurabilityAckTracker) getField(engine, "durabilityAckTracker");
+        MessageDispatcher dispatcher = (MessageDispatcher) getField(engine, "messageDispatcher");
+        MessageDispatcher.DurabilityCallback durabilityCallback =
+            (MessageDispatcher.DurabilityCallback) getField(dispatcher, "durabilityCallback");
+
+        durabilityCallback.onQueueSegment("p-lost-ack", 3, 2);
+        durabilityCallback.onSegmentPersisted("p-lost-ack", 0, "h1", true, null);
+        durabilityCallback.onSegmentPersisted("p-lost-ack", 1, "h1", true, null);
+        durabilityCallback.onSegmentPersisted("p-lost-ack", 2, "h1", true, null);
+        verify(client, times(1)).offer(any(MutableDirectBuffer.class), eq(0), anyInt());
+
+        // The first ACK_SEGMENT_PERSISTED is never applied; the replay makes members ack again.
+        durabilityCallback.onSegmentPersisted("p-lost-ack", 0, "h2", true, null);
+        verify(client, times(2)).offer(any(MutableDirectBuffer.class), eq(0), anyInt());
+
+        durabilityCallback.onAckSegmentPersisted("p-lost-ack", true, "h1", null, 3, 2);
+        verify(callback).onDurable("p-lost-ack", "h1");
+        assertEquals(0, pendingDurabilityCount(tracker));
+    }
+
+    @Test
     public void durabilityAckFailureWithoutErrorUsesDefaultMessage() throws Exception {
         AeronConsensusEngine engine = createEngine();
         AeronConsensusEngine.DurabilityStatusCallback callback =
