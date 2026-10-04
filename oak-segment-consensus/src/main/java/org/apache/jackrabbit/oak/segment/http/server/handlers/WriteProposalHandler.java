@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.LongSupplier;
 
 /**
  * Handler for write proposals (`/v1/propose-write`).
@@ -46,9 +47,15 @@ public class WriteProposalHandler {
     private static final int CAPABILITY_VALIDATOR_HOSTED_BINARY = 1 << 0;
 
     private final ServerContext context;
+    private final LongSupplier clock;
 
     public WriteProposalHandler(ServerContext context) {
+        this(context, System::currentTimeMillis);
+    }
+
+    WriteProposalHandler(ServerContext context, LongSupplier clock) {
         this.context = context;
+        this.clock = clock;
     }
 
     /**
@@ -618,10 +625,6 @@ public class WriteProposalHandler {
             log.debug("🪣 Using wallet shard: {} (org: {}, contentRoot: {})", shardId,
                 organization != null ? organization : "none", contentRoot);
 
-            // Generate content ID and full path
-            String contentId = contentType + "-" + System.currentTimeMillis();
-            String fullPath = contentRoot + "/" + contentId;
-
             // V5 alignment: require the client to supply the on-chain proposalId
             // (bytes32 from authorizeWrite()) in all modes.
             String proposalId;
@@ -649,6 +652,11 @@ public class WriteProposalHandler {
                     "proposalId must be a 0x-prefixed 32-byte hex value.");
                 return;
             }
+
+            // Millisecond time alone collides for concurrent writes; the proposalId prefix keeps names unique.
+            String contentId = contentType + "-" + clock.getAsLong() + "-"
+                + proposalId.substring(2, 10).toLowerCase(java.util.Locale.ROOT);
+            String fullPath = contentRoot + "/" + contentId;
 
             // Check if proposal queue manager is available
             if (context.proposalQueueManager == null) {

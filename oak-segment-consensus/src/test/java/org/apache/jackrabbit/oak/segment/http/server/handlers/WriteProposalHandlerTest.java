@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.Sign;
 
@@ -60,6 +61,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -763,6 +765,46 @@ public class WriteProposalHandlerTest {
         assertTrue(body.toString().contains("\"status\":\"accepted\""));
         assertEquals(1L, context.apiIpfsPolicyAcceptedEnterpriseCid.get());
         assertEquals(1L, context.apiAcceptedRequests.get());
+    }
+
+    @Test
+    public void testConcurrentWritesInSameMillisecondGetDistinctStoragePaths() throws Exception {
+        System.setProperty("oak.blockchain.mode", "mock");
+        BlockchainConfig.reset();
+        ServerContext context = readyContext();
+        ProposalQueueManagerOptimized queueManager = mock(ProposalQueueManagerOptimized.class);
+        context.proposalQueueManager = queueManager;
+        WriteProposalHandler handler = new WriteProposalHandler(context, () -> 1791134070821L);
+
+        proposeWrite(handler, "0x3F2A9C1E" + "0".repeat(56));
+        proposeWrite(handler, "0X7b00aa11" + "1".repeat(56));
+
+        ArgumentCaptor<String> paths = ArgumentCaptor.forClass(String.class);
+        verify(queueManager, times(2)).queueProposal(
+            anyString(), anyString(), anyString(), paths.capture(), anyString(), anyString(), anyString(),
+            nullable(String.class), nullable(String.class), anyString(), nullable(String.class)
+        );
+        String first = paths.getAllValues().get(0);
+        String second = paths.getAllValues().get(1);
+        assertTrue(first, first.endsWith("/acme/content/page-1791134070821-3f2a9c1e"));
+        assertTrue(second, second.endsWith("/acme/content/page-1791134070821-7b00aa11"));
+    }
+
+    private static void proposeWrite(WriteProposalHandler handler, String proposalId) throws Exception {
+        HttpServletRequest request = request();
+        when(request.getParameter("proposalId")).thenReturn(proposalId);
+        when(request.getParameter("walletAddress")).thenReturn(VALID_WALLET);
+        when(request.getParameter("signature")).thenReturn(VALID_SIGNATURE);
+        when(request.getParameter("ethereumTxHash")).thenReturn(VALID_TX_HASH);
+        when(request.getParameter("organization")).thenReturn("acme");
+        when(request.getParameter("message")).thenReturn("hello");
+        when(request.getParameter("contentType")).thenReturn("page");
+        StringWriter body = new StringWriter();
+        HttpServletResponse response = responseWithBody(body);
+
+        handler.handleProposeWrite(request, response);
+
+        verify(response).setStatus(HttpServletResponse.SC_ACCEPTED);
     }
 
     @Test
