@@ -261,10 +261,9 @@ public class AeronConsensusEngineTest {
 
         TransactionLifecycleManager manager =
             (TransactionLifecycleManager) getField(engine, "transactionLifecycleManager");
-        manager.onStart("tx-1", "corr-1", 1L, "0xabc");
-        Thread.sleep(5L);
+        manager.onStart("tx-1", "corr-1", 1L, "0xabc", 1_000L, 100L);
 
-        engine.onTimerEvent(100L, System.currentTimeMillis());
+        engine.onTimerEvent(100L, 1_001L);
 
         verify(callback).onAbortTransaction("tx-1", "corr-1", "timeout");
         Optional<Map<String, Object>> tx = engine.getTransactionRecord("tx-1");

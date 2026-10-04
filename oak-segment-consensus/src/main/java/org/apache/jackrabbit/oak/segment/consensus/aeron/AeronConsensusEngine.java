@@ -285,7 +285,6 @@ public class AeronConsensusEngine implements ClusteredService {
     private final Object reconnectLock = new Object();
     private volatile java.util.concurrent.ScheduledExecutorService reconnectScheduler;
     private volatile boolean reconnectInProgress = false;
-    private volatile java.util.concurrent.ScheduledExecutorService transactionTimeoutScheduler;
     
     /**
      * Create Aeron-based consensus engine.
@@ -341,7 +340,7 @@ public class AeronConsensusEngine implements ClusteredService {
         this.storeDirectory = storeDirectory;
         this.replicator = AeronEngineComponentFactory.createSegmentReplicator(fileStore);
         this.backpressureManager = AeronEngineComponentFactory.createBackpressureManager();
-        this.transactionLifecycleManager = new TransactionLifecycleManager(resolveTransactionLifecycleDirectory(storeDirectory));
+        this.transactionLifecycleManager = new TransactionLifecycleManager();
         this.peerProbeMode = parsePeerProbeMode();
         this.reachabilityCacheMs = Long.getLong("oak.cluster.reachability.cacheMs", 5000L);
         this.reachabilityConnectTimeoutMs = Integer.getInteger("oak.cluster.reachability.connectTimeoutMs", 1500);
@@ -418,12 +417,14 @@ public class AeronConsensusEngine implements ClusteredService {
                 durabilityStatusCallback.onFailure(proposalId, outcome.error);
             }
         });
+        // Runs inside onSessionMessage, so cluster.time() and cluster.logPosition() describe the entry being applied
         this.messageDispatcher.setTransactionCallback(new MessageDispatcher.TransactionCallback() {
             @Override
             public void onStartTransaction(String transactionId, String correlationId, long timeoutMs, String initiatorWallet) {
-                TransactionLifecycleManager.TransitionResult result =
-                    transactionLifecycleManager.onStart(transactionId, correlationId, timeoutMs, initiatorWallet);
+                TransactionLifecycleManager.TransitionResult result = transactionLifecycleManager.onStart(
+                    transactionId, correlationId, timeoutMs, initiatorWallet, cluster.time(), cluster.logPosition());
                 if (result.isApplied()) {
+                    scheduleTransactionTimer(result.getRecord().timerId, result.getRecord().deadlineMs);
                     if (transactionLifecycleCallback != null) {
                         transactionLifecycleCallback.onStartTransaction(transactionId, correlationId, timeoutMs, initiatorWallet);
                     }
@@ -437,31 +438,31 @@ public class AeronConsensusEngine implements ClusteredService {
             @Override
             public void onCommitTransaction(String transactionId, String correlationId) {
                 TransactionLifecycleManager.TransitionResult result =
-                    transactionLifecycleManager.onCommit(transactionId, correlationId);
+                    transactionLifecycleManager.onCommit(transactionId, correlationId, cluster.time());
                 if (result.isApplied()) {
+                    cancelTransactionTimer(result.getRecord().timerId);
                     if (transactionLifecycleCallback != null) {
                         transactionLifecycleCallback.onCommitTransaction(transactionId, correlationId);
                     }
                     return;
                 }
-                if (!result.isIdempotent()) {
-                    log.warn("⚠️  Rejected COMMIT transaction {} (correlation={}): {}", transactionId, correlationId, result.getReason());
-                }
+                onTransactionTransitionNotApplied("COMMIT", transactionId, correlationId, result);
             }
 
             @Override
             public void onAbortTransaction(String transactionId, String correlationId, String reason) {
                 TransactionLifecycleManager.TransitionResult result =
-                    transactionLifecycleManager.onAbort(transactionId, correlationId, reason);
+                    transactionLifecycleManager.onAbort(transactionId, correlationId, reason, cluster.time());
                 if (result.isApplied()) {
+                    if (result.getRecord().timeoutMs > 0) {
+                        cancelTransactionTimer(result.getRecord().timerId);
+                    }
                     if (transactionLifecycleCallback != null) {
                         transactionLifecycleCallback.onAbortTransaction(transactionId, correlationId, reason);
                     }
                     return;
                 }
-                if (!result.isIdempotent()) {
-                    log.warn("⚠️  Rejected ABORT transaction {} (correlation={}): {}", transactionId, correlationId, result.getReason());
-                }
+                onTransactionTransitionNotApplied("ABORT", transactionId, correlationId, result);
             }
         });
 
@@ -575,7 +576,6 @@ public class AeronConsensusEngine implements ClusteredService {
             // Start background timer for checking pending HEAD broadcasts
             // This ensures broadcasts happen even when no new writes arrive
             // No background head broadcast timer in deterministic consensus mode.
-            startTransactionTimeoutScheduler();
             
             log.info("Aeron Consensus Engine started - Status: Ready");
             
@@ -594,7 +594,6 @@ public class AeronConsensusEngine implements ClusteredService {
         // Stop background timer
         // No head broadcast timer to stop in deterministic consensus mode.
         stopReconnectScheduler();
-        stopTransactionTimeoutScheduler();
         if (beaconClient != null) {
             beaconClient.stopBackgroundPolling();
         }
@@ -1611,10 +1610,12 @@ public class AeronConsensusEngine implements ClusteredService {
     
     @Override
     public void onTimerEvent(long correlationId, long timestamp) {
-        // Handle timer events
-        // SEPOLIA_PHASE: Implement timer-based Ethereum epoch polling via Web3j
-        processTransactionTimeouts();
-        log.debug("⏰ Timer event: {}", correlationId);
+        TransactionLifecycleManager.TransitionResult result = transactionLifecycleManager.onTimer(correlationId, timestamp);
+        if (result.isTimedOut()) {
+            onTransactionTimedOut(result.getRecord());
+        } else {
+            log.debug("⏰ Timer event {} matched no active transaction", correlationId);
+        }
     }
     
     // Note: onTakeSnapshot() is implemented above (line 507) with full snapshot support
@@ -1727,7 +1728,6 @@ public class AeronConsensusEngine implements ClusteredService {
         log.info("Aeron Cluster service terminating (role: {})", cluster.role());
 
         internalIngressClientManager.close();
-        stopTransactionTimeoutScheduler();
         backgroundCoordinator.close();
         
         // Cleanup resources
@@ -2827,57 +2827,40 @@ public class AeronConsensusEngine implements ClusteredService {
         }
     }
 
-    private static java.nio.file.Path resolveTransactionLifecycleDirectory(String storeDirectory) {
-        String base = storeDirectory;
-        if (base == null || base.trim().isEmpty()) {
-            base = System.getProperty("java.io.tmpdir");
-        }
-        return java.nio.file.Path.of(base, "transaction-lifecycle");
-    }
-
-    private void startTransactionTimeoutScheduler() {
-        if (transactionTimeoutScheduler != null) {
-            return;
-        }
-        synchronized (this) {
-            if (transactionTimeoutScheduler != null) {
-                return;
-            }
-            transactionTimeoutScheduler = java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> {
-                Thread thread = new Thread(r, "oak-tx-timeout");
-                thread.setDaemon(true);
-                return thread;
-            });
-            transactionTimeoutScheduler.scheduleAtFixedRate(() -> {
-                try {
-                    processTransactionTimeouts();
-                } catch (Exception e) {
-                    log.warn("Failed processing transaction timeouts: {}", e.getMessage());
-                }
-            }, 1, 1, java.util.concurrent.TimeUnit.SECONDS);
+    /** Aeron's leader appends a TimerEvent at the deadline; every member applies it at the same log position. */
+    private void scheduleTransactionTimer(long timerId, long deadline) {
+        IdleStrategy timerIdle = cluster.idleStrategy();
+        timerIdle.reset();
+        while (!cluster.scheduleTimer(timerId, deadline)) {
+            timerIdle.idle();
         }
     }
 
-    private void stopTransactionTimeoutScheduler() {
-        java.util.concurrent.ScheduledExecutorService scheduler = transactionTimeoutScheduler;
-        transactionTimeoutScheduler = null;
-        if (scheduler != null) {
-            scheduler.shutdownNow();
+    private void cancelTransactionTimer(long timerId) {
+        IdleStrategy timerIdle = cluster.idleStrategy();
+        timerIdle.reset();
+        while (!cluster.cancelTimer(timerId)) {
+            timerIdle.idle();
         }
     }
 
-    private void processTransactionTimeouts() {
-        java.util.List<TransactionLifecycleManager.TxRecord> expired = transactionLifecycleManager.expireTimedOut();
-        if (expired.isEmpty()) {
-            return;
+    private void onTransactionTransitionNotApplied(String transition, String transactionId, String correlationId,
+                                                   TransactionLifecycleManager.TransitionResult result) {
+        if (result.isTimedOut()) {
+            cancelTransactionTimer(result.getRecord().timerId);
+            onTransactionTimedOut(result.getRecord());
+        } else if (!result.isIdempotent()) {
+            log.warn("⚠️  Rejected {} transaction {} (correlation={}): {}",
+                transition, transactionId, correlationId, result.getReason());
         }
-        for (TransactionLifecycleManager.TxRecord tx : expired) {
+    }
+
+    private void onTransactionTimedOut(TransactionLifecycleManager.TxRecord tx) {
             if (transactionLifecycleCallback != null) {
                 transactionLifecycleCallback.onAbortTransaction(tx.transactionId, tx.correlationId, "timeout");
             }
             log.warn("⏰ Transaction timed out: txId={}, correlationId={}, deadlineMs={}",
                 tx.transactionId, tx.correlationId, tx.deadlineMs);
         }
-    }
 
 }
