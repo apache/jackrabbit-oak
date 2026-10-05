@@ -44,13 +44,19 @@ public class SimpleMessageHeader {
     public static final int TEMPLATE_ID_GC_EXECUTE = 105;
     public static final int TEMPLATE_ID_GENESIS_PROPOSAL = 107; // Genesis creation command
     // ADR 026: Segment persistence acknowledgment flow
+    /** Legacy: no longer sent, ignored when an older log is replayed. */
     public static final int TEMPLATE_ID_QUEUE_SEGMENT = 108;
     public static final int TEMPLATE_ID_SEGMENT_PERSISTED = 109;
+    /** Legacy: no longer sent, ignored when an older log is replayed. */
     public static final int TEMPLATE_ID_ACK_SEGMENT_PERSISTED = 110;
     // Transaction boundary protocol messages (OakRS parity gap closure)
     public static final int TEMPLATE_ID_START_TRANSACTION = 111;
     public static final int TEMPLATE_ID_COMMIT_TRANSACTION = 112;
     public static final int TEMPLATE_ID_ABORT_TRANSACTION = 113;
+    /** One proposal tracked by the durability tally; snapshot stream only. */
+    public static final int TEMPLATE_ID_SNAPSHOT_DURABILITY = 114;
+    /** One replicated GC proposal with its votes; snapshot stream only. */
+    public static final int TEMPLATE_ID_SNAPSHOT_GC_PROPOSAL = 115;
     
     // Schema ID and version (arbitrary values for our custom messages)
     private static final int SCHEMA_ID = 1;

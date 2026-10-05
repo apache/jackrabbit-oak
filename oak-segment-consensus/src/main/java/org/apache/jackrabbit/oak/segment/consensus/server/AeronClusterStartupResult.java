@@ -20,23 +20,19 @@ import java.util.List;
 
 import org.apache.jackrabbit.oak.segment.consensus.aeron.AeronClusterLauncher;
 import org.apache.jackrabbit.oak.segment.consensus.aeron.AeronConsensusEngine;
-import org.apache.jackrabbit.oak.segment.consensus.aeron.AeronWriteClient;
 
 public final class AeronClusterStartupResult {
     private final AeronConsensusEngine aeronEngine;
     private final AeronClusterLauncher launcher;
-    private final AeronWriteClient writeClient;
     private final List<String> hostnames;
     private final int nodeId;
 
     public AeronClusterStartupResult(AeronConsensusEngine aeronEngine,
                                      AeronClusterLauncher launcher,
-                                     AeronWriteClient writeClient,
                                      List<String> hostnames,
                                      int nodeId) {
         this.aeronEngine = aeronEngine;
         this.launcher = launcher;
-        this.writeClient = writeClient;
         this.hostnames = hostnames;
         this.nodeId = nodeId;
     }
@@ -47,10 +43,6 @@ public final class AeronClusterStartupResult {
 
     public AeronClusterLauncher getLauncher() {
         return launcher;
-    }
-
-    public AeronWriteClient getWriteClient() {
-        return writeClient;
     }
 
     public List<String> getHostnames() {

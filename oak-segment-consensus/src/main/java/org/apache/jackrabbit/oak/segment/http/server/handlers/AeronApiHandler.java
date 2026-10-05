@@ -64,7 +64,7 @@ public class AeronApiHandler {
      * Returns complete Aeron Cluster state including:
      * - role: Current role (LEADER/FOLLOWER) from cluster.role()
      * - memberId: This node's member ID from cluster.memberId()
-     * - leadershipTermId: Current Raft term from cluster.leadershipTermId()
+     * - term: Aeron leadershipTermId from the last leadership term event applied from the log
      * - clusterMemberCount: Total members from cluster.clusterMemberCount()
      * - clusterTime: Cluster time from cluster.time()
      * - logPosition: Log position from cluster.logPosition()

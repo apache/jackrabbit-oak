@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Verified packing buffer for adaptive release.
@@ -37,22 +38,30 @@ final class AdaptivePackingBuffer {
     private static final int OPTIMAL_BATCH_SIZE = 25;
 
     private final ConcurrentHashMap<String, List<QueuedProposal>> pendingWalletWrites = new ConcurrentHashMap<String, List<QueuedProposal>>();
-    private volatile long totalProposalsQueued = 0L;
-    private volatile long totalProposalsDrained = 0L;
-    private volatile long totalBatchesCreated = 0L;
+    private final AtomicLong totalProposalsQueued = new AtomicLong();
+    private final AtomicLong totalProposalsDrained = new AtomicLong();
+    private final AtomicLong totalBatchesCreated = new AtomicLong();
 
     void addProposal(QueuedProposal proposal, long verifiedAtMs) {
         if (proposal == null) {
             return;
         }
         proposal.setVerifiedTimestampMs(verifiedAtMs);
-        String walletAddress = proposal.getWalletAddress();
-        List<QueuedProposal> walletProposals = pendingWalletWrites.computeIfAbsent(
-            walletAddress,
-            ignored -> Collections.synchronizedList(new ArrayList<QueuedProposal>())
-        );
-        walletProposals.add(proposal);
-        totalProposalsQueued++;
+        // Add inside compute so it cannot interleave with removeIfEmpty: a list fetched first and added to
+        // after the drainer removed it from the map would hold the proposal where nothing drains it.
+        pendingWalletWrites.compute(proposal.getWalletAddress(), (wallet, existing) -> {
+            List<QueuedProposal> walletProposals = existing != null
+                ? existing
+                : Collections.synchronizedList(new ArrayList<QueuedProposal>());
+            walletProposals.add(proposal);
+            return walletProposals;
+        });
+        totalProposalsQueued.incrementAndGet();
+    }
+
+    /** Lock order is map entry, then list: never call this while holding a wallet list's monitor. */
+    private void removeIfEmpty(String walletAddress) {
+        pendingWalletWrites.computeIfPresent(walletAddress, (wallet, proposals) -> proposals.isEmpty() ? null : proposals);
     }
 
     List<List<QueuedProposal>> drainReadyBatches(long nowMs, AdaptiveReleaseGovernor.Decision decision) {
@@ -68,13 +77,13 @@ final class AdaptivePackingBuffer {
 
             long oldestVerifiedMs = Long.MAX_VALUE;
             synchronized (proposals) {
-                if (proposals.isEmpty()) {
-                    pendingWalletWrites.remove(walletAddress, proposals);
-                    continue;
-                }
                 for (QueuedProposal proposal : proposals) {
                     oldestVerifiedMs = Math.min(oldestVerifiedMs, proposal.getVerifiedTimestampMs());
                 }
+            }
+            if (oldestVerifiedMs == Long.MAX_VALUE) {
+                removeIfEmpty(walletAddress);
+                continue;
             }
 
             long residencyMs = oldestVerifiedMs == Long.MAX_VALUE ? 0L : Math.max(0L, nowMs - oldestVerifiedMs);
@@ -114,9 +123,9 @@ final class AdaptivePackingBuffer {
 
         stats.put("walletCount", pendingWalletWrites.size());
         stats.put("pendingProposals", pendingProposals);
-        stats.put("totalProposalsQueued", totalProposalsQueued);
-        stats.put("totalProposalsDrained", totalProposalsDrained);
-        stats.put("totalBatchesCreated", totalBatchesCreated);
+        stats.put("totalProposalsQueued", totalProposalsQueued.get());
+        stats.put("totalProposalsDrained", totalProposalsDrained.get());
+        stats.put("totalBatchesCreated", totalBatchesCreated.get());
         return stats;
     }
 
@@ -134,21 +143,15 @@ final class AdaptivePackingBuffer {
 
     void clear() {
         pendingWalletWrites.clear();
-        totalProposalsQueued = 0L;
-        totalProposalsDrained = 0L;
-        totalBatchesCreated = 0L;
+        totalProposalsQueued.set(0L);
+        totalProposalsDrained.set(0L);
+        totalBatchesCreated.set(0L);
     }
 
     private void drainWallet(WalletCandidate candidate, int maxBatchesPerWallet, List<List<QueuedProposal>> batches) {
         List<QueuedProposal> proposals = candidate.getProposals();
-        List<QueuedProposal> sorted;
         synchronized (proposals) {
-            if (proposals.isEmpty()) {
-                pendingWalletWrites.remove(candidate.getWalletAddress(), proposals);
-                return;
-            }
-
-            sorted = new ArrayList<QueuedProposal>(proposals);
+            List<QueuedProposal> sorted = new ArrayList<QueuedProposal>(proposals);
             sorted.sort(Comparator
                 .comparing(QueuedProposal::getPath)
                 .thenComparingLong(QueuedProposal::getTimestamp));
@@ -156,17 +159,15 @@ final class AdaptivePackingBuffer {
             int releaseCount = Math.min(sorted.size(), maxBatchesPerWallet * OPTIMAL_BATCH_SIZE);
             List<QueuedProposal> toRelease = new ArrayList<QueuedProposal>(sorted.subList(0, releaseCount));
             proposals.removeAll(toRelease);
-            if (proposals.isEmpty()) {
-                pendingWalletWrites.remove(candidate.getWalletAddress(), proposals);
-            }
 
             for (int i = 0; i < toRelease.size(); i += OPTIMAL_BATCH_SIZE) {
                 int endIndex = Math.min(i + OPTIMAL_BATCH_SIZE, toRelease.size());
                 batches.add(new ArrayList<QueuedProposal>(toRelease.subList(i, endIndex)));
-                totalBatchesCreated++;
+                totalBatchesCreated.incrementAndGet();
             }
-            totalProposalsDrained += toRelease.size();
+            totalProposalsDrained.addAndGet(toRelease.size());
         }
+        removeIfEmpty(candidate.getWalletAddress());
     }
 
     private static final class WalletCandidate {

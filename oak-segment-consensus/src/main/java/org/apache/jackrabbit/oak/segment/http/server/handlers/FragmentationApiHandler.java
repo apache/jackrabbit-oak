@@ -335,29 +335,22 @@ public class FragmentationApiHandler {
                 return;
             }
             
-            // Create proposal locally first
+            // The proposal becomes state on every validator only when its GC_PROPOSAL log entry is applied
             org.apache.jackrabbit.oak.segment.consensus.gc.GCProposal proposal = gcManager.proposeGC(proposerWallet, targetRevision);
-            
-            // ✈️ AERON CLUSTER: Replicate GC proposal to all validators
-            // This ensures all nodes receive the proposal and can vote on it
-            if (context.aeronConsensusEngine != null) {
-                boolean replicated = context.aeronConsensusEngine.sendGCProposalThroughIngress(
+            boolean replicated = context.aeronConsensusEngine != null
+                && context.aeronConsensusEngine.sendGCProposalThroughIngress(
                     proposal.proposalId,
                     proposal.proposerWallet,
                     proposal.targetRevision,
                     proposal.estimatedReclaimableSizeMB,
                     proposal.estimatedCostUSDC != null ? proposal.estimatedCostUSDC.toPlainString() : "0"
                 );
-                
-                if (replicated) {
-                    log.info("✅ GC proposal {} replicated through Aeron cluster", proposal.proposalId);
-                } else {
-                    log.warn("⚠️  GC proposal {} created locally but Aeron replication failed", proposal.proposalId);
-                    // Continue anyway - proposal exists locally, can be retried
-                }
-            } else {
-                log.debug("Aeron consensus engine not available - GC proposal created locally only");
+            if (!replicated) {
+                ApiErrorUtil.sendJsonError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE,
+                    "GC proposal could not be sent to the cluster log; nothing was proposed");
+                return;
             }
+            log.info("✅ GC proposal {} sent through the Aeron cluster log", proposal.proposalId);
             
             Map<String, Object> payload = proposalToMap(proposal);
             response.setStatus(HttpServletResponse.SC_OK);
@@ -384,8 +377,9 @@ public class FragmentationApiHandler {
      *   <li><code>proposalId</code> (required) - GC proposal ID</li>
      * </ul>
      * 
-     * <p>Note: GC proposals are automatically executed when they reach APPROVED state.
-     * This endpoint allows manual execution if needed.</p>
+     * <p>Note: the leader requests execution of an approved proposal once its payment is verified.
+     * This endpoint requests it manually; execution starts on every validator when the GC_EXECUTE
+     * log entry is applied, so the response only reports that the request entered the log.</p>
      */
     public void handleExecuteGC(HttpServletRequest request, HttpServletResponse response) throws IOException {
         response.setContentType("application/json");
@@ -447,30 +441,31 @@ public class FragmentationApiHandler {
                 executorId = context.aeronConsensusEngine.getCluster().memberId();
             }
             
-            // Execute GC
-            org.apache.jackrabbit.oak.segment.consensus.gc.GCExecutionResult result = gcManager.executeGC(proposalId, executorId);
-            
-            Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("proposalId", result.proposalId);
-            payload.put("executorId", result.executorId);
-            payload.put("success", result.success);
-            payload.put("timestamp", result.timestamp);
-            if (result.success) {
-                payload.put("filesRemoved", result.filesRemoved != null ? result.filesRemoved.size() : 0);
-                payload.put("actualReclaimedSizeMB", result.actualReclaimedSizeMB);
-                payload.put("actualCostUSDC", result.actualCostUSDC != null ? result.actualCostUSDC.toString() : "0");
-            } else {
-                payload.put("errorMessage", result.errorMessage != null ? result.errorMessage : "Unknown error");
+            org.apache.jackrabbit.oak.segment.consensus.gc.GCProposal proposal = gcManager.getProposal(proposalId);
+            if (proposal == null) {
+                ApiErrorUtil.sendJsonError(response, HttpServletResponse.SC_NOT_FOUND, "GC proposal not found: " + proposalId);
+                return;
             }
-            response.setStatus(HttpServletResponse.SC_OK);
+            if (proposal.state != org.apache.jackrabbit.oak.segment.consensus.gc.GCProposal.GCProposalState.APPROVED) {
+                ApiErrorUtil.sendJsonError(response, HttpServletResponse.SC_BAD_REQUEST,
+                    "GC proposal not approved: " + proposalId + " (state: " + proposal.state + ")");
+                return;
+            }
+            boolean replicated = context.aeronConsensusEngine != null
+                && context.aeronConsensusEngine.sendGCExecuteThroughIngress(proposalId, executorId);
+            if (!replicated) {
+                ApiErrorUtil.sendJsonError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE,
+                    "GC execute could not be sent to the cluster log");
+                return;
+            }
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("proposalId", proposalId);
+            payload.put("executorId", executorId);
+            payload.put("replicated", true);
+            response.setStatus(HttpServletResponse.SC_ACCEPTED);
             response.getWriter().write(JsonOutputUtil.toJson(payload));
             
-        } catch (IllegalStateException e) {
-            // Proposal not approved or already executed
-            ApiErrorUtil.sendJsonError(response, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
-        } catch (IllegalArgumentException e) {
-            // Proposal not found
-            ApiErrorUtil.sendJsonError(response, HttpServletResponse.SC_NOT_FOUND, e.getMessage());
         } catch (Exception e) {
             log.error("Error executing GC", e);
             ApiErrorUtil.sendJsonError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
@@ -574,12 +569,11 @@ public class FragmentationApiHandler {
                 );
             }
 
-            // Apply locally only when replication is unavailable/failed.
-            // When replicated=true, MessageDispatcher callback applies the vote once.
+            // The tally changes only when the GC_VOTE log entry is applied
             if (!replicated) {
-                gcManager.voteOnProposal(proposalId, resolvedValidatorId, resolvedApprove, resolvedReason);
-            } else {
-                log.debug("GC vote {} for validator {} applied via Aeron replication", proposalId, resolvedValidatorId);
+                ApiErrorUtil.sendJsonError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE,
+                    "GC vote could not be sent to the cluster log; nothing was recorded");
+                return;
             }
 
             org.apache.jackrabbit.oak.segment.consensus.gc.GCProposal proposal = gcManager.getProposal(proposalId);

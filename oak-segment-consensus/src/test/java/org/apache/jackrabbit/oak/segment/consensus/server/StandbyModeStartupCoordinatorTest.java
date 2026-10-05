@@ -102,7 +102,6 @@ public class StandbyModeStartupCoordinatorTest {
         AeronClusterStartupResult startupResult = new AeronClusterStartupResult(
             null,
             launcher,
-            null,
             Arrays.asList("validator-0", "validator-1"),
             5
         );
@@ -155,7 +154,6 @@ public class StandbyModeStartupCoordinatorTest {
         AeronClusterStartupResult startupResult = new AeronClusterStartupResult(
             null,
             fallbackLauncher,
-            null,
             Collections.singletonList("validator-0"),
             9
         );

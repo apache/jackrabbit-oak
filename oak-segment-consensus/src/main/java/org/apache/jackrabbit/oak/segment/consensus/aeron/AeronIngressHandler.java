@@ -18,10 +18,10 @@ package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
 import io.aeron.cluster.service.ClientSession;
 import io.aeron.cluster.service.Cluster;
-import io.aeron.cluster.service.ClusterTerminationException;
 import io.aeron.logbuffer.Header;
 import org.agrona.DirectBuffer;
 import org.apache.jackrabbit.oak.segment.consensus.validation.MutationRejectedException;
+import org.apache.jackrabbit.oak.segment.consensus.service.AppliedLogPosition;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -31,8 +31,6 @@ import org.slf4j.LoggerFactory;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
-import java.util.function.BiConsumer;
 
 /**
  * Handles Aeron ingress messages and delegates to the MessageDispatcher.
@@ -48,8 +46,13 @@ public class AeronIngressHandler {
     private final AeronMessageCodec codec;
     private final MessageDispatcher dispatcher;
     private Runnable heartbeatCallback;
-    private BiConsumer<Long, String> genesisCallback;
-    private volatile Throwable applicationFailure;
+    private GenesisCallback genesisCallback;
+
+    /** Applies a committed genesis trigger with Aeron's command timestamp and the watermark for its Oak merge. */
+    @FunctionalInterface
+    public interface GenesisCallback {
+        void apply(long timestamp, String triggerJson, AppliedLogPosition logPosition);
+    }
 
     @Activate
     public AeronIngressHandler(@Reference AeronMessageCodec codec,
@@ -62,11 +65,7 @@ public class AeronIngressHandler {
         this.heartbeatCallback = heartbeatCallback;
     }
 
-    public void setGenesisCallback(Consumer<String> genesisCallback) {
-        this.genesisCallback = genesisCallback == null ? null : (timestamp, payload) -> genesisCallback.accept(payload);
-    }
-
-    public void setTimedGenesisCallback(BiConsumer<Long, String> genesisCallback) {
+    public void setGenesisCallback(GenesisCallback genesisCallback) {
         this.genesisCallback = genesisCallback;
     }
 
@@ -77,9 +76,6 @@ public class AeronIngressHandler {
                                  int length,
                                  Header header,
                                  Cluster cluster) {
-        if (hasApplicationFailure()) {
-            throw termination(applicationFailure);
-        }
         if (heartbeatCallback != null) {
             heartbeatCallback.run();
         }
@@ -93,54 +89,42 @@ public class AeronIngressHandler {
             return false;
         }
 
-        try {
-            SimpleMessageHeader.HeaderInfo headerInfo = codec.decodeHeader(buffer, offset);
+        // End of this entry in the cluster log; identical on every member (BoundedLogAdapter passes header.position()).
+        // Apply failures propagate: the engine stops this member rather than skip the entry.
+        long logPosition = header != null ? header.position() : -1L;
+        SimpleMessageHeader.HeaderInfo headerInfo = codec.decodeHeader(buffer, offset);
 
-            if (headerInfo.templateId == SimpleMessageHeader.TEMPLATE_ID_GENESIS_PROPOSAL) {
-                log.info("🎬 GENESIS proposal received via Aeron - creating genesis on this node");
-                try {
-                    if (genesisCallback == null) {
-                        throw new IllegalStateException("Genesis callback unavailable");
-                    }
-                    genesisCallback.accept(timestamp, readGenesisProposal(buffer, offset, length, headerInfo.blockLength));
-                } catch (MutationRejectedException e) {
-                    log.warn("Rejected malformed genesis trigger: {}", e.getMessage());
-                    return false;
-                } catch (RuntimeException e) {
-                    throw new MessageDispatcher.ReplicatedApplyException("Failed to apply committed genesis", e);
-                }
-                log.info("✅ Genesis creation complete on this node");
+        if (headerInfo.templateId == SimpleMessageHeader.TEMPLATE_ID_GENESIS_PROPOSAL) {
+            AppliedLogPosition entry = dispatcher.entryPosition(logPosition, 0);
+            if (dispatcher.isAlreadyApplied(entry)) {
                 return true;
             }
-
-            if (headerInfo.templateId == SimpleMessageHeader.TEMPLATE_ID_SNAPSHOT) {
-                log.debug("📸 Snapshot message received in onSessionMessage (handled separately)");
-                return true;
+            log.info("🎬 GENESIS proposal received via Aeron - creating genesis on this node");
+            if (genesisCallback == null) {
+                throw new MessageDispatcher.ReplicatedApplyException("Genesis callback unavailable", null);
             }
-
-            boolean success = dispatcher.dispatch(timestamp, buffer, offset, length);
-            if (!success) {
-                logDispatchFailure(headerInfo.templateId);
+            try {
+                genesisCallback.apply(timestamp, readGenesisProposal(buffer, offset, length, headerInfo.blockLength),
+                    entry);
+            } catch (MutationRejectedException e) {
+                // Malformed trigger: a pure function of the replicated bytes, rejected identically on every member
+                log.warn("Rejected malformed genesis trigger: {}", e.getMessage());
+                return false;
             }
-            return success;
-        } catch (MessageDispatcher.ReplicatedApplyException e) {
-            applicationFailure = e;
-            log.error("Committed application failed; this member is quarantined until restart and repair", e);
-            throw termination(e);
-        } catch (Exception e) {
-            log.error("❌ Failed to process replicated message", e);
-            return false;
+            log.info("✅ Genesis creation complete on this node");
+            return true;
         }
-    }
 
-    public boolean hasApplicationFailure() {
-        return applicationFailure != null;
-    }
+        if (headerInfo.templateId == SimpleMessageHeader.TEMPLATE_ID_SNAPSHOT) {
+            log.debug("📸 Snapshot message received in onSessionMessage (handled separately)");
+            return true;
+        }
 
-    private static ClusterTerminationException termination(Throwable cause) {
-        ClusterTerminationException termination = new ClusterTerminationException(false);
-        termination.initCause(cause);
-        return termination;
+        boolean success = dispatcher.dispatch(timestamp, logPosition, buffer, offset, length);
+        if (!success) {
+            logDispatchFailure(headerInfo.templateId);
+        }
+        return success;
     }
 
     private void logDispatchFailure(int templateId) {

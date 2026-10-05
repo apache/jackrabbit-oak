@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 
 import java.nio.charset.StandardCharsets;
 
@@ -40,10 +41,8 @@ final class AeronIngressPayloadSupport {
         if (str == null) {
             return "";
         }
-        return str.replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-            .replace("\n", "\\n")
-            .replace("\r", "\\r")
-            .replace("\t", "\\t");
+        StringBuilder escaped = new StringBuilder(str.length() + 16);
+        JsopBuilder.escape(str, escaped);
+        return escaped.toString();
     }
 }

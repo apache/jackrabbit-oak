@@ -42,9 +42,14 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.nio.file.Paths;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -286,6 +291,46 @@ public class ExplorerApiV1HandlerTest {
         assertTrue(json.contains("\"clusterId\":\"" + LOCAL_CLUSTER_ID + "\""));
         assertTrue(json.contains("\"name\":\"12\""));
         assertFalse(json.contains("\"name\":\"90\""));
+    }
+
+    @Test
+    public void testHandleContentTreePagesVisibleChildren() throws Exception {
+        MemoryNodeStore nodeStore = new MemoryNodeStore();
+        for (int i = 0; i < 5; i++) {
+            seedTreeNode(nodeStore, "/oak-chain/12/aa/doc-" + i);
+        }
+        ExplorerApiV1Handler handler = new ExplorerApiV1Handler(newContext(nodeStore));
+        Set<String> seen = new HashSet<>();
+
+        StringWriter first = new StringWriter();
+        handler.handleContentTree(responseWithBody(first), LOCAL_CLUSTER_ID, "/oak-chain/12/aa", 0, 2);
+        assertTrue(first.toString().contains("\"childrenPage\":{\"offset\":0,\"limit\":2,\"returned\":2,\"nextOffset\":2}"));
+        seen.addAll(childNames(first.toString()));
+
+        StringWriter second = new StringWriter();
+        handler.handleContentTree(responseWithBody(second), LOCAL_CLUSTER_ID, "/oak-chain/12/aa", 2, 2);
+        assertTrue(second.toString().contains("\"childrenPage\":{\"offset\":2,\"limit\":2,\"returned\":2,\"nextOffset\":4}"));
+        seen.addAll(childNames(second.toString()));
+
+        StringWriter last = new StringWriter();
+        handler.handleContentTree(responseWithBody(last), LOCAL_CLUSTER_ID, "/oak-chain/12/aa", 4, 2);
+        assertTrue(last.toString().contains("\"childrenPage\":{\"offset\":4,\"limit\":2,\"returned\":1,\"nextOffset\":null}"));
+        seen.addAll(childNames(last.toString()));
+        assertEquals(5, seen.size());
+
+        StringWriter clamped = new StringWriter();
+        handler.handleContentTree(responseWithBody(clamped), LOCAL_CLUSTER_ID, "/oak-chain/12/aa", -3, 100000);
+        assertTrue(clamped.toString().contains("\"childrenPage\":{\"offset\":0,\"limit\":"
+            + ExplorerApiV1Handler.MAX_TREE_PAGE_SIZE + ",\"returned\":5,\"nextOffset\":null}"));
+    }
+
+    private static Set<String> childNames(String json) {
+        Set<String> names = new HashSet<>();
+        Matcher matcher = Pattern.compile("\"name\":\"(doc-\\d)\"").matcher(json);
+        while (matcher.find()) {
+            names.add(matcher.group(1));
+        }
+        return names;
     }
 
     @Test

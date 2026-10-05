@@ -16,70 +16,51 @@
  */
 package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.LongSupplier;
 
 /**
- * Tracks explicit transaction boundaries with persistence, timeout expiry,
- * idempotency, and replay-safe semantics.
+ * Replicated transaction boundaries. Every transition is applied from a log entry and uses only that
+ * entry's cluster timestamp, so all members, and a full-log replay into a fresh JVM, decide alike:
+ * the deadline is the START timestamp plus the timeout, and a transaction expires on its Aeron
+ * TimerEvent or on the first COMMIT/ABORT entry stamped at or after the deadline, whichever the log
+ * holds first. State lives only in memory and is rebuilt by replaying the log.
  */
 final class TransactionLifecycleManager {
-
-    private static final Logger log = LoggerFactory.getLogger(TransactionLifecycleManager.class);
 
     private static final long DEFAULT_TIMEOUT_MS = 30_000L;
     private static final int DEFAULT_MAX_TERMINAL_ENTRIES = 10_000;
 
-    private final Path stateFile;
-    private final LongSupplier nowMs;
     private final int maxTerminalEntries;
 
     private final Map<String, TxRecord> active = new LinkedHashMap<>();
+    private final Map<Long, String> activeByTimerId = new HashMap<>();
     private final LinkedHashMap<String, TxRecord> terminal = new LinkedHashMap<>();
 
-    TransactionLifecycleManager(Path directory) {
-        this(directory, System::currentTimeMillis, DEFAULT_MAX_TERMINAL_ENTRIES);
+    TransactionLifecycleManager() {
+        this(DEFAULT_MAX_TERMINAL_ENTRIES);
     }
 
-    TransactionLifecycleManager(Path directory, LongSupplier nowMs, int maxTerminalEntries) {
-        this.stateFile = directory.resolve("transaction-lifecycle.bin");
-        this.nowMs = nowMs;
+    TransactionLifecycleManager(int maxTerminalEntries) {
         this.maxTerminalEntries = Math.max(100, maxTerminalEntries);
-        try {
-            Files.createDirectories(directory);
-        } catch (Exception e) {
-            log.warn("Failed to create transaction lifecycle directory {}: {}", directory, e.getMessage());
-        }
-        load();
     }
 
-    synchronized TransitionResult onStart(String transactionId, String correlationId, long timeoutMs, String initiatorWallet) {
+    /**
+     * @param logTimestamp cluster timestamp of the START entry
+     * @param timerId correlation id for the expiry timer, unique per log entry
+     */
+    synchronized TransitionResult onStart(String transactionId, String correlationId, long timeoutMs,
+                                          String initiatorWallet, long logTimestamp, long timerId) {
         if (isBlank(transactionId)) {
             return TransitionResult.rejected("missing transactionId");
         }
-        long now = nowMs.getAsLong();
         long effectiveTimeout = timeoutMs > 0 ? timeoutMs : DEFAULT_TIMEOUT_MS;
 
         TxRecord activeRecord = active.get(transactionId);
         if (activeRecord != null) {
-            if (activeRecord.status == TxStatus.STARTED) {
-                return TransitionResult.idempotent(activeRecord.copy());
-            }
-            return TransitionResult.rejected("transaction is not startable in active map");
+            return TransitionResult.idempotent(activeRecord.copy());
         }
 
         TxRecord terminalRecord = terminal.get(transactionId);
@@ -92,11 +73,12 @@ final class TransactionLifecycleManager {
         record.correlationId = correlationId;
         record.initiatorWallet = initiatorWallet;
         record.status = TxStatus.STARTED;
-        record.startedAtMs = now;
+        record.startedAtMs = logTimestamp;
         record.timeoutMs = effectiveTimeout;
-        record.deadlineMs = now + effectiveTimeout;
+        record.deadlineMs = logTimestamp + effectiveTimeout;
+        record.timerId = timerId;
         active.put(transactionId, record);
-        persist();
+        activeByTimerId.put(timerId, transactionId);
         return TransitionResult.applied(record.copy());
     }
 
@@ -106,9 +88,7 @@ final class TransactionLifecycleManager {
         }
         TxRecord activeRecord = active.get(transactionId);
         if (activeRecord != null) {
-            return activeRecord.status == TxStatus.STARTED
-                ? TransitionResult.idempotent(activeRecord.copy())
-                : TransitionResult.rejected("transaction is not startable in active map");
+            return TransitionResult.idempotent(activeRecord.copy());
         }
         TxRecord terminalRecord = terminal.get(transactionId);
         if (terminalRecord != null) {
@@ -117,24 +97,19 @@ final class TransactionLifecycleManager {
         return TransitionResult.applied(null);
     }
 
-    synchronized TransitionResult onCommit(String transactionId, String correlationId) {
+    synchronized TransitionResult onCommit(String transactionId, String correlationId, long logTimestamp) {
         if (isBlank(transactionId)) {
             return TransitionResult.rejected("missing transactionId");
         }
-        expireInternal(nowMs.getAsLong());
-
-        TxRecord activeRecord = active.remove(transactionId);
+        TxRecord activeRecord = active.get(transactionId);
         if (activeRecord != null) {
-            if (activeRecord.status != TxStatus.STARTED) {
-                return TransitionResult.rejected("active transaction not in STARTED state");
+            if (logTimestamp >= activeRecord.deadlineMs) {
+                return TransitionResult.timedOut(expire(activeRecord, logTimestamp));
             }
-            activeRecord.status = TxStatus.COMMITTED;
-            activeRecord.completedAtMs = nowMs.getAsLong();
+            finish(activeRecord, TxStatus.COMMITTED, logTimestamp);
             if (isBlank(activeRecord.correlationId)) {
                 activeRecord.correlationId = correlationId;
             }
-            addTerminal(activeRecord);
-            persist();
             return TransitionResult.applied(activeRecord.copy());
         }
 
@@ -152,9 +127,8 @@ final class TransactionLifecycleManager {
         if (isBlank(transactionId)) {
             return TransitionResult.rejected("missing transactionId");
         }
-        expireInternal(nowMs.getAsLong());
         TxRecord activeRecord = active.get(transactionId);
-        if (activeRecord != null && activeRecord.status == TxStatus.STARTED) {
+        if (activeRecord != null) {
             return TransitionResult.applied(activeRecord.copy());
         }
         TxRecord terminalRecord = terminal.get(transactionId);
@@ -167,22 +141,20 @@ final class TransactionLifecycleManager {
         return TransitionResult.rejected("cannot commit terminal transaction: " + terminalRecord.status);
     }
 
-    synchronized TransitionResult onAbort(String transactionId, String correlationId, String reason) {
+    synchronized TransitionResult onAbort(String transactionId, String correlationId, String reason, long logTimestamp) {
         if (isBlank(transactionId)) {
             return TransitionResult.rejected("missing transactionId");
         }
-        expireInternal(nowMs.getAsLong());
-
-        TxRecord activeRecord = active.remove(transactionId);
+        TxRecord activeRecord = active.get(transactionId);
         if (activeRecord != null) {
-            activeRecord.status = TxStatus.ABORTED;
-            activeRecord.completedAtMs = nowMs.getAsLong();
+            if (logTimestamp >= activeRecord.deadlineMs) {
+                return TransitionResult.timedOut(expire(activeRecord, logTimestamp));
+            }
             activeRecord.abortReason = reason;
             if (isBlank(activeRecord.correlationId)) {
                 activeRecord.correlationId = correlationId;
             }
-            addTerminal(activeRecord);
-            persist();
+            finish(activeRecord, TxStatus.ABORTED, logTimestamp);
             return TransitionResult.applied(activeRecord.copy());
         }
 
@@ -192,13 +164,12 @@ final class TransactionLifecycleManager {
             syntheticAbort.transactionId = transactionId;
             syntheticAbort.correlationId = correlationId;
             syntheticAbort.status = TxStatus.ABORTED;
-            syntheticAbort.startedAtMs = nowMs.getAsLong();
-            syntheticAbort.completedAtMs = syntheticAbort.startedAtMs;
-            syntheticAbort.deadlineMs = syntheticAbort.startedAtMs;
+            syntheticAbort.startedAtMs = logTimestamp;
+            syntheticAbort.completedAtMs = logTimestamp;
+            syntheticAbort.deadlineMs = logTimestamp;
             syntheticAbort.timeoutMs = 0L;
             syntheticAbort.abortReason = reason;
             addTerminal(syntheticAbort);
-            persist();
             return TransitionResult.applied(syntheticAbort.copy());
         }
 
@@ -212,7 +183,6 @@ final class TransactionLifecycleManager {
         if (isBlank(transactionId)) {
             return TransitionResult.rejected("missing transactionId");
         }
-        expireInternal(nowMs.getAsLong());
         TxRecord activeRecord = active.get(transactionId);
         if (activeRecord != null) {
             return TransitionResult.applied(activeRecord.copy());
@@ -227,12 +197,16 @@ final class TransactionLifecycleManager {
         return TransitionResult.rejected("cannot abort terminal transaction: " + terminalRecord.status);
     }
 
-    synchronized List<TxRecord> expireTimedOut() {
-        List<TxRecord> expired = expireInternal(nowMs.getAsLong());
-        if (!expired.isEmpty()) {
-            persist();
+    /**
+     * Applies an expiry TimerEvent; a timer whose transaction already ended is a no-op.
+     */
+    synchronized TransitionResult onTimer(long timerId, long logTimestamp) {
+        String transactionId = activeByTimerId.get(timerId);
+        TxRecord activeRecord = transactionId != null ? active.get(transactionId) : null;
+        if (activeRecord == null) {
+            return TransitionResult.rejected("no active transaction for timer " + timerId);
         }
-        return expired;
+        return TransitionResult.timedOut(expire(activeRecord, logTimestamp));
     }
 
     synchronized Optional<TxRecord> get(String transactionId) {
@@ -266,34 +240,18 @@ final class TransactionLifecycleManager {
         return stats;
     }
 
-    private List<TxRecord> expireInternal(long now) {
-        if (active.isEmpty()) {
-            return Collections.emptyList();
-        }
-        List<String> timedOutIds = new ArrayList<>();
-        for (Map.Entry<String, TxRecord> entry : active.entrySet()) {
-            TxRecord record = entry.getValue();
-            if (record.status == TxStatus.STARTED && record.deadlineMs > 0 && now >= record.deadlineMs) {
-                timedOutIds.add(entry.getKey());
-            }
-        }
-        if (timedOutIds.isEmpty()) {
-            return Collections.emptyList();
-        }
+    private TxRecord expire(TxRecord record, long logTimestamp) {
+        record.abortReason = "timeout";
+        finish(record, TxStatus.TIMED_OUT, logTimestamp);
+        return record.copy();
+    }
 
-        List<TxRecord> expired = new ArrayList<>(timedOutIds.size());
-        for (String transactionId : timedOutIds) {
-            TxRecord record = active.remove(transactionId);
-            if (record == null) {
-                continue;
-            }
-            record.status = TxStatus.TIMED_OUT;
-            record.completedAtMs = now;
-            record.abortReason = "timeout";
-            addTerminal(record);
-            expired.add(record.copy());
-        }
-        return expired;
+    private void finish(TxRecord record, TxStatus status, long logTimestamp) {
+        active.remove(record.transactionId);
+        activeByTimerId.remove(record.timerId);
+        record.status = status;
+        record.completedAtMs = logTimestamp;
+        addTerminal(record);
     }
 
     private void addTerminal(TxRecord record) {
@@ -301,45 +259,6 @@ final class TransactionLifecycleManager {
         while (terminal.size() > maxTerminalEntries) {
             String eldest = terminal.keySet().iterator().next();
             terminal.remove(eldest);
-        }
-    }
-
-    private void load() {
-        if (!Files.exists(stateFile)) {
-            return;
-        }
-        try (ObjectInputStream in = new ObjectInputStream(Files.newInputStream(stateFile))) {
-            Object object = in.readObject();
-            if (!(object instanceof PersistedState)) {
-                return;
-            }
-            PersistedState state = (PersistedState) object;
-            if (state.active != null) {
-                active.clear();
-                active.putAll(state.active);
-            }
-            if (state.terminal != null) {
-                terminal.clear();
-                terminal.putAll(state.terminal);
-            }
-        } catch (Exception e) {
-            log.warn("Failed to load transaction lifecycle state: {}", e.getMessage());
-        }
-    }
-
-    private void persist() {
-        try {
-            PersistedState state = new PersistedState();
-            state.active = new LinkedHashMap<>(active);
-            state.terminal = new LinkedHashMap<>(terminal);
-
-            Path tempFile = stateFile.resolveSibling(stateFile.getFileName() + ".tmp");
-            try (ObjectOutputStream out = new ObjectOutputStream(Files.newOutputStream(tempFile))) {
-                out.writeObject(state);
-            }
-            Files.move(tempFile, stateFile, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-        } catch (Exception e) {
-            log.warn("Failed to persist transaction lifecycle state: {}", e.getMessage());
         }
     }
 
@@ -357,26 +276,33 @@ final class TransactionLifecycleManager {
     static final class TransitionResult {
         private final boolean applied;
         private final boolean idempotent;
+        private final boolean timedOut;
         private final String reason;
         private final TxRecord record;
 
-        private TransitionResult(boolean applied, boolean idempotent, String reason, TxRecord record) {
+        private TransitionResult(boolean applied, boolean idempotent, boolean timedOut, String reason, TxRecord record) {
             this.applied = applied;
             this.idempotent = idempotent;
+            this.timedOut = timedOut;
             this.reason = reason;
             this.record = record;
         }
 
         static TransitionResult applied(TxRecord record) {
-            return new TransitionResult(true, false, null, record);
+            return new TransitionResult(true, false, false, null, record);
         }
 
         static TransitionResult idempotent(TxRecord record) {
-            return new TransitionResult(false, true, null, record);
+            return new TransitionResult(false, true, false, null, record);
         }
 
         static TransitionResult rejected(String reason) {
-            return new TransitionResult(false, false, reason, null);
+            return new TransitionResult(false, false, false, reason, null);
+        }
+
+        /** This entry expired the transaction instead of applying the requested transition. */
+        static TransitionResult timedOut(TxRecord record) {
+            return new TransitionResult(false, false, true, "transaction timed out", record);
         }
 
         boolean isApplied() {
@@ -385,6 +311,10 @@ final class TransactionLifecycleManager {
 
         boolean isIdempotent() {
             return idempotent;
+        }
+
+        boolean isTimedOut() {
+            return timedOut;
         }
 
         String getReason() {
@@ -396,9 +326,7 @@ final class TransactionLifecycleManager {
         }
     }
 
-    static final class TxRecord implements Serializable {
-        private static final long serialVersionUID = 1L;
-
+    static final class TxRecord {
         String transactionId;
         String correlationId;
         String initiatorWallet;
@@ -407,6 +335,7 @@ final class TransactionLifecycleManager {
         long timeoutMs;
         long deadlineMs;
         long completedAtMs;
+        long timerId;
         String abortReason;
 
         TxRecord copy() {
@@ -419,14 +348,9 @@ final class TransactionLifecycleManager {
             copy.timeoutMs = timeoutMs;
             copy.deadlineMs = deadlineMs;
             copy.completedAtMs = completedAtMs;
+            copy.timerId = timerId;
             copy.abortReason = abortReason;
             return copy;
         }
-    }
-
-    private static final class PersistedState implements Serializable {
-        private static final long serialVersionUID = 1L;
-        private Map<String, TxRecord> active;
-        private Map<String, TxRecord> terminal;
     }
 }

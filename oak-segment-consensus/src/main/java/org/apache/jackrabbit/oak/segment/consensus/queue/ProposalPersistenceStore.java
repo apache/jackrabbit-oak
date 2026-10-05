@@ -129,6 +129,7 @@ final class ProposalPersistenceStore {
         private final long durabilityTimestamp;
         private final String durabilityError;
         private final String durableHead;
+        private boolean appendedToLog;
 
         private StoredProposal(String proposalId,
                                String ethereumTxHash,
@@ -197,7 +198,7 @@ final class ProposalPersistenceStore {
         }
 
         static StoredProposal from(QueuedProposal proposal) {
-            return new StoredProposal(
+            StoredProposal stored = new StoredProposal(
                 proposal.getProposalId(),
                 proposal.getEthereumTxHash(),
                 proposal.getTimestamp(),
@@ -231,6 +232,8 @@ final class ProposalPersistenceStore {
                 proposal.getDurabilityError(),
                 proposal.getDurableHead()
             );
+            stored.appendedToLog = proposal.isAppendedToLog();
+            return stored;
         }
 
         QueuedProposal toQueuedProposal() {
@@ -270,6 +273,9 @@ final class ProposalPersistenceStore {
                 durabilityError
             );
             proposal.restoreRetryState(retryCount, lastRetryTimestamp);
+            if (appendedToLog) {
+                proposal.markAppendedToLog();
+            }
             return proposal;
         }
     }

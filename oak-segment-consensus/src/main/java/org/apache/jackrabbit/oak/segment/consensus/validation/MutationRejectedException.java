@@ -27,4 +27,19 @@ public final class MutationRejectedException extends IllegalArgumentException {
     public MutationRejectedException(String message, Throwable cause) {
         super(message, cause);
     }
+
+    /**
+     * A replicated entry rejected for its own content is rejected the same way on every member, so the log entry is
+     * skipped. Any other apply failure may be node-local and must stop the member instead.
+     *
+     * @return true when {@code error} or one of its causes is a {@link MutationRejectedException}
+     */
+    public static boolean isCauseOf(Throwable error) {
+        for (Throwable t = error; t != null; t = t.getCause()) {
+            if (t instanceof MutationRejectedException) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

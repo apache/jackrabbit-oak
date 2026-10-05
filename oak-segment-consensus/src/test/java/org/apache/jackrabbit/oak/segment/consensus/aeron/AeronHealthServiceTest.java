@@ -60,9 +60,9 @@ public class AeronHealthServiceTest {
         when(candidate.role()).thenReturn(CANDIDATE);
 
         assertFalse(service.isClusterHealthy(null, null, null));
-        assertFalse(service.isClusterHealthy(candidate, null, null));
+        assertFalse(service.isClusterHealthy(candidate.role(), null, null));
         assertTrue("cluster_not_initialized".equals(service.getUnhealthyReason(null, null, null)));
-        assertTrue("leader_election_in_progress".equals(service.getUnhealthyReason(candidate, null, null)));
+        assertTrue("leader_election_in_progress".equals(service.getUnhealthyReason(candidate.role(), null, null)));
     }
 
     @Test
@@ -71,8 +71,8 @@ public class AeronHealthServiceTest {
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(LEADER);
 
-        assertFalse(service.isClusterHealthy(cluster, () -> false, null));
-        assertTrue("no_quorum".equals(service.getUnhealthyReason(cluster, () -> false, null)));
+        assertFalse(service.isClusterHealthy(cluster.role(), () -> false, null));
+        assertTrue("no_quorum".equals(service.getUnhealthyReason(cluster.role(), () -> false, null)));
     }
 
     @Test
@@ -86,12 +86,12 @@ public class AeronHealthServiceTest {
         when(openClient.isClosed()).thenReturn(false);
         when(closedClient.isClosed()).thenReturn(true);
 
-        assertTrue(service.isClusterHealthy(cluster, () -> true, () -> openClient));
-        assertTrue(service.isClusterHealthy(cluster, () -> true, () -> closedClient));
-        assertTrue(service.isClusterHealthy(cluster, null, null));
-        assertNull(service.getUnhealthyReason(cluster, () -> true, () -> openClient));
-        assertNull(service.getUnhealthyReason(cluster, () -> true, () -> closedClient));
-        assertNull(service.getUnhealthyReason(cluster, null, null));
+        assertTrue(service.isClusterHealthy(cluster.role(), () -> true, () -> openClient));
+        assertTrue(service.isClusterHealthy(cluster.role(), () -> true, () -> closedClient));
+        assertTrue(service.isClusterHealthy(cluster.role(), null, null));
+        assertNull(service.getUnhealthyReason(cluster.role(), () -> true, () -> openClient));
+        assertNull(service.getUnhealthyReason(cluster.role(), () -> true, () -> closedClient));
+        assertNull(service.getUnhealthyReason(cluster.role(), null, null));
     }
 
     private static void setLastHeartbeatTime(AeronHealthService service, long value) throws Exception {

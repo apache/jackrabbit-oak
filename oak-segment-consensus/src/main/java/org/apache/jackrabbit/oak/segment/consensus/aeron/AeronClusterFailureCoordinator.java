@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 
 import io.aeron.exceptions.AeronException;
 import org.agrona.ErrorHandler;
+import org.agrona.concurrent.AgentTerminationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +36,7 @@ final class AeronClusterFailureCoordinator {
     private final CrashHandler crashHandler;
     private final Executor executor;
     private final AtomicBoolean shutdownRequested;
+    private final AtomicBoolean crashRecorded = new AtomicBoolean();
     private final Sleeper sleeper;
     private final Runnable shutdownAction;
     private final Supplier<Runnable> shutdownCallbackSupplier;
@@ -75,6 +77,19 @@ final class AeronClusterFailureCoordinator {
         };
     }
 
+    /**
+     * Aeron terminated the consensus module or service container (termination hook, run on its agent
+     * thread): the node can no longer apply the log, so it stops serving through the same path as a
+     * FATAL error, minus the crash record.
+     */
+    void onAeronTermination(String component) {
+        if (!requestShutdown()) {
+            return;
+        }
+        log.error("🛑 Aeron {} terminated - shutting the node down", component);
+        executor.execute(this::shutdownAndNotify);
+    }
+
     boolean requestShutdown() {
         return shutdownRequested.compareAndSet(false, true);
     }
@@ -96,12 +111,16 @@ final class AeronClusterFailureCoordinator {
     }
 
     private void maybeScheduleFatalShutdown(Throwable throwable) {
-        if (!(throwable instanceof AeronException) || crashHandler == null) {
+        // The clustered service stops its agent with an AgentTerminationException that carries the FATAL cause.
+        Throwable error = throwable instanceof AgentTerminationException && throwable.getCause() instanceof AeronException
+            ? throwable.getCause()
+            : throwable;
+        if (!(error instanceof AeronException) || crashHandler == null) {
             return;
         }
 
-        AeronException ex = (AeronException) throwable;
-        if (!crashHandler.shouldStop(ex) || !requestShutdown()) {
+        AeronException ex = (AeronException) error;
+        if (!crashHandler.shouldStop(ex)) {
             return;
         }
 
@@ -111,8 +130,15 @@ final class AeronClusterFailureCoordinator {
         log.error("   Category: {}", ex.category());
         log.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
-        crashHandler.handleCrash(ex);
-        log.warn("📛 Crash state: {}", crashHandler.getState());
+        // Record the crash even when Aeron's termination hook already started the shutdown for this
+        // same failure (the hook runs before the agent's error handler), so crash-loop state is kept.
+        if (crashRecorded.compareAndSet(false, true)) {
+            crashHandler.handleCrash(ex);
+            log.warn("📛 Crash state: {}", crashHandler.getState());
+        }
+        if (!requestShutdown()) {
+            return;
+        }
 
         executor.execute(() -> {
             try {
@@ -120,6 +146,15 @@ final class AeronClusterFailureCoordinator {
                 sleeper.sleep(FATAL_SHUTDOWN_DELAY_MS);
 
                 log.info("🛑 Initiating graceful shutdown due to FATAL error...");
+                shutdownAndNotify();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+    }
+
+    private void shutdownAndNotify() {
+        try {
                 shutdownAction.run();
 
                 Runnable shutdownCallback = shutdownCallbackSupplier.get();
@@ -133,7 +168,6 @@ final class AeronClusterFailureCoordinator {
             } catch (Exception e) {
                 log.error("Error during shutdown", e);
             }
-        });
     }
 
     interface Sleeper {

@@ -31,7 +31,7 @@
   <packaging>bundle</packaging>
 
   <properties>
-    <aeron.version>1.50.4</aeron.version>
+    <aeron.version>1.53.3</aeron.version>
     <jetty.version>12.0.34</jetty.version>
     <jakarta.servlet.version>6.0.0</jakarta.servlet.version>
     <oak.version>${project.parent.version}</oak.version>

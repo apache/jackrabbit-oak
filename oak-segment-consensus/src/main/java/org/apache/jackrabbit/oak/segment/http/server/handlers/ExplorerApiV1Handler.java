@@ -60,6 +60,8 @@ public class ExplorerApiV1Handler {
 
     private static final Logger log = LoggerFactory.getLogger(ExplorerApiV1Handler.class);
     private static final String CONTENT_CONTRACT_VERSION = "explorer.content.v1";
+    public static final int DEFAULT_TREE_PAGE_SIZE = 200;
+    public static final int MAX_TREE_PAGE_SIZE = 500;
     private static final String CONTENT_ROOT_PATH = "/oak-chain";
     private final ServerContext context;
 
@@ -311,6 +313,16 @@ public class ExplorerApiV1Handler {
     }
 
     public void handleContentTree(HttpServletResponse response, String clusterId, String requestedPath) throws IOException {
+        handleContentTree(response, clusterId, requestedPath, 0, DEFAULT_TREE_PAGE_SIZE);
+    }
+
+    /**
+     * Content tree with offset paging over visible children. Pages follow the
+     * node's child iteration order at read time, so writes between page
+     * requests can shift entries.
+     */
+    public void handleContentTree(HttpServletResponse response, String clusterId, String requestedPath,
+                                  int offset, int limit) throws IOException {
         response.setContentType("application/json");
         try {
             ClusterDescriptor cluster = requireCluster(clusterId, response);
@@ -332,7 +344,20 @@ public class ExplorerApiV1Handler {
 
             Map<String, Object> payload = buildContentEnvelope(cluster, path, node);
             payload.put("node", buildNodeSummary(path, node));
-            payload.put("children", buildVisibleChildren(cluster, path, node, 200));
+            int pageOffset = Math.max(0, offset);
+            int pageLimit = Math.min(MAX_TREE_PAGE_SIZE, Math.max(1, limit));
+            List<Map<String, Object>> children = buildVisibleChildren(cluster, path, node, pageOffset, pageLimit + 1);
+            boolean hasMore = children.size() > pageLimit;
+            if (hasMore) {
+                children = children.subList(0, pageLimit);
+            }
+            Map<String, Object> page = new LinkedHashMap<>();
+            page.put("offset", pageOffset);
+            page.put("limit", pageLimit);
+            page.put("returned", children.size());
+            page.put("nextOffset", hasMore ? pageOffset + pageLimit : null);
+            payload.put("children", children);
+            payload.put("childrenPage", page);
             response.setStatus(HttpServletResponse.SC_OK);
             response.getWriter().write(JsonOutputUtil.toJson(payload));
         } catch (Exception e) {
@@ -364,7 +389,7 @@ public class ExplorerApiV1Handler {
             Map<String, Object> payload = buildContentEnvelope(cluster, path, node);
             payload.put("node", buildNodeSummary(path, node));
             payload.put("properties", buildProperties(node));
-            payload.put("childrenPreview", buildVisibleChildren(cluster, path, node, 24));
+            payload.put("childrenPreview", buildVisibleChildren(cluster, path, node, 0, 24));
             response.setStatus(HttpServletResponse.SC_OK);
             response.getWriter().write(JsonOutputUtil.toJson(payload));
         } catch (Exception e) {
@@ -634,17 +659,21 @@ public class ExplorerApiV1Handler {
         return hints;
     }
 
-    private List<Map<String, Object>> buildVisibleChildren(ClusterDescriptor cluster, String path, NodeState node, int limit) {
+    private List<Map<String, Object>> buildVisibleChildren(ClusterDescriptor cluster, String path, NodeState node,
+                                                           int offset, int limit) {
         List<Map<String, Object>> children = new ArrayList<>();
-        int count = 0;
+        int skipped = 0;
         for (ChildNodeEntry entry : node.getChildNodeEntries()) {
             String childPath = joinPath(path, entry.getName());
             if (!isPathVisible(cluster, childPath)) {
                 continue;
             }
+            if (skipped < offset) {
+                skipped++;
+                continue;
+            }
             children.add(buildNodeSummary(childPath, entry.getNodeState()));
-            count++;
-            if (count >= limit) {
+            if (children.size() >= limit) {
                 break;
             }
         }

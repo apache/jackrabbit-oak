@@ -28,7 +28,6 @@ import io.aeron.driver.MediaDriver;
 import io.aeron.driver.Configuration;
 import io.aeron.driver.ThreadingMode;
 import org.agrona.ErrorHandler;
-import org.agrona.IoUtil;
 import org.agrona.concurrent.ShutdownSignalBarrier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +37,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -67,12 +65,10 @@ public class AeronClusterLauncher {
     private static final String MEDIA_DRIVER_TIMEOUT_MS_PROPERTY = "oak.cluster.media.driver.timeout.ms";
     private static final String PUBLICATION_TERM_BUFFER_LENGTH_PROPERTY = "oak.cluster.publication.term.buffer.length.bytes";
     private static final String CLUSTER_TERM_LENGTH_PROPERTY = "oak.cluster.term.length.bytes";
-    private static final int DEFAULT_SESSION_TIMEOUT_MINUTES = 20;
-    private static final int DEV_SESSION_TIMEOUT_MINUTES = 2;
-    private static final int STAGING_SESSION_TIMEOUT_MINUTES = 5;
+    // Our only ingress clients are internal and send a keepalive every second.
+    private static final long DEFAULT_SESSION_TIMEOUT_SECONDS = 30;
+    private static final String SESSION_TIMEOUT_SECONDS_PROPERTY = "oak.cluster.session.timeout.seconds";
     private static final String SESSION_TIMEOUT_MINUTES_PROPERTY = "oak.cluster.session.timeout.minutes";
-    private static final String CLUSTER_ENVIRONMENT_PROPERTY = "oak.cluster.environment";
-    private static final String CLUSTER_ENVIRONMENT_ENV = "OAK_CLUSTER_ENV";
     
     private final int nodeId;
     private final List<String> hostnames;
@@ -273,18 +269,14 @@ public class AeronClusterLauncher {
             driverTimeoutMs
         );
         
-        // Consensus Module Context (use IP addresses for cluster members)
-        // Note: Aeron Cluster 1.49.1 automatically manages snapshot intervals based on log size
-        // Snapshots are taken periodically by the leader to enable faster recovery
-        // Default behavior: snapshot after significant log growth (typically ~1024 entries)
-        log.info("📸 Aeron snapshot management: automatic (leader-controlled)");
+        // Aeron never snapshots on its own; the service's SnapshotTrigger toggles ClusterControl SNAPSHOT on the leader.
+        log.info("📸 Aeron snapshots: leader requests one every {} ms or {} entries (0 = off); "
+                + "each holds only the Oak applied-log watermark and the archive log is never purged",
+            Long.getLong(SnapshotTrigger.INTERVAL_MS_PROPERTY, SnapshotTrigger.DEFAULT_INTERVAL_MS),
+            Long.getLong(SnapshotTrigger.ENTRY_INTERVAL_PROPERTY, SnapshotTrigger.DEFAULT_ENTRY_INTERVAL));
         SessionTimeoutConfig sessionTimeoutConfig = resolveSessionTimeoutConfig();
-        log.info(
-            "⏱️  Aeron session timeout: {} minute(s) [source={}, env={}]",
-            sessionTimeoutConfig.timeoutMinutes,
-            sessionTimeoutConfig.source,
-            sessionTimeoutConfig.environment
-        );
+        log.info("⏱️  Aeron session timeout: {} s [source={}]",
+            TimeUnit.NANOSECONDS.toSeconds(sessionTimeoutConfig.timeoutNs), sessionTimeoutConfig.source);
 
         AeronClusterContextFactory.LaunchContexts contexts = AeronClusterContextFactory.create(
             nodeId,
@@ -294,6 +286,7 @@ public class AeronClusterLauncher {
             myIPAddress,
             ipAddresses,
             barrier,
+            failureCoordinator::onAeronTermination,
             socketSndbufLength,
             socketRcvbufLength,
             publicationTermBufferLength,
@@ -411,29 +404,24 @@ public class AeronClusterLauncher {
                     throw ex;
                 }
             } catch (ActiveDriverException ex) {
-                if (attempt == 4 || !deleteDriverDirectoryIfActiveDriverDetected(ex, aeronDirName)) {
-                    throw ex;
-                }
+                throw new IllegalStateException("Aeron media driver directory " + aeronDirName
+                    + " is active: its cnc.dat heartbeat is younger than driverTimeoutMs="
+                    + contexts.mediaDriverContext.driverTimeoutMs() + ", so another process owns it. "
+                    + "Refusing to start; stop that process (a killed driver stays active until its heartbeat "
+                    + "ages past the timeout). The directory is not deleted.", ex);
             } catch (IllegalStateException ex) {
-                if (attempt == 4 || !deleteMarkFileIfActiveMarkDetected(ex)) {
-                    throw ex;
-                }
+                throw refuseActiveMarkFile(ex);
             }
         }
         throw new IllegalStateException("Aeron ClusteredMediaDriver launch did not complete");
     }
 
     ClusteredServiceContainer launchClusteredServiceContainer(AeronClusterContextFactory.LaunchContexts contexts) {
-        for (int attempt = 1; attempt <= 4; attempt++) {
-            try {
-                return containerLaunchInvoker.launch(contexts.freshCopy().clusteredServiceContext);
-            } catch (IllegalStateException ex) {
-                if (attempt == 4 || !deleteMarkFileIfActiveMarkDetected(ex)) {
-                    throw ex;
-                }
-            }
+        try {
+            return containerLaunchInvoker.launch(contexts.freshCopy().clusteredServiceContext);
+        } catch (IllegalStateException ex) {
+            throw refuseActiveMarkFile(ex);
         }
-        throw new IllegalStateException("Aeron ClusteredServiceContainer launch did not complete");
     }
     
     /**
@@ -453,36 +441,15 @@ public class AeronClusterLauncher {
     }
 
     static SessionTimeoutConfig resolveSessionTimeoutConfig() {
-        String explicit = System.getProperty(SESSION_TIMEOUT_MINUTES_PROPERTY);
-        Integer explicitMinutes = parsePositiveInt(explicit);
-        if (explicitMinutes != null) {
-            return new SessionTimeoutConfig(
-                explicitMinutes,
-                TimeUnit.MINUTES.toNanos(explicitMinutes),
-                "system-property",
-                "override"
-            );
+        Integer seconds = parsePositiveInt(System.getProperty(SESSION_TIMEOUT_SECONDS_PROPERTY));
+        if (seconds != null) {
+            return new SessionTimeoutConfig(TimeUnit.SECONDS.toNanos(seconds), SESSION_TIMEOUT_SECONDS_PROPERTY);
         }
-
-        String environment = firstNonBlank(
-            System.getProperty(CLUSTER_ENVIRONMENT_PROPERTY),
-            System.getenv(CLUSTER_ENVIRONMENT_ENV)
-        );
-        String normalized = environment == null ? "prod" : environment.trim().toLowerCase(Locale.ROOT);
-        int minutes;
-        if ("dev".equals(normalized) || "development".equals(normalized) || "local".equals(normalized) || "test".equals(normalized)) {
-            minutes = DEV_SESSION_TIMEOUT_MINUTES;
-        } else if ("staging".equals(normalized) || "stage".equals(normalized) || "preprod".equals(normalized)) {
-            minutes = STAGING_SESSION_TIMEOUT_MINUTES;
-        } else {
-            minutes = DEFAULT_SESSION_TIMEOUT_MINUTES;
+        Integer minutes = parsePositiveInt(System.getProperty(SESSION_TIMEOUT_MINUTES_PROPERTY));
+        if (minutes != null) {
+            return new SessionTimeoutConfig(TimeUnit.MINUTES.toNanos(minutes), SESSION_TIMEOUT_MINUTES_PROPERTY);
         }
-        return new SessionTimeoutConfig(
-            minutes,
-            TimeUnit.MINUTES.toNanos(minutes),
-            "environment-profile",
-            normalized
-        );
+        return new SessionTimeoutConfig(TimeUnit.SECONDS.toNanos(DEFAULT_SESSION_TIMEOUT_SECONDS), "default");
     }
 
     private static Integer parsePositiveInt(String value) {
@@ -508,16 +475,6 @@ public class AeronClusterLauncher {
 
     private static int resolveClusterTermLengthBytes() {
         return getPositiveIntProperty(CLUSTER_TERM_LENGTH_PROPERTY, DEFAULT_CLUSTER_TERM_LENGTH_BYTES);
-    }
-
-    private static String firstNonBlank(String first, String second) {
-        if (first != null && !first.trim().isEmpty()) {
-            return first;
-        }
-        if (second != null && !second.trim().isEmpty()) {
-            return second;
-        }
-        return null;
     }
 
     private void performShutdown() {
@@ -547,70 +504,29 @@ public class AeronClusterLauncher {
         return true;
     }
 
-    static boolean deleteDriverDirectoryIfActiveDriverDetected(ActiveDriverException ex, String aeronDirName) {
-        String message = ex.getMessage();
-        if (message == null || !message.contains("ERROR - active driver detected")) {
-            return false;
-        }
-        File aeronDir = new File(aeronDirName);
-        log.warn(
-            "Detected stale Aeron MediaDriver directory at {}. Deleting and retrying MediaDriver launch...",
-            aeronDir.getAbsolutePath()
-        );
-        try {
-            if (aeronDir.exists()) {
-                IoUtil.delete(aeronDir, true);
-            }
-        } catch (Exception cleanupError) {
-            log.warn(
-                "Failed to delete Aeron MediaDriver directory at {}. Retrying MediaDriver launch anyway...",
-                aeronDir.getAbsolutePath(),
-                cleanupError
-            );
-        }
-        return true;
-    }
-
-    static boolean deleteMarkFileIfActiveMarkDetected(IllegalStateException ex) {
+    /**
+     * Agrona reports a cluster or archive mark file whose activity timestamp is within the component's
+     * liveness timeout as "active mark file detected: path". Its owner may be alive, so never delete it.
+     */
+    static IllegalStateException refuseActiveMarkFile(IllegalStateException ex) {
         String message = ex.getMessage();
         String prefix = "active mark file detected:";
         if (message == null || !message.contains(prefix)) {
-            return false;
+            return ex;
         }
-
-        String pathText = message.substring(message.indexOf(prefix) + prefix.length()).trim();
-        if (pathText.isEmpty()) {
-            return false;
-        }
-
-        Path markFile = Path.of(pathText);
-        log.warn(
-            "Detected stale Aeron mark file at {}. Deleting and retrying MediaDriver launch...",
-            markFile
-        );
-        try {
-            Files.deleteIfExists(markFile);
-        } catch (IOException ioEx) {
-            log.warn(
-                "Failed to delete Aeron mark file at {}. Retrying MediaDriver launch anyway...",
-                markFile,
-                ioEx
-            );
-        }
-        return true;
+        File markFile = new File(message.substring(message.indexOf(prefix) + prefix.length()).trim());
+        return new IllegalStateException("Aeron mark file " + markFile + " is active, so another process owns "
+            + markFile.getAbsoluteFile().getParent() + ". Refusing to start; stop that process (a killed one stays "
+            + "active until the liveness timeout passes). Mark files are never deleted.", ex);
     }
 
     static final class SessionTimeoutConfig {
-        final int timeoutMinutes;
         final long timeoutNs;
         final String source;
-        final String environment;
 
-        SessionTimeoutConfig(int timeoutMinutes, long timeoutNs, String source, String environment) {
-            this.timeoutMinutes = timeoutMinutes;
+        SessionTimeoutConfig(long timeoutNs, String source) {
             this.timeoutNs = timeoutNs;
             this.source = source;
-            this.environment = environment;
         }
     }
 

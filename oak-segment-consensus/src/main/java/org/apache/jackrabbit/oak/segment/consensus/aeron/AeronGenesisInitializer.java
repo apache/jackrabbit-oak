@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.segment.consensus.aeron;
 import org.apache.jackrabbit.oak.segment.consensus.genesis.CanonicalGenesisContent;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.segment.consensus.service.AppliedLogPosition;
 import org.apache.jackrabbit.oak.segment.consensus.validation.MutationRejectedException;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -46,6 +47,15 @@ final class AeronGenesisInitializer {
     }
 
     void initializeGenesisContent(GenesisProposal proposal) {
+        initializeGenesisContent(proposal, null);
+    }
+
+    /**
+     * Applies the first GENESIS entry of the log; later ones verify the existing genesis and change nothing. The
+     * applied-log watermark is written in the same Oak merge as genesis. A failure propagates so that this member
+     * stops instead of running on without genesis while the others have it.
+     */
+    void initializeGenesisContent(GenesisProposal proposal, AppliedLogPosition logPosition) {
         log.info("Creating deterministic genesis from replicated proposal: validator={}, timestamp={}",
             proposal.getGenesisValidatorUrl(), proposal.getTimestamp());
 
@@ -58,6 +68,9 @@ final class AeronGenesisInitializer {
 
             NodeBuilder rootBuilder = nodeStore.getRoot().builder();
             canonicalGenesisContent.populate(rootBuilder, proposal.getTimestamp(), proposal.getGenesisValidatorUrl());
+            if (logPosition != null) {
+                logPosition.writeTo(rootBuilder);
+            }
             nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             fileStore.flush();
             canonicalGenesisContent.verifyExisting();

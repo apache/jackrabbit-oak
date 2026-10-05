@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
 import io.aeron.cluster.client.AeronCluster;
 import io.aeron.cluster.codecs.CloseReason;
+import org.agrona.DirectBuffer;
+import org.agrona.concurrent.BackoffIdleStrategy;
 import org.agrona.concurrent.IdleStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,16 +27,34 @@ import org.slf4j.LoggerFactory;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
+/**
+ * Owns the internal {@link AeronCluster} ingress client. {@code AeronCluster} is not threadsafe
+ * (AeronCluster.java:91 in Aeron 1.53.3), so every call on it - connect, offer, pollEgress,
+ * sendKeepAlive, close - runs on the single executor thread; other threads submit commands to its queue.
+ */
 final class AeronInternalIngressClientManager implements AutoCloseable {
+
+    enum SendResult {
+        SENT,
+        BACK_PRESSURED,
+        NOT_CONNECTED,
+        CLOSED,
+        TIMEOUT
+    }
 
     enum State {
         UNBOUND,
@@ -52,13 +72,14 @@ final class AeronInternalIngressClientManager implements AutoCloseable {
     private static final long DEFAULT_RECONNECT_DELAY_MS = 250L;
     private static final long DEFAULT_SESSION_LIMIT_COOLDOWN_MS = 2000L;
     private static final long DEFAULT_WAIT_POLL_INTERVAL_MS = 50L;
+    private static final long CLOSE_WAIT_MS = 5000L;
+    private static final int OFFER_MAX_RETRIES = 100;
 
     private final Supplier<AeronInternalClusterClientConnector> connectorSupplier;
     private final AeronIngressEndpointPlanner ingressEndpointPlanner;
     private final Supplier<String> aeronDirectorySupplier;
     private final Supplier<IdleStrategy> idleStrategySupplier;
-    private final Supplier<AeronCluster> clientSupplier;
-    private final Consumer<AeronCluster> clientConsumer;
+    private final AeronEgressHandler egressHandler = new AeronEgressHandler();
     private final ScheduledExecutorService executor;
     private final LongSupplier clock;
     private final long keepAliveIntervalMs;
@@ -77,25 +98,25 @@ final class AeronInternalIngressClientManager implements AutoCloseable {
     private volatile long cooldownUntilMs;
     private volatile long lastKeepAliveAtMs;
     private volatile boolean closed;
+    private volatile boolean clientOpen;
 
+    /** Accessed only on the owner (executor) thread. */
+    private AeronCluster client;
     private ScheduledFuture<?> serviceFuture;
     private ScheduledFuture<?> connectFuture;
+    /** A connect attempt is scheduled but has not started; it will pick up pending requests. */
+    private boolean connectQueued;
     private boolean pendingCloseExisting;
     private String pendingReason;
 
     AeronInternalIngressClientManager(Supplier<AeronInternalClusterClientConnector> connectorSupplier,
                                       AeronIngressEndpointPlanner ingressEndpointPlanner,
-                                      Supplier<String> aeronDirectorySupplier,
-                                      Supplier<IdleStrategy> idleStrategySupplier,
-                                      Supplier<AeronCluster> clientSupplier,
-                                      Consumer<AeronCluster> clientConsumer) {
+                                      Supplier<String> aeronDirectorySupplier) {
         this(
             connectorSupplier,
             ingressEndpointPlanner,
             aeronDirectorySupplier,
-            idleStrategySupplier,
-            clientSupplier,
-            clientConsumer,
+            ownerIdleStrategy(),
             newDaemonExecutor(),
             System::currentTimeMillis,
             DEFAULT_KEEPALIVE_INTERVAL_MS,
@@ -110,8 +131,6 @@ final class AeronInternalIngressClientManager implements AutoCloseable {
                                       AeronIngressEndpointPlanner ingressEndpointPlanner,
                                       Supplier<String> aeronDirectorySupplier,
                                       Supplier<IdleStrategy> idleStrategySupplier,
-                                      Supplier<AeronCluster> clientSupplier,
-                                      Consumer<AeronCluster> clientConsumer,
                                       ScheduledExecutorService executor,
                                       LongSupplier clock,
                                       long keepAliveIntervalMs,
@@ -123,8 +142,6 @@ final class AeronInternalIngressClientManager implements AutoCloseable {
         this.ingressEndpointPlanner = Objects.requireNonNull(ingressEndpointPlanner);
         this.aeronDirectorySupplier = Objects.requireNonNull(aeronDirectorySupplier);
         this.idleStrategySupplier = Objects.requireNonNull(idleStrategySupplier);
-        this.clientSupplier = Objects.requireNonNull(clientSupplier);
-        this.clientConsumer = Objects.requireNonNull(clientConsumer);
         this.executor = Objects.requireNonNull(executor);
         this.clock = Objects.requireNonNull(clock);
         this.keepAliveIntervalMs = keepAliveIntervalMs;
@@ -181,6 +198,9 @@ final class AeronInternalIngressClientManager implements AutoCloseable {
         }
     }
 
+    /**
+     * Closes the client on the owner thread and waits (bounded) for it. Not for the service thread.
+     */
     void closeClientNow(String reason) {
         synchronized (monitor) {
             if (state == State.CLOSED) {
@@ -192,12 +212,119 @@ final class AeronInternalIngressClientManager implements AutoCloseable {
             cancelServiceLoop();
             notifyWaiters();
         }
-        closeCurrentClient(reason);
-        synchronized (monitor) {
-            if (state != State.CLOSED) {
-                state = State.UNBOUND;
+        try {
+            executor.submit(() -> closeAndUnbind(reason)).get(CLOSE_WAIT_MS, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (ExecutionException | TimeoutException | RejectedExecutionException e) {
+            log.warn("⚠️  Internal ingress client close did not complete ({}): {}", reason, e.toString());
+        }
+    }
+
+    /**
+     * Offers on the owner thread and waits up to {@code waitMs} for the outcome. A command still queued
+     * at the deadline is withdrawn and reported as {@link SendResult#TIMEOUT}, so TIMEOUT means not sent.
+     * Once the owner has started the offer, the caller waits for its (bounded) outcome.
+     */
+    SendResult offer(DirectBuffer buffer, int length, String label, long waitMs) {
+        OfferCommand command = new OfferCommand(buffer, length, label);
+        if (!submit(command)) {
+            return SendResult.CLOSED;
+        }
+        try {
+            return command.result.get(Math.max(0L, waitMs), TimeUnit.MILLISECONDS);
+        } catch (TimeoutException e) {
+            return command.withdraw() ? SendResult.TIMEOUT : command.result.join();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return command.withdraw() ? SendResult.TIMEOUT : command.result.join();
+        } catch (ExecutionException e) {
+            return SendResult.CLOSED;
+        }
+    }
+
+    /**
+     * Offers on the owner thread without waiting; {@code onResult} runs on the owner thread (or inline if
+     * the manager is closed). Safe to call from the clustered service thread.
+     */
+    void offerAsync(DirectBuffer buffer, int length, String label, Consumer<SendResult> onResult) {
+        OfferCommand command = new OfferCommand(buffer, length, label);
+        command.result.thenAccept(onResult);
+        if (!submit(command)) {
+            command.result.complete(SendResult.CLOSED);
+        }
+    }
+
+    private boolean submit(OfferCommand command) {
+        if (closed) {
+            return false;
+        }
+        try {
+            executor.execute(command);
+            return true;
+        } catch (RejectedExecutionException e) {
+            return false;
+        }
+    }
+
+    private SendResult offerOnOwner(DirectBuffer buffer, int length, String label) {
+        if (closed || state == State.CLOSED) {
+            return SendResult.CLOSED;
+        }
+        if (client == null) {
+            scheduleConnect("offer while unbound (" + label + ")", 0L, false);
+            return SendResult.NOT_CONNECTED;
+        }
+        if (client.isClosed()) {
+            clientOpen = false;
+            notifySendFailure("client closed (" + label + ")");
+            return SendResult.CLOSED;
+        }
+        AeronEgressHandler.OfferResult result = egressHandler.offerWithRetryResult(
+            client, idleStrategySupplier.get(), buffer, length, label, OFFER_MAX_RETRIES, null, false);
+        switch (result) {
+            case SENT:
+                return SendResult.SENT;
+            case BACK_PRESSURED:
+                return SendResult.BACK_PRESSURED;
+            case NOT_CONNECTED:
+                notifySendFailure("not connected (" + label + ")");
+                return SendResult.NOT_CONNECTED;
+            default:
+                notifySendFailure(result + " (" + label + ")");
+                return SendResult.CLOSED;
+        }
+    }
+
+    private final class OfferCommand implements Runnable {
+        private final DirectBuffer buffer;
+        private final int length;
+        private final String label;
+        private final AtomicBoolean taken = new AtomicBoolean();
+        private final CompletableFuture<SendResult> result = new CompletableFuture<>();
+
+        private OfferCommand(DirectBuffer buffer, int length, String label) {
+            this.buffer = buffer;
+            this.length = length;
+            this.label = label;
+        }
+
+        /** Caller side: true if the owner had not started the offer, so it never will. */
+        boolean withdraw() {
+            return taken.compareAndSet(false, true);
+        }
+
+        @Override
+        public void run() {
+            if (!taken.compareAndSet(false, true)) {
+                return;
             }
-            notifyWaiters();
+            try {
+                result.complete(offerOnOwner(buffer, length, label));
+            } catch (RuntimeException e) {
+                log.error("❌ Offer of {} failed on ingress owner thread", label, e);
+                result.complete(SendResult.CLOSED);
+            }
         }
     }
 
@@ -211,20 +338,26 @@ final class AeronInternalIngressClientManager implements AutoCloseable {
             state = State.DRAINING;
             notifyWaiters();
         }
-        executor.execute(() -> {
-            closeCurrentClient(reason);
-            synchronized (monitor) {
-                if (state != State.CLOSED) {
-                    state = State.UNBOUND;
-                }
-                notifyWaiters();
-            }
-        });
+        try {
+            executor.execute(() -> closeAndUnbind(reason));
+        } catch (RejectedExecutionException e) {
+            log.debug("Ingress owner already stopped; nothing to close ({})", reason);
+        }
     }
 
+    private void closeAndUnbind(String reason) {
+        closeCurrentClient(reason);
+        synchronized (monitor) {
+            if (state != State.CLOSED) {
+                state = State.UNBOUND;
+            }
+            notifyWaiters();
+        }
+    }
+
+    /** Last state published by the owner thread; does not touch the client. */
     boolean isHealthy() {
-        AeronCluster client = clientSupplier.get();
-        return client != null && !client.isClosed();
+        return clientOpen;
     }
 
     private boolean isReady() {
@@ -243,15 +376,29 @@ final class AeronInternalIngressClientManager implements AutoCloseable {
         return diagnostics;
     }
 
+    /**
+     * Does not wait for the owner thread, so it is safe from the clustered service thread (onTerminate):
+     * the client is closed by a final owner task, then the owner thread exits.
+     */
     @Override
     public void close() {
-        closed = true;
-        closeClientNow("manager shutdown");
         synchronized (monitor) {
+            if (closed) {
+                return;
+            }
+            closed = true;
+            reconnectInProgress = false;
+            cancelScheduledConnect();
+            cancelServiceLoop();
             state = State.CLOSED;
             notifyWaiters();
         }
-        executor.shutdownNow();
+        try {
+            executor.execute(() -> closeCurrentClient("manager shutdown"));
+        } catch (RejectedExecutionException e) {
+            log.debug("Ingress owner already stopped");
+        }
+        executor.shutdown();
     }
 
     private void scheduleConnect(String reason, long delayMs, boolean closeExisting) {
@@ -261,7 +408,7 @@ final class AeronInternalIngressClientManager implements AutoCloseable {
             }
             pendingReason = reason;
             pendingCloseExisting = pendingCloseExisting || closeExisting;
-            if (connectFuture != null && !connectFuture.isDone()) {
+            if (connectQueued) {
                 reconnectInProgress = true;
                 notifyWaiters();
                 return;
@@ -276,6 +423,7 @@ final class AeronInternalIngressClientManager implements AutoCloseable {
                 cooldownUntilMs = 0L;
             }
             reconnectInProgress = true;
+            connectQueued = true;
             connectFuture = executor.schedule(this::runConnectAttempt, safeDelayMs, TimeUnit.MILLISECONDS);
             notifyWaiters();
         }
@@ -285,6 +433,7 @@ final class AeronInternalIngressClientManager implements AutoCloseable {
         String reason;
         boolean closeExisting;
         synchronized (monitor) {
+            connectQueued = false;
             if (closed || state == State.CLOSED) {
                 reconnectInProgress = false;
                 notifyWaiters();
@@ -301,8 +450,8 @@ final class AeronInternalIngressClientManager implements AutoCloseable {
         try {
             if (closeExisting) {
                 closeCurrentClient(reason);
-            } else if (isHealthy()) {
-                markBound(clientSupplier.get());
+            } else if (client != null && !client.isClosed()) {
+                markBound(client);
                 return;
             }
 
@@ -357,29 +506,36 @@ final class AeronInternalIngressClientManager implements AutoCloseable {
                 notifyWaiters();
                 return;
             }
+            reconnectInProgress = true;
+            if (connectQueued) {
+                notifyWaiters();
+                return;
+            }
             long safeDelayMs = Math.max(0L, delayMs);
             state = State.COOLDOWN;
             cooldownUntilMs = clock.getAsLong() + safeDelayMs;
-            reconnectInProgress = true;
+            connectQueued = true;
             connectFuture = executor.schedule(this::runConnectAttempt, safeDelayMs, TimeUnit.MILLISECONDS);
             notifyWaiters();
         }
     }
 
-    private void markBound(AeronCluster client) {
-        if (client == null || client.isClosed()) {
+    private void markBound(AeronCluster boundClient) {
+        if (boundClient == null || boundClient.isClosed()) {
             markFailure("connected client was unavailable");
             scheduleCooldownRetry(reconnectDelayMs);
             return;
         }
 
-        clientConsumer.accept(client);
+        client = boundClient;
+        clientOpen = true;
+        long sessionId = boundClient.clusterSessionId();
         synchronized (monitor) {
-            clusterSessionId = client.clusterSessionId();
+            clusterSessionId = sessionId;
             lastConnectTimestampMs = clock.getAsLong();
             lastFailure = null;
             cooldownUntilMs = 0L;
-            reconnectInProgress = false;
+            reconnectInProgress = connectQueued;
             state = State.BOUND;
             ensureServiceLoop();
             notifyWaiters();
@@ -390,7 +546,7 @@ final class AeronInternalIngressClientManager implements AutoCloseable {
     private void markUnbound(String reason) {
         synchronized (monitor) {
             lastFailure = reason;
-            reconnectInProgress = false;
+            reconnectInProgress = connectQueued;
             cooldownUntilMs = 0L;
             state = State.UNBOUND;
             notifyWaiters();
@@ -419,8 +575,8 @@ final class AeronInternalIngressClientManager implements AutoCloseable {
             return;
         }
 
-        AeronCluster client = clientSupplier.get();
         if (client == null || client.isClosed()) {
+            clientOpen = false;
             cancelServiceLoop();
             scheduleConnect("service_loop_client_missing", reconnectDelayMs, false);
             return;
@@ -431,8 +587,8 @@ final class AeronInternalIngressClientManager implements AutoCloseable {
             long now = clock.getAsLong();
             if (now - lastKeepAliveAtMs >= keepAliveIntervalMs) {
                 if (!client.sendKeepAlive()) {
-                    log.warn("⚠️  Internal ingress keepalive failed for session {}", client.clusterSessionId());
-                    notifySendFailure("keepalive_failed");
+                    // Back-pressured; retried on the next tick. A lost connection surfaces via pollEgress/isClosed.
+                    log.debug("Internal ingress keepalive back-pressured for session {}", clusterSessionId);
                     return;
                 }
                 lastKeepAliveAtMs = now;
@@ -444,8 +600,9 @@ final class AeronInternalIngressClientManager implements AutoCloseable {
     }
 
     private void closeCurrentClient(String reason) {
-        AeronCluster existingClient = clientSupplier.get();
-        clientConsumer.accept(null);
+        AeronCluster existingClient = client;
+        client = null;
+        clientOpen = false;
         clusterSessionId = -1L;
         lastCloseReason = reason;
         cancelServiceLoop();
@@ -472,12 +629,23 @@ final class AeronInternalIngressClientManager implements AutoCloseable {
             connectFuture.cancel(false);
             connectFuture = null;
         }
+        connectQueued = false;
     }
 
     private void notifyWaiters() {
         synchronized (monitor) {
             monitor.notifyAll();
         }
+    }
+
+    /**
+     * The owner thread's own idle strategy, for offer retries and the AeronCluster.Context; never the
+     * clustered service's cluster.idleStrategy(), which is the service agent itself.
+     */
+    private static Supplier<IdleStrategy> ownerIdleStrategy() {
+        IdleStrategy idleStrategy = new BackoffIdleStrategy(
+            1, 10, TimeUnit.MICROSECONDS.toNanos(1), TimeUnit.MILLISECONDS.toNanos(1));
+        return () -> idleStrategy;
     }
 
     private static ScheduledExecutorService newDaemonExecutor() {

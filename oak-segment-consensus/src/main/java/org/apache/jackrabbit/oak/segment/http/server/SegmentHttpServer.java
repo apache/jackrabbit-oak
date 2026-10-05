@@ -206,11 +206,6 @@ public class SegmentHttpServer {
         log.info("✈️  Aeron Cluster consensus engine configured");
     }
     
-    public void setAeronWriteClient(org.apache.jackrabbit.oak.segment.consensus.aeron.AeronWriteClient aeronWriteClient) {
-        context.setAeronWriteClient(aeronWriteClient);
-        log.info("✈️  AeronWriteClient configured");
-    }
-    
     public void setAeronClusterLauncher(org.apache.jackrabbit.oak.segment.consensus.aeron.AeronClusterLauncher aeronClusterLauncher) {
         context.setAeronClusterLauncher(aeronClusterLauncher);
         log.info("✈️  AeronClusterLauncher configured (for health checks and metrics)");

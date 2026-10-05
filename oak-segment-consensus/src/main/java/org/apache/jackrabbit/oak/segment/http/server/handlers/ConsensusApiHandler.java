@@ -279,10 +279,11 @@ public class ConsensusApiHandler implements AutoCloseable {
     }
 
     /**
-     * Handle GET /v1/consensus/leader - Return canonical leader-resolution data.
+     * Handle GET /v1/consensus/leader - Return canonical leader-resolution data,
+     * optionally from local knowledge only (see {@link ConsensusStatusHandler}).
      */
-    public void handleGetConsensusLeader(HttpServletResponse response) throws IOException {
-        consensusStatusHandler.handleGetConsensusLeader(response);
+    public void handleGetConsensusLeader(boolean localOnly, HttpServletResponse response) throws IOException {
+        consensusStatusHandler.handleGetConsensusLeader(localOnly, response);
     }
     
     /**
@@ -375,10 +376,6 @@ public class ConsensusApiHandler implements AutoCloseable {
                                                       String message, String signature, String intentToken,
                                                       String blobId, String mimeType, String ipfsCid,
                                                       MutationAuditMetadata auditMetadata) {
-        String proposalId = auditMetadata != null ? auditMetadata.getProposalId() : null;
-        if (proposalId != null && context.aeronConsensusEngine != null && context.aeronConsensusEngine.isLeader()) {
-            context.aeronConsensusEngine.sendQueueSegment(proposalId);
-        }
         writeApplicationService.applyWriteWithAuditMetadata(
             walletAddress, path, contentType, message, signature,
             intentToken, blobId, mimeType, ipfsCid, auditMetadata
@@ -405,10 +402,6 @@ public class ConsensusApiHandler implements AutoCloseable {
 
     public void applyReplicatedDeleteWithAuditMetadata(String walletAddress, String path, String signature,
                                                        MutationAuditMetadata auditMetadata) {
-        String proposalId = auditMetadata != null ? auditMetadata.getProposalId() : null;
-        if (proposalId != null && context.aeronConsensusEngine != null && context.aeronConsensusEngine.isLeader()) {
-            context.aeronConsensusEngine.sendQueueSegment(proposalId);
-        }
         deleteApplicationService.applyDeleteWithAuditMetadata(walletAddress, path, signature, auditMetadata);
     }
     

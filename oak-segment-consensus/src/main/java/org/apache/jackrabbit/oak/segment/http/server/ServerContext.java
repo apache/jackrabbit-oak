@@ -57,7 +57,6 @@ public class ServerContext {
     public volatile NodeStore authoritativeNodeStore; // Local writable store
     public final Path storeDirectory;
     public volatile AeronConsensusEngine aeronConsensusEngine;
-    public volatile org.apache.jackrabbit.oak.segment.consensus.aeron.AeronWriteClient aeronWriteClient;
     public volatile org.apache.jackrabbit.oak.segment.consensus.aeron.AeronClusterLauncher aeronClusterLauncher;
     public volatile org.apache.jackrabbit.oak.segment.consensus.aeron.AeronPrometheusMetrics aeronPrometheusMetrics;
     public volatile ProofVerifier proofVerifier;
@@ -138,12 +137,6 @@ public class ServerContext {
     
     public void setAeronConsensusEngine(AeronConsensusEngine aeronConsensusEngine) {
         this.aeronConsensusEngine = aeronConsensusEngine;
-    }
-    
-    public void setAeronWriteClient(org.apache.jackrabbit.oak.segment.consensus.aeron.AeronWriteClient aeronWriteClient) {
-        log.info("🔧 ServerContext.setAeronWriteClient() called - client: {}", aeronWriteClient != null ? "present" : "NULL");
-        this.aeronWriteClient = aeronWriteClient;
-        log.info("✅ ServerContext.aeronWriteClient field set - value: {}", this.aeronWriteClient != null ? "present" : "NULL");
     }
     
     public void setAeronClusterLauncher(org.apache.jackrabbit.oak.segment.consensus.aeron.AeronClusterLauncher aeronClusterLauncher) {

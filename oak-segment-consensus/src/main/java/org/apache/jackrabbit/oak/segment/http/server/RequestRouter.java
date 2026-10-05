@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.http.server;
 
+import org.apache.jackrabbit.oak.segment.consensus.aeron.LeaderDiscoveryService;
 import org.apache.jackrabbit.oak.segment.consensus.config.RuntimeConfigValueResolver;
 import org.apache.jackrabbit.oak.segment.http.server.handlers.*;
 import org.apache.jackrabbit.oak.segment.http.server.util.ApiErrorUtil;
@@ -403,7 +404,9 @@ public class RequestRouter implements AutoCloseable {
                     String action = clusterPath.substring(separator + 1);
                     String requestedPath = request.getParameter("path");
                     if ("tree".equals(action)) {
-                        explorerApiV1Handler.handleContentTree(response, clusterId, requestedPath);
+                        explorerApiV1Handler.handleContentTree(response, clusterId, requestedPath,
+                            parseIntParameter(request.getParameter("offset"), 0),
+                            parseIntParameter(request.getParameter("limit"), ExplorerApiV1Handler.DEFAULT_TREE_PAGE_SIZE));
                         return;
                     }
                     if ("node".equals(action)) {
@@ -535,7 +538,8 @@ public class RequestRouter implements AutoCloseable {
             }
 
             if ("/v1/consensus/leader".equals(path) && "GET".equals(method)) {
-                consensusApiHandler.handleGetConsensusLeader(response);
+                consensusApiHandler.handleGetConsensusLeader(
+                    "true".equals(request.getParameter(LeaderDiscoveryService.LOCAL_ONLY_PARAM)), response);
                 return;
             }
             
@@ -769,6 +773,17 @@ public class RequestRouter implements AutoCloseable {
             } else {
                 response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
             }
+        }
+    }
+
+    private static int parseIntParameter(String value, int fallback) {
+        if (value == null || value.trim().isEmpty()) {
+            return fallback;
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            return fallback;
         }
     }
 

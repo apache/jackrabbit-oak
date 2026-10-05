@@ -16,15 +16,9 @@
  */
 package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
+import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
-import io.aeron.Aeron;
-import io.aeron.DirectBufferVector;
-import io.aeron.cluster.service.ClientSession;
 import io.aeron.cluster.service.Cluster;
-import io.aeron.cluster.service.ClusteredServiceContainer;
-import io.aeron.logbuffer.BufferClaim;
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.IdleStrategy;
 import org.junit.Test;
 
 import java.io.OutputStream;
@@ -32,12 +26,17 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
@@ -88,7 +87,8 @@ public class LeaderDiscoveryServiceTest {
     @Test
     public void testNotifyLostLeadershipClearsTrackedLeaderState() {
         LeaderDiscoveryService service = new LeaderDiscoveryService(new HashMap<>(), Collections.emptyList());
-        service.setKnownLeader("http://leader-1:8090", 2);
+        service.setSelfUrl("http://self:8090");
+        service.notifyBecameLeader(2);
 
         service.notifyLostLeadership();
 
@@ -105,7 +105,7 @@ public class LeaderDiscoveryServiceTest {
         service.setKnownLeader("http://leader-1:8090", 2);
 
         Cluster cluster = mock(Cluster.class);
-        assertEquals("http://leader-1:8090", service.discoverLeader(cluster));
+        assertEquals("http://leader-1:8090", service.discoverLeader(cluster.role()));
     }
 
     @Test
@@ -115,23 +115,27 @@ public class LeaderDiscoveryServiceTest {
 
         Cluster leaderCluster = mock(Cluster.class);
         when(leaderCluster.role()).thenReturn(Cluster.Role.LEADER);
-        assertEquals("http://self:8090", service.discoverLeader(leaderCluster));
+        assertEquals("http://self:8090", service.discoverLeader(leaderCluster.role()));
 
         service.invalidateCache();
         service.setKnownLeader("http://leader-2:8090", 2);
         service.invalidateCache();
         Cluster followerCluster = mock(Cluster.class);
         when(followerCluster.role()).thenReturn(Cluster.Role.FOLLOWER);
-        assertEquals("http://leader-2:8090", service.discoverLeader(followerCluster));
+        assertEquals("http://leader-2:8090", service.discoverLeader(followerCluster.role()));
     }
 
     @Test
-    public void testDiscoverLeaderUsesReflectionBasedLeaderMapping() {
-        Map<Integer, String> mapping = new HashMap<>();
-        mapping.put(2, "http://leader-2:8090");
-        LeaderDiscoveryService service = new LeaderDiscoveryService(mapping, Collections.emptyList());
+    public void testLostLeadershipKeepsNewerLeaderAlreadyKnownFromLog() {
+        LeaderDiscoveryService service = new LeaderDiscoveryService(new HashMap<>(), Collections.emptyList());
+        service.setSelfUrl("http://self:8090");
+        service.notifyBecameLeader(0);
+        service.setKnownLeader("http://leader-2:8090", 2);
 
-        assertEquals("http://leader-2:8090", service.discoverLeader(new ReflectiveCluster(Cluster.Role.FOLLOWER, 2)));
+        service.notifyLostLeadership();
+
+        assertEquals("http://leader-2:8090", service.getKnownLeaderUrl());
+        assertEquals(2, service.getKnownLeaderMemberId());
     }
 
     @Test
@@ -180,10 +184,12 @@ public class LeaderDiscoveryServiceTest {
     }
 
     @Test
-    public void testDiscoverLeaderHandlesUnreachablePeersAndMissingReflectionMapping() {
+    public void testDiscoverLeaderHandlesUnreachablePeers() {
         LeaderDiscoveryService service = new LeaderDiscoveryService(new HashMap<>(), List.of("http://127.0.0.1:1"));
+        Cluster follower = mock(Cluster.class);
+        when(follower.role()).thenReturn(Cluster.Role.FOLLOWER);
 
-        assertNull(service.discoverLeader(new ReflectiveCluster(Cluster.Role.FOLLOWER, 99)));
+        assertNull(service.discoverLeader(follower.role()));
         assertNull(service.getCachedLeaderUrl());
         assertNull(service.getKnownLeaderHint());
     }
@@ -213,14 +219,140 @@ public class LeaderDiscoveryServiceTest {
         assertEquals("http://cached-only:8090", service.getKnownLeaderHint());
     }
 
+    /**
+     * Two followers are each other's first peer; the leader is the second peer. Each follower's
+     * stub answers the leader endpoint the way {@code ConsensusStatusHandler} does: a plain query
+     * runs that node's own discovery, a {@code localOnly=true} query answers from local knowledge.
+     */
     @Test
-    public void testDiscoverLeaderHandlesClusterExceptionsGracefully() {
-        LeaderDiscoveryService service = new LeaderDiscoveryService(new HashMap<>(), Collections.emptyList());
-        Cluster cluster = mock(Cluster.class);
-        when(cluster.role()).thenThrow(new IllegalStateException("boom"));
+    public void testFollowersThatAreEachOthersFirstPeerDoNotPollRecursively() throws Exception {
+        Cluster follower = mock(Cluster.class);
+        when(follower.role()).thenReturn(Cluster.Role.FOLLOWER);
+        AtomicInteger inFlight = new AtomicInteger();
+        AtomicInteger maxInFlight = new AtomicInteger();
+        AtomicInteger followerQueries = new AtomicInteger();
+        LeaderDiscoveryService[] nodes = new LeaderDiscoveryService[2];
+        HttpServer[] stubs = new HttpServer[2];
+        HttpServer leader = startServer("/v1/consensus/leader", 200, "{\"isLeader\":true}");
+        try {
+            for (int i = 0; i < 2; i++) {
+                LeaderDiscoveryService self = nodes[i] = new LeaderDiscoveryService(new HashMap<>(), new ArrayList<>());
+                stubs[i] = startLeaderEndpoint(exchange -> {
+                    followerQueries.incrementAndGet();
+                    int depth = inFlight.incrementAndGet();
+                    maxInFlight.accumulateAndGet(depth, Math::max);
+                    try {
+                        if (depth > 6) {
+                            return null; // stop a runaway loop; depth is what the test asserts on
+                        }
+                        String query = exchange.getRequestURI().getQuery();
+                        return query != null && query.contains("localOnly=true")
+                            ? self.getKnownLeaderHint()
+                            : self.discoverLeader(follower.role());
+                    } finally {
+                        inFlight.decrementAndGet();
+                    }
+                });
+            }
+            String leaderUrl = url(leader);
+            nodes[0].setPeerUrls(List.of(url(stubs[1]), leaderUrl));
+            nodes[1].setPeerUrls(List.of(url(stubs[0]), leaderUrl));
 
-        assertNull(service.discoverLeader(cluster));
-        assertNull(service.getCachedLeaderUrl());
+            long start = System.nanoTime();
+            assertEquals(leaderUrl, nodes[0].discoverLeader(follower.role()));
+            long elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+
+            assertEquals("one bounded, non-nested query to the other follower", 1, followerQueries.get());
+            assertEquals(1, maxInFlight.get());
+            assertTrue("took " + elapsedMs + " ms", elapsedMs < 1000);
+        } finally {
+            leader.stop(0);
+            for (HttpServer stub : stubs) {
+                if (stub != null) {
+                    stub.stop(0);
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testConcurrentCallersWithExpiredCacheShareOnePeerPoll() throws Exception {
+        int callers = 8;
+        AtomicInteger peerPolls = new AtomicInteger();
+        CountDownLatch release = new CountDownLatch(1);
+        HttpServer leader = startLeaderEndpoint(exchange -> {
+            peerPolls.incrementAndGet();
+            release.await(5, TimeUnit.SECONDS);
+            return "self";
+        });
+        ExecutorService pool = Executors.newFixedThreadPool(callers);
+        try {
+            String leaderUrl = url(leader);
+            LeaderDiscoveryService service = new LeaderDiscoveryService(new HashMap<>(), List.of(leaderUrl));
+            Cluster follower = mock(Cluster.class);
+            when(follower.role()).thenReturn(Cluster.Role.FOLLOWER);
+
+            CountDownLatch started = new CountDownLatch(callers);
+            List<Future<String>> results = new ArrayList<>();
+            for (int i = 0; i < callers; i++) {
+                results.add(pool.submit(() -> {
+                    started.countDown();
+                    return service.discoverLeader(follower.role());
+                }));
+            }
+            started.await(5, TimeUnit.SECONDS);
+            Thread.sleep(300);
+            release.countDown();
+
+            int resolved = 0;
+            for (Future<String> result : results) {
+                String leaderSeen = result.get(10, TimeUnit.SECONDS);
+                if (leaderSeen != null) {
+                    assertEquals(leaderUrl, leaderSeen);
+                    resolved++;
+                }
+            }
+            assertEquals(1, peerPolls.get());
+            assertTrue(resolved >= 1);
+            assertEquals(leaderUrl, service.discoverLeader(follower.role()));
+            assertEquals(1, peerPolls.get());
+        } finally {
+            release.countDown();
+            pool.shutdownNow();
+            leader.stop(0);
+        }
+    }
+
+    private interface LeaderAnswer {
+        /** Returns the leader to report: null for unknown, "self" for this stub. */
+        String answer(HttpExchange exchange) throws Exception;
+    }
+
+    private static HttpServer startLeaderEndpoint(LeaderAnswer answer) throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.setExecutor(Executors.newCachedThreadPool());
+        server.createContext("/v1/consensus/leader", exchange -> {
+            String body;
+            try {
+                String leader = answer.answer(exchange);
+                body = "self".equals(leader)
+                    ? "{\"isLeader\":true}"
+                    : "{\"isLeader\":false,\"currentLeader\":" + (leader == null ? "null" : "\"" + leader + "\"") + "}";
+            } catch (Exception e) {
+                body = "{\"isLeader\":false,\"currentLeader\":null}";
+            }
+            byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, bytes.length);
+            try (OutputStream outputStream = exchange.getResponseBody()) {
+                outputStream.write(bytes);
+            }
+        });
+        server.start();
+        return server;
+    }
+
+    private static String url(HttpServer server) {
+        return "http://127.0.0.1:" + server.getAddress().getPort();
     }
 
     private static String extractJsonField(LeaderDiscoveryService service, String json, String field) throws Exception {
@@ -246,103 +378,5 @@ public class LeaderDiscoveryServiceTest {
         });
         server.start();
         return server;
-    }
-
-    private static final class ReflectiveCluster implements Cluster {
-        private final Role role;
-        private final int leaderMemberId;
-
-        private ReflectiveCluster(Role role, int leaderMemberId) {
-            this.role = role;
-            this.leaderMemberId = leaderMemberId;
-        }
-
-        public int leaderMemberId() {
-            return leaderMemberId;
-        }
-
-        @Override
-        public int memberId() {
-            return 0;
-        }
-
-        @Override
-        public Role role() {
-            return role;
-        }
-
-        @Override
-        public long logPosition() {
-            return 0;
-        }
-
-        @Override
-        public Aeron aeron() {
-            return null;
-        }
-
-        @Override
-        public ClusteredServiceContainer.Context context() {
-            return null;
-        }
-
-        @Override
-        public ClientSession getClientSession(long clusterSessionId) {
-            return null;
-        }
-
-        @Override
-        public Collection<ClientSession> clientSessions() {
-            return Collections.emptyList();
-        }
-
-        @Override
-        public void forEachClientSession(java.util.function.Consumer<? super ClientSession> consumer) {
-        }
-
-        @Override
-        public boolean closeClientSession(long clusterSessionId) {
-            return false;
-        }
-
-        @Override
-        public long time() {
-            return 0;
-        }
-
-        @Override
-        public TimeUnit timeUnit() {
-            return TimeUnit.MILLISECONDS;
-        }
-
-        @Override
-        public boolean scheduleTimer(long correlationId, long deadline) {
-            return false;
-        }
-
-        @Override
-        public boolean cancelTimer(long correlationId) {
-            return false;
-        }
-
-        @Override
-        public long offer(DirectBuffer buffer, int offset, int length) {
-            return 0;
-        }
-
-        @Override
-        public long offer(DirectBufferVector[] vectors) {
-            return 0;
-        }
-
-        @Override
-        public long tryClaim(int length, BufferClaim bufferClaim) {
-            return 0;
-        }
-
-        @Override
-        public IdleStrategy idleStrategy() {
-            return null;
-        }
     }
 }

@@ -25,11 +25,13 @@ import io.aeron.cluster.service.ClientSession;
 import io.aeron.logbuffer.Header;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.AgentTerminationException;
 import org.agrona.concurrent.IdleStrategy;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.segment.consensus.queue.ProposalState;
 import org.apache.jackrabbit.oak.segment.consensus.queue.QueuedProposal;
 import org.apache.jackrabbit.oak.segment.consensus.leader.ValidatorRole;
+import org.apache.jackrabbit.oak.segment.consensus.service.AppliedLogPosition;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.consensus.security.EthereumWallet;
 import org.apache.jackrabbit.oak.segment.consensus.eth.BeaconChainClient;
@@ -71,6 +73,7 @@ import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -110,14 +113,14 @@ public class AeronConsensusEngineTest {
     }
 
     @Test
-    public void roleChangeToLeaderUpdatesRoleTermAndLeaderUrl() {
+    public void roleChangeToLeaderUpdatesRoleAndLeaderUrlButNotTerm() {
         AeronConsensusEngine engine = createEngine();
 
         assertEquals(0, engine.getCurrentTerm());
 
         engine.onRoleChange(Cluster.Role.LEADER);
 
-        assertEquals(1, engine.getCurrentTerm());
+        assertEquals("term comes only from the log", 0, engine.getCurrentTerm());
         assertTrue(engine.isLeader());
         assertEquals("http://self:8080", engine.getCurrentLeader());
     }
@@ -192,13 +195,12 @@ public class AeronConsensusEngineTest {
         Cluster cluster = mock(Cluster.class);
         when(cluster.memberId()).thenReturn(7);
         when(cluster.time()).thenReturn(12345L);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
 
         io.aeron.cluster.client.AeronCluster client = mock(io.aeron.cluster.client.AeronCluster.class);
         when(client.isClosed()).thenReturn(false);
-        setField(engine, "internalClusterClient", client);
+        bindClient(engine, client);
         setField(engine, "idleStrategy", mock(IdleStrategy.class));
-        engine.setAeronDirectoryName(storeDirectory.getAbsolutePath() + "/aeron-test");
 
         AeronInternalClusterClientConnector connector = mock(AeronInternalClusterClientConnector.class);
         when(connector.connectOnce(any(), any(), any(), any()))
@@ -217,7 +219,7 @@ public class AeronConsensusEngineTest {
                 return false;
             }
         }, 1500L));
-        assertNull(getField(engine, "internalClusterClient"));
+        assertTrue(waitUntil(() -> !ingressManager(engine).isHealthy(), 1500L));
         assertEquals(0, scheduler.tasks.size());
     }
 
@@ -228,7 +230,7 @@ public class AeronConsensusEngineTest {
 
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
 
         assertFalse(engine.isLeader());
     }
@@ -239,7 +241,8 @@ public class AeronConsensusEngineTest {
         Cluster cluster = mock(Cluster.class);
         when(cluster.memberId()).thenReturn(7);
         when(cluster.time()).thenReturn(12345L);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
+        applyTermEvent(engine, 4);
 
         engine.onRoleChange(Cluster.Role.LEADER);
 
@@ -247,7 +250,7 @@ public class AeronConsensusEngineTest {
         assertEquals(1, history.size());
         assertEquals(Cluster.Role.LEADER, history.get(0).newRole);
         assertEquals(7, history.get(0).memberId);
-        assertEquals(1, history.get(0).term);
+        assertEquals(4, history.get(0).term);
         assertTrue(history.get(0).timestamp > 0L);
         assertEquals(12345L, history.get(0).clusterTime);
     }
@@ -261,10 +264,10 @@ public class AeronConsensusEngineTest {
 
         TransactionLifecycleManager manager =
             (TransactionLifecycleManager) getField(engine, "transactionLifecycleManager");
-        manager.onStart("tx-1", "corr-1", 1L, "0xabc");
-        Thread.sleep(5L);
+        manager.onStart("tx-1", "corr-1", 1L, "0xabc", 1_000L, 100L);
+        installCluster(engine, mock(Cluster.class));
 
-        engine.onTimerEvent(100L, System.currentTimeMillis());
+        engine.onTimerEvent(100L, 1_001L);
 
         verify(callback).onAbortTransaction("tx-1", "corr-1", "timeout");
         Optional<Map<String, Object>> tx = engine.getTransactionRecord("tx-1");
@@ -277,7 +280,7 @@ public class AeronConsensusEngineTest {
         AeronConsensusEngine engine = createEngine();
         io.aeron.cluster.client.AeronCluster healthyClient = mock(io.aeron.cluster.client.AeronCluster.class);
         when(healthyClient.isClosed()).thenReturn(false);
-        setField(engine, "internalClusterClient", healthyClient);
+        bindClient(engine, healthyClient);
         setField(engine, "reconnectInProgress", true);
 
         AtomicInteger ensureCalls = new AtomicInteger(0);
@@ -313,7 +316,7 @@ public class AeronConsensusEngineTest {
                     try {
                         io.aeron.cluster.client.AeronCluster healthyClient = mock(io.aeron.cluster.client.AeronCluster.class);
                         when(healthyClient.isClosed()).thenReturn(false);
-                        setField(engine, "internalClusterClient", healthyClient);
+                        bindClient(engine, healthyClient);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -368,73 +371,109 @@ public class AeronConsensusEngineTest {
     }
 
     @Test
-    public void onStartRestoresSnapshotAndUpdatesEpochWhenHeadMatches() throws Exception {
-        FileStore fileStore = mock(FileStore.class, RETURNS_DEEP_STUBS);
-        when(fileStore.getHead().getRecordId().toString()).thenReturn("head-1");
+    public void onStartRestoresSnapshotMetadataWhenTheStoreHasItsWatermark() throws Exception {
         SnapshotService snapshotService = mock(SnapshotService.class);
-        SnapshotService.SnapshotState snapshotState =
-            new SnapshotService.SnapshotState("head-1", 42, 1234L, 1);
         Image snapshotImage = mock(Image.class);
         IdleStrategy idleStrategy = mock(IdleStrategy.class);
-        Cluster cluster = mock(Cluster.class, RETURNS_DEEP_STUBS);
-        when(cluster.role()).thenReturn(Cluster.Role.LEADER);
-        when(cluster.idleStrategy()).thenReturn(idleStrategy);
-        when(snapshotService.restoreSnapshot(snapshotImage, idleStrategy)).thenReturn(snapshotState);
-
-        MemoryNodeStore restoredStore = new MemoryNodeStore();
+        Cluster cluster = snapshotCluster(Cluster.Role.LEADER, idleStrategy);
+        when(cluster.context().clusterDir()).thenReturn(clusterDirWithTerms(0L, 1L, 2L, 3L));
+        when(snapshotService.restoreSnapshot(snapshotImage, idleStrategy)).thenReturn(
+            new SnapshotService.SnapshotState(new AppliedLogPosition(200L, 0, 3L), 3L, 42, "head-1"));
+        MemoryNodeStore restoredStore = storeWithWatermark(new AppliedLogPosition(200L, 0, 3L));
         seedGenesis(restoredStore);
-        AeronConsensusEngine engine = createEngine(fileStore, snapshotService, new AeronBackgroundCoordinator(), restoredStore);
+        AeronConsensusEngine engine = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), snapshotService,
+            new AeronBackgroundCoordinator(), restoredStore);
 
         engine.onStart(cluster, snapshotImage);
 
         verify(snapshotService).restoreSnapshot(snapshotImage, idleStrategy);
         assertEquals(42, engine.getCurrentEpoch());
+        assertEquals(3, engine.getCurrentTerm());
         assertTrue(engine.isLeader());
     }
 
     @Test
-    public void onStartWithSnapshotAndNoGenesisFailsClosed() {
+    public void onStartWithSnapshotAndNoGenesisFailsClosed() throws Exception {
         SnapshotService snapshotService = mock(SnapshotService.class);
         Image snapshotImage = mock(Image.class);
         IdleStrategy idleStrategy = mock(IdleStrategy.class);
-        Cluster cluster = mock(Cluster.class, RETURNS_DEEP_STUBS);
-        when(cluster.role()).thenReturn(Cluster.Role.LEADER);
-        when(cluster.idleStrategy()).thenReturn(idleStrategy);
-        when(snapshotService.restoreSnapshot(snapshotImage, idleStrategy)).thenReturn(null);
-
+        Cluster cluster = snapshotCluster(Cluster.Role.LEADER, idleStrategy);
+        when(cluster.context().clusterDir()).thenReturn(clusterDirWithTerms(0L, 1L, 2L, 3L));
+        when(snapshotService.restoreSnapshot(snapshotImage, idleStrategy)).thenReturn(
+            new SnapshotService.SnapshotState(new AppliedLogPosition(200L, 0, 3L), 3L, 42, "head-1"));
         AeronConsensusEngine engine = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), snapshotService,
-            new AeronBackgroundCoordinator(), new MemoryNodeStore());
+            new AeronBackgroundCoordinator(), storeWithWatermark(new AppliedLogPosition(200L, 0, 3L)));
 
-        RuntimeException error = org.junit.Assert.assertThrows(RuntimeException.class, () -> engine.onStart(cluster, snapshotImage));
-        assertTrue(error.getMessage().contains("Snapshot load failed"));
-
-        assertEquals(0, engine.getCurrentEpoch());
+        RuntimeException error = org.junit.Assert.assertThrows(RuntimeException.class,
+            () -> engine.onStart(cluster, snapshotImage));
+        assertTrue(error.getMessage(), error.getMessage().contains("missing verified canonical genesis"));
         assertFalse(engine.isClusterHealthy());
-        assertEquals("canonical_genesis_not_verified", engine.getUnhealthyReason());
     }
 
     @Test
-    public void onStartFailsWhenSnapshotHeadDoesNotMatchFileStore() {
-        FileStore fileStore = mock(FileStore.class, RETURNS_DEEP_STUBS);
-        when(fileStore.getHead().getRecordId().toString()).thenReturn("file-head");
+    public void onStartRefusesSnapshotWhenTheStoreIsBehindIt() {
         SnapshotService snapshotService = mock(SnapshotService.class);
         Image snapshotImage = mock(Image.class);
         IdleStrategy idleStrategy = mock(IdleStrategy.class);
-        Cluster cluster = mock(Cluster.class, RETURNS_DEEP_STUBS);
-        when(cluster.role()).thenReturn(Cluster.Role.LEADER);
-        when(cluster.idleStrategy()).thenReturn(idleStrategy);
+        Cluster cluster = snapshotCluster(Cluster.Role.FOLLOWER, idleStrategy);
         when(snapshotService.restoreSnapshot(snapshotImage, idleStrategy)).thenReturn(
-            new SnapshotService.SnapshotState("snapshot-head", 7, 999L, 1)
-        );
-
-        AeronConsensusEngine engine = createEngine(fileStore, snapshotService);
+            new SnapshotService.SnapshotState(new AppliedLogPosition(200L, 1, 3L), 3L, 7, "snapshot-head"));
+        AeronConsensusEngine engine = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), snapshotService,
+            new AeronBackgroundCoordinator(), storeWithWatermark(new AppliedLogPosition(200L, 0, 3L)));
 
         try {
             engine.onStart(cluster, snapshotImage);
-            fail("Expected snapshot mismatch to fail startup");
+            fail("Expected a store behind the snapshot to fail startup");
+        } catch (RuntimeException e) {
+            assertTrue(e.getMessage(), e.getMessage().contains("behind the Aeron snapshot"));
+            assertTrue(e.getMessage(), e.getMessage().contains("--fresh"));
+        }
+    }
+
+    @Test
+    public void onStartFailsWhenTheSnapshotHoldsNoMetadata() {
+        SnapshotService snapshotService = mock(SnapshotService.class);
+        Image snapshotImage = mock(Image.class);
+        IdleStrategy idleStrategy = mock(IdleStrategy.class);
+        when(snapshotService.restoreSnapshot(snapshotImage, idleStrategy))
+            .thenThrow(new io.aeron.cluster.client.ClusterException("no metadata"));
+        AeronConsensusEngine engine = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), snapshotService);
+
+        try {
+            engine.onStart(snapshotCluster(Cluster.Role.LEADER, idleStrategy), snapshotImage);
+            fail("Expected an unreadable snapshot to fail startup");
         } catch (RuntimeException e) {
             assertTrue(e.getMessage().contains("Snapshot load failed"));
         }
+    }
+
+    private File clusterDirWithTerms(long... terms) throws Exception {
+        File dir = tempFolder.newFolder();
+        try (io.aeron.cluster.RecordingLog recordingLog = new io.aeron.cluster.RecordingLog(dir, true)) {
+            for (long term : terms) {
+                recordingLog.appendTerm(1L, term, term * 100L, 0L);
+            }
+        }
+        return dir;
+    }
+
+    private static Cluster snapshotCluster(Cluster.Role role, IdleStrategy idleStrategy) {
+        Cluster cluster = mock(Cluster.class, RETURNS_DEEP_STUBS);
+        when(cluster.role()).thenReturn(role);
+        when(cluster.idleStrategy()).thenReturn(idleStrategy);
+        return cluster;
+    }
+
+    private static MemoryNodeStore storeWithWatermark(AppliedLogPosition watermark) {
+        MemoryNodeStore store = new MemoryNodeStore();
+        NodeBuilder root = store.getRoot().builder();
+        watermark.writeTo(root);
+        try {
+            store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+        return store;
     }
 
     @Test
@@ -460,6 +499,90 @@ public class AeronConsensusEngineTest {
     }
 
     @Test
+    public void onStartSkipsReplayedEntriesAtOrBelowTheStoreWatermark() throws Exception {
+        MemoryNodeStore store = new MemoryNodeStore();
+        NodeBuilder root = store.getRoot().builder();
+        new AppliedLogPosition(512L, 0, 0L).writeTo(root);
+        store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        AeronConsensusEngine engine = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), new SnapshotService(),
+            new AeronBackgroundCoordinator(new RecordingTaskScheduler(), 2000L, 3000L, 5000L), store);
+        List<String> applied = new ArrayList<>();
+        engine.setWriteApplicationCallback(new AeronConsensusEngine.WriteApplicationCallback() {
+            @Override
+            public void applyReplicatedWrite(String walletAddress, String path, String contentType, String message,
+                                             String signature, String intentToken, String blobId, String mimeType,
+                                             String ipfsCid, org.apache.jackrabbit.oak.segment.consensus.service.MutationAuditMetadata auditMetadata) {
+                applied.add(path + "@" + auditMetadata.getAppliedLogPosition());
+            }
+        });
+        Cluster cluster = mock(Cluster.class, RETURNS_DEEP_STUBS);
+        when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
+        when(cluster.idleStrategy()).thenReturn(mock(IdleStrategy.class));
+        when(cluster.context().clusterDir()).thenReturn(clusterDirWithTerms(0L));
+        engine.onStart(cluster, null);
+        AeronEncodedMessage replayed = new AeronIngressWritePayloadBuilder()
+            .buildWriteProposal("0xabc", "/oak-chain/a/b/c/old", "page", "m", "sig", null, null, "p-old");
+        AeronEncodedMessage fresh = new AeronIngressWritePayloadBuilder()
+            .buildWriteProposal("0xabc", "/oak-chain/a/b/c/new", "page", "m", "sig", null, null, "p-new");
+
+        engine.onSessionMessage(mock(ClientSession.class), 1L, replayed.buffer, 0, replayed.totalLength, headerAt(512L));
+        engine.onSessionMessage(mock(ClientSession.class), 2L, fresh.buffer, 0, fresh.totalLength, headerAt(640L));
+
+        assertEquals(List.of("/oak-chain/a/b/c/new@position=640 item=0 term=0"), applied);
+    }
+
+    @Test
+    public void nodeLocalApplyFailureStopsThisMemberThroughTheFatalPath() throws Exception {
+        AeronConsensusEngine engine = createEngine();
+        java.util.concurrent.atomic.AtomicInteger applies = new java.util.concurrent.atomic.AtomicInteger();
+        engine.setWriteApplicationCallback(new AeronConsensusEngine.WriteApplicationCallback() {
+            @Override
+            public void applyReplicatedWrite(String walletAddress, String path, String contentType, String message,
+                                             String signature, String intentToken, String blobId, String mimeType,
+                                             String ipfsCid, org.apache.jackrabbit.oak.segment.consensus.service.MutationAuditMetadata auditMetadata) {
+                applies.incrementAndGet();
+                throw new RuntimeException("Failed to apply replicated write",
+                    new java.io.IOException("No space left on device"));
+            }
+        });
+        setField(engine, "cluster", mock(Cluster.class));
+        AeronEncodedMessage write = new AeronIngressWritePayloadBuilder()
+            .buildWriteProposal("0xabc", "/oak-chain/a/b/c/doc", "page", "m", "sig", null, null, "p-1");
+
+        try {
+            engine.onSessionMessage(mock(ClientSession.class), 1L, write.buffer, 0, write.totalLength, headerAt(640L));
+            fail("a node-local apply failure was swallowed");
+        } catch (AgentTerminationException e) {
+            assertTrue(e.getCause() instanceof io.aeron.exceptions.AeronException);
+            assertEquals(io.aeron.exceptions.AeronException.Category.FATAL,
+                ((io.aeron.exceptions.AeronException) e.getCause()).category());
+            assertTrue(e.getMessage(), e.getMessage().contains("640"));
+            Throwable root = e;
+            while (root.getCause() != null) {
+                root = root.getCause();
+            }
+            assertTrue(root instanceof java.io.IOException);
+        }
+
+        // The failure is latched: health reports it and later entries are refused without being applied.
+        assertTrue(engine.hasApplicationFailure());
+        assertFalse(engine.isClusterHealthy());
+        assertTrue(engine.getUnhealthyReason().startsWith("replicated_apply_failed"));
+        try {
+            engine.onSessionMessage(mock(ClientSession.class), 2L, write.buffer, 0, write.totalLength, headerAt(768L));
+            fail("a member continued applying after a node-local apply failure");
+        } catch (AgentTerminationException expected) {
+            assertEquals(1, applies.get());
+        }
+    }
+
+    private static Header headerAt(long position) {
+        Header header = mock(Header.class);
+        when(header.position()).thenReturn(position);
+        return header;
+    }
+
+    @Test
     public void onSessionMessageDelegatesToIngressHandler() throws Exception {
         AeronConsensusEngine engine = createEngine();
         AeronIngressHandler ingressHandler = mock(AeronIngressHandler.class);
@@ -468,7 +591,7 @@ public class AeronConsensusEngineTest {
         DirectBuffer buffer = mock(DirectBuffer.class);
         Cluster cluster = mock(Cluster.class);
         setField(engine, "ingressHandler", ingressHandler);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
 
         engine.onSessionMessage(session, 123L, buffer, 4, 5, header);
 
@@ -476,17 +599,195 @@ public class AeronConsensusEngineTest {
     }
 
     @Test
-    public void onTakeSnapshotDelegatesToSnapshotService() throws Exception {
+    public void onTakeSnapshotFlushesOakThenWritesWatermarkTermEpochAndHead() throws Exception {
         SnapshotService snapshotService = mock(SnapshotService.class);
-        AeronConsensusEngine engine = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), snapshotService);
+        FileStore fileStore = mock(FileStore.class, RETURNS_DEEP_STUBS);
+        when(fileStore.getHead().getRecordId().toString10()).thenReturn("head-9");
+        AeronConsensusEngine engine = createEngine(fileStore, snapshotService, new AeronBackgroundCoordinator(),
+            storeWithWatermark(new AppliedLogPosition(300L, 1, 5L)));
         io.aeron.ExclusivePublication publication = mock(io.aeron.ExclusivePublication.class);
         IdleStrategy idleStrategy = mock(IdleStrategy.class);
         setField(engine, "idleStrategy", idleStrategy);
         setField(engine, "currentEthereumEpoch", 17);
+        applyTermEvent(engine, 5);
 
         engine.onTakeSnapshot(publication);
 
-        verify(snapshotService).createSnapshot(publication, idleStrategy, 17);
+        ArgumentCaptor<SnapshotService.SnapshotState> state = ArgumentCaptor.forClass(SnapshotService.SnapshotState.class);
+        org.mockito.InOrder order = org.mockito.Mockito.inOrder(fileStore, snapshotService);
+        order.verify(fileStore).flush();
+        order.verify(snapshotService).createSnapshot(eq(publication), eq(idleStrategy), state.capture());
+        assertEquals(new AppliedLogPosition(300L, 1, 5L), state.getValue().applied);
+        assertEquals(5L, state.getValue().leadershipTermId);
+        assertEquals(17, state.getValue().epoch);
+        assertEquals("head-9", state.getValue().head);
+    }
+
+    @Test
+    public void onTakeSnapshotPropagatesOakFlushFailure() throws Exception {
+        SnapshotService snapshotService = mock(SnapshotService.class);
+        FileStore fileStore = mock(FileStore.class, RETURNS_DEEP_STUBS);
+        org.mockito.Mockito.doThrow(new java.io.IOException("disk full")).when(fileStore).flush();
+        AeronConsensusEngine engine = createEngine(fileStore, snapshotService, new AeronBackgroundCoordinator(),
+            new MemoryNodeStore());
+
+        try {
+            engine.onTakeSnapshot(mock(io.aeron.ExclusivePublication.class));
+            fail("Expected the snapshot to fail");
+        } catch (RuntimeException e) {
+            assertTrue(e.getMessage(), e.getMessage().contains("flush"));
+        }
+        verify(snapshotService, never()).createSnapshot(any(), any(), any());
+    }
+
+    @Test
+    public void onTakeSnapshotPropagatesClosedSnapshotPublication() {
+        AeronConsensusEngine engine = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), new SnapshotService(),
+            new AeronBackgroundCoordinator(), new MemoryNodeStore());
+        io.aeron.ExclusivePublication publication = mock(io.aeron.ExclusivePublication.class);
+        when(publication.offer(any(DirectBuffer.class), anyInt(), anyInt())).thenReturn(io.aeron.Publication.CLOSED);
+
+        try {
+            engine.onTakeSnapshot(publication);
+            fail("Expected the snapshot to fail");
+        } catch (io.aeron.cluster.client.ClusterException e) {
+            assertTrue(e.getMessage(), e.getMessage().contains("closed"));
+        }
+    }
+
+    @Test
+    public void snapshotTriggerFiresOnlyOnTheLeader() throws Exception {
+        AtomicInteger toggles = new AtomicInteger();
+        AeronConsensusEngine engine = createEngine();
+        setField(engine, "ingressHandler", mock(AeronIngressHandler.class));
+        setField(engine, "snapshotTrigger", new SnapshotTrigger(0L, 1L, () -> toggles.incrementAndGet() > 0, 0L));
+        Cluster cluster = mock(Cluster.class);
+        setField(engine, "cluster", cluster);
+
+        when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
+        engine.onSessionMessage(mock(ClientSession.class), 1L, mock(DirectBuffer.class), 0, 8, mock(Header.class));
+        assertEquals(0, toggles.get());
+
+        when(cluster.role()).thenReturn(Cluster.Role.LEADER);
+        engine.onSessionMessage(mock(ClientSession.class), 2L, mock(DirectBuffer.class), 0, 8, mock(Header.class));
+        assertEquals(1, toggles.get());
+    }
+
+    @Test
+    public void snapshotCarriesLogDerivedTermAndRestoreReappliesIt() throws Exception {
+        SnapshotService snapshotService = mock(SnapshotService.class);
+        AeronConsensusEngine source = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), snapshotService,
+            new AeronBackgroundCoordinator(), new MemoryNodeStore());
+        io.aeron.ExclusivePublication publication = mock(io.aeron.ExclusivePublication.class);
+        IdleStrategy idleStrategy = mock(IdleStrategy.class);
+        setField(source, "idleStrategy", idleStrategy);
+        applyTermEvent(source, 5);
+
+        source.onTakeSnapshot(publication);
+
+        ArgumentCaptor<SnapshotService.SnapshotState> state = ArgumentCaptor.forClass(SnapshotService.SnapshotState.class);
+        verify(snapshotService).createSnapshot(eq(publication), eq(idleStrategy), state.capture());
+        assertEquals(5L, state.getValue().leadershipTermId);
+
+        Image snapshotImage = mock(Image.class);
+        SnapshotService restoreService = mock(SnapshotService.class);
+        when(restoreService.restoreSnapshot(snapshotImage, idleStrategy)).thenReturn(state.getValue());
+        AeronConsensusEngine restored = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), restoreService,
+            new AeronBackgroundCoordinator(new RecordingTaskScheduler(), 2000L, 3000L, 5000L), storeWithGenesis());
+
+        restored.onStart(snapshotCluster(Cluster.Role.FOLLOWER, idleStrategy), snapshotImage);
+
+        assertEquals(5, restored.getCurrentTerm());
+    }
+
+    @Test
+    public void aMemberRestoredFromASnapshotDecidesAProposalWhoseReportsStraddleIt() throws Exception {
+        List<String> threeMembers = List.of("http://peer-1:8080", "http://peer-2:8080");
+        SnapshotService snapshotService = mock(SnapshotService.class);
+        AeronConsensusEngine source = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), snapshotService,
+            new AeronBackgroundCoordinator(), new MemoryNodeStore(), threeMembers);
+        IdleStrategy idleStrategy = mock(IdleStrategy.class);
+        setField(source, "idleStrategy", idleStrategy);
+        segmentPersisted(source, "p-straddling", 0, 1_000L);
+        segmentPersisted(source, "p-decided", 0, 1_000L);
+        segmentPersisted(source, "p-decided", 1, 1_000L);
+        io.aeron.ExclusivePublication publication = mock(io.aeron.ExclusivePublication.class);
+
+        source.onTakeSnapshot(publication);
+
+        ArgumentCaptor<SnapshotService.SnapshotState> state = ArgumentCaptor.forClass(SnapshotService.SnapshotState.class);
+        verify(snapshotService).createSnapshot(eq(publication), eq(idleStrategy), state.capture());
+        Image snapshotImage = mock(Image.class);
+        SnapshotService restoreService = mock(SnapshotService.class);
+        when(restoreService.restoreSnapshot(snapshotImage, idleStrategy)).thenReturn(state.getValue());
+        AeronConsensusEngine restored = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), restoreService,
+            new AeronBackgroundCoordinator(new RecordingTaskScheduler(), 2000L, 3000L, 5000L), storeWithGenesis(),
+            threeMembers);
+        restored.onStart(snapshotCluster(Cluster.Role.FOLLOWER, idleStrategy), snapshotImage);
+        AeronConsensusEngine.DurabilityStatusCallback decisions =
+            mock(AeronConsensusEngine.DurabilityStatusCallback.class);
+        restored.setDurabilityStatusCallback(decisions);
+
+        segmentPersisted(restored, "p-straddling", 1, 2_000L);
+        segmentPersisted(restored, "p-decided", 2, 2_000L);
+        segmentPersisted(restored, "p-decided", 1, 2_000L);
+
+        verify(decisions).onDurable("p-straddling", "head");
+        verify(decisions, never()).onDurable(eq("p-decided"), any());
+    }
+
+    @Test
+    public void snapshotCarriesTheReplicatedGcProposalsAndRestoreHandsThemBack() throws Exception {
+        List<Map<String, Object>> gcProposals = List.of(Map.of("proposalId", "gc-1"));
+        AeronConsensusEngine.GCApplicationCallback gc = mock(AeronConsensusEngine.GCApplicationCallback.class);
+        when(gc.snapshotProposals()).thenReturn(gcProposals);
+        SnapshotService snapshotService = mock(SnapshotService.class);
+        AeronConsensusEngine source = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), snapshotService,
+            new AeronBackgroundCoordinator(), new MemoryNodeStore());
+        source.setGCCallback(gc);
+        IdleStrategy idleStrategy = mock(IdleStrategy.class);
+        setField(source, "idleStrategy", idleStrategy);
+        io.aeron.ExclusivePublication publication = mock(io.aeron.ExclusivePublication.class);
+
+        source.onTakeSnapshot(publication);
+
+        ArgumentCaptor<SnapshotService.SnapshotState> state = ArgumentCaptor.forClass(SnapshotService.SnapshotState.class);
+        verify(snapshotService).createSnapshot(eq(publication), eq(idleStrategy), state.capture());
+        assertEquals(gcProposals, state.getValue().gcProposals);
+        Image snapshotImage = mock(Image.class);
+        SnapshotService restoreService = mock(SnapshotService.class);
+        when(restoreService.restoreSnapshot(snapshotImage, idleStrategy)).thenReturn(state.getValue());
+        AeronConsensusEngine restored = createEngine(mock(FileStore.class, RETURNS_DEEP_STUBS), restoreService,
+            new AeronBackgroundCoordinator(new RecordingTaskScheduler(), 2000L, 3000L, 5000L), storeWithGenesis());
+        AeronConsensusEngine.GCApplicationCallback restoredGc = mock(AeronConsensusEngine.GCApplicationCallback.class);
+        restored.setGCCallback(restoredGc);
+
+        restored.onStart(snapshotCluster(Cluster.Role.FOLLOWER, idleStrategy), snapshotImage);
+
+        verify(restoredGc).restoreProposals(gcProposals);
+    }
+
+    private static void segmentPersisted(AeronConsensusEngine engine, String proposalId, int memberId, long clusterTime)
+        throws Exception {
+        AeronEncodedMessage entry =
+            new AeronIngressControlPayloadBuilder().buildSegmentPersisted(proposalId, memberId, true, "head", null);
+        MessageDispatcher dispatcher = (MessageDispatcher) getField(engine, "messageDispatcher");
+        assertTrue(dispatcher.dispatch(clusterTime, entry.buffer, 0, entry.totalLength));
+    }
+
+    @Test
+    public void ingressOmitsTermUntilTheFirstTermEventThenStampsTheLogTerm() throws Exception {
+        AeronConsensusEngine engine = createEngine();
+        io.aeron.cluster.client.AeronCluster client = installHealthyClient(engine, Cluster.Role.LEADER);
+
+        assertTrue(engine.sendDeleteThroughIngress("0xabc", "/content/a", "sig-1", "p-0"));
+        assertFalse(captureOffer(client).json.contains("\"term\""));
+
+        applyTermEvent(engine, 3);
+        client = installHealthyClient(engine, Cluster.Role.LEADER);
+
+        assertTrue(engine.sendDeleteThroughIngress("0xabc", "/content/b", "sig-2", "p-1"));
+        assertTrue(captureOffer(client).json.contains("\"term\":3"));
     }
 
     @Test
@@ -494,7 +795,7 @@ public class AeronConsensusEngineTest {
         AeronConsensusEngine engine = createEngine();
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
         LeaderDiscoveryService leaderDiscoveryService =
             (LeaderDiscoveryService) getField(engine, "leaderDiscoveryService");
         leaderDiscoveryService.setKnownLeader("http://leader:8080", 2);
@@ -503,11 +804,11 @@ public class AeronConsensusEngineTest {
     }
 
     @Test
-    public void refreshLeaderTermIfNeededSyncsTermFromLeaderEndpoint() throws Exception {
+    public void refreshLeaderLogPositionReadsLogPositionButNeverTheLeadersTerm() throws Exception {
         AeronConsensusEngine engine = createEngine();
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
         setField(engine, "currentTerm", 2);
 
         HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
@@ -523,11 +824,11 @@ public class AeronConsensusEngineTest {
                 (LeaderDiscoveryService) getField(engine, "leaderDiscoveryService");
             leaderDiscoveryService.setKnownLeader("http://127.0.0.1:" + server.getAddress().getPort(), 3);
 
-            Method method = AeronConsensusEngine.class.getDeclaredMethod("refreshLeaderTermIfNeeded", boolean.class);
+            Method method = AeronConsensusEngine.class.getDeclaredMethod("refreshLeaderLogPositionIfNeeded", boolean.class);
             method.setAccessible(true);
             method.invoke(engine, true);
 
-            assertEquals(7, engine.getCurrentTerm());
+            assertEquals(2, engine.getCurrentTerm());
             assertEquals(300L, engine.getReplicationLagStatus().get("leaderLogPosition"));
             assertEquals(300L, engine.getReplicationLagStatus().get("replicationLag"));
         } finally {
@@ -541,8 +842,8 @@ public class AeronConsensusEngineTest {
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
         when(cluster.logPosition()).thenReturn(0L);
-        setField(engine, "cluster", cluster);
-        setField(engine, "lastLeaderTermFetchMs", System.currentTimeMillis());
+        installCluster(engine, cluster);
+        setField(engine, "lastLeaderLogPositionFetchMs", System.currentTimeMillis());
 
         engine.updateLeaderLogPosition(0L);
 
@@ -613,7 +914,7 @@ public class AeronConsensusEngineTest {
             backgroundCoordinator,
             nodeStore
         );
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
 
         engine.onRoleChange(Cluster.Role.LEADER);
 
@@ -621,44 +922,20 @@ public class AeronConsensusEngineTest {
     }
 
     @Test
-    public void durabilityAckFailureInvokesFailureCallbackAndClearsPendingState() throws Exception {
-        AeronConsensusEngine engine = createEngine();
+    public void durabilityFailureWithoutErrorUsesDefaultMessage() throws Exception {
+        AeronConsensusEngine engine = createEngine(List.of("http://peer-1:8080", "http://peer-2:8080"));
         AeronConsensusEngine.DurabilityStatusCallback callback =
             mock(AeronConsensusEngine.DurabilityStatusCallback.class);
         engine.setDurabilityStatusCallback(callback);
 
-        DurabilityAckTracker tracker = (DurabilityAckTracker) getField(engine, "durabilityAckTracker");
-        tracker.track("p-fail", 3, 2);
-        assertEquals(1, pendingDurabilityCount(tracker));
-
         MessageDispatcher dispatcher = (MessageDispatcher) getField(engine, "messageDispatcher");
         MessageDispatcher.DurabilityCallback durabilityCallback =
             (MessageDispatcher.DurabilityCallback) getField(dispatcher, "durabilityCallback");
-        durabilityCallback.onAckSegmentPersisted("p-fail", false, null, "disk full", 3, 2);
-
-        verify(callback).onFailure("p-fail", "disk full");
-        verify(callback, never()).onDurable("p-fail", null);
-        assertEquals(0, pendingDurabilityCount(tracker));
-    }
-
-    @Test
-    public void durabilityAckFailureWithoutErrorUsesDefaultMessage() throws Exception {
-        AeronConsensusEngine engine = createEngine();
-        AeronConsensusEngine.DurabilityStatusCallback callback =
-            mock(AeronConsensusEngine.DurabilityStatusCallback.class);
-        engine.setDurabilityStatusCallback(callback);
-
-        DurabilityAckTracker tracker = (DurabilityAckTracker) getField(engine, "durabilityAckTracker");
-        tracker.track("p-default-error", 3, 2);
-        assertEquals(1, pendingDurabilityCount(tracker));
-
-        MessageDispatcher dispatcher = (MessageDispatcher) getField(engine, "messageDispatcher");
-        MessageDispatcher.DurabilityCallback durabilityCallback =
-            (MessageDispatcher.DurabilityCallback) getField(dispatcher, "durabilityCallback");
-        durabilityCallback.onAckSegmentPersisted("p-default-error", false, null, null, 3, 2);
+        durabilityCallback.onSegmentPersisted("p-default-error", 0, null, false, null, 1L);
+        verify(callback, never()).onFailure(any(), any());
+        durabilityCallback.onSegmentPersisted("p-default-error", 1, null, false, null, 1L);
 
         verify(callback).onFailure("p-default-error", "durability failed");
-        assertEquals(0, pendingDurabilityCount(tracker));
     }
 
     @Test
@@ -667,16 +944,16 @@ public class AeronConsensusEngineTest {
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(Cluster.Role.LEADER);
         when(cluster.memberId()).thenReturn(3);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
         setField(engine, "currentLeader", "http://self:8080");
 
         io.aeron.cluster.client.AeronCluster client = mock(io.aeron.cluster.client.AeronCluster.class);
         when(client.isClosed()).thenReturn(false);
-        setField(engine, "internalClusterClient", client);
+        bindClient(engine, client);
 
         assertTrue(engine.stepDownAsLeader());
         verify(client).close();
-        assertNull(getField(engine, "internalClusterClient"));
+        assertFalse(ingressManager(engine).isHealthy());
         assertNull(getField(engine, "currentLeader"));
         assertEquals(ValidatorRole.FOLLOWER, getField(engine, "currentRole"));
     }
@@ -694,11 +971,11 @@ public class AeronConsensusEngineTest {
         Cluster cluster = mock(Cluster.class);
         when(cluster.memberId()).thenReturn(3);
         when(cluster.time()).thenReturn(456L);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
 
         io.aeron.cluster.client.AeronCluster client = mock(io.aeron.cluster.client.AeronCluster.class);
         when(client.isClosed()).thenReturn(false);
-        setField(engine, "internalClusterClient", client);
+        bindClient(engine, client);
 
         engine.onRoleChange(Cluster.Role.FOLLOWER);
 
@@ -710,7 +987,7 @@ public class AeronConsensusEngineTest {
                 return false;
             }
         }, 1500L));
-        assertNull(getField(engine, "internalClusterClient"));
+        assertTrue(waitUntil(() -> !ingressManager(engine).isHealthy(), 1500L));
         assertEquals(1, scheduler.tasks.size());
         assertEquals("aeron-leader-discovery", scheduler.tasks.get(0).name);
     }
@@ -720,7 +997,7 @@ public class AeronConsensusEngineTest {
         AeronConsensusEngine engine = createEngine();
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(Cluster.Role.LEADER);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
 
         assertFalse(engine.stepDownAsLeader());
     }
@@ -730,23 +1007,9 @@ public class AeronConsensusEngineTest {
         AeronConsensusEngine engine = createEngine();
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
 
         assertFalse(engine.stepDownAsLeader());
-    }
-
-    @Test
-    public void sendQueueSegmentOffersDurabilityMessage() throws Exception {
-        AeronConsensusEngine engine = createEngine();
-        io.aeron.cluster.client.AeronCluster client = installHealthyClient(engine, Cluster.Role.LEADER);
-
-        assertTrue(engine.sendQueueSegment("proposal-1", 3, 2));
-
-        CapturedOffer offer = captureOffer(client);
-        assertEquals(SimpleMessageHeader.TEMPLATE_ID_QUEUE_SEGMENT, offer.templateId);
-        assertTrue(offer.json.contains("\"proposalId\":\"proposal-1\""));
-        assertTrue(offer.json.contains("\"totalMembers\":3"));
-        assertTrue(offer.json.contains("\"requiredAcks\":2"));
     }
 
     @Test
@@ -761,7 +1024,7 @@ public class AeronConsensusEngineTest {
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
         when(cluster.memberId()).thenReturn(1);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
         setField(engine, "idleStrategy", mock(IdleStrategy.class));
         engine.setAeronDirectoryName(storeDirectory.getAbsolutePath() + "/aeron-test");
 
@@ -769,7 +1032,7 @@ public class AeronConsensusEngineTest {
         when(staleClient.isClosed()).thenReturn(false);
         when(staleClient.offer(any(MutableDirectBuffer.class), eq(0), anyInt()))
             .thenReturn(io.aeron.Publication.CLOSED);
-        setField(engine, "internalClusterClient", staleClient);
+        bindClient(engine, staleClient);
 
         io.aeron.cluster.client.AeronCluster healthyClient = mock(io.aeron.cluster.client.AeronCluster.class);
         when(healthyClient.isClosed()).thenReturn(false);
@@ -781,17 +1044,18 @@ public class AeronConsensusEngineTest {
             .thenReturn(AeronInternalClusterClientConnector.ConnectAttemptResult.success(healthyClient));
         setField(engine, "internalClusterClientConnector", connector);
 
-        assertFalse(engine.sendSegmentPersisted("proposal-7", "head-1", true, null));
+        // Durability sends are fire-and-forget (they may run on the service thread): true means queued.
+        assertTrue(engine.sendSegmentPersisted("proposal-7", "head-1", true, null));
 
-        assertEquals(1, scheduler.tasks.size());
+        assertTrue(waitUntil(() -> scheduler.tasks.size() == 1, 1500L));
         assertEquals("aeron-durability-retry-segment-persisted-1", scheduler.tasks.get(0).name);
-        assertTrue(waitUntil(() -> getFieldUnchecked(engine, "internalClusterClient") == healthyClient, 1500L));
+        assertTrue(waitUntil(() -> boundSessionId(engine) == 91L, 1500L));
         verify(staleClient).close();
         verify(connector, atLeastOnce()).connectOnce(any(), any(), any(), any());
 
         scheduler.tasks.get(0).runnable.run();
 
-        verify(healthyClient).offer(any(MutableDirectBuffer.class), eq(0), anyInt());
+        verify(healthyClient, timeout(1500L)).offer(any(MutableDirectBuffer.class), eq(0), anyInt());
 
         CapturedOffer offer = captureOffer(healthyClient);
         assertEquals(SimpleMessageHeader.TEMPLATE_ID_SEGMENT_PERSISTED, offer.templateId);
@@ -811,7 +1075,7 @@ public class AeronConsensusEngineTest {
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
         when(cluster.memberId()).thenReturn(1);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
         setField(engine, "idleStrategy", mock(IdleStrategy.class));
         engine.setAeronDirectoryName(storeDirectory.getAbsolutePath() + "/aeron-test");
 
@@ -819,7 +1083,7 @@ public class AeronConsensusEngineTest {
         when(staleClient.isClosed()).thenReturn(false);
         when(staleClient.offer(any(MutableDirectBuffer.class), eq(0), anyInt()))
             .thenReturn(io.aeron.Publication.NOT_CONNECTED);
-        setField(engine, "internalClusterClient", staleClient);
+        bindClient(engine, staleClient);
 
         io.aeron.cluster.client.AeronCluster healthyClient = mock(io.aeron.cluster.client.AeronCluster.class);
         when(healthyClient.isClosed()).thenReturn(false);
@@ -831,22 +1095,22 @@ public class AeronConsensusEngineTest {
             .thenReturn(AeronInternalClusterClientConnector.ConnectAttemptResult.success(healthyClient));
         setField(engine, "internalClusterClientConnector", connector);
 
-        assertFalse(engine.sendSegmentPersisted("proposal-8", "head-2", true, null));
+        assertTrue(engine.sendSegmentPersisted("proposal-8", "head-2", true, null));
 
-        assertEquals(1, scheduler.tasks.size());
-        assertTrue(waitUntil(() -> getFieldUnchecked(engine, "internalClusterClient") == healthyClient, 1500L));
+        assertTrue(waitUntil(() -> scheduler.tasks.size() == 1, 1500L));
+        assertTrue(waitUntil(() -> boundSessionId(engine) == 93L, 1500L));
         scheduler.tasks.get(0).runnable.run();
 
         verify(staleClient).close();
         verify(connector, atLeastOnce()).connectOnce(any(), any(), any(), any());
-        verify(healthyClient).offer(any(MutableDirectBuffer.class), eq(0), anyInt());
+        verify(healthyClient, timeout(1500L)).offer(any(MutableDirectBuffer.class), eq(0), anyInt());
     }
 
     @Test
     public void sendStartTransactionOffersTransactionMessageWithTerm() throws Exception {
         AeronConsensusEngine engine = createEngine();
         io.aeron.cluster.client.AeronCluster client = installHealthyClient(engine, Cluster.Role.LEADER);
-        setField(engine, "currentTerm", 7);
+        applyTermEvent(engine, 7);
 
         assertTrue(engine.sendStartTransactionThroughIngress("tx-1", "corr-1", 5000L, "0xabc"));
 
@@ -863,7 +1127,7 @@ public class AeronConsensusEngineTest {
     public void sendDeleteThroughIngressOffersDeleteProposal() throws Exception {
         AeronConsensusEngine engine = createEngine();
         io.aeron.cluster.client.AeronCluster client = installHealthyClient(engine, Cluster.Role.LEADER);
-        setField(engine, "currentTerm", 4);
+        applyTermEvent(engine, 4);
 
         assertTrue(engine.sendDeleteThroughIngress("0xabc", "/content/site", "sig-1", "proposal-2"));
 
@@ -879,7 +1143,7 @@ public class AeronConsensusEngineTest {
     public void sendWriteThroughIngressWithIdOffersWriteProposal() throws Exception {
         AeronConsensusEngine engine = createEngine();
         io.aeron.cluster.client.AeronCluster client = installHealthyClient(engine, Cluster.Role.LEADER);
-        setField(engine, "currentTerm", 9);
+        applyTermEvent(engine, 9);
 
         assertTrue(engine.sendWriteThroughIngressWithId(
             "0xabc",
@@ -904,7 +1168,7 @@ public class AeronConsensusEngineTest {
     public void sendWriteThroughIngressWithBinaryOffersBlobMetadata() throws Exception {
         AeronConsensusEngine engine = createEngine();
         io.aeron.cluster.client.AeronCluster client = installHealthyClient(engine, Cluster.Role.LEADER);
-        setField(engine, "currentTerm", 11);
+        applyTermEvent(engine, 11);
 
         assertTrue(engine.sendWriteThroughIngress(
             "0xabc",
@@ -933,7 +1197,7 @@ public class AeronConsensusEngineTest {
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(Cluster.Role.LEADER);
         when(cluster.memberId()).thenReturn(3);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
         setField(engine, "idleStrategy", mock(IdleStrategy.class));
         engine.setAeronDirectoryName(storeDirectory.getAbsolutePath() + "/aeron-test");
 
@@ -941,7 +1205,7 @@ public class AeronConsensusEngineTest {
         when(staleClient.isClosed()).thenReturn(false);
         when(staleClient.offer(any(MutableDirectBuffer.class), eq(0), anyInt()))
             .thenReturn(io.aeron.Publication.NOT_CONNECTED);
-        setField(engine, "internalClusterClient", staleClient);
+        bindClient(engine, staleClient);
 
         io.aeron.cluster.client.AeronCluster healthyClient = mock(io.aeron.cluster.client.AeronCluster.class);
         when(healthyClient.isClosed()).thenReturn(false);
@@ -963,17 +1227,52 @@ public class AeronConsensusEngineTest {
             "proposal-3"
         ));
 
-        assertTrue(waitUntil(() -> getFieldUnchecked(engine, "internalClusterClient") == healthyClient, 1500L));
+        assertTrue(waitUntil(() -> boundSessionId(engine) == 88L, 1500L));
         verify(staleClient).close();
         verify(connector, atLeastOnce()).connectOnce(any(), any(), any(), any());
         verify(healthyClient).offer(any(MutableDirectBuffer.class), eq(0), anyInt());
     }
 
     @Test
+    public void backPressuredWriteFailsWithoutClosingTheIngressSession() throws Exception {
+        AeronConsensusEngine engine = createEngine();
+        io.aeron.cluster.client.AeronCluster client = installHealthyClient(engine, Cluster.Role.LEADER);
+        when(client.offer(any(MutableDirectBuffer.class), eq(0), anyInt())).thenReturn(io.aeron.Publication.BACK_PRESSURED);
+        AeronInternalClusterClientConnector connector =
+            (AeronInternalClusterClientConnector) getField(engine, "internalClusterClientConnector");
+
+        assertFalse(engine.sendWriteThroughIngressWithId(
+            "0xabc", "/content/write", "page", "{}", "sig-2", null, "proposal-bp"));
+
+        Thread.sleep(50L);
+        verify(client, never()).close();
+        verify(connector, times(1)).connectOnce(any(), any(), any(), any());
+    }
+
+    @Test
+    public void backPressuredDurabilityMessageIsRetriedWithoutClosingTheIngressSession() throws Exception {
+        RecordingTaskScheduler scheduler = new RecordingTaskScheduler();
+        AeronConsensusEngine engine = createEngine(
+            mockFileStore,
+            null,
+            new AeronBackgroundCoordinator(scheduler, 2000L, 3000L, 5000L),
+            mockNodeStore
+        );
+        io.aeron.cluster.client.AeronCluster client = installHealthyClient(engine, Cluster.Role.FOLLOWER);
+        when(client.offer(any(MutableDirectBuffer.class), eq(0), anyInt())).thenReturn(io.aeron.Publication.BACK_PRESSURED);
+
+        assertTrue(engine.sendSegmentPersisted("proposal-bp", "head-1", true, null));
+
+        assertTrue(waitUntil(() -> scheduler.tasks.size() == 1, 1500L));
+        assertEquals("aeron-durability-retry-segment-persisted-1", scheduler.tasks.get(0).name);
+        verify(client, never()).close();
+    }
+
+    @Test
     public void sendWriteBatchThroughIngressOffersWriteBatchMessage() throws Exception {
         AeronConsensusEngine engine = createEngine();
         io.aeron.cluster.client.AeronCluster client = installHealthyClient(engine, Cluster.Role.LEADER);
-        setField(engine, "currentTerm", 13);
+        applyTermEvent(engine, 13);
 
         QueuedProposal first = proposal("proposal-5");
         first.setWalletAddress("0xaaa");
@@ -1055,9 +1354,174 @@ public class AeronConsensusEngineTest {
         AeronConsensusEngine engine = createEngine();
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
 
         assertFalse(engine.sendGCExecuteThroughIngress("gc-1", 5));
+    }
+
+    @Test
+    public void followerResolvesLeaderFromLeadershipTermEventWithoutHttp() throws Exception {
+        AtomicInteger peerCalls = new AtomicInteger();
+        HttpServer peer = startFailingPeer(peerCalls);
+        try {
+            String peerUrl = "http://127.0.0.1:" + peer.getAddress().getPort();
+            AeronConsensusEngine engine = createFollowerEngine(peerUrl);
+
+            engine.onNewLeadershipTermEvent(3L, 100L, 0L, 0L, 2, 1, java.util.concurrent.TimeUnit.MILLISECONDS, 1);
+            ((LeaderDiscoveryService) getField(engine, "leaderDiscoveryService")).invalidateCache();
+
+            assertEquals("http://leader-2:8080", engine.getCurrentLeader());
+            assertEquals(0, peerCalls.get());
+        } finally {
+            peer.stop(0);
+        }
+    }
+
+    @Test
+    public void lateStepDownDoesNotEraseLeaderFromNewerTermEvent() throws Exception {
+        AtomicInteger peerCalls = new AtomicInteger();
+        HttpServer peer = startFailingPeer(peerCalls);
+        try {
+            String peerUrl = "http://127.0.0.1:" + peer.getAddress().getPort();
+            AeronConsensusEngine engine = createFollowerEngine(peerUrl);
+            engine.onRoleChange(Cluster.Role.LEADER);
+
+            engine.onNewLeadershipTermEvent(4L, 200L, 0L, 200L, 2, 1, java.util.concurrent.TimeUnit.MILLISECONDS, 1);
+            engine.onRoleChange(Cluster.Role.FOLLOWER);
+
+            assertEquals("http://leader-2:8080", engine.getCurrentLeaderHint());
+            assertEquals("http://leader-2:8080", engine.getCurrentLeader());
+            assertEquals(0, peerCalls.get());
+        } finally {
+            peer.stop(0);
+        }
+    }
+
+    @Test
+    public void stepDownBeforeTermEventStillLearnsNewLeaderFromLog() throws Exception {
+        AtomicInteger peerCalls = new AtomicInteger();
+        HttpServer peer = startFailingPeer(peerCalls);
+        try {
+            String peerUrl = "http://127.0.0.1:" + peer.getAddress().getPort();
+            AeronConsensusEngine engine = createFollowerEngine(peerUrl);
+            engine.onRoleChange(Cluster.Role.LEADER);
+
+            engine.onRoleChange(Cluster.Role.FOLLOWER);
+            engine.onNewLeadershipTermEvent(4L, 200L, 0L, 200L, 2, 1, java.util.concurrent.TimeUnit.MILLISECONDS, 1);
+
+            assertEquals("http://leader-2:8080", engine.getCurrentLeader());
+            assertEquals(0, peerCalls.get());
+        } finally {
+            peer.stop(0);
+        }
+    }
+
+    /**
+     * The stale-term decision runs in the replicated apply path, so it must be a pure function of
+     * the log: members with different role histories, and a fresh member replaying from the start,
+     * must apply and skip exactly the same proposals.
+     */
+    @Test
+    public void staleTermDecisionsAreIdenticalAcrossRoleHistoriesAndReplay() {
+        List<String> expected = List.of("p0a", "p0b", "p1a", "p1b");
+
+        // Led term 0, stepped down when term 1 started.
+        List<String> formerLeader = applyTermLog(createQuietEngine(), 0, Cluster.Role.LEADER, 3, Cluster.Role.FOLLOWER);
+        // Followed in term 0, won the election for term 1.
+        List<String> newLeader = applyTermLog(createQuietEngine(), 3, Cluster.Role.LEADER, -1, null);
+        // Fresh member replaying the log without any role change.
+        List<String> replay = applyTermLog(createQuietEngine(), -1, null, -1, null);
+
+        assertEquals("[formerLeader, newLeader, replay]",
+            List.of(expected, expected, expected), List.of(formerLeader, newLeader, replay));
+    }
+
+    /**
+     * Feeds: term event 0, proposals stamped 0, term event 1, a late proposal stamped 0,
+     * proposals stamped 1. Role changes are injected before the given log step.
+     */
+    private List<String> applyTermLog(AeronConsensusEngine engine,
+                                      int firstRoleChangeStep, Cluster.Role firstRole,
+                                      int secondRoleChangeStep, Cluster.Role secondRole) {
+        List<String> applied = new ArrayList<>();
+        MessageDispatcher dispatcher = new MessageDispatcher(new MessageDispatcher.WriteCallback() {
+            @Override
+            public void applyWrite(String walletAddress, String path, String contentType, String message,
+                                   String signature, String intentToken, String blobId, String mimeType,
+                                   String ipfsCid, String proposalId) {
+                applied.add(proposalId);
+            }
+        });
+        dispatcher.setTermProvider(engine::getCurrentTerm);
+        AeronIngressWritePayloadBuilder builder = new AeronIngressWritePayloadBuilder();
+        Object[][] log = {
+            {"term", 0}, {"p0a", 0}, {"p0b", 0}, {"term", 1}, {"late", 0}, {"p1a", 1}, {"p1b", 1}
+        };
+        for (int step = 0; step < log.length; step++) {
+            if (step == firstRoleChangeStep) {
+                engine.onRoleChange(firstRole);
+            }
+            if (step == secondRoleChangeStep) {
+                engine.onRoleChange(secondRole);
+            }
+            String entry = (String) log[step][0];
+            int term = (Integer) log[step][1];
+            if ("term".equals(entry)) {
+                engine.onNewLeadershipTermEvent(term, step * 100L, 0L, step * 100L, term,
+                    1, java.util.concurrent.TimeUnit.MILLISECONDS, 1);
+            } else {
+                AeronEncodedMessage encoded = builder.buildWriteProposal(
+                    "0xabc", "/oak-chain/" + entry, "page", entry, "sig", term, null, entry);
+                dispatcher.dispatch(step * 100L, encoded.buffer, 0, encoded.totalLength);
+            }
+        }
+        return applied;
+    }
+
+    private static void applyTermEvent(AeronConsensusEngine engine, long leadershipTermId) {
+        engine.onNewLeadershipTermEvent(leadershipTermId, 0L, 0L, 0L, 0, 1,
+            java.util.concurrent.TimeUnit.MILLISECONDS, 1);
+    }
+
+    private AeronConsensusEngine createQuietEngine() {
+        return createEngine(mockFileStore, null,
+            new AeronBackgroundCoordinator(new RecordingTaskScheduler(), 2000L, 3000L, 5000L), mockNodeStore);
+    }
+
+    private AeronConsensusEngine createFollowerEngine(String peerUrl) throws Exception {
+        AeronConsensusEngine engine = createEngine(
+            mockFileStore,
+            null,
+            new AeronBackgroundCoordinator(new RecordingTaskScheduler(), 2000L, 3000L, 5000L),
+            mockNodeStore,
+            List.of(peerUrl)
+        );
+        engine.setNodeIdMapping(Map.of(0, "http://self:8080", 1, peerUrl, 2, "http://leader-2:8080"));
+        Cluster cluster = mock(Cluster.class);
+        when(cluster.role()).thenReturn(Cluster.Role.FOLLOWER);
+        when(cluster.memberId()).thenReturn(0);
+        installCluster(engine, cluster);
+        return engine;
+    }
+
+    /** A peer that records every request; tests assert it is never called. */
+    private static HttpServer startFailingPeer(AtomicInteger calls) throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/", exchange -> {
+            calls.incrementAndGet();
+            exchange.sendResponseHeaders(500, -1);
+            exchange.close();
+        });
+        server.start();
+        return server;
+    }
+
+    /** Installs {@code cluster} and publishes its state, as onStart does on the service thread. */
+    private static void installCluster(AeronConsensusEngine engine, Cluster cluster) throws Exception {
+        setField(engine, "cluster", cluster);
+        setField(engine, "publishedRole", cluster.role());
+        setField(engine, "publishedLogPosition", cluster.logPosition());
+        setField(engine, "publishedClusterTime", cluster.time());
     }
 
     private AeronConsensusEngine createEngine() {
@@ -1126,6 +1590,13 @@ public class AeronConsensusEngineTest {
         }
     }
 
+    /** A restored member's store: a snapshot restore requires verified canonical genesis. */
+    private static MemoryNodeStore storeWithGenesis() throws Exception {
+        MemoryNodeStore nodeStore = new MemoryNodeStore();
+        seedGenesis(nodeStore);
+        return nodeStore;
+    }
+
     private static void seedGenesis(MemoryNodeStore nodeStore) throws Exception {
         NodeBuilder root = nodeStore.getRoot().builder();
         new org.apache.jackrabbit.oak.segment.consensus.genesis.CanonicalGenesisContent(nodeStore, null)
@@ -1138,7 +1609,7 @@ public class AeronConsensusEngineTest {
     }
 
     private static final class RecordingTaskScheduler implements AeronBackgroundCoordinator.TaskScheduler {
-        private final List<ScheduledTask> tasks = new ArrayList<>();
+        private final List<ScheduledTask> tasks = new java.util.concurrent.CopyOnWriteArrayList<>();
 
         @Override
         public void schedule(String name, long delayMs, Runnable task) {
@@ -1199,24 +1670,44 @@ public class AeronConsensusEngineTest {
         Cluster cluster = mock(Cluster.class);
         when(cluster.role()).thenReturn(role);
         when(cluster.memberId()).thenReturn(3);
-        setField(engine, "cluster", cluster);
+        installCluster(engine, cluster);
         setField(engine, "idleStrategy", mock(IdleStrategy.class));
 
         io.aeron.cluster.client.AeronCluster client = mock(io.aeron.cluster.client.AeronCluster.class);
         when(client.isClosed()).thenReturn(false);
         when(client.clusterSessionId()).thenReturn(99L);
         when(client.offer(any(MutableDirectBuffer.class), eq(0), anyInt())).thenReturn(1L);
-        setField(engine, "internalClusterClient", client);
-        AeronInternalIngressClientManager manager =
-            (AeronInternalIngressClientManager) getField(engine, "internalIngressClientManager");
-        assertTrue(manager.ensureAvailable("test install", 250L));
+        bindClient(engine, client);
         return client;
+    }
+
+    /** Binds {@code client} through the ingress owner, as a successful connect would. */
+    private void bindClient(AeronConsensusEngine engine, io.aeron.cluster.client.AeronCluster client) throws Exception {
+        when(client.sendKeepAlive()).thenReturn(true);
+        engine.setAeronDirectoryName(storeDirectory.getAbsolutePath() + "/aeron-test");
+        AeronInternalClusterClientConnector connector = mock(AeronInternalClusterClientConnector.class);
+        when(connector.connectOnce(any(), any(), any(), any()))
+            .thenReturn(AeronInternalClusterClientConnector.ConnectAttemptResult.success(client));
+        setField(engine, "internalClusterClientConnector", connector);
+        if (ingressManager(engine).isHealthy()) {
+            ingressManager(engine).notifySendFailure("test rebind");
+        }
+        assertTrue(ingressManager(engine).ensureAvailable("test bind", 1500L));
+    }
+
+    private static AeronInternalIngressClientManager ingressManager(AeronConsensusEngine engine) {
+        return (AeronInternalIngressClientManager) getFieldUnchecked(engine, "internalIngressClientManager");
+    }
+
+    private static long boundSessionId(AeronConsensusEngine engine) {
+        Object sessionId = ingressManager(engine).diagnostics().get("sessionId");
+        return sessionId == null ? -1L : ((Number) sessionId).longValue();
     }
 
     private static CapturedOffer captureOffer(io.aeron.cluster.client.AeronCluster client) {
         ArgumentCaptor<MutableDirectBuffer> bufferCaptor = ArgumentCaptor.forClass(MutableDirectBuffer.class);
         ArgumentCaptor<Integer> lengthCaptor = ArgumentCaptor.forClass(Integer.class);
-        verify(client).offer(bufferCaptor.capture(), eq(0), lengthCaptor.capture());
+        verify(client, timeout(1500L)).offer(bufferCaptor.capture(), eq(0), lengthCaptor.capture());
         MutableDirectBuffer buffer = bufferCaptor.getValue();
         int totalLength = lengthCaptor.getValue();
         SimpleMessageHeader.HeaderInfo header = SimpleMessageHeader.decode(buffer, 0);
@@ -1224,13 +1715,6 @@ public class AeronConsensusEngineTest {
         buffer.getBytes(SimpleMessageHeader.ENCODED_LENGTH, jsonBytes);
         String json = new String(jsonBytes, StandardCharsets.UTF_8);
         return new CapturedOffer(header.templateId, json);
-    }
-
-    private static int pendingDurabilityCount(DurabilityAckTracker tracker) throws Exception {
-        Field pendingField = DurabilityAckTracker.class.getDeclaredField("pending");
-        pendingField.setAccessible(true);
-        Map<?, ?> pending = (Map<?, ?>) pendingField.get(tracker);
-        return pending.size();
     }
 
     private static final class CapturedOffer {

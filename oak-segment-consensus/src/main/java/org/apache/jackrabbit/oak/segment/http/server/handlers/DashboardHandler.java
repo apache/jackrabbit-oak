@@ -83,8 +83,9 @@ public class DashboardHandler {
         final String nodeId = nodeIdInt >= 0 ? String.valueOf(nodeIdInt) : "UNKNOWN";
         final int leaderNodeInt = resolveLeaderNodeId(clusterState, role, nodeIdInt);
         final String leaderNode = leaderNodeInt >= 0 ? String.valueOf(leaderNodeInt) : "UNKNOWN";
-        final long termValue = asLong(clusterState.get("leadershipTerm"),
-            asLong(clusterState.get("leadershipTermId"), 0L));
+        final long termValue = asLong(clusterState.get("term"),
+            asLong(clusterState.get("leadershipTerm"),
+                asLong(clusterState.get("leadershipTermId"), 0L)));
         final String term = String.valueOf(termValue);
         final int membersValue = asInt(clusterState.get("memberCount"),
             asInt(clusterState.get("clusterMemberCount"), 0));
@@ -104,10 +105,14 @@ public class DashboardHandler {
         final String quorum = quorumKnown
             ? (hasQuorum ? "YES" : "NO") + " (" + quorumRequired + ")"
             : "UNKNOWN";
+        final String[] posture = resolvePosture(quorumKnown, hasQuorum, reachableValue, membersValue);
         final String[] modeTokens = resolveModeTemplateTokens();
         final String modeClass = modeTokens[0];
         final String modeLabel = modeTokens[1];
         Map<String, String> tokens = buildSharedTemplateTokens("dashboard", modeClass, modeLabel);
+        tokens.put("{{POSTURE_TONE}}", posture[0]);
+        tokens.put("{{POSTURE_LABEL}}", posture[1]);
+        tokens.put("{{MEMBER_LIST}}", buildMemberList(clusterState.get("members"), nodeIdInt));
         tokens.put("{{VERSION}}", FormatUtils.escapeHtml(version));
         tokens.put("{{ROLE}}", FormatUtils.escapeHtml(role));
         tokens.put("{{NODE_ID}}", FormatUtils.escapeHtml(nodeId));
@@ -150,14 +155,14 @@ public class DashboardHandler {
         addInternalIndexEntry(endpoints, "GET", "/v1/proposals/pending/count", "Pending proposal count", "Consensus", "/ops/v1/proposals");
         addSourceIndexEntry(endpoints, "GET", "/v1/proposals/queue/stats", "Queue and finality counters", "Consensus", "ops.v1", "/ops/v1/proposals/queue/stats");
         addSourceIndexEntry(endpoints, "GET", "/v1/proposals/release-flow", "Adaptive proposal release flow", "Consensus", "release-flow.v1", "/ops/v1/proposals/release-flow");
-        addInternalIndexEntry(endpoints, "GET", "/v1/proposals/{id}/status", "Proposal status by id", "Consensus", null);
+        addInternalIndexEntry(endpoints, "GET", "/v1/proposals/{id}/status", "Proposal status by id (short-term: proposals this validator queued, until retention eviction)", "Consensus", null);
         addSourceIndexEntry(endpoints, "GET", "/v1/settlement/proposals/{proposalId}", "Basic settlement details by proposal id", "Settlement", "settlement.v1", "/ops/v1/settlement/proposals/{proposalId}");
         addSourceIndexEntry(endpoints, "GET", "/v1/settlement/transactions/{transactionHash}", "Basic settlement details by transaction hash", "Settlement", "settlement.v1", "/ops/v1/settlement/transactions/{transactionHash}");
         addInternalIndexEntry(endpoints, "GET", "/v1/head", "Head status", "Consensus", null);
 
         addSourceIndexEntry(endpoints, "GET", "/v1/explorer/summary", "Explorer summary contract", "CRX/OC", "explorer.v1", "/ops/v1/explorer/summary");
         addSourceIndexEntry(endpoints, "GET", "/v1/explorer/release-flow", "Explorer adaptive release flow", "CRX/OC", "explorer.v1", "/ops/v1/explorer/release-flow");
-        addSourceIndexEntry(endpoints, "GET", "/v1/explorer/proposals/{proposalId}", "Explorer proposal detail", "CRX/OC", "explorer.v1", "/ops/v1/explorer/proposals/{proposalId}");
+        addSourceIndexEntry(endpoints, "GET", "/v1/explorer/proposals/{proposalId}", "Explorer proposal detail (short-term: proposals this validator queued, until retention eviction)", "CRX/OC", "explorer.v1", "/ops/v1/explorer/proposals/{proposalId}");
         addSourceIndexEntry(endpoints, "GET", "/v1/explorer/wallets/{walletAddress}", "Explorer wallet detail", "CRX/OC", "explorer.v1", "/ops/v1/explorer/wallets/{walletAddress}");
         addSourceIndexEntry(endpoints, "GET", "/v1/explorer/content/nav", "CRX/OC cluster-aware content navigation", "CRX/OC", "explorer.content.v1", "/ops/v1/explorer/content/nav");
         addSourceIndexEntry(endpoints, "GET", "/v1/explorer/content/clusters/{clusterId}/tree", "CRX/OC cluster-scoped content tree browse", "CRX/OC", "explorer.content.v1", "/ops/v1/explorer/content/clusters/{clusterId}/tree");
@@ -165,12 +170,12 @@ public class DashboardHandler {
         addSourceIndexEntry(endpoints, "GET", "/v1/explorer/content/clusters/{clusterId}/provenance", "CRX/OC cluster-scoped provenance and authority facts", "CRX/OC", "explorer.content.v1", "/ops/v1/explorer/content/clusters/{clusterId}/provenance");
         addLocalUiIndexEntry(endpoints, "GET", "/explorer", "Validator-local CRX/OC read-only content explorer", "CRX/OC");
         addLocalDiagnosticIndexEntry(endpoints, "GET", "/api/explore?path=/", "Legacy CRX/OC local node tree browse API", "CRX/OC", "/ops/v1/explorer/content/*");
-        addLocalDiagnosticIndexEntry(endpoints, "GET", "/api/segments/recent", "Recent segments", "CRX/OC", "/v1/ops/snapshots/storage");
-        addLocalDiagnosticIndexEntry(endpoints, "GET", "/api/segments/tars", "TAR file listing", "CRX/OC", "/v1/ops/snapshots/storage");
-        addLocalDiagnosticIndexEntry(endpoints, "GET", "/api/blob/{blobId}", "Blob stream by blob id", "CRX/OC", null);
-        addLocalDiagnosticIndexEntry(endpoints, "GET", "/api/cid/{oakBlobId}", "CID mapping by Oak blob id", "CRX/OC", null);
-        addLocalDiagnosticIndexEntry(endpoints, "GET", "/api/cid/stats", "CID mapping stats", "CRX/OC", null);
-        addLocalDiagnosticIndexEntry(endpoints, "GET", "/api/cid/reverse/{cid}", "Reverse CID lookup", "CRX/OC", null);
+        addLocalDiagnosticIndexEntry(endpoints, "GET", "/api/segments/recent", "Recent segments", "Storage", "/v1/ops/snapshots/storage");
+        addLocalDiagnosticIndexEntry(endpoints, "GET", "/api/segments/tars", "TAR file listing", "Storage", "/v1/ops/snapshots/storage");
+        addLocalDiagnosticIndexEntry(endpoints, "GET", "/api/blob/{blobId}", "Blob stream by blob id", "Storage", null);
+        addLocalDiagnosticIndexEntry(endpoints, "GET", "/api/cid/{oakBlobId}", "CID mapping by Oak blob id", "Storage", null);
+        addLocalDiagnosticIndexEntry(endpoints, "GET", "/api/cid/stats", "CID mapping stats", "Storage", null);
+        addLocalDiagnosticIndexEntry(endpoints, "GET", "/api/cid/reverse/{cid}", "Reverse CID lookup", "Storage", null);
 
         addInternalIndexEntry(endpoints, "GET", "/v1/wallets/stats", "Wallet usage and counts", "Wallets", null);
         addInternalIndexEntry(endpoints, "GET", "/v1/wallets/content?wallet=0x...", "Wallet content query", "Wallets", null);
@@ -446,6 +451,59 @@ public class DashboardHandler {
             .replace("{{NAV_API_BROWSER_CURRENT}}", apiBrowserActive ? "aria-current=\"page\"" : "")
             .replace("{{MODE_CLASS}}", modeClass)
             .replace("{{MODE_LABEL}}", modeLabel);
+    }
+
+    private String[] resolvePosture(boolean quorumKnown, boolean hasQuorum, int reachable, int members) {
+        if (!quorumKnown) {
+            return new String[] { "unknown", "Posture unknown" };
+        }
+        if (!hasQuorum) {
+            return new String[] { "bad", "No quorum" };
+        }
+        if (members > 0 && reachable < members) {
+            return new String[] { "warn", "Quorum held, " + (members - reachable) + " unreachable" };
+        }
+        return new String[] { "ok", "Quorum healthy" };
+    }
+
+    /**
+     * Cluster members as list items, ordered by member id. Roles come from the
+     * cluster-state view; reachability is reported in aggregate, not per member.
+     */
+    private String buildMemberList(Object membersValue, int selfMemberId) {
+        if (!(membersValue instanceof List)) {
+            return "";
+        }
+        List<Map<String, Object>> members = new ArrayList<>();
+        for (Object member : (List<?>) membersValue) {
+            Map<String, Object> entry = asMap(member);
+            if (!entry.isEmpty()) {
+                members.add(entry);
+            }
+        }
+        members.sort((a, b) -> Integer.compare(asInt(a.get("memberId"), Integer.MAX_VALUE), asInt(b.get("memberId"), Integer.MAX_VALUE)));
+        StringBuilder html = new StringBuilder();
+        for (Map<String, Object> member : members) {
+            int memberId = asInt(member.get("memberId"), -1);
+            String role = safeString(member.get("role"), "UNKNOWN").toUpperCase();
+            String url = safeString(member.get("url"), "");
+            boolean leader = "LEADER".equals(role);
+            boolean self = memberId >= 0 && memberId == selfMemberId;
+            String label = "Node " + (memberId >= 0 ? memberId : "?");
+            html.append("<li class=\"member").append(leader ? " is-leader" : "").append(self ? " is-self" : "").append("\">");
+            if (url.startsWith("http://") || url.startsWith("https://")) {
+                html.append("<a class=\"member-name\" href=\"").append(FormatUtils.escapeHtml(url.endsWith("/") ? url : url + "/")).append("\" title=\"")
+                    .append(FormatUtils.escapeHtml(url)).append("\">").append(label).append("</a>");
+            } else {
+                html.append("<span class=\"member-name\">").append(label).append("</span>");
+            }
+            html.append("<span class=\"member-role\">").append(FormatUtils.escapeHtml(role)).append("</span>");
+            if (self) {
+                html.append("<span class=\"member-self\">this node</span>");
+            }
+            html.append("</li>");
+        }
+        return html.toString();
     }
 
     private String buildExternalDashboardLink(String externalDashboardUrl) {

@@ -29,12 +29,17 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.IntSupplier;
+import java.util.function.Predicate;
 
 /**
  * Manages GC proposals, voting, and execution coordination.
  * 
- * <p>This class tracks GC proposals, manages voting state, and coordinates
- * GC execution across validators in the cluster.</p>
+ * <p>Proposal, vote and execute state changes only by applying replicated log entries
+ * ({@code applyReplicated*}, {@link #voteOnProposal}), using the entry's cluster timestamp and the
+ * configured cluster membership, so every member decides alike. Physical cleanup is a node-local side
+ * effect started at the GC_EXECUTE entry and run off the clustered service thread; payment verification
+ * runs off-thread on the leader before it requests GC_EXECUTE.</p>
  */
 public class GCProposalManager {
     
@@ -44,8 +49,8 @@ public class GCProposalManager {
     private final GCCostEstimator gcCostEstimator;
     private final FragmentationTracker fragmentationTracker;
     private final EvmBridge evmBridge; // Ethereum bridge for payment verification
-    private final int totalValidators; // Total number of validators in cluster
-    private final int quorumSize; // Minimum votes needed (2/3+)
+    private volatile IntSupplier clusterMembers; // configured cluster membership
+    private volatile Predicate<String> executionRequester; // sends GC_EXECUTE through the log
     private final java.util.function.Supplier<Integer> executorIdSupplier; // Supplier for current executor ID
     private final java.util.function.Supplier<Boolean> isLeaderSupplier; // Supplier to check if this node is leader
     
@@ -81,8 +86,7 @@ public class GCProposalManager {
         this.gcCostEstimator = gcCostEstimator;
         this.fragmentationTracker = fragmentationTracker;
         this.evmBridge = evmBridge;
-        this.totalValidators = totalValidators;
-        this.quorumSize = (totalValidators * 2 / 3) + 1; // 2/3+ majority
+        this.clusterMembers = () -> totalValidators;
         this.executorIdSupplier = executorIdSupplier != null ? executorIdSupplier : () -> 0;
         this.isLeaderSupplier = isLeaderSupplier != null ? isLeaderSupplier : () -> true;
         // Single-threaded executor for GC execution (GC should not run concurrently)
@@ -98,11 +102,35 @@ public class GCProposalManager {
             return t;
         });
         log.info("GCProposalManager initialized: totalValidators={}, quorumSize={}, evmBridge={}", 
-            totalValidators, quorumSize, evmBridge != null ? "enabled" : "disabled");
+            totalValidators, quorumSize(), evmBridge != null ? "enabled" : "disabled");
+    }
+
+    /**
+     * Bases vote quorum on the configured cluster membership.
+     */
+    public void setClusterMembership(IntSupplier clusterMembers) {
+        this.clusterMembers = clusterMembers;
+    }
+
+    /**
+     * Sets how an approved, paid proposal is turned into a replicated GC_EXECUTE entry.
+     */
+    public void setExecutionRequester(Predicate<String> executionRequester) {
+        this.executionRequester = executionRequester;
+    }
+
+    private int totalValidators() {
+        return clusterMembers.getAsInt();
+    }
+
+    private int quorumSize() {
+        return (totalValidators() * 2 / 3) + 1; // 2/3+ majority
     }
     
+
     /**
-     * Create a new GC proposal.
+     * Prepare a GC proposal with its cost estimate. It becomes state only when its GC_PROPOSAL entry is
+     * applied through {@link #applyReplicatedProposal}.
      */
     public GCProposal proposeGC(String proposerWallet, String targetRevision) throws IOException {
         log.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -133,14 +161,12 @@ public class GCProposalManager {
         proposal.fragmentationCostUSDC = fragmentationCostUSDC;
         proposal.state = GCProposal.GCProposalState.PENDING;
         
-        proposals.put(proposal.proposalId, proposal);
-        
-        log.info("✅ GC proposal created: {}", proposal.proposalId);
+        log.info("✅ GC proposal prepared: {}", proposal.proposalId);
         log.info("   Estimated reclaimable: {} MB", proposal.estimatedReclaimableSizeMB);
         log.info("   Estimated cost: {} USDC", proposal.estimatedCostUSDC);
         log.info("   Fragmentation overhead: {} MB ({} USDC)", 
             fragmentationOverheadMB, fragmentationCostUSDC);
-        log.info("   Quorum required: {}/{}", quorumSize, totalValidators);
+        log.info("   Quorum required: {}/{}", quorumSize(), totalValidators());
         
         return proposal;
     }
@@ -155,7 +181,8 @@ public class GCProposalManager {
                                               String proposerWallet,
                                               String targetRevision,
                                               long estimatedReclaimableSizeMB,
-                                              String estimatedCostUSDC) {
+                                              String estimatedCostUSDC,
+                                              long clusterTime) {
         if (proposalId == null || proposalId.isEmpty()) {
             throw new IllegalArgumentException("proposalId is required");
         }
@@ -183,6 +210,8 @@ public class GCProposalManager {
         proposal.fragmentationOverheadMB = 0L;
         proposal.fragmentationCostUSDC = BigDecimal.ZERO;
         proposal.state = GCProposal.GCProposalState.PENDING;
+        proposal.createdAt = clusterTime;
+        proposal.expiresAt = clusterTime + GCProposal.DEFAULT_TTL_MS;
 
         proposals.put(proposalId, proposal);
         log.info("✅ Applied replicated GC proposal: {} (wallet={}, reclaimableMB={}, costUSDC={})",
@@ -191,16 +220,21 @@ public class GCProposalManager {
     }
     
     /**
-     * Vote on a GC proposal.
+     * Apply a replicated GC vote stamped with its log entry's cluster time.
      */
-    public void voteOnProposal(String proposalId, int validatorId, boolean approve, String reason) {
+    public void voteOnProposal(String proposalId, int validatorId, boolean approve, String reason, long clusterTime) {
         GCProposal proposal = proposals.get(proposalId);
         if (proposal == null) {
             log.warn("⚠️  GC proposal not found: {}", proposalId);
             return;
         }
+
+        if (validatorId < 0 || validatorId >= totalValidators()) {
+            log.warn("⚠️  GC vote from validator {} outside the cluster membership ignored: {}", validatorId, proposalId);
+            return;
+        }
         
-        if (proposal.isExpired()) {
+        if (proposal.isExpiredAt(clusterTime)) {
             log.warn("⚠️  GC proposal expired: {}", proposalId);
             return;
         }
@@ -216,29 +250,87 @@ public class GCProposalManager {
             return;
         }
         
-        proposal.addVote(validatorId, approve, reason);
+        proposal.addVote(validatorId, approve, reason, clusterTime);
         
         log.info("🗳️  Vote recorded: proposal={}, validator={}, approve={}, reason={}", 
             proposalId, validatorId, approve, reason);
         log.info("   Current votes: {}/{} (approve: {}, reject: {})", 
-            proposal.getTotalVoteCount(), totalValidators,
+            proposal.getTotalVoteCount(), totalValidators(),
             proposal.getApproveVoteCount(), proposal.getRejectVoteCount());
         
         // Check for quorum
+        int quorumSize = quorumSize();
         if (proposal.getApproveVoteCount() >= quorumSize) {
             proposal.state = GCProposal.GCProposalState.APPROVED;
             log.info("✅ GC proposal APPROVED: {} (quorum reached: {}/{})", 
-                proposalId, proposal.getApproveVoteCount(), totalValidators);
+                proposalId, proposal.getApproveVoteCount(), totalValidators());
             
-            // Automatically execute GC when approved (async to avoid blocking vote processing)
+            // Leader verifies payment off-thread, then requests GC_EXECUTE through the log
             scheduleGCExecution(proposalId);
         } else if (proposal.getRejectVoteCount() >= quorumSize) {
             proposal.state = GCProposal.GCProposalState.REJECTED;
             log.info("❌ GC proposal REJECTED: {} (quorum reached: {}/{})", 
-                proposalId, proposal.getRejectVoteCount(), totalValidators);
+                proposalId, proposal.getRejectVoteCount(), totalValidators());
         }
     }
     
+    /**
+     * The replicated state of every proposal, as JSON values for the Aeron snapshot. Called on the clustered
+     * service thread, which is the only writer of everything captured except a finished execution's state.
+     */
+    public List<Map<String, Object>> snapshotProposals() {
+        List<Map<String, Object>> entries = new ArrayList<>();
+        for (GCProposal proposal : proposals.values()) {
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("proposalId", proposal.proposalId);
+            entry.put("proposerWallet", proposal.proposerWallet);
+            entry.put("targetRevision", proposal.targetRevision);
+            entry.put("estimatedReclaimableSizeMB", proposal.estimatedReclaimableSizeMB);
+            entry.put("estimatedCostUSDC", proposal.estimatedCostUSDC.toPlainString());
+            entry.put("createdAt", proposal.createdAt);
+            entry.put("expiresAt", proposal.expiresAt);
+            entry.put("state", proposal.state.name());
+            List<Object> votes = new ArrayList<>();
+            for (GCVote vote : proposal.votes.values()) {
+                Map<String, Object> json = new LinkedHashMap<>();
+                json.put("validatorId", vote.validatorId);
+                json.put("approve", vote.approve);
+                json.put("reason", vote.reason);
+                json.put("timestamp", vote.timestamp);
+                votes.add(json);
+            }
+            entry.put("votes", votes);
+            entries.add(entry);
+        }
+        return entries;
+    }
+
+    /**
+     * Replaces the proposals with those of {@link #snapshotProposals()}. Never schedules or starts execution.
+     */
+    public void restoreProposals(List<Map<String, Object>> entries) {
+        proposals.clear();
+        for (Map<String, Object> entry : entries) {
+            GCProposal proposal = new GCProposal();
+            proposal.proposalId = (String) entry.get("proposalId");
+            proposal.proposerWallet = (String) entry.get("proposerWallet");
+            proposal.targetRevision = (String) entry.get("targetRevision");
+            proposal.estimatedReclaimableSizeMB = ((Number) entry.get("estimatedReclaimableSizeMB")).longValue();
+            proposal.estimatedCostUSDC = new BigDecimal((String) entry.get("estimatedCostUSDC"));
+            proposal.fragmentationCostUSDC = BigDecimal.ZERO;
+            proposal.createdAt = ((Number) entry.get("createdAt")).longValue();
+            proposal.expiresAt = ((Number) entry.get("expiresAt")).longValue();
+            for (Object json : (List<?>) entry.get("votes")) {
+                Map<?, ?> vote = (Map<?, ?>) json;
+                proposal.addVote(((Number) vote.get("validatorId")).intValue(), (Boolean) vote.get("approve"),
+                    (String) vote.get("reason"), ((Number) vote.get("timestamp")).longValue());
+            }
+            proposal.state = GCProposal.GCProposalState.valueOf((String) entry.get("state"));
+            proposals.put(proposal.proposalId, proposal);
+        }
+        log.info("Restored {} GC proposals from the Aeron snapshot", proposals.size());
+    }
+
     /**
      * Check if proposal has quorum.
      */
@@ -247,7 +339,7 @@ public class GCProposalManager {
         if (proposal == null) {
             return false;
         }
-        return proposal.getApproveVoteCount() >= quorumSize;
+        return proposal.getApproveVoteCount() >= quorumSize();
     }
     
     /**
@@ -295,32 +387,48 @@ public class GCProposalManager {
     }
     
     /**
-     * Execute GC if quorum reached and payment verified.
+     * Apply a replicated GC_EXECUTE entry: an approved proposal moves to EXECUTING on every member, and
+     * each member starts cleaning up its own store on the GC execution thread. Never blocks the caller.
+     *
+     * @return whether this entry started execution (false for unknown, unapproved or already executing)
      */
-    public GCExecutionResult executeGC(String proposalId, int executorId) throws IOException {
+    public boolean applyReplicatedExecute(String proposalId, int executorId) {
+        GCProposal proposal = proposals.get(proposalId);
+        if (proposal == null || proposal.state != GCProposal.GCProposalState.APPROVED) {
+            log.warn("⚠️  GC_EXECUTE for {} ignored (state: {})", proposalId, proposal != null ? proposal.state : "unknown");
+            return false;
+        }
+        proposal.state = GCProposal.GCProposalState.EXECUTING;
+        executionExecutor.submit(() -> {
+            try {
+                executeGC(proposalId, executorId);
+            } catch (Exception e) {
+                log.error("❌ GC cleanup failed for proposal {}", proposalId, e);
+            }
+        });
+        return true;
+    }
+
+    /**
+     * Node-local physical cleanup of an approved or executing proposal.
+     */
+    GCExecutionResult executeGC(String proposalId, int executorId) throws IOException {
         GCProposal proposal = proposals.get(proposalId);
         if (proposal == null) {
             throw new IllegalArgumentException("GC proposal not found: " + proposalId);
         }
         
-        if (proposal.state != GCProposal.GCProposalState.APPROVED) {
+        if (proposal.state != GCProposal.GCProposalState.APPROVED
+                && proposal.state != GCProposal.GCProposalState.EXECUTING) {
             throw new IllegalStateException(
                 String.format("GC proposal not approved: %s (state: %s)", proposalId, proposal.state));
-        }
-        
-        // 🔒 CRITICAL: Verify payment before execution (tokenomics requirement)
-        if (!verifyPayment(proposalId)) {
-            throw new IllegalStateException(
-                String.format("GC proposal payment not verified: %s. Payment must be confirmed on-chain before execution.", proposalId));
         }
         
         log.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         log.info("🗑️  Executing GC: {}", proposalId);
         log.info("   Executor: {}", executorId);
-        log.info("   Payment verified: {}", proposal.paymentProof);
         log.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         
-        // Set state to EXECUTING
         proposal.state = GCProposal.GCProposalState.EXECUTING;
         
         try {
@@ -397,15 +505,12 @@ public class GCProposalManager {
     }
     
     /**
-     * Schedule GC execution asynchronously (when proposal is approved).
-     * Execution happens in background thread to avoid blocking vote processing.
+     * On the leader, verify payment on the GC execution thread and request GC_EXECUTE through the log.
+     * Nothing here changes replicated state.
      */
     private void scheduleGCExecution(String proposalId) {
         executionExecutor.submit(() -> {
             try {
-                // Small delay to ensure all votes are processed
-                Thread.sleep(100);
-                
                 GCProposal proposal = proposals.get(proposalId);
                 if (proposal == null) {
                     log.warn("⚠️  GC proposal not found for execution: {}", proposalId);
@@ -438,16 +543,16 @@ public class GCProposalManager {
                     return;
                 }
                 
-                int executorId = executorIdSupplier.get();
-                log.info("🚀 Auto-executing GC proposal {} (executor: {}, leader: true, payment verified)", proposalId, executorId);
-                executeGC(proposalId, executorId);
-                
-            } catch (Exception e) {
-                log.error("❌ Error auto-executing GC proposal {}", proposalId, e);
-                GCProposal proposal = proposals.get(proposalId);
-                if (proposal != null) {
-                    proposal.state = GCProposal.GCProposalState.FAILED;
+                Predicate<String> requester = executionRequester;
+                if (requester == null || !requester.test(proposalId)) {
+                    log.warn("⚠️  GC proposal {} approved and paid, but GC_EXECUTE was not sent - retrying in 10s", proposalId);
+                    scheduledExecutor.schedule(() -> scheduleGCExecution(proposalId), 10, java.util.concurrent.TimeUnit.SECONDS);
+                    return;
                 }
+                log.info("🚀 Requested GC_EXECUTE for proposal {} (executor: {}, payment verified)",
+                    proposalId, executorIdSupplier.get());
+            } catch (Exception e) {
+                log.error("❌ Error requesting execution of GC proposal {}", proposalId, e);
             }
         });
     }

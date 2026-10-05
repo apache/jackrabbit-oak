@@ -21,10 +21,14 @@ import org.apache.jackrabbit.oak.segment.consensus.economics.ValidatorEarningsTr
 import org.apache.jackrabbit.oak.segment.consensus.evm.EvmBridge;
 import org.apache.jackrabbit.oak.segment.consensus.evm.PaymentProof;
 import org.apache.jackrabbit.oak.segment.consensus.evm.impl.SimplePaymentProof;
+import org.apache.jackrabbit.oak.segment.consensus.util.WalletPathUtil;
 import org.junit.After;
 import org.junit.Test;
+import org.web3j.crypto.Credentials;
+import org.web3j.crypto.Sign;
 
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import static org.junit.Assert.assertNotNull;
@@ -561,6 +565,139 @@ public class ProposalQueueManagerV1ModeGuardrailsTest {
         } finally {
             queueManager.stop();
         }
+    }
+
+    @Test
+    public void testVerifierAcceptsDeleteSignedOverContentPathInChainBackedMode() throws Exception {
+        String proposalId = "0x9999999999999999999999999999999999999999999999999999999999999991";
+        String contentPath = shardPath("content/page-delete-signed");
+        assertSignatureCheckpointPasses(proposalId, PaymentProof.ProposalKind.DELETE, queueManager ->
+            queueManager.queueDeleteProposal(proposalId, SIGNED_TX_HASH, signerWallet(), contentPath,
+                personalSign(contentPath), ValidatorEarningsTracker.PaymentTier.STANDARD));
+    }
+
+    @Test
+    public void testVerifierRejectsDeleteSignedOverEmptyMessageInChainBackedMode() throws Exception {
+        String proposalId = "0x9999999999999999999999999999999999999999999999999999999999999992";
+        String contentPath = shardPath("content/page-delete-empty");
+        assertSignatureCheckpointRejects(proposalId, PaymentProof.ProposalKind.DELETE, queueManager ->
+            queueManager.queueDeleteProposal(proposalId, SIGNED_TX_HASH, signerWallet(), contentPath,
+                personalSign(""), ValidatorEarningsTracker.PaymentTier.STANDARD));
+    }
+
+    @Test
+    public void testVerifierRejectsDeleteSignedOverDifferentPathInChainBackedMode() throws Exception {
+        String proposalId = "0x9999999999999999999999999999999999999999999999999999999999999993";
+        String contentPath = shardPath("content/page-delete-target");
+        assertSignatureCheckpointRejects(proposalId, PaymentProof.ProposalKind.DELETE, queueManager ->
+            queueManager.queueDeleteProposal(proposalId, SIGNED_TX_HASH, signerWallet(), contentPath,
+                personalSign(shardPath("content/page-delete-other")), ValidatorEarningsTracker.PaymentTier.STANDARD));
+    }
+
+    @Test
+    public void testVerifierAcceptsWriteSignedOverMessageInChainBackedMode() throws Exception {
+        String proposalId = "0x9999999999999999999999999999999999999999999999999999999999999994";
+        assertSignatureCheckpointPasses(proposalId, PaymentProof.ProposalKind.WRITE, queueManager ->
+            queueManager.queueProposal(proposalId, SIGNED_TX_HASH, signerWallet(), shardPath("content/page-write-signed"),
+                "page", "signed message", personalSign("signed message"),
+                ValidatorEarningsTracker.PaymentTier.STANDARD, null));
+    }
+
+    private static final String SIGNER_PRIVATE_KEY = "4c0883a6910395bda8e1ab1b5f9f1cc0aa1f4b3f8718abf3483c796f9649b7fd";
+    private static final String SIGNED_TX_HASH = "0x7878787878787878787878787878787878787878787878787878787878787878";
+
+    private static String signerWallet() {
+        return Credentials.create(SIGNER_PRIVATE_KEY).getAddress();
+    }
+
+    private static String shardPath(String relativePath) {
+        return WalletPathUtil.getShardRoot(signerWallet()) + "/" + relativePath;
+    }
+
+    private static String personalSign(String message) {
+        Sign.SignatureData signatureData = Sign.signPrefixedMessage(
+            message.getBytes(StandardCharsets.UTF_8),
+            Credentials.create(SIGNER_PRIVATE_KEY).getEcKeyPair()
+        );
+        StringBuilder builder = new StringBuilder("0x");
+        for (byte[] part : new byte[][] {signatureData.getR(), signatureData.getS(), signatureData.getV()}) {
+            for (byte b : part) {
+                builder.append(String.format("%02x", b & 0xff));
+            }
+        }
+        return builder.toString();
+    }
+
+    private static void assertSignatureCheckpointPasses(String proposalId, PaymentProof.ProposalKind kind,
+                                                        QueueAction enqueue) throws Exception {
+        runChainBackedVerification(proposalId, kind, queueManager -> {
+            enqueue.run(queueManager);
+            assertTrue(waitForCondition(() -> verifierSuccessCount(queueManager) == 1L, 5_000L));
+            assertEquals(0L, rejectedCount(queueManager));
+        });
+    }
+
+    private static void assertSignatureCheckpointRejects(String proposalId, PaymentProof.ProposalKind kind,
+                                                         QueueAction enqueue) throws Exception {
+        runChainBackedVerification(proposalId, kind, queueManager -> {
+            enqueue.run(queueManager);
+            assertTrue(waitForCondition(() -> rejectedCount(queueManager) == 1L, 5_000L));
+            ProposalStatus status = queueManager.getProposalStatus(proposalId);
+            assertNotNull(status);
+            assertEquals(ProposalState.REJECTED, status.getState());
+            assertTrue(status.getRejectionReason().contains("Cryptographic signature verification failed"));
+            assertEquals(0L, verifierSuccessCount(queueManager));
+        });
+    }
+
+    private static void runChainBackedVerification(String proposalId, PaymentProof.ProposalKind kind,
+                                                   QueueAction scenario) throws Exception {
+        System.setProperty("oak.blockchain.mode", "sepolia");
+        org.apache.jackrabbit.oak.segment.consensus.config.BlockchainConfig.reset();
+
+        EvmBridge evmBridge = mock(EvmBridge.class);
+        when(evmBridge.getContractAddress()).thenReturn("0x1111111111111111111111111111111111111111");
+        when(evmBridge.getCurrentBlockNumber()).thenReturn(123L);
+        when(evmBridge.verifyPayment(proposalId)).thenReturn(new SimplePaymentProof(
+            SIGNED_TX_HASH,
+            123L,
+            signerWallet(),
+            "0x1111111111111111111111111111111111111111",
+            proposalId,
+            "1",
+            ValidatorEarningsTracker.PaymentTier.STANDARD,
+            kind,
+            PaymentProof.PaymentToken.ETH,
+            0,
+            12
+        ));
+
+        BeaconChainClient beaconClient = mock(BeaconChainClient.class);
+        when(beaconClient.getCachedCurrentEpoch()).thenReturn(10L);
+        when(beaconClient.getCachedFinalizedEpoch()).thenReturn(8L);
+
+        ProposalQueueManagerOptimized queueManager = new ProposalQueueManagerOptimized(
+            evmBridge,
+            new NoopRaftAppendCallback(),
+            new BackpressureManager(),
+            beaconClient
+        );
+        queueManager.start();
+        try {
+            scenario.run(queueManager);
+        } finally {
+            queueManager.stop();
+        }
+    }
+
+    private static long verifierSuccessCount(ProposalQueueManagerOptimized queueManager) {
+        Object value = queueManager.getQueueStats().get("verifierSuccessCount");
+        return value instanceof Number ? ((Number) value).longValue() : 0L;
+    }
+
+    @FunctionalInterface
+    private interface QueueAction {
+        void run(ProposalQueueManagerOptimized queueManager) throws Exception;
     }
 
     private static long rejectedCount(ProposalQueueManagerOptimized queueManager) {

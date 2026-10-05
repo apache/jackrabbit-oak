@@ -218,6 +218,14 @@ final class ServerInfrastructureInitializer {
                 isLeaderSupplier
             );
 
+            gcProposalManager.setClusterMembership(() -> {
+                AeronConsensusEngine aeronEngine = context.aeronConsensusEngine;
+                return aeronEngine != null ? aeronEngine.getTotalMemberCount() : totalValidators;
+            });
+            gcProposalManager.setExecutionRequester(proposalId -> {
+                AeronConsensusEngine aeronEngine = context.aeronConsensusEngine;
+                return aeronEngine != null && aeronEngine.sendGCExecuteThroughIngress(proposalId, executorIdSupplier.get());
+            });
             context.setGCProposalManager(gcProposalManager);
 
             log.info("✅ GC Proposal Manager initialized");

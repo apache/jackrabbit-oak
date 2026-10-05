@@ -76,7 +76,6 @@ public class ConsensusStartupCoordinatorTest {
         AeronClusterStartupResult startupResult = new AeronClusterStartupResult(
             aeronEngine,
             launcher,
-            null,
             Arrays.asList("validator-0", "validator-1", "validator-2"),
             7
         );
@@ -150,7 +149,6 @@ public class ConsensusStartupCoordinatorTest {
         AeronClusterStartupResult startupResult = new AeronClusterStartupResult(
             mock(AeronConsensusEngine.class),
             mock(AeronClusterLauncher.class),
-            null,
             Collections.singletonList("validator-0"),
             1
         );

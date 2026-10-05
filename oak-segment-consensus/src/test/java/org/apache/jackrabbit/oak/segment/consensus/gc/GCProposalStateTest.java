@@ -73,7 +73,7 @@ public class GCProposalStateTest {
         assertEquals(GCProposal.GCProposalState.PENDING, proposal.state);
         
         // First vote should transition to VOTING
-        proposal.addVote(0, true, "Approve GC");
+        proposal.addVote(0, true, "Approve GC", 1L);
         
         assertEquals(GCProposal.GCProposalState.VOTING, proposal.state);
         assertEquals(1, proposal.getTotalVoteCount());
@@ -90,9 +90,9 @@ public class GCProposalStateTest {
         proposal.proposalId = "gc-002";
         
         // Add multiple votes
-        proposal.addVote(0, true, "Approve");
-        proposal.addVote(1, true, "Approve");
-        proposal.addVote(2, false, "Reject - not enough space");
+        proposal.addVote(0, true, "Approve", 1L);
+        proposal.addVote(1, true, "Approve", 1L);
+        proposal.addVote(2, false, "Reject - not enough space", 1L);
         
         assertEquals(GCProposal.GCProposalState.VOTING, proposal.state);
         assertEquals(3, proposal.getTotalVoteCount());
@@ -109,8 +109,8 @@ public class GCProposalStateTest {
         proposal.proposalId = "gc-003";
         
         // Add approving votes
-        proposal.addVote(0, true, "Approve");
-        proposal.addVote(1, true, "Approve");
+        proposal.addVote(0, true, "Approve", 1L);
+        proposal.addVote(1, true, "Approve", 1L);
         
         // Manually transition to APPROVED (quorum reached)
         proposal.state = GCProposal.GCProposalState.APPROVED;
@@ -127,8 +127,8 @@ public class GCProposalStateTest {
         proposal.proposalId = "gc-004";
         
         // Add rejecting votes
-        proposal.addVote(0, false, "Reject");
-        proposal.addVote(1, false, "Reject");
+        proposal.addVote(0, false, "Reject", 1L);
+        proposal.addVote(1, false, "Reject", 1L);
         
         // Manually transition to REJECTED (quorum reached for rejection)
         proposal.state = GCProposal.GCProposalState.REJECTED;
@@ -190,10 +190,10 @@ public class GCProposalStateTest {
         proposal.proposalId = "gc-008";
         
         // 3-node cluster: quorum = 2
-        proposal.addVote(0, true, "Approve");
+        proposal.addVote(0, true, "Approve", 1L);
         assertEquals(1, proposal.getApproveVoteCount());
         
-        proposal.addVote(1, true, "Approve");
+        proposal.addVote(1, true, "Approve", 1L);
         assertEquals(2, proposal.getApproveVoteCount());
         
         // Quorum reached (2/3)
@@ -209,10 +209,10 @@ public class GCProposalStateTest {
         proposal.proposalId = "gc-009";
         
         // 3-node cluster: quorum = 2
-        proposal.addVote(0, false, "Reject");
+        proposal.addVote(0, false, "Reject", 1L);
         assertEquals(1, proposal.getRejectVoteCount());
         
-        proposal.addVote(1, false, "Reject");
+        proposal.addVote(1, false, "Reject", 1L);
         assertEquals(2, proposal.getRejectVoteCount());
         
         // Rejection quorum reached (2/3)
@@ -228,12 +228,12 @@ public class GCProposalStateTest {
         proposal.proposalId = "gc-010";
         
         // Validator 0 votes approve
-        proposal.addVote(0, true, "Approve");
+        proposal.addVote(0, true, "Approve", 1L);
         assertEquals(1, proposal.getApproveVoteCount());
         assertEquals(0, proposal.getRejectVoteCount());
         
         // Validator 0 changes vote to reject (overwrites)
-        proposal.addVote(0, false, "Changed to reject");
+        proposal.addVote(0, false, "Changed to reject", 1L);
         assertEquals(0, proposal.getApproveVoteCount());
         assertEquals(1, proposal.getRejectVoteCount());
         
@@ -249,16 +249,11 @@ public class GCProposalStateTest {
         GCProposal proposal = new GCProposal();
         proposal.proposalId = "gc-011";
         
-        // Default expiration is 24 hours from creation
-        assertFalse(proposal.isExpired());
-        
-        // Set expiration to past
-        proposal.expiresAt = System.currentTimeMillis() - 1000;
-        assertTrue(proposal.isExpired());
-        
-        // Set expiration to future
-        proposal.expiresAt = System.currentTimeMillis() + 60000;
-        assertFalse(proposal.isExpired());
+        proposal.expiresAt = 5_000L;
+
+        assertFalse(proposal.isExpiredAt(4_999L));
+        assertFalse(proposal.isExpiredAt(5_000L));
+        assertTrue(proposal.isExpiredAt(5_001L));
     }
     
     /**
@@ -275,9 +270,9 @@ public class GCProposalStateTest {
         assertNotNull(proposal.votes);
         assertTrue(proposal.votes.isEmpty());
         
-        // Timestamps should be set
-        assertTrue(proposal.createdAt > 0);
-        assertTrue(proposal.expiresAt > proposal.createdAt);
+        // Timestamps come from the applying log entry, not the local clock
+        assertEquals(0L, proposal.createdAt);
+        assertEquals(0L, proposal.expiresAt);
         
         // Other fields should be null/zero
         assertNull(proposal.proposalId);
@@ -312,22 +307,15 @@ public class GCProposalStateTest {
      * Test vote timestamp tracking.
      */
     @Test
-    public void testVoteTimestampTracking() throws InterruptedException {
+    public void testVoteTimestampTracking() {
         GCProposal proposal = new GCProposal();
         proposal.proposalId = "gc-013";
-        
-        long beforeVote = System.currentTimeMillis();
-        Thread.sleep(10); // Small delay to ensure timestamp difference
-        
-        proposal.addVote(0, true, "Approve");
-        
-        Thread.sleep(10);
-        long afterVote = System.currentTimeMillis();
-        
+
+        proposal.addVote(0, true, "Approve", 12_345L);
+
         GCVote vote = proposal.votes.get(0);
         assertNotNull(vote);
-        assertTrue(vote.timestamp >= beforeVote);
-        assertTrue(vote.timestamp <= afterVote);
+        assertEquals(12_345L, vote.timestamp);
     }
     
     /**
@@ -338,7 +326,7 @@ public class GCProposalStateTest {
         GCProposal proposal = new GCProposal();
         proposal.proposalId = "gc-014";
         
-        proposal.addVote(5, true, "Approve - sufficient space");
+        proposal.addVote(5, true, "Approve - sufficient space", 1L);
         
         GCVote vote = proposal.votes.get(5);
         assertNotNull(vote);

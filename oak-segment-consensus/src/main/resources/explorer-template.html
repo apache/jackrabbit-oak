@@ -176,6 +176,134 @@
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         }
 
+        #tree-panel:focus-visible {
+            outline: 2px solid #93c5fd;
+            outline-offset: -2px;
+        }
+
+        .tree-row.kind-shard .tree-label {
+            color: #94a3b8;
+        }
+
+        .tree-note,
+        .tree-more {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            height: 24px;
+            color: #94a3b8;
+            font-family: ui-sans-serif, system-ui, sans-serif;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+
+        .tree-more button {
+            color: #2563eb;
+            font: inherit;
+            background: none;
+            border: 0;
+            padding: 0;
+            cursor: pointer;
+        }
+
+        .tree-more button:hover {
+            text-decoration: underline;
+        }
+
+        .tree-filter {
+            padding-top: 2px;
+            padding-bottom: 2px;
+            padding-right: 8px;
+        }
+
+        .tree-filter input {
+            width: 100%;
+            height: 22px;
+            padding: 0 6px;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            background: #f8fafc;
+            font: inherit;
+            font-size: 11px;
+            outline: none;
+        }
+
+        .tree-filter input:focus {
+            border-color: #60a5fa;
+            background: #ffffff;
+        }
+
+        .shard-chip {
+            margin: 0 1px;
+            padding: 0 5px;
+            border: 1px solid #e2e8f0;
+            border-radius: 9999px;
+            background: #f1f5f9;
+            color: #64748b;
+            font: inherit;
+            line-height: 16px;
+            cursor: pointer;
+        }
+
+        .shard-chip:hover {
+            border-color: #93c5fd;
+            color: #1d4ed8;
+        }
+
+        .shard-segment {
+            color: #94a3b8;
+        }
+
+        .path-edit-input {
+            width: 100%;
+            border: 0;
+            outline: none;
+            background: transparent;
+            font: inherit;
+            color: #0f172a;
+        }
+
+        .value-action {
+            padding: 1px 6px;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            background: #ffffff;
+            color: #64748b;
+            font-size: 11px;
+            line-height: 16px;
+            cursor: pointer;
+        }
+
+        .value-action:hover {
+            border-color: #93c5fd;
+            color: #1d4ed8;
+        }
+
+        .value-dialog {
+            width: min(860px, 92vw);
+            max-height: 80vh;
+            padding: 0;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.5rem;
+            box-shadow: 0 24px 64px rgba(15, 23, 42, 0.25);
+        }
+
+        .value-dialog::backdrop {
+            background: rgba(15, 23, 42, 0.35);
+        }
+
+        .value-dialog pre {
+            margin: 0;
+            max-height: 60vh;
+            overflow: auto;
+            padding: 16px;
+            background: #f8fafc;
+            font-size: 12px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
 {{SHARED_HEADER_STYLES}}
     </style>
 </head>
@@ -202,7 +330,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
                 Copy Path
             </button>
-            <button id="open-path-button" class="toolbar-button flex items-center gap-1.5 px-2 py-1 rounded text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
+            <button id="open-path-button" title="Edit the path bar (/)" class="toolbar-button flex items-center gap-1.5 px-2 py-1 rounded text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
                 Open Path
             </button>
@@ -221,7 +349,7 @@
                 <select id="cluster-select" class="cluster-select hidden" aria-label="Cluster selector"></select>
             </div>
 
-            <div id="tree-panel" class="flex-1 overflow-y-auto py-1 font-mono text-[12px] text-slate-700">
+            <div id="tree-panel" class="flex-1 overflow-y-auto py-1 font-mono text-[12px] text-slate-700" tabindex="0" aria-label="Repository tree (arrow keys navigate)">
                 <div class="px-3 py-2 text-slate-400">Loading repository tree...</div>
             </div>
         </div>
@@ -239,6 +367,10 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
                     Properties
                 </button>
+                <button class="tab-button px-4 py-1.5 text-slate-500 hover:text-slate-700 cursor-pointer flex items-center gap-2" data-tab="consensus" type="button">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 17H7A5 5 0 0 1 7 7h2"></path><path d="M15 7h2a5 5 0 1 1 0 10h-2"></path><line x1="8" x2="16" y1="12" y2="12"></line></svg>
+                    Consensus
+                </button>
                 <button class="tab-button px-4 py-1.5 text-slate-500 hover:text-slate-700 cursor-pointer flex items-center gap-2" data-tab="access" type="button">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
                     Access Control
@@ -255,12 +387,33 @@
         </div>
     </div>
 
+    <div id="status-bar" class="h-6 shrink-0 hairline-t bg-[#fbfcfd] flex items-center justify-between gap-4 px-3 text-[11px] text-slate-500 whitespace-nowrap overflow-hidden" role="status"></div>
+
+    <dialog id="value-dialog" class="value-dialog">
+        <div class="flex items-center justify-between gap-4 px-4 py-3 hairline-b">
+            <div class="min-w-0">
+                <div id="value-dialog-name" class="font-semibold text-slate-800 truncate"></div>
+                <div id="value-dialog-type" class="font-mono text-[11px] text-slate-500"></div>
+            </div>
+            <button type="button" class="value-action" data-dialog="close" aria-label="Close">Close</button>
+        </div>
+        <pre id="value-dialog-body"></pre>
+        <div class="flex justify-end gap-2 px-4 py-3 hairline-t">
+            <button type="button" class="value-action" data-dialog="copy">Copy value</button>
+        </div>
+    </dialog>
+
     <script>
         (function () {
             var NAV_ENDPOINT = "/v1/explorer/content/nav";
             var SUMMARY_ENDPOINT = "/v1/explorer/summary";
             // Keep the default landing node centralized because wallet content shape is still evolving.
             var DEFAULT_GENESIS_PATH = "/oak-chain/00/00/00/0x0000000000000000000000000000000000000000/content/genesis";
+            var WALLET_ENDPOINT = "/v1/explorer/wallets/";
+            var WALLET_NAME = /^0x[0-9a-f]{40}$/i;
+            var SHARD_NAME = /^[0-9a-f]{2}$/i;
+            var SHARD_HELP = "Wallet shard: the first three bytes of the wallet address. Sharding keeps sibling counts small so the TarMK segment graph stays efficient.";
+            var TREE_FILTER_THRESHOLD = 50;
             var state = {
                 nav: null,
                 summary: null,
@@ -271,9 +424,18 @@
                 treeCache: new Map(),
                 nodeCache: new Map(),
                 provenanceCache: new Map(),
+                walletCache: new Map(),
+                proposalStatus: new Map(),
+                treeFilters: new Map(),
                 expanded: new Set(),
                 loadingTree: new Set(),
                 loadingNode: false,
+                showShards: false,
+                editingPath: false,
+                renderedProperties: [],
+                dialogValue: "",
+                keyNavTimer: null,
+                revealedPath: null,
                 error: ""
             };
 
@@ -282,6 +444,8 @@
             var tabContent = document.getElementById("tab-content");
             var clusterSelect = document.getElementById("cluster-select");
             var workspaceLabel = document.getElementById("workspace-label");
+            var statusBar = document.getElementById("status-bar");
+            var valueDialog = document.getElementById("value-dialog");
 
             function keyFor(clusterId, path) {
                 return clusterId + "::" + path;
@@ -401,12 +565,67 @@
             }
 
             function iconWallet() {
-                return "<svg class=\"w-4 h-4 text-slate-500 mr-1.5\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"20\" height=\"14\" x=\"2\" y=\"5\" rx=\"2\"></rect><line x1=\"2\" x2=\"22\" y1=\"10\" y2=\"10\"></line></svg>";
+                return "<svg class=\"w-4 h-4 text-emerald-600 mr-1.5\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"20\" height=\"14\" x=\"2\" y=\"5\" rx=\"2\"></rect><line x1=\"2\" x2=\"22\" y1=\"10\" y2=\"10\"></line></svg>";
             }
 
             function iconLeaf(selected) {
                 var color = selected ? "text-blue-600" : "text-slate-400";
                 return "<svg class=\"w-4 h-4 " + color + " mr-1.5\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z\"></path><polyline points=\"3.27 6.96 12 12.01 20.73 6.96\"></polyline><line x1=\"12\" y1=\"22.08\" x2=\"12\" y2=\"12\"></line></svg>";
+            }
+
+            function iconShard() {
+                return "<svg class=\"w-4 h-4 text-slate-300 mr-1.5\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"4\" x2=\"20\" y1=\"9\" y2=\"9\"></line><line x1=\"4\" x2=\"20\" y1=\"15\" y2=\"15\"></line><line x1=\"10\" x2=\"8\" y1=\"3\" y2=\"21\"></line><line x1=\"16\" x2=\"14\" y1=\"3\" y2=\"21\"></line></svg>";
+            }
+
+            function iconOrg() {
+                return "<svg class=\"w-4 h-4 text-indigo-400 mr-1.5\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"16\" height=\"20\" x=\"4\" y=\"2\" rx=\"2\"></rect><path d=\"M9 22v-4h6v4\"></path><path d=\"M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01\"></path></svg>";
+            }
+
+            function iconContent() {
+                return "<svg class=\"w-4 h-4 text-amber-500 mr-1.5\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><polygon points=\"12 2 2 7 12 12 22 7 12 2\"></polygon><polyline points=\"2 17 12 22 22 17\"></polyline><polyline points=\"2 12 12 17 22 12\"></polyline></svg>";
+            }
+
+            function iconPage(selected) {
+                var color = selected ? "text-blue-600" : "text-slate-400";
+                return "<svg class=\"w-4 h-4 " + color + " mr-1.5\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z\"></path><path d=\"M14 2v4a2 2 0 0 0 2 2h4\"></path><path d=\"M10 13H8M16 17H8\"></path></svg>";
+            }
+
+            function pathSegments(path) {
+                return String(path || "").split("/").filter(Boolean);
+            }
+
+            // Wallet content lives at /oak-chain/{aa}/{bb}/{cc}/0x{address}/..., where the three
+            // shard levels are the first three bytes of the address.
+            function walletContext(path) {
+                var segments = pathSegments(path);
+                if (segments.length < 5 || segments[0] !== "oak-chain" || !WALLET_NAME.test(segments[4])) {
+                    return null;
+                }
+                var hex = segments[4].slice(2).toLowerCase();
+                if (segments[1] !== hex.slice(0, 2) || segments[2] !== hex.slice(2, 4) || segments[3] !== hex.slice(4, 6)) {
+                    return null;
+                }
+                return {
+                    wallet: segments[4],
+                    shards: segments.slice(1, 4).join("/"),
+                    walletPath: "/" + segments.slice(0, 5).join("/"),
+                    depth: segments.length - 5
+                };
+            }
+
+            function isShardPath(path) {
+                var segments = pathSegments(path);
+                return segments[0] === "oak-chain" && segments.length >= 2 && segments.length <= 4
+                    && segments.slice(1).every(function (segment) { return SHARD_NAME.test(segment); });
+            }
+
+            function walletPathFor(address) {
+                var hex = String(address).toLowerCase().replace(/^0x/, "");
+                return "/oak-chain/" + hex.slice(0, 2) + "/" + hex.slice(2, 4) + "/" + hex.slice(4, 6) + "/0x" + hex;
+            }
+
+            function shortWallet(address) {
+                return address.length > 12 ? address.slice(0, 6) + "\u2026" + address.slice(-4) : address;
             }
 
             function classifyNode(node, path) {
@@ -416,30 +635,38 @@
                 if (path === "/oak-chain") {
                     return "cluster";
                 }
-                if (node && node.name === "wallet") {
+                if (isShardPath(path)) {
+                    return "shard";
+                }
+                var wallet = walletContext(path);
+                var name = node && node.name ? node.name : inferTreeLabel(path);
+                if (wallet && wallet.depth === 0) {
                     return "wallet";
+                }
+                if (wallet && name === "content") {
+                    return "content";
+                }
+                if (wallet && wallet.depth === 1) {
+                    return "org";
                 }
                 if (node && node.hasChildren) {
                     return "folder";
                 }
-                return "leaf";
+                return wallet ? "page" : "leaf";
             }
 
             function iconForNode(node, path, selected) {
-                var kind = classifyNode(node, path);
-                if (kind === "root") {
-                    return iconHome();
+                switch (classifyNode(node, path)) {
+                    case "root": return iconHome();
+                    case "cluster": return iconDatabase();
+                    case "shard": return iconShard();
+                    case "wallet": return iconWallet();
+                    case "org": return iconOrg();
+                    case "content": return iconContent();
+                    case "folder": return iconFolder();
+                    case "page": return iconPage(selected);
+                    default: return iconLeaf(selected);
                 }
-                if (kind === "cluster") {
-                    return iconDatabase();
-                }
-                if (kind === "wallet") {
-                    return iconWallet();
-                }
-                if (kind === "folder") {
-                    return iconFolder();
-                }
-                return iconLeaf(selected);
             }
 
             function ensureExpanded(clusterId, path) {
@@ -477,57 +704,132 @@
                 return parts[parts.length - 1] || "/";
             }
 
-            function renderTreeRow(clusterId, path, node, depth, selected, expanded) {
+            function hasMoreChildren(tree) {
+                return !!(tree && tree.childrenPage && tree.childrenPage.nextOffset != null);
+            }
+
+            // Like compact folders: expanded single-child shard levels render as one row ("13 / 78 / bd").
+            function treeChain(clusterId, path, node) {
+                var chain = { paths: [path], labels: [node && node.name ? node.name : inferTreeLabel(path)], path: path, node: node };
+                if (!isShardPath(path)) {
+                    return chain;
+                }
+                while (isExpanded(clusterId, chain.path)) {
+                    var tree = getTree(clusterId, chain.path);
+                    var only = tree && tree.children && tree.children.length === 1 && !hasMoreChildren(tree) ? tree.children[0] : null;
+                    if (!only || !isShardPath(only.path)) {
+                        break;
+                    }
+                    chain.paths.push(only.path);
+                    chain.labels.push(only.name);
+                    chain.path = only.path;
+                    chain.node = only;
+                }
+                return chain;
+            }
+
+            function renderTreeLabel(kind, chain) {
+                var name = chain.labels[chain.labels.length - 1];
+                var bold = chain.path === "/oak-chain" ? " font-semibold text-slate-800" : "";
+                if (kind === "wallet") {
+                    return "<span class=\"tree-label\" title=\"" + escapeHtml(name) + "\">" + escapeHtml(shortWallet(name)) + "</span>";
+                }
+                if (kind === "shard") {
+                    return "<span class=\"tree-label\" title=\"" + escapeHtml(SHARD_HELP) + "\">" + escapeHtml(chain.labels.join(" / ")) + "</span>";
+                }
+                var pin = chain.node && chain.node.pinned ? "<span class=\"ml-1 text-[10px] text-slate-400\" title=\"Selected node outside the loaded page of children\">(not in loaded page)</span>" : "";
+                return "<span class=\"tree-label" + bold + "\" title=\"" + escapeHtml(name) + "\">" + escapeHtml(name) + "</span>" + pin;
+            }
+
+            function renderTreeRow(chain, depth, expanded) {
+                var path = chain.path;
+                var node = chain.node;
+                var selected = chain.paths.indexOf(state.currentPath) !== -1;
                 var hasChildren = path === "/" ? true : !!(node && node.hasChildren);
+                var kind = classifyNode(node, path);
                 var tone = selected ? "text-blue-500" : (expanded ? "text-slate-600" : "text-slate-400");
                 var paddingLeft = (depth * 16) + 4;
-                var label = node && node.name ? node.name : inferTreeLabel(path);
+                var chainAttr = " data-chain=\"" + escapeHtml(chain.paths.join("|")) + "\"";
                 var expander = hasChildren
-                    ? "<button class=\"tree-expander flex items-center\" type=\"button\" data-action=\"toggle\" data-path=\"" + escapeHtml(path) + "\" aria-label=\"" + (expanded ? "Collapse" : "Expand") + "\">" + iconChevron(expanded, tone) + "</button>"
+                    ? "<button class=\"tree-expander flex items-center\" type=\"button\" tabindex=\"-1\" data-action=\"toggle\" data-path=\"" + escapeHtml(path) + "\"" + chainAttr + " aria-expanded=\"" + expanded + "\" aria-label=\"" + (expanded ? "Collapse" : "Expand") + "\">" + iconChevron(expanded, tone) + "</button>"
                     : "<span class=\"tree-placeholder\"></span>";
                 return ""
-                    + "<div class=\"tree-row " + (selected ? "selected" : "") + "\" style=\"padding-left:" + paddingLeft + "px\" data-action=\"select\" data-path=\"" + escapeHtml(path) + "\">"
+                    + "<div class=\"tree-row kind-" + kind + (selected ? " selected" : "") + "\" style=\"padding-left:" + paddingLeft + "px\" data-action=\"select\" data-path=\"" + escapeHtml(path) + "\"" + chainAttr + ">"
                     + expander
                     + iconForNode(node, path, selected)
-                    + "<span class=\"tree-label " + (path === "/oak-chain" ? "font-semibold text-slate-800" : "") + "\">" + escapeHtml(label) + "</span>"
+                    + renderTreeLabel(kind, chain)
                     + "</div>";
             }
 
-            function renderTreeBranch(clusterId, path, depth) {
+            // The child on the way to the selected path, when it is not in the loaded page(s).
+            function pinnedChild(clusterId, path, children) {
+                var prefix = path + "/";
+                if (!state.currentPath || state.currentPath.indexOf(prefix) !== 0) {
+                    return null;
+                }
+                var childPath = prefix + state.currentPath.slice(prefix.length).split("/")[0];
+                if (children.some(function (child) { return child.path === childPath; })) {
+                    return null;
+                }
+                var tree = getTree(clusterId, childPath);
+                var details = state.nodeCache.get(keyFor(clusterId, childPath));
+                var node = tree && tree.node ? tree.node : (details && details.node ? details.node : null);
+                var pinned = {};
+                Object.keys(node || {}).forEach(function (key) {
+                    pinned[key] = node[key];
+                });
+                pinned.name = pinned.name || inferTreeLabel(childPath);
+                pinned.path = childPath;
+                pinned.hasChildren = node ? !!node.hasChildren : childPath !== state.currentPath;
+                pinned.pinned = true;
+                return pinned;
+            }
+
+            function renderChildren(clusterId, path, depth) {
+                var pad = " style=\"padding-left:" + ((depth * 16) + 4) + "px\"";
                 var tree = getTree(clusterId, path);
                 if (!tree) {
-                    return "";
-                }
-                var selected = state.currentPath === path;
-                var html = renderTreeRow(clusterId, path, tree.node, depth, selected, isExpanded(clusterId, path));
-                if (!isExpanded(clusterId, path)) {
-                    return html;
+                    return "<div class=\"tree-note\"" + pad + ">Loading...</div>";
                 }
                 var children = sortChildren(tree.children);
-                if (!children.length) {
-                    return html;
+                var total = tree.node && tree.node.childCount != null ? tree.node.childCount : children.length;
+                var filterKey = keyFor(clusterId, path);
+                var filter = state.treeFilters.get(filterKey) || "";
+                var html = "";
+                if (total > TREE_FILTER_THRESHOLD) {
+                    html += "<div class=\"tree-filter\"" + pad + "><input type=\"search\" data-filter-path=\"" + escapeHtml(path) + "\" value=\"" + escapeHtml(filter) + "\" placeholder=\"Filter " + children.length.toLocaleString() + " loaded\" aria-label=\"Filter loaded children\"></div>";
                 }
-                for (var i = 0; i < children.length; i++) {
-                    var child = children[i];
-                    html += renderTreeLeaf(clusterId, child.path, child, depth + 1);
+                var query = filter.trim().toLowerCase();
+                var pinned = pinnedChild(clusterId, path, children);
+                if (pinned) {
+                    html += renderTreeLeaf(clusterId, pinned.path, pinned, depth);
+                }
+                var shown = 0;
+                children.forEach(function (child) {
+                    if (query && String(child.name).toLowerCase().indexOf(query) === -1) {
+                        return;
+                    }
+                    shown++;
+                    html += renderTreeLeaf(clusterId, child.path, child, depth);
+                });
+                if (query && !shown) {
+                    html += "<div class=\"tree-note\"" + pad + ">No loaded child matches</div>";
+                }
+                if (children.length < total) {
+                    var more = hasMoreChildren(tree)
+                        ? "<button type=\"button\" data-action=\"more\" data-path=\"" + escapeHtml(path) + "\">Load " + Math.min(tree.childrenPage.limit, total - children.length).toLocaleString() + " more</button>"
+                        : (tree.childrenPage ? "<span>rest outside this cluster's scope</span>" : "");
+                    html += "<div class=\"tree-more\"" + pad + "><span>" + children.length.toLocaleString() + " of " + total.toLocaleString() + " shown</span>" + more + "</div>";
                 }
                 return html;
             }
 
             function renderTreeLeaf(clusterId, path, node, depth) {
-                var selected = state.currentPath === path;
-                var expanded = isExpanded(clusterId, path);
-                var html = renderTreeRow(clusterId, path, node, depth, selected, expanded);
-                if (node && node.hasChildren && expanded) {
-                    var childTree = getTree(clusterId, path);
-                    if (childTree) {
-                        var children = sortChildren(childTree.children);
-                        for (var i = 0; i < children.length; i++) {
-                            html += renderTreeLeaf(clusterId, children[i].path, children[i], depth + 1);
-                        }
-                    } else {
-                        html += "<div class=\"px-6 py-1 text-slate-400\" style=\"padding-left:" + (((depth + 1) * 16) + 4) + "px\">Loading...</div>";
-                    }
+                var chain = treeChain(clusterId, path, node);
+                var expanded = isExpanded(clusterId, chain.path);
+                var html = renderTreeRow(chain, depth, expanded);
+                if (chain.node && chain.node.hasChildren && expanded) {
+                    html += renderChildren(clusterId, chain.path, depth + 1);
                 }
                 return html;
             }
@@ -538,39 +840,71 @@
                     treePanel.innerHTML = "<div class=\"px-3 py-2 text-slate-400\">No explorer clusters available.</div>";
                     return;
                 }
-                var html = renderTreeRow(cluster.clusterId, "/", { name: "/" }, 0, state.currentPath === "/", true);
-                if (isExpanded(cluster.clusterId, "/")) {
-                    var clusterTree = getTree(cluster.clusterId, cluster.browseRoot);
-                    if (clusterTree) {
-                        html += renderTreeBranch(cluster.clusterId, cluster.browseRoot, 0);
-                    } else {
-                        html += "<div class=\"px-3 py-2 text-slate-400\">Loading repository tree...</div>";
+                var html = renderTreeRow({ paths: ["/"], labels: ["/"], path: "/", node: { name: "/" } }, 0, true);
+                var clusterTree = getTree(cluster.clusterId, cluster.browseRoot);
+                if (clusterTree) {
+                    html += renderTreeLeaf(cluster.clusterId, cluster.browseRoot, clusterTree.node, 0);
+                } else {
+                    html += "<div class=\"px-3 py-2 text-slate-400\">Loading repository tree...</div>";
+                }
+                var focusedFilter = document.activeElement && document.activeElement.getAttribute
+                    ? document.activeElement.getAttribute("data-filter-path") : null;
+                var caret = focusedFilter ? document.activeElement.selectionStart : 0;
+                treePanel.innerHTML = html;
+                if (state.currentPath !== state.revealedPath) {
+                    var selectedRow = treePanel.querySelector(".tree-row.selected");
+                    if (selectedRow) {
+                        selectedRow.scrollIntoView({ block: "nearest" });
+                        state.revealedPath = state.currentPath;
                     }
                 }
-                treePanel.innerHTML = html;
+                if (focusedFilter) {
+                    var input = treePanel.querySelector("[data-filter-path=\"" + CSS.escape(focusedFilter) + "\"]");
+                    if (input) {
+                        input.focus();
+                        input.setSelectionRange(caret, caret);
+                    }
+                }
             }
 
             function renderPathBar() {
-                if (!state.currentPath) {
-                    pathBar.innerHTML = "<span class=\"text-slate-400\">/</span>";
+                if (state.editingPath) {
+                    if (!document.getElementById("path-edit")) {
+                        pathBar.innerHTML = "<input id=\"path-edit\" class=\"path-edit-input\" type=\"text\" spellcheck=\"false\" autocomplete=\"off\" aria-label=\"Repository path or 0x wallet address\" placeholder=\"/oak-chain/... or 0x wallet address\" value=\"" + escapeHtml(state.currentPath || "") + "\">";
+                    }
                     return;
                 }
-                var segments = state.currentPath.split("/").filter(Boolean);
+                var segments = pathSegments(state.currentPath);
                 if (!segments.length) {
                     pathBar.innerHTML = "<span class=\"text-slate-400\">/</span>";
                     return;
                 }
+                var wallet = walletContext(state.currentPath);
                 var html = "";
                 var current = "";
                 for (var i = 0; i < segments.length; i++) {
                     current += "/" + segments[i];
+                    var shardSegment = wallet && i >= 1 && i <= 3;
+                    if (shardSegment && !state.showShards) {
+                        if (i === 1) {
+                            html += "<span class=\"text-slate-400\">/</span><button class=\"shard-chip\" type=\"button\" data-action=\"toggle-shards\" title=\"" + escapeHtml("Shard " + wallet.shards + ". " + SHARD_HELP + " Click to show.") + "\">&hellip;</button>";
+                        }
+                        continue;
+                    }
+                    var label = WALLET_NAME.test(segments[i]) ? shortWallet(segments[i]) : segments[i];
+                    var title = label !== segments[i] ? " title=\"" + escapeHtml(segments[i]) + "\"" : "";
+                    var tone = shardSegment ? " shard-segment" : "";
                     html += "<span class=\"text-slate-400\">/</span>";
                     if (i === segments.length - 1) {
-                        html += "<span class=\"path-segment current text-slate-900 w-full outline-none bg-transparent\">" + escapeHtml(segments[i]) + "</span>";
+                        html += "<span class=\"path-segment current" + tone + "\"" + title + ">" + escapeHtml(label) + "</span>";
                     } else {
-                        html += "<button class=\"path-segment text-slate-600\" type=\"button\" data-path=\"" + escapeHtml(current) + "\">" + escapeHtml(segments[i]) + "</button>";
+                        html += "<button class=\"path-segment" + tone + "\" type=\"button\" data-path=\"" + escapeHtml(current) + "\"" + title + ">" + escapeHtml(label) + "</button>";
                     }
                 }
+                if (wallet && state.showShards) {
+                    html += "<button class=\"shard-chip ml-2\" type=\"button\" data-action=\"toggle-shards\" title=\"Collapse the shard levels\">hide shards</button>";
+                }
+                html += "<span class=\"flex-1 self-stretch cursor-text\" data-action=\"edit-path\" title=\"Click to type a path or 0x wallet address\"></span>";
                 pathBar.innerHTML = html;
             }
 
@@ -611,22 +945,80 @@
                 });
             }
 
-            function renderPropertyValue(property) {
+            function epochMillisLabel(type, value) {
+                if (String(type).toUpperCase() !== "LONG") {
+                    return "";
+                }
+                var millis = Number(value);
+                // Only values that read as epoch milliseconds between 2000 and 2100.
+                if (!isFinite(millis) || millis < 946684800000 || millis > 4102444800000) {
+                    return "";
+                }
+                return new Date(millis).toLocaleString();
+            }
+
+            function parseJsonValue(value) {
+                var trimmed = String(value).trim();
+                if (!/^[\[{]/.test(trimmed)) {
+                    return null;
+                }
+                try {
+                    return JSON.parse(trimmed);
+                } catch (error) {
+                    return null;
+                }
+            }
+
+            function middleTruncate(value) {
+                return value.length > 26 ? value.slice(0, 12) + "\u2026" + value.slice(-8) : value;
+            }
+
+            function propertyText(property) {
+                return property.multiValued ? (property.values || []).join("\n") : (property.value == null ? "" : String(property.value));
+            }
+
+            function renderScalarValue(type, value) {
+                var text = value == null ? "" : String(value);
+                if (text === "/oak-chain" || text.indexOf("/oak-chain/") === 0) {
+                    return "<button class=\"font-mono text-xs text-blue-600 cursor-pointer hover:underline break-all text-left\" type=\"button\" data-open-path=\"" + escapeHtml(text) + "\">" + escapeHtml(text) + "</button>";
+                }
+                if (/^\/v1\/[^\s]*$/.test(text)) {
+                    return "<a class=\"font-mono text-xs text-blue-600 hover:underline break-all\" href=\"/api-browser#" + escapeHtml(encodeURI("GET " + text)) + "\" title=\"Inspect in the API Browser\">" + escapeHtml(text) + "</a>";
+                }
+                if (WALLET_NAME.test(text)) {
+                    return "<button class=\"font-mono text-xs text-blue-600 cursor-pointer hover:underline break-all text-left\" type=\"button\" data-open-path=\"" + escapeHtml(walletPathFor(text)) + "\" title=\"Open wallet node\">" + escapeHtml(text) + "</button>";
+                }
+                if (/^0x[0-9a-f]{41,}$/i.test(text)) {
+                    return "<span class=\"font-mono text-xs text-slate-800\" title=\"" + escapeHtml(text) + "\">" + escapeHtml(middleTruncate(text)) + "</span>";
+                }
+                var date = epochMillisLabel(type, text);
+                if (date) {
+                    return "<span class=\"font-mono text-xs text-slate-800\">" + escapeHtml(text) + "</span> <span class=\"text-xs text-slate-400\">" + escapeHtml(date) + "</span>";
+                }
+                if (parseJsonValue(text) !== null) {
+                    return "<span class=\"px-1 mr-1.5 rounded bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-semibold\">JSON</span><span class=\"font-mono text-xs text-slate-800\">" + escapeHtml(text.length > 120 ? text.slice(0, 120) + "\u2026" : text) + "</span>";
+                }
+                return "<span class=\"font-mono text-xs text-slate-800 break-all\">" + escapeHtml(text) + "</span>";
+            }
+
+            function renderPropertyValue(property, index) {
+                var body;
                 if (property.multiValued) {
                     var values = property.values || [];
-                    if (!values.length) {
-                        return "<span class=\"text-slate-400\">[]</span>";
-                    }
-                    return values.map(function (value) {
-                        return "<div class=\"font-mono text-xs text-slate-800 break-all\">" + escapeHtml(value) + "</div>";
-                    }).join("");
+                    body = values.length
+                        ? values.map(function (value) {
+                            return "<span class=\"inline-block mr-1 mb-0.5 px-1.5 rounded bg-slate-100 border border-slate-200\">" + renderScalarValue(property.type, value) + "</span>";
+                        }).join("")
+                        : "<span class=\"text-slate-400\">[]</span>";
+                } else {
+                    body = renderScalarValue(property.type, property.value);
                 }
-                var value = property.value == null ? "" : String(property.value);
-                var looksLikePath = value.charAt(0) === "/";
-                if (looksLikePath) {
-                    return "<button class=\"font-mono text-xs text-blue-600 cursor-pointer hover:underline break-all text-left\" type=\"button\" data-open-path=\"" + escapeHtml(value) + "\">" + escapeHtml(value) + "</button>";
-                }
-                return "<div class=\"font-mono text-xs text-slate-800 break-all\">" + escapeHtml(value) + "</div>";
+                return "<div class=\"flex items-start justify-between gap-3\">"
+                    + "<div class=\"min-w-0\">" + body + "</div>"
+                    + "<div class=\"flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100\">"
+                    + "<button type=\"button\" class=\"value-action\" data-action=\"copy-value\" data-prop=\"" + index + "\">Copy</button>"
+                    + "<button type=\"button\" class=\"value-action\" data-action=\"view-value\" data-prop=\"" + index + "\" title=\"View value (or double-click the row)\">View</button>"
+                    + "</div></div>";
             }
 
             function propertyIcon(name) {
@@ -637,84 +1029,90 @@
             }
 
             function statusTone(status) {
-                if (status === "AUTHORITATIVE" || status === "FINALIZED" || status === "HEALTHY") {
-                    return {
-                        dot: "bg-emerald-500",
-                        text: "text-emerald-700"
-                    };
+                if (status === "AUTHORITATIVE" || status === "HEALTHY") {
+                    return { dot: "bg-emerald-500", text: "text-emerald-700" };
                 }
                 if (status === "READ ONLY" || status === "DEGRADED") {
-                    return {
-                        dot: "bg-amber-500",
-                        text: "text-amber-700"
-                    };
+                    return { dot: "bg-amber-500", text: "text-amber-700" };
                 }
-                return {
-                    dot: "bg-slate-400",
-                    text: "text-slate-700"
-                };
+                return { dot: "bg-slate-400", text: "text-slate-700" };
             }
 
-            function buildProvenanceModel(cluster, nodePayload, provenancePayload) {
-                var summary = state.summary || {};
-                var contentFacts = provenancePayload && provenancePayload.contentFacts ? provenancePayload.contentFacts : {};
-                var writeMetadata = provenancePayload && provenancePayload.writeMetadata ? provenancePayload.writeMetadata : null;
-                var walletAuthority = provenancePayload && provenancePayload.walletAuthority ? provenancePayload.walletAuthority : null;
-                var clusterStatus = summary.cluster && summary.cluster.clusterState ? String(summary.cluster.clusterState) : null;
-                var finalityStatus = contentFacts.authoritative ? "AUTHORITATIVE" : (contentFacts.readOnly ? "READ ONLY" : (clusterStatus || "OBSERVED"));
-                var epoch = summary.cluster && summary.cluster.currentEpoch != null
-                    ? summary.cluster.currentEpoch
-                    : (summary.queue && summary.queue.compact && summary.queue.compact.currentEpoch != null ? summary.queue.compact.currentEpoch : "--");
-                var authorityGroup = walletAuthority && walletAuthority.wallet
-                    ? walletAuthority.wallet + " (" + walletAuthority.ownership + ")"
-                    : (cluster ? cluster.displayName : "--");
-                var validatorSignature = writeMetadata && writeMetadata.recordId
-                    ? writeMetadata.recordId
-                    : (writeMetadata && writeMetadata.validator ? writeMetadata.validator : "No write metadata for this path");
-                var verificationStrategy = cluster && cluster.readOnly
-                    ? "Read-only mount over HTTP segment transfer"
-                    : "Authoritative local read via Aeron consensus";
-                return {
-                    finalityStatus: finalityStatus,
-                    epoch: epoch,
-                    authorityGroup: authorityGroup,
-                    validatorSignature: validatorSignature,
-                    verificationStrategy: verificationStrategy,
-                    writeMessage: writeMetadata && writeMetadata.message ? writeMetadata.message : "",
-                    matchedPath: writeMetadata && writeMetadata.matchPath ? writeMetadata.matchPath : "",
-                    nodeType: nodePayload && nodePayload.node ? nodePayload.node.primaryType : ""
-                };
+            function factField(label, valueHtml, wide) {
+                return "<div" + (wide ? " class=\"col-span-2\"" : "") + "><div class=\"text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1\">" + escapeHtml(label) + "</div><div class=\"text-sm text-slate-800 break-words\">" + valueHtml + "</div></div>";
             }
 
-            function renderPropertiesTab(cluster, nodePayload, provenancePayload) {
+            function copyButton(value) {
+                return " <button type=\"button\" class=\"value-action ml-1\" data-action=\"copy-text\" data-copy=\"" + escapeHtml(value) + "\">Copy</button>";
+            }
+
+            function sectionHeading(title, note) {
+                return "<h2 class=\"text-sm font-semibold text-slate-800 mb-2\">" + escapeHtml(title)
+                    + (note ? " <span class=\"font-normal text-xs text-slate-400\">" + escapeHtml(note) + "</span>" : "") + "</h2>";
+            }
+
+            function renderWalletCard(path) {
+                var wallet = walletContext(path);
+                if (!wallet || wallet.depth !== 0) {
+                    return "";
+                }
+                var payload = state.walletCache.get(wallet.wallet);
+                var body;
+                if (!payload) {
+                    body = "<div class=\"text-slate-400\">Loading wallet summary...</div>";
+                } else if (payload.error) {
+                    body = "<div class=\"text-slate-500\">Wallet summary unavailable: " + escapeHtml(payload.error) + "</div>";
+                } else {
+                    var meta = payload.meta || {};
+                    var gc = payload.gcAccount || {};
+                    var authority = payload.authority || {};
+                    var date = function (value) {
+                        return value ? escapeHtml(new Date(Number(value)).toLocaleString()) : "--";
+                    };
+                    var count = function (value) {
+                        return value != null ? escapeHtml(Number(value).toLocaleString()) : "--";
+                    };
+                    body = "<div class=\"grid grid-cols-4 gap-x-6 gap-y-3\">"
+                        + factField("Address", "<span class=\"font-mono text-xs break-all\">" + escapeHtml(wallet.wallet) + "</span>" + copyButton(wallet.wallet), true)
+                        + factField("Shard", "<span class=\"font-mono\" title=\"" + escapeHtml(SHARD_HELP) + "\">" + escapeHtml(wallet.shards) + "</span>")
+                        + factField("Ownership", escapeHtml(authority.ownership || "--") + " / " + escapeHtml(authority.scope || "--"))
+                        + factField("Content items", count(meta.contentCount))
+                        + factField("Total writes", count(meta.totalWrites))
+                        + factField("Created", date(meta.walletCreated))
+                        + factField("Last write", date(meta.lastWrite))
+                        + factField("GC debt", escapeHtml(gc.totalDebt != null ? gc.totalDebt : "--") + " <span class=\"text-slate-400\">(pending " + escapeHtml(gc.pendingDebt != null ? gc.pendingDebt : "--") + ")</span>")
+                        + factField("Writes", gc.writesBlocked ? "<span class=\"text-rose-700\">Blocked</span>" : "Allowed")
+                        + "</div>";
+                }
+                return "<div>" + sectionHeading("Wallet", "from /v1/explorer/wallets") + "<div class=\"metric-card p-4\">" + body + "</div></div>";
+            }
+
+            function renderPropertiesTab(cluster, nodePayload) {
                 if (!nodePayload || !nodePayload.node) {
                     return "<div class=\"text-slate-400\">Select a repository path to inspect its properties.</div>";
                 }
                 var properties = sortedProperties(nodePayload.properties);
+                state.renderedProperties = properties;
                 var typeBadge = nodePayload.node.primaryType || "nt:unstructured";
-                var provenance = buildProvenanceModel(cluster, nodePayload, provenancePayload);
-                var tone = statusTone(provenance.finalityStatus);
-                var propertyRows = properties.map(function (property) {
+                var propertyRows = properties.map(function (property, index) {
                     return ""
-                        + "<tr class=\"hover:bg-slate-50\">"
+                        + "<tr class=\"group hover:bg-slate-50\" data-prop-row=\"" + index + "\">"
                         + "<td class=\"py-1.5 px-3 font-medium text-slate-700 flex items-center gap-2\">" + propertyIcon(property.name) + escapeHtml(property.name) + "</td>"
                         + "<td class=\"py-1.5 px-3 text-slate-500 font-mono text-xs\">" + escapeHtml(formatType(property.type, property.multiValued)) + "</td>"
-                        + "<td class=\"py-1.5 px-3\">" + renderPropertyValue(property) + "</td>"
+                        + "<td class=\"py-1.5 px-3\">" + renderPropertyValue(property, index) + "</td>"
                         + "</tr>";
                 }).join("");
                 if (!propertyRows) {
                     propertyRows = "<tr><td colspan=\"3\" class=\"py-6 px-3 text-center text-slate-400\">This node has no exposed properties.</td></tr>";
                 }
-                return ""
+                return renderWalletCard(state.currentPath)
                     + "<div>"
                     + "<div class=\"flex items-center justify-between mb-2\">"
                     + "<h2 class=\"text-sm font-semibold text-slate-800 flex items-center gap-2\">"
                     + "<svg class=\"text-blue-500\" xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z\"></path><polyline points=\"3.27 6.96 12 12.01 20.73 6.96\"></polyline><line x1=\"12\" y1=\"22.08\" x2=\"12\" y2=\"12\"></line></svg>"
                     + "Node Properties"
                     + "</h2>"
-                    + "<div class=\"flex items-center gap-2\">"
                     + "<div class=\"px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-500 font-mono text-[11px]\">" + escapeHtml(typeBadge) + "</div>"
-                    + "</div>"
                     + "</div>"
                     + "<div class=\"border border-slate-200 rounded shadow-sm overflow-hidden\">"
                     + "<table class=\"w-full text-left border-collapse prop-table bg-white\">"
@@ -722,24 +1120,117 @@
                     + "<tbody class=\"text-[13px]\">" + propertyRows + "</tbody>"
                     + "</table>"
                     + "</div>"
-                    + "</div>"
-                    + "<div class=\"mt-2\">"
-                    + "<h2 class=\"text-sm font-semibold text-slate-800 flex items-center gap-2 mb-2\">"
-                    + "<svg class=\"text-indigo-500\" xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z\"></path></svg>"
-                    + "Consensus Provenance"
-                    + "</h2>"
-                    + "<div class=\"bg-indigo-50/50 border border-indigo-100 rounded shadow-sm p-4\">"
-                    + "<div class=\"grid grid-cols-2 gap-x-8 gap-y-4\">"
-                    + "<div><div class=\"text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1\">Finality Status</div><div class=\"flex items-center gap-2\"><div class=\"w-2 h-2 rounded-full " + tone.dot + "\"></div><span class=\"font-mono text-sm " + tone.text + " font-medium\">" + escapeHtml(provenance.finalityStatus) + "</span></div></div>"
-                    + "<div><div class=\"text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1\">Epoch</div><div class=\"font-mono text-sm text-slate-800\">" + escapeHtml(provenance.epoch) + "</div></div>"
-                    + "<div class=\"col-span-2\"><div class=\"text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1\">Authority Group</div><div class=\"font-mono text-sm text-slate-800 flex items-center gap-2\"><svg class=\"text-slate-400\" xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"18\" height=\"11\" x=\"3\" y=\"11\" rx=\"2\" ry=\"2\"></rect><path d=\"M7 11V7a5 5 0 0 1 10 0v4\"></path></svg>" + escapeHtml(provenance.authorityGroup) + "</div></div>"
-                    + "<div class=\"col-span-2\"><div class=\"text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1\">Validator Signature</div><div class=\"font-mono text-xs text-slate-600 bg-white p-2 border border-indigo-100 rounded break-all\">" + escapeHtml(provenance.validatorSignature) + "</div></div>"
-                    + "<div class=\"col-span-2\"><div class=\"text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1\">Verification Strategy</div><div class=\"font-mono text-sm text-slate-700\">" + escapeHtml(provenance.verificationStrategy) + "</div></div>"
-                    + (provenance.matchedPath ? "<div class=\"col-span-2\"><div class=\"text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1\">Matched Path</div><div class=\"font-mono text-xs text-slate-600 bg-white p-2 border border-indigo-100 rounded break-all\">" + escapeHtml(provenance.matchedPath) + "</div></div>" : "")
-                    + (provenance.writeMessage ? "<div class=\"col-span-2\"><div class=\"text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1\">Write Note</div><div class=\"font-mono text-sm text-slate-700\">" + escapeHtml(provenance.writeMessage) + "</div></div>" : "")
-                    + "</div>"
-                    + "</div>"
                     + "</div>";
+            }
+
+            function scalarProperty(nodePayload, name) {
+                var properties = nodePayload && nodePayload.properties ? nodePayload.properties : [];
+                for (var i = 0; i < properties.length; i++) {
+                    if (properties[i].name === name && !properties[i].multiValued && properties[i].value != null) {
+                        return String(properties[i].value);
+                    }
+                }
+                return "";
+            }
+
+            function renderProposalStatus(proposalId) {
+                var result = state.proposalStatus.get(proposalId);
+                var note = "<div class=\"text-xs text-slate-400 mt-1\">Short-term lookup for checking a recent submission: only the validator that queued the proposal answers, and only until it is evicted (oak.proposal.processed.retention.ms, default 10 minutes). The ID stored on this node is the lasting reference.</div>";
+                if (!result) {
+                    return note;
+                }
+                var line;
+                if (result.loading) {
+                    line = "<span class=\"text-slate-400\">Checking this validator...</span>";
+                } else if (result.missing) {
+                    line = "<span class=\"text-slate-500\">Not held by this validator: expected once the retention window has passed or when another validator queued it.</span>";
+                } else if (result.error) {
+                    line = "<span class=\"text-rose-700\">Lookup failed: " + escapeHtml(result.error) + "</span>";
+                } else {
+                    line = "<span class=\"font-mono text-slate-700\">" + escapeHtml(result.payload.state || "--") + "</span>"
+                        + " <span class=\"text-slate-400\">durability</span> <span class=\"font-mono text-slate-700\">" + escapeHtml(result.payload.durabilityState || "--") + "</span>";
+                }
+                return "<div class=\"text-xs mt-1\">" + line + " <span class=\"text-slate-400\">(" + escapeHtml(result.checkedAt || "") + ")</span></div>" + note;
+            }
+
+            function checkProposalStatus(proposalId) {
+                state.proposalStatus.set(proposalId, { loading: true, checkedAt: new Date().toLocaleTimeString() });
+                renderContent();
+                requestJson("/v1/proposals/" + encodeURIComponent(proposalId) + "/status").then(function (payload) {
+                    state.proposalStatus.set(proposalId, { payload: payload, checkedAt: new Date().toLocaleTimeString() });
+                }).catch(function (error) {
+                    var message = error.message || "request failed";
+                    state.proposalStatus.set(proposalId, /not found/i.test(message)
+                        ? { missing: true, checkedAt: new Date().toLocaleTimeString() }
+                        : { error: message, checkedAt: new Date().toLocaleTimeString() });
+                }).finally(renderContent);
+            }
+
+            function renderConsensusTab(cluster, nodePayload, provenancePayload) {
+                if (!nodePayload || !nodePayload.node) {
+                    return "<div class=\"text-slate-400\">Select a repository path to inspect its consensus facts.</div>";
+                }
+                var walletAuthority = provenancePayload && provenancePayload.walletAuthority ? provenancePayload.walletAuthority : {};
+                var writeMetadata = provenancePayload && provenancePayload.writeMetadata ? provenancePayload.writeMetadata : null;
+                var facts = provenancePayload && provenancePayload.contentFacts ? provenancePayload.contentFacts : {};
+                var clusterSummary = state.summary && state.summary.cluster ? state.summary.cluster : {};
+
+                var proposalId = scalarProperty(nodePayload, "oak:proposalId");
+                var wallet = scalarProperty(nodePayload, "wallet") || walletAuthority.wallet || "";
+                var signature = scalarProperty(nodePayload, "signature");
+                var timestamp = scalarProperty(nodePayload, "timestamp");
+                var source = scalarProperty(nodePayload, "source");
+                var organization = scalarProperty(nodePayload, "organization");
+                var written = [];
+                if (proposalId) {
+                    written.push(factField("Proposal ID", "<span class=\"font-mono text-xs\" title=\"" + escapeHtml(proposalId) + "\">" + escapeHtml(middleTruncate(proposalId)) + "</span>" + copyButton(proposalId)
+                        + " <button type=\"button\" class=\"value-action\" data-action=\"check-proposal\" data-proposal=\"" + escapeHtml(proposalId) + "\">Check status</button>"
+                        + renderProposalStatus(proposalId), true));
+                }
+                if (wallet) {
+                    written.push(factField("Wallet", renderScalarValue("STRING", wallet)));
+                }
+                if (organization) {
+                    written.push(factField("Organization", escapeHtml(organization)));
+                }
+                if (timestamp) {
+                    written.push(factField("Written at", escapeHtml(epochMillisLabel("LONG", timestamp) || timestamp)));
+                }
+                if (source) {
+                    written.push(factField("Source", "<span class=\"font-mono text-xs\">" + escapeHtml(source) + "</span>"));
+                }
+                if (signature) {
+                    written.push(factField("Signature", "<span class=\"font-mono text-xs\" title=\"" + escapeHtml(signature) + "\">" + escapeHtml(middleTruncate(signature)) + "</span>" + copyButton(signature)
+                        + "<div class=\"text-xs text-slate-400 mt-1\">Stored with the content; this page does not verify it.</div>", true));
+                }
+                var writeSection = written.length
+                    ? "<div class=\"grid grid-cols-2 gap-x-8 gap-y-4\">" + written.join("") + "</div>"
+                    : "<div class=\"text-slate-500\">This node carries no write facts. Proposal, wallet and signature are recorded on content nodes.</div>";
+
+                var authority = facts.authoritative ? "AUTHORITATIVE" : (facts.readOnly ? "READ ONLY" : "OBSERVED");
+                var authorityTone = statusTone(authority);
+                var clusterState = clusterSummary.clusterState ? String(clusterSummary.clusterState) : "--";
+                var clusterTone = statusTone(clusterState);
+                var readSection = "<div class=\"grid grid-cols-2 gap-x-8 gap-y-4\">"
+                    + factField("Read authority", "<span class=\"inline-flex items-center gap-2\"><span class=\"w-2 h-2 rounded-full " + authorityTone.dot + "\"></span><span class=\"font-mono " + authorityTone.text + "\">" + escapeHtml(authority) + "</span></span>"
+                        + "<div class=\"text-xs text-slate-400 mt-1\">" + (cluster && cluster.readOnly ? "Read-only mount over HTTP segment transfer." : "Served by this cluster's own Aeron-replicated store.") + "</div>")
+                    + factField("Cluster", escapeHtml(cluster ? cluster.displayName : "--") + (cluster && cluster.transport ? " <span class=\"text-slate-400\">via " + escapeHtml(cluster.transport) + "</span>" : ""))
+                    + factField("Cluster state", "<span class=\"inline-flex items-center gap-2\"><span class=\"w-2 h-2 rounded-full " + clusterTone.dot + "\"></span><span class=\"font-mono " + clusterTone.text + "\">" + escapeHtml(clusterState) + "</span></span>")
+                    + factField("Current term / epoch", "<span class=\"font-mono\">" + escapeHtml(clusterSummary.currentTerm != null ? clusterSummary.currentTerm : "--") + " / " + escapeHtml(clusterSummary.currentEpoch != null ? clusterSummary.currentEpoch : "--") + "</span><div class=\"text-xs text-slate-400 mt-1\">Now, not at write time.</div>")
+                    + "</div>";
+
+                var recordSection = writeMetadata
+                    ? "<div>" + sectionHeading("Recent write record", "held in memory for recently written paths") + "<div class=\"bg-indigo-50/50 border border-indigo-100 rounded shadow-sm p-4 grid grid-cols-2 gap-x-8 gap-y-4\">"
+                        + (writeMetadata.recordId ? factField("Record", "<span class=\"font-mono text-xs\">" + escapeHtml(writeMetadata.recordId) + "</span>", true) : "")
+                        + (writeMetadata.validator ? factField("Validator", escapeHtml(writeMetadata.validator)) : "")
+                        + (writeMetadata.matchPath ? factField("Matched path", "<span class=\"font-mono text-xs\">" + escapeHtml(writeMetadata.matchPath) + "</span>") : "")
+                        + (writeMetadata.message ? factField("Note", escapeHtml(writeMetadata.message), true) : "")
+                        + "</div></div>"
+                    : "";
+
+                return "<div>" + sectionHeading("Write facts", "from this node's properties") + "<div class=\"bg-indigo-50/50 border border-indigo-100 rounded shadow-sm p-4\">" + writeSection + "</div></div>"
+                    + "<div>" + sectionHeading("Read authority", "this validator, now") + "<div class=\"border border-slate-200 rounded shadow-sm p-4\">" + readSection + "</div></div>"
+                    + recordSection;
             }
 
             function renderAccessTab(cluster, nodePayload, provenancePayload) {
@@ -794,13 +1285,55 @@
                     return;
                 }
                 if (state.currentTab === "properties") {
-                    html += renderPropertiesTab(cluster, nodePayload, provenancePayload);
+                    html += renderPropertiesTab(cluster, nodePayload);
+                } else if (state.currentTab === "consensus") {
+                    html += renderConsensusTab(cluster, nodePayload, provenancePayload);
                 } else if (state.currentTab === "access") {
                     html += renderAccessTab(cluster, nodePayload, provenancePayload);
                 } else {
                     html += renderJsonTab(cluster, nodePayload, provenancePayload);
                 }
                 tabContent.innerHTML = html;
+            }
+
+            function countLabel(value, one, many) {
+                var count = Number(value || 0);
+                return count.toLocaleString() + " " + (count === 1 ? one : many);
+            }
+
+            function renderStatusBar() {
+                var cluster = currentCluster();
+                var summary = state.summary && state.summary.cluster ? state.summary.cluster : {};
+                var tone = statusTone(summary.clusterState ? String(summary.clusterState) : "");
+                var left = [];
+                if (cluster) {
+                    left.push("<span class=\"inline-flex items-center gap-1.5\"><span class=\"w-1.5 h-1.5 rounded-full " + tone.dot + "\"></span>" + escapeHtml(cluster.displayName) + "</span>");
+                }
+                if (summary.role) {
+                    left.push(escapeHtml(summary.role));
+                }
+                if (summary.currentTerm != null) {
+                    left.push("term " + escapeHtml(summary.currentTerm));
+                }
+                if (summary.clusterState) {
+                    left.push(escapeHtml(summary.clusterState));
+                }
+                var right = [];
+                var nodePayload = cluster && state.currentPath ? state.nodeCache.get(keyFor(cluster.clusterId, state.currentPath)) : null;
+                var wallet = walletContext(state.currentPath);
+                if (wallet) {
+                    right.push("<span title=\"" + escapeHtml(wallet.wallet) + "\">wallet " + escapeHtml(shortWallet(wallet.wallet)) + "</span>");
+                } else if (isShardPath(state.currentPath)) {
+                    right.push("<span title=\"" + escapeHtml(SHARD_HELP) + "\">shard level " + (pathSegments(state.currentPath).length - 1) + " of 3</span>");
+                }
+                if (nodePayload && nodePayload.node) {
+                    right.push(escapeHtml(nodePayload.node.primaryType || "nt:unstructured"));
+                    right.push(countLabel(nodePayload.node.propertyCount, "property", "properties"));
+                    right.push(countLabel(nodePayload.node.childCount, "child", "children"));
+                }
+                var separator = "<span class=\"text-slate-300\">|</span>";
+                statusBar.innerHTML = "<div class=\"flex items-center gap-2 min-w-0\">" + left.join(separator) + "</div>"
+                    + "<div class=\"flex items-center gap-2 min-w-0\">" + right.join(separator) + "</div>";
             }
 
             function render() {
@@ -810,6 +1343,7 @@
                 renderPathBar();
                 renderTabs();
                 renderContent();
+                renderStatusBar();
             }
 
             function clearClusterCaches(clusterId) {
@@ -825,6 +1359,7 @@
                         state.expanded.delete(key);
                     }
                 });
+                state.walletCache.clear();
             }
 
             function ensureTreeLoaded(clusterId, path, force) {
@@ -841,10 +1376,45 @@
                 });
             }
 
+            function loadMoreChildren(clusterId, path) {
+                var tree = getTree(clusterId, path);
+                if (!hasMoreChildren(tree)) {
+                    return Promise.resolve();
+                }
+                var page = tree.childrenPage;
+                return requestJson(treeEndpoint(clusterId, path) + "&offset=" + page.nextOffset + "&limit=" + page.limit).then(function (payload) {
+                    tree.children = (tree.children || []).concat(payload.children || []);
+                    tree.childrenPage = payload.childrenPage || null;
+                });
+            }
+
+            // Expanding a shard level follows single-child shard levels down to the wallet.
+            function expandShardChain(clusterId, path) {
+                state.expanded.add(keyFor(clusterId, path));
+                return ensureTreeLoaded(clusterId, path, false).then(function (tree) {
+                    var only = tree && tree.children && tree.children.length === 1 && !hasMoreChildren(tree) ? tree.children[0] : null;
+                    if (only && isShardPath(only.path)) {
+                        return expandShardChain(clusterId, only.path);
+                    }
+                });
+            }
+
+            function ensureWalletLoaded(path, force) {
+                var wallet = walletContext(path);
+                if (!wallet || wallet.depth !== 0 || (!force && state.walletCache.has(wallet.wallet))) {
+                    return Promise.resolve();
+                }
+                return requestJson(WALLET_ENDPOINT + encodeURIComponent(wallet.wallet)).then(function (payload) {
+                    state.walletCache.set(wallet.wallet, payload);
+                }).catch(function (error) {
+                    state.walletCache.set(wallet.wallet, { error: error.message || "request failed" });
+                });
+            }
+
             function ensureDetailsLoaded(clusterId, path, force) {
                 var nodeKey = keyFor(clusterId, path);
                 if (!force && state.nodeCache.has(nodeKey) && state.provenanceCache.has(nodeKey)) {
-                    return Promise.resolve();
+                    return ensureWalletLoaded(path, false);
                 }
                 state.loadingNode = true;
                 return Promise.all([
@@ -853,7 +1423,8 @@
                     }),
                     requestJson(provenanceEndpoint(clusterId, path)).then(function (payload) {
                         state.provenanceCache.set(nodeKey, payload);
-                    })
+                    }),
+                    ensureWalletLoaded(path, force)
                 ]).finally(function () {
                     state.loadingNode = false;
                 });
@@ -1009,39 +1580,138 @@
                 });
             }
 
+            function toggleTreeNode(toggle) {
+                var cluster = currentCluster();
+                var path = toggle.getAttribute("data-path");
+                if (!cluster || !path) {
+                    return;
+                }
+                if (state.expanded.has(keyFor(cluster.clusterId, path))) {
+                    (toggle.getAttribute("data-chain") || path).split("|").forEach(function (chainPath) {
+                        state.expanded.delete(keyFor(cluster.clusterId, chainPath));
+                    });
+                    render();
+                    return;
+                }
+                state.expanded.add(keyFor(cluster.clusterId, path));
+                render();
+                var load = isShardPath(path) ? expandShardChain(cluster.clusterId, path) : ensureTreeLoaded(cluster.clusterId, path, false);
+                load.catch(function (error) {
+                    state.error = error.message || "Failed to expand node";
+                }).finally(render);
+            }
+
             function handleTreeClick(event) {
+                if (event.target.closest("[data-filter-path]")) {
+                    return;
+                }
                 var toggle = event.target.closest("[data-action='toggle']");
                 if (toggle) {
                     event.stopPropagation();
-                    var path = toggle.getAttribute("data-path");
-                    var cluster = currentCluster();
-                    if (!cluster || !path) {
-                        return;
-                    }
-                    var expandedKey = keyFor(cluster.clusterId, path);
-                    if (state.expanded.has(expandedKey)) {
-                        state.expanded.delete(expandedKey);
-                        render();
-                        return;
-                    }
-                    state.expanded.add(expandedKey);
-                    render();
-                    ensureTreeLoaded(cluster.clusterId, path, false).catch(function (error) {
-                        state.error = error.message || "Failed to expand node";
-                    }).finally(render);
+                    toggleTreeNode(toggle);
                     return;
                 }
-
+                var more = event.target.closest("[data-action='more']");
+                if (more) {
+                    var cluster = currentCluster();
+                    if (cluster) {
+                        more.disabled = true;
+                        more.textContent = "Loading...";
+                        loadMoreChildren(cluster.clusterId, more.getAttribute("data-path")).catch(function (error) {
+                            state.error = error.message || "Failed to load more children";
+                        }).finally(render);
+                    }
+                    return;
+                }
                 var row = event.target.closest("[data-action='select']");
                 if (row) {
                     var path = row.getAttribute("data-path");
                     if (path === "/") {
-                        var cluster = currentCluster();
-                        if (cluster) {
-                            path = cluster.browseRoot;
+                        var rootCluster = currentCluster();
+                        if (rootCluster) {
+                            path = rootCluster.browseRoot;
                         }
                     }
                     loadPath(path, false);
+                }
+            }
+
+            function handleTreeInput(event) {
+                var input = event.target.closest("[data-filter-path]");
+                var cluster = currentCluster();
+                if (!input || !cluster) {
+                    return;
+                }
+                state.treeFilters.set(keyFor(cluster.clusterId, input.getAttribute("data-filter-path")), input.value);
+                renderTree();
+            }
+
+            function moveTreeSelection(row) {
+                if (!row) {
+                    return;
+                }
+                var path = row.getAttribute("data-path");
+                state.currentPath = path;
+                state.loadingNode = true;
+                render();
+                clearTimeout(state.keyNavTimer);
+                state.keyNavTimer = setTimeout(function () {
+                    loadPath(path, false);
+                }, 150);
+            }
+
+            function parentRow(rows, row) {
+                var top = (row.getAttribute("data-chain") || row.getAttribute("data-path")).split("|")[0];
+                var parent = top.slice(0, top.lastIndexOf("/")) || "/";
+                for (var i = 0; i < rows.length; i++) {
+                    if ((rows[i].getAttribute("data-chain") || "").split("|").indexOf(parent) !== -1) {
+                        return rows[i];
+                    }
+                }
+                return null;
+            }
+
+            function handleTreeKeydown(event) {
+                if (event.target.closest("[data-filter-path]")) {
+                    return;
+                }
+                var keys = ["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight", "Home", "End"];
+                if (keys.indexOf(event.key) === -1) {
+                    return;
+                }
+                event.preventDefault();
+                var rows = Array.prototype.slice.call(treePanel.querySelectorAll(".tree-row")).filter(function (row) {
+                    return row.getAttribute("data-path") !== "/";
+                });
+                var index = -1;
+                rows.forEach(function (row, i) {
+                    if (row.classList.contains("selected")) {
+                        index = i;
+                    }
+                });
+                var row = rows[index];
+                if (event.key === "Home" || !row) {
+                    moveTreeSelection(rows[0]);
+                } else if (event.key === "End") {
+                    moveTreeSelection(rows[rows.length - 1]);
+                } else if (event.key === "ArrowDown") {
+                    moveTreeSelection(rows[index + 1]);
+                } else if (event.key === "ArrowUp") {
+                    moveTreeSelection(rows[index - 1]);
+                } else {
+                    var toggle = row.querySelector("[data-action='toggle']");
+                    var expanded = toggle && toggle.getAttribute("aria-expanded") === "true";
+                    if (event.key === "ArrowRight") {
+                        if (toggle && !expanded) {
+                            toggleTreeNode(toggle);
+                        } else {
+                            moveTreeSelection(rows[index + 1]);
+                        }
+                    } else if (toggle && expanded) {
+                        toggleTreeNode(toggle);
+                    } else {
+                        moveTreeSelection(parentRow(rows, row));
+                    }
                 }
             }
 
@@ -1054,40 +1724,122 @@
                 render();
             }
 
-            function handlePathClick(event) {
-                var button = event.target.closest("[data-path]");
-                if (!button || button.classList.contains("current")) {
+            function resolveInputPath(value) {
+                var trimmed = String(value || "").trim();
+                var wallet = /^(0x[0-9a-f]{40})(\/.*)?$/i.exec(trimmed);
+                return wallet ? walletPathFor(wallet[1]) + (wallet[2] || "") : trimmed;
+            }
+
+            function startPathEdit() {
+                state.editingPath = true;
+                renderPathBar();
+                var input = document.getElementById("path-edit");
+                if (input) {
+                    input.focus();
+                    input.select();
+                }
+            }
+
+            function finishPathEdit(commit) {
+                if (!state.editingPath) {
                     return;
                 }
-                loadPath(button.getAttribute("data-path"), false);
+                var input = document.getElementById("path-edit");
+                var value = input ? input.value : "";
+                state.editingPath = false;
+                if (commit && value.trim()) {
+                    loadPath(resolveInputPath(value), false);
+                } else {
+                    renderPathBar();
+                }
+            }
+
+            function handlePathClick(event) {
+                if (event.target.closest("[data-action='toggle-shards']")) {
+                    state.showShards = !state.showShards;
+                    renderPathBar();
+                    return;
+                }
+                var button = event.target.closest("[data-path]");
+                if (button && !button.classList.contains("current")) {
+                    loadPath(button.getAttribute("data-path"), false);
+                    return;
+                }
+                if (!state.editingPath && (event.target === pathBar || event.target.closest("[data-action='edit-path']") || event.target.classList.contains("current"))) {
+                    startPathEdit();
+                }
+            }
+
+            function copyText(text, button) {
+                var done = function () {
+                    if (button) {
+                        var label = button.textContent;
+                        button.textContent = "Copied";
+                        setTimeout(function () {
+                            button.textContent = label;
+                        }, 1200);
+                    }
+                };
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(done).catch(function () {
+                        window.prompt("Copy value", text);
+                    });
+                    return;
+                }
+                window.prompt("Copy value", text);
+            }
+
+            function openValueDialog(index) {
+                var property = state.renderedProperties[index];
+                if (!property) {
+                    return;
+                }
+                var text = propertyText(property);
+                var parsed = property.multiValued ? null : parseJsonValue(text);
+                var date = property.multiValued ? "" : epochMillisLabel(property.type, text);
+                state.dialogValue = text;
+                document.getElementById("value-dialog-name").textContent = property.name;
+                document.getElementById("value-dialog-type").textContent = formatType(property.type, property.multiValued)
+                    + (parsed !== null ? " (JSON, formatted)" : "") + (date ? " (" + date + ")" : "");
+                document.getElementById("value-dialog-body").textContent = parsed !== null ? JSON.stringify(parsed, null, 2) : text;
+                valueDialog.showModal();
             }
 
             function handleTabContentClick(event) {
                 var pathButton = event.target.closest("[data-open-path]");
                 if (pathButton) {
                     loadPath(pathButton.getAttribute("data-open-path"), false);
+                    return;
+                }
+                var action = event.target.closest("[data-action]");
+                if (!action) {
+                    return;
+                }
+                var kind = action.getAttribute("data-action");
+                if (kind === "copy-text") {
+                    copyText(action.getAttribute("data-copy"), action);
+                } else if (kind === "copy-value") {
+                    var property = state.renderedProperties[Number(action.getAttribute("data-prop"))];
+                    if (property) {
+                        copyText(propertyText(property), action);
+                    }
+                } else if (kind === "view-value") {
+                    openValueDialog(Number(action.getAttribute("data-prop")));
+                } else if (kind === "check-proposal") {
+                    checkProposalStatus(action.getAttribute("data-proposal"));
+                }
+            }
+
+            function handleTabContentDoubleClick(event) {
+                var row = event.target.closest("[data-prop-row]");
+                if (row && !event.target.closest("button")) {
+                    openValueDialog(Number(row.getAttribute("data-prop-row")));
                 }
             }
 
             function copyCurrentPath() {
-                if (!state.currentPath) {
-                    return;
-                }
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(state.currentPath).catch(function () {
-                        window.prompt("Copy repository path", state.currentPath);
-                    });
-                    return;
-                }
-                window.prompt("Copy repository path", state.currentPath);
-            }
-
-            function promptForPath() {
-                var cluster = currentCluster();
-                var seed = state.currentPath || (cluster ? cluster.browseRoot : "/oak-chain");
-                var nextPath = window.prompt("Open repository path", seed);
-                if (nextPath != null) {
-                    loadPath(nextPath, false);
+                if (state.currentPath) {
+                    copyText(state.currentPath, null);
                 }
             }
 
@@ -1102,7 +1854,7 @@
                     }
                 });
                 document.getElementById("copy-path-button").addEventListener("click", copyCurrentPath);
-                document.getElementById("open-path-button").addEventListener("click", promptForPath);
+                document.getElementById("open-path-button").addEventListener("click", startPathEdit);
                 clusterSelect.addEventListener("change", function () {
                     state.selectedClusterId = clusterSelect.value;
                     state.currentTab = "properties";
@@ -1114,9 +1866,38 @@
                     }
                 });
                 treePanel.addEventListener("click", handleTreeClick);
+                treePanel.addEventListener("keydown", handleTreeKeydown);
+                treePanel.addEventListener("input", handleTreeInput);
                 document.querySelector(".flex.items-end.px-2.pt-2.bg-slate-100").addEventListener("click", handleTabClick);
                 pathBar.addEventListener("click", handlePathClick);
+                pathBar.addEventListener("keydown", function (event) {
+                    if (event.key === "Enter") {
+                        event.preventDefault();
+                        finishPathEdit(true);
+                    } else if (event.key === "Escape") {
+                        finishPathEdit(false);
+                    }
+                });
+                pathBar.addEventListener("focusout", function () {
+                    finishPathEdit(false);
+                });
                 tabContent.addEventListener("click", handleTabContentClick);
+                tabContent.addEventListener("dblclick", handleTabContentDoubleClick);
+                valueDialog.addEventListener("click", function (event) {
+                    var action = event.target.closest("[data-dialog]");
+                    if (event.target === valueDialog || (action && action.getAttribute("data-dialog") === "close")) {
+                        valueDialog.close();
+                    } else if (action) {
+                        copyText(state.dialogValue, action);
+                    }
+                });
+                document.addEventListener("keydown", function (event) {
+                    var typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement && document.activeElement.tagName);
+                    if (event.key === "/" && !typing && !valueDialog.open && !event.metaKey && !event.ctrlKey && !event.altKey) {
+                        event.preventDefault();
+                        startPathEdit();
+                    }
+                });
             }
 
             bindEvents();

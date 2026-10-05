@@ -52,6 +52,13 @@ public class AeronIngressControlPayloadBuilderTest {
     }
 
     @Test
+    public void transactionCommandsOmitUnknownTerm() {
+        assertFalse(builder.buildStartTransaction("tx-4", null, 0L, null, null).json.contains("\"term\""));
+        assertFalse(builder.buildCommitTransaction("tx-4", null, null).json.contains("\"term\""));
+        assertFalse(builder.buildAbortTransaction("tx-4", null, null, null).json.contains("\"term\""));
+    }
+
+    @Test
     public void abortTransactionIncludesReasonWhenPresent() {
         AeronEncodedMessage encoded = builder.buildAbortTransaction("tx-3", "corr-3", "quota exceeded", 7);
 
@@ -63,21 +70,16 @@ public class AeronIngressControlPayloadBuilderTest {
 
     @Test
     public void durabilityMessagesEncodeOptionalFields() {
-        AeronEncodedMessage queue = builder.buildQueueSegment("proposal-1", 3, 2);
         AeronEncodedMessage persisted = builder.buildSegmentPersisted("proposal-1", 4, false, "head-1", "disk full");
-        AeronEncodedMessage ack = builder.buildAckSegmentPersisted("proposal-1", true, "head-2", null, 5, 3);
+        AeronEncodedMessage withoutError = builder.buildSegmentPersisted("proposal-1", 5, true, "head-2", null);
 
-        assertEquals(SimpleMessageHeader.TEMPLATE_ID_QUEUE_SEGMENT, queue.templateId);
-        assertTrue(queue.json.contains("\"requiredAcks\":2"));
         assertEquals(SimpleMessageHeader.TEMPLATE_ID_SEGMENT_PERSISTED, persisted.templateId);
         assertTrue(persisted.json.contains("\"memberId\":4"));
         assertTrue(persisted.json.contains("\"error\":\"disk full\""));
-        assertEquals(SimpleMessageHeader.TEMPLATE_ID_ACK_SEGMENT_PERSISTED, ack.templateId);
-        assertTrue(ack.json.contains("\"durableHead\":\"head-2\""));
-        assertFalse(ack.json.contains("\"error\""));
-        assertPayloadMatches(queue);
+        assertTrue(withoutError.json.contains("\"durableHead\":\"head-2\""));
+        assertFalse(withoutError.json.contains("\"error\""));
         assertPayloadMatches(persisted);
-        assertPayloadMatches(ack);
+        assertPayloadMatches(withoutError);
     }
 
     @Test

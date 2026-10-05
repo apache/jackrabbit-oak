@@ -21,13 +21,17 @@ import io.aeron.cluster.codecs.CloseReason;
 import io.aeron.cluster.service.ClientSession;
 import io.aeron.cluster.service.Cluster;
 import io.aeron.cluster.service.ClusteredService;
+import io.aeron.exceptions.AeronException;
 import io.aeron.logbuffer.Header;
 import org.agrona.DirectBuffer;
+import org.agrona.concurrent.AgentTerminationException;
 import org.agrona.concurrent.IdleStrategy;
 import org.apache.jackrabbit.oak.segment.consensus.config.BlockchainConfig;
 import org.apache.jackrabbit.oak.segment.consensus.config.ConsensusSafety;
 import org.apache.jackrabbit.oak.segment.consensus.eth.BeaconChainClient;
 import org.apache.jackrabbit.oak.segment.consensus.leader.ValidatorRole;
+import org.apache.jackrabbit.oak.segment.consensus.queue.ReplicatedDurability;
+import org.apache.jackrabbit.oak.segment.consensus.service.AppliedLogPosition;
 import org.apache.jackrabbit.oak.segment.consensus.service.MutationAuditMetadata;
 import org.apache.jackrabbit.oak.segment.consensus.util.SegmentReplicator;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -36,6 +40,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -132,7 +137,8 @@ public class AeronConsensusEngine implements ClusteredService {
     private final SegmentReplicator replicator;
     private final String storeDirectory;
     private final org.apache.jackrabbit.oak.segment.consensus.queue.BackpressureManager backpressureManager;
-    private final DurabilityAckTracker durabilityAckTracker = new DurabilityAckTracker();
+    private final DurabilityTally durabilityTally = new DurabilityTally(this::getTotalMemberCount);
+    private volatile int configuredClusterMembers;
     private final TransactionLifecycleManager transactionLifecycleManager;
     private final PeerProbeMode peerProbeMode;
     
@@ -149,9 +155,15 @@ public class AeronConsensusEngine implements ClusteredService {
     private AeronInternalClusterClientConnector internalClusterClientConnector;
     private final AeronInternalIngressClientManager internalIngressClientManager;
     private final HeadStateService headStateService;
+    private SnapshotTrigger snapshotTrigger =
+        SnapshotTrigger.fromSystemProperties(() -> SnapshotTrigger.toggleSnapshot(this.cluster), System.currentTimeMillis());
     
     // Aeron Cluster components
     private Cluster cluster;
+    // Cluster is owned by the service thread; its callbacks publish copies for readers on other threads
+    private volatile Cluster.Role publishedRole;
+    private volatile long publishedLogPosition = -1L;
+    private volatile long publishedClusterTime = -1L;
     private IdleStrategy idleStrategy;
     
     // ✈️ AERON NATIVE: Ingress channel URI for client connections
@@ -162,10 +174,6 @@ public class AeronConsensusEngine implements ClusteredService {
     
     // ✈️ AERON NATIVE: Media driver directory name (needed for client connections)
     private String aeronDirectoryName = null;
-    
-    // ✈️ AERON NATIVE: Internal AeronCluster client for sending writes through ingress
-    // This client connects to the same media driver (via IPC) to send messages
-    private volatile io.aeron.cluster.client.AeronCluster internalClusterClient = null;
     
     // ✈️ AERON NATIVE: Callback interface for applying replicated writes and deletes
     public interface WriteApplicationCallback {
@@ -221,6 +229,7 @@ public class AeronConsensusEngine implements ClusteredService {
     }
     private WriteApplicationCallback writeCallback;
     private volatile DurabilityStatusCallback durabilityStatusCallback;
+    private volatile GCApplicationCallback gcApplicationCallback;
     private volatile TransactionLifecycleCallback transactionLifecycleCallback;
     
     // Ethereum integration
@@ -229,11 +238,16 @@ public class AeronConsensusEngine implements ClusteredService {
     
     // Consensus state (mapped from Aeron Cluster)
     private volatile ValidatorRole currentRole = ValidatorRole.FOLLOWER;
-    // ✅ ADR 025: Track term locally (Aeron Cluster doesn't expose leadershipTermId on Cluster interface)
-    // This is updated on role changes and used as fallback when Aeron term not available
+    // ✅ ADR 025: Raft term = Aeron leadershipTermId from onNewLeadershipTermEvent, applied in log order
+    // (including replay), so the stale-term check in the replicated apply path is a pure function of
+    // the log. 0 before the first event: Aeron's first term id, and no stamped proposal is stale against it.
     private volatile int currentTerm = 0;
-    private static final long LEADER_TERM_TTL_MS = 5000;
-    private volatile long lastLeaderTermFetchMs = 0;
+    // False until a term event (or a snapshot carrying the term) has been applied; ingress omits the term until then.
+    private volatile boolean leadershipTermKnown = false;
+    // appVersion of the latest term event in the log; Aeron has already checked its major against ours.
+    private volatile String logAppVersion = null;
+    private static final long LEADER_LOG_POSITION_TTL_MS = 5000;
+    private volatile long lastLeaderLogPositionFetchMs = 0;
     private volatile String currentLeader = null;
     // Heartbeat tracking handled by AeronHealthService
     private final long reachabilityCacheMs;
@@ -268,9 +282,10 @@ public class AeronConsensusEngine implements ClusteredService {
     private final java.util.concurrent.ConcurrentLinkedQueue<Long> ingressTimestamps = new java.util.concurrent.ConcurrentLinkedQueue<>();
     
     private final AeronMessageCodec messageCodec = AeronEngineComponentFactory.createMessageCodec();
-    private final AeronEgressHandler egressHandler = AeronEngineComponentFactory.createEgressHandler();
-    private volatile AeronIngressHandler ingressHandler;
+    private AeronIngressHandler ingressHandler;
     private volatile boolean genesisVerified;
+    /** Latched by the first node-local apply failure: health and HTTP report it while the member fail-stops. */
+    private volatile Throwable applicationFailure;
     private AeronSessionManager sessionManager;
     private AeronHealthService healthService = AeronEngineComponentFactory.createHealthService();
     private AeronLeaderTracker leaderTracker;
@@ -283,7 +298,6 @@ public class AeronConsensusEngine implements ClusteredService {
     private final Object reconnectLock = new Object();
     private volatile java.util.concurrent.ScheduledExecutorService reconnectScheduler;
     private volatile boolean reconnectInProgress = false;
-    private volatile java.util.concurrent.ScheduledExecutorService transactionTimeoutScheduler;
     
     /**
      * Create Aeron-based consensus engine.
@@ -304,7 +318,7 @@ public class AeronConsensusEngine implements ClusteredService {
             String storeDirectory,
             org.apache.jackrabbit.oak.spi.blob.BlobStore blobStore) {
         this(fileStore, nodeStore, selfUrl, peerUrls, wallet, storeDirectory, blobStore,
-            AeronEngineComponentFactory.createSnapshotService(fileStore, storeDirectory),
+            AeronEngineComponentFactory.createSnapshotService(),
             new AeronBackgroundCoordinator());
     }
 
@@ -339,7 +353,7 @@ public class AeronConsensusEngine implements ClusteredService {
         this.storeDirectory = storeDirectory;
         this.replicator = AeronEngineComponentFactory.createSegmentReplicator(fileStore);
         this.backpressureManager = AeronEngineComponentFactory.createBackpressureManager();
-        this.transactionLifecycleManager = new TransactionLifecycleManager(resolveTransactionLifecycleDirectory(storeDirectory));
+        this.transactionLifecycleManager = new TransactionLifecycleManager();
         this.peerProbeMode = parsePeerProbeMode();
         this.reachabilityCacheMs = Long.getLong("oak.cluster.reachability.cacheMs", 5000L);
         this.reachabilityConnectTimeoutMs = Integer.getInteger("oak.cluster.reachability.connectTimeoutMs", 1500);
@@ -352,7 +366,7 @@ public class AeronConsensusEngine implements ClusteredService {
         // ✅ PRODUCTION REFACTOR: Initialize service layer components
         this.snapshotService = snapshotService != null
             ? snapshotService
-            : AeronEngineComponentFactory.createSnapshotService(fileStore, storeDirectory);
+            : AeronEngineComponentFactory.createSnapshotService();
         this.genesisInitializer = new AeronGenesisInitializer(fileStore, nodeStore, blobStore);
         this.backgroundCoordinator = backgroundCoordinator != null
             ? backgroundCoordinator
@@ -365,10 +379,7 @@ public class AeronConsensusEngine implements ClusteredService {
         this.internalIngressClientManager = new AeronInternalIngressClientManager(
             () -> internalClusterClientConnector,
             internalIngressEndpointPlanner,
-            () -> aeronDirectoryName,
-            () -> idleStrategy,
-            () -> internalClusterClient,
-            client -> internalClusterClient = client
+            () -> aeronDirectoryName
         );
         this.leaderDiscoveryService = AeronEngineComponentFactory.createLeaderDiscoveryService(nodeIdToUrl, peerUrls, selfUrl);
         this.messageDispatcher = AeronEngineComponentFactory.createMessageDispatcher(
@@ -406,58 +417,31 @@ public class AeronConsensusEngine implements ClusteredService {
                 }
             }
         );
-        // Aeron's committed log, not a locally synthesized HTTP term, is authoritative at apply.
+        // The term is Aeron's leadershipTermId applied in log order (onNewLeadershipTermEvent), not a locally
+        // synthesized HTTP term, so it is identical on every member at apply. The applied-log watermark records it
+        // and LogStoreGuard depends on it.
+        this.messageDispatcher.setTermProvider(this::getCurrentTerm);
 
-        this.messageDispatcher.setDurabilityCallback(new MessageDispatcher.DurabilityCallback() {
-            @Override
-            public void onQueueSegment(String proposalId, int totalMembers, int requiredAcks) {
-                if (!isLeader()) {
+        this.messageDispatcher.setDurabilityCallback((proposalId, memberId, durableHead, success, error, clusterTime) -> {
+            DurabilityTally.Outcome outcome =
+                durabilityTally.record(proposalId, memberId, success, durableHead, error, clusterTime);
+            if (outcome == null || durabilityStatusCallback == null) {
                     return;
                 }
-                durabilityAckTracker.track(proposalId, totalMembers, requiredAcks);
-            }
-
-            @Override
-            public void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success, String error) {
-                if (!isLeader()) {
-                    return;
-                }
-
-                DurabilityAckTracker.Outcome outcome = durabilityAckTracker.record(
-                    proposalId, memberId, durableHead, success, error, getTotalMemberCount(), getQuorumSize()
-                );
-                if (outcome == null || !outcome.shouldAck) {
-                    return;
-                }
-                sendAckSegmentPersisted(
-                    proposalId,
-                    outcome.success,
-                    outcome.durableHead,
-                    outcome.error,
-                    outcome.totalMembers,
-                    outcome.requiredAcks
-                );
-            }
-
-            @Override
-            public void onAckSegmentPersisted(String proposalId, boolean success, String durableHead, String error,
-                                              int totalMembers, int requiredAcks) {
-                if (durabilityStatusCallback != null) {
-                    if (success) {
-                        durabilityStatusCallback.onDurable(proposalId, durableHead);
+            if (outcome.success) {
+                durabilityStatusCallback.onDurable(proposalId, outcome.durableHead);
                     } else {
-                        durabilityStatusCallback.onFailure(proposalId, error != null ? error : "durability failed");
-                    }
-                }
-                durabilityAckTracker.complete(proposalId);
+                durabilityStatusCallback.onFailure(proposalId, outcome.error);
             }
         });
+        // Runs inside onSessionMessage, so cluster.time() and cluster.logPosition() describe the entry being applied
         this.messageDispatcher.setTransactionCallback(new MessageDispatcher.TransactionCallback() {
             @Override
             public void onStartTransaction(String transactionId, String correlationId, long timeoutMs, String initiatorWallet) {
-                TransactionLifecycleManager.TransitionResult result =
-                    transactionLifecycleManager.onStart(transactionId, correlationId, timeoutMs, initiatorWallet);
+                TransactionLifecycleManager.TransitionResult result = transactionLifecycleManager.onStart(
+                    transactionId, correlationId, timeoutMs, initiatorWallet, cluster.time(), cluster.logPosition());
                 if (result.isApplied()) {
+                    scheduleTransactionTimer(result.getRecord().timerId, result.getRecord().deadlineMs);
                     if (transactionLifecycleCallback != null) {
                         transactionLifecycleCallback.onStartTransaction(transactionId, correlationId, timeoutMs, initiatorWallet);
                     }
@@ -471,31 +455,31 @@ public class AeronConsensusEngine implements ClusteredService {
             @Override
             public void onCommitTransaction(String transactionId, String correlationId) {
                 TransactionLifecycleManager.TransitionResult result =
-                    transactionLifecycleManager.onCommit(transactionId, correlationId);
+                    transactionLifecycleManager.onCommit(transactionId, correlationId, cluster.time());
                 if (result.isApplied()) {
+                    cancelTransactionTimer(result.getRecord().timerId);
                     if (transactionLifecycleCallback != null) {
                         transactionLifecycleCallback.onCommitTransaction(transactionId, correlationId);
                     }
                     return;
                 }
-                if (!result.isIdempotent()) {
-                    log.warn("⚠️  Rejected COMMIT transaction {} (correlation={}): {}", transactionId, correlationId, result.getReason());
-                }
+                onTransactionTransitionNotApplied("COMMIT", transactionId, correlationId, result);
             }
 
             @Override
             public void onAbortTransaction(String transactionId, String correlationId, String reason) {
                 TransactionLifecycleManager.TransitionResult result =
-                    transactionLifecycleManager.onAbort(transactionId, correlationId, reason);
+                    transactionLifecycleManager.onAbort(transactionId, correlationId, reason, cluster.time());
                 if (result.isApplied()) {
+                    if (result.getRecord().timeoutMs > 0) {
+                        cancelTransactionTimer(result.getRecord().timerId);
+                    }
                     if (transactionLifecycleCallback != null) {
                         transactionLifecycleCallback.onAbortTransaction(transactionId, correlationId, reason);
                     }
                     return;
                 }
-                if (!result.isIdempotent()) {
-                    log.warn("⚠️  Rejected ABORT transaction {} (correlation={}): {}", transactionId, correlationId, result.getReason());
-                }
+                onTransactionTransitionNotApplied("ABORT", transactionId, correlationId, result);
             }
         });
 
@@ -609,7 +593,6 @@ public class AeronConsensusEngine implements ClusteredService {
             // Start background timer for checking pending HEAD broadcasts
             // This ensures broadcasts happen even when no new writes arrive
             // No background head broadcast timer in deterministic consensus mode.
-            startTransactionTimeoutScheduler();
             
             log.info("Aeron Consensus Engine started - Status: Ready");
             
@@ -628,7 +611,6 @@ public class AeronConsensusEngine implements ClusteredService {
         // Stop background timer
         // No head broadcast timer to stop in deterministic consensus mode.
         stopReconnectScheduler();
-        stopTransactionTimeoutScheduler();
         if (beaconClient != null) {
             beaconClient.stopBackgroundPolling();
         }
@@ -710,6 +692,10 @@ public class AeronConsensusEngine implements ClusteredService {
         
         this.cluster = cluster;
         this.idleStrategy = cluster.idleStrategy();
+        // Aeron replays the log from 0 (or the snapshot) into a store that already holds the applied entries.
+        messageDispatcher.setReplayFloor(AppliedLogPosition.read(nodeStore != null ? nodeStore.getRoot() : null));
+        publishedRole = cluster.role();
+        publishPosition(cluster.logPosition(), cluster.time());
         
         // Load snapshot if present (ensures consistent initial state)
         if (snapshotImage != null) {
@@ -723,6 +709,9 @@ public class AeronConsensusEngine implements ClusteredService {
             log.debug("Followers will receive genesis via Aeron replication (no manual sync needed)");
         }
         
+        // Fail-stop before replay if the log is not the one this store was built from.
+        LogStoreGuard.checkOnStart(messageDispatcher.getReplayFloor(), snapshotImage != null,
+            () -> LogStoreGuard.lastRecordedTerm(cluster.context().clusterDir()));
         genesisVerified = genesisInitializer.verifyExistingGenesis();
         if (snapshotImage != null && !genesisVerified) {
             throw new IllegalStateException("Snapshot is missing verified canonical genesis; restore rather than mint a new identity");
@@ -760,52 +749,42 @@ public class AeronConsensusEngine implements ClusteredService {
         log.info("Aeron Cluster service started successfully");
     }
 
+    /**
+     * Reads the snapshot metadata and restores the durability tally and GC proposals. Store files are never
+     * touched: the Oak store persists itself, and the log is replayed only after the snapshot position, so the store
+     * must already hold everything up to the snapshot.
+     */
     private void restoreSnapshotOnStart(Image snapshotImage) {
-        log.info("Loading snapshot from image");
-
+        SnapshotService.SnapshotState snapshot;
         try {
-            SnapshotService.SnapshotState snapshotState = snapshotService.restoreSnapshot(
-                snapshotImage,
-                idleStrategy != null ? idleStrategy : new org.agrona.concurrent.BusySpinIdleStrategy()
-            );
-
-            if (snapshotState == null) {
-                throw new IllegalStateException("Snapshot image contains no usable state");
-            }
-
-            log.info(
-                "Snapshot metadata - HEAD: {}, Epoch: {}, Timestamp: {}",
-                snapshotState.head,
-                snapshotState.epoch,
-                snapshotState.timestamp
-            );
-            verifySnapshotHead(snapshotState);
-            currentEthereumEpoch = snapshotState.epoch;
-            log.info("Snapshot loaded successfully - HEAD verified: {}", snapshotState.head);
-        } catch (Exception e) {
-            log.error("Failed to load snapshot", e);
+            snapshot = snapshotService.restoreSnapshot(snapshotImage, idleStrategy());
+        } catch (RuntimeException e) {
             throw new RuntimeException("Snapshot load failed - cannot start with inconsistent state", e);
         }
+        AppliedLogPosition store = messageDispatcher.getReplayFloor();
+        if (store.compareTo(snapshot.applied) < 0) {
+            throw new IllegalStateException(String.format(
+                "Oak store is behind the Aeron snapshot: store applied %s, snapshot applied %s. The log is replayed "
+                    + "only after the snapshot, so the missing entries would never be applied. Restore the Oak store "
+                    + "that belongs to this cluster directory, or start with --fresh to reset both.",
+                store, snapshot.applied));
+        }
+        currentEthereumEpoch = snapshot.epoch;
+        durabilityTally.restore(snapshot.durability);
+        if (gcApplicationCallback != null) {
+            gcApplicationCallback.restoreProposals(snapshot.gcProposals);
+        }
+        // Log replay resumes after the snapshot position, past the term event in force, so restore it here.
+        if (snapshot.leadershipTermId >= 0) {
+            currentTerm = (int) snapshot.leadershipTermId;
+            leadershipTermKnown = true;
+        }
+        log.info("Snapshot loaded: snapshot applied {}, store applied {}, term {}", snapshot.applied, store,
+            snapshot.leadershipTermId);
     }
 
-    private void verifySnapshotHead(SnapshotService.SnapshotState snapshotState) {
-        String fileStoreHead = fileStore.getHead().getRecordId().toString();
-        if (snapshotState.head.equals(fileStoreHead)) {
-            return;
-        }
-
-        log.error(
-            "CRITICAL: HEAD mismatch - Snapshot: {}, FileStore: {}. Validators must start from identical state. Solution: Copy segmentstore from validator-0 before starting.",
-            snapshotState.head,
-            fileStoreHead
-        );
-        throw new IllegalStateException(
-            String.format(
-                "FileStore HEAD (%s) doesn't match snapshot HEAD (%s). Validators must start from identical state. Copy segmentstore from validator-0 to other validators before starting.",
-                fileStoreHead,
-                snapshotState.head
-            )
-        );
+    private IdleStrategy idleStrategy() {
+        return idleStrategy != null ? idleStrategy : new org.agrona.concurrent.BusySpinIdleStrategy();
     }
     
     @Override
@@ -829,22 +808,25 @@ public class AeronConsensusEngine implements ClusteredService {
         internalIngressClientManager.handleClusterSessionClose(session.id(), closeReason);
     }
     
+    /**
+     * Invoked on every member at the same log position when the leader's consensus module appends a SNAPSHOT
+     * action. Writes the applied watermark, the term, the durability tally and the replicated GC proposals, after
+     * Oak is flushed so the persisted store is at least that far. Any failure propagates: Aeron then acknowledges
+     * the snapshot as failed and does not record it.
+     */
     @Override
     public void onTakeSnapshot(io.aeron.ExclusivePublication snapshotPublication) {
-        log.info("Taking FileStore snapshot");
-        
+        AppliedLogPosition applied = AppliedLogPosition.read(nodeStore.getRoot());
         try {
-            // Use idleStrategy if available
-            org.agrona.concurrent.IdleStrategy strategy = idleStrategy != null 
-                ? idleStrategy 
-                : new org.agrona.concurrent.BusySpinIdleStrategy();
-            
-            // ✅ REFACTORED: Delegate to SnapshotService
-            snapshotService.createSnapshot(snapshotPublication, strategy, currentEthereumEpoch);
-            
-        } catch (Exception e) {
-            log.error("Failed to take snapshot", e);
+            fileStore.flush();
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException("Oak flush before Aeron snapshot failed", e);
         }
+        snapshotService.createSnapshot(snapshotPublication, idleStrategy(), new SnapshotService.SnapshotState(
+            applied, leadershipTermKnown ? currentTerm : -1L, currentEthereumEpoch,
+            fileStore.getHead().getRecordId().toString10(), durabilityTally.snapshotEntries(),
+            gcApplicationCallback != null ? gcApplicationCallback.snapshotProposals() : Collections.emptyList()));
+        snapshotTrigger.onSnapshotTaken(System.currentTimeMillis());
     }
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -854,18 +836,45 @@ public class AeronConsensusEngine implements ClusteredService {
     @Override
     public void onSessionMessage(ClientSession session, long timestamp, DirectBuffer buffer, 
                                  int offset, int length, Header header) {
-        if (ingressHandler == null) {
-            ingressHandler = AeronEngineComponentFactory.createIngressHandler(
-                messageCodec, messageDispatcher, this::markHeartbeat, this::applyGenesisCreation);
+        if (applicationFailure != null) {
+            throw applyFailStop(applicationFailure, header != null ? header.position() : -1L);
         }
-        ingressHandler.handleMessage(session, timestamp, buffer, offset, length, header, cluster);
+        publishPosition(header.position(), timestamp);
+        // ✈️ AERON NATIVE: Handle replicated write proposals
+        // This callback is invoked on ALL nodes after Aeron replicates the message via Raft
+        // Deterministic state machine: ALL nodes process messages in same order
+        try {
+            ingressHandler.handleMessage(session, timestamp, buffer, offset, length, header, cluster);
+        } catch (AgentTerminationException e) {
+            throw e;
+        } catch (RuntimeException | Error e) {
+            applicationFailure = e;
+            throw applyFailStop(e, header != null ? header.position() : -1L);
+        }
+        snapshotTrigger.onEntryApplied(cluster != null && cluster.role() == Cluster.Role.LEADER,
+            System.currentTimeMillis());
     }
 
     public boolean hasApplicationFailure() {
-        return ingressHandler != null && ingressHandler.hasApplicationFailure();
+        return applicationFailure != null;
     }
-    
-    
+
+    /**
+     * An entry that failed to apply for any reason other than a deterministic rejection (those return normally) may
+     * have failed on this member only: Aeron would still advance past it, so this member must stop instead.
+     * Throwing {@link AgentTerminationException} ends the service agent before the next entry; Agrona's AgentRunner
+     * hands it to the service error handler, where the FATAL cause takes the existing fail-stop path
+     * ({@link AeronClusterFailureCoordinator}: crash marker, Aeron shutdown, then the process-exit callback).
+     * On restart the entry is above the applied watermark and is applied again.
+     */
+    static AgentTerminationException applyFailStop(Throwable cause, long logPosition) {
+        log.error("❌ Applying the log entry ending at position {} failed on this member - stopping it", logPosition,
+            cause);
+        return new AgentTerminationException("apply of log entry ending at position " + logPosition + " failed",
+            new AeronException("node-local apply failure at log position " + logPosition, cause,
+                AeronException.Category.FATAL));
+    }
+
     /**
      * ✈️ AERON NATIVE: Send write proposal through Aeron ingress channel for replication.
      * 
@@ -883,11 +892,13 @@ public class AeronConsensusEngine implements ClusteredService {
      * Create internal AeronCluster client lazily (on first write attempt).
      * This avoids timeout issues during cluster startup.
      */
-    private void ensureInternalClusterClient() {
-        if (!internalIngressClientManager.ensureAvailable("request ingress", INGRESS_CLIENT_REQUEST_WAIT_MS)) {
-            log.warn("⚠️  Internal ingress client unavailable after wait (state={})",
-                internalIngressClientManager.diagnostics().get("state"));
+    private boolean ensureInternalClusterClient() {
+        if (internalIngressClientManager.ensureAvailable("request ingress", INGRESS_CLIENT_REQUEST_WAIT_MS)) {
+            return true;
         }
+        log.warn("⚠️  Internal ingress client unavailable after wait (state={})",
+            internalIngressClientManager.diagnostics().get("state"));
+        return internalIngressClientManager.isHealthy();
     }
 
     private void scheduleIngressClientRebind(String reason) {
@@ -934,7 +945,7 @@ public class AeronConsensusEngine implements ClusteredService {
                 correlationId,
                 timeoutMs,
                 initiatorWallet,
-                getCurrentTerm()
+                getIngressTerm()
             ),
             "start-transaction"
         );
@@ -950,7 +961,7 @@ public class AeronConsensusEngine implements ClusteredService {
             return false;
         }
         return sendTransactionMessage(
-            ingressControlPayloadBuilder.buildCommitTransaction(transactionId, correlationId, getCurrentTerm()),
+            ingressControlPayloadBuilder.buildCommitTransaction(transactionId, correlationId, getIngressTerm()),
             "commit-transaction"
         );
     }
@@ -966,26 +977,19 @@ public class AeronConsensusEngine implements ClusteredService {
             return false;
         }
         return sendTransactionMessage(
-            ingressControlPayloadBuilder.buildAbortTransaction(transactionId, correlationId, reason, getCurrentTerm()),
+            ingressControlPayloadBuilder.buildAbortTransaction(transactionId, correlationId, reason, getIngressTerm()),
             "abort-transaction"
         );
     }
 
-    public boolean sendQueueSegment(String proposalId) {
-        if (proposalId == null || proposalId.isEmpty()) {
-            return false;
-        }
-        return sendQueueSegment(proposalId, getTotalMemberCount(), getQuorumSize());
-    }
-
-    public boolean sendQueueSegment(String proposalId, int totalMembers, int requiredAcks) {
-        if (proposalId == null || proposalId.isEmpty()) {
-            return false;
-        }
-        return sendDurabilityMessage(
-            ingressControlPayloadBuilder.buildQueueSegment(proposalId, totalMembers, requiredAcks),
-            "queue-segment"
-        );
+    /**
+     * The durability decision the log has made for a proposal, while the tally still tracks it. Thread-safe.
+     */
+    public ReplicatedDurability.Decision durabilityDecision(String proposalId) {
+        DurabilityTally.Outcome outcome = durabilityTally.decision(proposalId);
+        return outcome == null
+            ? null
+            : new ReplicatedDurability.Decision(outcome.success, outcome.durableHead, outcome.error);
     }
 
     public boolean sendSegmentPersisted(String proposalId, String durableHead, boolean success, String error) {
@@ -993,27 +997,13 @@ public class AeronConsensusEngine implements ClusteredService {
             return false;
         }
         int memberId = cluster != null ? cluster.memberId() : -1;
+        if (durabilityTally.hasReported(proposalId, memberId)) {
+            log.debug("Durability of {} already in the log for member {} - not sending again", proposalId, memberId);
+            return true;
+        }
         return sendDurabilityMessage(
             ingressControlPayloadBuilder.buildSegmentPersisted(proposalId, memberId, success, durableHead, error),
             "segment-persisted"
-        );
-    }
-
-    public boolean sendAckSegmentPersisted(String proposalId, boolean success, String durableHead, String error,
-                                           int totalMembers, int requiredAcks) {
-        if (proposalId == null || proposalId.isEmpty()) {
-            return false;
-        }
-        return sendDurabilityMessage(
-            ingressControlPayloadBuilder.buildAckSegmentPersisted(
-                proposalId,
-                success,
-                durableHead,
-                error,
-                totalMembers,
-                requiredAcks
-            ),
-            "ack-segment-persisted"
         );
     }
 
@@ -1021,18 +1011,25 @@ public class AeronConsensusEngine implements ClusteredService {
         return sendDurabilityMessage(encoded, label, 0);
     }
 
+    /**
+     * Fire-and-forget: may run on the clustered service thread, so it never waits for the ingress owner.
+     * Returns true once the message is queued; failures are retried from the result callback.
+     */
     private boolean sendDurabilityMessage(AeronEncodedMessage encoded, String label, int attempt) {
-        if (!ensureIngressClient("durability message (" + label + ")", 0L)) {
-            scheduleDurabilityRetry(encoded, label, attempt, "ingress client unavailable");
+        if (cluster == null) {
+            log.error("❌ Cluster not initialized - cannot send durability message ({})", label);
+            scheduleDurabilityRetry(encoded, label, attempt, "cluster not initialized");
             return false;
         }
-        boolean sent = sendEncodedMessage(encoded, "durability " + label, null, false);
-        if (sent) {
-            log.debug("✅ Durability message sent ({})", label);
-            return true;
-        }
-        scheduleDurabilityRetry(encoded, label, attempt, "send failed");
-        return false;
+        String messageType = "durability " + label;
+        internalIngressClientManager.offerAsync(encoded.buffer, encoded.totalLength, messageType, result -> {
+            if (result == AeronInternalIngressClientManager.SendResult.SENT) {
+                log.debug("✅ Durability message sent ({})", label);
+                return;
+            }
+            scheduleDurabilityRetry(encoded, label, attempt, result.name());
+        });
+        return true;
     }
 
     private void scheduleDurabilityRetry(AeronEncodedMessage encoded, String label, int attempt, String reason) {
@@ -1100,19 +1097,10 @@ public class AeronConsensusEngine implements ClusteredService {
             return false;
         }
         
-        // Ensure internal cluster client is created (lazy initialization)
-        ensureInternalClusterClient();
-        
-        if (internalClusterClient == null) {
+        if (!ensureInternalClusterClient()) {
             log.error("❌ Internal AeronCluster client not available - cannot send write through ingress");
             return false;
         }
-        
-        // 🔍 GROK DIAGNOSTIC: Check client/session state for PRIORITY path
-        log.debug("🔍 PRIORITY PATH: client={}, sessionId={}, isClosed={}", 
-            System.identityHashCode(internalClusterClient),
-            internalClusterClient.clusterSessionId(),
-            internalClusterClient.isClosed());
         
         try {
             AeronEncodedMessage encoded =
@@ -1122,7 +1110,7 @@ public class AeronConsensusEngine implements ClusteredService {
                     contentType,
                     message,
                     signature,
-                    shouldIncludeTerm() ? Integer.valueOf(getIngressTerm()) : null,
+                    getIngressTerm(),
                     ipfsCid,
                     normalizeAuditMetadata(auditMetadata, MutationAuditMetadata.Operation.WRITE)
                 );
@@ -1202,18 +1190,10 @@ public class AeronConsensusEngine implements ClusteredService {
             return false;
         }
         
-        // Ensure internal cluster client is created (lazy initialization)
-        ensureInternalClusterClient();
-        
-        if (internalClusterClient == null) {
+        if (!ensureInternalClusterClient()) {
             log.error("❌ Internal AeronCluster client not available - cannot send write through ingress");
             return false;
         }
-        
-        log.debug("🔍 PRIORITY PATH (with binary): client={}, sessionId={}, blobId={}", 
-            System.identityHashCode(internalClusterClient),
-            internalClusterClient.clusterSessionId(),
-            blobId);
         
         try {
             AeronEncodedMessage encoded =
@@ -1223,7 +1203,7 @@ public class AeronConsensusEngine implements ClusteredService {
                     contentType,
                     message,
                     signature,
-                    shouldIncludeTerm() ? Integer.valueOf(getIngressTerm()) : null,
+                    getIngressTerm(),
                     blobId,
                     mimeType,
                     ipfsCid,
@@ -1293,10 +1273,7 @@ public class AeronConsensusEngine implements ClusteredService {
             return false;
         }
         
-        // Ensure internal cluster client is created (lazy initialization)
-        ensureInternalClusterClient();
-        
-        if (internalClusterClient == null) {
+        if (!ensureInternalClusterClient()) {
             log.error("❌ Internal AeronCluster client not available - cannot send delete through ingress");
             return false;
         }
@@ -1309,7 +1286,7 @@ public class AeronConsensusEngine implements ClusteredService {
                     walletAddress,
                     path,
                     signature,
-                    shouldIncludeTerm() ? Integer.valueOf(getIngressTerm()) : null,
+                    getIngressTerm(),
                     normalizeAuditMetadata(auditMetadata, MutationAuditMetadata.Operation.DELETE)
                 );
             
@@ -1350,24 +1327,9 @@ public class AeronConsensusEngine implements ClusteredService {
         }
         
         log.debug("🔍DEBUG_BATCH [1]: sendWriteBatchThroughIngress() ENTRY - batch size: {}, role: {}", 
-            proposals.size(), cluster != null ? cluster.role() : "NO_CLUSTER");
+            proposals.size(), publishedRole);
         
-        // Ensure internal cluster client is created (lazy initialization)
-        ensureInternalClusterClient();
-        
-        log.debug("🔍DEBUG_BATCH [2]: After ensureInternalClusterClient() - client available: {}", 
-            internalClusterClient != null);
-        
-        // 🔍 GROK DIAGNOSTIC: Check client/session state for BATCH path
-        if (internalClusterClient != null) {
-            log.debug("🔍 BATCH PATH: client={}, sessionId={}, isClosed={}", 
-                System.identityHashCode(internalClusterClient),
-                internalClusterClient.clusterSessionId(),
-                internalClusterClient.isClosed());
-        }
-        
-        if (internalClusterClient == null) {
-            log.debug("🔍DEBUG_BATCH [3]: ❌ ABORTING - internalClusterClient is NULL");
+        if (!ensureInternalClusterClient()) {
             log.error("❌ Internal AeronCluster client not available - cannot send batch write through ingress");
             return 0;
         }
@@ -1388,7 +1350,7 @@ public class AeronConsensusEngine implements ClusteredService {
             AeronEncodedMessage encoded =
                 ingressWritePayloadBuilder.buildWriteBatch(
                     proposals,
-                    shouldIncludeTerm() ? Integer.valueOf(getIngressTerm()) : null
+                    getIngressTerm()
                 );
             
             log.debug("🔍DEBUG_BATCH [5]: JSON built - size: {} bytes, first 100 chars: {}", 
@@ -1399,7 +1361,7 @@ public class AeronConsensusEngine implements ClusteredService {
                 encoded.totalLength - SimpleMessageHeader.ENCODED_LENGTH, encoded.templateId);
             
             // ✈️ AERON CLUSTER: Send batch message through internal AeronCluster client
-            log.debug("🔍DEBUG_BATCH [7]: About to call internalClusterClient.offer() - totalLength: {} bytes", encoded.totalLength);
+            log.debug("🔍DEBUG_BATCH [7]: About to offer through the ingress owner - totalLength: {} bytes", encoded.totalLength);
             
             try {
                 boolean sent = sendEncodedMessage(
@@ -1448,19 +1410,36 @@ public class AeronConsensusEngine implements ClusteredService {
     public interface GCApplicationCallback {
         /**
          * Apply a replicated GC proposal (create proposal on all nodes).
+         *
+         * @param clusterTime cluster timestamp of the log entry
          */
         void applyGCProposal(String proposalId, String proposerWallet, String targetRevision,
-                            long estimatedReclaimableSizeMB, String estimatedCostUSDC);
+                            long estimatedReclaimableSizeMB, String estimatedCostUSDC, long clusterTime);
         
         /**
          * Apply a replicated GC vote.
+         *
+         * @param clusterTime cluster timestamp of the log entry
          */
-        void applyGCVote(String proposalId, int validatorId, boolean approve, String reason);
+        void applyGCVote(String proposalId, int validatorId, boolean approve, String reason, long clusterTime);
         
         /**
-         * Apply a replicated GC execution command (leader-initiated).
+         * Apply a replicated GC execution command. Must not block: cleanup runs off the service thread.
          */
         void applyGCExecute(String proposalId, int executorId);
+
+        /**
+         * The replicated GC proposals for the Aeron snapshot, as JSON values. Called on the service thread.
+         */
+        default List<Map<String, Object>> snapshotProposals() {
+            return Collections.emptyList();
+        }
+
+        /**
+         * Replaces the replicated GC proposals with those of a snapshot. Must not start any execution.
+         */
+        default void restoreProposals(List<Map<String, Object>> proposals) {
+        }
     }
     
     /**
@@ -1470,6 +1449,7 @@ public class AeronConsensusEngine implements ClusteredService {
      * Note: The callback is not stored as a field since it's only used to wire to MessageDispatcher.
      */
     public void setGCCallback(GCApplicationCallback callback) {
+        this.gcApplicationCallback = callback;
         // Wire to MessageDispatcher for delegated GC message handling
         if (messageDispatcher != null && callback != null) {
             messageDispatcher.setGCCallback(new MessageDispatcher.GCCallback() {
@@ -1477,12 +1457,12 @@ public class AeronConsensusEngine implements ClusteredService {
                 public void applyGCProposal(String proposalId, String proposerWallet, String targetRevision,
                                           long estimatedReclaimableSizeMB, String estimatedCostUSDC) {
                     callback.applyGCProposal(proposalId, proposerWallet, targetRevision,
-                                            estimatedReclaimableSizeMB, estimatedCostUSDC);
+                                            estimatedReclaimableSizeMB, estimatedCostUSDC, cluster.time());
                 }
                 
                 @Override
                 public void applyGCVote(String proposalId, int validatorId, boolean approve, String reason) {
-                    callback.applyGCVote(proposalId, validatorId, approve, reason);
+                    callback.applyGCVote(proposalId, validatorId, approve, reason, cluster.time());
                 }
                 
                 @Override
@@ -1516,9 +1496,7 @@ public class AeronConsensusEngine implements ClusteredService {
             return false;
         }
         
-        ensureInternalClusterClient();
-        
-        if (internalClusterClient == null) {
+        if (!ensureInternalClusterClient()) {
             log.error("❌ Internal AeronCluster client not available - cannot send GC proposal");
             return false;
         }
@@ -1557,9 +1535,7 @@ public class AeronConsensusEngine implements ClusteredService {
             return false;
         }
         
-        ensureInternalClusterClient();
-        
-        if (internalClusterClient == null) {
+        if (!ensureInternalClusterClient()) {
             log.error("❌ Internal AeronCluster client not available - cannot send GC vote");
             return false;
         }
@@ -1579,7 +1555,7 @@ public class AeronConsensusEngine implements ClusteredService {
     /**
      * Send a GC execute command through Aeron ingress for cluster-wide replication.
      * 
-     * <p>Only the leader should call this after a proposal is approved.
+     * <p>Any member may send it; applying it is idempotent and only an APPROVED proposal starts executing.
      * 
      * @param proposalId the approved proposal to execute
      * @param executorId the validator executing the GC
@@ -1591,15 +1567,7 @@ public class AeronConsensusEngine implements ClusteredService {
             return false;
         }
         
-        // Only leader should initiate GC execution
-        if (cluster.role() != Cluster.Role.LEADER) {
-            log.warn("⚠️  Only leader can initiate GC execution (current role: {})", cluster.role());
-            return false;
-        }
-        
-        ensureInternalClusterClient();
-        
-        if (internalClusterClient == null) {
+        if (!ensureInternalClusterClient()) {
             log.error("❌ Internal AeronCluster client not available - cannot send GC execute");
             return false;
         }
@@ -1654,90 +1622,42 @@ public class AeronConsensusEngine implements ClusteredService {
         return true;
     }
 
+    /**
+     * Offers through the ingress owner thread with a bounded wait. Back-pressure and timeouts are returned
+     * to the caller as "not sent"; when the session was lost (the owner then rebinds it), waits for the
+     * rebind and retries once.
+     */
     private boolean sendEncodedMessage(AeronEncodedMessage encoded,
                                        String messageType,
                                        Runnable onSuccess) {
-        return sendEncodedMessage(encoded, messageType, onSuccess, true);
-    }
-
-    private boolean sendEncodedMessage(AeronEncodedMessage encoded,
-                                       String messageType,
-                                       Runnable onSuccess,
-                                       boolean reconnectImmediatelyOnSendFailure) {
-        try {
-            io.aeron.cluster.client.AeronCluster currentClient = internalClusterClient;
-            if (currentClient == null) {
-                log.error("❌ Cannot send {} - internal cluster client is unavailable", messageType);
-                return false;
-            }
-
-            if (currentClient.isClosed()) {
-                log.error("❌ Cannot send {} - internal cluster client session is CLOSED", messageType);
-                internalIngressClientManager.notifySendFailure("closed client for " + messageType);
-                if (!reconnectImmediatelyOnSendFailure
-                        || !internalIngressClientManager.ensureAvailable(messageType, INGRESS_CLIENT_REQUEST_WAIT_MS)) {
-                    log.error("❌ Reconnection failed - cannot send {}", messageType);
-                    return false;
-                }
-                currentClient = internalClusterClient;
-                if (currentClient == null || currentClient.isClosed()) {
-                    log.error("❌ Reconnection failed - cannot send {}", messageType);
-                    return false;
-                }
-            }
-
-            Runnable successCallback = onSuccess != null ? onSuccess : () -> { };
-            AeronEgressHandler.OfferResult result = egressHandler.offerWithRetryResult(
-                currentClient,
-                idleStrategy,
-                encoded.buffer,
-                encoded.totalLength,
-                messageType,
-                100,
-                successCallback,
-                false
-            );
-            if (result == AeronEgressHandler.OfferResult.SENT) {
-                return true;
-            }
-
-            if (!reconnectImmediatelyOnSendFailure) {
-                if (result == AeronEgressHandler.OfferResult.NOT_CONNECTED) {
-                    log.warn("⚠️  {} not connected after retries - deferring to scheduled retry", messageType);
-                    internalIngressClientManager.notifySendFailure("not connected for " + messageType);
-                } else {
-                    log.warn("⚠️  {} send failed - deferring to scheduled retry", messageType);
-                    internalIngressClientManager.notifySendFailure("send failure for " + messageType);
-                }
-                return false;
-            }
-
-            log.warn("⚠️  {} send failed - rebinding internal ingress client and retrying once", messageType);
-            internalIngressClientManager.notifySendFailure("send failure for " + messageType);
+        AeronInternalIngressClientManager.SendResult result = offerThroughOwner(encoded, messageType);
+        if (result == AeronInternalIngressClientManager.SendResult.BACK_PRESSURED
+                || result == AeronInternalIngressClientManager.SendResult.TIMEOUT) {
+            log.warn("⚠️  {} not sent ({}) - caller retries", messageType, result);
+            return false;
+        }
+        if (result != AeronInternalIngressClientManager.SendResult.SENT) {
+            log.warn("⚠️  {} send failed ({}) - waiting for ingress rebind and retrying once", messageType, result);
             if (!internalIngressClientManager.ensureAvailable(messageType, INGRESS_CLIENT_REQUEST_WAIT_MS)) {
                 log.error("❌ Retry rebind failed - cannot send {}", messageType);
                 return false;
             }
-            currentClient = internalClusterClient;
-            if (currentClient == null || currentClient.isClosed()) {
-                log.error("❌ Retry rebind failed - cannot send {}", messageType);
-                return false;
-            }
-
-            return egressHandler.offerWithRetryResult(
-                currentClient,
-                idleStrategy,
-                encoded.buffer,
-                encoded.totalLength,
-                messageType,
-                100,
-                successCallback,
-                false
-            ) == AeronEgressHandler.OfferResult.SENT;
-        } catch (Exception e) {
-            log.error("❌ Exception sending {} through AeronCluster client", messageType, e);
+            result = offerThroughOwner(encoded, messageType);
+        }
+        if (result != AeronInternalIngressClientManager.SendResult.SENT) {
+            log.error("❌ Failed to send {} through ingress: {}", messageType, result);
             return false;
         }
+        if (onSuccess != null) {
+            onSuccess.run();
+        }
+        return true;
+    }
+
+    private AeronInternalIngressClientManager.SendResult offerThroughOwner(AeronEncodedMessage encoded,
+                                                                          String messageType) {
+        return internalIngressClientManager.offer(
+            encoded.buffer, encoded.totalLength, messageType, INGRESS_CLIENT_REQUEST_WAIT_MS);
     }
     
     /**
@@ -1754,10 +1674,13 @@ public class AeronConsensusEngine implements ClusteredService {
     
     @Override
     public void onTimerEvent(long correlationId, long timestamp) {
-        // Handle timer events
-        // SEPOLIA_PHASE: Implement timer-based Ethereum epoch polling via Web3j
-        processTransactionTimeouts();
-        log.debug("⏰ Timer event: {}", correlationId);
+        publishPosition(cluster.logPosition(), timestamp);
+        TransactionLifecycleManager.TransitionResult result = transactionLifecycleManager.onTimer(correlationId, timestamp);
+        if (result.isTimedOut()) {
+            onTransactionTimedOut(result.getRecord());
+        } else {
+            log.debug("⏰ Timer event {} matched no active transaction", correlationId);
+        }
     }
     
     // Note: onTakeSnapshot() is implemented above (line 507) with full snapshot support
@@ -1766,6 +1689,7 @@ public class AeronConsensusEngine implements ClusteredService {
     
     @Override
     public void onRoleChange(Cluster.Role newRole) {
+        publishedRole = newRole;
         log.info("Role change: {} -> {}", currentRole, newRole.name());
         markHeartbeat();
         
@@ -1783,14 +1707,7 @@ public class AeronConsensusEngine implements ClusteredService {
         long timestamp = System.currentTimeMillis();
         long clusterTime = cluster != null ? cluster.time() : -1L;
 
-        // ✅ ADR 025: Track term on role change (Aeron doesn't expose leadershipTermId on Cluster interface)
-        if (newRole == Cluster.Role.LEADER && previousRole != Cluster.Role.LEADER) {
-            currentTerm++;
-            log.info("Term incremented to: {}", currentTerm);
-        }
-        if (newRole == Cluster.Role.FOLLOWER) {
-            refreshLeaderTermIfNeeded(true);
-        }
+        // Term is not changed here: it comes from onNewLeadershipTermEvent, in log order.
 
         LeadershipChange change = new LeadershipChange(
             timestamp,
@@ -1832,6 +1749,32 @@ public class AeronConsensusEngine implements ClusteredService {
         handleIngressClientRoleChange(previousRole, newRole);
         updateRoleFromCluster(newRole);
     }
+
+    /**
+     * Delivered on every member, in log order (including replay), at the start of each leadership term.
+     * This is the only place followers learn the leader identity without network I/O.
+     */
+    @Override
+    public void onNewLeadershipTermEvent(long leadershipTermId,
+                                         long logPosition,
+                                         long timestamp,
+                                         long termBaseLogPosition,
+                                         int leaderMemberId,
+                                         int logSessionId,
+                                         java.util.concurrent.TimeUnit timeUnit,
+                                         int appVersion) {
+        LogStoreGuard.checkTermEvent(messageDispatcher.getReplayFloor(), leadershipTermId, termBaseLogPosition);
+        publishPosition(logPosition, timestamp);
+        currentTerm = (int) leadershipTermId;
+        leadershipTermKnown = true;
+        logAppVersion = org.agrona.SemanticVersion.toString(appVersion);
+        String leaderUrl = nodeIdToUrl.get(leaderMemberId);
+        log.info("New leadership term {} at log position {}: leader memberId={} url={} appVersion={}",
+            leadershipTermId, logPosition, leaderMemberId, leaderUrl, logAppVersion);
+        if (leaderUrl != null) {
+            leaderDiscoveryService.setKnownLeader(leaderUrl, leaderMemberId);
+        }
+    }
     
     /**
      * ✈️ AERON NATIVE: Get leadership rotation history.
@@ -1843,7 +1786,7 @@ public class AeronConsensusEngine implements ClusteredService {
      */
     public java.util.List<LeadershipChange> getLeadershipHistory(int limit) {
         if (leaderTracker == null) {
-            return java.util.Collections.emptyList();
+            return Collections.emptyList();
         }
         return leaderTracker.getLeadershipHistory(limit);
     }
@@ -1853,7 +1796,6 @@ public class AeronConsensusEngine implements ClusteredService {
         log.info("Aeron Cluster service terminating (role: {})", cluster.role());
 
         internalIngressClientManager.close();
-        stopTransactionTimeoutScheduler();
         backgroundCoordinator.close();
         
         // Cleanup resources
@@ -1901,12 +1843,12 @@ public class AeronConsensusEngine implements ClusteredService {
     /**
      * Get current validator role (LEADER, FOLLOWER, etc.).
      * 
-     * ✈️ AERON NATIVE: Uses cluster.role() directly from Aeron Cluster.
+     * ✈️ AERON NATIVE: Uses the role published by onStart/onRoleChange.
      */
     public ValidatorRole getCurrentRole() {
-        if (cluster != null) {
-            // Use Aeron's native role - this is the source of truth
-            Cluster.Role aeronRole = cluster.role();
+        Cluster.Role aeronRole = publishedRole;
+        if (aeronRole != null) {
+            // Aeron's role, as published by the service callbacks, is the source of truth
             if (aeronRole == Cluster.Role.LEADER) {
                 return ValidatorRole.LEADER;
             } else if (aeronRole == Cluster.Role.FOLLOWER) {
@@ -1919,11 +1861,12 @@ public class AeronConsensusEngine implements ClusteredService {
     /**
      * Check if this validator is currently the leader.
      * 
-     * ✈️ AERON NATIVE: Uses cluster.role() directly from Aeron Cluster.
+     * ✈️ AERON NATIVE: Uses the role published by onStart/onRoleChange.
      */
     public boolean isLeader() {
-        if (cluster != null) {
-            return cluster.role() == Cluster.Role.LEADER;
+        Cluster.Role aeronRole = publishedRole;
+        if (aeronRole != null) {
+            return aeronRole == Cluster.Role.LEADER;
         }
         return currentRole == ValidatorRole.LEADER;
     }
@@ -1944,10 +1887,11 @@ public class AeronConsensusEngine implements ClusteredService {
      * @return true if cluster can accept proposals, false otherwise
      */
     public boolean isClusterHealthy() {
+        // The ingress client belongs to its owner thread; health does not read it.
         return !hasApplicationFailure() && genesisVerified && healthService.isClusterHealthy(
-            cluster,
+            publishedRole,
             this::hasQuorum,
-            () -> internalClusterClient
+            () -> null
         );
     }
     
@@ -1966,9 +1910,9 @@ public class AeronConsensusEngine implements ClusteredService {
             return "canonical_genesis_not_verified";
         }
         return healthService.getUnhealthyReason(
-            cluster,
+            publishedRole,
             this::hasQuorum,
-            () -> internalClusterClient
+            () -> null
         );
     }
 
@@ -2128,11 +2072,14 @@ public class AeronConsensusEngine implements ClusteredService {
      * @return Native cluster state map, or null if cluster not initialized
      */
     public java.util.Map<String, Object> getNativeClusterState() {
-        if (cluster == null) {
+        if (cluster == null || publishedRole == null) {
             return null;
         }
-        return clusterStateView.buildNativeClusterState(
-            cluster,
+        java.util.Map<String, Object> state = clusterStateView.buildNativeClusterState(
+            publishedRole,
+            cluster.memberId(),
+            publishedClusterTime,
+            publishedLogPosition,
             getCurrentLeaderHint(),
             getWalletAddress(),
             getPublicKeyHex(),
@@ -2140,6 +2087,8 @@ public class AeronConsensusEngine implements ClusteredService {
             getCurrentEpoch(),
             getCurrentEthereumEpoch()
         );
+        state.put("appVersion", logAppVersion);
+        return state;
     }
 
     /**
@@ -2150,7 +2099,7 @@ public class AeronConsensusEngine implements ClusteredService {
             return currentLeader;
         }
 
-        if (cluster.role() == Cluster.Role.LEADER) {
+        if (publishedRole == Cluster.Role.LEADER) {
             return selfUrl;
         }
 
@@ -2188,12 +2137,12 @@ public class AeronConsensusEngine implements ClusteredService {
         }
         
         // ✈️ AERON NATIVE: If we're the leader, return self
-        if (cluster.role() == Cluster.Role.LEADER) {
+        if (publishedRole == Cluster.Role.LEADER) {
             return selfUrl;
         }
         
         // ✅ REFACTORED: Delegate to LeaderDiscoveryService
-        String leaderUrl = leaderDiscoveryService.discoverLeader(cluster);
+        String leaderUrl = leaderDiscoveryService.discoverLeader(publishedRole);
         if (leaderUrl != null) {
             this.currentLeader = leaderUrl;
             return leaderUrl;
@@ -2203,40 +2152,32 @@ public class AeronConsensusEngine implements ClusteredService {
     }
     
     /**
-     * ✅ ADR 025: Get current Raft term (tracked locally on role changes).
-     * 
-     * <p>Note: Aeron Cluster's {@code Cluster} interface doesn't expose {@code leadershipTermId()}.
-     * We track term locally by incrementing on leader elections (via {@code onRoleChange()}).
-     * Term monotonically increases with each leader election, providing split-brain protection foundation.
-     * 
-     * <p>PRODUCTION_HARDENING: Term field is embedded in write/delete proposals and
-     * {@link MessageDispatcher} rejects proposals with {@code term < currentTerm}.
-     * 
+     * ✅ ADR 025: Get current Raft term: the Aeron {@code leadershipTermId} of the last
+     * {@code onNewLeadershipTermEvent} applied from the log (0 before the first event).
+     *
+     * <p>Every member applies the same term events at the same log positions, so the term seen by
+     * {@link MessageDispatcher} when it rejects proposals with {@code term < currentTerm} is the same
+     * on all members and on replay.
+     *
      * @return Current Raft term
      */
     public int getCurrentTerm() {
         return currentTerm;
     }
 
-    private int getIngressTerm() {
-        if (cluster == null) {
-            return currentTerm;
-        }
-        if (cluster.role() == Cluster.Role.LEADER) {
-            return currentTerm;
-        }
-        refreshLeaderTermIfNeeded(false);
-        return currentTerm;
+    /** Term stamped on proposals sent through ingress; null (accepted as missing) until a term is known. */
+    private Integer getIngressTerm() {
+        return leadershipTermKnown ? Integer.valueOf(currentTerm) : null;
     }
 
-    private void refreshLeaderTermIfNeeded(boolean force) {
+    private void refreshLeaderLogPositionIfNeeded(boolean force) {
         long now = System.currentTimeMillis();
-        if (!force && (now - lastLeaderTermFetchMs) < LEADER_TERM_TTL_MS) {
+        if (!force && (now - lastLeaderLogPositionFetchMs) < LEADER_LOG_POSITION_TTL_MS) {
             return;
         }
-        lastLeaderTermFetchMs = now;
+        lastLeaderLogPositionFetchMs = now;
         try {
-            String leaderUrl = leaderDiscoveryService != null ? leaderDiscoveryService.discoverLeader(cluster) : null;
+            String leaderUrl = leaderDiscoveryService != null ? leaderDiscoveryService.discoverLeader(publishedRole) : null;
             if (leaderUrl == null) {
                 return;
             }
@@ -2257,14 +2198,6 @@ public class AeronConsensusEngine implements ClusteredService {
             );
             String response = reader.lines().collect(java.util.stream.Collectors.joining());
             reader.close();
-            String leaderTermValue = JsonParser.extractField(response, "term");
-            if (leaderTermValue != null) {
-                int leaderTerm = Integer.parseInt(leaderTermValue);
-                if (leaderTerm > currentTerm) {
-                    currentTerm = leaderTerm;
-                    log.info("Synced term from leader: {}", currentTerm);
-                }
-            }
             String leaderLogPositionValue = JsonParser.extractField(response, "logPosition");
             if (leaderLogPositionValue != null) {
                 long observedLeaderLogPosition = Long.parseLong(leaderLogPositionValue);
@@ -2273,12 +2206,8 @@ public class AeronConsensusEngine implements ClusteredService {
                 }
             }
         } catch (Exception e) {
-            log.debug("Failed to sync term from leader: {}", e.getMessage());
+            log.debug("Failed to fetch leader log position: {}", e.getMessage());
         }
-    }
-
-    private boolean shouldIncludeTerm() {
-        return true;
     }
     
     /**
@@ -2309,7 +2238,8 @@ public class AeronConsensusEngine implements ClusteredService {
      * @return Leader's member ID or -1 if unknown
      */
     public int getLeaderMemberId() {
-        return clusterStateView.resolveLeaderMemberId(cluster, currentLeader);
+        return clusterStateView.resolveLeaderMemberId(
+            publishedRole, cluster != null ? cluster.memberId() : -1, currentLeader);
     }
     
     /**
@@ -2323,9 +2253,8 @@ public class AeronConsensusEngine implements ClusteredService {
      * @return true if step-down initiated, false otherwise
      */
     public boolean stepDownAsLeader() {
-        if (cluster == null || cluster.role() != Cluster.Role.LEADER) {
-            log.warn("Cannot step down - not currently leader (role: {})", 
-                cluster != null ? cluster.role() : "null");
+        if (cluster == null || publishedRole != Cluster.Role.LEADER) {
+            log.warn("Cannot step down - not currently leader (role: {})", publishedRole);
             return false;
         }
         
@@ -2356,7 +2285,7 @@ public class AeronConsensusEngine implements ClusteredService {
                 
                 // Approach 2: Terminate our leadership by closing the internal client
                 // This causes the cluster to detect leader absence and trigger election
-                if (internalClusterClient != null && !internalClusterClient.isClosed()) {
+                if (internalIngressClientManager.isHealthy()) {
                     log.info("🔄 Closing internal cluster client to trigger re-election...");
 
                     // Close the client - this signals to the cluster that we're stepping down
@@ -2412,7 +2341,7 @@ public class AeronConsensusEngine implements ClusteredService {
                 memberId,
                 memberUrl,
                 System.currentTimeMillis(),
-                cluster != null ? cluster.time() : -1L
+                publishedClusterTime
             );
         }
     }
@@ -2437,7 +2366,7 @@ public class AeronConsensusEngine implements ClusteredService {
         }
         
         // ✅ REFACTORED: Delegate to LeaderDiscoveryService
-        return leaderDiscoveryService.discoverLeader(cluster);
+        return leaderDiscoveryService.discoverLeader(publishedRole);
     }
     
     /**
@@ -2471,10 +2400,10 @@ public class AeronConsensusEngine implements ClusteredService {
      * ✅ REFACTORED: Delegates to LeaderDiscoveryService for leader discovery.
      */
     private void discoverLeaderFromPeers() {
-        backgroundCoordinator.scheduleLeaderDiscovery(cluster, leaderDiscoveryService, leaderUrl -> {
+        backgroundCoordinator.scheduleLeaderDiscovery(() -> publishedRole, leaderDiscoveryService, leaderUrl -> {
             this.currentLeader = leaderUrl;
             log.info("Discovered leader via LeaderDiscoveryService: {}", leaderUrl);
-            refreshLeaderTermIfNeeded(true);
+            refreshLeaderLogPositionIfNeeded(true);
         });
     }
 
@@ -2632,8 +2561,7 @@ public class AeronConsensusEngine implements ClusteredService {
         }
         log.info("📡 Sending GENESIS proposal through Aeron consensus...");
         try {
-            ensureInternalClusterClient();
-            if (internalClusterClient == null) {
+            if (!ensureInternalClusterClient()) {
                 log.warn("Cannot send genesis trigger yet - internal cluster client unavailable");
                 return;
             }
@@ -2656,16 +2584,9 @@ public class AeronConsensusEngine implements ClusteredService {
             // Write JSON payload
             messageBuffer.putBytes(org.apache.jackrabbit.oak.segment.consensus.aeron.SimpleMessageHeader.ENCODED_LENGTH, jsonBytes);
             
-            boolean sent = egressHandler.offerWithRetry(
-                internalClusterClient,
-                idleStrategy,
-                messageBuffer,
-                totalLength,
-                "genesis ingress",
-                100,
-                null,
-                false
-            );
+            boolean sent = internalIngressClientManager.offer(
+                messageBuffer, totalLength, "genesis ingress", INGRESS_CLIENT_REQUEST_WAIT_MS
+            ) == AeronInternalIngressClientManager.SendResult.SENT;
             if (sent) {
                 log.info("GENESIS trigger sent; creation time and bootstrap identity are assigned at replicated apply");
             }
@@ -2682,12 +2603,13 @@ public class AeronConsensusEngine implements ClusteredService {
     /**
      * Apply a replicated genesis proposal on all nodes.
      */
-    private void applyGenesisCreation(long timestamp, String genesisProposalJson) {
+    private void applyGenesisCreation(long timestamp, String genesisProposalJson, AppliedLogPosition logPosition) {
         AeronGenesisInitializer.GenesisProposal.validateTrigger(genesisProposalJson);
         java.util.SortedSet<String> configuredMembers = new java.util.TreeSet<>(peerUrls);
         configuredMembers.add(selfUrl);
         String bootstrapValidator = configuredMembers.first();
-        genesisInitializer.initializeGenesisContent(AeronGenesisInitializer.GenesisProposal.create(timestamp, bootstrapValidator));
+        genesisInitializer.initializeGenesisContent(
+            AeronGenesisInitializer.GenesisProposal.create(timestamp, bootstrapValidator), logPosition);
         genesisVerified = genesisInitializer.verifyExistingGenesis();
     }
     
@@ -2768,7 +2690,17 @@ public class AeronConsensusEngine implements ClusteredService {
         return healthService.getHeartbeatAgeMs();
     }
     
+    /**
+     * Sets the size of the configured Aeron cluster membership, the basis of every replicated quorum.
+     */
+    public void setClusterMemberCount(int clusterMembers) {
+        this.configuredClusterMembers = clusterMembers;
+    }
+
     public int getTotalMemberCount() {
+        if (configuredClusterMembers > 0) {
+            return configuredClusterMembers;
+        }
         int peers = peerUrls != null ? peerUrls.size() : 0;
         return peers + 1;
     }
@@ -2804,7 +2736,7 @@ public class AeronConsensusEngine implements ClusteredService {
      * @return Number of messages behind leader, or -1 if the leader position is unknown
      */
     public long getReplicationLag() {
-        if (cluster == null || cluster.role() == Cluster.Role.LEADER) {
+        if (cluster == null || publishedRole == Cluster.Role.LEADER) {
             return 0; // Leaders have no lag
         }
         
@@ -2812,7 +2744,7 @@ public class AeronConsensusEngine implements ClusteredService {
             return -1; // Leader position unknown (haven't received heartbeat yet)
         }
         
-        long myPosition = cluster.logPosition();
+        long myPosition = publishedLogPosition;
         return Math.max(0, leaderLogPosition - myPosition);
     }
     
@@ -2825,18 +2757,21 @@ public class AeronConsensusEngine implements ClusteredService {
         if (cluster == null) {
             return null;
         }
-        if (cluster.role() == Cluster.Role.FOLLOWER) {
-            refreshLeaderTermIfNeeded(false);
+        Cluster.Role role = publishedRole;
+        long myLogPosition = publishedLogPosition;
+        if (role == Cluster.Role.FOLLOWER) {
+            refreshLeaderLogPositionIfNeeded(false);
         }
-        long effectiveLeaderLogPosition = cluster.role() == Cluster.Role.LEADER
-            ? cluster.logPosition()
+        long effectiveLeaderLogPosition = role == Cluster.Role.LEADER
+            ? myLogPosition
             : leaderLogPosition;
         java.util.Map<String, Object> status = clusterStateView.buildReplicationLagStatus(
-            cluster,
+            role,
+            myLogPosition,
             effectiveLeaderLogPosition,
             getReplicationLag()
         );
-        status.put("measurementAgeMs", cluster.role() == Cluster.Role.LEADER
+        status.put("measurementAgeMs", role == Cluster.Role.LEADER
             ? 0L
             : hasFreshLeaderLogPosition()
                 ? Math.max(0L, System.currentTimeMillis() - leaderLogPositionObservedAtMs)
@@ -2847,7 +2782,7 @@ public class AeronConsensusEngine implements ClusteredService {
     private boolean hasFreshLeaderLogPosition() {
         return leaderLogPosition >= 0
             && leaderLogPositionObservedAtMs > 0
-            && (System.currentTimeMillis() - leaderLogPositionObservedAtMs) <= (LEADER_TERM_TTL_MS * 2L);
+            && (System.currentTimeMillis() - leaderLogPositionObservedAtMs) <= (LEADER_LOG_POSITION_TTL_MS * 2L);
     }
     
     private void markHeartbeat() {
@@ -2989,57 +2924,46 @@ public class AeronConsensusEngine implements ClusteredService {
         }
     }
 
-    private static java.nio.file.Path resolveTransactionLifecycleDirectory(String storeDirectory) {
-        String base = storeDirectory;
-        if (base == null || base.trim().isEmpty()) {
-            base = System.getProperty("java.io.tmpdir");
-        }
-        return java.nio.file.Path.of(base, "transaction-lifecycle");
+    /** Called from service callbacks only. */
+    private void publishPosition(long logPosition, long clusterTime) {
+        publishedLogPosition = logPosition;
+        publishedClusterTime = clusterTime;
     }
 
-    private void startTransactionTimeoutScheduler() {
-        if (transactionTimeoutScheduler != null) {
-            return;
-        }
-        synchronized (this) {
-            if (transactionTimeoutScheduler != null) {
-                return;
-            }
-            transactionTimeoutScheduler = java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> {
-                Thread thread = new Thread(r, "oak-tx-timeout");
-                thread.setDaemon(true);
-                return thread;
-            });
-            transactionTimeoutScheduler.scheduleAtFixedRate(() -> {
-                try {
-                    processTransactionTimeouts();
-                } catch (Exception e) {
-                    log.warn("Failed processing transaction timeouts: {}", e.getMessage());
-                }
-            }, 1, 1, java.util.concurrent.TimeUnit.SECONDS);
+    /** Aeron's leader appends a TimerEvent at the deadline; every member applies it at the same log position. */
+    private void scheduleTransactionTimer(long timerId, long deadline) {
+        IdleStrategy timerIdle = cluster.idleStrategy();
+        timerIdle.reset();
+        while (!cluster.scheduleTimer(timerId, deadline)) {
+            timerIdle.idle();
         }
     }
 
-    private void stopTransactionTimeoutScheduler() {
-        java.util.concurrent.ScheduledExecutorService scheduler = transactionTimeoutScheduler;
-        transactionTimeoutScheduler = null;
-        if (scheduler != null) {
-            scheduler.shutdownNow();
+    private void cancelTransactionTimer(long timerId) {
+        IdleStrategy timerIdle = cluster.idleStrategy();
+        timerIdle.reset();
+        while (!cluster.cancelTimer(timerId)) {
+            timerIdle.idle();
         }
     }
 
-    private void processTransactionTimeouts() {
-        java.util.List<TransactionLifecycleManager.TxRecord> expired = transactionLifecycleManager.expireTimedOut();
-        if (expired.isEmpty()) {
-            return;
+    private void onTransactionTransitionNotApplied(String transition, String transactionId, String correlationId,
+                                                   TransactionLifecycleManager.TransitionResult result) {
+        if (result.isTimedOut()) {
+            cancelTransactionTimer(result.getRecord().timerId);
+            onTransactionTimedOut(result.getRecord());
+        } else if (!result.isIdempotent()) {
+            log.warn("⚠️  Rejected {} transaction {} (correlation={}): {}",
+                transition, transactionId, correlationId, result.getReason());
         }
-        for (TransactionLifecycleManager.TxRecord tx : expired) {
+    }
+
+    private void onTransactionTimedOut(TransactionLifecycleManager.TxRecord tx) {
             if (transactionLifecycleCallback != null) {
                 transactionLifecycleCallback.onAbortTransaction(tx.transactionId, tx.correlationId, "timeout");
             }
             log.warn("⏰ Transaction timed out: txId={}, correlationId={}, deadlineMs={}",
                 tx.transactionId, tx.correlationId, tx.deadlineMs);
         }
-    }
 
 }

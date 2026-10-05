@@ -27,6 +27,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * Owns delayed Aeron background tasks that were previously spawned ad hoc.
@@ -128,16 +129,16 @@ class AeronBackgroundCoordinator implements AutoCloseable {
             .exists();
     }
 
-    void scheduleLeaderDiscovery(Cluster cluster,
+    void scheduleLeaderDiscovery(Supplier<Cluster.Role> localRole,
                                  LeaderDiscoveryService leaderDiscoveryService,
                                  Consumer<String> leaderConsumer) {
-        if (cluster == null || leaderDiscoveryService == null || leaderConsumer == null) {
+        if (localRole == null || leaderDiscoveryService == null || leaderConsumer == null) {
             return;
         }
-        scheduleLeaderDiscoveryAttempt(cluster, leaderDiscoveryService, leaderConsumer, false);
+        scheduleLeaderDiscoveryAttempt(localRole, leaderDiscoveryService, leaderConsumer, false);
     }
 
-    private void scheduleLeaderDiscoveryAttempt(Cluster cluster,
+    private void scheduleLeaderDiscoveryAttempt(Supplier<Cluster.Role> localRole,
                                                 LeaderDiscoveryService leaderDiscoveryService,
                                                 Consumer<String> leaderConsumer,
                                                 boolean retry) {
@@ -145,11 +146,11 @@ class AeronBackgroundCoordinator implements AutoCloseable {
         String taskName = retry ? "aeron-leader-discovery-retry" : "aeron-leader-discovery";
         scheduler.schedule(taskName, delayMs, () -> {
             try {
-                String leaderUrl = leaderDiscoveryService.discoverLeader(cluster);
+                String leaderUrl = leaderDiscoveryService.discoverLeader(localRole.get());
                 if (leaderUrl != null) {
                     leaderConsumer.accept(leaderUrl);
                 } else if (!retry) {
-                    scheduleLeaderDiscoveryAttempt(cluster, leaderDiscoveryService, leaderConsumer, true);
+                    scheduleLeaderDiscoveryAttempt(localRole, leaderDiscoveryService, leaderConsumer, true);
                 }
             } catch (RuntimeException e) {
                 log.warn("Aeron Cluster leader discovery failed: {}", e.getMessage());

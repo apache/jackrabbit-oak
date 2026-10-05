@@ -51,10 +51,19 @@ public class ConsensusStatusHandler {
      * Handle GET /v1/consensus/leader - Return canonical leader-resolution data.
      */
     public void handleGetConsensusLeader(HttpServletResponse response) throws IOException {
+        handleGetConsensusLeader(false, response);
+    }
+
+    /**
+     * Handle GET /v1/consensus/leader. With {@code localOnly} the answer comes from this node's local
+     * knowledge only and never triggers peer polling; peers use it for leader discovery so that two
+     * followers cannot poll each other recursively. The response shape is the same either way.
+     */
+    public void handleGetConsensusLeader(boolean localOnly, HttpServletResponse response) throws IOException {
         response.setContentType("application/json");
         response.setStatus(HttpServletResponse.SC_OK);
 
-        Map<String, Object> leader = buildConsensusLeaderStatus();
+        Map<String, Object> leader = buildConsensusLeaderStatus(localOnly);
         leader.values().removeIf(v -> v == null);
         response.getWriter().write(JsonOutputUtil.toJson(leader));
     }
@@ -86,12 +95,14 @@ public class ConsensusStatusHandler {
         return status;
     }
 
-    private Map<String, Object> buildConsensusLeaderStatus() {
+    private Map<String, Object> buildConsensusLeaderStatus(boolean localOnly) {
         Map<String, Object> leader = new LinkedHashMap<>();
         leader.put("contractVersion", "consensus.leader.v1");
 
         if (context.aeronConsensusEngine != null) {
-            String currentLeader = context.aeronConsensusEngine.getCurrentLeader();
+            String currentLeader = localOnly
+                ? context.aeronConsensusEngine.getCurrentLeaderHint()
+                : context.aeronConsensusEngine.getCurrentLeader();
             leader.put("consensusType", "aeron-cluster");
             leader.put("currentRole", context.aeronConsensusEngine.getCurrentRole().name());
             leader.put("isLeader", context.aeronConsensusEngine.isLeader());

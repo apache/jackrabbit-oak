@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
 import org.agrona.DirectBuffer;
+import org.agrona.concurrent.AgentTerminationException;
 import org.apache.jackrabbit.oak.segment.consensus.service.MutationAuditMetadata;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -169,7 +170,7 @@ public class MessageDispatcherTest {
     }
 
     @Test
-    public void testWriteProposalWithoutCallbackRejected() {
+    public void testWriteProposalWithoutCallbackFails() {
         MessageDispatcher dispatcher = new MessageDispatcher();
         dispatcher.setTermProvider(() -> 1L);
 
@@ -233,7 +234,7 @@ public class MessageDispatcherTest {
     }
 
     @Test
-    public void testWriteBatchRejectsInvalidFormatAndMissingCallback() {
+    public void testWriteBatchRejectsInvalidFormatAndFailsWithoutCallback() {
         MessageDispatcher dispatcher = new MessageDispatcher();
 
         assertThrows(MessageDispatcher.ReplicatedApplyException.class,
@@ -305,7 +306,7 @@ public class MessageDispatcherTest {
     }
 
     @Test
-    public void testDeleteProposalRejectsMissingFieldsAndMissingCallback() {
+    public void testDeleteProposalRejectsMissingFieldsAndFailsWithoutCallback() {
         MessageDispatcher dispatcher = new MessageDispatcher();
         dispatcher.setTermProvider(() -> 5L);
 
@@ -418,92 +419,42 @@ public class MessageDispatcherTest {
     }
 
     @Test
-    public void testDurabilityQueueSegmentDispatch() {
-        AtomicReference<String> queued = new AtomicReference<>(null);
-        MessageDispatcher dispatcher = new MessageDispatcher();
-        dispatcher.setDurabilityCallback(new MessageDispatcher.DurabilityCallback() {
-            @Override
-            public void onQueueSegment(String proposalId, int totalMembers, int requiredAcks) {
-                queued.set(proposalId + ":" + totalMembers + ":" + requiredAcks);
-            }
-
-            @Override
-            public void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success, String error) {
-            }
-
-            @Override
-            public void onAckSegmentPersisted(String proposalId, boolean success, String durableHead, String error,
-                                              int totalMembers, int requiredAcks) {
-            }
-        });
-
-        String payload = "{\"proposalId\":\"p-1\",\"totalMembers\":3,\"requiredAcks\":2}";
-        DirectBuffer buffer = bufferFor(buildMessageBytes(SimpleMessageHeader.TEMPLATE_ID_QUEUE_SEGMENT, payload));
-
-        boolean result = dispatcher.dispatch(System.currentTimeMillis(), buffer, 0,
-            SimpleMessageHeader.ENCODED_LENGTH + payload.getBytes(StandardCharsets.UTF_8).length);
-
-        assertTrue(result);
-        assertEquals("p-1:3:2", queued.get());
-    }
-
-    @Test
-    public void testDurabilitySegmentPersistedAndAckDispatch() {
+    public void testDurabilitySegmentPersistedDispatchAndLegacyAckIgnored() {
         AtomicReference<String> persisted = new AtomicReference<>(null);
-        AtomicReference<String> acked = new AtomicReference<>(null);
         MessageDispatcher dispatcher = new MessageDispatcher();
         dispatcher.setDurabilityCallback(new MessageDispatcher.DurabilityCallback() {
             @Override
-            public void onQueueSegment(String proposalId, int totalMembers, int requiredAcks) {
-            }
-
-            @Override
-            public void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success, String error) {
-                persisted.set(proposalId + "|" + memberId + "|" + durableHead + "|" + success + "|" + error);
-            }
-
-            @Override
-            public void onAckSegmentPersisted(String proposalId, boolean success, String durableHead, String error,
-                                              int totalMembers, int requiredAcks) {
-                acked.set(proposalId + "|" + success + "|" + durableHead + "|" + error + "|" + totalMembers + "|" + requiredAcks);
+            public void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success, String error,
+                                           long clusterTime) {
+                persisted.set(proposalId + "|" + memberId + "|" + durableHead + "|" + success + "|" + error + "|" + clusterTime);
             }
         });
 
-        assertTrue(dispatch(dispatcher, SimpleMessageHeader.TEMPLATE_ID_SEGMENT_PERSISTED,
-            "{\"proposalId\":\"p-2\",\"memberId\":4,\"durableHead\":\"dh1\",\"success\":false,\"error\":\"disk\"}"));
+        String payload = "{\"proposalId\":\"p-2\",\"memberId\":4,\"durableHead\":\"dh1\",\"success\":false,\"error\":\"disk\"}";
+        assertTrue(dispatcher.dispatch(42L, bufferFor(buildMessageBytes(SimpleMessageHeader.TEMPLATE_ID_SEGMENT_PERSISTED, payload)),
+            0, SimpleMessageHeader.ENCODED_LENGTH + payload.getBytes(StandardCharsets.UTF_8).length));
         assertTrue(dispatch(dispatcher, SimpleMessageHeader.TEMPLATE_ID_ACK_SEGMENT_PERSISTED,
             "{\"proposalId\":\"p-2\",\"success\":true,\"durableHead\":\"dh2\",\"totalMembers\":5,\"requiredAcks\":3}"));
 
-        assertEquals("p-2|4|dh1|false|disk", persisted.get());
-        assertEquals("p-2|true|dh2|null|5|3", acked.get());
+        assertEquals("p-2|4|dh1|false|disk|42", persisted.get());
     }
 
     @Test
     public void testDurabilityHandlersRejectMissingCallbackAndRequiredFields() {
         MessageDispatcher dispatcher = new MessageDispatcher();
 
-        assertFalse(dispatch(dispatcher, SimpleMessageHeader.TEMPLATE_ID_QUEUE_SEGMENT,
-            "{\"proposalId\":\"p-1\",\"totalMembers\":3,\"requiredAcks\":2}"));
+        assertFalse(dispatch(dispatcher, SimpleMessageHeader.TEMPLATE_ID_SEGMENT_PERSISTED,
+            "{\"proposalId\":\"p-1\",\"memberId\":1,\"success\":true}"));
 
         dispatcher.setDurabilityCallback(new MessageDispatcher.DurabilityCallback() {
             @Override
-            public void onQueueSegment(String proposalId, int totalMembers, int requiredAcks) {
-            }
-
-            @Override
-            public void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success, String error) {
-            }
-
-            @Override
-            public void onAckSegmentPersisted(String proposalId, boolean success, String durableHead, String error,
-                                              int totalMembers, int requiredAcks) {
+            public void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success, String error,
+                                           long clusterTime) {
             }
         });
 
         assertFalse(dispatch(dispatcher, SimpleMessageHeader.TEMPLATE_ID_SEGMENT_PERSISTED,
             "{\"proposalId\":\"p-1\",\"memberId\":1}"));
-        assertFalse(dispatch(dispatcher, SimpleMessageHeader.TEMPLATE_ID_ACK_SEGMENT_PERSISTED,
-            "{\"proposalId\":\"p-1\",\"success\":true,\"totalMembers\":3}"));
     }
 
     @Test
@@ -698,16 +649,8 @@ public class MessageDispatcherTest {
         });
         dispatcher.setDurabilityCallback(new MessageDispatcher.DurabilityCallback() {
             @Override
-            public void onQueueSegment(String proposalId, int totalMembers, int requiredAcks) {
-            }
-
-            @Override
-            public void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success, String error) {
-            }
-
-            @Override
-            public void onAckSegmentPersisted(String proposalId, boolean success, String durableHead, String error,
-                                              int totalMembers, int requiredAcks) {
+            public void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success, String error,
+                                           long clusterTime) {
             }
         });
         dispatcher.setTransactionCallback(new MessageDispatcher.TransactionCallback() {
@@ -725,6 +668,91 @@ public class MessageDispatcherTest {
         });
         dispatcher.setTermProvider(() -> 3L);
         dispatcher.deactivate();
+    }
+
+    @Test
+    public void agentTerminationRaisedInsideApplyPropagatesOutOfDispatch() {
+        AgentTerminationException termination = new AgentTerminationException("interrupted");
+        MessageDispatcher dispatcher = new MessageDispatcher(new MessageDispatcher.WriteCallback() {
+            @Override
+            public void applyWrite(String walletAddress, String path, String contentType, String message,
+                                   String signature, String intentToken, String blobId, String mimeType,
+                                   String ipfsCid, MutationAuditMetadata auditMetadata) {
+                throw termination;
+            }
+
+            @Override
+            public void applyDelete(String walletAddress, String path, String signature,
+                                    MutationAuditMetadata auditMetadata) {
+                throw termination;
+            }
+        });
+        dispatcher.setGCCallback(new MessageDispatcher.GCCallback() {
+            @Override
+            public void applyGCProposal(String proposalId, String proposerWallet, String targetRevision,
+                                        long estimatedReclaimableSizeMB, String estimatedCostUSDC) {
+                throw termination;
+            }
+
+            @Override
+            public void applyGCVote(String proposalId, int validatorId, boolean approve, String reason) {
+                throw termination;
+            }
+
+            @Override
+            public void applyGCExecute(String proposalId, int executorId) {
+                throw termination;
+            }
+        });
+        dispatcher.setDurabilityCallback(new MessageDispatcher.DurabilityCallback() {
+            @Override
+            public void onSegmentPersisted(String proposalId, int memberId, String durableHead, boolean success,
+                                           String error, long clusterTime) {
+                throw termination;
+            }
+        });
+        dispatcher.setTransactionCallback(new MessageDispatcher.TransactionCallback() {
+            @Override
+            public void onStartTransaction(String transactionId, String correlationId, long timeoutMs,
+                                           String initiatorWallet) {
+                throw termination;
+            }
+
+            @Override
+            public void onCommitTransaction(String transactionId, String correlationId) {
+                throw termination;
+            }
+
+            @Override
+            public void onAbortTransaction(String transactionId, String correlationId, String reason) {
+                throw termination;
+            }
+        });
+        String write = "\"walletAddress\":\"0xabc\",\"path\":\"/oak-chain/test\"";
+        String[][] messages = {
+            {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_WRITE_PROPOSAL), "{" + write + "}"},
+            {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_DELETE_PROPOSAL), "{" + write + "}"},
+            {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_WRITE_BATCH), "{\"batch\":[{" + write + "}]}"},
+            {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_GC_PROPOSAL),
+                "{\"proposalId\":\"gc\",\"proposerWallet\":\"0xabc\"}"},
+            {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_GC_VOTE),
+                "{\"proposalId\":\"gc\",\"validatorId\":1,\"approve\":true}"},
+            {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_GC_EXECUTE), "{\"proposalId\":\"gc\",\"executorId\":1}"},
+            {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_SEGMENT_PERSISTED),
+                "{\"proposalId\":\"p\",\"memberId\":1,\"success\":true}"},
+            {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_START_TRANSACTION), "{\"transactionId\":\"t\"}"},
+            {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_COMMIT_TRANSACTION), "{\"transactionId\":\"t\"}"},
+            {String.valueOf(SimpleMessageHeader.TEMPLATE_ID_ABORT_TRANSACTION), "{\"transactionId\":\"t\"}"},
+        };
+
+        for (String[] message : messages) {
+            try {
+                dispatch(dispatcher, Integer.parseInt(message[0]), message[1]);
+                fail("template " + message[0] + " swallowed the AgentTerminationException");
+            } catch (AgentTerminationException e) {
+                assertSame(termination, e);
+            }
+        }
     }
 
     private boolean dispatch(MessageDispatcher dispatcher, int templateId, String payload) {

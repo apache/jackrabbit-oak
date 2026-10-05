@@ -45,13 +45,13 @@ public class AeronHealthService {
         return getHeartbeatAgeMs() > Long.getLong("oak.cluster.heartbeat.maxAgeMs", DEFAULT_HEARTBEAT_MAX_AGE_MS);
     }
 
-    public boolean isClusterHealthy(Cluster cluster,
+    public boolean isClusterHealthy(Cluster.Role role,
                                     java.util.function.Supplier<Boolean> quorumSupplier,
                                     java.util.function.Supplier<io.aeron.cluster.client.AeronCluster> clientSupplier) {
-        if (cluster == null) {
+        if (role == null) {
             return false;
         }
-        if (cluster.role() == Cluster.Role.CANDIDATE) {
+        if (role == Cluster.Role.CANDIDATE) {
             return false;
         }
         if (quorumSupplier != null && !quorumSupplier.get()) {
@@ -60,13 +60,13 @@ public class AeronHealthService {
         return true;
     }
 
-    public String getUnhealthyReason(Cluster cluster,
+    public String getUnhealthyReason(Cluster.Role role,
                                      java.util.function.Supplier<Boolean> quorumSupplier,
                                      java.util.function.Supplier<io.aeron.cluster.client.AeronCluster> clientSupplier) {
-        if (cluster == null) {
+        if (role == null) {
             return "cluster_not_initialized";
         }
-        if (cluster.role() == Cluster.Role.CANDIDATE) {
+        if (role == Cluster.Role.CANDIDATE) {
             return "leader_election_in_progress";
         }
         if (quorumSupplier != null && !quorumSupplier.get()) {

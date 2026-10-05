@@ -22,7 +22,7 @@ final class AeronIngressControlPayloadBuilder {
                                               String correlationId,
                                               long timeoutMs,
                                               String initiatorWallet,
-                                              int term) {
+                                              Integer term) {
         StringBuilder json = new StringBuilder();
         json.append("{");
         json.append("\"transactionId\":\"").append(escapeJson(transactionId)).append("\"");
@@ -33,21 +33,21 @@ final class AeronIngressControlPayloadBuilder {
             json.append(",\"initiatorWallet\":\"").append(escapeJson(initiatorWallet)).append("\"");
         }
         json.append(",\"timeoutMs\":").append(timeoutMs > 0 ? timeoutMs : 30000L);
-        json.append(",\"term\":").append(term);
+        appendTerm(json, term);
         json.append("}");
         return AeronIngressPayloadSupport.encode(SimpleMessageHeader.TEMPLATE_ID_START_TRANSACTION, json.toString());
     }
 
     AeronEncodedMessage buildCommitTransaction(String transactionId,
                                                String correlationId,
-                                               int term) {
+                                               Integer term) {
         StringBuilder json = new StringBuilder();
         json.append("{");
         json.append("\"transactionId\":\"").append(escapeJson(transactionId)).append("\"");
         if (correlationId != null && !correlationId.isEmpty()) {
             json.append(",\"correlationId\":\"").append(escapeJson(correlationId)).append("\"");
         }
-        json.append(",\"term\":").append(term);
+        appendTerm(json, term);
         json.append("}");
         return AeronIngressPayloadSupport.encode(SimpleMessageHeader.TEMPLATE_ID_COMMIT_TRANSACTION, json.toString());
     }
@@ -55,7 +55,7 @@ final class AeronIngressControlPayloadBuilder {
     AeronEncodedMessage buildAbortTransaction(String transactionId,
                                               String correlationId,
                                               String reason,
-                                              int term) {
+                                              Integer term) {
         StringBuilder json = new StringBuilder();
         json.append("{");
         json.append("\"transactionId\":\"").append(escapeJson(transactionId)).append("\"");
@@ -65,16 +65,15 @@ final class AeronIngressControlPayloadBuilder {
         if (reason != null && !reason.isEmpty()) {
             json.append(",\"reason\":\"").append(escapeJson(reason)).append("\"");
         }
-        json.append(",\"term\":").append(term);
+        appendTerm(json, term);
         json.append("}");
         return AeronIngressPayloadSupport.encode(SimpleMessageHeader.TEMPLATE_ID_ABORT_TRANSACTION, json.toString());
     }
 
-    AeronEncodedMessage buildQueueSegment(String proposalId, int totalMembers, int requiredAcks) {
-        String json = "{\"proposalId\":\"" + escapeJson(proposalId) + "\"," +
-            "\"totalMembers\":" + totalMembers + "," +
-            "\"requiredAcks\":" + requiredAcks + "}";
-        return AeronIngressPayloadSupport.encode(SimpleMessageHeader.TEMPLATE_ID_QUEUE_SEGMENT, json);
+    private static void appendTerm(StringBuilder json, Integer term) {
+        if (term != null) {
+            json.append(",\"term\":").append(term.intValue());
+        }
     }
 
     AeronEncodedMessage buildSegmentPersisted(String proposalId,
@@ -95,28 +94,6 @@ final class AeronIngressControlPayloadBuilder {
         }
         json.append("}");
         return AeronIngressPayloadSupport.encode(SimpleMessageHeader.TEMPLATE_ID_SEGMENT_PERSISTED, json.toString());
-    }
-
-    AeronEncodedMessage buildAckSegmentPersisted(String proposalId,
-                                                 boolean success,
-                                                 String durableHead,
-                                                 String error,
-                                                 int totalMembers,
-                                                 int requiredAcks) {
-        StringBuilder json = new StringBuilder();
-        json.append("{");
-        json.append("\"proposalId\":\"").append(escapeJson(proposalId)).append("\",");
-        json.append("\"success\":").append(success).append(",");
-        json.append("\"totalMembers\":").append(totalMembers).append(",");
-        json.append("\"requiredAcks\":").append(requiredAcks);
-        if (durableHead != null && !durableHead.isEmpty()) {
-            json.append(",\"durableHead\":\"").append(escapeJson(durableHead)).append("\"");
-        }
-        if (error != null && !error.isEmpty()) {
-            json.append(",\"error\":\"").append(escapeJson(error)).append("\"");
-        }
-        json.append("}");
-        return AeronIngressPayloadSupport.encode(SimpleMessageHeader.TEMPLATE_ID_ACK_SEGMENT_PERSISTED, json.toString());
     }
 
     AeronEncodedMessage buildGcProposal(String proposalId,

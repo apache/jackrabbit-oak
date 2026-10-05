@@ -73,14 +73,26 @@ Standalone replicated writes carry Aeron's command timestamp through immutable
 Legacy direct-call helpers retain a local-clock fallback; they are not the
 standalone replicated ingress path.
 
-Aeron's committed log is the apply authority. The standalone dispatcher does not
-filter committed commands using the locally synthesized HTTP leadership term.
-Malformed/stale input rejection remains distinct from a member-local apply failure.
+Aeron's committed log is the apply authority. The dispatcher never filters committed
+commands using a locally synthesized HTTP leadership term: the term it compares is
+Aeron's `leadershipTermId`, applied in log order from `onNewLeadershipTermEvent`, so
+every member reaches the same decision. Malformed/stale input rejection
+(`MutationRejectedException`) remains distinct from a member-local apply failure.
 
 A valid committed write/delete/genesis that cannot be applied latches a quarantine
-and terminates the Aeron clustered-service agent. Later callbacks cannot continue
-applying commands. Health reports failure and ordinary HTTP routes return 503 until
-restart and repair. Startup is not write-ready until canonical genesis is verified.
+and terminates the Aeron clustered-service agent with a FATAL cause, which takes the
+fail-stop path (crash record, Aeron shutdown, then the configured process-exit
+callback). Later callbacks cannot continue applying commands. Health reports failure
+and ordinary HTTP routes return 503 until restart and repair. Startup is not
+write-ready until canonical genesis is verified.
+
+Every replicated write, delete, batch item, and genesis records its applied-log
+watermark (Aeron log position, batch item, and term) under the hidden root node
+`:consensus` in the same Oak merge as the mutation. Replay skips entries at or below
+the watermark, so a restarted member re-applies only what its store does not yet hold;
+an entry that failed on a member is above its watermark and is applied again after
+restart. Startup refuses an Aeron log or snapshot that does not belong to the store.
+The watermark is outside the zero-wallet subtree and is not part of the genesis digest.
 
 ## Durability acknowledgement
 

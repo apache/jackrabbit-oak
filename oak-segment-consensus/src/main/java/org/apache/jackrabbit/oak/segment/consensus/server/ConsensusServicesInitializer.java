@@ -120,6 +120,9 @@ final class ConsensusServicesInitializer {
             beaconClient,
             proposalPersistenceDir
         );
+        if (aeronEngine != null) {
+            proposalQueueManager.setReplicatedDurability(aeronEngine::durabilityDecision);
+        }
         proposalQueueManager.start();
         ServerContext context = httpServer.getContext();
         context.setProposalQueueManager(proposalQueueManager);

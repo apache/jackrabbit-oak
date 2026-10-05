@@ -49,9 +49,9 @@ import java.util.Map;
  * <p><strong>Leader Discovery Strategy:</strong>
  * <ol>
  *   <li>Check cache (TTL 10s)</li>
- *   <li>Query Aeron cluster for leader member ID</li>
- *   <li>Map member ID to validator URL</li>
- *   <li>Fallback to peer polling if mapping fails</li>
+ *   <li>This node's own role, then the leader learned from the log
+ *       ({@code onNewLeadershipTermEvent}, mapped member ID to validator URL)</li>
+ *   <li>Fallback to peer polling only while no leader is known</li>
  * </ol>
  */
 @Component(
@@ -75,10 +75,19 @@ public class LeaderDiscoveryService {
     
     /** HTTP read timeout for peer polling (ms) */
     private static final int HTTP_READ_TIMEOUT_MS = 3000;
+
+    /**
+     * Query for {@code GET /v1/consensus/leader} asking the peer to answer from local knowledge only,
+     * so a peer that does not know the leader answers "unknown" instead of polling its own peers.
+     */
+    public static final String LOCAL_ONLY_PARAM = "localOnly";
     
     private final Map<Integer, String> nodeIdToUrl;
     private final List<String> peerUrls;
     
+    private final java.util.concurrent.atomic.AtomicBoolean peerPollInFlight =
+        new java.util.concurrent.atomic.AtomicBoolean();
+
     private volatile String cachedLeaderUrl = null;
     private volatile long cachedLeaderTimestamp = 0;
     
@@ -168,12 +177,20 @@ public class LeaderDiscoveryService {
     /**
      * Notify that this node is no longer leader.
      * Called from AeronConsensusEngine.onRoleChange() when role changes from LEADER.
+     *
+     * <p>Only clears a leader that is this node. Role changes and leadership term events are
+     * separate callbacks with no guaranteed order, so a newer leader already learned from the
+     * log must survive a late step-down notification.
      */
     public void notifyLostLeadership() {
-        // Clear known leader - we need to discover the new one
+        invalidateCache();
+        String known = knownLeaderUrl;
+        if (known != null && !known.equals(selfUrl)) {
+            log.info("🔄 This node lost leadership - keeping newer leader from the log: {}", known);
+            return;
+        }
         this.knownLeaderUrl = null;
         this.knownLeaderMemberId = -1;
-        invalidateCache();
         log.info("🔄 This node lost leadership - will discover new leader");
     }
     
@@ -210,7 +227,7 @@ public class LeaderDiscoveryService {
      * @param cluster Aeron cluster instance
      * @return leader URL, or null if not found
      */
-    public String discoverLeader(Cluster cluster) {
+    public String discoverLeader(Cluster.Role localRole) {
         // Check cache
         if (cachedLeaderUrl != null && 
             (System.currentTimeMillis() - cachedLeaderTimestamp) < LEADER_CACHE_TTL_MS) {
@@ -218,7 +235,7 @@ public class LeaderDiscoveryService {
         }
         
         // Discover from Aeron cluster
-        String leaderUrl = discoverFromAeronCluster(cluster);
+        String leaderUrl = discoverFromAeronCluster(localRole);
         
         if (leaderUrl != null) {
             // Update cache
@@ -227,32 +244,38 @@ public class LeaderDiscoveryService {
             return leaderUrl;
         }
         
-        // Fallback: poll peers
-        log.debug("Leader discovery from Aeron failed, polling peers...");
-        leaderUrl = discoverFromPeers();
-        
-        if (leaderUrl != null) {
-            cachedLeaderUrl = leaderUrl;
-            cachedLeaderTimestamp = System.currentTimeMillis();
+        // Fallback: poll peers, at most one poll per node. Concurrent callers get the last
+        // known value instead of waiting, so a slow poll never holds more than one request thread.
+        if (!peerPollInFlight.compareAndSet(false, true)) {
+            log.debug("Peer leader poll already in flight, returning last known leader");
+            return getBestKnownLeaderUrl();
         }
-        
-        return leaderUrl;
+        try {
+            log.debug("Leader discovery from Aeron failed, polling peers...");
+            leaderUrl = discoverFromPeers();
+            if (leaderUrl != null) {
+                cachedLeaderUrl = leaderUrl;
+                cachedLeaderTimestamp = System.currentTimeMillis();
+            }
+            return leaderUrl;
+        } finally {
+            peerPollInFlight.set(false);
+        }
     }
     
     /**
      * Discover leader from Aeron cluster state.
      * 
      * <p><strong>Implementation Strategy:</strong>
-     * Aeron's ClusteredService interface doesn't expose leaderMemberId() directly.
-     * However, we can determine leadership through:
+     * The {@code Cluster} interface has no leader accessor; followers learn the leader member ID from
+     * {@code ClusteredService.onNewLeadershipTermEvent}, which sets {@link #setKnownLeader}.
      * <ol>
-     *   <li>Check if current node is leader via cluster.role()</li>
-     *   <li>Use tracked knownLeaderUrl from onRoleChange() callbacks</li>
-     *   <li>Map member ID to URL if we have the mapping</li>
+     *   <li>Check if current node is leader (role published by the service callbacks)</li>
+     *   <li>Use the known leader (from the log, or from this node's own election)</li>
      * </ol>
      */
-    private String discoverFromAeronCluster(Cluster cluster) {
-        if (cluster == null) {
+    private String discoverFromAeronCluster(Cluster.Role localRole) {
+        if (localRole == null) {
             return null;
         }
         
@@ -260,43 +283,17 @@ public class LeaderDiscoveryService {
             // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
             // STRATEGY 1: Check if WE are the leader
             // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            if (cluster.role() == Cluster.Role.LEADER) {
+            if (localRole == Cluster.Role.LEADER) {
                 log.debug("This node is leader (role check)");
                 return selfUrl;
             }
             
             // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            // STRATEGY 2: Use tracked leader from role change callbacks
+            // STRATEGY 2: Use known leader (leadership term event or own election)
             // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
             if (knownLeaderUrl != null) {
                 log.debug("Using tracked leader: {}", knownLeaderUrl);
                 return knownLeaderUrl;
-            }
-            
-            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            // STRATEGY 3: Try to get leader member ID from cluster
-            // Note: This uses reflection as a fallback since the API
-            // doesn't expose leaderMemberId() on the Cluster interface
-            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            try {
-                // Some Aeron versions expose leaderMemberId() on the implementation
-                java.lang.reflect.Method leaderMethod = cluster.getClass().getMethod("leaderMemberId");
-                Object result = leaderMethod.invoke(cluster);
-                if (result instanceof Integer) {
-                    int leaderMemberId = (Integer) result;
-                    if (leaderMemberId >= 0) {
-                        String leaderUrl = nodeIdToUrl.get(leaderMemberId);
-                        if (leaderUrl != null) {
-                            log.debug("Found leader via reflection: memberId={}, url={}", leaderMemberId, leaderUrl);
-                            return leaderUrl;
-                        }
-                    }
-                }
-            } catch (NoSuchMethodException e) {
-                // Expected - method not available in this Aeron version
-                log.trace("leaderMemberId() not available via reflection");
-            } catch (Exception e) {
-                log.debug("Reflection-based leader discovery failed: {}", e.getMessage());
             }
             
             log.debug("Could not determine leader from Aeron cluster state");
@@ -340,7 +337,7 @@ public class LeaderDiscoveryService {
      */
     private String pollPeerForLeader(String peerUrl) {
         try {
-            java.net.URL apiUrl = new java.net.URL(peerUrl + "/v1/consensus/leader");
+            java.net.URL apiUrl = new java.net.URL(peerUrl + "/v1/consensus/leader?" + LOCAL_ONLY_PARAM + "=true");
             java.net.HttpURLConnection conn = (java.net.HttpURLConnection) apiUrl.openConnection();
             conn.setRequestMethod("GET");
             conn.setConnectTimeout(HTTP_CONNECT_TIMEOUT_MS);

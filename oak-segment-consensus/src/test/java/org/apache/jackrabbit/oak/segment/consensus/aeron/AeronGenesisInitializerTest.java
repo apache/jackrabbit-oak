@@ -16,11 +16,16 @@
  */
 package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.segment.consensus.genesis.CanonicalGenesisContent;
+import org.apache.jackrabbit.oak.segment.consensus.service.AppliedLogPosition;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
@@ -28,6 +33,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
@@ -68,6 +74,20 @@ public class AeronGenesisInitializerTest {
         assertFalse(ipfs.hasProperty("enabled"));
         assertEquals("Developers will choose systems with stronger guarantees over familiar platforms.",
             boldBets.getProperty("bet-5").getValue(Type.STRING));
+    }
+
+    @Test
+    public void genesisRecordsTheAppliedLogPositionInTheSameMerge() {
+        MemoryNodeStore nodeStore = new MemoryNodeStore();
+        AeronGenesisInitializer initializer =
+            new AeronGenesisInitializer(mock(FileStore.class, RETURNS_DEEP_STUBS), nodeStore, null);
+
+        initializer.initializeGenesisContent(
+            AeronGenesisInitializer.GenesisProposal.create(42L, "http://leader:8090"),
+            new AppliedLogPosition(256L, 0, 0L));
+
+        assertTrue(getGenesisNode(nodeStore.getRoot()).exists());
+        assertEquals(new AppliedLogPosition(256L, 0, 0L), AppliedLogPosition.read(nodeStore.getRoot()));
     }
 
     @Test
@@ -117,6 +137,30 @@ public class AeronGenesisInitializerTest {
         assertEquals("http://leader-0:8090", genesis.getProperty("genesisValidator").getValue(Type.STRING));
         verifyNoInteractions(blobStore);
         verify(fileStore, times(1)).flush();
+    }
+
+    @Test
+    public void genesisApplyFailureIsNotSwallowedAndRecordsNoWatermark() {
+        MemoryNodeStore nodeStore = new MemoryNodeStore() {
+            @Override
+            public synchronized NodeState merge(NodeBuilder builder, CommitHook commitHook, CommitInfo info)
+                    throws CommitFailedException {
+                throw new CommitFailedException("Test", 1, "disk unavailable");
+            }
+        };
+        AeronGenesisInitializer initializer =
+            new AeronGenesisInitializer(mock(FileStore.class, RETURNS_DEEP_STUBS), nodeStore, null);
+
+        try {
+            initializer.initializeGenesisContent(
+                AeronGenesisInitializer.GenesisProposal.create(42L, "http://leader:8090"),
+                new AppliedLogPosition(256L, 0, 0L));
+            fail("this member carried on without genesis");
+        } catch (IllegalStateException e) {
+            assertTrue(e.getCause() instanceof CommitFailedException);
+        }
+        assertFalse(getGenesisNode(nodeStore.getRoot()).exists());
+        assertEquals(AppliedLogPosition.NONE, AppliedLogPosition.read(nodeStore.getRoot()));
     }
 
     private static NodeState getGenesisNode(NodeState root) {

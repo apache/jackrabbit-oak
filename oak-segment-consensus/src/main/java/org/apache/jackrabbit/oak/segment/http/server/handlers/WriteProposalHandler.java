@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.segment.http.server.handlers;
 
+import org.apache.jackrabbit.oak.blob.cloud.ipfs.IPFSDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.segment.consensus.queue.ProposalQueuePolicy;
 import org.apache.jackrabbit.oak.segment.consensus.metrics.ConsensusMetrics;
 import org.apache.jackrabbit.oak.segment.consensus.util.WalletPathUtil;
@@ -37,6 +39,7 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.LongSupplier;
 
 /**
  * Handler for write proposals (`/v1/propose-write`).
@@ -45,11 +48,19 @@ public class WriteProposalHandler {
 
     private static final Logger log = LoggerFactory.getLogger(WriteProposalHandler.class);
     private static final int CAPABILITY_VALIDATOR_HOSTED_BINARY = 1 << 0;
+    private static final int CID_LOOKUP_ATTEMPTS = 5;
+    private static final long CID_LOOKUP_RETRY_MS = 200L;
 
     private final ServerContext context;
+    private final LongSupplier clock;
 
     public WriteProposalHandler(ServerContext context) {
+        this(context, System::currentTimeMillis);
+    }
+
+    WriteProposalHandler(ServerContext context, LongSupplier clock) {
         this.context = context;
+        this.clock = clock;
     }
 
     /**
@@ -584,24 +595,12 @@ public class WriteProposalHandler {
                     log.debug("✅ Binary uploaded to BlobStore: {} ({} bytes, mime: {})",
                         blobId, binaryBytes.length, mimeType != null ? mimeType : "unknown");
 
-                    // Register CID mapping if IPFS and CidMappingService is available
-                    if (context.cidMappingService != null && "ipfs".equalsIgnoreCase(context.blobStoreType)) {
+                    // The CID is decided here and carried in the proposal: apply never asks IPFS.
+                    ipfsCid = ingestedIpfsCid(blobId);
+                    if (ipfsCid != null && context.cidMappingService != null) {
                         try {
-                            // Try to get the IPFS CID from the underlying DataStore
-                            if (context.blobStore instanceof org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore) {
-                                org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore dsBlobStore =
-                                    (org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore) context.blobStore;
-                                Object dataStore = dsBlobStore.getDataStore();
-                                if (dataStore instanceof org.apache.jackrabbit.oak.blob.cloud.ipfs.IPFSDataStore) {
-                                    org.apache.jackrabbit.oak.blob.cloud.ipfs.IPFSDataStore ipfsDataStore =
-                                        (org.apache.jackrabbit.oak.blob.cloud.ipfs.IPFSDataStore) dataStore;
-                                    String derivedIpfsCid = ipfsDataStore.getCID(blobId);
-                                    if (derivedIpfsCid != null) {
-                                        context.cidMappingService.registerMapping(blobId, derivedIpfsCid);
-                                        log.debug("📎 Registered CID mapping: {} → {}", blobId, derivedIpfsCid);
-                                    }
-                                }
-                            }
+                            context.cidMappingService.registerMapping(blobId, ipfsCid);
+                            log.debug("📎 Registered CID mapping: {} → {}", blobId, ipfsCid);
                         } catch (Exception e) {
                             log.debug("Could not register CID mapping: {}", e.getMessage());
                         }
@@ -624,10 +623,6 @@ public class WriteProposalHandler {
             String contentRoot = WalletPathUtil.getContentPath(normalizedWallet, organization);
             log.debug("🪣 Using wallet shard: {} (org: {}, contentRoot: {})", shardId,
                 organization != null ? organization : "none", contentRoot);
-
-            // Generate content ID and full path
-            String contentId = contentType + "-" + System.currentTimeMillis();
-            String fullPath = contentRoot + "/" + contentId;
 
             // V5 alignment: require the client to supply the on-chain proposalId
             // (bytes32 from authorizeWrite()) in all modes.
@@ -656,6 +651,11 @@ public class WriteProposalHandler {
                     "proposalId must be a 0x-prefixed 32-byte hex value.");
                 return;
             }
+
+            // Millisecond time alone collides for concurrent writes; the proposalId prefix keeps names unique.
+            String contentId = contentType + "-" + clock.getAsLong() + "-"
+                + proposalId.substring(2, 10).toLowerCase(java.util.Locale.ROOT);
+            String fullPath = contentRoot + "/" + contentId;
 
             // Check if proposal queue manager is available
             if (context.proposalQueueManager == null) {
@@ -731,6 +731,32 @@ public class WriteProposalHandler {
         } catch (Exception e) {
             log.error("❌ Test write failed", e);
             ApiErrorUtil.sendJsonError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Test write failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * The IPFS CID of a blob this node has just written, or null when the blob store is not IPFS or the CID is not
+     * known after a short wait (the caching data store may still be uploading).
+     */
+    private String ingestedIpfsCid(String blobId) {
+        if (!(context.blobStore instanceof DataStoreBlobStore)) {
+            return null;
+        }
+        Object dataStore = ((DataStoreBlobStore) context.blobStore).getDataStore();
+        if (!(dataStore instanceof IPFSDataStore)) {
+            return null;
+        }
+        try {
+            for (int attempt = 1; ; attempt++) {
+                String cid = ((IPFSDataStore) dataStore).getCID(blobId);
+                if (cid != null || attempt == CID_LOOKUP_ATTEMPTS) {
+                    return cid;
+                }
+                Thread.sleep(CID_LOOKUP_RETRY_MS);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return null;
         }
     }
 

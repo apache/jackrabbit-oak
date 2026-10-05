@@ -16,7 +16,10 @@
  */
 package org.apache.jackrabbit.oak.segment.consensus.service;
 
+import org.agrona.concurrent.AgentTerminationException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.consensus.genesis.CanonicalGenesisContent;
 import org.apache.jackrabbit.oak.segment.consensus.validation.MutationRejectedException;
@@ -31,6 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 /**
  * Service responsible for applying replicated deletes to the Oak FileStore.
@@ -52,6 +56,7 @@ import java.util.function.Supplier;
 public class DeleteApplicationService {
     
     private static final Logger log = LoggerFactory.getLogger(DeleteApplicationService.class);
+    private static final Pattern WALLET_NODE_NAME = Pattern.compile("0x[a-f0-9]{40}");
     
     private final FileStore fileStore;
     private final Supplier<NodeStore> nodeStoreSupplier;
@@ -170,6 +175,7 @@ public class DeleteApplicationService {
             
             // Navigate to parent of node to delete
             boolean pathExists = true;
+            NodeBuilder walletNode = null;
             for (int i = 1; i < pathParts.length - 1; i++) {
                 if (!pathParts[i].isEmpty()) {
                     if (!current.hasChildNode(pathParts[i])) {
@@ -178,6 +184,9 @@ public class DeleteApplicationService {
                         break;
                     }
                     current = current.getChildNode(pathParts[i]);
+                    if (WALLET_NODE_NAME.matcher(pathParts[i]).matches()) {
+                        walletNode = current;
+                    }
                 }
             }
             
@@ -193,6 +202,9 @@ public class DeleteApplicationService {
             if (current.hasChildNode(targetNodeName)) {
                 current.getChildNode(targetNodeName).remove();
                 log.info("✅ Node removed: {}", targetNodeName);
+                if (walletNode != null) {
+                    decrementContentCount(walletNode);
+                }
             } else {
                 log.warn("⚠️  Target node doesn't exist: {} (idempotent delete)", targetNodeName);
                 // Not an error - already deleted
@@ -207,6 +219,9 @@ public class DeleteApplicationService {
                 Collections.singletonMap("replicated", "true")
             );
             
+            if (auditMetadata != null && auditMetadata.getAppliedLogPosition() != null) {
+                auditMetadata.getAppliedLogPosition().writeTo(rootBuilder);
+            }
             try {
                 nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, commitInfo);
             } catch (CommitFailedException e) {
@@ -232,6 +247,8 @@ public class DeleteApplicationService {
             log.info("✅ Deterministic delete applied successfully - old segments remain until GC");
             return newHead;
             
+        } catch (AgentTerminationException e) {
+            throw e;
         } catch (Exception e) {
             if (durabilityCallback != null && proposalId != null && !proposalId.isEmpty()) {
                 durabilityCallback.onFailure(proposalId, e.getMessage());
@@ -241,6 +258,17 @@ public class DeleteApplicationService {
                 throw new MutationRejectedException("Failed to apply replicated delete", e);
             }
             throw new RuntimeException("Failed to apply replicated delete", e);
+        }
+    }
+
+    /**
+     * Mirrors {@link WriteApplicationService}, which counts a content node when it is created. {@code totalWrites}
+     * stays a monotonic count of applied writes.
+     */
+    private static void decrementContentCount(NodeBuilder walletNode) {
+        PropertyState contentCount = walletNode.getProperty("contentCount");
+        if (contentCount != null) {
+            walletNode.setProperty("contentCount", Math.max(0L, contentCount.getValue(Type.LONG) - 1L));
         }
     }
 

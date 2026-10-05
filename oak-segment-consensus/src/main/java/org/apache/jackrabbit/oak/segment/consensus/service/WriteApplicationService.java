@@ -16,16 +16,17 @@
  */
 package org.apache.jackrabbit.oak.segment.consensus.service;
 
+import org.agrona.concurrent.AgentTerminationException;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.segment.consensus.config.IpfsGatewayUrls;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.consensus.genesis.CanonicalGenesisContent;
 import org.apache.jackrabbit.oak.segment.consensus.validation.MutationRejectedException;
+import org.apache.jackrabbit.oak.segment.http.server.util.JsonParser;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -37,7 +38,10 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 
 /**
@@ -196,6 +200,9 @@ public class WriteApplicationService {
             @Nullable String ipfsCid,
             @Nullable MutationAuditMetadata auditMetadata) {
         String proposalId = auditMetadata != null ? auditMetadata.getProposalId() : null;
+        // Replicated writes carry Aeron's command timestamp; only legacy direct calls fall back to the local clock.
+        Long commandTimestamp = auditMetadata != null ? auditMetadata.getAppliedAt() : null;
+        long appliedAt = commandTimestamp != null ? commandTimestamp : System.currentTimeMillis();
         
         try {
             CanonicalGenesisContent.requireMutable(walletAddress, path);
@@ -203,8 +210,6 @@ public class WriteApplicationService {
                      walletAddress, path, intentToken, blobId, ipfsCid);
             NodeStore nodeStore = requireNodeStore();
             BlobStore blobStore = blobStoreSupplier.get();
-            long appliedAt = auditMetadata != null && auditMetadata.getAppliedAt() != null
-                ? auditMetadata.getAppliedAt() : System.currentTimeMillis();
             
             // Get current HEAD for logging
             String previousHead = fileStore.getHead().getRecordId().toString();
@@ -294,6 +299,9 @@ public class WriteApplicationService {
                 Collections.singletonMap("replicated", "true")
             );
             
+            if (auditMetadata != null && auditMetadata.getAppliedLogPosition() != null) {
+                auditMetadata.getAppliedLogPosition().writeTo(rootBuilder);
+            }
             try {
                 nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, commitInfo);
             } catch (CommitFailedException e) {
@@ -329,6 +337,8 @@ public class WriteApplicationService {
             log.debug("✅ Deterministic write applied successfully");
             return newHead;
             
+        } catch (AgentTerminationException e) {
+            throw e;
         } catch (Exception e) {
             if (durabilityCallback != null && proposalId != null && !proposalId.isEmpty()) {
                 durabilityCallback.onFailure(proposalId, e.getMessage());
@@ -359,10 +369,15 @@ public class WriteApplicationService {
         return existingProposalId != null && proposalId.equals(existingProposalId.getValue(Type.STRING));
     }
 
+    /**
+     * The proposal is already in Oak, so nothing is mutated. Its durability is still reported after the next flush:
+     * the engine skips a report the log already holds, and once the durability tally no longer tracks the proposal
+     * a re-sent duplicate is the only way it is decided again.
+     */
     @NotNull
     private String acknowledgeDuplicateReplay(@Nullable String proposalId) {
-        String currentHead = fileStore.getHead().getRecordId().toString10();
         flushService.onChangeApplied(buildDurabilityCallback(proposalId));
+        String currentHead = fileStore.getHead().getRecordId().toString10();
         if (headUpdateCallback != null) {
             headUpdateCallback.updateHead(currentHead);
         }
@@ -417,117 +432,46 @@ public class WriteApplicationService {
         if (!(trimmed.startsWith("{") && trimmed.endsWith("}"))) {
             return;
         }
-
-        String title = extractJsonString(trimmed, "title");
-        if (title != null) {
-            contentNode.setProperty("oak:title", title);
+        Map<String, Object> fields;
+        try {
+            fields = JsonParser.parseObject(trimmed);
+        } catch (IllegalArgumentException e) {
+            log.debug("Message is not a JSON object; skipping canonical mapping");
+            return;
         }
 
-        String body = extractJsonString(trimmed, "body");
-        if (body != null) {
-            contentNode.setProperty("oak:body", body);
+        Object title = fields.get("title");
+        if (title instanceof String) {
+            contentNode.setProperty("oak:title", (String) title);
         }
 
-        String[] tags = extractJsonStringArray(trimmed, "tags");
-        if (tags != null) {
-            contentNode.setProperty("oak:tags", java.util.Arrays.asList(tags), Type.STRINGS);
+        Object body = fields.get("body");
+        if (body instanceof String) {
+            contentNode.setProperty("oak:body", (String) body);
         }
 
-        String metaJson = extractJsonObject(trimmed, "meta");
-        if (metaJson != null) {
-            contentNode.setProperty("oak:metaJson", metaJson);
-        }
-
-        String payloadJson = extractJsonObject(trimmed, "payload");
-        if (payloadJson != null) {
-            contentNode.setProperty("oak:payloadJson", payloadJson);
-        }
-    }
-
-    private String extractJsonString(String json, String field) {
-        String fieldPrefix = "\"" + field + "\"";
-        int fieldStart = json.indexOf(fieldPrefix);
-        if (fieldStart == -1) {
-            return null;
-        }
-        int colonIndex = json.indexOf(":", fieldStart + fieldPrefix.length());
-        if (colonIndex == -1) {
-            return null;
-        }
-        int quoteStart = json.indexOf("\"", colonIndex);
-        if (quoteStart == -1) {
-            return null;
-        }
-        int quoteEnd = json.indexOf("\"", quoteStart + 1);
-        if (quoteEnd == -1) {
-            return null;
-        }
-        return json.substring(quoteStart + 1, quoteEnd);
-    }
-
-    private String extractJsonObject(String json, String field) {
-        String pattern = "\"" + field + "\":";
-        int start = json.indexOf(pattern);
-        if (start == -1) {
-            return null;
-        }
-        start = json.indexOf("{", start);
-        if (start == -1) {
-            return null;
-        }
-        int depth = 0;
-        int end = start;
-        while (end < json.length()) {
-            char c = json.charAt(end);
-            if (c == '{') {
-                depth++;
-            } else if (c == '}') {
-                depth--;
-                if (depth == 0) {
-                    return json.substring(start, end + 1);
+        Object tags = fields.get("tags");
+        if (tags instanceof List) {
+            List<String> values = new ArrayList<>();
+            for (Object tag : (List<?>) tags) {
+                if (tag instanceof String) {
+                    values.add((String) tag);
                 }
             }
-            end++;
+            if (!values.isEmpty() || ((List<?>) tags).isEmpty()) {
+                contentNode.setProperty("oak:tags", values, Type.STRINGS);
+            }
         }
-        return null;
-    }
 
-    private String[] extractJsonStringArray(String json, String field) {
-        String pattern = "\"" + field + "\":";
-        int start = json.indexOf(pattern);
-        if (start == -1) {
-            return null;
+        Object meta = fields.get("meta");
+        if (meta instanceof Map) {
+            contentNode.setProperty("oak:metaJson", JsonParser.toJson(meta));
         }
-        start = json.indexOf("[", start);
-        if (start == -1) {
-            return null;
+
+        Object payload = fields.get("payload");
+        if (payload instanceof Map) {
+            contentNode.setProperty("oak:payloadJson", JsonParser.toJson(payload));
         }
-        int end = json.indexOf("]", start);
-        if (end == -1) {
-            return null;
-        }
-        String inside = json.substring(start + 1, end).trim();
-        if (inside.isEmpty()) {
-            return new String[0];
-        }
-        java.util.List<String> values = new java.util.ArrayList<>();
-        int idx = 0;
-        while (idx < inside.length()) {
-            int quoteStart = inside.indexOf("\"", idx);
-            if (quoteStart == -1) {
-                break;
-            }
-            int quoteEnd = inside.indexOf("\"", quoteStart + 1);
-            if (quoteEnd == -1) {
-                break;
-            }
-            values.add(inside.substring(quoteStart + 1, quoteEnd));
-            idx = quoteEnd + 1;
-        }
-        if (values.isEmpty()) {
-            return null;
-        }
-        return values.toArray(new String[0]);
     }
     
     /**
@@ -549,85 +493,29 @@ public class WriteApplicationService {
             return;
         }
         
-        try {
-            // Create proper Blob object from blob ID
-            Blob blob = new BlobStoreBlob(blobStore, blobId);
-            
-            // Set as proper BINARY type property
-            contentNode.setProperty("jcr:data", blob, Type.BINARY);
-            
-            if (mimeType != null && !mimeType.isEmpty()) {
-                contentNode.setProperty("jcr:mimeType", mimeType);
-            }
-            
-            // Store raw blob ID
-            contentNode.setProperty("jcr:blobId", blobId);
-            
-            // Handle IPFS CID
-            if (ipfsCid != null && !ipfsCid.isEmpty()) {
-                contentNode.setProperty("ipfsCid", ipfsCid);
-                contentNode.setProperty("ipfsGateway", IpfsGatewayUrls.gatewayUrl(ipfsCid));
-                log.info("✅ Binary stored with client-provided IPFS CID: jcr:blobId={}, ipfsCid={}", blobId, ipfsCid);
-            } else {
-                // Try to derive CID from validator's IPFSDataStore (legacy path)
-                String derivedCid = tryDeriveCidFromBlobStore(blobStore, blobId);
-                if (derivedCid != null) {
-                    contentNode.setProperty("ipfsCid", derivedCid);
-                    contentNode.setProperty("ipfsGateway", IpfsGatewayUrls.gatewayUrl(derivedCid));
-                    log.info("✅ Binary stored with validator-derived IPFS CID (legacy): jcr:blobId={}, ipfsCid={}", blobId, derivedCid);
-                } else {
-                    log.info("✅ Binary stored (no IPFS CID - client should provide): jcr:blobId={}", blobId);
-                }
-            }
-            
-        } catch (Exception e) {
-            log.error("❌ Failed to create Blob from blobId {}: {}", blobId, e.getMessage());
-            // Fallback: store as string reference
-            contentNode.setProperty("jcr:data", blobId);
-            if (mimeType != null && !mimeType.isEmpty()) {
-                contentNode.setProperty("jcr:mimeType", mimeType);
-            }
+        // Create proper Blob object from blob ID
+        Blob blob = new BlobStoreBlob(blobStore, blobId);
+        
+        // Set as proper BINARY type property
+        contentNode.setProperty("jcr:data", blob, Type.BINARY);
+        
+        if (mimeType != null && !mimeType.isEmpty()) {
+            contentNode.setProperty("jcr:mimeType", mimeType);
+        }
+        
+        // Store raw blob ID
+        contentNode.setProperty("jcr:blobId", blobId);
+        
+        // Only the CID carried in the proposal (decided by the ingesting node): a lookup here would differ per node.
+        if (ipfsCid != null && !ipfsCid.isEmpty()) {
+            contentNode.setProperty("ipfsCid", ipfsCid);
+            contentNode.setProperty("ipfsGateway", IpfsGatewayUrls.gatewayUrl(ipfsCid));
+            log.info("✅ Binary stored with proposal IPFS CID: jcr:blobId={}, ipfsCid={}", blobId, ipfsCid);
+        } else {
+            log.info("✅ Binary stored (proposal carries no IPFS CID): jcr:blobId={}", blobId);
         }
     }
     
-    /**
-     * Try to derive IPFS CID from validator's BlobStore (legacy path).
-     */
-    @Nullable
-    private String tryDeriveCidFromBlobStore(BlobStore blobStore, String blobId) {
-        if (!(blobStore instanceof DataStoreBlobStore)) {
-            return null;
-        }
-        
-        try {
-            DataStoreBlobStore dsBlobStore = (DataStoreBlobStore) blobStore;
-            Object dataStore = dsBlobStore.getDataStore();
-            
-            // Check if it's an IPFSDataStore
-            if (dataStore != null && 
-                dataStore.getClass().getName().contains("IPFSDataStore")) {
-                
-                // Use reflection to call getCID method
-                java.lang.reflect.Method getCidMethod = dataStore.getClass().getMethod("getCID", String.class);
-                
-                // Try a few times (async upload may still be in progress)
-                for (int retry = 0; retry < 5; retry++) {
-                    Object result = getCidMethod.invoke(dataStore, blobId);
-                    if (result != null) {
-                        return result.toString();
-                    }
-                    if (retry < 4) {
-                        Thread.sleep(200);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.debug("Could not get IPFS CID from validator: {}", e.getMessage());
-        }
-        
-        return null;
-    }
-
     @NotNull
     private NodeStore requireNodeStore() {
         NodeStore nodeStore = nodeStoreSupplier.get();
@@ -645,42 +533,38 @@ public class WriteApplicationService {
                                   String walletAddress,
                                   boolean newContentNode,
                                   long appliedAt) {
-        try {
-            boolean isNewWallet = !walletNode.hasProperty("wallet");
+        boolean isNewWallet = !walletNode.hasProperty("wallet");
+        
+        if (isNewWallet) {
+            log.info("🆕 Creating new wallet node with metadata: {}", walletNodeName);
             
-            if (isNewWallet) {
-                log.info("🆕 Creating new wallet node with metadata: {}", walletNodeName);
-                
-                walletNode.setProperty("jcr:primaryType", "nt:unstructured");
-                walletNode.setProperty("wallet", walletAddress);
-                walletNode.setProperty("walletCreated", appliedAt);
-                walletNode.setProperty("nodeType", "wallet-root");
-                walletNode.setProperty("description", "Wallet-scoped content root for " + walletAddress);
-                
-                // First write creates the wallet node and its initial content entry.
-                walletNode.setProperty("contentCount", 1L);
-                walletNode.setProperty("totalWrites", 1L);
-                walletNode.setProperty("lastWrite", appliedAt);
-                
-                log.debug("✅ Wallet node metadata initialized: {}", walletAddress);
-            } else {
-                // Update existing wallet node
-                PropertyState contentCountProp = walletNode.getProperty("contentCount");
-                PropertyState totalWritesProp = walletNode.getProperty("totalWrites");
-                
-                long contentCount = contentCountProp != null ? contentCountProp.getValue(Type.LONG) : 0L;
-                long totalWrites = totalWritesProp != null ? totalWritesProp.getValue(Type.LONG) : 0L;
-                long nextContentCount = contentCount + (newContentNode ? 1L : 0L);
-                
-                walletNode.setProperty("contentCount", nextContentCount);
-                walletNode.setProperty("totalWrites", totalWrites + 1);
-                walletNode.setProperty("lastWrite", appliedAt);
-                
-                log.debug("📊 Wallet node updated: {} (contentCount: {}, totalWrites: {})", 
-                    walletAddress, nextContentCount, totalWrites + 1);
-            }
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to apply wallet metadata", e);
+            walletNode.setProperty("jcr:primaryType", "nt:unstructured");
+            walletNode.setProperty("wallet", walletAddress);
+            walletNode.setProperty("walletCreated", appliedAt);
+            walletNode.setProperty("nodeType", "wallet-root");
+            walletNode.setProperty("description", "Wallet-scoped content root for " + walletAddress);
+            
+            // First write creates the wallet node and its initial content entry.
+            walletNode.setProperty("contentCount", 1L);
+            walletNode.setProperty("totalWrites", 1L);
+            walletNode.setProperty("lastWrite", appliedAt);
+            
+            log.debug("✅ Wallet node metadata initialized: {}", walletAddress);
+        } else {
+            // Update existing wallet node
+            PropertyState contentCountProp = walletNode.getProperty("contentCount");
+            PropertyState totalWritesProp = walletNode.getProperty("totalWrites");
+            
+            long contentCount = contentCountProp != null ? contentCountProp.getValue(Type.LONG) : 0L;
+            long totalWrites = totalWritesProp != null ? totalWritesProp.getValue(Type.LONG) : 0L;
+            long nextContentCount = contentCount + (newContentNode ? 1L : 0L);
+            
+            walletNode.setProperty("contentCount", nextContentCount);
+            walletNode.setProperty("totalWrites", totalWrites + 1);
+            walletNode.setProperty("lastWrite", appliedAt);
+            
+            log.debug("📊 Wallet node updated: {} (contentCount: {}, totalWrites: {})", 
+                walletAddress, nextContentCount, totalWrites + 1);
         }
     }
     
@@ -742,6 +626,8 @@ public class WriteApplicationService {
             if (cidProp != null) {
                 return cidProp.getValue(Type.STRING);
             }
+        } catch (AgentTerminationException e) {
+            throw e;
         } catch (Exception e) {
             log.debug("Node CID lookup failed: {}", e.getMessage());
         }

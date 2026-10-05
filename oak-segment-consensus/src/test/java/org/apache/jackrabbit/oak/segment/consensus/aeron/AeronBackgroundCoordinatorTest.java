@@ -71,12 +71,11 @@ public class AeronBackgroundCoordinatorTest {
     public void scheduleLeaderDiscoveryRetriesUntilLeaderAppears() {
         RecordingTaskScheduler scheduler = new RecordingTaskScheduler();
         AeronBackgroundCoordinator coordinator = new AeronBackgroundCoordinator(scheduler, 7L, 11L, 13L);
-        Cluster cluster = mock(Cluster.class);
         LeaderDiscoveryService leaderDiscoveryService = mock(LeaderDiscoveryService.class);
-        when(leaderDiscoveryService.discoverLeader(cluster)).thenReturn(null, "http://leader:8080");
+        when(leaderDiscoveryService.discoverLeader(Cluster.Role.FOLLOWER)).thenReturn(null, "http://leader:8080");
         AtomicReference<String> leader = new AtomicReference<>();
 
-        coordinator.scheduleLeaderDiscovery(cluster, leaderDiscoveryService, leader::set);
+        coordinator.scheduleLeaderDiscovery(() -> Cluster.Role.FOLLOWER, leaderDiscoveryService, leader::set);
 
         assertEquals(1, scheduler.tasks.size());
         assertEquals("aeron-leader-discovery", scheduler.tasks.get(0).name);

@@ -22,6 +22,8 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Executors;
@@ -41,6 +43,10 @@ import java.util.concurrent.atomic.AtomicLong;
  *   <li>Keep-alive heartbeats every 15 seconds</li>
  *   <li>Automatic cleanup of dead connections</li>
  * </ul>
+ *
+ * <p>Callers (including the Aeron clustered-service thread applying the log) only enqueue: client writes happen on
+ * this broadcaster's own thread. When the queue is full the event is dropped for live clients (it stays in the
+ * catch-up buffer), and a client whose write has not returned within the stall timeout is closed.
  */
 public class EventBroadcaster {
 
@@ -49,13 +55,28 @@ public class EventBroadcaster {
     private static final int MAX_EVENT_BUFFER = 1000;
     private static final int KEEP_ALIVE_INTERVAL_SECONDS = 15;
     private static final int MAX_CLIENTS = 100;
+    private static final int MAX_PENDING_EVENTS = 1000;
+    private static final long STALLED_WRITE_TIMEOUT_MS = 5000;
+    private static final ContentEvent KEEP_ALIVE = ContentEvent.builder().build();
 
     private final Set<SSEClient> clients = ConcurrentHashMap.newKeySet();
     private final ConcurrentLinkedDeque<ContentEvent> eventBuffer = new ConcurrentLinkedDeque<>();
     private final AtomicLong totalEventsBroadcast = new AtomicLong(0);
+    private final AtomicLong droppedEvents = new AtomicLong(0);
+    private final BlockingQueue<ContentEvent> pending;
+    private final long stalledWriteTimeoutNanos;
+    private final Thread sender;
     private final ScheduledExecutorService scheduler;
+    private volatile long writeStartedNanos;
+    private volatile SSEClient writingTo;
 
     public EventBroadcaster() {
+        this(MAX_PENDING_EVENTS, STALLED_WRITE_TIMEOUT_MS);
+    }
+
+    EventBroadcaster(int maxPendingEvents, long stalledWriteTimeoutMs) {
+        this.pending = new ArrayBlockingQueue<>(maxPendingEvents);
+        this.stalledWriteTimeoutNanos = TimeUnit.MILLISECONDS.toNanos(stalledWriteTimeoutMs);
         this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "sse-keep-alive");
             t.setDaemon(true);
@@ -63,10 +84,16 @@ public class EventBroadcaster {
         });
 
         // Start keep-alive heartbeat
-        scheduler.scheduleAtFixedRate(this::sendKeepAlives, 
+        scheduler.scheduleAtFixedRate(() -> pending.offer(KEEP_ALIVE),
             KEEP_ALIVE_INTERVAL_SECONDS, 
             KEEP_ALIVE_INTERVAL_SECONDS, 
             TimeUnit.SECONDS);
+        long checkMs = Math.max(1L, Math.min(1000L, stalledWriteTimeoutMs / 2));
+        scheduler.scheduleAtFixedRate(this::closeStalledClient, checkMs, checkMs, TimeUnit.MILLISECONDS);
+
+        this.sender = new Thread(this::sendPending, "sse-broadcaster");
+        sender.setDaemon(true);
+        sender.start();
 
         log.info("📡 EventBroadcaster initialized (max clients: {}, buffer: {})", 
             MAX_CLIENTS, MAX_EVENT_BUFFER);
@@ -100,7 +127,7 @@ public class EventBroadcaster {
     }
 
     /**
-     * Broadcast an event to all matching clients.
+     * Queue an event for all matching clients. Never blocks.
      * 
      * @param event The event to broadcast
      */
@@ -110,8 +137,47 @@ public class EventBroadcaster {
         while (eventBuffer.size() > MAX_EVENT_BUFFER) {
             eventBuffer.removeFirst();
         }
+        totalEventsBroadcast.incrementAndGet();
+        if (!pending.offer(event) && droppedEvents.incrementAndGet() % MAX_PENDING_EVENTS == 1) {
+            log.warn("📡 SSE send queue full - dropped {} live events so far", droppedEvents.get());
+        }
+    }
 
-        // Broadcast to matching clients
+    private void sendPending() {
+        try {
+            while (true) {
+                ContentEvent event = pending.take();
+                if (event == KEEP_ALIVE) {
+                    sendKeepAlives();
+                } else {
+                    deliver(event);
+                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private boolean write(SSEClient client, ContentEvent event) {
+        writeStartedNanos = System.nanoTime();
+        writingTo = client;
+        try {
+            return event == KEEP_ALIVE ? client.sendKeepAlive() : client.send(event);
+        } finally {
+            writingTo = null;
+        }
+    }
+
+    private void closeStalledClient() {
+        SSEClient client = writingTo;
+        if (client != null && System.nanoTime() - writeStartedNanos > stalledWriteTimeoutNanos) {
+            log.warn("📡 Closing SSE client stuck in a write for over {} ms", 
+                TimeUnit.NANOSECONDS.toMillis(stalledWriteTimeoutNanos));
+            removeClient(client);
+        }
+    }
+
+    private void deliver(ContentEvent event) {
         int sent = 0;
         List<SSEClient> deadClients = new ArrayList<>();
 
@@ -122,7 +188,7 @@ public class EventBroadcaster {
             }
 
             if (client.matches(event)) {
-                boolean success = client.send(event);
+                boolean success = write(client, event);
                 if (success) {
                     sent++;
                 } else {
@@ -135,8 +201,6 @@ public class EventBroadcaster {
         for (SSEClient dead : deadClients) {
             removeClient(dead);
         }
-
-        totalEventsBroadcast.incrementAndGet();
 
         if (sent > 0) {
             log.debug("📡 Broadcast event {} to {} clients (type: {}, org: {})", 
@@ -250,7 +314,7 @@ public class EventBroadcaster {
         for (SSEClient client : clients) {
             if (client.isClosed()) {
                 deadClients.add(client);
-            } else if (!client.sendKeepAlive()) {
+            } else if (!write(client, KEEP_ALIVE)) {
                 deadClients.add(client);
             }
         }
@@ -287,10 +351,18 @@ public class EventBroadcaster {
     }
 
     /**
+     * Events not sent to live clients because the send queue was full.
+     */
+    public long getDroppedEvents() {
+        return droppedEvents.get();
+    }
+
+    /**
      * Shutdown the broadcaster.
      */
     public void shutdown() {
-        scheduler.shutdown();
+        scheduler.shutdownNow();
+        sender.interrupt();
         
         // Close all clients
         for (SSEClient client : clients) {

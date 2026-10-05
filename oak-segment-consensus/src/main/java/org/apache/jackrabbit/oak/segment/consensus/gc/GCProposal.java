@@ -25,8 +25,13 @@ import java.util.Map;
  * 
  * <p>State machine: PENDING → VOTING → APPROVED → EXECUTING → COMPLETED
  *                   PENDING → VOTING → REJECTED</p>
+ *
+ * <p>Time fields are cluster timestamps of the log entries that changed the proposal, never a local clock,
+ * so every member, and a replay, decides expiry alike.</p>
  */
 public class GCProposal {
+
+    public static final long DEFAULT_TTL_MS = 24 * 60 * 60 * 1000L;
     
     public enum GCProposalState {
         PENDING,      // Proposal created, waiting for replication
@@ -55,20 +60,18 @@ public class GCProposal {
     public GCProposal() {
         this.votes = new HashMap<>();
         this.state = GCProposalState.PENDING;
-        this.createdAt = System.currentTimeMillis();
-        this.expiresAt = this.createdAt + (24 * 60 * 60 * 1000); // 24 hours default
     }
     
     /**
      * Add a vote to this proposal.
      */
-    public void addVote(int validatorId, boolean approve, String reason) {
+    public void addVote(int validatorId, boolean approve, String reason, long clusterTime) {
         GCVote vote = new GCVote();
         vote.proposalId = this.proposalId;
         vote.validatorId = validatorId;
         vote.approve = approve;
         vote.reason = reason;
-        vote.timestamp = System.currentTimeMillis();
+        vote.timestamp = clusterTime;
         
         this.votes.put(validatorId, vote);
         
@@ -79,10 +82,10 @@ public class GCProposal {
     }
     
     /**
-     * Check if proposal has expired.
+     * Whether the proposal has expired at the given cluster time.
      */
-    public boolean isExpired() {
-        return System.currentTimeMillis() > expiresAt;
+    public boolean isExpiredAt(long clusterTime) {
+        return clusterTime > expiresAt;
     }
     
     /**

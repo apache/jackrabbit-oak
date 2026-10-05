@@ -30,6 +30,8 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.After;
 import org.junit.Test;
+import org.web3j.crypto.Credentials;
+import org.web3j.crypto.Sign;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -37,6 +39,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 
 import static org.junit.Assert.assertEquals;
@@ -46,6 +49,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class DeleteProposalHandlerTest {
@@ -53,6 +57,8 @@ public class DeleteProposalHandlerTest {
     private static final String VALID_WALLET = "0x1234567890abcdef1234567890abcdef12345678";
     private static final String OTHER_WALLET = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd";
     private static final String VALID_SIGNATURE = "0xabcdef12";
+    private static final String TEST_PRIVATE_KEY =
+        "4c0883a6910395bda8e1ab1b5f9f1cc0aa1f4b3f8718abf3483c796f9649b7fd";
     private static final String PRIORITY_TX_HASH = "0xabcdef123456789f";
     private static final String VALID_CHAIN_PROPOSAL_ID =
         "0x1111111111111111111111111111111111111111111111111111111111111111";
@@ -333,16 +339,19 @@ public class DeleteProposalHandlerTest {
         org.apache.jackrabbit.oak.segment.consensus.config.BlockchainConfig.reset();
 
         String proposalId = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        Credentials credentials = Credentials.create(TEST_PRIVATE_KEY);
+        String wallet = credentials.getAddress();
         MemoryNodeStore nodeStore = new MemoryNodeStore();
-        String contentPath = seedContent(nodeStore, VALID_WALLET);
+        String contentPath = seedContent(nodeStore, wallet);
+        String signature = personalSign(contentPath, credentials);
         ServerContext context = readyContext(nodeStore);
-        registerClient(context, VALID_WALLET, "client-1");
+        registerClient(context, wallet, "client-1");
         context.gcAccountManager = new GCAccountManager();
         context.proposalQueueManager = mock(ProposalQueueManagerOptimized.class);
         DeleteProposalHandler handler = new DeleteProposalHandler(context);
         HttpServletRequest request = request();
-        when(request.getParameter("walletAddress")).thenReturn(VALID_WALLET);
-        when(request.getParameter("signature")).thenReturn(VALID_SIGNATURE);
+        when(request.getParameter("walletAddress")).thenReturn(wallet);
+        when(request.getParameter("signature")).thenReturn(signature);
         when(request.getParameter("contentPath")).thenReturn(contentPath);
         when(request.getParameter("ethereumTxHash")).thenReturn(PRIORITY_TX_HASH);
         when(request.getParameter("proposalId")).thenReturn(proposalId);
@@ -355,12 +364,43 @@ public class DeleteProposalHandlerTest {
         verify(context.proposalQueueManager).queueDeleteProposal(
             eq(proposalId),
             eq(PRIORITY_TX_HASH),
-            eq(VALID_WALLET),
+            eq(wallet),
             eq(contentPath),
-            eq(VALID_SIGNATURE)
+            eq(signature)
         );
         assertTrue(body.toString().contains("\"proposalId\":\"" + proposalId + "\""));
         assertTrue(body.toString().contains("\"proposalIdSource\":\"client\""));
+    }
+
+    @Test
+    public void testHandleDeleteProposalRejectsChainBackedDeleteNotSignedOverContentPath() throws Exception {
+        System.setProperty("oak.blockchain.mode", "sepolia");
+        org.apache.jackrabbit.oak.segment.consensus.config.BlockchainConfig.reset();
+
+        Credentials credentials = Credentials.create(TEST_PRIVATE_KEY);
+        String wallet = credentials.getAddress();
+        MemoryNodeStore nodeStore = new MemoryNodeStore();
+        String contentPath = seedContent(nodeStore, wallet);
+        ServerContext context = readyContext(nodeStore);
+        registerClient(context, wallet, "client-1");
+        context.gcAccountManager = new GCAccountManager();
+        context.proposalQueueManager = mock(ProposalQueueManagerOptimized.class);
+        DeleteProposalHandler handler = new DeleteProposalHandler(context);
+        HttpServletRequest request = request();
+        when(request.getParameter("walletAddress")).thenReturn(wallet);
+        when(request.getParameter("signature")).thenReturn(personalSign("", credentials));
+        when(request.getParameter("contentPath")).thenReturn(contentPath);
+        when(request.getParameter("ethereumTxHash")).thenReturn(PRIORITY_TX_HASH);
+        StringWriter body = new StringWriter();
+        HttpServletResponse response = responseWithBody(body);
+
+        handler.handleDeleteProposal(request, response);
+
+        verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        assertTrue(body.toString().contains("Signature verification failed"));
+        assertEquals(1L, context.apiRejectedRequests.get());
+        verifyNoInteractions(context.proposalQueueManager);
+        assertEquals(0, BigDecimal.ZERO.compareTo(context.gcAccountManager.getAccount(wallet).totalDebt));
     }
 
     @Test
@@ -559,6 +599,20 @@ public class DeleteProposalHandlerTest {
 
         nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         return path;
+    }
+
+    private static String personalSign(String message, Credentials credentials) {
+        Sign.SignatureData signatureData = Sign.signPrefixedMessage(
+            message.getBytes(StandardCharsets.UTF_8),
+            credentials.getEcKeyPair()
+        );
+        StringBuilder builder = new StringBuilder("0x");
+        for (byte[] part : new byte[][] {signatureData.getR(), signatureData.getS(), signatureData.getV()}) {
+            for (byte b : part) {
+                builder.append(String.format("%02x", b & 0xff));
+            }
+        }
+        return builder.toString();
     }
 
     private static HttpServletRequest request() {

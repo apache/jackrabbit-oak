@@ -34,10 +34,6 @@ final class AeronEngineComponentFactory {
         return new AeronMessageCodec();
     }
 
-    static AeronEgressHandler createEgressHandler() {
-        return new AeronEgressHandler();
-    }
-
     static SegmentReplicator createSegmentReplicator(org.apache.jackrabbit.oak.segment.file.FileStore fileStore) {
         return new SegmentReplicator(fileStore);
     }
@@ -46,9 +42,8 @@ final class AeronEngineComponentFactory {
         return new org.apache.jackrabbit.oak.segment.consensus.queue.BackpressureManager();
     }
 
-    static SnapshotService createSnapshotService(org.apache.jackrabbit.oak.segment.file.FileStore fileStore,
-                                                 String storeDirectory) {
-        return new SnapshotService(fileStore, storeDirectory);
+    static SnapshotService createSnapshotService() {
+        return new SnapshotService();
     }
 
     static LeaderDiscoveryService createLeaderDiscoveryService(java.util.Map<Integer, String> nodeIdToUrl,
@@ -70,10 +65,10 @@ final class AeronEngineComponentFactory {
     static AeronIngressHandler createIngressHandler(AeronMessageCodec codec,
                                                     MessageDispatcher dispatcher,
                                                     Runnable heartbeatCallback,
-                                                    java.util.function.BiConsumer<Long, String> genesisCallback) {
+                                                    AeronIngressHandler.GenesisCallback genesisCallback) {
         AeronIngressHandler handler = new AeronIngressHandler(codec, dispatcher);
         handler.setHeartbeatCallback(heartbeatCallback);
-        handler.setTimedGenesisCallback(genesisCallback);
+        handler.setGenesisCallback(genesisCallback);
         return handler;
     }
 

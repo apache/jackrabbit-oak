@@ -16,6 +16,16 @@
  */
 package org.apache.jackrabbit.oak.segment.http.server.util;
 
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.commons.json.JsopReader;
+import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
  * Simple JSON parsing utilities.
  * 
@@ -46,11 +56,8 @@ public class JsonParser {
         if (start >= json.length()) return null;
         
         if (json.charAt(start) == '"') {
-            // Quoted string
-            start++; // Skip opening quote
-            int end = json.indexOf("\"", start);
-            if (end == -1) return null;
-            return json.substring(start, end);
+            JsopTokenizer tokenizer = new JsopTokenizer(json, start);
+            return tokenizer.matches(JsopReader.STRING) ? tokenizer.getToken() : null;
         } else {
             // Unquoted value (number, boolean, or null) - read until comma, }, or ]
             int end = start;
@@ -98,5 +105,101 @@ public class JsonParser {
         
         return null;
     }
-}
 
+    /**
+     * Parse a JSON object with full string escape handling. Values are mapped to
+     * {@code String}, {@code Long} (integral numbers), {@code BigDecimal} (other numbers),
+     * {@code Boolean}, {@code null}, nested {@code Map} and {@code List}. For duplicate
+     * keys the first occurrence wins.
+     *
+     * @throws IllegalArgumentException if the input is not a single JSON object
+     */
+    public static Map<String, Object> parseObject(String json) {
+        JsopTokenizer tokenizer = new JsopTokenizer(json);
+        tokenizer.read('{');
+        Map<String, Object> result = readObject(tokenizer);
+        tokenizer.read(JsopReader.END);
+        return result;
+    }
+
+    /**
+     * Serialize a value produced by {@link #parseObject(String)} as compact JSON.
+     */
+    public static String toJson(Object value) {
+        JsopBuilder json = new JsopBuilder();
+        write(json, value);
+        return json.toString();
+    }
+
+    private static void write(JsopBuilder json, Object value) {
+        if (value instanceof Map) {
+            json.object();
+            for (Map.Entry<?, ?> entry : ((Map<?, ?>) value).entrySet()) {
+                json.key(String.valueOf(entry.getKey()));
+                write(json, entry.getValue());
+            }
+            json.endObject();
+        } else if (value instanceof List) {
+            json.array();
+            for (Object item : (List<?>) value) {
+                write(json, item);
+            }
+            json.endArray();
+        } else if (value instanceof String) {
+            json.value((String) value);
+        } else {
+            json.encodedValue(String.valueOf(value));
+        }
+    }
+
+    private static Map<String, Object> readObject(JsopTokenizer t) {
+        Map<String, Object> object = new LinkedHashMap<>();
+        if (!t.matches('}')) {
+            do {
+                String key = t.readString();
+                t.read(':');
+                Object value = readValue(t);
+                if (!object.containsKey(key)) {
+                    object.put(key, value);
+                }
+            } while (t.matches(','));
+            t.read('}');
+        }
+        return object;
+    }
+
+    private static Object readValue(JsopTokenizer t) {
+        if (t.matches('{')) {
+            return readObject(t);
+        }
+        if (t.matches('[')) {
+            List<Object> list = new ArrayList<>();
+            if (!t.matches(']')) {
+                do {
+                    list.add(readValue(t));
+                } while (t.matches(','));
+                t.read(']');
+            }
+            return list;
+        }
+        if (t.matches(JsopReader.STRING)) {
+            return t.getToken();
+        }
+        if (t.matches(JsopReader.NUMBER)) {
+            String number = t.getToken();
+            try {
+                return Long.parseLong(number);
+            } catch (NumberFormatException e) {
+                return new BigDecimal(number);
+            }
+        }
+        if (t.matches(JsopReader.TRUE)) {
+            return Boolean.TRUE;
+        }
+        if (t.matches(JsopReader.FALSE)) {
+            return Boolean.FALSE;
+        }
+        t.read(JsopReader.NULL);
+        return null;
+    }
+}

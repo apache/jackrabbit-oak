@@ -19,178 +19,620 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Oak Segment Consensus Control Plane</title>
+    <title>Oak Control Plane Home | Blockchain AEM Validator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-canvas: #060914;
+            --border-soft: rgba(148, 163, 184, 0.16);
+            --text-primary: #e6edf7;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-cyan: #22d3ee;
+            --accent-green: #34d399;
+            --accent-amber: #f59e0b;
+            --accent-red: #f87171;
+            --shadow-panel: 0 24px 80px rgba(2, 6, 23, 0.35);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background: #0b1020;
-            color: #e5e7eb;
+            font-family: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--text-primary);
+            background:
+                radial-gradient(circle at top left, rgba(34, 211, 238, 0.12), transparent 24%),
+                radial-gradient(circle at top right, rgba(96, 165, 250, 0.14), transparent 20%),
+                linear-gradient(180deg, #04070f 0%, var(--bg-canvas) 45%, #04070d 100%);
+            min-height: 100vh;
+            line-height: 1.5;
         }
 
-        .wrap {
-            max-width: 1080px;
-            margin: 0 auto;
-            padding: 24px;
-        }
-
-        h1 {
-            margin: 0 0 8px 0;
-            font-size: 30px;
-        }
-
-        h2 {
-            margin: 0 0 10px 0;
-            font-size: 18px;
-        }
-
-        p {
-            color: #9ca3af;
+        code {
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 0.92em;
+            color: var(--text-primary);
+            background: rgba(148, 163, 184, 0.08);
+            padding: 1px 6px;
+            border-radius: 6px;
         }
 
         a {
-            color: #93c5fd;
+            color: inherit;
             text-decoration: none;
-        }
-
-        a:hover {
-            text-decoration: underline;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 12px;
-            margin: 18px 0;
-        }
-
-        .card {
-            background: #111827;
-            border: 1px solid #1f2937;
-            border-radius: 10px;
-            padding: 12px;
-        }
-
-        .k {
-            color: #9ca3af;
-            font-size: 12px;
-        }
-
-        .v {
-            margin-top: 4px;
-            font-size: 20px;
-            font-weight: 700;
-        }
-
-        .links {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 10px;
-            margin: 16px 0;
-        }
-
-        .link {
-            display: block;
-            background: #111827;
-            border: 1px solid #1f2937;
-            border-radius: 10px;
-            padding: 10px 12px;
-        }
-
-        .muted {
-            font-size: 12px;
-            color: #94a3b8;
-        }
-
-        .warn {
-            margin-top: 16px;
-            padding: 10px 12px;
-            border-left: 3px solid #f59e0b;
-            background: #111827;
-            border-radius: 8px;
-        }
-
-        .tip {
-            margin-top: 16px;
-            padding: 12px 14px;
-            border-left: 3px solid #38bdf8;
-            background: #111827;
-            border-radius: 8px;
-        }
-
-        .section {
-            margin-top: 20px;
-        }
-
-        .section-intro {
-            margin: 0 0 8px 0;
-            color: #94a3b8;
-            font-size: 13px;
         }
 
 {{SHARED_HEADER_STYLES}}
 
+        .shell {
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 28px;
+        }
+
+        .panel {
+            background: linear-gradient(180deg, rgba(15, 22, 40, 0.96) 0%, rgba(10, 16, 31, 0.94) 100%);
+            border: 1px solid var(--border-soft);
+            border-radius: 24px;
+            box-shadow: var(--shadow-panel);
+            padding: 24px;
+        }
+
+        .eyebrow {
+            color: var(--accent-cyan);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        h1,
+        h2,
+        h3 {
+            margin: 0;
+            letter-spacing: -0.02em;
+        }
+
+        h1 {
+            margin-top: 8px;
+            font-size: clamp(28px, 3vw, 38px);
+            line-height: 1.05;
+        }
+
+        h2 {
+            margin-top: 4px;
+            font-size: 22px;
+        }
+
+        /* Hero: what this page is, and the one-line cluster answer. */
+        .hero {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+        }
+
+        .hero p {
+            margin: 10px 0 0;
+            max-width: 640px;
+            color: var(--text-secondary);
+        }
+
+        .runtime-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 18px;
+            margin-top: 16px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .runtime-meta strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .runtime-meta a {
+            color: var(--accent-cyan);
+        }
+
+        .runtime-meta a:hover {
+            text-decoration: underline;
+        }
+
+        .posture {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            min-width: 280px;
+            padding: 18px 22px;
+            border: 1px solid color-mix(in srgb, var(--tone) 40%, transparent);
+            border-radius: 18px;
+            background: color-mix(in srgb, var(--tone) 8%, transparent);
+        }
+
+        /* Server-computed tone on <main>: ok, warn, bad or unknown. */
+        .posture-ok { --tone: var(--accent-green); }
+        .posture-warn { --tone: var(--accent-amber); }
+        .posture-bad { --tone: var(--accent-red); }
+        .posture-unknown { --tone: var(--text-muted); }
+
+        .posture-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--tone);
+            box-shadow: 0 0 0 6px color-mix(in srgb, var(--tone) 18%, transparent);
+        }
+
+        .posture-label {
+            display: block;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .posture-detail {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        /* Cluster + planes row. */
+        .row {
+            display: grid;
+            grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr);
+            gap: 22px;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .metric {
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            background: rgba(6, 11, 23, 0.55);
+            border-radius: 14px;
+            padding: 12px 14px;
+        }
+
+        .k {
+            color: var(--text-muted);
+            font-size: 11px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .v {
+            margin-top: 4px;
+            font-size: 18px;
+            font-weight: 600;
+            overflow-wrap: anywhere;
+        }
+
+        .metric-quorum {
+            grid-column: span 2;
+        }
+
+        .posture-ok .metric-quorum .v,
+        .posture-warn .metric-quorum .v {
+            color: var(--accent-green);
+        }
+
+        .posture-warn .metric-reachable .v {
+            color: var(--accent-amber);
+        }
+
+        .posture-bad .metric-quorum .v,
+        .posture-bad .metric-reachable .v {
+            color: var(--accent-red);
+        }
+
+        .members {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 14px 0 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .members:empty {
+            display: none;
+        }
+
+        .member {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            border-radius: 999px;
+            background: rgba(6, 11, 23, 0.55);
+            font-size: 13px;
+        }
+
+        .member-name {
+            font-weight: 600;
+        }
+
+        a.member-name:hover {
+            color: var(--accent-cyan);
+        }
+
+        .member-role {
+            color: var(--text-muted);
+            font-size: 11px;
+            letter-spacing: 0.08em;
+        }
+
+        .member.is-leader {
+            border-color: rgba(34, 211, 238, 0.32);
+        }
+
+        .member.is-leader .member-role {
+            color: var(--accent-cyan);
+        }
+
+        .member-self {
+            padding: 1px 8px;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, 0.12);
+            color: var(--text-secondary);
+            font-size: 11px;
+        }
+
+        .links {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .link {
+            display: block;
+            position: relative;
+            padding: 14px 40px 14px 16px;
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            border-radius: 16px;
+            background: rgba(6, 11, 23, 0.55);
+            transition: border-color 0.18s ease, background 0.18s ease;
+        }
+
+        .link::after {
+            content: "\2192";
+            position: absolute;
+            right: 16px;
+            top: 14px;
+            color: var(--text-muted);
+            transition: color 0.18s ease, transform 0.18s ease;
+        }
+
+        .link:hover {
+            border-color: rgba(34, 211, 238, 0.3);
+            background: rgba(34, 211, 238, 0.06);
+        }
+
+        .link:hover::after {
+            color: var(--accent-cyan);
+            transform: translateX(2px);
+        }
+
+        .link strong {
+            font-size: 15px;
+        }
+
+        .muted {
+            margin-top: 4px;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        /* Contracts grouped like the API Browser domains. */
+        .panel-head {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .panel-intro {
+            margin: 8px 0 0;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .panel-intro a {
+            color: var(--accent-cyan);
+        }
+
+        .legend {
+            display: flex;
+            gap: 14px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .surface-dot {
+            flex: 0 0 auto;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+        }
+
+        .surface-source {
+            background: var(--accent-cyan);
+        }
+
+        .surface-local-diagnostic {
+            background: var(--accent-amber);
+        }
+
+        .contract-groups {
+            columns: 3 300px;
+            column-gap: 14px;
+            margin-top: 18px;
+        }
+
+        .contract-group {
+            break-inside: avoid;
+            margin-bottom: 14px;
+            padding: 16px;
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 18px;
+            background: rgba(6, 11, 23, 0.4);
+        }
+
+        .contract-group h3 {
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
+        .contract-group .group-intro {
+            margin: 6px 0 0;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .contract-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin: 10px 0 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        ol.contract-list {
+            counter-reset: step;
+        }
+
+        .contract {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            align-items: center;
+            column-gap: 10px;
+            padding: 7px 8px;
+            border-radius: 10px;
+        }
+
+        .contract:hover {
+            background: rgba(148, 163, 184, 0.06);
+        }
+
+        ol.contract-list .contract::before {
+            counter-increment: step;
+            content: counter(step);
+            grid-row: 1;
+            grid-column: 1;
+            display: inline-grid;
+            place-items: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: rgba(34, 211, 238, 0.12);
+            color: var(--accent-cyan);
+            font-size: 10.5px;
+            font-weight: 700;
+        }
+
+        ol.contract-list .surface-dot {
+            display: none;
+        }
+
+        .contract-path {
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 12.5px;
+            overflow-wrap: anywhere;
+        }
+
+        .contract-path:hover {
+            color: var(--accent-cyan);
+            text-decoration: underline;
+        }
+
+        .inspect {
+            color: var(--text-muted);
+            font-size: 12px;
+            transition: color 0.15s ease;
+        }
+
+        .inspect:hover {
+            color: var(--accent-cyan);
+        }
+
+        .contract-desc {
+            grid-column: 2 / -1;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .footnote {
+            margin: 0;
+            padding: 14px 18px;
+            border-left: 3px solid var(--accent-amber);
+            border-radius: 12px;
+            background: rgba(15, 22, 40, 0.7);
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .footnote strong {
+            color: var(--text-primary);
+        }
+
+        @media (max-width: 1100px) {
+            .row {
+                grid-template-columns: 1fr;
+            }
+        }
+
         @media (max-width: 860px) {
-            .wrap {
+            .shell {
                 padding: 18px;
+            }
+
+            .hero {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .metrics {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
         }
     </style>
 </head>
 <body>
 {{SHARED_HEADER}}
-<div class="wrap">
-    <h1>Oak Control Plane Home</h1>
-    <p>API-first runtime. The retained validator-local UX planes are Oak Control Plane Home, CRX/OC, and API Browser. Everything else should prefer governed <code>/v1/*</code> contracts today and the edge-owned <code>/ops/v1/*</code> contract upstream.</p>
-    <div class="grid">
-        <div class="card"><div class="k">Build</div><div class="v">{{VERSION}}</div></div>
-        <div class="card"><div class="k">Role</div><div class="v">{{ROLE}}</div></div>
-        <div class="card"><div class="k">Node</div><div class="v">{{NODE_ID}}</div></div>
-        <div class="card"><div class="k">Leader</div><div class="v">{{LEADER_NODE}}</div></div>
-        <div class="card"><div class="k">Term</div><div class="v">{{TERM}}</div></div>
-        <div class="card"><div class="k">Members</div><div class="v">{{MEMBERS}}</div></div>
-        <div class="card"><div class="k">Reachable</div><div class="v">{{REACHABLE}}</div></div>
-        <div class="card"><div class="k">Quorum</div><div class="v">{{QUORUM}}</div></div>
-        <div class="card"><div class="k">Uptime</div><div class="v">{{UPTIME}}</div></div>
-        <div class="card"><div class="k">Updated</div><div class="v">{{UPDATED_AT}}</div></div>
-    </div>
-    <div class="tip"><strong>OSGi workflow:</strong> start with <code>/v1/config/osgi</code> for effective values, then <code>/v1/config/osgi/sources</code> for provenance, <code>/v1/config/osgi/schema</code> for metadata, and <code>/v1/config/osgi/delta</code> or <code>/v1/config/osgi/coverage</code> for drift and gaps.</div>
+<main class="shell posture-{{POSTURE_TONE}}">
+    <section class="panel hero">
+        <div>
+            <span class="eyebrow">Local control plane</span>
+            <h1>Oak Control Plane Home</h1>
+            <p>API-first runtime. A read-only snapshot of this validator; upstream UX consumes governed <code>/ops/v1/*</code> contracts via edge/gateway.</p>
+            <div class="runtime-meta">
+                <span>Build <strong>{{VERSION}}</strong></span>
+                <span>Uptime <strong>{{UPTIME}}</strong></span>
+                <span>Updated <strong>{{UPDATED_AT}}</strong></span>
+                <a href="">Refresh</a>
+            </div>
+        </div>
+        <div class="posture" role="status">
+            <span class="posture-dot" aria-hidden="true"></span>
+            <div>
+                <span class="posture-label">{{POSTURE_LABEL}}</span>
+                <span class="posture-detail">Reachable {{REACHABLE}} &middot; Quorum {{QUORUM}}</span>
+            </div>
+        </div>
+    </section>
 
-    <div class="section">
-        <h2>Retained Local UX Planes</h2>
-        <p class="section-intro">Only three validator-local browser planes remain on purpose: this home page, CRX/OC for repository drill-down, and API Browser for manifest-backed route inspection.</p>
-        <div class="links">
-            <a class="link" href="/dashboard"><strong>Oak Control Plane Home</strong><div class="muted">Read-only runtime landing page for cluster posture, safety notes, and entry into the other local planes.</div></a>
-            <a class="link" href="/explorer"><strong>CRX/OC</strong><div class="muted">Read-only JCR and TarMK drill-down rooted at genesis and the wallet namespace contract.</div></a>
-            <a class="link" href="/api-browser"><strong>Local API Browser</strong><div class="muted">Validator-local diagnostic catalog backed by the live <code>/v1/index</code> manifest.</div></a>
+    <div class="row">
+        <section class="panel">
+            <span class="eyebrow">Cluster posture</span>
+            <h2>Consensus</h2>
+            <div class="metrics">
+                <div class="metric"><div class="k">Role</div><div class="v">{{ROLE}}</div></div>
+                <div class="metric"><div class="k">Node</div><div class="v">{{NODE_ID}}</div></div>
+                <div class="metric"><div class="k">Leader</div><div class="v">{{LEADER_NODE}}</div></div>
+                <div class="metric"><div class="k">Term</div><div class="v">{{TERM}}</div></div>
+                <div class="metric"><div class="k">Members</div><div class="v">{{MEMBERS}}</div></div>
+                <div class="metric metric-reachable"><div class="k">Reachable</div><div class="v">{{REACHABLE}}</div></div>
+                <div class="metric metric-quorum"><div class="k">Quorum</div><div class="v">{{QUORUM}}</div></div>
+            </div>
+            <ul class="members" aria-label="Cluster members">{{MEMBER_LIST}}</ul>
+        </section>
+
+        <section class="panel">
+            <span class="eyebrow">Local planes</span>
+            <h2>Drill down</h2>
+            <div class="links">
+                <a class="link" href="/explorer"><strong>CRX/OC</strong><div class="muted">Read-only JCR and TarMK drill-down rooted at genesis and the wallet namespace contract.</div></a>
+                <a class="link" href="/api-browser"><strong>Local API Browser</strong><div class="muted">Every validator route, grouped by domain, from the live <code>/v1/index</code> manifest.</div></a>
 {{EXTERNAL_DASHBOARD_LINK}}
-        </div>
+            </div>
+        </section>
     </div>
 
-    <div class="section">
-        <h2>Governed Source Contracts</h2>
-        <p class="section-intro">Health, events, snapshots, and explorer authority should stay API and CLI first. These are the validator-native contracts the local planes read from.</p>
-        <div class="links">
-            <a class="link" href="/v1/index"><strong>/v1/index</strong><div class="muted">Single manifest for route discovery, surface class, and upstream replacement guidance.</div></a>
-            <a class="link" href="/v1/consensus/status"><strong>/v1/consensus/status</strong><div class="muted">Consensus status and leader context.</div></a>
-            <a class="link" href="/v1/proposals/queue/stats"><strong>/v1/proposals/queue/stats</strong><div class="muted">Queue/finality/backpressure counters.</div></a>
-            <a class="link" href="/v1/proposals/release-flow"><strong>/v1/proposals/release-flow</strong><div class="muted">Adaptive verified-release stages and governor state.</div></a>
-            <a class="link" href="/v1/events/recent?limit=50"><strong>/v1/events/recent?limit=50</strong><div class="muted">Recent content and consensus events for operator replay and feed consumers.</div></a>
-            <a class="link" href="/v1/ops/snapshots/runtime"><strong>/v1/ops/snapshots/runtime</strong><div class="muted">Runtime snapshot for automation, dashboards, and support tooling.</div></a>
-            <a class="link" href="/v1/config/osgi"><strong>/v1/config/osgi</strong><div class="muted">Effective OSGi tuning values.</div></a>
-            <a class="link" href="/v1/config/osgi/schema"><strong>/v1/config/osgi/schema</strong><div class="muted">Knob metadata: types, defaults, reload mode, and risk.</div></a>
-            <a class="link" href="/v1/config/osgi/sources"><strong>/v1/config/osgi/sources</strong><div class="muted">Where each effective config group came from.</div></a>
-            <a class="link" href="/v1/config/osgi/coverage"><strong>/v1/config/osgi/coverage</strong><div class="muted">Read-only config coverage and gaps.</div></a>
-            <a class="link" href="/v1/config/osgi/delta"><strong>/v1/config/osgi/delta</strong><div class="muted">Current values vs defaults.</div></a>
-            <a class="link" href="/v1/explorer/summary"><strong>/v1/explorer/summary</strong><div class="muted">Explorer contract for external blockscan UI.</div></a>
-            <a class="link" href="/v1/explorer/content/nav"><strong>/v1/explorer/content/nav</strong><div class="muted">CRX/OC topology and namespace entry contract.</div></a>
-            <a class="link" href="/health"><strong>/health</strong><div class="muted">Shallow health.</div></a>
-            <a class="link" href="/health/deep"><strong>/health/deep</strong><div class="muted">Deep dependency health.</div></a>
+    <section class="panel">
+        <div class="panel-head">
+            <div>
+                <span class="eyebrow">Validator-native contracts</span>
+                <h2>Key endpoints</h2>
+            </div>
+            <div class="legend">
+                <span><i class="surface-dot surface-source"></i>Governed source</span>
+                <span><i class="surface-dot surface-local-diagnostic"></i>Local diagnostic</span>
+            </div>
         </div>
-    </div>
+        <p class="panel-intro">Open the raw JSON, or <em>Inspect</em> it in the <a href="/api-browser">API Browser</a>.</p>
+        <div class="contract-groups">
+            <section class="contract-group">
+                <h3>Discovery &amp; health</h3>
+                <ul class="contract-list">
+                    <li class="contract"><span class="surface-dot surface-local-diagnostic" title="Local diagnostic"></span><a class="contract-path" href="/v1/index">/v1/index</a><a class="inspect" href="/api-browser#GET%20/v1/index">Inspect</a><span class="contract-desc">Route manifest: surface class and upstream replacement.</span></li>
+                    <li class="contract"><span class="surface-dot surface-local-diagnostic" title="Local diagnostic"></span><a class="contract-path" href="/health">/health</a><a class="inspect" href="/api-browser#GET%20/health">Inspect</a><span class="contract-desc">Shallow health.</span></li>
+                    <li class="contract"><span class="surface-dot surface-local-diagnostic" title="Local diagnostic"></span><a class="contract-path" href="/health/deep">/health/deep</a><a class="inspect" href="/api-browser#GET%20/health/deep">Inspect</a><span class="contract-desc">Deep dependency health.</span></li>
+                </ul>
+            </section>
+            <section class="contract-group">
+                <h3>Consensus</h3>
+                <ul class="contract-list">
+                    <li class="contract"><span class="surface-dot surface-source" title="Governed source"></span><a class="contract-path" href="/v1/consensus/status">/v1/consensus/status</a><a class="inspect" href="/api-browser#GET%20/v1/consensus/status">Inspect</a><span class="contract-desc">Consensus status and leader context.</span></li>
+                    <li class="contract"><span class="surface-dot surface-source" title="Governed source"></span><a class="contract-path" href="/v1/proposals/queue/stats">/v1/proposals/queue/stats</a><a class="inspect" href="/api-browser#GET%20/v1/proposals/queue/stats">Inspect</a><span class="contract-desc">Queue, finality and backpressure counters.</span></li>
+                    <li class="contract"><span class="surface-dot surface-source" title="Governed source"></span><a class="contract-path" href="/v1/proposals/release-flow">/v1/proposals/release-flow</a><a class="inspect" href="/api-browser#GET%20/v1/proposals/release-flow">Inspect</a><span class="contract-desc">Adaptive verified-release stages and governor state.</span></li>
+                </ul>
+            </section>
+            <section class="contract-group">
+                <h3>Operations</h3>
+                <ul class="contract-list">
+                    <li class="contract"><span class="surface-dot surface-source" title="Governed source"></span><a class="contract-path" href="/v1/events/recent?limit=50">/v1/events/recent?limit=50</a><a class="inspect" href="/api-browser#GET%20/v1/events/recent?limit=50">Inspect</a><span class="contract-desc">Recent content and consensus events for replay and feeds.</span></li>
+                    <li class="contract"><span class="surface-dot surface-source" title="Governed source"></span><a class="contract-path" href="/v1/ops/snapshots/runtime">/v1/ops/snapshots/runtime</a><a class="inspect" href="/api-browser#GET%20/v1/ops/snapshots/runtime">Inspect</a><span class="contract-desc">Runtime snapshot for automation and support tooling.</span></li>
+                </ul>
+            </section>
+            <section class="contract-group">
+                <h3>Content</h3>
+                <ul class="contract-list">
+                    <li class="contract"><span class="surface-dot surface-source" title="Governed source"></span><a class="contract-path" href="/v1/explorer/summary">/v1/explorer/summary</a><a class="inspect" href="/api-browser#GET%20/v1/explorer/summary">Inspect</a><span class="contract-desc">Explorer contract for external blockscan UI.</span></li>
+                    <li class="contract"><span class="surface-dot surface-source" title="Governed source"></span><a class="contract-path" href="/v1/explorer/content/nav">/v1/explorer/content/nav</a><a class="inspect" href="/api-browser#GET%20/v1/explorer/content/nav">Inspect</a><span class="contract-desc">CRX/OC topology and namespace entry contract.</span></li>
+                </ul>
+            </section>
+            <section class="contract-group">
+                <h3>OSGi configuration</h3>
+                <p class="group-intro">Work top to bottom: values, provenance, metadata, then drift and gaps.</p>
+                <ol class="contract-list">
+                    <li class="contract"><span class="surface-dot surface-source" title="Governed source"></span><a class="contract-path" href="/v1/config/osgi">/v1/config/osgi</a><a class="inspect" href="/api-browser#GET%20/v1/config/osgi">Inspect</a><span class="contract-desc">Effective tuning values.</span></li>
+                    <li class="contract"><span class="surface-dot surface-source" title="Governed source"></span><a class="contract-path" href="/v1/config/osgi/sources">/v1/config/osgi/sources</a><a class="inspect" href="/api-browser#GET%20/v1/config/osgi/sources">Inspect</a><span class="contract-desc">Where each effective config group came from.</span></li>
+                    <li class="contract"><span class="surface-dot surface-source" title="Governed source"></span><a class="contract-path" href="/v1/config/osgi/schema">/v1/config/osgi/schema</a><a class="inspect" href="/api-browser#GET%20/v1/config/osgi/schema">Inspect</a><span class="contract-desc">Knob metadata: types, defaults, reload mode and risk.</span></li>
+                    <li class="contract"><span class="surface-dot surface-source" title="Governed source"></span><a class="contract-path" href="/v1/config/osgi/delta">/v1/config/osgi/delta</a><a class="inspect" href="/api-browser#GET%20/v1/config/osgi/delta">Inspect</a><span class="contract-desc">Current values versus defaults.</span></li>
+                    <li class="contract"><span class="surface-dot surface-source" title="Governed source"></span><a class="contract-path" href="/v1/config/osgi/coverage">/v1/config/osgi/coverage</a><a class="inspect" href="/api-browser#GET%20/v1/config/osgi/coverage">Inspect</a><span class="contract-desc">Config coverage and missing keys.</span></li>
+                </ol>
+            </section>
+        </div>
+    </section>
 
-    <div class="tip"><strong>Surface posture:</strong> No additional validator-local HTML planes are required right now. Streams, snapshots, and automation should stay API and CLI first via <code>/v1/index</code>, <code>/v1/events/*</code>, and <code>/v1/ops/snapshots/*</code>.</div>
-    <div class="warn"><strong>Safety:</strong> This page is read-only. Use signed API/CLI flows for mutating operations.</div>
-</div>
+    <p class="footnote"><strong>Read-only.</strong> Use signed API/CLI flows for mutating operations. Streams, snapshots and automation stay API- and CLI-first via <code>/v1/index</code>, <code>/v1/events/*</code> and <code>/v1/ops/snapshots/*</code>.</p>
+</main>
 </body>
 </html>

@@ -156,6 +156,7 @@ public class ProposalQueueManagerOptimized {
         new ConcurrentHashMap<>();
     private final long processedRetentionMs;
     private final long processedPendingRecoveryMs;
+    private volatile ReplicatedDurability replicatedDurability = ReplicatedDurability.NONE;
     private volatile long lastProcessedCleanup = 0L;
     private volatile long lastProcessedRecoveryScan = 0L;
 
@@ -1212,6 +1213,7 @@ public class ProposalQueueManagerOptimized {
         int restoredPending = 0;
         int restoredVerified = 0;
         int restoredProcessedPending = 0;
+        int restoredDecided = 0;
         int skippedTerminal = 0;
         int skippedMissingPayload = 0;
         for (QueuedProposal proposal : proposals) {
@@ -1236,7 +1238,9 @@ public class ProposalQueueManagerOptimized {
             registerProposalWalletMapping(proposal);
 
             if (proposal.getState() == ProposalState.PROCESSED) {
-                if (recoverProcessedProposalForRetry(proposal, nowMs, "restart-restore")) {
+                if (takeReplicatedDecision(proposal)) {
+                    restoredDecided++;
+                } else if (recoverProcessedProposalForRetry(proposal, nowMs, "restart-restore")) {
                     restoredProcessedPending++;
                 }
                 continue;
@@ -1255,15 +1259,16 @@ public class ProposalQueueManagerOptimized {
             unverifiedQueue.offer(proposal);
             restoredPending++;
         }
-        if (restoredProcessedPending > 0 || skippedTerminal > 0 || skippedMissingPayload > 0) {
+        if (restoredProcessedPending > 0 || restoredDecided > 0 || skippedTerminal > 0 || skippedMissingPayload > 0) {
             persistProposalsNow();
         }
-        if (restoredPending > 0 || restoredVerified > 0 || restoredProcessedPending > 0
+        if (restoredPending > 0 || restoredVerified > 0 || restoredProcessedPending > 0 || restoredDecided > 0
             || skippedTerminal > 0 || skippedMissingPayload > 0) {
-            log.info("🔁 Restored persisted proposals: pending={} verified={} processedPending={} releaseMode={} skippedTerminal={} skippedMissingPayload={}",
+            log.info("🔁 Restored persisted proposals: pending={} verified={} processedPending={} decidedInLog={} releaseMode={} skippedTerminal={} skippedMissingPayload={}",
                 restoredPending,
                 restoredVerified,
                 restoredProcessedPending,
+                restoredDecided,
                 releaseMode.configValue(),
                 skippedTerminal,
                 skippedMissingPayload);
@@ -1664,6 +1669,10 @@ public class ProposalQueueManagerOptimized {
     /**
      * Update durability status for a proposal after local disk persistence.
      */
+    public void setReplicatedDurability(ReplicatedDurability replicatedDurability) {
+        this.replicatedDurability = replicatedDurability != null ? replicatedDurability : ReplicatedDurability.NONE;
+    }
+
     public void updateDurability(String proposalId, DurabilityState state, String durableHead, String error) {
         QueuedProposal proposal = allProposals.get(proposalId);
         if (proposal == null) {
@@ -1749,6 +1758,16 @@ public class ProposalQueueManagerOptimized {
             proposal.clearMessage();
             payloadDiskOnlyCount.incrementAndGet();
         }
+    }
+
+    /**
+     * The exact text the client personal_signs: DELETE binds the content path, WRITE binds the message.
+     */
+    private String resolveSignedMessage(QueuedProposal proposal) {
+        if (proposal.getType() == QueuedProposal.ProposalType.DELETE) {
+            return proposal.getPath();
+        }
+        return resolveProposalMessage(proposal);
     }
 
     private String resolveProposalMessage(QueuedProposal proposal) {
@@ -2036,11 +2055,14 @@ public class ProposalQueueManagerOptimized {
                         log.error("❌ Batch exceeded max retries ({}) - rejecting {} proposals", 
                             maxRetryCount, batch.size());
                         for (QueuedProposal proposal : batch) {
-                            transitionProposalToRejected(
-                                proposal,
-                                "Exceeded max retry count (" + maxRetryCount + ") after Aeron send failures: "
-                                    + e.getMessage()
-                            );
+                            String reason = "Exceeded max retry count (" + maxRetryCount + ") after Aeron send failures: "
+                                + e.getMessage();
+                            if (proposal.isAppendedToLog()) {
+                                transitionProposalToProcessed(proposal);
+                                failProcessedDurability(proposal, reason);
+                            } else {
+                                transitionProposalToRejected(proposal, reason);
+                            }
                         }
                         persistProposals();
                     } else {
@@ -2108,7 +2130,8 @@ public class ProposalQueueManagerOptimized {
         lastProcessedRecoveryScan = nowMs;
 
         int recovered = 0;
-        int rejected = 0;
+        int failed = 0;
+        int decided = 0;
         for (QueuedProposal proposal : allProposals.values()) {
             if (proposal == null
                 || proposal.getState() != ProposalState.PROCESSED
@@ -2120,18 +2143,22 @@ public class ProposalQueueManagerOptimized {
             if (staleMs < processedPendingRecoveryMs) {
                 continue;
             }
+            if (takeReplicatedDecision(proposal)) {
+                decided++;
+                continue;
+            }
 
             if (recoverProcessedProposalForRetry(proposal, nowMs, "stale-durability-pending")) {
                 recovered++;
             } else {
-                rejected++;
+                failed++;
             }
         }
 
-        if (recovered > 0 || rejected > 0) {
+        if (recovered > 0 || failed > 0 || decided > 0) {
             persistProposals();
-            log.warn("♻️ Processed proposal recovery sweep completed: recovered={} rejected={} windowMs={}",
-                recovered, rejected, processedPendingRecoveryMs);
+            log.warn("♻️ Processed proposal recovery sweep completed: recovered={} durabilityFailed={} decidedInLog={} windowMs={}",
+                recovered, failed, decided, processedPendingRecoveryMs);
         }
     }
 
@@ -2142,19 +2169,20 @@ public class ProposalQueueManagerOptimized {
             return false;
         }
         if (!hasRestorablePayload(proposal)) {
-            transitionProposalToRejected(proposal,
+            failProcessedDurability(proposal,
                 "Cannot recover processed proposal awaiting durability; payload sidecar missing");
             return false;
         }
 
         int nextRetry = proposal.incrementRetryCount();
         if (nextRetry > maxRetryCount) {
-            transitionProposalToRejected(proposal,
+            failProcessedDurability(proposal,
                 "Exceeded max retry count (" + maxRetryCount + ") while recovering processed proposal awaiting durability");
             return false;
         }
 
         rollbackTerminalState(proposal, ProposalState.PROCESSED);
+        proposal.markAppendedToLog();
         proposal.setState(ProposalState.VERIFIED);
         proposal.setRejectionReason(null);
         proposal.overrideTimeoutTimestamp(nowMs + restoreTimeoutMs);
@@ -2164,6 +2192,31 @@ public class ProposalQueueManagerOptimized {
         log.warn("♻️ Re-queued processed proposal for replay: proposalId={} reason={} retry={}/{}",
             proposal.getProposalId(), reason, nextRetry, maxRetryCount);
         return true;
+    }
+
+    /**
+     * Takes the decision the replicated log already made for a processed proposal. The proposer misses it when it
+     * is applied before this queue is restored; re-sending would only append a duplicate of a decided proposal.
+     */
+    private boolean takeReplicatedDecision(QueuedProposal proposal) {
+        ReplicatedDurability.Decision decision = replicatedDurability.find(proposal.getProposalId());
+        if (decision == null) {
+            return false;
+        }
+        proposal.setDurabilityState(decision.durable ? DurabilityState.ACKED : DurabilityState.FAILED,
+            decision.durableHead, decision.error);
+        log.info("Durability of {} taken from the replicated log: {}", proposal.getProposalId(),
+            proposal.getDurabilityState());
+        return true;
+    }
+
+    /**
+     * A processed proposal was already sent to the replicated log, so it must not be reported REJECTED;
+     * only its durability confirmation failed.
+     */
+    private void failProcessedDurability(QueuedProposal proposal, String reason) {
+        proposal.setDurabilityState(DurabilityState.FAILED, null, reason);
+        log.warn("Durability FAILED for processed proposal {}: {}", proposal.getProposalId(), reason);
     }
 
     private boolean isTerminalDurability(DurabilityState durabilityState) {
@@ -2378,7 +2431,7 @@ public class ProposalQueueManagerOptimized {
                     // This is a secondary check for proposals that bypass the API (e.g., internal)
                     // Skip in mock mode - signature verification is done at API entry in real mode
                     if (!isMockMode) {
-                        String signedMessage = resolveProposalMessage(proposal);
+                        String signedMessage = resolveSignedMessage(proposal);
                         String proposalSignature = proposal.getSignature();
 
                         if (proposalSignature == null || proposalSignature.isEmpty()) {

@@ -42,6 +42,7 @@ public final class MutationAuditMetadata {
     private final Long ethereumObservedEpoch;
     private final Long ethereumFinalizedEpoch;
     private final Long appliedAt;
+    private final AppliedLogPosition appliedLogPosition;
 
     public MutationAuditMetadata(@NotNull Operation operation,
                                  @Nullable String transactionId,
@@ -51,13 +52,20 @@ public final class MutationAuditMetadata {
                                  @Nullable Long confirmedBlockNumber,
                                  @Nullable Long ethereumObservedEpoch,
                                  @Nullable Long ethereumFinalizedEpoch) {
-        this(operation, transactionId, correlationId, proposalId, ethereumTxHash,
-            confirmedBlockNumber, ethereumObservedEpoch, ethereumFinalizedEpoch, null);
+        this(operation, transactionId, correlationId, proposalId, ethereumTxHash, confirmedBlockNumber,
+            ethereumObservedEpoch, ethereumFinalizedEpoch, null, null);
     }
 
-    private MutationAuditMetadata(Operation operation, String transactionId, String correlationId,
-                                  String proposalId, String ethereumTxHash, Long confirmedBlockNumber,
-                                  Long ethereumObservedEpoch, Long ethereumFinalizedEpoch, Long appliedAt) {
+    private MutationAuditMetadata(@NotNull Operation operation,
+                                  @Nullable String transactionId,
+                                  @Nullable String correlationId,
+                                  @Nullable String proposalId,
+                                  @Nullable String ethereumTxHash,
+                                  @Nullable Long confirmedBlockNumber,
+                                  @Nullable Long ethereumObservedEpoch,
+                                  @Nullable Long ethereumFinalizedEpoch,
+                                  @Nullable Long appliedAt,
+                                  @Nullable AppliedLogPosition appliedLogPosition) {
         this.operation = Objects.requireNonNull(operation, "operation");
         this.transactionId = normalize(transactionId);
         this.correlationId = normalize(correlationId);
@@ -67,6 +75,7 @@ public final class MutationAuditMetadata {
         this.ethereumObservedEpoch = ethereumObservedEpoch;
         this.ethereumFinalizedEpoch = ethereumFinalizedEpoch;
         this.appliedAt = appliedAt;
+        this.appliedLogPosition = appliedLogPosition;
     }
 
     @NotNull
@@ -149,7 +158,7 @@ public final class MutationAuditMetadata {
         return ethereumFinalizedEpoch;
     }
 
-    /** Aeron's committed command timestamp, never a client-supplied JSON field. */
+    /** Aeron's committed command timestamp, never a client-supplied JSON field; identical on every member. */
     @Nullable
     public Long getAppliedAt() {
         return appliedAt;
@@ -160,8 +169,42 @@ public final class MutationAuditMetadata {
         if (timestamp < 0) {
             throw new IllegalArgumentException("Negative cluster timestamp");
         }
-        return new MutationAuditMetadata(operation, transactionId, correlationId, proposalId,
-            ethereumTxHash, confirmedBlockNumber, ethereumObservedEpoch, ethereumFinalizedEpoch, timestamp);
+        return new MutationAuditMetadata(
+            operation,
+            transactionId,
+            correlationId,
+            proposalId,
+            ethereumTxHash,
+            confirmedBlockNumber,
+            ethereumObservedEpoch,
+            ethereumFinalizedEpoch,
+            timestamp,
+            appliedLogPosition
+        );
+    }
+
+    /**
+     * Log position of the replicated command; the apply services record it in the same Oak merge.
+     */
+    @Nullable
+    public AppliedLogPosition getAppliedLogPosition() {
+        return appliedLogPosition;
+    }
+
+    @NotNull
+    public MutationAuditMetadata withAppliedLogPosition(@Nullable AppliedLogPosition nextAppliedLogPosition) {
+        return new MutationAuditMetadata(
+            operation,
+            transactionId,
+            correlationId,
+            proposalId,
+            ethereumTxHash,
+            confirmedBlockNumber,
+            ethereumObservedEpoch,
+            ethereumFinalizedEpoch,
+            appliedAt,
+            nextAppliedLogPosition
+        );
     }
 
     @NotNull
@@ -178,7 +221,8 @@ public final class MutationAuditMetadata {
             confirmedBlockNumber,
             ethereumObservedEpoch,
             ethereumFinalizedEpoch,
-            appliedAt
+            appliedAt,
+            appliedLogPosition
         );
     }
 

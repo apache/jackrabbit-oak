@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.segment.consensus.aeron;
 
 import io.aeron.Publication;
 import io.aeron.cluster.client.AeronCluster;
-import org.agrona.MutableDirectBuffer;
+import org.agrona.DirectBuffer;
 import org.agrona.concurrent.IdleStrategy;
 import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
@@ -34,13 +34,15 @@ public class AeronEgressHandler {
 
     enum OfferResult {
         SENT,
+        BACK_PRESSURED,
         NOT_CONNECTED,
+        CLOSED,
         FAILED
     }
 
     public OfferResult offerWithRetryResult(AeronCluster client,
                                             IdleStrategy idleStrategy,
-                                            MutableDirectBuffer messageBuffer,
+                                            DirectBuffer messageBuffer,
                                             int totalLength,
                                             String label,
                                             int maxRetries,
@@ -55,12 +57,13 @@ public class AeronEgressHandler {
         long result;
         int retries = 0;
         while ((result = client.offer(messageBuffer, 0, totalLength)) < 0) {
-            if (result == Publication.BACK_PRESSURED) {
+            // Retried as in Aeron's Cluster.offer example (Cluster.java:291-300 in 1.53.3).
+            if (result == Publication.BACK_PRESSURED || result == Publication.ADMIN_ACTION) {
                 idleStrategy.idle();
                 retries++;
                 if (retries > maxRetries) {
-                    log.error("❌ {} back-pressured after {} retries", label, retries);
-                    return OfferResult.FAILED;
+                    log.warn("⚠️  {} back-pressured after {} retries", label, retries);
+                    return OfferResult.BACK_PRESSURED;
                 }
             } else if (result == Publication.NOT_CONNECTED) {
                 log.warn("⚠️  {} not connected - waiting...", label);
@@ -70,6 +73,9 @@ public class AeronEgressHandler {
                     log.error("❌ {} not connected after {} retries", label, retries);
                     return OfferResult.NOT_CONNECTED;
                 }
+            } else if (result == Publication.CLOSED || result == Publication.MAX_POSITION_EXCEEDED) {
+                log.error("❌ Failed to send {} through ingress: {}", label, result);
+                return OfferResult.CLOSED;
             } else {
                 log.error("❌ Failed to send {} through ingress: {}", label, result);
                 return OfferResult.FAILED;
@@ -89,7 +95,7 @@ public class AeronEgressHandler {
 
     public boolean offerWithRetry(AeronCluster client,
                                   IdleStrategy idleStrategy,
-                                  MutableDirectBuffer messageBuffer,
+                                  DirectBuffer messageBuffer,
                                   int totalLength,
                                   String label,
                                   int maxRetries,
