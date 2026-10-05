@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -57,6 +58,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TarReader implements Closeable {
+
+    public static final String FT_OPTIMIZED_REMOTE_RECOVERY_OAK_12422 =
+            "FT_OPTIMIZED_REMOTE_RECOVERY_OAK-12422";
+
+    public static final AtomicBoolean FT_OPTIMIZED_REMOTE_RECOVERY_OAK_12422_ENABLED = new AtomicBoolean(true);
 
     private static final Logger log = LoggerFactory.getLogger(TarReader.class);
 
@@ -186,7 +192,7 @@ public class TarReader implements Closeable {
                     recovery.recoverEntry(entry.getKey(), entry.getValue(), new EntryRecovery() {
                         @Override
                         public void recoverEntry(long msb, long lsb, byte[] data, int offset, int size, GCGeneration generation) throws IOException {
-                            writer.writeEntry(msb, lsb, data, offset, size, generation);
+                            writer.recoverEntry(msb, lsb, data, offset, size, generation);
                         }
 
                         @Override

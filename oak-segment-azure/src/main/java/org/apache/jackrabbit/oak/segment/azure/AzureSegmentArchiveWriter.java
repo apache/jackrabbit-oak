@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.readBufferFully;
@@ -66,6 +66,25 @@ public class AzureSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWrite
     @Override
     public String getName() {
         return archiveName;
+    }
+
+    @Override
+    protected boolean doTryReuseArchiveEntry(RemoteSegmentArchiveEntry indexEntry) throws IOException {
+        BlockBlobClient blob = getBlockBlobClient(getSegmentFileName(indexEntry));
+        Map<String, String> expectedMetadata = AzureBlobMetadata.toSegmentMetadata(indexEntry);
+        try {
+            Map<String, String> metadata = blob.getProperties().getMetadata();
+            if (!metadata.equals(expectedMetadata)) {
+                writeAccessController.checkWritingAllowed();
+                blob.setMetadata(expectedMetadata);
+            }
+            return true;
+        } catch (BlobStorageException e) {
+            if (e.getStatusCode() == 404) {
+                return false;
+            }
+            throw new IOException(e);
+        }
     }
 
     @Override

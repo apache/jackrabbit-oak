@@ -137,13 +137,28 @@ class TarWriter implements Closeable {
     }
 
     long writeEntry(long msb, long lsb, byte[] data, int offset, int size, GCGeneration generation) throws IOException {
+        return writeEntry(msb, lsb, data, offset, size, generation, false);
+    }
+
+    long recoverEntry(long msb, long lsb, byte[] data, int offset, int size, GCGeneration generation) throws IOException {
+        return writeEntry(msb, lsb, data, offset, size, generation, true);
+    }
+
+    private long writeEntry(long msb, long lsb, byte[] data, int offset, int size, GCGeneration generation,
+            boolean recovery) throws IOException {
         requireNonNull(data);
         checkFromToIndex(offset, offset + size, data.length);
 
         synchronized (this) {
             Validate.checkState(!closed);
 
-            archive.writeSegment(msb, lsb, data, offset, size, generation.getGeneration(), generation.getFullGeneration(), generation.isCompacted());
+            if (recovery && TarReader.FT_OPTIMIZED_REMOTE_RECOVERY_OAK_12422_ENABLED.get()) {
+                archive.recoverSegment(msb, lsb, data, offset, size, generation.getGeneration(),
+                        generation.getFullGeneration(), generation.isCompacted());
+            } else {
+                archive.writeSegment(msb, lsb, data, offset, size, generation.getGeneration(),
+                        generation.getFullGeneration(), generation.isCompacted());
+            }
             segmentCount.inc();
             long currentLength = archive.getLength();
             int currentEntryCount = archive.getEntryCount();
