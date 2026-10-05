@@ -389,14 +389,13 @@ public class ElasticRequestHandler {
                 continue;
             }
             boolean ascending = QueryIndex.OrderEntry.Order.ASCENDING.equals(o.getOrder());
-            // like the query engine, sort documents without a value first when ascending;
-            // descending already matches, as Elasticsearch sorts them last by default
-            boolean missingFirst = ascending && !JCR_PATH.equals(sortPropertyName) && !JCR_SCORE.equals(sortPropertyName)
+            // like the query engine, sort documents without a value first when ascending and last when descending
+            boolean setMissing = !JCR_PATH.equals(sortPropertyName) && !JCR_SCORE.equals(sortPropertyName)
                     && !ElasticFeatureToggles.FT_OAK_12344_DISABLE.get();
             SortOptions order = SortOptions.of(so -> so
                     .field(f -> {
                         f.field(fieldName).order(ascending ? SortOrder.Asc : SortOrder.Desc);
-                        return missingFirst ? f.missing("_first") : f;
+                        return setMissing ? f.missing(ascending ? "_first" : "_last") : f;
                     }));
             list.add(order);
         }
