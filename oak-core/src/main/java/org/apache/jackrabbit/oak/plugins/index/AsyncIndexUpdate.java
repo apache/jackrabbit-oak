@@ -1371,6 +1371,13 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             private final MeterStats indexedNodeCountMeter;
             private final TimerStats indexerTimer;
             private final HistogramStats indexedNodePerCycleHisto;
+            /**
+             * Counter storing the last-indexed time as epoch millis. Initialised at
+             * construction from the durable ":async/&lt;lane&gt;-LastIndexedTo" repository
+             * property so that a correct non-zero value is visible immediately after a
+             * restart, even if the lane has not yet completed a successful cycle.
+             * Updated on every successful cycle via {@link #doneOneCycle}. See OAK-12394.
+             */
             private final CounterStats lastIndexedTime;
             private StatisticsProvider statisticsProvider;
 
@@ -1387,6 +1394,10 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 indexedNodePerCycleHisto = statsProvider.getHistogram(stats("INDEXER_NODE_COUNT_HISTO"), StatsOptions
                         .METRICS_ONLY);
                 lastIndexedTime = statsProvider.getCounterStats(stats("LAST_INDEXED_TIME"), StatsOptions.DEFAULT);
+                long initialMillis = readLastIndexedToMillis();
+                if (initialMillis > 0) {
+                    lastIndexedTime.inc(initialMillis);
+                }
                 try {
                     consolidatedType = new CompositeType("ConsolidatedStats",
                             "Consolidated stats", names,
@@ -1404,6 +1415,25 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 indexedNodePerCycleHisto.update(updates);
                 long previousLastIndexedTime = lastIndexedTime.getCount();
                 lastIndexedTime.inc(System.currentTimeMillis() - previousLastIndexedTime);
+            }
+
+            /**
+             * Reads the persisted ":async/&lt;lane&gt;-LastIndexedTo" property as epoch millis,
+             * or 0 when it is absent or cannot be parsed (e.g. before the initial index).
+             * Used to initialise the {@code lastIndexedTime} counter at construction.
+             */
+            private long readLastIndexedToMillis() {
+                try {
+                    PropertyState ps = store.getRoot().getChildNode(ASYNC).getProperty(lastIndexedTo);
+                    if (ps == null) {
+                        return 0;
+                    }
+                    Calendar cal = ISO8601.parse(ps.getValue(Type.STRING));
+                    return cal != null ? cal.getTimeInMillis() : 0;
+                } catch (Exception e) {
+                    log.warn("[{}] Unable to read {} for LAST_INDEXED_TIME metric", name, lastIndexedTo, e);
+                    return 0;
+                }
             }
 
             public Counting getExecutionCounter() {
