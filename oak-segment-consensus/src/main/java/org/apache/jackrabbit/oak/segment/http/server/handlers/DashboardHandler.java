@@ -155,14 +155,14 @@ public class DashboardHandler {
         addInternalIndexEntry(endpoints, "GET", "/v1/proposals/pending/count", "Pending proposal count", "Consensus", "/ops/v1/proposals");
         addSourceIndexEntry(endpoints, "GET", "/v1/proposals/queue/stats", "Queue and finality counters", "Consensus", "ops.v1", "/ops/v1/proposals/queue/stats");
         addSourceIndexEntry(endpoints, "GET", "/v1/proposals/release-flow", "Adaptive proposal release flow", "Consensus", "release-flow.v1", "/ops/v1/proposals/release-flow");
-        addInternalIndexEntry(endpoints, "GET", "/v1/proposals/{id}/status", "Proposal status by id", "Consensus", null);
+        addInternalIndexEntry(endpoints, "GET", "/v1/proposals/{id}/status", "Proposal status by id (short-term: proposals this validator queued, until retention eviction)", "Consensus", null);
         addSourceIndexEntry(endpoints, "GET", "/v1/settlement/proposals/{proposalId}", "Basic settlement details by proposal id", "Settlement", "settlement.v1", "/ops/v1/settlement/proposals/{proposalId}");
         addSourceIndexEntry(endpoints, "GET", "/v1/settlement/transactions/{transactionHash}", "Basic settlement details by transaction hash", "Settlement", "settlement.v1", "/ops/v1/settlement/transactions/{transactionHash}");
         addInternalIndexEntry(endpoints, "GET", "/v1/head", "Head status", "Consensus", null);
 
         addSourceIndexEntry(endpoints, "GET", "/v1/explorer/summary", "Explorer summary contract", "CRX/OC", "explorer.v1", "/ops/v1/explorer/summary");
         addSourceIndexEntry(endpoints, "GET", "/v1/explorer/release-flow", "Explorer adaptive release flow", "CRX/OC", "explorer.v1", "/ops/v1/explorer/release-flow");
-        addSourceIndexEntry(endpoints, "GET", "/v1/explorer/proposals/{proposalId}", "Explorer proposal detail", "CRX/OC", "explorer.v1", "/ops/v1/explorer/proposals/{proposalId}");
+        addSourceIndexEntry(endpoints, "GET", "/v1/explorer/proposals/{proposalId}", "Explorer proposal detail (short-term: proposals this validator queued, until retention eviction)", "CRX/OC", "explorer.v1", "/ops/v1/explorer/proposals/{proposalId}");
         addSourceIndexEntry(endpoints, "GET", "/v1/explorer/wallets/{walletAddress}", "Explorer wallet detail", "CRX/OC", "explorer.v1", "/ops/v1/explorer/wallets/{walletAddress}");
         addSourceIndexEntry(endpoints, "GET", "/v1/explorer/content/nav", "CRX/OC cluster-aware content navigation", "CRX/OC", "explorer.content.v1", "/ops/v1/explorer/content/nav");
         addSourceIndexEntry(endpoints, "GET", "/v1/explorer/content/clusters/{clusterId}/tree", "CRX/OC cluster-scoped content tree browse", "CRX/OC", "explorer.content.v1", "/ops/v1/explorer/content/clusters/{clusterId}/tree");

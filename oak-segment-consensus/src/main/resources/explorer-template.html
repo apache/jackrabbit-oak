@@ -425,6 +425,7 @@
                 nodeCache: new Map(),
                 provenanceCache: new Map(),
                 walletCache: new Map(),
+                proposalStatus: new Map(),
                 treeFilters: new Map(),
                 expanded: new Set(),
                 loadingTree: new Set(),
@@ -985,7 +986,7 @@
                     return "<a class=\"font-mono text-xs text-blue-600 hover:underline break-all\" href=\"/api-browser#" + escapeHtml(encodeURI("GET " + text)) + "\" title=\"Inspect in the API Browser\">" + escapeHtml(text) + "</a>";
                 }
                 if (WALLET_NAME.test(text)) {
-                    return "<button class=\"font-mono text-xs text-blue-600 cursor-pointer hover:underline text-left\" type=\"button\" data-open-path=\"" + escapeHtml(walletPathFor(text)) + "\" title=\"Open wallet node\">" + escapeHtml(text) + "</button>";
+                    return "<button class=\"font-mono text-xs text-blue-600 cursor-pointer hover:underline break-all text-left\" type=\"button\" data-open-path=\"" + escapeHtml(walletPathFor(text)) + "\" title=\"Open wallet node\">" + escapeHtml(text) + "</button>";
                 }
                 if (/^0x[0-9a-f]{41,}$/i.test(text)) {
                     return "<span class=\"font-mono text-xs text-slate-800\" title=\"" + escapeHtml(text) + "\">" + escapeHtml(middleTruncate(text)) + "</span>";
@@ -1132,6 +1133,39 @@
                 return "";
             }
 
+            function renderProposalStatus(proposalId) {
+                var result = state.proposalStatus.get(proposalId);
+                var note = "<div class=\"text-xs text-slate-400 mt-1\">Short-term lookup for checking a recent submission: only the validator that queued the proposal answers, and only until it is evicted (oak.proposal.processed.retention.ms, default 10 minutes). The ID stored on this node is the lasting reference.</div>";
+                if (!result) {
+                    return note;
+                }
+                var line;
+                if (result.loading) {
+                    line = "<span class=\"text-slate-400\">Checking this validator...</span>";
+                } else if (result.missing) {
+                    line = "<span class=\"text-slate-500\">Not held by this validator: expected once the retention window has passed or when another validator queued it.</span>";
+                } else if (result.error) {
+                    line = "<span class=\"text-rose-700\">Lookup failed: " + escapeHtml(result.error) + "</span>";
+                } else {
+                    line = "<span class=\"font-mono text-slate-700\">" + escapeHtml(result.payload.state || "--") + "</span>"
+                        + " <span class=\"text-slate-400\">durability</span> <span class=\"font-mono text-slate-700\">" + escapeHtml(result.payload.durabilityState || "--") + "</span>";
+                }
+                return "<div class=\"text-xs mt-1\">" + line + " <span class=\"text-slate-400\">(" + escapeHtml(result.checkedAt || "") + ")</span></div>" + note;
+            }
+
+            function checkProposalStatus(proposalId) {
+                state.proposalStatus.set(proposalId, { loading: true, checkedAt: new Date().toLocaleTimeString() });
+                renderContent();
+                requestJson("/v1/proposals/" + encodeURIComponent(proposalId) + "/status").then(function (payload) {
+                    state.proposalStatus.set(proposalId, { payload: payload, checkedAt: new Date().toLocaleTimeString() });
+                }).catch(function (error) {
+                    var message = error.message || "request failed";
+                    state.proposalStatus.set(proposalId, /not found/i.test(message)
+                        ? { missing: true, checkedAt: new Date().toLocaleTimeString() }
+                        : { error: message, checkedAt: new Date().toLocaleTimeString() });
+                }).finally(renderContent);
+            }
+
             function renderConsensusTab(cluster, nodePayload, provenancePayload) {
                 if (!nodePayload || !nodePayload.node) {
                     return "<div class=\"text-slate-400\">Select a repository path to inspect its consensus facts.</div>";
@@ -1149,7 +1183,9 @@
                 var organization = scalarProperty(nodePayload, "organization");
                 var written = [];
                 if (proposalId) {
-                    written.push(factField("Proposal ID", "<span class=\"font-mono text-xs\" title=\"" + escapeHtml(proposalId) + "\">" + escapeHtml(middleTruncate(proposalId)) + "</span>" + copyButton(proposalId), true));
+                    written.push(factField("Proposal ID", "<span class=\"font-mono text-xs\" title=\"" + escapeHtml(proposalId) + "\">" + escapeHtml(middleTruncate(proposalId)) + "</span>" + copyButton(proposalId)
+                        + " <button type=\"button\" class=\"value-action\" data-action=\"check-proposal\" data-proposal=\"" + escapeHtml(proposalId) + "\">Check status</button>"
+                        + renderProposalStatus(proposalId), true));
                 }
                 if (wallet) {
                     written.push(factField("Wallet", renderScalarValue("STRING", wallet)));
@@ -1789,6 +1825,8 @@
                     }
                 } else if (kind === "view-value") {
                     openValueDialog(Number(action.getAttribute("data-prop")));
+                } else if (kind === "check-proposal") {
+                    checkProposalStatus(action.getAttribute("data-proposal"));
                 }
             }
 

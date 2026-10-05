@@ -101,6 +101,7 @@ public class DashboardHandlerTest {
         assertTrue(json.contains("\"path\":\"/v1/gc/status\""));
         assertTrue(json.contains("\"path\":\"/metrics\""));
         assertTrue(json.contains("\"path\":\"/api/cid/stats\",\"description\":\"CID mapping stats\",\"category\":\"Storage\""));
+        assertTrue(json.contains("\"path\":\"/v1/proposals/{id}/status\",\"description\":\"Proposal status by id (short-term: proposals this validator queued, until retention eviction)\""));
         assertTrue(json.contains("\"path\":\"/api/segments/tars\",\"description\":\"TAR file listing\",\"category\":\"Storage\""));
         assertFalse(json.contains("/api/mock/advance-epoch"));
         assertFalse(json.contains("/api/mock/set-epoch-offset"));
