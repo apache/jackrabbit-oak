@@ -47,6 +47,7 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticSemVer;
+import org.apache.jackrabbit.oak.plugins.index.elastic.internal.ElasticFeatureToggles;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets.ElasticFacetProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConstants;
@@ -387,10 +388,16 @@ public class ElasticRequestHandler {
                 LOG.warn("Unable to sort by {} for index {}", sortPropertyName, elasticIndexDefinition.getIndexName());
                 continue;
             }
+            boolean ascending = QueryIndex.OrderEntry.Order.ASCENDING.equals(o.getOrder());
+            // like the query engine, sort documents without a value first when ascending;
+            // descending already matches, as Elasticsearch sorts them last by default
+            boolean missingFirst = ascending && !JCR_PATH.equals(sortPropertyName) && !JCR_SCORE.equals(sortPropertyName)
+                    && !ElasticFeatureToggles.FT_OAK_12344_DISABLE.get();
             SortOptions order = SortOptions.of(so -> so
-                    .field(f -> f
-                            .field(fieldName)
-                            .order(QueryIndex.OrderEntry.Order.ASCENDING.equals(o.getOrder()) ? SortOrder.Asc : SortOrder.Desc)));
+                    .field(f -> {
+                        f.field(fieldName).order(ascending ? SortOrder.Asc : SortOrder.Desc);
+                        return missingFirst ? f.missing("_first") : f;
+                    }));
             list.add(order);
         }
 

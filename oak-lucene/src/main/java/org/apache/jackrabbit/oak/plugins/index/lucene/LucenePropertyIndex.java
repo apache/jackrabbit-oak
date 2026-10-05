@@ -49,6 +49,7 @@ import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
+import org.apache.jackrabbit.oak.plugins.index.lucene.internal.LuceneFeatureToggles;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.fv.SimSearchUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
@@ -826,7 +827,18 @@ public class LucenePropertyIndex extends FulltextIndex {
             boolean reverse = oe.getOrder() != OrderEntry.Order.ASCENDING;
             String propName = oe.getPropertyName();
             propName = FieldNames.createDocValFieldName(propName);
-            fieldsList.add(new SortField(propName, toLuceneSortType(oe, pd), reverse));
+            SortField.Type sortType = toLuceneSortType(oe, pd);
+            SortField sortField = new SortField(propName, sortType, reverse);
+            // like the query engine, sort documents without a value first when ascending and last when
+            // descending (string sorts already do so by default)
+            if (!LuceneFeatureToggles.FT_OAK_12344_DISABLE.get()) {
+                if (sortType == SortField.Type.LONG) {
+                    sortField.setMissingValue(Long.MIN_VALUE);
+                } else if (sortType == SortField.Type.DOUBLE) {
+                    sortField.setMissingValue(Double.NEGATIVE_INFINITY);
+                }
+            }
+            fieldsList.add(sortField);
         }
 
         if (fieldsList.isEmpty()) {
