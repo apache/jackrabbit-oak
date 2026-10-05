@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
-import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.api.LoadingCache;
 import org.apache.jackrabbit.oak.cache.api.Weigher;
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -48,7 +47,7 @@ public abstract class CachingBlobStore extends AbstractBlobStore {
         return (int) weight;
     };
 
-    private final AbstractCacheStats cacheStats;
+    private final CacheStats cacheStats;
 
     public static final String MEM_CACHE_NAME = "BlobStore-MemCache";
 
@@ -62,7 +61,7 @@ public abstract class CachingBlobStore extends AbstractBlobStore {
                 weigher(weigher::weigh).
                 build().asOakCache();
 
-        cacheStats = new CacheStatsAdapter(cache, MEM_CACHE_NAME, weigher, cacheSize);
+        cacheStats = new CacheStats(cache, MEM_CACHE_NAME, weigher, cacheSize);
     }
 
     public CachingBlobStore() {
@@ -79,7 +78,7 @@ public abstract class CachingBlobStore extends AbstractBlobStore {
         return blobCacheSize;
     }
 
-    public AbstractCacheStats getCacheStats() {
+    public CacheStats getCacheStats() {
         return cacheStats;
     }
 }
