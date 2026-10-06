@@ -17,18 +17,18 @@
 package org.apache.jackrabbit.oak.run.commons;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ScheduledFuture;
 
 import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.classic.util.LogbackMDCAdapter;
 import ch.qos.logback.classic.util.ContextInitializer;
 import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.BasicStatusManager;
-import ch.qos.logback.core.model.Model;
-import ch.qos.logback.core.model.ModelUtil;
 import ch.qos.logback.core.status.StatusManager;
 import ch.qos.logback.core.status.StatusUtil;
 import org.junit.After;
@@ -37,6 +37,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,57 +47,58 @@ import org.slf4j.LoggerFactory;
  */
 public class LoggingInitializerTest {
     @Rule
-    public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
+    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     private LoggerContext context;
-    private Model originalConfiguration;
-    private boolean originallyStarted;
+    private LoggerContext sharedContext;
+    private MockedStatic<LoggerFactory> loggerFactory;
     private String originalWorkDir;
     private String originalConfigFile;
 
     @Before
     public void saveLoggingConfiguration() {
-        context = (LoggerContext) LoggerFactory.getILoggerFactory();
-        originallyStarted = context.isStarted();
-        JoranConfigurator configurator = new JoranConfigurator();
-        configurator.setContext(context);
-        originalConfiguration = configurator.recallSafeConfiguration();
+        sharedContext = (LoggerContext) LoggerFactory.getILoggerFactory();
+        context = new LoggerContext();
+        context.setMDCAdapter(new LogbackMDCAdapter());
         originalWorkDir = System.getProperty("oak.workDir");
         originalConfigFile = System.getProperty(ContextInitializer.CONFIG_FILE_PROPERTY);
+        loggerFactory = Mockito.mockStatic(LoggerFactory.class, Mockito.CALLS_REAL_METHODS);
+        loggerFactory.when(LoggerFactory::getILoggerFactory).thenReturn(context);
         System.clearProperty(ContextInitializer.CONFIG_FILE_PROPERTY);
         context.reset();
         context.start();
     }
 
     @After
-    public void restoreLoggingConfiguration() throws Exception {
-        // reset also cancels scanners if a failed initialization left the context stopped.
-        context.reset();
-        restoreProperty("oak.workDir", originalWorkDir);
-        restoreProperty(ContextInitializer.CONFIG_FILE_PROPERTY, originalConfigFile);
-        if (originalConfiguration != null) {
-            ModelUtil.resetForReuse(originalConfiguration);
-            JoranConfigurator configurator = new JoranConfigurator();
-            configurator.setContext(context);
-            configurator.processModel(originalConfiguration);
-            configurator.registerSafeConfiguration(originalConfiguration);
-        } else {
-            new ContextInitializer(context).autoConfig();
-        }
-        context.start();
-        if (!originallyStarted) {
+    public void restoreLoggingConfiguration() {
+        try {
+            // reset also cancels scanners if a failed initialization left the context stopped.
+            context.reset();
             context.stop();
+        } finally {
+            try {
+                restoreProperty("oak.workDir", originalWorkDir);
+                restoreProperty(ContextInitializer.CONFIG_FILE_PROPERTY, originalConfigFile);
+            } finally {
+                if (loggerFactory != null) {
+                    loggerFactory.closeOnDemand();
+                }
+            }
         }
     }
 
     @Test
     public void reinitializationStartsStoppedContext() throws Exception {
-        new LoggingInitializer(temporaryFolder.newFolder(), "lifecycle").init();
+        File firstWorkDir = temporaryFolder.newFolder();
+        new LoggingInitializer(firstWorkDir, "lifecycle").init();
+        assertLoggingWorks(firstWorkDir, "before shutdown");
         LoggingInitializer.shutdownLogging();
         Assert.assertFalse(context.isStarted());
 
-        new LoggingInitializer(temporaryFolder.newFolder(), "lifecycle").init();
+        File secondWorkDir = temporaryFolder.newFolder();
+        new LoggingInitializer(secondWorkDir, "lifecycle").init();
         Assert.assertTrue(context.isStarted());
+        assertLoggingWorks(secondWorkDir, "after restart");
     }
 
     @Test
@@ -107,6 +110,7 @@ public class LoggingInitializerTest {
             Assert.assertNotNull(appender);
             Assert.assertTrue(appender.isStarted());
             Assert.assertTrue(new File(workDir, "lifecycle.log").isFile());
+            assertLoggingWorks(workDir, "lifecycle " + i);
             List<ScheduledFuture<?>> scanners = new ArrayList<>(context.getCopyOfScheduledFutures());
             Assert.assertFalse(scanners.isEmpty());
 
@@ -172,6 +176,39 @@ public class LoggingInitializerTest {
         for (ScheduledFuture<?> scanner : scanners) {
             Assert.assertFalse(scanner.isCancelled());
         }
+    }
+
+    @Test
+    public void initializationDoesNotChangeSharedLoggingContext() throws Exception {
+        boolean sharedStarted = sharedContext.isStarted();
+        List<ScheduledFuture<?>> sharedScanners = new ArrayList<>(sharedContext.getCopyOfScheduledFutures());
+        List<Appender<ILoggingEvent>> sharedAppenders = new ArrayList<>();
+        sharedContext.getLogger(Logger.ROOT_LOGGER_NAME).iteratorForAppenders().forEachRemaining(sharedAppenders::add);
+
+        File workDir = temporaryFolder.newFolder();
+        new LoggingInitializer(workDir, "lifecycle").init();
+        assertLoggingWorks(workDir, "isolated context");
+        Assert.assertNotSame(sharedContext, context);
+        restoreLoggingConfiguration();
+
+        Assert.assertSame(sharedContext, LoggerFactory.getILoggerFactory());
+        Assert.assertEquals(sharedStarted, sharedContext.isStarted());
+        Assert.assertEquals(sharedScanners, sharedContext.getCopyOfScheduledFutures());
+        List<Appender<ILoggingEvent>> remainingAppenders = new ArrayList<>();
+        sharedContext.getLogger(Logger.ROOT_LOGGER_NAME).iteratorForAppenders().forEachRemaining(remainingAppenders::add);
+        Assert.assertEquals(sharedAppenders, remainingAppenders);
+        Assert.assertEquals(originalWorkDir, System.getProperty("oak.workDir"));
+        Assert.assertEquals(originalConfigFile, System.getProperty(ContextInitializer.CONFIG_FILE_PROPERTY));
+    }
+
+    private void assertLoggingWorks(File workDir, String message) throws Exception {
+        Appender<ILoggingEvent> appender = context.getLogger(Logger.ROOT_LOGGER_NAME).getAppender("file");
+        Assert.assertNotNull(appender);
+        Assert.assertTrue(appender.isStarted());
+        Assert.assertFalse(context.getCopyOfScheduledFutures().isEmpty());
+        LoggerFactory.getLogger(LoggingInitializerTest.class).info(message);
+        String output = Files.readString(new File(workDir, "lifecycle.log").toPath(), StandardCharsets.UTF_8);
+        Assert.assertTrue("configured file appender must receive the message", output.contains(message));
     }
 
     private static void restoreProperty(String name, String value) {
