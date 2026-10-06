@@ -26,8 +26,11 @@ import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.util.ContextInitializer;
 import ch.qos.logback.core.Appender;
+import ch.qos.logback.core.BasicStatusManager;
 import ch.qos.logback.core.model.Model;
 import ch.qos.logback.core.model.ModelUtil;
+import ch.qos.logback.core.status.StatusManager;
+import ch.qos.logback.core.status.StatusUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -125,6 +128,26 @@ public class LoggingInitializerTest {
         LoggingInitializer.shutdownLogging();
         Assert.assertTrue(context.getCopyOfScheduledFutures().isEmpty());
         Assert.assertFalse(context.isStarted());
+    }
+
+    @Test
+    public void invalidConfigurationDoesNotRestartStoppedContext() throws Exception {
+        context.stop();
+        StatusManager originalStatusManager = context.getStatusManager();
+        context.setStatusManager(new BasicStatusManager());
+        try {
+            File workDir = temporaryFolder.newFolder();
+            new LoggingInitializer(workDir, "invalid").init();
+
+            Assert.assertTrue(new File(workDir, "logback-invalid.xml").isFile());
+            Assert.assertTrue("configuration must fail with an XML parsing error",
+                    new StatusUtil(context).hasXMLParsingErrors(0));
+            Assert.assertFalse("failed configuration must not restart a stopped context", context.isStarted());
+            Assert.assertTrue(context.getCopyOfScheduledFutures().isEmpty());
+            Assert.assertFalse(context.getLogger(Logger.ROOT_LOGGER_NAME).iteratorForAppenders().hasNext());
+        } finally {
+            context.setStatusManager(originalStatusManager);
+        }
     }
 
     @Test
