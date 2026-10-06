@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
 import org.apache.jackrabbit.oak.plugins.index.OrderByCommonTest;
-import org.apache.jackrabbit.oak.plugins.index.lucene.internal.LuceneFeatureToggles;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -63,12 +63,12 @@ public class LuceneOrderByTest extends OrderByCommonTest {
 
     @After
     public void resetToggle() {
-        LuceneFeatureToggles.FT_OAK_12344_DISABLE.set(false);
+        FulltextIndex.FT_OAK_12344_DISABLE.set(false);
     }
 
     @Test
     public void ft_oak_12344_toggleShouldBeRemoved() {
-        assertTrue("Feature toggle " + LuceneFeatureToggles.FT_OAK_12344 + " is overdue for removal",
+        assertTrue("Feature toggle " + FulltextIndex.FT_OAK_12344 + " is overdue for removal",
                 LocalDate.now().isBefore(LocalDate.of(2027, 10, 31)));
     }
 
@@ -78,7 +78,7 @@ public class LuceneOrderByTest extends OrderByCommonTest {
      */
     @Test
     public void orderByNonDateValuesWithDateTypeSortAsEpochLegacy() throws Exception {
-        LuceneFeatureToggles.FT_OAK_12344_DISABLE.set(true);
+        FulltextIndex.FT_OAK_12344_DISABLE.set(true);
         createMixedDateContent();
         assertEventually(() -> assertOrderedQuery(
                 "select [jcr:path] from [nt:base] where foo = 'bar' order by [dt]",

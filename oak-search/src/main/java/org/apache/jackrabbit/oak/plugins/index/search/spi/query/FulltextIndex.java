@@ -60,6 +60,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
@@ -85,6 +86,15 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     private static final Set<String> COMPETING_INDEX_TYPES = Set.of("lucene", "elasticsearch");
 
     public static final String FT_FILTER_GLOBALLY_SUPERSEDED = "FT_OAK-12146";
+
+    /**
+     * Feature toggle for OAK-12344: in property sorts, documents without a sortable value (absent, or not
+     * convertible to the declared type) sort first in ascending and last in descending order, as in the query
+     * engine. Enabled by default (bug fix); flipping the toggle sets {@link #FT_OAK_12344_DISABLE} to {@code true}
+     * and restores the legacy behavior (Lucene: such numeric and date values sort as 0; Elastic: missing last).
+     */
+    public static final String FT_OAK_12344 = "FT_OAK-12344";
+    public static final AtomicBoolean FT_OAK_12344_DISABLE = new AtomicBoolean(false);
 
     @Nullable private Feature filterGloballySupersededFeature;
 

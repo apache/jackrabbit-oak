@@ -54,7 +54,6 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.ExternalObserverBui
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LocalIndexObserver;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LuceneJournalPropertyService;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
-import org.apache.jackrabbit.oak.plugins.index.lucene.internal.LuceneFeatureToggles;
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexCleaner;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
@@ -406,7 +405,7 @@ public class LuceneIndexProviderService {
                 new FeatureToggle(FulltextIndexEditor.FT_OAK_12365, FulltextIndexEditor.FT_OAK_12365_DISABLE),
                 emptyMap()));
         oakRegs.add(whiteboard.register(FeatureToggle.class,
-                new FeatureToggle(LuceneFeatureToggles.FT_OAK_12344, LuceneFeatureToggles.FT_OAK_12344_DISABLE),
+                new FeatureToggle(FulltextIndex.FT_OAK_12344, FulltextIndex.FT_OAK_12344_DISABLE),
                 emptyMap()));
         initializeIndexDir(bundleContext, config);
         initializeExtractedTextCache(bundleContext, config, statisticsProvider);

@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.index.OrderByCommonTest;
-import org.apache.jackrabbit.oak.plugins.index.elastic.internal.ElasticFeatureToggles;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -50,12 +50,12 @@ public class ElasticOrderByTest extends OrderByCommonTest {
 
     @After
     public void resetToggle() {
-        ElasticFeatureToggles.FT_OAK_12344_DISABLE.set(false);
+        FulltextIndex.FT_OAK_12344_DISABLE.set(false);
     }
 
     @Test
     public void ft_oak_12344_toggleShouldBeRemoved() {
-        assertTrue("Feature toggle " + ElasticFeatureToggles.FT_OAK_12344 + " is overdue for removal",
+        assertTrue("Feature toggle " + FulltextIndex.FT_OAK_12344 + " is overdue for removal",
                 LocalDate.now().isBefore(LocalDate.of(2027, 10, 31)));
     }
 
@@ -65,7 +65,7 @@ public class ElasticOrderByTest extends OrderByCommonTest {
      */
     @Test
     public void orderByNonDateValuesWithDateTypeSortLastLegacy() throws Exception {
-        ElasticFeatureToggles.FT_OAK_12344_DISABLE.set(true);
+        FulltextIndex.FT_OAK_12344_DISABLE.set(true);
         createMixedDateContent();
         assertEventually(() -> assertOrderedQuery(
                 "select [jcr:path] from [nt:base] where foo = 'bar' order by [dt]",

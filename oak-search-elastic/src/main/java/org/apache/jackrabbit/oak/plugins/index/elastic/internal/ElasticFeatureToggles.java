@@ -50,13 +50,4 @@ public final class ElasticFeatureToggles {
      */
     public static final String FT_OAK_12415 = "FT_OAK-12415";
     public static final AtomicBoolean FT_OAK_12415_ENABLE = new AtomicBoolean(true);
-
-    /**
-     * Feature toggle for OAK-12344: in property sorts, documents without a value for the property sort first in
-     * ascending and last in descending order, as in the query engine. Enabled by default (bug fix).
-     * Flipping the toggle sets {@link #FT_OAK_12344_DISABLE} to {@code true} and restores the Elasticsearch default
-     * (missing last).
-     */
-    public static final String FT_OAK_12344 = "FT_OAK-12344";
-    public static final AtomicBoolean FT_OAK_12344_DISABLE = new AtomicBoolean(false);
 }

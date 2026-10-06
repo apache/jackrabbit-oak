@@ -47,7 +47,6 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticSemVer;
-import org.apache.jackrabbit.oak.plugins.index.elastic.internal.ElasticFeatureToggles;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets.ElasticFacetProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConstants;
@@ -391,7 +390,7 @@ public class ElasticRequestHandler {
             boolean ascending = QueryIndex.OrderEntry.Order.ASCENDING.equals(o.getOrder());
             // like the query engine, sort documents without a value first when ascending and last when descending
             boolean setMissing = !JCR_PATH.equals(sortPropertyName) && !JCR_SCORE.equals(sortPropertyName)
-                    && !ElasticFeatureToggles.FT_OAK_12344_DISABLE.get();
+                    && !FulltextIndex.FT_OAK_12344_DISABLE.get();
             SortOptions order = SortOptions.of(so -> so
                     .field(f -> {
                         f.field(fieldName).order(ascending ? SortOrder.Asc : SortOrder.Desc);
