@@ -22,13 +22,19 @@ package org.apache.jackrabbit.oak.segment.file;
 import static org.apache.commons.io.FileUtils.write;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
 
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
+import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -37,6 +43,9 @@ public class JournalReaderTest {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
+
+    @Rule
+    public RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties();
 
     @Test
     public void testEmpty() throws IOException {
@@ -139,6 +148,19 @@ public class JournalReaderTest {
             assertTrue(IteratorUtils.contains(journalReader, new JournalEntry("three", 123L)));
             assertTrue(IteratorUtils.contains(journalReader, new JournalEntry("two", -1L)));
             assertTrue(IteratorUtils.contains(journalReader, new JournalEntry("one", -1L)));
+        }
+    }
+
+    @Test
+    public void testIOExceptionPropagatesAsJournalReadFailure() throws IOException {
+        JournalFileReader mockReader = mock(JournalFileReader.class);
+        when(mockReader.readLine()).thenThrow(new IOException("simulated transient I/O failure"));
+
+        JournalFile mockJournal = mock(JournalFile.class);
+        when(mockJournal.openJournalReader()).thenReturn(mockReader);
+
+        try (JournalReader journalReader = new JournalReader(mockJournal)) {
+            assertThrows(JournalReadFailure.class, journalReader::hasNext);
         }
     }
 
