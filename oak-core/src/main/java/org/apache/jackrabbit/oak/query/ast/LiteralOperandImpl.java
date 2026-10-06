@@ -118,7 +118,7 @@ public class LiteralOperandImpl extends DynamicOperandImpl {
             return true;
         } else if (that instanceof LiteralOperandImpl) {
             LiteralOperandImpl t = (LiteralOperandImpl) that;
-            return value.equals(t.value) && functionToken.equals(t.functionToken);
+            return Objects.equal(value, t.value) && Objects.equal(functionToken, t.functionToken);
         } else {
             return false;
         }
