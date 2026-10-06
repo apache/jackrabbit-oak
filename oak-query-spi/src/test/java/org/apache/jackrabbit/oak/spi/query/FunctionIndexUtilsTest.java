@@ -234,6 +234,7 @@ public class FunctionIndexUtilsTest {
                 PropertyValues.newString("+"), PropertyValues.newLong(2L)));
     }
 
+    @Test
     public void processOp_unknownOperator() {
         assertNull(FunctionIndexUtils.processOp(PropertyValues.newLong(1L), PropertyValues.newString("%"), PropertyValues.newLong(2L)));
     }

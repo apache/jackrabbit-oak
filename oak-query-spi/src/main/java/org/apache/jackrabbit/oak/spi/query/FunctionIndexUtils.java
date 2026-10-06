@@ -79,6 +79,9 @@ public class FunctionIndexUtils {
         if (v == null) {
             return false;
         }
+        if (v.isArray()) {
+            return true;
+        }
         switch (v.getType().tag()) {
         case PropertyType.BOOLEAN:
             return v.getValue(Type.BOOLEAN);
