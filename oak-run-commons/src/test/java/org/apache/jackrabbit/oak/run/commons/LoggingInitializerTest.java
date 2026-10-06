@@ -87,6 +87,7 @@ public class LoggingInitializerTest {
         }
     }
 
+    /** Reinitialization restores working file logging after shutdown. */
     @Test
     public void reinitializationStartsStoppedContext() throws Exception {
         File firstWorkDir = temporaryFolder.newFolder();
@@ -101,6 +102,7 @@ public class LoggingInitializerTest {
         assertLoggingWorks(secondWorkDir, "after restart");
     }
 
+    /** Every shutdown closes appenders and cancels scanners. */
     @Test
     public void repeatedShutdownStopsAppendersAndScanners() throws Exception {
         for (int i = 0; i < 2; i++) {
@@ -124,6 +126,7 @@ public class LoggingInitializerTest {
         }
     }
 
+    /** Skipping reset must still restart a stopped context. */
     @Test
     public void initializationWithoutResetStartsStoppedContext() throws Exception {
         context.stop();
@@ -134,6 +137,7 @@ public class LoggingInitializerTest {
         Assert.assertFalse(context.isStarted());
     }
 
+    /** Failed configuration must leave the context stopped. */
     @Test
     public void invalidConfigurationDoesNotRestartStoppedContext() throws Exception {
         context.stop();
@@ -154,6 +158,7 @@ public class LoggingInitializerTest {
         }
     }
 
+    /** An external configuration keeps ownership of its logging context. */
     @Test
     public void customConfigurationSkipsInitializationAndShutdown() throws Exception {
         File workDir = temporaryFolder.newFolder();
@@ -178,6 +183,7 @@ public class LoggingInitializerTest {
         }
     }
 
+    /** The isolated lifecycle leaves shared logging untouched. */
     @Test
     public void initializationDoesNotChangeSharedLoggingContext() throws Exception {
         boolean sharedStarted = sharedContext.isStarted();
