@@ -234,9 +234,8 @@ public class FunctionIndexUtilsTest {
                 PropertyValues.newString("+"), PropertyValues.newLong(2L)));
     }
 
-    @Test(expected = IllegalArgumentException.class)
     public void processOp_unknownOperator() {
-        FunctionIndexUtils.processOp(PropertyValues.newLong(1L), PropertyValues.newString("%"), PropertyValues.newLong(2L));
+        assertNull(FunctionIndexUtils.processOp(PropertyValues.newLong(1L), PropertyValues.newString("%"), PropertyValues.newLong(2L)));
     }
 
     private static boolean op(PropertyValue a, String operator, PropertyValue b) {

@@ -161,7 +161,7 @@ public class FunctionIndexUtils {
             return PropertyValues.newDouble(result);
         }
         default:
-            throw new IllegalArgumentException("Unknown operator for op(): " + op);
+            return null;
         }
     }
 
