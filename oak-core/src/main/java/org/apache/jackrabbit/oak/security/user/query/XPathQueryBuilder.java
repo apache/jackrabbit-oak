@@ -38,6 +38,7 @@ class XPathQueryBuilder implements QueryBuilder<Condition> {
     private Value bound;
     private long offset;
     private long maxCount = Long.MAX_VALUE;
+    private String indexTag;
 
     //-------------------------------------------------------< QueryBuilder >---
     @Override
@@ -88,6 +89,11 @@ class XPathQueryBuilder implements QueryBuilder<Condition> {
         bound = null;
         this.offset = offset;
         setMaxCount(maxCount);
+    }
+
+    @Override
+    public void setIndexTag(@NotNull String indexTag) {
+        this.indexTag = indexTag;
     }
 
     @NotNull
@@ -217,6 +223,11 @@ class XPathQueryBuilder implements QueryBuilder<Condition> {
 
     long getMaxCount() {
         return maxCount;
+    }
+
+    @Nullable
+    String getIndexTag() {
+        return indexTag;
     }
 
     private void setMaxCount(long maxCount) {
