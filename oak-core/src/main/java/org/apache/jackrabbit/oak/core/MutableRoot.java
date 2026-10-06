@@ -46,6 +46,7 @@ import org.apache.jackrabbit.oak.plugins.index.diffindex.UUIDDiffIndexProviderWr
 import org.apache.jackrabbit.oak.query.ExecutionContext;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.spi.audit.AuditBufferLifecycle;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -234,6 +235,13 @@ class MutableRoot implements Root, PermissionAware {
     @Override
     public void rebase() {
         checkLive();
+        // Intentionally does NOT drain the audit buffer: rebase() preserves
+        // the session's transient changes (they are replayed on the new
+        // base), so the audit events captured alongside those surviving
+        // changes must survive too. Draining here would drop audit events
+        // for changes that are still pending and will be committed. Contrast
+        // with refresh(), which discards transient changes and therefore
+        // also drains the buffer.
         store.rebase(builder);
         secureBuilder.baseChanged();
         if (permissionProvider.hasValue()) {
@@ -244,6 +252,7 @@ class MutableRoot implements Root, PermissionAware {
     @Override
     public final void refresh() {
         checkLive();
+        AuditBufferLifecycle.onRefresh(getContentSession().toString());
         store.reset(builder);
         secureBuilder.baseChanged();
         modCount = 0;
@@ -258,7 +267,15 @@ class MutableRoot implements Root, PermissionAware {
         ContentSession session = getContentSession();
         CommitInfo commitInfo = new CommitInfo(
                 session.toString(), session.getAuthInfo().getUserID(), newInfoWithCommitContext(info));
-        store.merge(builder, getCommitHook(), commitInfo);
+        boolean merged = false;
+        try {
+            store.merge(builder, getCommitHook(), commitInfo);
+            merged = true;
+        } finally {
+            if (!merged) {
+                AuditBufferLifecycle.onCommitFailed(commitInfo.getSessionId());
+            }
+        }
         secureBuilder.baseChanged();
         modCount = 0;
         if (permissionProvider.hasValue()) {
