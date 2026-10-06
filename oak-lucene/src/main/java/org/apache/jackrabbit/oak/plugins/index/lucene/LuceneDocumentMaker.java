@@ -78,7 +78,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
 
     private static final String ORDERED_CONVERT_WARN =
             "[{}] Ignoring ordered value for property {} (type {}): not convertible to the declared "
-            + "type {} at {}. ORDER BY may return incorrect or no results - leave type unset or use type=String.";
+            + "type {} at {}. The value is not usable for ORDER BY on this property - leave type unset or use type=String.";
 
     /**
      * Feature toggle for OAK-12372: ignore facet properties with category path longer than 8191 characters to
