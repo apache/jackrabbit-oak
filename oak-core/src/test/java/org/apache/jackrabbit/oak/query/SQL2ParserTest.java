@@ -297,27 +297,27 @@ public class SQL2ParserTest {
         assertEquals("select [nt:base].[jcr:primaryType] as [nt:base.jcr:primaryType] " +
                 "from [nt:base] as [nt:base] " +
                 "where op([nt:base].[a], '+', [nt:base].[b]) = 3", q.toString());
-        opParser.parse("SELECT * FROM [nt:base] WHERE OP([a], '=', [b])=true");
+        q = opParser.parse("SELECT * FROM [nt:base] WHERE OP([a], '=', [b])=true");
         assertEquals("select [nt:base].[jcr:primaryType] as [nt:base.jcr:primaryType] " +
                 "from [nt:base] as [nt:base] " +
-                "where op([nt:base].[a], '+', [nt:base].[b]) = 3", q.toString());
-        opParser.parse("SELECT * FROM [nt:base] WHERE OP([a], 'is not', [b])=true");
+                "where op([nt:base].[a], '=', [nt:base].[b]) = cast('true' as boolean)", q.toString());
+        q = opParser.parse("SELECT * FROM [nt:base] WHERE OP([a], 'is not', [b])=true");
         assertEquals("select [nt:base].[jcr:primaryType] as [nt:base.jcr:primaryType] " +
                 "from [nt:base] as [nt:base] " +
-                "where op([nt:base].[a], '+', [nt:base].[b]) = 3", q.toString());
+                "where op([nt:base].[a], 'is not', [nt:base].[b]) = cast('true' as boolean)", q.toString());
 
         // the '*' operator literal must not confuse the parser/tokenizer
-        opParser.parse("SELECT * FROM [nt:base] WHERE OP([a], '*', [b])=6");
+        q = opParser.parse("SELECT * FROM [nt:base] WHERE OP([a], '*', [b])=6");
         assertEquals("select [nt:base].[jcr:primaryType] as [nt:base.jcr:primaryType] " +
                 "from [nt:base] as [nt:base] " +
-                "where op([nt:base].[a], '+', [nt:base].[b]) = 3", q.toString());
+                "where op([nt:base].[a], '*', [nt:base].[b]) = 6", q.toString());
 
         // XPath uses the "jcr:" prefix
-        opParser.parse(new XPathToSQL2Converter()
+        q = opParser.parse(new XPathToSQL2Converter()
                 .convert("//*[jcr:op(@a, '+', @b) = 3]"));
-        assertEquals("select [nt:base].[jcr:primaryType] as [nt:base.jcr:primaryType] " +
-                "from [nt:base] as [nt:base] " +
-                "where op([nt:base].[a], '+', [nt:base].[b]) = 3", q.toString());
+        assertEquals("select [a].[jcr:path] as [jcr:path], [a].[jcr:score] as [jcr:score], [a].[jcr:primaryType] as [a.jcr:primaryType] " +
+                "from [nt:base] as [a] " +
+                "where op([a].[a], '+', [a].[b]) = 3", q.toString());
     }
 
     @Test
