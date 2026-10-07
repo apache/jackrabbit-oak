@@ -74,8 +74,8 @@ public class IndexSearcherHolder implements Closeable {
             try {
                 toOpen = copier.wrapForRead(definition.getIndexPath(), definition, oakDirectory, LuceneNgIndexStorage.STORAGE_NODE_NAME);
             } catch (IOException e) {
-                oakDirectory.close();
-                throw e;
+                LOG.warn("Cannot open local cache for {}; reading directly from remote storage",
+                        definition.getIndexPath(), e);
             }
         }
         this.directory = toOpen;

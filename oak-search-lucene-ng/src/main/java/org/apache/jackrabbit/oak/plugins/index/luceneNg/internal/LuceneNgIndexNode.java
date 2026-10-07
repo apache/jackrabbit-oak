@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -112,7 +113,7 @@ public class LuceneNgIndexNode implements IndexNode {
             try {
                 holder = new IndexSearcherHolder(storageState, indexName, copier, definition);
             } catch (IOException e) {
-                LOG.debug("No index data for {} yet, searcher not opened: {}", indexPath, e.getMessage());
+                throw new UncheckedIOException("Cannot open LuceneNg index at " + indexPath, e);
             }
         }
         this.searcherHolder = holder;
