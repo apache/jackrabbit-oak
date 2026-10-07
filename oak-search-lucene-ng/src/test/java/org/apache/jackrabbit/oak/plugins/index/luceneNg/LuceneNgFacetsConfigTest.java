@@ -56,7 +56,7 @@ public class LuceneNgFacetsConfigTest {
         IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
         idb.noAsync();
         idb.indexRule("nt:unstructured").property("color").propertyIndex().facets();
-        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         NodeBuilder node1 = root.child("node1");
         node1.setProperty("jcr:primaryType", "nt:unstructured");

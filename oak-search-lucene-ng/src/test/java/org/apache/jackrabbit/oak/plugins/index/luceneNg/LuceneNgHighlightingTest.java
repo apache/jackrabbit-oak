@@ -67,7 +67,7 @@ public class LuceneNgHighlightingTest extends AbstractQueryTest {
         // Create index with fulltext enabled
         Tree index = root.getTree("/").addChild("oak:index").addChild("testIdx");
         index.setProperty("jcr:primaryType", IndexConstants.INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
-        index.setProperty(IndexConstants.TYPE_PROPERTY_NAME, LuceneNgIndexConstants.TYPE_LUCENE9);
+        index.setProperty(IndexConstants.TYPE_PROPERTY_NAME, LuceneNgIndexConstants.TYPE_LUCENE_NG);
         index.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
 
         // Enable fulltext indexing

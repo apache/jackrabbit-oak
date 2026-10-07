@@ -47,19 +47,19 @@ import static org.junit.Assert.assertTrue;
  *
  * <p>These drive real commits through {@link LuceneNgIndexEditorProvider} (see
  * {@link LuceneNgEditorCommitUtil}) and inspect the committed Lucene index (documents, fields,
- * doc-values) via a {@link DirectoryReader} opened over the {@code /oak:index/test/lucene9}
+ * doc-values) via a {@link DirectoryReader} opened over the {@code /oak:index/test/luceneNg}
  * storage.</p>
  */
 public class IndexingRulesTest {
 
     private static final String IDX = "/oak:index/test";
 
-    /** Creates a synchronous {@code lucene9} index definition builder at {@code /oak:index/test}. */
-    private static IndexDefinitionBuilder lucene9(NodeBuilder rootBuilder) {
+    /** Creates a synchronous {@code luceneNg} index definition builder at {@code /oak:index/test}. */
+    private static IndexDefinitionBuilder luceneNg(NodeBuilder rootBuilder) {
         NodeBuilder defnBuilder = rootBuilder.child("oak:index").child("test");
         IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
         idb.noAsync();
-        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
         return idb;
     }
 
@@ -76,7 +76,7 @@ public class IndexingRulesTest {
     @Test
     public void nodeNotMatchingAnyRuleIsNotIndexed() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:folder").property("title").propertyIndex();
+        luceneNg(root).indexRule("nt:folder").property("title").propertyIndex();
         content(root, "content", "nt:unstructured").setProperty("title", "hello");
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
@@ -87,7 +87,7 @@ public class IndexingRulesTest {
     @Test
     public void nodeMatchingRuleWithNoPropertiesProducesNoDocument() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured"); // rule exists but no properties configured
+        luceneNg(root).indexRule("nt:unstructured"); // rule exists but no properties configured
         content(root, "content", "nt:unstructured").setProperty("title", "hello");
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
@@ -102,7 +102,7 @@ public class IndexingRulesTest {
     @Test
     public void onlyConfiguredPropertyIsIndexed() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("title").propertyIndex();
+        luceneNg(root).indexRule("nt:unstructured").property("title").propertyIndex();
         NodeBuilder c = content(root, "content", "nt:unstructured");
         c.setProperty("title", "hello");
         c.setProperty("description", "world");
@@ -122,9 +122,9 @@ public class IndexingRulesTest {
     @Test
     public void propertyWithIndexFalseIsSkipped() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        // Manually craft a rule where index=false; make it a real sync lucene9 index.
+        // Manually craft a rule where index=false; make it a real sync luceneNg index.
         NodeBuilder defnBuilder = root.child("oak:index").child("test");
-        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
         defnBuilder.setProperty("reindex", true);
         defnBuilder.setProperty("jcr:primaryType", "oak:QueryIndexDefinition", Type.NAME);
         defnBuilder.child("indexRules").child("nt:unstructured")
@@ -148,7 +148,7 @@ public class IndexingRulesTest {
     @Test
     public void nodeScopeIndexAddsFulltextField() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("body").nodeScopeIndex();
+        luceneNg(root).indexRule("nt:unstructured").property("body").nodeScopeIndex();
         content(root, "content", "nt:unstructured").setProperty("body", "search me");
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
@@ -162,7 +162,7 @@ public class IndexingRulesTest {
     @Test
     public void propertyWithoutNodeScopeIndexDoesNotContributeToFulltext() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("status").propertyIndex();
+        luceneNg(root).indexRule("nt:unstructured").property("status").propertyIndex();
         content(root, "content", "nt:unstructured").setProperty("status", "active");
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
@@ -176,7 +176,7 @@ public class IndexingRulesTest {
     @Test
     public void storedNodeScopeIndexFieldIsStoredForExcerpt() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("body").nodeScopeIndex().useInExcerpt();
+        luceneNg(root).indexRule("nt:unstructured").property("body").nodeScopeIndex().useInExcerpt();
         content(root, "content", "nt:unstructured").setProperty("body", "the excerpt value");
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
@@ -203,7 +203,7 @@ public class IndexingRulesTest {
     @Test
     public void orderedStringPropertyHasSortedDocValues() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("title").ordered();
+        luceneNg(root).indexRule("nt:unstructured").property("title").ordered();
         content(root, "content", "nt:unstructured").setProperty("title", "hello");
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
@@ -223,7 +223,7 @@ public class IndexingRulesTest {
     @Test
     public void orderedLongPropertyHasNumericDocValues() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("size").ordered("Long");
+        luceneNg(root).indexRule("nt:unstructured").property("size").ordered("Long");
         content(root, "content", "nt:unstructured").setProperty("size", 42L);
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
@@ -237,7 +237,7 @@ public class IndexingRulesTest {
     @Test
     public void unorderedPropertyHasNoDocValues() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("tag").propertyIndex();
+        luceneNg(root).indexRule("nt:unstructured").property("tag").propertyIndex();
         content(root, "content", "nt:unstructured").setProperty("tag", "oak");
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
@@ -262,7 +262,7 @@ public class IndexingRulesTest {
     @Test
     public void samePropertyNameWithDifferentTypesAcrossNodesDoesNotThrow() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("path").propertyIndex();
+        luceneNg(root).indexRule("nt:unstructured").property("path").propertyIndex();
 
         content(root, "nodeA", "nt:unstructured").setProperty("path", "/some/string/path");
         content(root, "nodeB", "nt:unstructured").setProperty("path", 12345L);
@@ -279,7 +279,7 @@ public class IndexingRulesTest {
     @Test
     public void multiValueStringPropertyIndexesAllValues() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("tags").propertyIndex().nodeScopeIndex();
+        luceneNg(root).indexRule("nt:unstructured").property("tags").propertyIndex().nodeScopeIndex();
         content(root, "content", "nt:unstructured")
                 .setProperty("tags", Arrays.asList("alpha", "beta", "gamma"), Type.STRINGS);
 
@@ -300,7 +300,7 @@ public class IndexingRulesTest {
     @Test
     public void regexPropertyDefinitionMatchesProperty() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("prop_.*", true).propertyIndex();
+        luceneNg(root).indexRule("nt:unstructured").property("prop_.*", true).propertyIndex();
         NodeBuilder c = content(root, "content", "nt:unstructured");
         c.setProperty("prop_foo", "bar");
         c.setProperty("other", "baz");
@@ -324,7 +324,7 @@ public class IndexingRulesTest {
     @Test
     public void relativePropertyIsIndexedIntoParentDocument() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("child/title").propertyIndex();
+        luceneNg(root).indexRule("nt:unstructured").property("child/title").propertyIndex();
 
         NodeBuilder parent = content(root, "page", "nt:unstructured");
         parent.child("child").setProperty("title", "deep value");
@@ -343,7 +343,7 @@ public class IndexingRulesTest {
     @Test
     public void missingChildNodeForRelativePropertyProducesNoDocument() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("child/title").propertyIndex();
+        luceneNg(root).indexRule("nt:unstructured").property("child/title").propertyIndex();
         content(root, "page", "nt:unstructured"); // no "child" sub-node
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());

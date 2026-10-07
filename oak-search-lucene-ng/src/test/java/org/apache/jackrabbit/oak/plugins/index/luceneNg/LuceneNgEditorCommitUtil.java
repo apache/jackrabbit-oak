@@ -42,11 +42,11 @@ import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
  * {@code FulltextIndexEditorContext}, obtains the {@code IndexingContext}/{@code ContextAwareCallback},
  * and writes the segments into the committed node state, exactly as the production
  * {@link LuceneNgIndexEditorProvider} does. Tests then open a {@link DirectoryReader} over that
- * committed {@code /oak:index/<name>/lucene9} storage to assert on the observable index contents
+ * committed {@code /oak:index/<name>/luceneNg} storage to assert on the observable index contents
  * (documents, fields, doc-values, facets).</p>
  *
- * <p>Every index definition driven this way must be a <b>synchronous</b> {@code lucene9} index
- * (no {@code async} property, {@code type=lucene9}), so the {@link EditorHook} processes it inline.</p>
+ * <p>Every index definition driven this way must be a <b>synchronous</b> {@code luceneNg} index
+ * (no {@code async} property, {@code type=luceneNg}), so the {@link EditorHook} processes it inline.</p>
  */
 final class LuceneNgEditorCommitUtil {
 
@@ -64,7 +64,7 @@ final class LuceneNgEditorCommitUtil {
     }
 
     /**
-     * Full (re)index of a node state that already carries the {@code lucene9} index definition and
+     * Full (re)index of a node state that already carries the {@code luceneNg} index definition and
      * the content to index, diffed against the base {@code INITIAL_CONTENT}. Because the definition
      * is new in {@code after}, this triggers a reindex and indexes every matching node in {@code after}.
      */

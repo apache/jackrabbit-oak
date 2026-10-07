@@ -60,7 +60,7 @@ public class IntegrationTest {
         NodeBuilder builder = INITIAL_CONTENT.builder();
         NodeBuilder oakIndex = builder.child("oak:index");
         NodeBuilder indexDef = oakIndex.child("testIndex");
-        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
         indexDef.setProperty("async", "async");
 
         // Create content tree with 3 articles
@@ -86,7 +86,7 @@ public class IntegrationTest {
         LuceneNgIndexEditorProvider provider = new LuceneNgIndexEditorProvider(tracker);
 
         Editor editor = provider.getIndexEditor(
-            LuceneNgIndexConstants.TYPE_LUCENE9,
+            LuceneNgIndexConstants.TYPE_LUCENE_NG,
             indexDef,
             root,
             contextCallback("/oak:index/testIndex")
@@ -144,7 +144,7 @@ public class IntegrationTest {
         NodeBuilder builder = INITIAL_CONTENT.builder();
         NodeBuilder oakIndex = builder.child("oak:index");
         NodeBuilder indexDef = oakIndex.child("largeIndex");
-        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
         indexDef.setProperty("async", "async");
 
         // Create 100 nodes with large text (1000x repeated string per node) to force large index
@@ -170,7 +170,7 @@ public class IntegrationTest {
         LuceneNgIndexEditorProvider provider = new LuceneNgIndexEditorProvider(tracker);
 
         Editor editor = provider.getIndexEditor(
-            LuceneNgIndexConstants.TYPE_LUCENE9,
+            LuceneNgIndexConstants.TYPE_LUCENE_NG,
             indexDef,
             root,
             contextCallback("/oak:index/largeIndex")
@@ -248,7 +248,7 @@ public class IntegrationTest {
         NodeBuilder builder = INITIAL_CONTENT.builder();
         NodeBuilder oakIndex = builder.child("oak:index");
         NodeBuilder index1 = oakIndex.child("index1");
-        index1.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        index1.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
         index1.setProperty("async", "async");
 
         NodeState root1 = builder.getNodeState();
@@ -270,7 +270,7 @@ public class IntegrationTest {
 
         // Add index2
         NodeBuilder index2 = oakIndex.child("index2");
-        index2.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        index2.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
         index2.setProperty("async", "async");
 
         NodeState root2 = builder.getNodeState();
@@ -293,7 +293,7 @@ public class IntegrationTest {
         NodeBuilder builder = INITIAL_CONTENT.builder();
         NodeBuilder oakIndex = builder.child("oak:index");
         NodeBuilder indexDef = oakIndex.child("testIndex");
-        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         // Create content nodes
         NodeBuilder content = builder.child("content");
@@ -308,7 +308,7 @@ public class IntegrationTest {
         // Get state with content
         NodeState root = builder.getNodeState();
 
-        // Index the content using OakDirectory at the canonical lucene9 storage path
+        // Index the content using OakDirectory at the canonical luceneNg storage path
         org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory directory =
             new org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory(
                 builder.child("oak:index").child("testIndex").child(LuceneNgIndexStorage.STORAGE_NODE_NAME), "testIndex", false);

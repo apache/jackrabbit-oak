@@ -24,7 +24,7 @@ import org.apache.jackrabbit.oak.plugins.index.TestUtil;
 import javax.jcr.Repository;
 
 /**
- * Runs {@link FacetCommonTest} against Lucene 9 ({@code lucene9}) indexes so facet behaviour matches
+ * Runs {@link FacetCommonTest} against Lucene 9 ({@code luceneNg}) indexes so facet behaviour matches
  * legacy Lucene and Elastic facet scenarios.
  */
 public class LuceneNgFacetCommonTest extends FacetCommonTest {

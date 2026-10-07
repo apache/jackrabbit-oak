@@ -40,11 +40,11 @@ public class IndexingFunctionalTest {
 
     private static final String IDX = "/oak:index/test";
 
-    private static IndexDefinitionBuilder lucene9(NodeBuilder rootBuilder) {
+    private static IndexDefinitionBuilder luceneNg(NodeBuilder rootBuilder) {
         NodeBuilder defnBuilder = rootBuilder.child("oak:index").child("test");
         IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
         idb.noAsync();
-        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
         return idb;
     }
 
@@ -57,7 +57,7 @@ public class IndexingFunctionalTest {
     @Test
     public void emptyNodeWithOnlyHiddenPropertiesIsNotIndexed() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("title").propertyIndex();
+        luceneNg(root).indexRule("nt:unstructured").property("title").propertyIndex();
         // Only a hidden property -> no visible primaryType, no indexable property.
         root.child("emptyNode").setProperty(":primaryType", "nt:base");
 
@@ -69,7 +69,7 @@ public class IndexingFunctionalTest {
     @Test
     public void deepHierarchyIsIndexedWithoutError() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("title").propertyIndex();
+        luceneNg(root).indexRule("nt:unstructured").property("title").propertyIndex();
 
         NodeBuilder current = node(root, "level0");
         current.setProperty("title", "Level 0");
@@ -87,7 +87,7 @@ public class IndexingFunctionalTest {
     public void largePropertyValueIsHandledWithoutError() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
         // nodeScopeIndex (fulltext, tokenized) has no single-term length limit, unlike a StringField.
-        lucene9(root).indexRule("nt:unstructured").property("largeText").nodeScopeIndex();
+        luceneNg(root).indexRule("nt:unstructured").property("largeText").nodeScopeIndex();
 
         StringBuilder largeText = new StringBuilder(100 * 1024);
         for (int i = 0; i < 100 * 1024; i++) {
@@ -106,7 +106,7 @@ public class IndexingFunctionalTest {
     @Test
     public void specialCharactersAreHandledWithoutError() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured")
+        luceneNg(root).indexRule("nt:unstructured")
                 .property("unicode").propertyIndex()
                 .property("newlines").propertyIndex()
                 .property("quotes").propertyIndex()
@@ -126,7 +126,7 @@ public class IndexingFunctionalTest {
     @Test
     public void mixedPropertyTypesAreHandledWithoutError() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured")
+        luceneNg(root).indexRule("nt:unstructured")
                 .property("stringProp").propertyIndex()
                 .property("longProp").propertyIndex()
                 .property("booleanProp").propertyIndex()
@@ -146,7 +146,7 @@ public class IndexingFunctionalTest {
     @Test
     public void hiddenPropertiesAreExcluded() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("normalProp").propertyIndex();
+        luceneNg(root).indexRule("nt:unstructured").property("normalProp").propertyIndex();
 
         NodeBuilder n = node(root, "hiddenPropsNode");
         n.setProperty("normalProp", "This should be indexed");
@@ -164,7 +164,7 @@ public class IndexingFunctionalTest {
     @Test
     public void nodeUpdateReplacesDocument() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("title").propertyIndex();
+        luceneNg(root).indexRule("nt:unstructured").property("title").propertyIndex();
         node(root.child("content"), "page1").setProperty("title", "Original Title");
 
         NodeState base = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
@@ -183,7 +183,7 @@ public class IndexingFunctionalTest {
     @Test
     public void nodeDeletionRemovesDocument() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("title").propertyIndex();
+        luceneNg(root).indexRule("nt:unstructured").property("title").propertyIndex();
         NodeBuilder contentNode = root.child("content");
         node(contentNode, "keep").setProperty("title", "Keep me");
         node(contentNode, "remove").setProperty("title", "Delete me");
@@ -206,7 +206,7 @@ public class IndexingFunctionalTest {
     @Test
     public void manyPropertiesAreHandledWithoutError() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("prop.*", true).propertyIndex();
+        luceneNg(root).indexRule("nt:unstructured").property("prop.*", true).propertyIndex();
 
         NodeBuilder n = node(root, "manyPropsNode");
         for (int i = 0; i < 100; i++) {

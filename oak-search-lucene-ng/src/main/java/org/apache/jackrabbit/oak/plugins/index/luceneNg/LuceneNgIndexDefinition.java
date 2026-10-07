@@ -62,7 +62,7 @@ public class LuceneNgIndexDefinition extends IndexDefinition {
 
     @Override
     protected String getDefaultFunctionName() {
-        return LuceneNgIndexConstants.TYPE_LUCENE9;
+        return LuceneNgIndexConstants.TYPE_LUCENE_NG;
     }
 
     /**
@@ -78,7 +78,7 @@ public class LuceneNgIndexDefinition extends IndexDefinition {
      * Repository path where Lucene segment files for this index are stored
      * ({@link LuceneNgIndexStorage} child under the definition).
      *
-     * @return e.g. {@code /oak:index/myIndex/lucene9}
+     * @return e.g. {@code /oak:index/myIndex/luceneNg}
      */
     public String getStoragePath() {
         return LuceneNgIndexStorage.storagePath(getIndexPath());

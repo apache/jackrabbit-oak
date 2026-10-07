@@ -1,6 +1,26 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements. See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License. You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
 # oak-search-lucene-ng
 
-Lucene 9 index provider for Oak (`type="lucene9"`).
+Lucene NG index provider for Oak (`type="luceneNg"`), using Lucene 9.
+
+The index type is independent of the Lucene library version. Segment data is
+stored in the `luceneNg` child under the index definition.
 
 ## Feature parity
 
@@ -48,8 +68,8 @@ If a future LuceneNg-specific reindex path were ever added that bypasses `oak-co
 
 ### Index discovery
 
-**`LuceneNgQueryIndexProvider.getQueryIndexes()` only discovers `lucene9` indexes one level under `/oak:index`.**
-`LuceneNgIndexTracker` itself can resolve and serve a `lucene9` index at any nesting depth once given its exact path (`acquireIndexNode(path)` does a lazy, per-path lookup with no depth restriction). The remaining limitation is query-time *discovery*: `LuceneNgQueryIndexProvider.getQueryIndexes()` — the method that tells the Oak query engine which `lucene9` indexes exist so it can hand the tracker an exact path — only enumerates direct children of `/oak:index`. An index defined deeper (e.g. `/content/dam/oak:index/damAssets`) is still maintained correctly by the editor, but a real query against it will never be offered that index as a query plan candidate and silently falls back to traversal. For this version, `type=lucene9` index definitions must still be placed at `/oak:index/<name>` for queries to find them.
+**`LuceneNgQueryIndexProvider.getQueryIndexes()` only discovers `luceneNg` indexes one level under `/oak:index`.**
+`LuceneNgIndexTracker` itself can resolve and serve a `luceneNg` index at any nesting depth once given its exact path (`acquireIndexNode(path)` does a lazy, per-path lookup with no depth restriction). The remaining limitation is query-time *discovery*: `LuceneNgQueryIndexProvider.getQueryIndexes()` — the method that tells the Oak query engine which `luceneNg` indexes exist so it can hand the tracker an exact path — only enumerates direct children of `/oak:index`. An index defined deeper (e.g. `/content/dam/oak:index/damAssets`) is still maintained correctly by the editor, but a real query against it will never be offered that index as a query plan candidate and silently falls back to traversal. For this version, `type=luceneNg` index definitions must still be placed at `/oak:index/<name>` for queries to find them.
 
 ### Error handling
 
@@ -66,8 +86,8 @@ Under high concurrency, N threads can simultaneously construct a `DefaultSortedS
 **No JMX / metrics instrumentation.**
 Query errors return empty cursors with no counter incremented. Operations cannot distinguish an empty result set from a corrupted or unresponsive index without enabling `DEBUG` logging. The legacy module exposes query counts, error rates, and index sizes via JMX.
 
-**`IndexPrinter` does not recognise `lucene9`.**
-`oak-core`'s `IndexPrinter` identifies known index types for inventory output. It does not include `lucene9`, so lucene9 indexes appear with reduced diagnostic information in the Oak repository inventory.
+**`IndexPrinter` does not recognise `luceneNg`.**
+`oak-core`'s `IndexPrinter` identifies known index types for inventory output. It does not include `luceneNg`, so luceneNg indexes appear with reduced diagnostic information in the Oak repository inventory.
 
 ### Storage and data consistency
 

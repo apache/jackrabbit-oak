@@ -34,8 +34,8 @@ public class LuceneNgQueryIndexProviderTest {
         NodeBuilder oakIndex = builder.child("oak:index");
 
         // Create Lucene 9 index
-        NodeBuilder lucene9Index = oakIndex.child("test");
-        lucene9Index.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        NodeBuilder luceneNgIndex = oakIndex.child("test");
+        luceneNgIndex.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         // Create Lucene 4.7 index (should be ignored)
         NodeBuilder lucene47Index = oakIndex.child("old");
@@ -56,7 +56,7 @@ public class LuceneNgQueryIndexProviderTest {
     }
 
     @Test
-    public void testNoIndexesWhenNoLucene9() {
+    public void testNoIndexesWhenNoLuceneNg() {
         NodeState root = InitialContentHelper.INITIAL_CONTENT;
 
         LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
@@ -66,7 +66,7 @@ public class LuceneNgQueryIndexProviderTest {
         List<? extends QueryIndex> indexes = provider.getQueryIndexes(root);
 
         assertNotNull("Indexes should not be null", indexes);
-        assertTrue("Should return empty list when no Lucene 9 indexes",
+        assertTrue("Should return empty list when no LuceneNg indexes",
                    indexes.isEmpty());
     }
 }

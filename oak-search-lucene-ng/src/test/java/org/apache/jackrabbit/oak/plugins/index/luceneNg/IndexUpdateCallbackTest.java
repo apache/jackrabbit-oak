@@ -42,11 +42,11 @@ public class IndexUpdateCallbackTest {
 
     private static final String IDX = "/oak:index/test";
 
-    private static IndexDefinitionBuilder lucene9(NodeBuilder rootBuilder) {
+    private static IndexDefinitionBuilder luceneNg(NodeBuilder rootBuilder) {
         NodeBuilder defnBuilder = rootBuilder.child("oak:index").child("test");
         IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
         idb.noAsync();
-        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
         return idb;
     }
 
@@ -59,7 +59,7 @@ public class IndexUpdateCallbackTest {
     @Test
     public void oneUpdatePerIndexedDocument() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("title").propertyIndex();
+        luceneNg(root).indexRule("nt:unstructured").property("title").propertyIndex();
 
         node(root, "page1", "nt:unstructured").setProperty("title", "alpha");
         node(root, "page2", "nt:unstructured").setProperty("title", "beta");
@@ -74,7 +74,7 @@ public class IndexUpdateCallbackTest {
     @Test
     public void noUpdateWhenNoPropertiesIndexed() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("title").propertyIndex();
+        luceneNg(root).indexRule("nt:unstructured").property("title").propertyIndex();
         // Node matches the rule's type but carries no configured property.
         node(root, "page1", "nt:unstructured").setProperty("description", "no title here");
 
@@ -86,7 +86,7 @@ public class IndexUpdateCallbackTest {
     @Test
     public void documentRemovedOnChildNodeDeletion() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("title").propertyIndex();
+        luceneNg(root).indexRule("nt:unstructured").property("title").propertyIndex();
         node(root, "page1", "nt:unstructured").setProperty("title", "alpha");
 
         NodeState base = LuceneNgEditorCommitUtil.reindex(root.getNodeState());

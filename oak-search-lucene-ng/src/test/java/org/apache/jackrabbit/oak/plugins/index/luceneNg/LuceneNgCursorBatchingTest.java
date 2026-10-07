@@ -59,13 +59,13 @@ import org.junit.Test;
 public class LuceneNgCursorBatchingTest {
 
     /**
-     * Writes {@code count} documents (paths /content/doc0..docN) into a lucene9 index at
+     * Writes {@code count} documents (paths /content/doc0..docN) into a luceneNg index at
      * {@code /oak:index/testIdx}. Each document also carries a stored FULLTEXT field so the
      * same fixture can be queried both by match-all and by a full-text term.
      */
     private static NodeState buildIndexWithDocs(NodeBuilder builder, int count) throws Exception {
         NodeBuilder oakIndex = builder.child("oak:index").child("testIdx");
-        oakIndex.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        oakIndex.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         OakDirectory dir = new OakDirectory(
                 builder.child("oak:index").child("testIdx").child(LuceneNgIndexStorage.STORAGE_NODE_NAME),

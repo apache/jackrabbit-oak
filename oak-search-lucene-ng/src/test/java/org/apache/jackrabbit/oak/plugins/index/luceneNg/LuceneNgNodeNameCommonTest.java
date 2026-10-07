@@ -23,7 +23,7 @@ import org.apache.jackrabbit.oak.plugins.index.NodeNameCommonTest;
 import javax.jcr.Repository;
 
 /**
- * Runs {@link NodeNameCommonTest} against Lucene 9 ({@code lucene9}) indexes.
+ * Runs {@link NodeNameCommonTest} against Lucene 9 ({@code luceneNg}) indexes.
  */
 public class LuceneNgNodeNameCommonTest extends NodeNameCommonTest {
 

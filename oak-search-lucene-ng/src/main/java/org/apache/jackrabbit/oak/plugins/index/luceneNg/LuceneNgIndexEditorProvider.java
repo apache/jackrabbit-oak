@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * IndexEditorProvider for Lucene 9 indexes.
- * Routes index write operations to Lucene 9 editor for lucene9 type indexes.
+ * Routes index write operations to Lucene 9 editor for luceneNg type indexes.
  */
 public class LuceneNgIndexEditorProvider implements IndexEditorProvider {
     private static final Logger LOG = LoggerFactory.getLogger(LuceneNgIndexEditorProvider.class);
@@ -56,8 +56,8 @@ public class LuceneNgIndexEditorProvider implements IndexEditorProvider {
                                  @NotNull IndexUpdateCallback callback)
             throws CommitFailedException {
 
-        // Only handle lucene9 type indexes
-        if (!LuceneNgIndexConstants.TYPE_LUCENE9.equals(type)) {
+        // Only handle luceneNg type indexes
+        if (!LuceneNgIndexConstants.TYPE_LUCENE_NG.equals(type)) {
             return null;
         }
 

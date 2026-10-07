@@ -315,7 +315,7 @@ public class ConcurrentCopyOnReadDirectoryTest {
 
     private static Directory openCoR(LuceneNgIndexCopier copier, OakDirectory remote, LuceneNgIndexDefinition defn,
                                      String description) throws IOException {
-        Directory d = spy(copier.wrapForRead("/oak:index/foo", defn, remote, "lucene9"));
+        Directory d = spy(copier.wrapForRead("/oak:index/foo", defn, remote, "luceneNg"));
         when(d.toString())
                 .thenAnswer(invocationOnMock -> description);
         return d;
@@ -331,14 +331,14 @@ public class ConcurrentCopyOnReadDirectoryTest {
 
     /**
      * Follows LuceneNgIndexCopierTest's construction pattern: an INITIAL_CONTENT-backed
-     * NodeBuilder with the lucene9 type property set, fed through
+     * NodeBuilder with the luceneNg type property set, fed through
      * LuceneNgIndexDefinition.Builder (which exposes .uid(...) via the shared
      * IndexDefinition.Builder) so getUniqueId() returns the requested value.
      */
     private LuceneNgIndexDefinition testDefinition(String uniqueId) {
         NodeState root = InitialContentHelper.INITIAL_CONTENT;
         NodeBuilder builder = root.builder();
-        builder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        builder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
         NodeState defnState = builder.getNodeState();
 
         return new LuceneNgIndexDefinition.Builder()

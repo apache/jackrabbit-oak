@@ -49,7 +49,7 @@ public class LuceneNgIndexNodeTest {
     private static NodeState buildIndexWithData(String indexPath) throws Exception {
         NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
         NodeBuilder indexDef = builder.child("oak:index").child("testIndex");
-        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         String indexName = indexPath.substring(indexPath.lastIndexOf('/') + 1);
         NodeBuilder storageBuilder = indexDef.child(LuceneNgIndexStorage.STORAGE_NODE_NAME);

@@ -90,7 +90,7 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
             .property("category").propertyIndex();
 
         Tree index = builder.build(root.getTree("/").getChild("oak:index").addChild("luceneNgTestIndex"));
-        index.setProperty("type", "lucene9");
+        index.setProperty("type", "luceneNg");
         root.commit();
     }
 
@@ -101,8 +101,8 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
         String explain = executeQuery("explain //element(*, nt:base)[@title = 'Oak Testing']", "xpath").get(0);
         assertThat("Query plan should use lucene:...@v9 for Granite-style parsers",
                 explain, containsString("lucene:luceneNgTestIndex@v9"));
-        assertThat("Query plan should still expose lucene9 engine tag",
-                explain, containsString("lucene9:luceneNgTestIndex"));
+        assertThat("Query plan should expose luceneNg type",
+                explain, containsString("luceneNg:luceneNgTestIndex"));
         assertThat("Query plan should use luceneQuery label like FulltextIndex.getPlanDescription",
                 explain, containsString("luceneQuery:"));
         assertThat("Query plan should carry index definition path for tooling",
@@ -111,25 +111,25 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
 
     /**
      * The index declared by {@link #createSearchIndex()} does not index a property named
-     * {@code undeclared}. The lucene9 index must not offer a plan for a query restricted on a
+     * {@code undeclared}. The luceneNg index must not offer a plan for a query restricted on a
      * property it does not index — the query must fall back to traversal instead.
      */
     @Test
-    public void undeclaredPropertyNotServedByLucene9() throws Exception {
+    public void undeclaredPropertyNotServedByLuceneNg() throws Exception {
         createSearchIndex();
         createTestContent();
         String explain = executeQuery(
                 "explain select [jcr:path] from [nt:base] where [undeclared] = 'x'", "sql").get(0);
-        assertThat("lucene9 index must not serve a query on a property it does not index; "
+        assertThat("luceneNg index must not serve a query on a property it does not index; "
                         + "the query must fall back to traversal. Plan was: " + explain,
-                explain, not(containsString("lucene9:")));
+                explain, not(containsString("luceneNg:")));
     }
 
     /**
      * A query that combines a restriction on a DECLARED property ({@code title}) with one on an
      * UNDECLARED property ({@code undeclared}). Because {@code title} is declared, the inherited
      * {@link org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner} does
-     * offer a lucene9 plan (unlike {@link #undeclaredPropertyNotServedByLucene9}, where the only
+     * offer a luceneNg plan (unlike {@link #undeclaredPropertyNotServedByLuceneNg}, where the only
      * restriction is undeclared and no plan is offered at all). This pins whether the undeclared
      * restriction still leaks into the constructed Lucene query.
      *
@@ -138,7 +138,7 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
      * undeclared property into a Lucene clause — {@code planResult.getPropDefn(pr) == null} → skip —
      * so it matches on the {@code title} clause and lets the query engine post-filter the
      * {@code undeclared} restriction; the node satisfies both, so legacy returns {@code /mixed/n1}.
-     * lucene9 must agree.
+     * luceneNg must agree.
      */
     @Test
     public void queryOnUndeclaredPropertyDoesNotWronglyMatchOrMismatch() throws Exception {
@@ -168,7 +168,7 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
             .property("active").propertyIndex().type("Boolean").ordered();
 
         Tree index = builder.build(root.getTree("/").getChild("oak:index").addChild("luceneNgBooleanSortIndex"));
-        index.setProperty("type", "lucene9");
+        index.setProperty("type", "luceneNg");
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
@@ -191,7 +191,7 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
             .property("tags").propertyIndex().ordered();
 
         Tree index = builder.build(root.getTree("/").getChild("oak:index").addChild("luceneNgMultiValuedStringSortIndex"));
-        index.setProperty("type", "lucene9");
+        index.setProperty("type", "luceneNg");
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
@@ -220,7 +220,7 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
             .property("tags").propertyIndex().ordered();
 
         Tree index = builder.build(root.getTree("/").getChild("oak:index").addChild("luceneNgMixedCardinalityStringSortIndex"));
-        index.setProperty("type", "lucene9");
+        index.setProperty("type", "luceneNg");
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
@@ -238,7 +238,7 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
 
     /**
      * End-to-end proof that CopyOnRead ({@link LuceneNgIndexCopier}) is a transparent read-path
-     * optimisation: a lucene9 index served through a tracker wired with a real copier must
+     * optimisation: a luceneNg index served through a tracker wired with a real copier must
      * return exactly the same results as the no-copier baseline every other test in this class
      * exercises, for the identical content/query fixture and query used by the shared
      * {@code AbstractIndexComparisonTest#testContainsOnAnalyzedProperty} (see grep for
@@ -257,7 +257,7 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
         File localRoot = temporaryFolder.newFolder();
         LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, localRoot, false);
         try {
-            // Swap in a repository whose lucene9 index is served through a copier-backed
+            // Swap in a repository whose luceneNg index is served through a copier-backed
             // tracker, in place of the default no-copier one createRepository() installed via
             // AbstractQueryTest#before(). createSearchIndex()/createTestContent()/assertQuery()
             // all operate on the instance fields reassigned here.

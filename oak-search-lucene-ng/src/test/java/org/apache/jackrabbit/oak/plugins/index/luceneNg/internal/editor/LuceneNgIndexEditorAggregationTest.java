@@ -67,7 +67,7 @@ public class LuceneNgIndexEditorAggregationTest extends AbstractQueryTest {
         // ("*") of an nt:base node into that node's node-scope fulltext.
         Tree index = root.getTree("/").addChild("oak:index").addChild("luceneNgAggIndex");
         index.setProperty("jcr:primaryType", IndexConstants.INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
-        index.setProperty(IndexConstants.TYPE_PROPERTY_NAME, "lucene9");
+        index.setProperty(IndexConstants.TYPE_PROPERTY_NAME, "luceneNg");
         index.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
 
         Tree props = index.addChild(FulltextIndexConstants.INDEX_RULES)

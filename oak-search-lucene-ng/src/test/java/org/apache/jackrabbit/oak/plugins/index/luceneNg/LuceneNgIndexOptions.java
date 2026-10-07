@@ -26,7 +26,7 @@ public class LuceneNgIndexOptions extends IndexOptions {
 
     @Override
     public String getIndexType() {
-        return LuceneNgIndexConstants.TYPE_LUCENE9;
+        return LuceneNgIndexConstants.TYPE_LUCENE_NG;
     }
 
     @Override
@@ -34,7 +34,7 @@ public class LuceneNgIndexOptions extends IndexOptions {
         return new IndexDefinitionBuilder() {
             @Override
             protected String getIndexType() {
-                return LuceneNgIndexConstants.TYPE_LUCENE9;
+                return LuceneNgIndexConstants.TYPE_LUCENE_NG;
             }
         };
     }

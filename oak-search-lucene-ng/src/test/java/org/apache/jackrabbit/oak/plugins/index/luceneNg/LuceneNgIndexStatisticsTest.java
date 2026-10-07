@@ -53,7 +53,7 @@ public class LuceneNgIndexStatisticsTest {
         IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
         idb.noAsync();
         idb.indexRule("nt:unstructured").property("title").propertyIndex();
-        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         for (int i = 0; i < n; i++) {
             NodeBuilder node = rootBuilder.child("node" + i);
@@ -86,9 +86,9 @@ public class LuceneNgIndexStatisticsTest {
         IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
         idb.noAsync();
         idb.indexRule("nt:unstructured").property("title").propertyIndex();
-        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
-        // Never committed/indexed: no lucene9 storage node exists yet, so the LuceneNgIndexNode
+        // Never committed/indexed: no luceneNg storage node exists yet, so the LuceneNgIndexNode
         // built directly over this definition has hasSearcher() == false.
         NodeState root = rootBuilder.getNodeState();
         NodeState indexState = root.getChildNode("oak:index").getChildNode("testIndex");

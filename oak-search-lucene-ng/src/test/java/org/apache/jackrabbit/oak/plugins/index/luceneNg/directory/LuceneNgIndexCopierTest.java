@@ -59,13 +59,13 @@ public class LuceneNgIndexCopierTest {
         NodeBuilder storageBuilder = INITIAL_CONTENT.builder();
         OakDirectory remote = new OakDirectory(storageBuilder, "testIndex", false);
         try (IndexOutput out = remote.createOutput("segments_1", IOContext.DEFAULT)) {
-            out.writeString("hello-lucene9");
+            out.writeString("hello-luceneNg");
         }
 
         LuceneNgIndexCopier copier = new LuceneNgIndexCopier(sameThreadExecutor, temporaryFolder.newFolder(), false);
         LuceneNgIndexDefinition definition = testDefinition("uid-1");
 
-        try (Directory wrapped = copier.wrapForRead("/oak:index/test", definition, remote, "lucene9")) {
+        try (Directory wrapped = copier.wrapForRead("/oak:index/test", definition, remote, "luceneNg")) {
             byte[] expected;
             try (var in = remote.openInput("segments_1", IOContext.DEFAULT)) {
                 expected = new byte[(int) in.length()];
@@ -179,14 +179,14 @@ public class LuceneNgIndexCopierTest {
 
     /**
      * Follows LuceneNgIndexDefinitionTest's construction pattern: an INITIAL_CONTENT-backed
-     * NodeBuilder with the lucene9 type property set, fed through
+     * NodeBuilder with the luceneNg type property set, fed through
      * LuceneNgIndexDefinition.Builder (which exposes .uid(...) via the shared
      * IndexDefinition.Builder) so getUniqueId() returns the requested value.
      */
     private LuceneNgIndexDefinition testDefinition(String uniqueId) {
         NodeState root = INITIAL_CONTENT;
         NodeBuilder builder = root.builder();
-        builder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        builder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
         NodeState defnState = builder.getNodeState();
 
         return new LuceneNgIndexDefinition.Builder()
