@@ -78,9 +78,16 @@ public class LuceneNgIndexProviderService {
         boolean enableCopyOnReadSupport() default true;
 
         @AttributeDefinition(
+                name = "Enable read-before-write support",
+                description = "Prefetch existing segments and serve writer reads from local disk. " +
+                        "New files are written synchronously to Oak storage. Independent of reader CopyOnRead."
+        )
+        boolean enableReadBeforeWriteSupport() default true;
+
+        @AttributeDefinition(
                 name = "Local index storage path",
-                description = "Local file system path where Lucene 9 index files are copied when CopyOnRead " +
-                        "is enabled. If not specified, indexes are stored under an 'index' directory under " +
+                description = "Local file system path for reader and writer segment caching. " +
+                        "If not specified, indexes are stored under an 'index' directory under " +
                         "repository home."
         )
         String localIndexDir();
@@ -109,20 +116,20 @@ public class LuceneNgIndexProviderService {
         LOG.info("Activating LuceneNg Index Provider");
 
         LuceneNgIndexCopier copier = null;
-        if (config.enableCopyOnReadSupport()) {
+        if (config.enableCopyOnReadSupport() || config.enableReadBeforeWriteSupport()) {
             try {
                 copier = createIndexCopier(bundleContext, config);
-                LOG.info("Enabling CopyOnRead support for luceneNg indexes. Index files copied under {}",
+                LOG.info("Enabling local caching for luceneNg indexes. Index files copied under {}",
                         copier.getIndexRootDir());
             } catch (IOException e) {
-                LOG.warn("Could not initialize CopyOnRead support for luceneNg indexes; " +
+                LOG.warn("Could not initialize local caching for luceneNg indexes; " +
                         "falling back to reading directly from the remote NodeStore", e);
             }
         }
         this.indexCopier = copier;
 
         // Initialize tracker
-        indexTracker = new LuceneNgIndexTracker(copier);
+        indexTracker = new LuceneNgIndexTracker(config.enableCopyOnReadSupport() ? copier : null);
 
         // Register QueryIndexProvider
         LuceneNgQueryIndexProvider queryProvider = new LuceneNgQueryIndexProvider(indexTracker);
@@ -132,7 +139,8 @@ public class LuceneNgIndexProviderService {
         LOG.info("Registered QueryIndexProvider for type: {}", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         // Register IndexEditorProvider
-        editorProvider = new LuceneNgIndexEditorProvider(indexTracker);
+        editorProvider = new LuceneNgIndexEditorProvider(indexTracker,
+                config.enableReadBeforeWriteSupport() ? copier : null);
         props = new Hashtable<>();
         props.put("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
         regs.add(bundleContext.registerService(IndexEditorProvider.class.getName(), editorProvider, props));

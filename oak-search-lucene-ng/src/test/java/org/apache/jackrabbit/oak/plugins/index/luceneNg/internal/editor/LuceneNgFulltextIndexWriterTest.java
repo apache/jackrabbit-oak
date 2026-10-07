@@ -22,6 +22,8 @@ import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexStorage;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory;
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.LuceneNgIndexCopier;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -35,6 +37,11 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.junit.Test;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
+import org.apache.lucene.store.Directory;
+
+import java.io.IOException;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
@@ -49,6 +56,64 @@ import static org.junit.Assert.assertTrue;
  * update/delete/commit/close calls onto the underlying Lucene {@code IndexWriter}.
  */
 public class LuceneNgFulltextIndexWriterTest {
+
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    @Test
+    public void incrementalWriterReadsPrefetchedSegmentsAndReindexSkipsOldCache() throws Exception {
+        NodeBuilder builder = EMPTY_NODE.builder();
+        LuceneNgIndexDefinition definition = new LuceneNgIndexDefinition.Builder()
+                .root(EMPTY_NODE).defn(EMPTY_NODE).indexPath("/oak:index/test").uid("uid").build();
+        try (LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, temporaryFolder.newFolder(), false)) {
+            LuceneNgFulltextIndexWriterFactory factory = new LuceneNgFulltextIndexWriterFactory(copier);
+            FulltextIndexWriter<Document> first = factory.newInstance(definition, builder, null, true);
+            first.updateDocument("/a", newDoc("/a"));
+            first.close(0);
+            assertEquals("reindex must not prefetch obsolete segments", 0, copier.getDownloadCount());
+
+            FulltextIndexWriter<Document> second = factory.newInstance(definition, builder, null, false);
+            assertTrue("incremental writer must prefetch existing segments", copier.getDownloadCount() > 0);
+            int downloads = copier.getDownloadCount();
+            second.deleteDocument("/a");
+            second.updateDocument("/b", newDoc("/b"));
+            second.close(0);
+            assertTrue("writer must read existing segment data locally", copier.getReaderLocalReadCount() > 0);
+            assertDocCount(definition, builder, "/a", 0);
+            assertDocCount(definition, builder, "/b", 1);
+
+            FulltextIndexWriter<Document> reindex = factory.newInstance(definition, builder, null, true);
+            assertEquals(downloads, copier.getDownloadCount());
+            reindex.updateDocument("/c", newDoc("/c"));
+            reindex.close(0);
+            assertDocCount(definition, builder, "/b", 0);
+            assertDocCount(definition, builder, "/c", 1);
+        }
+    }
+
+    @Test
+    public void failedWriterPrefetchFallsBackToRemote() throws Exception {
+        NodeBuilder builder = EMPTY_NODE.builder();
+        LuceneNgIndexDefinition definition = new LuceneNgIndexDefinition(EMPTY_NODE, EMPTY_NODE, "/oak:index/test");
+        LuceneNgFulltextIndexWriterFactory plain = new LuceneNgFulltextIndexWriterFactory();
+        FulltextIndexWriter<Document> first = plain.newInstance(definition, builder, null, true);
+        first.updateDocument("/a", newDoc("/a"));
+        first.close(0);
+        try (LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, temporaryFolder.newFolder(), false) {
+            @Override
+            public Directory wrapForWrite(IndexDefinition def, OakDirectory remote, OakDirectory snapshot, String dirName)
+                    throws IOException {
+                throw new IOException("local disk unavailable");
+            }
+        }) {
+            FulltextIndexWriter<Document> second = new LuceneNgFulltextIndexWriterFactory(copier)
+                    .newInstance(definition, builder, null, false);
+            second.updateDocument("/b", newDoc("/b"));
+            second.close(0);
+            assertDocCount(definition, builder, "/a", 1);
+            assertDocCount(definition, builder, "/b", 1);
+        }
+    }
 
     @Test
     public void writesAndDeletesDocumentsThroughTheAdaptedInterface() throws Exception {

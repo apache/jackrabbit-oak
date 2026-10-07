@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.editor;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexStorage;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory;
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.LuceneNgIndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriterFactory;
@@ -27,6 +28,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.store.Directory;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +50,17 @@ public class LuceneNgFulltextIndexWriterFactory implements FulltextIndexWriterFa
 
     private static final Logger LOG = LoggerFactory.getLogger(LuceneNgFulltextIndexWriterFactory.class);
 
+    @Nullable
+    private final LuceneNgIndexCopier copier;
+
+    public LuceneNgFulltextIndexWriterFactory() {
+        this(null);
+    }
+
+    public LuceneNgFulltextIndexWriterFactory(@Nullable LuceneNgIndexCopier copier) {
+        this.copier = copier;
+    }
+
     @Override
     public FulltextIndexWriter<Document> newInstance(IndexDefinition definition, NodeBuilder definitionBuilder,
                                                        CommitInfo commitInfo, boolean reindex) {
@@ -54,20 +69,33 @@ public class LuceneNgFulltextIndexWriterFactory implements FulltextIndexWriterFa
         NodeBuilder storage = LuceneNgIndexStorage.getOrCreateStorageBuilder(definitionBuilder);
 
         try {
-            OakDirectory directory = new OakDirectory(storage, indexName, false);
-            IndexWriterConfig config = new IndexWriterConfig();
-            if (reindex) {
-                config.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
-                LOG.debug("Reindexing: wiping existing index data for {}", luceneNgDefinition.getIndexPath());
-            }
-            IndexWriter indexWriter;
+            OakDirectory remote = new OakDirectory(storage, indexName, false);
+            Directory directory = remote;
             try {
-                indexWriter = new IndexWriter(directory, config);
-            } catch (IOException e) {
-                directory.close();
+                if (copier != null && !reindex && DirectoryReader.indexExists(remote)) {
+                    OakDirectory snapshot = new OakDirectory(storage.getNodeState().builder(), indexName, true);
+                    try {
+                        directory = copier.wrapForWrite(luceneNgDefinition, remote, snapshot, LuceneNgIndexStorage.STORAGE_NODE_NAME);
+                    } catch (IOException e) {
+                        snapshot.close();
+                        LOG.warn("Cannot prefetch local cache for {}; writer will read remote segments",
+                                luceneNgDefinition.getIndexPath(), e);
+                    }
+                }
+                IndexWriterConfig config = new IndexWriterConfig();
+                if (reindex) {
+                    config.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
+                    LOG.debug("Reindexing: wiping existing index data for {}", luceneNgDefinition.getIndexPath());
+                }
+                return new LuceneNgFulltextIndexWriter(new IndexWriter(directory, config), directory);
+            } catch (IOException | RuntimeException e) {
+                try {
+                    directory.close();
+                } catch (IOException closeError) {
+                    e.addSuppressed(closeError);
+                }
                 throw e;
             }
-            return new LuceneNgFulltextIndexWriter(indexWriter, directory);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

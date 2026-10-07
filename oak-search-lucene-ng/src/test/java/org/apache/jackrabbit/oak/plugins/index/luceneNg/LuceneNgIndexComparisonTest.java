@@ -62,7 +62,7 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
     private ContentRepository createRepository(@Nullable LuceneNgIndexCopier copier) {
         LuceneNgIndexTracker tracker = new LuceneNgIndexTracker(copier);
         LuceneNgQueryIndexProvider provider = new LuceneNgQueryIndexProvider(tracker);
-        LuceneNgIndexEditorProvider editor = new LuceneNgIndexEditorProvider(tracker);
+        LuceneNgIndexEditorProvider editor = new LuceneNgIndexEditorProvider(tracker, copier);
 
         return new Oak()
             .with(new InitialContent())
