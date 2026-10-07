@@ -108,10 +108,12 @@ public class LuceneNgIndexNode implements IndexNode {
         this.storageState = LuceneNgIndexStorage.storageState(indexState);
 
         IndexSearcherHolder holder = null;
-        try {
-            holder = new IndexSearcherHolder(storageState, indexName, copier, definition);
-        } catch (IOException e) {
-            LOG.debug("No index data for {} yet, searcher not opened: {}", indexPath, e.getMessage());
+        if (storageState.exists()) {
+            try {
+                holder = new IndexSearcherHolder(storageState, indexName, copier, definition);
+            } catch (IOException e) {
+                LOG.debug("No index data for {} yet, searcher not opened: {}", indexPath, e.getMessage());
+            }
         }
         this.searcherHolder = holder;
     }
