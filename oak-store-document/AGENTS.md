@@ -367,7 +367,6 @@ Registered in `DocumentNodeStoreService`, wired into `DocumentNodeStoreBuilder`.
 
 | Toggle name | Builder method | Purpose |
 |---|---|---|
-| `FT_THROTTLING_OAK-9909` | `setDocStoreThrottlingFeature` | Enable write throttling on MongoDB |
 | `FT_DISABLE_THROTTLING_OAK-12119` | `setDocStoreDisableThrottlingFeature` | Runtime kill-switch to disable throttling |
 | `FT_CANCELINVALIDATION_OAK-10595` | `setCancelInvalidationFeature` | Cancel in-flight cache invalidations |
 | `FT_AVOID_MERGE_LOCK_OAK-11720` | `setDocStoreAvoidMergeLockFeature` | Avoid acquiring merge lock where safe |

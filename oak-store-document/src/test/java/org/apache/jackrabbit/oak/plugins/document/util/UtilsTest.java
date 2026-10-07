@@ -154,37 +154,22 @@ public class UtilsTest {
         assertFalse("Throttling is disabled by default", throttlingEnabled);
     }
 
+    // Explicit configuration disables throttling without a feature toggle.
     @Test
     public void throttlingExplicitlyDisabled() {
         DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
         builder.setThrottlingEnabled(false);
-        Feature docStoreThrottlingFeature = mock(Feature.class);
-        when(docStoreThrottlingFeature.isEnabled()).thenReturn(false);
-        builder.setDocStoreThrottlingFeature(docStoreThrottlingFeature);
         boolean throttlingEnabled = isThrottlingEnabled(builder);
         assertFalse("Throttling is disabled explicitly", throttlingEnabled);
     }
 
+    // Explicit configuration remains sufficient to enable throttling.
     @Test
     public void throttlingEnabledViaConfiguration() {
         DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
         builder.setThrottlingEnabled(true);
-        Feature docStoreThrottlingFeature = mock(Feature.class);
-        when(docStoreThrottlingFeature.isEnabled()).thenReturn(false);
-        builder.setDocStoreThrottlingFeature(docStoreThrottlingFeature);
         boolean throttlingEnabled = isThrottlingEnabled(builder);
         assertTrue("Throttling is enabled via configuration", throttlingEnabled);
-    }
-
-    @Test
-    public void throttlingEnabledViaFeatureToggle() {
-        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
-        builder.setThrottlingEnabled(false);
-        Feature docStoreThrottlingFeature = mock(Feature.class);
-        when(docStoreThrottlingFeature.isEnabled()).thenReturn(true);
-        builder.setDocStoreThrottlingFeature(docStoreThrottlingFeature);
-        boolean throttlingEnabled = isThrottlingEnabled(builder);
-        assertTrue("Throttling is enabled via Feature Toggle", throttlingEnabled);
     }
 
     @Test
