@@ -34,6 +34,10 @@ public class MultiGenerationMap<K, V> implements Map<K, V> {
         write = m;
     }
 
+    CacheMap<K, V> getWriteMap() {
+        return write;
+    }
+
     public void addReadMap(int generation, CacheMap<K, V> m) {
         read.put(generation, m);
     }
