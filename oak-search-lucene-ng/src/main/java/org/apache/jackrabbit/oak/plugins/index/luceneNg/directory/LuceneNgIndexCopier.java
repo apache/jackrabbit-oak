@@ -46,11 +46,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Copies index files from the datastore to the local disk, caching them for reuse across
- * reader reopens. This is a read-only port of {@code oak-lucene}'s {@code IndexCopier} for
- * Lucene 9's {@link Directory} API: it keeps only the read path (backed by
- * {@link CopyOnReadDirectory}, added in a later task on top of this class) and drops the
- * write path ({@code CopyOnWriteDirectory}, {@code wrapForWrite}, reindex-time buffering),
- * which this module does not need.
+ * reader reopens and writer segment reads. Writes remain synchronous to Oak storage.
  * <p>
  * Named differently from legacy's {@code IndexCopier} to avoid ambiguity should both classes
  * ever be imported side by side (e.g. during review/comparison).
@@ -106,12 +102,32 @@ public class LuceneNgIndexCopier implements Closeable {
     }
 
     public Directory wrapForRead(String indexPath, IndexDefinition definition,
-                                  OakDirectory remote, String dirName) throws IOException {
+                                 OakDirectory remote, String dirName) throws IOException {
+        return wrapForRead(indexPath, definition, remote, dirName, prefetchEnabled);
+    }
+
+    public Directory wrapForWrite(IndexDefinition definition, OakDirectory remote,
+                                  OakDirectory snapshot, String dirName) throws IOException {
+        Directory cached = wrapForRead(definition.getIndexPath(), definition, snapshot, dirName, true);
+        try {
+            return new ReadThroughDirectory(remote, cached);
+        } catch (IOException | RuntimeException e) {
+            try {
+                cached.close();
+            } catch (IOException closeError) {
+                e.addSuppressed(closeError);
+            }
+            throw e;
+        }
+    }
+
+    private Directory wrapForRead(String indexPath, IndexDefinition definition,
+                                  OakDirectory remote, String dirName, boolean prefetch) throws IOException {
         File localDir = getIndexDir(definition, indexPath, dirName);
         Directory local = createLocalDirForIndexReader(indexPath, definition, dirName, localDir);
         try {
             checkIntegrity(indexPath, local, localDir, remote);
-            return new CopyOnReadDirectory(this, remote, local, localDir, prefetchEnabled, indexPath, executor);
+            return new CopyOnReadDirectory(this, remote, local, localDir, prefetch, indexPath, executor);
         } catch (IOException | RuntimeException e) {
             try {
                 local.close();

@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.editor.LuceneNgIndexEditorContext;
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.LuceneNgIndexCopier;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -38,6 +39,8 @@ public class LuceneNgIndexEditorProvider implements IndexEditorProvider {
     private static final Logger LOG = LoggerFactory.getLogger(LuceneNgIndexEditorProvider.class);
 
     private final LuceneNgIndexTracker indexTracker;
+    @Nullable
+    private final LuceneNgIndexCopier copier;
 
     /**
      * Creates a new LuceneNgIndexEditorProvider.
@@ -45,7 +48,13 @@ public class LuceneNgIndexEditorProvider implements IndexEditorProvider {
      * @param indexTracker the index tracker for managing index lifecycle
      */
     public LuceneNgIndexEditorProvider(@NotNull LuceneNgIndexTracker indexTracker) {
+        this(indexTracker, null);
+    }
+
+    public LuceneNgIndexEditorProvider(@NotNull LuceneNgIndexTracker indexTracker,
+                                      @Nullable LuceneNgIndexCopier copier) {
         this.indexTracker = indexTracker;
+        this.copier = copier;
     }
 
     @Override
@@ -74,7 +83,7 @@ public class LuceneNgIndexEditorProvider implements IndexEditorProvider {
         // oak-lucene's and oak-search-elastic's editor providers rely on it — none of them call
         // enableReindexMode() from the provider.
         LuceneNgIndexEditorContext context = new LuceneNgIndexEditorContext(
-                root, definition, null, callback, indexingContext, indexingContext.isAsync());
+                root, definition, null, callback, indexingContext, indexingContext.isAsync(), copier);
         return new LuceneNgIndexEditor(context);
     }
 

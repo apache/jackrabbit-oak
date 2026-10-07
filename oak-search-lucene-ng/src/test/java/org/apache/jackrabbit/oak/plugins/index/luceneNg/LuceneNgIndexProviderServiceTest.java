@@ -28,6 +28,7 @@ import java.lang.reflect.Method;
 import java.util.Dictionary;
 
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
@@ -79,6 +80,40 @@ public class LuceneNgIndexProviderServiceTest {
         assertNull(copierField.get(service));
 
         deactivate(service);
+    }
+
+    @Test
+    public void readerAndWriterCachingCanBeEnabledIndependently() throws Exception {
+        for (boolean readerEnabled : new boolean[] {false, true}) {
+            LuceneNgIndexProviderService service = new LuceneNgIndexProviderService();
+            BundleContext context = mock(BundleContext.class);
+            when(context.getProperty("repository.home")).thenReturn(temporaryFolder.newFolder().getAbsolutePath());
+            when(context.registerService(anyString(), any(), any(Dictionary.class))).thenReturn(mock(ServiceRegistration.class));
+            LuceneNgIndexProviderService.Config config = mock(LuceneNgIndexProviderService.Config.class);
+            when(config.enableCopyOnReadSupport()).thenReturn(readerEnabled);
+            when(config.enableReadBeforeWriteSupport()).thenReturn(!readerEnabled);
+            activate(service, context, config);
+            try {
+                assertNotNull(field(service, "indexCopier"));
+                Object trackerCopier = field(field(service, "indexTracker"), "copier");
+                Object writerCopier = field(field(service, "editorProvider"), "copier");
+                if (readerEnabled) {
+                    assertNotNull(trackerCopier);
+                    assertNull(writerCopier);
+                } else {
+                    assertNull(trackerCopier);
+                    assertNotNull(writerCopier);
+                }
+            } finally {
+                deactivate(service);
+            }
+        }
+    }
+
+    private static Object field(Object object, String name) throws Exception {
+        Field field = object.getClass().getDeclaredField(name);
+        field.setAccessible(true);
+        return field.get(object);
     }
 
     private static void activate(LuceneNgIndexProviderService service, BundleContext ctx,

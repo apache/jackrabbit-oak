@@ -22,6 +22,17 @@ Lucene NG index provider for Oak (`type="luceneNg"`), using Lucene 9.
 The index type is independent of the Lucene library version. Segment data is
 stored in the `luceneNg` child under the index definition.
 
+## Local segment caching
+
+`enableCopyOnReadSupport` enables reader caching and `enableReadBeforeWriteSupport`
+enables writer read caching; both default to `true` and can be configured
+independently. Both use `localIndexDir` (or `repository.home/index` by default).
+`prefetchIndexFiles` controls reader prefetch only. Incremental writers prefetch
+existing segments before opening, read unchanged files locally, and write new
+files synchronously to Oak storage. Reindexing does not prefetch obsolete segments.
+Local cache setup failures are logged and fall back to remote reads; failures
+opening the actual index are reported through the shared bad-index tracker.
+
 ## Feature parity
 
 | Feature | Legacy Lucene | Elastic | LuceneNg |
@@ -40,6 +51,7 @@ stored in the `luceneNg` child under the index definition.
 | Index augmentors [^1] | ✓ | ✗ | ✗ |
 | NRT / hybrid indexing | ✓ | ✗ | ✗ |
 | Index copier (CopyOnRead) | ✓ | ✗ | ✓ |
+| Read-before-write / locally cached writer reads | ✓ | ✗ | ✓ |
 | Index copier (CopyOnWrite) | ✓ | ✗ | ✗ |
 | Composite node store queries [^2] | ✓ | ✗ | ✗ |
 | Inference / vector search | ✗ | ✓ | ✗ |
@@ -97,12 +109,10 @@ When index files are deleted from `OakDirectory`, the blob store is not notified
 **`IndexWriter.commit()` and Oak `NodeStore` commit are not atomic.**
 A JVM crash between the two orphans blobs in the blob store. The blob GC will collect them eventually. This is the same accepted trade-off as `oak-lucene` (documented in OAK-7066 context).
 
-**CopyOnWrite is not ported.** `LuceneNgIndexCopier` only implements `wrapForRead` — the
-read path lazily caches remote segment files to local disk (mirroring legacy `IndexCopier`'s
-`wrapForRead`/`CopyOnReadDirectory`), avoiding remote-blob-store reads on every query and
-keeping k8s readiness-probe latency bounded. `wrapForWrite`/`CopyOnWriteDirectory` (local
-buffering during indexing/reindex) is not ported; the write path still writes segment files
-directly to the remote-backed `OakDirectory`, same as if CopyOnRead were disabled.
+**Asynchronous CopyOnWrite is not ported.** Existing segments are prefetched and
+writer reads reuse the local cache, but new segment files are written directly to
+the remote-backed `OakDirectory`. Local buffering and background uploads remain
+deferred.
 
 ### Minor
 

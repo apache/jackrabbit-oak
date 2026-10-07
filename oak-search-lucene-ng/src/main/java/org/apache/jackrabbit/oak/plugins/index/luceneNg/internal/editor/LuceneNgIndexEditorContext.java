@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.editor;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.LuceneNgIndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -63,8 +64,16 @@ public class LuceneNgIndexEditorContext extends FulltextIndexEditorContext<Docum
                                       @Nullable IndexDefinition indexDefinition,
                                       IndexUpdateCallback updateCallback,
                                       IndexingContext indexingContext, boolean asyncIndexing) {
+        this(root, definition, indexDefinition, updateCallback, indexingContext, asyncIndexing, null);
+    }
+
+    public LuceneNgIndexEditorContext(NodeState root, NodeBuilder definition,
+                                      @Nullable IndexDefinition indexDefinition,
+                                      IndexUpdateCallback updateCallback,
+                                      IndexingContext indexingContext, boolean asyncIndexing,
+                                      @Nullable LuceneNgIndexCopier copier) {
         super(root, definition, indexDefinition, updateCallback,
-                new LuceneNgFulltextIndexWriterFactory(),
+                new LuceneNgFulltextIndexWriterFactory(copier),
                 // maxWeight=0 disables the in-memory extracted-text cache (see ExtractedTextCache:
                 // "if (maxWeight > 0) ... else cache = null"). This module has no binary text
                 // extraction (LuceneNgDocumentMaker.addBinary is a no-op), so nothing is cached
