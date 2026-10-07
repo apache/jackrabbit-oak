@@ -306,6 +306,11 @@ public class DocumentNodeStoreService {
                         DocumentNodeStoreBuilder.FT_CAFFEINE_CACHE_ENABLED),
                 Collections.emptyMap()));
 
+        addRegistration(whiteboard.register(FeatureToggle.class,
+                new FeatureToggle(DocumentNodeStoreBuilder.FT_DOCUMENT_CACHE_ASYNC_MAINTENANCE,
+                        DocumentNodeStoreBuilder.FT_DOCUMENT_CACHE_ASYNC_MAINTENANCE_ENABLED),
+                Collections.emptyMap()));
+
         registerNodeStoreIfPossible();
     }
 

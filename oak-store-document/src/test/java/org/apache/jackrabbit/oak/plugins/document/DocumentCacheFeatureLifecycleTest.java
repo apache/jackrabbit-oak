@@ -46,13 +46,14 @@ public class DocumentCacheFeatureLifecycleTest {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
-    /** Existing caches retain their policy and a new service samples the retained toggle. */
+    /** Existing caches retain their policy and a restarted service preserves the toggle state. */
     @Test
     public void registeredToggleIsSampledAtConstructionAndSurvivesReactivation() throws Exception {
         JdbcConnectionPool dataSource = JdbcConnectionPool.create(
                 "jdbc:h2:" + folder.newFolder().getAbsolutePath() + "/repository", "sa", "");
         DocumentNodeStoreService service = null;
         boolean previous = DocumentNodeStoreBuilder.FT_CAFFEINE_CACHE_ENABLED.getAndSet(true);
+        boolean previousAsync = DocumentNodeStoreBuilder.FT_DOCUMENT_CACHE_ASYNC_MAINTENANCE_ENABLED.getAndSet(false);
         try {
             context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
             context.registerInjectActivateService(new DocumentNodeStoreService.Preset());
@@ -64,6 +65,8 @@ public class DocumentCacheFeatureLifecycleTest {
             config.put("repository.home", folder.newFolder().getAbsolutePath());
             MockOsgi.setConfigForPid(context.bundleContext(), DocumentNodeStoreService.class.getName(), config);
             service = activateService();
+            Assert.assertFalse(asyncToggle().isEnabled());
+            asyncToggle().setEnabled(true);
             Cache<PathRev, DocumentNodeState> existing = context.getService(DocumentNodeStore.class).getNodeCache();
             Assert.assertTrue(existing instanceof CaffeineCacheAdapter);
             toggle().setEnabled(false);
@@ -72,12 +75,17 @@ public class DocumentCacheFeatureLifecycleTest {
             Cache<CacheValue, NodeDocument> newlyConstructed = DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder()
                     .buildDocumentCache(new MemoryDocumentStore());
             Assert.assertEquals("LirsLoadingCacheAdapter", newlyConstructed.getClass().getSimpleName());
+            asyncToggle().setEnabled(true);
             MockOsgi.deactivate(service, context.bundleContext());
             service = null;
             Assert.assertFalse(Arrays.stream(context.getServices(FeatureToggle.class, null))
                     .anyMatch(candidate -> DocumentNodeStoreBuilder.FT_CAFFEINE_CACHE.equals(candidate.getName())));
+            Assert.assertFalse(Arrays.stream(context.getServices(FeatureToggle.class, null))
+                    .anyMatch(candidate -> DocumentNodeStoreBuilder.FT_DOCUMENT_CACHE_ASYNC_MAINTENANCE
+                            .equals(candidate.getName())));
             service = activateService();
             Assert.assertFalse(toggle().isEnabled());
+            Assert.assertTrue(asyncToggle().isEnabled());
             Assert.assertEquals("LirsLoadingCacheAdapter",
                     context.getService(DocumentNodeStore.class).getNodeCache().getClass().getSimpleName());
         } finally {
@@ -86,6 +94,7 @@ public class DocumentCacheFeatureLifecycleTest {
             }
             dataSource.dispose();
             DocumentNodeStoreBuilder.FT_CAFFEINE_CACHE_ENABLED.set(previous);
+            DocumentNodeStoreBuilder.FT_DOCUMENT_CACHE_ASYNC_MAINTENANCE_ENABLED.set(previousAsync);
         }
     }
 
@@ -100,5 +109,12 @@ public class DocumentCacheFeatureLifecycleTest {
         return Arrays.stream(context.getServices(FeatureToggle.class, null))
                 .filter(candidate -> DocumentNodeStoreBuilder.FT_CAFFEINE_CACHE.equals(candidate.getName()))
                 .findFirst().orElseThrow(() -> new AssertionError("Cache feature toggle is not registered"));
+    }
+
+    private FeatureToggle asyncToggle() {
+        return Arrays.stream(context.getServices(FeatureToggle.class, null))
+                .filter(candidate -> DocumentNodeStoreBuilder.FT_DOCUMENT_CACHE_ASYNC_MAINTENANCE
+                        .equals(candidate.getName()))
+                .findFirst().orElseThrow(() -> new AssertionError("Async cache maintenance toggle is not registered"));
     }
 }
