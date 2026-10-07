@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.Collections;
 
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
+import org.apache.jackrabbit.oak.plugins.document.persistentCache.AsyncNodeCache;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.cache.api.Cache;
 import org.apache.jackrabbit.oak.cache.api.CacheStatsAdapter;
@@ -81,7 +82,12 @@ public class MemoryDiffCache extends DiffCache {
                 // same cache, which causes "Recursive update". Compute the value
                 // outside any lock and use putIfAbsent so the first writer wins.
                 diff = isUnchanged(from, to, path) ? StringValue.EMPTY : new StringValue(loader.call());
-                diffCache.asMap().putIfAbsent(key, diff);
+                if (diffCache instanceof AsyncNodeCache<?, ?>) {
+                    StringValue loaded = diff;
+                    diffCache.get(key, k -> loaded);
+                } else {
+                    diffCache.asMap().putIfAbsent(key, diff);
+                }
             }
         }
         return diff != null ? diff.toString() : null;

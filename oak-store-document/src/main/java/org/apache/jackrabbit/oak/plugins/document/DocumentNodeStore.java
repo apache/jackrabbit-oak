@@ -97,6 +97,7 @@ import org.apache.jackrabbit.oak.plugins.document.bundlor.BundledDocumentDiffer;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
+import org.apache.jackrabbit.oak.plugins.document.persistentCache.AsyncNodeCache;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.DynamicBroadcastConfig;
 import org.apache.jackrabbit.oak.plugins.document.prefetch.CacheWarming;
 import org.apache.jackrabbit.oak.plugins.document.util.LeaseCheckDocumentStoreWrapper;
@@ -3343,7 +3344,10 @@ public final class DocumentNodeStore
         }
 
         NamePathRev key = childNodeCacheKey(parentPath, rev, "");//read first child cache entry
-        DocumentNodeState.Children children = nodeChildrenCache.getIfPresent(key);
+        // Entry-owned loaders can hold a node monitor while a children loader waits for that node.
+        DocumentNodeState.Children children = nodeCache instanceof AsyncNodeCache<?, ?>
+                || nodeChildrenCache instanceof AsyncNodeCache<?, ?>
+                ? nodeChildrenCache.asMap().get(key) : nodeChildrenCache.getIfPresent(key);
         String lookupChildName = path.getName();
 
         //Does not know about children so cannot say for sure

@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
+import org.apache.jackrabbit.oak.cache.api.CacheBuilder.MaintenanceMode;
+import org.apache.jackrabbit.oak.plugins.document.persistentCache.CacheType;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -99,6 +101,34 @@ public class MemoryDiffCacheTest {
         String actualChanges = cache.getChanges(from, to, Path.ROOT, null);
         assertNotNull(actualChanges);
         assertEquals(rootPathChanges, actualChanges);
+    }
+
+    /** With the ASYNC feature off, a recursive loader preserves the inner cached diff. */
+    @Test
+    public void synchronousRecursiveLoaderPreservesTheInnerDiff() {
+        boolean previousCaffeine = DocumentNodeStoreBuilder.FT_CAFFEINE_CACHE_ENABLED.get();
+        boolean previousAsync = DocumentNodeStoreBuilder.FT_DOCUMENT_CACHE_ASYNC_MAINTENANCE_ENABLED.getAndSet(false);
+        try {
+            for (boolean caffeine : new boolean[] {false, true}) {
+                DocumentNodeStoreBuilder.FT_CAFFEINE_CACHE_ENABLED.set(caffeine);
+                DocumentNodeStoreBuilder<?> builder = builderProvider.newBuilder()
+                        .setPersistentCache(null).setCacheMaintenanceMode(CacheType.DIFF, MaintenanceMode.ASYNC);
+                assertEquals(MaintenanceMode.SYNC, builder.getCacheMaintenanceMode(CacheType.DIFF));
+                DiffCache cache = new MemoryDiffCache(builder);
+                RevisionVector from = new RevisionVector(new Revision(1, 0, 1));
+                RevisionVector to = new RevisionVector(new Revision(2, 0, 1));
+                String inner = "^\"inner\":{}";
+                String outer = "^\"outer\":{}";
+                assertEquals(outer, cache.getChanges(from, to, Path.ROOT, () -> {
+                    assertEquals(inner, cache.getChanges(from, to, Path.ROOT, () -> inner));
+                    return outer;
+                }));
+                assertEquals(inner, cache.getChanges(from, to, Path.ROOT, null));
+            }
+        } finally {
+            DocumentNodeStoreBuilder.FT_CAFFEINE_CACHE_ENABLED.set(previousCaffeine);
+            DocumentNodeStoreBuilder.FT_DOCUMENT_CACHE_ASYNC_MAINTENANCE_ENABLED.set(previousAsync);
+        }
     }
 
     private static String changes(int minLength) {
