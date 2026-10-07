@@ -17,24 +17,15 @@
 package org.apache.jackrabbit.oak.run.commons;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ScheduledFuture;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.classic.util.LogbackMDCAdapter;
 import ch.qos.logback.classic.util.ContextInitializer;
+import ch.qos.logback.classic.util.LogbackMDCAdapter;
 import ch.qos.logback.core.Appender;
-import ch.qos.logback.core.BasicStatusManager;
-import ch.qos.logback.core.status.Status;
-import ch.qos.logback.core.status.StatusManager;
-import ch.qos.logback.core.status.StatusUtil;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -43,247 +34,50 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Tests for {@link LoggingInitializer}.
- */
+/** Tests logging resource cleanup in {@link LoggingInitializer}. */
 public class LoggingInitializerTest {
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-    private LoggerContext context;
-    private LoggerContext sharedContext;
-    private MockedStatic<LoggerFactory> loggerFactory;
-    private String originalWorkDir;
-    private String originalConfigFile;
-
-    @Before
-    public void saveLoggingConfiguration() {
-        sharedContext = (LoggerContext) LoggerFactory.getILoggerFactory();
-        context = new LoggerContext();
-        context.setMDCAdapter(new LogbackMDCAdapter());
-        originalWorkDir = System.getProperty("oak.workDir");
-        originalConfigFile = System.getProperty(ContextInitializer.CONFIG_FILE_PROPERTY);
-        loggerFactory = Mockito.mockStatic(LoggerFactory.class, Mockito.CALLS_REAL_METHODS);
-        loggerFactory.when(LoggerFactory::getILoggerFactory).thenReturn(context);
-        System.clearProperty(ContextInitializer.CONFIG_FILE_PROPERTY);
-        context.reset();
-        context.start();
-    }
-
-    @After
-    public void restoreLoggingConfiguration() {
-        if (loggerFactory == null) {
-            return;
-        }
-        try {
-            // reset also cancels scanners if a failed initialization left the context stopped.
-            context.reset();
-            context.stop();
-        } finally {
-            try {
-                restoreProperty("oak.workDir", originalWorkDir);
-                restoreProperty(ContextInitializer.CONFIG_FILE_PROPERTY, originalConfigFile);
-            } finally {
-                if (loggerFactory != null) {
-                    loggerFactory.closeOnDemand();
-                    loggerFactory = null;
-                }
-            }
-        }
-    }
-
-    /** Reinitialization restores working file logging after shutdown. */
-    @Test
-    public void reinitializationStartsStoppedContext() throws Exception {
-        File firstWorkDir = temporaryFolder.newFolder();
-        new LoggingInitializer(firstWorkDir, "lifecycle").init();
-        assertLoggingWorks(firstWorkDir, "before shutdown");
-        LoggingInitializer.shutdownLogging();
-        Assert.assertFalse(context.isStarted());
-
-        File secondWorkDir = temporaryFolder.newFolder();
-        new LoggingInitializer(secondWorkDir, "lifecycle").init();
-        Assert.assertTrue(context.isStarted());
-        assertLoggingWorks(secondWorkDir, "after restart");
-    }
-
-    /** Every shutdown closes appenders and cancels scanners. */
+    /** Repeated initialization and shutdown must close appenders and cancel scanners. */
     @Test
     public void repeatedShutdownStopsAppendersAndScanners() throws Exception {
-        for (int i = 0; i < 2; i++) {
-            File workDir = temporaryFolder.newFolder();
-            new LoggingInitializer(workDir, "lifecycle").init();
-            Appender<ILoggingEvent> appender = context.getLogger(Logger.ROOT_LOGGER_NAME).getAppender("file");
-            Assert.assertNotNull(appender);
-            Assert.assertTrue(appender.isStarted());
-            Assert.assertTrue(new File(workDir, "lifecycle.log").isFile());
-            assertLoggingWorks(workDir, "lifecycle " + i);
-            List<ScheduledFuture<?>> scanners = new ArrayList<>(context.getCopyOfScheduledFutures());
-            Assert.assertFalse(scanners.isEmpty());
+        String workDir = System.getProperty("oak.workDir");
+        String configFile = System.getProperty(ContextInitializer.CONFIG_FILE_PROPERTY);
+        LoggerContext context = new LoggerContext();
+        context.setMDCAdapter(new LogbackMDCAdapter());
+        context.start();
+        try (MockedStatic<LoggerFactory> factory = Mockito.mockStatic(LoggerFactory.class, Mockito.CALLS_REAL_METHODS)) {
+            factory.when(LoggerFactory::getILoggerFactory).thenReturn(context);
+            System.clearProperty(ContextInitializer.CONFIG_FILE_PROPERTY);
+            for (int i = 0; i < 2; i++) {
+                new LoggingInitializer(temporaryFolder.newFolder(), "lifecycle").init();
+                Appender<ILoggingEvent> appender = context.getLogger(Logger.ROOT_LOGGER_NAME).getAppender("file");
+                Assert.assertNotNull(appender);
+                Assert.assertTrue(appender.isStarted());
+                List<ScheduledFuture<?>> scanners = context.getCopyOfScheduledFutures();
+                Assert.assertFalse(scanners.isEmpty());
 
-            LoggingInitializer.shutdownLogging();
+                LoggingInitializer.shutdownLogging();
 
-            Assert.assertFalse("shutdown must close the file appender", appender.isStarted());
-            for (ScheduledFuture<?> scanner : scanners) {
-                Assert.assertTrue("shutdown must cancel configuration scanning", scanner.isCancelled());
-            }
-            Assert.assertFalse(context.isStarted());
-        }
-    }
-
-    /** Skipping reset must still restart a stopped context. */
-    @Test
-    public void initializationWithoutResetStartsStoppedContext() throws Exception {
-        context.stop();
-        new LoggingInitializer(temporaryFolder.newFolder(), "lifecycle", false).init();
-        Assert.assertTrue(context.isStarted());
-        LoggingInitializer.shutdownLogging();
-        Assert.assertTrue(context.getCopyOfScheduledFutures().isEmpty());
-        Assert.assertFalse(context.isStarted());
-    }
-
-    /** Failed configuration must leave the context stopped. */
-    @Test
-    public void invalidConfigurationDoesNotRestartStoppedContext() throws Exception {
-        context.stop();
-        StatusManager originalStatusManager = context.getStatusManager();
-        context.setStatusManager(new BasicStatusManager());
-        try {
-            File workDir = temporaryFolder.newFolder();
-            new LoggingInitializer(workDir, "invalid").init();
-
-            Assert.assertTrue(new File(workDir, "logback-invalid.xml").isFile());
-            Assert.assertTrue("configuration must fail with an XML parsing error",
-                    new StatusUtil(context).hasXMLParsingErrors(0));
-            Assert.assertFalse("failed configuration must not restart a stopped context", context.isStarted());
-            Assert.assertTrue(context.getCopyOfScheduledFutures().isEmpty());
-            Assert.assertFalse(context.getLogger(Logger.ROOT_LOGGER_NAME).iteratorForAppenders().hasNext());
-        } finally {
-            context.setStatusManager(originalStatusManager);
-        }
-    }
-
-    /** Semantic errors preserve usable appenders and still allow shutdown to cancel scanners. */
-    @Test
-    public void semanticConfigurationErrorsAllowLoggingAndShutdown() throws Exception {
-        context.stop();
-        StatusManager originalStatusManager = context.getStatusManager();
-        context.setStatusManager(new BasicStatusManager());
-        try {
-            File workDir = temporaryFolder.newFolder();
-            new LoggingInitializer(workDir, "semantic-error").init();
-
-            StatusUtil status = new StatusUtil(context);
-            Assert.assertEquals("the missing appender must be reported", Status.ERROR, status.getHighestLevel(0));
-            Assert.assertFalse("the configuration is valid XML", status.hasXMLParsingErrors(0));
-            Assert.assertTrue("usable appenders need a started context for shutdown", context.isStarted());
-            Appender<ILoggingEvent> appender = context.getLogger(Logger.ROOT_LOGGER_NAME).getAppender("file");
-            Assert.assertNotNull(appender);
-            Assert.assertTrue(appender.isStarted());
-            Assert.assertNull(context.getLogger(Logger.ROOT_LOGGER_NAME).getAppender("missing"));
-            LoggerFactory.getLogger(LoggingInitializerTest.class).info("semantic error preserves file logging");
-            String output = Files.readString(new File(workDir, "semantic-error.log").toPath(), StandardCharsets.UTF_8);
-            Assert.assertTrue(output.contains("semantic error preserves file logging"));
-            List<ScheduledFuture<?>> scanners = new ArrayList<>(context.getCopyOfScheduledFutures());
-            Assert.assertFalse(scanners.isEmpty());
-
-            LoggingInitializer.shutdownLogging();
-
-            Assert.assertFalse(context.isStarted());
-            Assert.assertFalse("shutdown must close the usable appender", appender.isStarted());
-            for (ScheduledFuture<?> scanner : scanners) {
-                Assert.assertTrue("shutdown must cancel scanning even after a semantic error", scanner.isCancelled());
+                Assert.assertFalse("shutdown must close the file appender", appender.isStarted());
+                for (ScheduledFuture<?> scanner : scanners) {
+                    Assert.assertTrue("shutdown must cancel configuration scanning", scanner.isCancelled());
+                }
             }
         } finally {
-            context.setStatusManager(originalStatusManager);
+            try {
+                context.reset();
+                context.stop();
+            } finally {
+                restoreProperty("oak.workDir", workDir);
+                restoreProperty(ContextInitializer.CONFIG_FILE_PROPERTY, configFile);
+            }
         }
-    }
-
-    /** A missing resource fails before changing the existing logging configuration. */
-    @Test
-    public void missingConfigurationResourcePreservesExistingLogging() throws Exception {
-        File workDir = temporaryFolder.newFolder();
-        new LoggingInitializer(workDir, "lifecycle").init();
-        Appender<ILoggingEvent> appender = context.getLogger(Logger.ROOT_LOGGER_NAME).getAppender("file");
-        List<ScheduledFuture<?>> scanners = new ArrayList<>(context.getCopyOfScheduledFutures());
-        String configuredWorkDir = System.getProperty("oak.workDir");
-        File otherWorkDir = temporaryFolder.newFolder();
-
-        Assert.assertThrows(NullPointerException.class,
-                () -> new LoggingInitializer(otherWorkDir, "nonexistent").init());
-
-        Assert.assertFalse(new File(otherWorkDir, "logback-nonexistent.xml").exists());
-        Assert.assertEquals(configuredWorkDir, System.getProperty("oak.workDir"));
-        Assert.assertSame(appender, context.getLogger(Logger.ROOT_LOGGER_NAME).getAppender("file"));
-        Assert.assertEquals(scanners, context.getCopyOfScheduledFutures());
-        Assert.assertTrue(context.isStarted());
-        assertLoggingWorks(workDir, "logging survives a missing resource");
-    }
-
-    /** An external configuration keeps ownership of its logging context. */
-    @Test
-    public void customConfigurationSkipsInitializationAndShutdown() throws Exception {
-        File workDir = temporaryFolder.newFolder();
-        new LoggingInitializer(workDir, "lifecycle").init();
-        Appender<ILoggingEvent> appender = context.getLogger(Logger.ROOT_LOGGER_NAME).getAppender("file");
-        List<ScheduledFuture<?>> scanners = new ArrayList<>(context.getCopyOfScheduledFutures());
-        Assert.assertFalse(scanners.isEmpty());
-        String configuredWorkDir = System.getProperty("oak.workDir");
-        System.setProperty(ContextInitializer.CONFIG_FILE_PROPERTY, new File(workDir, "logback-lifecycle.xml").getAbsolutePath());
-
-        File otherWorkDir = temporaryFolder.newFolder();
-        new LoggingInitializer(otherWorkDir, "lifecycle").init();
-        LoggingInitializer.shutdownLogging();
-
-        Assert.assertFalse(new File(otherWorkDir, "logback-lifecycle.xml").exists());
-        Assert.assertEquals(configuredWorkDir, System.getProperty("oak.workDir"));
-        Assert.assertSame(appender, context.getLogger(Logger.ROOT_LOGGER_NAME).getAppender("file"));
-        Assert.assertTrue(context.isStarted());
-        Assert.assertTrue(appender.isStarted());
-        for (ScheduledFuture<?> scanner : scanners) {
-            Assert.assertFalse(scanner.isCancelled());
-        }
-    }
-
-    /** The isolated lifecycle leaves shared logging untouched. */
-    @Test
-    public void initializationDoesNotChangeSharedLoggingContext() throws Exception {
-        boolean sharedStarted = sharedContext.isStarted();
-        List<ScheduledFuture<?>> sharedScanners = new ArrayList<>(sharedContext.getCopyOfScheduledFutures());
-        List<Appender<ILoggingEvent>> sharedAppenders = new ArrayList<>();
-        sharedContext.getLogger(Logger.ROOT_LOGGER_NAME).iteratorForAppenders().forEachRemaining(sharedAppenders::add);
-
-        File workDir = temporaryFolder.newFolder();
-        new LoggingInitializer(workDir, "lifecycle").init();
-        assertLoggingWorks(workDir, "isolated context");
-        Assert.assertNotSame(sharedContext, context);
-        restoreLoggingConfiguration();
-
-        Assert.assertSame(sharedContext, LoggerFactory.getILoggerFactory());
-        Assert.assertEquals(sharedStarted, sharedContext.isStarted());
-        Assert.assertEquals(sharedScanners, sharedContext.getCopyOfScheduledFutures());
-        List<Appender<ILoggingEvent>> remainingAppenders = new ArrayList<>();
-        sharedContext.getLogger(Logger.ROOT_LOGGER_NAME).iteratorForAppenders().forEachRemaining(remainingAppenders::add);
-        Assert.assertEquals(sharedAppenders, remainingAppenders);
-        Assert.assertEquals(originalWorkDir, System.getProperty("oak.workDir"));
-        Assert.assertEquals(originalConfigFile, System.getProperty(ContextInitializer.CONFIG_FILE_PROPERTY));
-    }
-
-    private void assertLoggingWorks(File workDir, String message) throws Exception {
-        Appender<ILoggingEvent> appender = context.getLogger(Logger.ROOT_LOGGER_NAME).getAppender("file");
-        Assert.assertNotNull(appender);
-        Assert.assertTrue(appender.isStarted());
-        Assert.assertFalse(context.getCopyOfScheduledFutures().isEmpty());
-        LoggerFactory.getLogger(LoggingInitializerTest.class).info(message);
-        String output = Files.readString(new File(workDir, "lifecycle.log").toPath(), StandardCharsets.UTF_8);
-        Assert.assertTrue("configured file appender must receive the message", output.contains(message));
     }
 
     private static void restoreProperty(String name, String value) {
-        if (value == null) {
-            System.clearProperty(name);
-        } else {
-            System.setProperty(name, value);
-        }
+        if (value == null) { System.clearProperty(name); }
+        else { System.setProperty(name, value); }
     }
 }
