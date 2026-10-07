@@ -456,6 +456,29 @@ The diff index consists of:
 An example diff.json file is an empty JSON object: `{}`.
 See below for more examples.
 
+Multiple `*.json` files may be stored directly under `diff.index`.
+They are processed in alphabetical filename order. If several files define
+the same index, the last file replaces that entire index entry, rather than
+deep-merging it with earlier files.
+
+To reference a binary file stored alongside the JSON files, use
+`":file:<filename>"` as a property value in the diff. For example,
+`"jcr:data": ":file:stopwords.txt"` copies the binary `jcr:content/jcr:data`
+from the sibling `stopwords.txt` file into the generated index definition.
+The stored JSON retains the reference. Files ending in `.json` are treated
+as diff definitions, not auxiliary files.
+
+Whenever a file's `jcr:lastModified` changes, or a file is added
+or removed, the complete set of files is processed. The optional
+`diff.index.optimizer` node is processed separately: its index entries are
+deep-merged with the customer entries, with optimizer values taking precedence.
+File references are resolved within their own diff index node.
+Writers must update `jcr:lastModified` when changing file content.
+Unchanged filenames and timestamps skip validation and merging.
+
+Processing is enabled by default and can be disabled with the system property
+`oak.diffIndex.enabled=false`.
+
 To build a JSON index definition for a query, you may want to use the existing
 [online tooling](https://oak-indexing.github.io/oakTools/).
 
@@ -464,6 +487,7 @@ To build a JSON index definition for a query, you may want to use the existing
 If there are errors when trying to parse the JSON, or when merging,
 these errors are written to the `diff.index` node in the form of
 `warn.01`, `warn.02` etc. properties.
+If only `diff.index.optimizer` exists, warnings are stored there instead.
 (After storing the new diff, you might need to refresh the node to see these warnings.)
 
 Merge warnings consist of ignored properties, unsupported paths, checksum mismatches, etc.
@@ -473,6 +497,11 @@ The warning properties are automatically removed if the warnings are resolved
 
 Example: if a `diff.json` with a typo is stored, a `warn.01` property
 is added to the `diff.index` node.
+
+If any file cannot be read or parsed, or a file reference cannot be resolved,
+none of the collected diffs is applied. Existing indexes and the warnings are
+preserved. Failed attempts are not retried until a file timestamp changes or
+a file is added or removed, including after blob-store or I/O errors.
 
 ### Customizing OOTB and Fully Custom Indexes
 
@@ -741,5 +770,3 @@ so that regular indexing operations can continue.
 [OAK-4939]: https://issues.apache.org/jira/browse/OAK-4939
 [OAK-5159]: https://issues.apache.org/jira/browse/OAK-5159
 [OAK-5557]: https://issues.apache.org/jira/browse/OAK-5557
-
-

@@ -57,6 +57,12 @@ public class DiffIndexMerger {
     public static final String LAST_PROCESSED = ":lastProcessed";
     public static final String MERGE_CHECKSUM = "mergeChecksum";
 
+    /**
+     * Prefix of a property value that references another file of the "diff.index"
+     * node, instead of inlining the binary value as ":blobId:&lt;base64&gt;".
+     */
+    public static final String FILE_PREFIX = ":file:";
+
     private static final String MERGE_INFO = "This index was auto-merged. See also https://oak-indexing.github.io/oakTools/simplified.html";
 
     // the list of unsupported included paths, e.g. "/apps,/libs"
@@ -142,9 +148,9 @@ public class DiffIndexMerger {
         // index definitions in the repository
         combined.getChildren().putAll(repositoryDefinitions.getChildren());
 
-        // read the diff.index.optimizer explicitly,
-        // because it's a not a regular index definition,
-        // and so it is not in the repositoryDefinitions
+        // read the diff indexes explicitly,
+        // because they are not regular index definitions,
+        // and so they are not in the repositoryDefinitions
         if (repositoryNodeStore != null) {
             Map<String, JsonObject> diffInRepo = readDiffIndex(repositoryNodeStore, DIFF_INDEX_OPTIMIZER);
             combined.getChildren().putAll(diffInRepo);
@@ -169,7 +175,7 @@ public class DiffIndexMerger {
      * Remove "diff.index" and/or "diff.index.optimizer" from
      * newImageLuceneDefinitions, if their content is unchanged compared to what
      * is already stored in the writable repository. This avoids writing (and
-     * later re-committing, see ReindexCmd) an index definition that didn't
+     * later re-committing) an index definition that didn't
      * actually change.
      *
      * @param newImageLuceneDefinitions
@@ -242,8 +248,10 @@ public class DiffIndexMerger {
 
         // collect the diff index(es)
         HashMap<String, JsonObject> toProcess = new HashMap<>();
-        tryExtractDiffIndex(combined, "/oak:index/" + DIFF_INDEX, toProcess);
-        tryExtractDiffIndex(combined, "/oak:index/" + DIFF_INDEX_OPTIMIZER, toProcess);
+        if (tryExtractDiffIndex(combined, "/oak:index/" + DIFF_INDEX, toProcess) != null
+                || tryExtractDiffIndex(combined, "/oak:index/" + DIFF_INDEX_OPTIMIZER, toProcess) != null) {
+            return false;
+        }
         // if the diff index exists, but doesn't contain some of the previous indexes
         // (indexes with mergeInfo), then we need to disable those (using /dummy includedPath)
         extractExistingMergedIndexes(combined, toProcess);
@@ -286,34 +294,101 @@ public class DiffIndexMerger {
         if (diffIndex == null) {
             return null;
         }
-        // extract either the file, or the nested json
-        JsonObject file = diffIndex.getChildren().get("diff.json");
-        JsonObject diff;
-        if (file != null) {
-            // file
-            JsonObject jcrContent = file.getChildren().get("jcr:content");
-            if (jcrContent == null) {
-                String message = "jcr:content child node is missing in diff.json";
-                logAndCollectWarn(message);
-                return message;
+        // extract either the files, or the nested json
+        // the number of files is small, so we can read them all in memory;
+        // a TreeMap is used to process them in alphabetical order
+        TreeMap<String, JsonObject> files = new TreeMap<>();
+        for (Entry<String, JsonObject> e : diffIndex.getChildren().entrySet()) {
+            if (e.getKey().endsWith(".json")) {
+                files.put(e.getKey(), e.getValue());
             }
-            String jcrData = JsonNodeUpdater.oakStringValue(jcrContent, "jcr:data");
-            try {
-                diff = JsonObject.fromJson(jcrData, true);
-            } catch (Exception e) {
-                String message = "Illegal Json, ignoring: " + e.getMessage();
-                logAndCollectWarn("Illegal Json, ignoring: {}", jcrData, e);
-                return message;
+        }
+        JsonObject diff;
+        if (!files.isEmpty()) {
+            // files: merge the top-level entries,
+            // where the alphabetically higher file overwrites the earlier ones
+            diff = new JsonObject();
+            for (Entry<String, JsonObject> fileEntry : files.entrySet()) {
+                String fileName = fileEntry.getKey();
+                JsonObject jcrContent = fileEntry.getValue().getChildren().get("jcr:content");
+                if (jcrContent == null) {
+                    String message = "jcr:content child node is missing in " + fileName;
+                    logAndCollectWarn(message);
+                    return message;
+                }
+                JsonObject fileDiff;
+                try {
+                    fileDiff = JsonObject.fromJson(JsonNodeUpdater.oakStringValue(jcrContent, "jcr:data"), true);
+                } catch (Exception e) {
+                    String message = "Illegal Json, ignoring: " + e.getMessage();
+                    logAndCollectWarn("Illegal Json in {}, ignoring: {}", fileName, e.getMessage());
+                    return message;
+                }
+                diff.getProperties().putAll(fileDiff.getProperties());
+                diff.getChildren().putAll(fileDiff.getChildren());
             }
         } else {
             // nested json
             diff = diffIndex.getChildren().get("diff");
+            if (diff != null) {
+                // copy, so that resolving file references doesn't modify the input
+                diff = JsonObject.fromJson(diff.toString(), true);
+            }
         }
         // store, if not empty
         if (diff != null) {
+            String message = resolveFileReferences(diffIndex, diff);
+            if (message != null) {
+                return message;
+            }
             for (Entry<String, JsonObject> e : diff.getChildren().entrySet()) {
                 String key = e.getKey();
                 target.put(key, mergeDiffs(target.get(key), e.getValue()));
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Replace all ":file:&lt;fileName&gt;" property values with the binary
+     * value (":blobId:&lt;base64&gt;") of the referenced file. The file is a
+     * child node of the "diff.index" node, with a "jcr:content" child node that
+     * has a "jcr:data" property.
+     *
+     * @param diffIndex the "diff.index" node, which contains the referenced files
+     * @param node      the node to process (recursively; input + output)
+     * @return the error message if a reference could not be resolved, or null
+     */
+    private String resolveFileReferences(JsonObject diffIndex, JsonObject node) {
+        for (Entry<String, String> e : node.getProperties().entrySet()) {
+            if (e.getValue().startsWith("\"")
+                    && JsopTokenizer.decodeQuoted(e.getValue()).startsWith(":blobId:")) {
+                continue;
+            }
+            String value = JsonNodeUpdater.oakStringValue(e.getValue());
+            if (value == null || !value.startsWith(FILE_PREFIX)) {
+                continue;
+            }
+            String fileName = value.substring(FILE_PREFIX.length());
+            JsonObject file = diffIndex.getChildren().get(fileName);
+            if (file == null) {
+                String message = "Referenced file is missing: " + fileName;
+                logAndCollectWarn(message);
+                return message;
+            }
+            JsonObject jcrContent = file.getChildren().get("jcr:content");
+            String data = jcrContent == null ? null : jcrContent.getProperties().get("jcr:data");
+            if (data == null) {
+                String message = "jcr:content/jcr:data is missing in the referenced file: " + fileName;
+                logAndCollectWarn(message);
+                return message;
+            }
+            e.setValue(data);
+        }
+        for (JsonObject child : node.getChildren().values()) {
+            String message = resolveFileReferences(diffIndex, child);
+            if (message != null) {
+                return message;
             }
         }
         return null;
@@ -537,7 +612,13 @@ public class DiffIndexMerger {
                     key = prefix + indexName + "-" + productVersion + "-custom-";
                 }
                 if (latestCustomized != null) {
-                    key += (latestCustomized.getCustomerVersion() + 1);
+                    int nextCustomer;
+                    if (latestCustomized.getProductVersion() < productVersion) {
+                        nextCustomer = 1;
+                    } else {
+                        nextCustomer = latestCustomized.getCustomerVersion() + 1;
+                    }
+                    key += nextCustomer;
                 } else {
                     key += "1";
                 }

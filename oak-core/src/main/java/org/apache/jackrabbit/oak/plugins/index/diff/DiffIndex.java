@@ -21,13 +21,19 @@ import java.io.InputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexName;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
@@ -50,6 +56,8 @@ public class DiffIndex {
 
     private final static DiffIndexMerger MERGER = new DiffIndexMerger();
 
+    private static final String LAST_PROCESSED_FILES = ":lastProcessedFiles";
+
     /**
      * Apply changes to the index definitions. That means merge the index diff with
      * the existing indexes, creating new index versions. It might also mean to
@@ -59,11 +67,17 @@ public class DiffIndex {
      * @param indexDefinitions the /oak:index node
      */
     public static void applyDiffIndexChanges(NodeStore store, NodeBuilder indexDefinitions) {
+        if (!Boolean.parseBoolean(System.getProperty("oak.diffIndex.enabled", "true"))) {
+            return;
+        }
+        String previousFiles = indexDefinitions.getString(LAST_PROCESSED_FILES);
         JsonObject diffs = collectDiffs(indexDefinitions, MERGER);
         if (diffs != null) {
             processDiffs(store, indexDefinitions, diffs, MERGER);
         }
-        storeOrRemoveWarnings(indexDefinitions, MERGER);
+        if (!Objects.equals(previousFiles, indexDefinitions.getString(LAST_PROCESSED_FILES))) {
+            storeOrRemoveWarnings(indexDefinitions, MERGER);
+        }
     }
 
     /**
@@ -71,56 +85,90 @@ public class DiffIndex {
      *
      * @param indexDefinitions the node builder for /oak:index
      * @param merger the merger instance to use for collecting warnings
-     * @return the diffs, or null if none
+     * @return the complete snapshot, or null if absent, unchanged, or invalid
      */
     public static JsonObject collectDiffs(NodeBuilder indexDefinitions, DiffIndexMerger merger) {
-        JsonObject diffs = null;
+        JsonObject result = new JsonObject(true);
+        String previousFiles = indexDefinitions.getString(LAST_PROCESSED_FILES);
+        JsonObject processedFiles = previousFiles == null
+                ? new JsonObject(true) : JsonObject.fromJson(previousFiles, true);
+        JsonObject currentFiles = new JsonObject(true);
+        List<String> readErrors = new ArrayList<>();
+        boolean found = false;
+        boolean wasModified = false;
         for (String diffIndex : new String[] {
                 DiffIndexMerger.DIFF_INDEX,
                 DiffIndexMerger.DIFF_INDEX_OPTIMIZER }) {
+            String path = "/oak:index/" + diffIndex;
+            JsonObject files = new JsonObject(true);
+            result.getChildren().put(path, files);
             if (!indexDefinitions.hasChildNode(diffIndex)) {
+                // Override the old repository snapshot when a diff index was removed.
+                files.getChildren().put("diff", new JsonObject(true));
                 continue;
             }
+            found = true;
+            currentFiles.getProperties().put(path, "true");
+            wasModified |= !processedFiles.getProperties().containsKey(path);
             NodeBuilder diffIndexDefinition = indexDefinitions.child(diffIndex);
-            NodeBuilder diffContent = diffIndexDefinition.getChildNode("diff.json").getChildNode("jcr:content");
-            if (!diffContent.exists()) {
-                continue;
-            }
-            PropertyState lastMod = diffContent.getProperty(NodeTypeConstants.JCR_LASTMODIFIED);
-            if (lastMod == null) {
-                continue;
-            }
-            String modified = lastMod.getValue(Type.DATE);
-            PropertyState lastProcessed = diffContent.getProperty(DiffIndexMerger.LAST_PROCESSED);
-            if (lastProcessed != null) {
-                if (modified.equals(lastProcessed.getValue(Type.STRING))) {
-                    // already processed
-                    continue;
-                }
-            }
-            // store now, so a change is only processed once
-            diffContent.setProperty(DiffIndexMerger.LAST_PROCESSED, modified);
-            PropertyState jcrData = diffContent.getProperty("jcr:data");
-            String diff = tryReadString(jcrData);
-            if (diff == null) {
-                continue;
-            }
-            try {
-                JsonObject diffObj = JsonObject.fromJson("{\"diff\": " + diff + "}", true);
-                diffIndexDefinition.removeProperty("error");
-                if (diffs == null) {
-                    diffs = new JsonObject();
-                }
-                diffs.getChildren().put("/oak:index/" + diffIndex, diffObj);
-            } catch (Exception e) {
-                String message = "Error parsing " + diffIndex;
-                merger.logAndCollectWarn("{}: {}", message, e.getMessage());
-            }
+            List<String> sortedChildren = StreamSupport.stream(
+                    diffIndexDefinition.getChildNodeNames().spliterator(), false)
+                .sorted().collect(Collectors.toList());
             if (!diffIndexDefinition.hasProperty("info")) {
                 diffIndexDefinition.setProperty("info", "This diff is automatically merged with other indexes. See https://oak-indexing.github.io/oakTools/simplified.html");
             }
+            for (String child : sortedChildren) {
+                String filePath = path + "/" + child;
+                NodeBuilder diffContent = diffIndexDefinition.getChildNode(child).getChildNode("jcr:content");
+                PropertyState lastMod = diffContent.getProperty(NodeTypeConstants.JCR_LASTMODIFIED);
+                String modified = lastMod == null ? "null" : JsopBuilder.encode(lastMod.getValue(Type.DATE));
+                currentFiles.getProperties().put(filePath, modified);
+                wasModified |= !modified.equals(processedFiles.getProperties().get(filePath));
+                if (!diffContent.exists()) {
+                    if (child.endsWith(".json")) {
+                        readErrors.add("jcr:content is missing in " + filePath);
+                    }
+                    continue;
+                }
+                PropertyState jcrData = diffContent.getProperty("jcr:data");
+                if (jcrData == null) {
+                    readErrors.add("jcr:data is missing in " + filePath + "/jcr:content");
+                    continue;
+                }
+                JsonObject content = new JsonObject(true);
+                try (InputStream in = jcrData.getValue(Type.BINARY).getNewStream()) {
+                    content.getProperties().put("jcr:data", JsopBuilder.encode(
+                            ":blobId:" + Base64.getEncoder().encodeToString(in.readAllBytes())));
+                } catch (IOException | IllegalArgumentException | IllegalStateException e) {
+                    readErrors.add("Cannot read " + filePath + "/jcr:content/jcr:data: " + e.getMessage());
+                    continue;
+                }
+                JsonObject file = new JsonObject(true);
+                file.getChildren().put("jcr:content", content);
+                files.getChildren().put(child, file);
+            }
+            if (files.getChildren().keySet().stream().noneMatch(name -> name.endsWith(".json"))) {
+                files.getChildren().put("diff", new JsonObject(true));
+            }
         }
-        return diffs;
+        wasModified |= !currentFiles.getProperties().keySet().equals(processedFiles.getProperties().keySet());
+        if (!found || !wasModified) {
+            return null;
+        }
+        // Record attempts, including failures, so unchanged files are not processed again.
+        indexDefinitions.setProperty(LAST_PROCESSED_FILES, currentFiles.toString());
+        for (String error : readErrors) {
+            merger.logAndCollectWarn("{}", error);
+        }
+        if (!readErrors.isEmpty()) {
+            return null;
+        }
+        for (String path : result.getChildren().keySet()) {
+            if (merger.tryExtractDiffIndex(result, path, new HashMap<>()) != null) {
+                return null;
+            }
+        }
+        return result;
     }
 
     /**
@@ -150,6 +198,9 @@ public class DiffIndex {
             }
             removeDisabledMergedIndexes(indexDefinitions);
             sortIndexes(indexDefinitions);
+            if (indexDefinitions.hasChildNode(DiffIndexMerger.DIFF_INDEX)) {
+                indexDefinitions.getChildNode(DiffIndexMerger.DIFF_INDEX).removeProperty("error");
+            }
         } catch (Exception e) {
             LOG.warn("Error merging diffs: {}", e.getMessage(), e);
             NodeBuilder diffIndexDefinition = indexDefinitions.child(DiffIndexMerger.DIFF_INDEX);
@@ -169,7 +220,7 @@ public class DiffIndex {
         if (jcrData == null) {
             return null;
         }
-    try (InputStream in = jcrData.getValue(Type.BINARY).getNewStream()) {
+        try (InputStream in = jcrData.getValue(Type.BINARY).getNewStream()) {
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             LOG.warn("Can not read jcr:data", e);
@@ -178,7 +229,7 @@ public class DiffIndex {
     }
 
     /**
-     * Store warnings collected during diff index processing in the diff.index node.
+     * Store warnings in diff.index, or diff.index.optimizer if diff.index is absent.
      * Warnings are stored in separate properties named "warn.01", "warn.02", etc.
      * Any existing "warn." properties are removed first.
      *
@@ -186,10 +237,12 @@ public class DiffIndex {
      * @param merger the merger instance to retrieve warnings from
      */
     public static void storeOrRemoveWarnings(NodeBuilder indexDefinitions, DiffIndexMerger merger) {
-        if (!indexDefinitions.hasChildNode(DiffIndexMerger.DIFF_INDEX)) {
+        String warningIndex = indexDefinitions.hasChildNode(DiffIndexMerger.DIFF_INDEX)
+                ? DiffIndexMerger.DIFF_INDEX : DiffIndexMerger.DIFF_INDEX_OPTIMIZER;
+        if (!indexDefinitions.hasChildNode(warningIndex)) {
             return;
         }
-        NodeBuilder diffIndexDefinition = indexDefinitions.child(DiffIndexMerger.DIFF_INDEX);
+        NodeBuilder diffIndexDefinition = indexDefinitions.getChildNode(warningIndex);
         // remove existing warn.* properties
         for (PropertyState ps : diffIndexDefinition.getNodeState().getProperties()) {
             if (ps.getName().startsWith("warn.")) {

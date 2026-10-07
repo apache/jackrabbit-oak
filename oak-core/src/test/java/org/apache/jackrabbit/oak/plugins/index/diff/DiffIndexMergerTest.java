@@ -17,10 +17,13 @@
 package org.apache.jackrabbit.oak.plugins.index.diff;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.TreeSet;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
@@ -222,7 +225,6 @@ public class DiffIndexMergerTest {
                     }
                 }
                 """, true);
-
         getMerger().merge(newImageLuceneDefinitions, repositoryDefinitions, null);
         assertEquals("""
                 {
@@ -258,8 +260,460 @@ public class DiffIndexMergerTest {
                 }""", newImageLuceneDefinitions.toString());
     }
 
+    private static String jsonFileNode(String json) {
+        return """
+                {
+                    "jcr:primaryType": "nam:nt:file",
+                    "jcr:content": {
+                        "jcr:primaryType": "nam:nt:resource",
+                        "jcr:mimeType": "application/json",
+                        "jcr:data": \"""" + ":blobId:"
+                + Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8)) + """
+                \"
+                    }
+                }
+                """;
+    }
+
+    // multiple *.json files are read, sorted by name, and their top-level entries
+    // are merged; the alphabetically higher file overwrites the earlier entries
     @Test
-    public void firstOptimizerCustomization() {
+    public void multipleDiffJsonFiles() {
+        JsonObject repositoryDefinitions = JsonObject.fromJson("""
+                {
+                    "/oak:index/diff.index": {
+                        "jcr:primaryType": "nt:unstructured",
+                        "type": "lucene", "includedPaths": "/same", "queryPaths": "/same",
+                        "c.json": """ + jsonFileNode("{\"a\": {\"y\": \"2\"}}") + """
+                        , "a.json": """ + jsonFileNode("{\"a\": {\"x\": \"1\"}}") + """
+                        , "b.json": """ + jsonFileNode("{\"b\": {\"z\": \"3\"}}") + """
+                        , "readme.txt": { "jcr:primaryType": "nam:nt:unstructured" }
+                    }
+                }
+                """, true);
+
+        HashMap<String, JsonObject> target = new HashMap<>();
+        assertNull(getMerger().tryExtractDiffIndex(repositoryDefinitions, "/oak:index/diff.index", target));
+        assertEquals("[a, b]", new TreeSet<>(target.keySet()).toString());
+        // "a" is not deep-merged: the entry of "c.json" replaces the one of "a.json"
+        assertEquals("{\n  \"y\": \"2\"\n}", target.get("a").toString());
+        assertEquals("{\n  \"z\": \"3\"\n}", target.get("b").toString());
+    }
+
+    // a binary within the diff JSON may reference another file of the diff.index,
+    // instead of inlining the base64 encoded data
+    @Test
+    public void diffJsonWithFileReference() {
+        String helloWorld = ":blobId:" + Base64.getEncoder().encodeToString(
+                "Hello World".getBytes(StandardCharsets.UTF_8));
+        String diffWithFileRef = """
+                {
+                  "damAssetLucene": {
+                    "test.txt": {
+                      "jcr:primaryType": "nam:nt:file",
+                      "jcr:content": {
+                        "jcr:primaryType": "nam:nt:resource",
+                        "jcr:mimeType": "text/plain",
+                        "jcr:data": ":file:test.txt"
+                      }
+                    }
+                  }
+                }
+                """;
+        JsonObject repositoryDefinitions = JsonObject.fromJson("""
+                {
+                    "/oak:index/diff.index": {
+                        "jcr:primaryType": "nt:unstructured",
+                        "type": "lucene", "includedPaths": "/same", "queryPaths": "/same",
+                        "test.txt": {
+                            "jcr:primaryType": "nam:nt:file",
+                            "jcr:content": {
+                                "jcr:primaryType": "nam:nt:resource",
+                                "jcr:mimeType": "text/plain",
+                                "jcr:data": \"""" + helloWorld + """
+                \"
+                            }
+                        },
+                        "diff.json": """ + jsonFileNode(diffWithFileRef) + """
+                    }
+                }
+                """, true);
+
+        HashMap<String, JsonObject> target = new HashMap<>();
+        assertNull(getMerger().tryExtractDiffIndex(repositoryDefinitions, "/oak:index/diff.index", target));
+        JsonObject jcrContent = target.get("damAssetLucene").
+                getChildren().get("test.txt").getChildren().get("jcr:content");
+        // the reference is replaced with the binary value of the referenced file
+        assertEquals("Hello World", JsonNodeUpdater.oakStringValue(jcrContent, "jcr:data"));
+    }
+
+    // the same content, but with the base64 data inlined in the diff JSON,
+    // results in exactly the same diff
+    @Test
+    public void diffJsonWithInlinedBinary() {
+        String helloWorld = ":blobId:" + Base64.getEncoder().encodeToString(
+                "Hello World".getBytes(StandardCharsets.UTF_8));
+        String diffWithInlinedBinary = """
+                {
+                  "damAssetLucene": {
+                    "test.txt": {
+                      "jcr:primaryType": "nam:nt:file",
+                      "jcr:content": {
+                        "jcr:primaryType": "nam:nt:resource",
+                        "jcr:mimeType": "text/plain",
+                        "jcr:data": \"""" + helloWorld + """
+                \"
+                      }
+                    }
+                  }
+                }
+                """;
+        JsonObject repositoryDefinitions = JsonObject.fromJson("""
+                {
+                    "/oak:index/diff.index": {
+                        "jcr:primaryType": "nt:unstructured",
+                        "type": "lucene", "includedPaths": "/same", "queryPaths": "/same",
+                        "diff.json": """ + jsonFileNode(diffWithInlinedBinary) + """
+                    }
+                }
+                """, true);
+
+        HashMap<String, JsonObject> target = new HashMap<>();
+        assertNull(getMerger().tryExtractDiffIndex(repositoryDefinitions, "/oak:index/diff.index", target));
+        JsonObject jcrContent = target.get("damAssetLucene").
+                getChildren().get("test.txt").getChildren().get("jcr:content");
+        assertEquals("Hello World", JsonNodeUpdater.oakStringValue(jcrContent, "jcr:data"));
+    }
+
+    // a file reference within the nested "diff" JSON object is resolved as well
+    @Test
+    public void nestedDiffWithFileReference() {
+        String helloWorld = ":blobId:" + Base64.getEncoder().encodeToString(
+                "Hello World".getBytes(StandardCharsets.UTF_8));
+        JsonObject repositoryDefinitions = JsonObject.fromJson("""
+                {
+                    "/oak:index/diff.index": {
+                        "jcr:primaryType": "nt:unstructured",
+                        "type": "lucene", "includedPaths": "/same", "queryPaths": "/same",
+                        "test.txt": {
+                            "jcr:primaryType": "nam:nt:file",
+                            "jcr:content": {
+                                "jcr:primaryType": "nam:nt:resource",
+                                "jcr:mimeType": "text/plain",
+                                "jcr:data": \"""" + helloWorld + """
+                \"
+                            }
+                        },
+                        "diff": {
+                            "damAssetLucene": {
+                                "test.txt": {
+                                    "jcr:primaryType": "nam:nt:file",
+                                    "jcr:content": {
+                                        "jcr:primaryType": "nam:nt:resource",
+                                        "jcr:mimeType": "text/plain",
+                                        "jcr:data": ":file:test.txt"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                """, true);
+
+        HashMap<String, JsonObject> target = new HashMap<>();
+        assertNull(getMerger().tryExtractDiffIndex(repositoryDefinitions, "/oak:index/diff.index", target));
+        JsonObject jcrContent = target.get("damAssetLucene").
+                getChildren().get("test.txt").getChildren().get("jcr:content");
+        assertEquals("Hello World", JsonNodeUpdater.oakStringValue(jcrContent, "jcr:data"));
+        // the input is not modified
+        assertEquals("\":file:test.txt\"", repositoryDefinitions.
+                getChildren().get("/oak:index/diff.index").
+                getChildren().get("diff").
+                getChildren().get("damAssetLucene").
+                getChildren().get("test.txt").
+                getChildren().get("jcr:content").
+                getProperties().get("jcr:data"));
+    }
+
+    // the diff.index that is stored in the result keeps the file references;
+    // only the generated index definition contains the resolved binary
+    @Test
+    public void fileReferenceIsKeptInStoredDiffIndex() {
+        String helloWorld = ":blobId:" + Base64.getEncoder().encodeToString(
+                "Hello World".getBytes(StandardCharsets.UTF_8));
+        String diffWithFileRef = """
+                {
+                  "damAssetLucene": {
+                    "test.txt": {
+                      "jcr:primaryType": "nam:nt:file",
+                      "jcr:content": {
+                        "jcr:primaryType": "nam:nt:resource",
+                        "jcr:mimeType": "text/plain",
+                        "jcr:data": ":file:test.txt"
+                      }
+                    }
+                  }
+                }
+                """;
+        JsonObject newImageLuceneDefinitions = JsonObject.fromJson("""
+                {
+                    "/oak:index/diff.index": {
+                        "jcr:primaryType": "nt:unstructured",
+                        "type": "lucene", "includedPaths": "/same", "queryPaths": "/same",
+                        "test.txt": {
+                            "jcr:primaryType": "nam:nt:file",
+                            "jcr:content": {
+                                "jcr:primaryType": "nam:nt:resource",
+                                "jcr:mimeType": "text/plain",
+                                "jcr:data": \"""" + helloWorld + """
+                \"
+                            }
+                        },
+                        "diff.json": """ + jsonFileNode(diffWithFileRef) + """
+                    }
+                }
+                """, true);
+        JsonObject repositoryDefinitions = JsonObject.fromJson("""
+                {
+                    "/oak:index/damAssetLucene-12": {
+                        "jcr:primaryType": "oak:IndexDefinition",
+                        "type": "lucene",
+                        "async": ["async", "nrt"],
+                        "includedPaths": "/content/dam"
+                    }
+                }
+                """, true);
+
+        getMerger().merge(newImageLuceneDefinitions, repositoryDefinitions, null);
+
+        // the generated index definition contains the resolved binary
+        JsonObject merged = newImageLuceneDefinitions.getChildren().get("/oak:index/damAssetLucene-12-custom-1");
+        JsonObject mergedContent = merged.getChildren().get("test.txt").getChildren().get("jcr:content");
+        assertEquals("Hello World", JsonNodeUpdater.oakStringValue(mergedContent, "jcr:data"));
+
+        // the diff.index that is stored in the result keeps the unresolved reference
+        JsonObject storedDiffIndex = newImageLuceneDefinitions.getChildren().get("/oak:index/diff.index");
+        String storedDiff = JsonNodeUpdater.oakStringValue(
+                storedDiffIndex.getChildren().get("diff.json").getChildren().get("jcr:content"), "jcr:data");
+        assertEquals(diffWithFileRef, storedDiff);
+    }
+
+    // All *.json children are sorted alphabetically, and merged.
+    // For duplicate indexes, the (alphabetically) last one wins.
+    @Test
+    public void openListOfDiffs() {
+        JsonObject newImageLuceneDefinitions = JsonObject.fromJson("""
+                {
+                    "/oak:index/diff.index": {
+                        "jcr:primaryType": "nt:unstructured",
+                        "type": "lucene", "includedPaths": "/same", "queryPaths": "/same",
+                        "diff.json": """ + jsonFileNode(indexDiff("ntFileFolder", "a", "1")) + """
+                        , "diff.asset1.json": """ + jsonFileNode(indexDiff("damAssetLucene", "b", "2")) + """
+                        , "diff.asset2.json": """ + jsonFileNode(indexDiff("damAssetLucene", "b", "3")) + """
+                    }
+                }
+                """, true);
+        JsonObject repositoryDefinitions = JsonObject.fromJson("""
+                {
+                    "/oak:index/damAssetLucene-12": {
+                        "jcr:primaryType": "oak:IndexDefinition",
+                        "type": "lucene",
+                        "async": ["async", "nrt"],
+                        "includedPaths": "/content/dam"
+                    },
+                    "/oak:index/ntFileFolder-3": {
+                        "jcr:primaryType": "oak:IndexDefinition",
+                        "type": "lucene",
+                        "async": ["async", "nrt"],
+                        "includedPaths": "/content/dam"
+                    }
+                }
+                """, true);
+
+        getMerger().merge(newImageLuceneDefinitions, repositoryDefinitions, null);
+        assertEquals("""
+                {
+                  "/oak:index/diff.index": {
+                    "jcr:primaryType": "nt:unstructured",
+                    "type": "lucene",
+                    "includedPaths": "/same",
+                    "queryPaths": "/same",
+                    "diff.json": {
+                      "jcr:primaryType": "nam:nt:file",
+                      "jcr:content": {
+                        "jcr:primaryType": "nam:nt:resource",
+                        "jcr:mimeType": "application/json",
+                        "jcr:data": ":blobId:ewogICJudEZpbGVGb2xkZXIiOiB7ICJpbmRleFJ1bGVzIjogewogICAgImRhbTpBc3NldCI6IHsKICAgICAgInByb3BlcnRpZXMiOiB7CiAgICAgICAgImEiOiB7CiAgICAgICAgICAgICJuYW1lIjogIjEiLAogICAgICAgICAgICAicHJvcGVydHlJbmRleCI6IHRydWUKICAgICAgICAgIH0KICAgICAgICB9CiAgICAgIH0KICAgIH0KICB9Cn0K"
+                      }
+                    },
+                    "diff.asset1.json": {
+                      "jcr:primaryType": "nam:nt:file",
+                      "jcr:content": {
+                        "jcr:primaryType": "nam:nt:resource",
+                        "jcr:mimeType": "application/json",
+                        "jcr:data": ":blobId:ewogICJkYW1Bc3NldEx1Y2VuZSI6IHsgImluZGV4UnVsZXMiOiB7CiAgICAiZGFtOkFzc2V0IjogewogICAgICAicHJvcGVydGllcyI6IHsKICAgICAgICAiYiI6IHsKICAgICAgICAgICAgIm5hbWUiOiAiMiIsCiAgICAgICAgICAgICJwcm9wZXJ0eUluZGV4IjogdHJ1ZQogICAgICAgICAgfQogICAgICAgIH0KICAgICAgfQogICAgfQogIH0KfQo="
+                      }
+                    },
+                    "diff.asset2.json": {
+                      "jcr:primaryType": "nam:nt:file",
+                      "jcr:content": {
+                        "jcr:primaryType": "nam:nt:resource",
+                        "jcr:mimeType": "application/json",
+                        "jcr:data": ":blobId:ewogICJkYW1Bc3NldEx1Y2VuZSI6IHsgImluZGV4UnVsZXMiOiB7CiAgICAiZGFtOkFzc2V0IjogewogICAgICAicHJvcGVydGllcyI6IHsKICAgICAgICAiYiI6IHsKICAgICAgICAgICAgIm5hbWUiOiAiMyIsCiAgICAgICAgICAgICJwcm9wZXJ0eUluZGV4IjogdHJ1ZQogICAgICAgICAgfQogICAgICAgIH0KICAgICAgfQogICAgfQogIH0KfQo="
+                      }
+                    }
+                  },
+                  "/oak:index/ntFileFolder-3-custom-1": {
+                    "jcr:primaryType": "oak:IndexDefinition",
+                    "type": "lucene",
+                    "async": ["async", "nrt"],
+                    "includedPaths": "/content/dam",
+                    "mergeInfo": "This index was auto-merged. See also https://oak-indexing.github.io/oakTools/simplified.html",
+                    "mergeChecksum": "a7ac2c59503b5bfea38c78a3299a536965a79f744eeabbd060381caa6e47037c",
+                    "merges": ["/oak:index/ntFileFolder"],
+                    "indexRules": {
+                      "jcr:primaryType": "nam:nt:unstructured",
+                      "dam:Asset": {
+                        "jcr:primaryType": "nam:nt:unstructured",
+                        "properties": {
+                          "jcr:primaryType": "nam:nt:unstructured",
+                          "a": {
+                            "name": "1",
+                            "propertyIndex": true,
+                            "jcr:primaryType": "nam:nt:unstructured"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "/oak:index/damAssetLucene-12-custom-1": {
+                    "jcr:primaryType": "oak:IndexDefinition",
+                    "type": "lucene",
+                    "async": ["async", "nrt"],
+                    "includedPaths": "/content/dam",
+                    "mergeInfo": "This index was auto-merged. See also https://oak-indexing.github.io/oakTools/simplified.html",
+                    "mergeChecksum": "0cf99580627a63f488212a5f54f8f762f7e7a51af41181ee019ef9a9f58b0d9a",
+                    "merges": ["/oak:index/damAssetLucene"],
+                    "indexRules": {
+                      "jcr:primaryType": "nam:nt:unstructured",
+                      "dam:Asset": {
+                        "jcr:primaryType": "nam:nt:unstructured",
+                        "properties": {
+                          "jcr:primaryType": "nam:nt:unstructured",
+                          "b": {
+                            "name": "3",
+                            "propertyIndex": true,
+                            "jcr:primaryType": "nam:nt:unstructured"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }""", newImageLuceneDefinitions.toString());
+    }
+
+    private static String indexDiff(String indexName, String propertyName, String value) {
+        return """
+                {
+                  \"""" + indexName + """
+                  \": { "indexRules": {
+                      "dam:Asset": {
+                        "properties": {
+                          \"""" + propertyName + """
+                \": {
+                            "name": \"""" + value + """
+                \",
+                            "propertyIndex": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+                """;
+    }
+
+    // referencing a file that doesn't exist results in an error message
+    @Test
+    public void diffJsonWithMissingFileReference() {
+        String diffWithFileRef = """
+                {
+                  "damAssetLucene": {
+                    "test.txt": {
+                      "jcr:primaryType": "nam:nt:file",
+                      "jcr:content": {
+                        "jcr:primaryType": "nam:nt:resource",
+                        "jcr:data": ":file:test.txt"
+                      }
+                    }
+                  }
+                }
+                """;
+        JsonObject repositoryDefinitions = JsonObject.fromJson("""
+                {
+                    "/oak:index/diff.index": {
+                        "jcr:primaryType": "nt:unstructured",
+                        "type": "lucene", "includedPaths": "/same", "queryPaths": "/same",
+                        "diff.json": """ + jsonFileNode(diffWithFileRef) + """
+                    }
+                }
+                """, true);
+
+        HashMap<String, JsonObject> target = new HashMap<>();
+        assertEquals("Referenced file is missing: test.txt",
+                getMerger().tryExtractDiffIndex(repositoryDefinitions, "/oak:index/diff.index", target));
+        assertEquals("[]", target.keySet().toString());
+    }
+
+    @Test
+    public void inlinedBinaryIsNotInterpretedAsFileReference() {
+        String binary = ":blobId:" + Base64.getEncoder().encodeToString(
+                ":file:missing.txt".getBytes(StandardCharsets.UTF_8));
+        JsonObject definitions = JsonObject.fromJson(
+                "{\"/oak:index/diff.index\":{\"diff\":{\"acme.test\":{\"jcr:data\":\"" + binary + "\"}}}}", true);
+        HashMap<String, JsonObject> target = new HashMap<>();
+        assertNull(getMerger().tryExtractDiffIndex(definitions, "/oak:index/diff.index", target));
+        assertEquals("\"" + binary + "\"", target.get("acme.test").getProperties().get("jcr:data"));
+    }
+
+    @Test
+    public void invalidDiffDoesNotDisablePreviouslyMergedIndexes() {
+        JsonObject repository = JsonObject.fromJson("""
+                {
+                    "/oak:index/acme.test-1-custom-1": {
+                        "type": "lucene",
+                        "mergeInfo": "previously merged",
+                        "mergeChecksum": "old"
+                    }
+                }
+                """, true);
+        for (String diff : new String[] {
+                "{broken",
+                "{\"acme.test\":{\"file\":{\"jcr:data\":\":file:missing.txt\"}}}" }) {
+            JsonObject definitions = JsonObject.fromJson(
+                    "{\"/oak:index/diff.index\":{\"diff.json\":" + jsonFileNode(diff) + "}}", true);
+            String original = definitions.toString();
+            DiffIndexMerger merger = getMerger();
+            merger.merge(definitions, repository, null);
+            assertEquals(original, definitions.toString());
+            assertEquals(1, merger.getAndClearWarnings().size());
+        }
+    }
+
+    @Test
+    public void invalidOptimizerDoesNotApplyCustomerChanges() {
+        JsonObject definitions = JsonObject.fromJson(
+                "{\"/oak:index/diff.index\":{\"diff.json\":"
+                        + jsonFileNode("{\"acme.test\":{\"type\":\"lucene\"}}")
+                        + "},\"/oak:index/diff.index.optimizer\":{\"diff.json\":"
+                        + jsonFileNode("{broken") + "}}", true);
+        String original = definitions.toString();
+        getMerger().merge(definitions, new JsonObject(true), null);
+        assertEquals(original, definitions.toString());
+    }
+
+    @Test
+    public void firstCustomizationAsJson() {
         JsonObject newImageLuceneDefinitions = JsonObject.fromJson("{}", true);
         // notice the the diff.index.optimizer is already stored in the repo,
         // and so does not need to appear in the newImageLuceneDefinitions
