@@ -20,11 +20,9 @@ package org.apache.jackrabbit.oak.plugins.index.luceneNg.directory;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -163,11 +161,13 @@ public class CopyOnReadDirectory extends FilterDirectory {
 
     private void copy(final CORFileReference reference) {
         indexCopier.scheduledForCopy();
-        executor.execute(new Runnable() {
-            @Override
-            public void run() {
-                indexCopier.copyDone();
-                copyFilesToLocal(reference, true, true);
+        executor.execute(() -> {
+            indexCopier.copyDone();
+            try {
+                copyFilesToLocal(reference, true);
+            } catch (IOException e) {
+                log.warn("[{}] Error copying file {} to local cache; reads will use remote storage",
+                        indexPath, reference.name, e);
             }
         });
     }
@@ -176,30 +176,38 @@ public class CopyOnReadDirectory extends FilterDirectory {
         long start = PERF_LOGGER.start();
         long totalSize = 0;
         int copyCount = 0;
-        List<String> copiedFileNames = new ArrayList<>();
         for (String name : remote.listAll()) {
             if (LuceneNgIndexCopier.REMOTE_ONLY.contains(name)) {
                 continue;
             }
             CORFileReference fileRef = new CORFileReference(name);
             files.putIfAbsent(name, fileRef);
-            long fileSize = copyFilesToLocal(fileRef, false, false);
+            long fileSize = copyFilesToLocal(fileRef, false);
             if (fileSize > 0) {
                 copyCount++;
                 totalSize += fileSize;
-                copiedFileNames.add(name);
             }
         }
 
-        local.sync(copiedFileNames);
         PERF_LOGGER.end(start, -1, "[{}] Copied {} files totaling {}", indexPath, copyCount, humanReadableByteCount(totalSize));
     }
 
-    private long copyFilesToLocal(CORFileReference reference, boolean sync, boolean logDuration) {
+    private long copyFilesToLocal(CORFileReference reference, boolean logDuration) throws IOException {
         String name = reference.name;
-        boolean success = false;
         boolean copyAttempted = false;
-        long fileSize = 0;
+        boolean copied = false;
+        long fileSize = remote.fileLength(name);
+        LocalIndexFile file = new LocalIndexFile(local, name, fileSize, true);
+        long start = indexCopier.startCopy(file);
+        if (start < 0) {
+            indexCopier.waitForCopyCompletion(file, waitOtherCopyTimeoutMillis);
+            if (!indexCopier.isCopyInProgress(file)
+                    && LuceneNgIndexCopier.existsLocally(localDir, name)
+                    && local.fileLength(name) == fileSize) {
+                reference.markValid();
+            }
+            return 0;
+        }
         try {
             if (!LuceneNgIndexCopier.existsLocally(localDir, name)) {
                 long perfStart = -1;
@@ -207,68 +215,49 @@ public class CopyOnReadDirectory extends FilterDirectory {
                     perfStart = PERF_LOGGER.start();
                 }
 
-                fileSize = remote.fileLength(name);
-                LocalIndexFile file = new LocalIndexFile(local, name, fileSize, true);
-                long start = indexCopier.startCopy(file);
                 copyAttempted = true;
 
                 local.copyFrom(remote, name, name, IOContext.READ);
+                local.sync(Collections.singleton(name));
+                copied = true;
                 reference.markValid();
 
-                if (sync) {
-                    local.sync(Collections.singleton(name));
-                }
-
-                indexCopier.doneCopy(file, start);
                 if (logDuration) {
                     PERF_LOGGER.end(perfStart, 0,
                             "[{}] Copied file {} of size {}", indexPath,
                             name, humanReadableByteCount(fileSize));
                 }
             } else {
-                long remoteLength = remote.fileLength(name);
-
-                LocalIndexFile file = new LocalIndexFile(local, name, remoteLength, true);
-                // as a local file exists, attempt a wait for completion of any potential ongoing concurrent copy
-                indexCopier.waitForCopyCompletion(file, waitOtherCopyTimeoutMillis);
-
                 long localLength = local.fileLength(name);
 
                 //Do a simple consistency check. Ideally Lucene index files are never
                 //updated but still do a check if the copy is consistent
-                if (localLength != remoteLength) {
-                    if (!indexCopier.isCopyInProgress(file)) {
-                        log.warn("[{}] Found local copy for {} in {} but size of local {} differs from remote {}. " +
-                                        "Content would be read from remote file only",
-                                indexPath, name, local, localLength, remoteLength);
-                        indexCopier.foundInvalidFile();
-                    } else {
-
-                        logRemoteAccess("[{}] Found in progress copy of file {}. Would read from remote", indexPath, name);
-                    }
+                if (localLength != fileSize) {
+                    log.warn("[{}] Local copy of {} has size {} instead of {}; reads will use remote storage",
+                            indexPath, name, localLength, fileSize);
+                    indexCopier.foundInvalidFile();
                 } else {
                     reference.markValid();
                     log.trace("[{}] found local copy of file {}",
                             indexPath, name);
                 }
             }
-            success = true;
-        } catch (IOException e) {
-            //TODO In case of exception there would not be any other attempt
-            //to download the file. Look into support for retry
-            log.warn("[{}] Error occurred while copying file [{}] from {} to {}", indexPath, name, remote, local, e);
         } finally {
-            if (copyAttempted && !success){
-                try {
-                    if (LuceneNgIndexCopier.existsLocally(localDir, name)) {
-                        local.deleteFile(name);
+            try {
+                if (copyAttempted && !copied) {
+                    try {
+                        if (LuceneNgIndexCopier.existsLocally(localDir, name)) {
+                            local.deleteFile(name);
+                        }
+                    } catch (IOException e) {
+                        log.warn("[{}] Error deleting incomplete local copy of {}", indexPath, name, e);
                     }
-                } catch (IOException e) {
-                    log.warn("[{}] Error occurred while deleting corrupted file [{}] from [{}]", indexPath, name, local, e);
                 }
+            } finally {
+                indexCopier.doneCopy(file, start, copied);
             }
         }
-        return fileSize;
+        return copied ? fileSize : 0;
     }
 
     /**

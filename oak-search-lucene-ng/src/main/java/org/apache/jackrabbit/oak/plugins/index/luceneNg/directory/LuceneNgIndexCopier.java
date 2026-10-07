@@ -314,8 +314,10 @@ public class LuceneNgIndexCopier implements Closeable {
     }
 
     long startCopy(LocalIndexFile file) {
+        if (!copyInProgressFiles.add(file)) {
+            return -1;
+        }
         updateMaxInProgress(copyInProgressCount.incrementAndGet());
-        copyInProgressFiles.add(file);
         return System.currentTimeMillis();
     }
 
@@ -375,7 +377,7 @@ public class LuceneNgIndexCopier implements Closeable {
         }
     }
 
-    void doneCopy(LocalIndexFile file, long start) {
+    void doneCopy(LocalIndexFile file, long start, boolean copied) {
         copyCompletionLock.lock();
         try {
             copyInProgressFiles.remove(file);
@@ -386,7 +388,7 @@ public class LuceneNgIndexCopier implements Closeable {
         }
         copyInProgressCount.decrementAndGet();
 
-        if (file.isCopyFromRemote()) {
+        if (copied && file.isCopyFromRemote()) {
             downloadTime.addAndGet(System.currentTimeMillis() - start);
             downloadSize.addAndGet(file.getSize());
             downloadCount.incrementAndGet();

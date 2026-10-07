@@ -112,7 +112,7 @@ public final class LocalIndexFile {
     }
 
     public static File getFSDir(Directory dir) {
-        if (dir instanceof FilterDirectory){
+        while (dir instanceof FilterDirectory){
             dir = ((FilterDirectory) dir).getDelegate();
         }
 
