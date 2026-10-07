@@ -20,7 +20,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -55,17 +54,6 @@ public final class CacheBuilder<K, V> {
         ASYNC
     }
 
-    /** Feature toggle name retained for compatibility. */
-    @Deprecated
-    public static final String FT_OAK_12290 = "FT_OAK-12290";
-
-    /**
-     * @deprecated Maintenance mode is now configured per cache with {@link #maintenanceMode(MaintenanceMode)}.
-     * This legacy setting applies only when no per-cache mode is specified.
-     */
-    @Deprecated
-    public static final AtomicBoolean FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED = new AtomicBoolean(true);
-
     private long maximumWeight = -1;
     private long maximumSize = -1;
     private int initialCapacity = -1;
@@ -76,7 +64,7 @@ public final class CacheBuilder<K, V> {
     private Duration expireAfterWrite;
     private Duration refreshAfterWrite;
     private Supplier<Long> ticker;
-    private MaintenanceMode maintenanceMode;
+    private MaintenanceMode maintenanceMode = MaintenanceMode.ASYNC;
 
     private CacheBuilder() {
     }
@@ -253,14 +241,12 @@ public final class CacheBuilder<K, V> {
     }
 
     /**
-     * Selects the maintenance executor, overriding the legacy shared toggle.
-     * Without a selection, the toggle is sampled at build time and defaults to {@link MaintenanceMode#ASYNC}.
+     * Selects the maintenance executor; the default is {@link MaintenanceMode#ASYNC}.
      * Zero-capacity caches always use the calling thread. Other caches configured with
      * {@link #refreshAfterWrite(Duration)} use Oak's shared maintenance executor for both maintenance
      * and refresh, regardless of the selected mode. Remaining caches use the selected mode.
      * The shared executor normally runs tasks asynchronously, but runs them on the submitting
      * thread when its pool and queue are saturated.
-     * Explicit selection overrides the deprecated process-wide maintenance setting.
      *
      * @param maintenanceMode the execution mode (must not be null)
      * @return this builder
@@ -311,11 +297,8 @@ public final class CacheBuilder<K, V> {
         // Refresh shares the maintenance executor and must not block callers.
         // Zero capacity requires inline eviction so a write cannot leave a readable entry.
         boolean zeroCapacity = maximumWeight == 0 || maximumSize == 0;
-        MaintenanceMode selectedMode = maintenanceMode != null ? maintenanceMode
-                : (FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.get()
-                        ? MaintenanceMode.ASYNC : MaintenanceMode.SYNC);
         boolean inSameThread = zeroCapacity
-                || (refreshAfterWrite == null && selectedMode == MaintenanceMode.SYNC);
+                || (refreshAfterWrite == null && maintenanceMode == MaintenanceMode.SYNC);
         caffeineBuilder = caffeineBuilder.executor(inSameThread ? Runnable::run : CacheMaintenanceExecutor.get());
         if (initialCapacity >= 0) {
             caffeineBuilder = caffeineBuilder.initialCapacity(initialCapacity);

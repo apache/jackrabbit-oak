@@ -156,6 +156,7 @@ public abstract class SegmentCache {
         private NonEmptyCache(long cacheSizeMB) {
             long maximumWeight = cacheSizeMB * 1024 * 1024;
             this.cache = CacheBuilder.<SegmentId, Segment>newBuilder()
+                    .maintenanceMode(SegmentCacheMaintenance.mode())
                     .maximumWeight(maximumWeight)
                     .weigher(new SegmentCacheWeigher())
                     .evictionListener(this::onRemove)
@@ -164,8 +165,8 @@ public abstract class SegmentCache {
         }
 
         /**
-         * Removal handler called whenever an item is evicted from the cache. Runs asynchronously
-         * (see {@link CacheBuilder}), so it uses {@link SegmentId#compareAndUnload(Segment)} to avoid
+         * Removal handler called whenever an item is evicted from the cache. May run asynchronously,
+         * so it uses {@link SegmentId#compareAndUnload(Segment)} to avoid
          * clobbering a fresher, concurrently loaded segment.
          */
         private void onRemove(@NotNull SegmentId key, Segment value, @NotNull EvictionCause cause) {
