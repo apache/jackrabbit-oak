@@ -86,6 +86,8 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
             .property("description").propertyIndex().analyzed()
             .property("age").propertyIndex().type("Long").ordered()
             .property("price").propertyIndex().type("Double").ordered()
+            .property("created").propertyIndex().type("Date")
+            .property("optionalCount").propertyIndex().type("Long").notNullCheckEnabled()
             .property("status").propertyIndex().ordered()
             .property("category").propertyIndex();
 

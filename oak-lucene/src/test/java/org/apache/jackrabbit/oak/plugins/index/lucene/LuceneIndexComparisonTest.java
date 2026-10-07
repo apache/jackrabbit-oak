@@ -66,7 +66,7 @@ public class LuceneIndexComparisonTest extends AbstractIndexComparisonTest {
         def.setProperty(REINDEX_PROPERTY_NAME, true);
         def.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
         def.setProperty(createProperty(INCLUDE_PROPERTY_NAMES,
-                List.of("title", "description", "age", "price", "status", "category"), Type.STRINGS));
+                List.of("title", "description", "age", "price", "status", "category", "created", "optionalCount"), Type.STRINGS));
         // This is the old-style flat index definition format (fulltextEnabled=false +
         // includePropertyNames): IndexDefinition#createIndexRules defaults every included
         // property to propertyIndex=true, analyzed=false when fulltextEnabled is false. To keep
@@ -80,6 +80,12 @@ public class LuceneIndexComparisonTest extends AbstractIndexComparisonTest {
         Tree props = def.addChild(FulltextIndexConstants.PROP_NODE);
         Tree descriptionProp = props.addChild("description");
         descriptionProp.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
+        props.addChild("age").setProperty(FulltextIndexConstants.PROP_TYPE, "Long");
+        props.addChild("price").setProperty(FulltextIndexConstants.PROP_TYPE, "Double");
+        props.addChild("created").setProperty(FulltextIndexConstants.PROP_TYPE, "Date");
+        Tree optionalCount = props.addChild("optionalCount");
+        optionalCount.setProperty(FulltextIndexConstants.PROP_TYPE, "Long");
+        optionalCount.setProperty(FulltextIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, true);
         root.commit();
     }
 }

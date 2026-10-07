@@ -440,12 +440,12 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
 
     @Override
     protected void indexNotNullProperty(Document doc, PropertyDefinition pd) {
-        // no-op — not-null marker fields are not part of this module's feature set
+        doc.add(new StringField(FieldNames.NOT_NULL_PROPS, pd.name, Field.Store.NO));
     }
 
     @Override
     protected void indexNullProperty(Document doc, PropertyDefinition pd) {
-        // no-op — see indexNotNullProperty
+        // NULL restrictions are evaluated by Oak after retrieving candidate documents.
     }
 
     // -------------------------------------------------------------------------

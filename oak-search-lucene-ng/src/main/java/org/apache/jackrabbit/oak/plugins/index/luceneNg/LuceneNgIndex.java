@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.cursor.Cursors;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -231,7 +232,7 @@ public class LuceneNgIndex extends FulltextIndex {
                     BooleanQuery.Builder bq = new BooleanQuery.Builder();
                     bq.add(ftQuery, Occur.MUST);
                     for (Filter.PropertyRestriction pr : propRestrictions) {
-                        Query propQuery = createPropertyQuery(pr);
+                        Query propQuery = createPropertyQuery(pr, planResult != null ? planResult.getPropDefn(pr) : null);
                         if (propQuery != null) {
                             bq.add(propQuery, Occur.MUST);
                         }
@@ -242,12 +243,13 @@ public class LuceneNgIndex extends FulltextIndex {
                 }
             }
         } else if (propRestrictions.size() == 1) {
-            Query q = createPropertyQuery(propRestrictions.get(0));
+            Filter.PropertyRestriction pr = propRestrictions.get(0);
+            Query q = createPropertyQuery(pr, planResult != null ? planResult.getPropDefn(pr) : null);
             contentQuery = q != null ? q : new MatchAllDocsQuery();
         } else {
             BooleanQuery.Builder bq = new BooleanQuery.Builder();
             for (Filter.PropertyRestriction pr : propRestrictions) {
-                Query propQuery = createPropertyQuery(pr);
+                Query propQuery = createPropertyQuery(pr, planResult != null ? planResult.getPropDefn(pr) : null);
                 if (propQuery != null) {
                     bq.add(propQuery, Occur.MUST);
                 }
@@ -335,7 +337,8 @@ public class LuceneNgIndex extends FulltextIndex {
      * Handles equality, range, NOT NULL, NULL, NOT, and IN queries.
      * Based on legacy LuceneIndex pattern.
      */
-    private Query createPropertyQuery(Filter.PropertyRestriction pr) {
+    private Query createPropertyQuery(Filter.PropertyRestriction pr,
+                                      @org.jetbrains.annotations.Nullable PropertyDefinition definition) {
         String propertyName = pr.propertyName;
 
         // localname() restriction — maps to the NODE_NAME StringField
@@ -355,9 +358,47 @@ public class LuceneNgIndex extends FulltextIndex {
             return null;
         }
 
-        // Handle IS NOT NULL: matches all documents that have the property indexed
+        int propertyType;
+        if (definition != null) {
+            propertyType = determinePropertyType(definition, pr);
+        } else {
+            // Hand-built plans have no property definition; infer the type from the restriction.
+            propertyType = pr.propertyType;
+            if (propertyType == javax.jcr.PropertyType.UNDEFINED) {
+                if (pr.first != null) {
+                    propertyType = pr.first.getType().tag();
+                } else if (pr.last != null) {
+                    propertyType = pr.last.getType().tag();
+                } else if (pr.list != null && !pr.list.isEmpty()) {
+                    propertyType = pr.list.get(0).getType().tag();
+                }
+            }
+        }
+        if (propertyType == javax.jcr.PropertyType.UNDEFINED && pr.not != null) {
+            propertyType = pr.not.getType().tag();
+        }
+
         if (pr.isNotNullRestriction()) {
-            return new TermRangeQuery(propertyName, null, null, true, true);
+            if (definition != null && definition.notNullCheckEnabled) {
+                return new TermQuery(new Term(FieldNames.NOT_NULL_PROPS, definition.name));
+            }
+            switch (propertyType) {
+                case javax.jcr.PropertyType.LONG:
+                case javax.jcr.PropertyType.DATE:
+                    return org.apache.lucene.document.LongPoint.newRangeQuery(propertyName, Long.MIN_VALUE, Long.MAX_VALUE);
+                case javax.jcr.PropertyType.DOUBLE:
+                    return org.apache.lucene.document.DoublePoint.newRangeQuery(propertyName, Double.NEGATIVE_INFINITY, Double.NaN);
+                case javax.jcr.PropertyType.UNDEFINED:
+                    BooleanQuery.Builder existence = new BooleanQuery.Builder();
+                    existence.add(new TermRangeQuery(propertyName, null, null, true, true), Occur.SHOULD);
+                    existence.add(org.apache.lucene.document.LongPoint.newRangeQuery(propertyName, Long.MIN_VALUE, Long.MAX_VALUE),
+                            Occur.SHOULD);
+                    existence.add(org.apache.lucene.document.DoublePoint.newRangeQuery(propertyName, Double.NEGATIVE_INFINITY, Double.NaN),
+                            Occur.SHOULD);
+                    return existence.build();
+                default:
+                    return new TermRangeQuery(propertyName, null, null, true, true);
+            }
         }
 
         // Handle IS NULL: currently not efficiently supportable; return MatchAllDocs
@@ -365,9 +406,6 @@ public class LuceneNgIndex extends FulltextIndex {
         if (pr.isNullRestriction()) {
             return new MatchAllDocsQuery();
         }
-
-        // Determine property type from first/last/not value
-        int propertyType = determinePropertyType(pr);
 
         switch (propertyType) {
             case javax.jcr.PropertyType.LONG:
@@ -381,15 +419,6 @@ public class LuceneNgIndex extends FulltextIndex {
             default:
                 return createStringQuery(propertyName, pr);
         }
-    }
-
-    private int determinePropertyType(Filter.PropertyRestriction pr) {
-        org.apache.jackrabbit.oak.api.PropertyValue value = pr.first != null ? pr.first :
-                          (pr.last != null ? pr.last : pr.not);
-        if (value == null) {
-            return javax.jcr.PropertyType.STRING;
-        }
-        return value.getType().tag();
     }
 
     // Abstracts the type-specific operations needed for numeric Point queries (Long and Double).
