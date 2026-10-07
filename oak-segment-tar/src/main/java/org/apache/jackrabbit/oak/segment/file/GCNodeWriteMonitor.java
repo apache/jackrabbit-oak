@@ -18,9 +18,11 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
+import java.util.concurrent.TimeUnit;
+
+import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.jetbrains.annotations.NotNull;
-
 /**
  * Monitors the compaction cycle and keeps a compacted nodes counter, in order
  * to provide a best effort progress log based on extrapolating the previous
@@ -38,9 +40,19 @@ public class GCNodeWriteMonitor {
     private final GCMonitor gcMonitor;
 
     /**
-     * Start timestamp of compaction (reset at each {@code init()} call).
+     * Start time of compaction in nanoseconds (reset at each {@code init()} call).
      */
     private long start = 0;
+
+    /**
+     * Time of the last progress log message in nanoseconds
+     */
+    private long lastLogNanos = 0;
+
+    /**
+     * Number of nodes compacted as of the last progress log message
+     */
+    private long lastLogNodes = 0;
 
     /**
      * Estimated nodes to compact per cycle (reset at each {@code init()} call).
@@ -91,15 +103,28 @@ public class GCNodeWriteMonitor {
         nodes = 0;
         properties = 0;
         binaries = 0;
-        start = System.currentTimeMillis();
+        start = System.nanoTime();
+        lastLogNanos = start;
+        lastLogNodes = 0;
         running = true;
     }
 
     public synchronized void onNode() {
         nodes++;
         if (gcProgressLog > 0 && nodes % gcProgressLog == 0) {
-            gcMonitor.info("compacted {} nodes, {} properties, {} binaries in {} ms. {}",
-                nodes, properties, binaries, System.currentTimeMillis() - start, getPercentageDone());
+            long nowNanos = System.nanoTime();
+            long elapsedNanos = nowNanos - start;
+            long ratePerSecond = elapsedNanos == 0 ? -1 : (long) (nodes / (elapsedNanos / 1_000_000_000.0));
+            long intervalNanos = nowNanos - lastLogNanos;
+            long intervalNodes = nodes - lastLogNodes;
+            long intervalRatePerSecond = intervalNanos == 0 ? -1 : (long) (intervalNodes / (intervalNanos / 1_000_000_000.0));
+            TimeDurationFormatter formatter = TimeDurationFormatter.forLogging();
+            gcMonitor.info("compacted {} nodes, {} properties, {} binaries in {} at {} nodes/second "
+                            + "(last {} nodes: {}, {} nodes/second). {}",
+                    nodes, properties, binaries, formatter.format(elapsedNanos, TimeUnit.NANOSECONDS), ratePerSecond,
+                    intervalNodes, formatter.format(intervalNanos, TimeUnit.NANOSECONDS), intervalRatePerSecond, getPercentageDone());
+            lastLogNanos = nowNanos;
+            lastLogNodes = nodes;
         }
     }
 
@@ -112,7 +137,17 @@ public class GCNodeWriteMonitor {
     }
 
     public synchronized void finished() {
-        running = false;
+        if (running) {
+            running = false;
+            long nowNanos = System.nanoTime();
+            long elapsedNanos = nowNanos - start;
+            long ratePerSecond = elapsedNanos == 0 ? -1 : (long) (nodes / (elapsedNanos / 1_000_000_000.0));
+            TimeDurationFormatter formatter = TimeDurationFormatter.forLogging();
+            gcMonitor.info("compaction finished: compacted {} nodes, {} properties, {} binaries in {} at {} nodes/second.",
+                    nodes, properties, binaries,
+                    formatter.format(elapsedNanos, TimeUnit.NANOSECONDS),
+                    ratePerSecond);
+        }
     }
 
     /**
