@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.search.test;
 
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.junit.Test;
 
@@ -58,6 +59,10 @@ public abstract class AbstractIndexComparisonTest extends AbstractQueryTest {
         addPage(content.addChild("page1"), "Oak Testing",        "Testing Oak search functionality",            25L, 15.99, "published", "tech");
         addPage(content.addChild("page2"), "Lucene Integration", "Integration between Oak and search engines",  35L, 45.50, "draft",     "search");
         addPage(content.addChild("page3"), "Query DSL",          "More content about Oak search",               45L, 75.00, "published", "tech");
+        content.getChild("page1").setProperty("created", "2026-01-01T00:00:00.000Z", Type.DATE);
+        content.getChild("page2").setProperty("created", "2026-02-01T00:00:00.000Z", Type.DATE);
+        content.getChild("page3").setProperty("created", "2026-03-01T00:00:00.000Z", Type.DATE);
+        content.getChild("page1").setProperty("optionalCount", -5L);
         root.commit();
     }
 
@@ -119,6 +124,42 @@ public abstract class AbstractIndexComparisonTest extends AbstractQueryTest {
         createTestContent();
         assertQuery("//element(*, nt:base)[@category = 'tech' or @category = 'search']", "xpath",
                 List.of("/content/page1", "/content/page2", "/content/page3"));
+    }
+
+    @Test
+    public void testTypedInQueries() throws Exception {
+        createSearchIndex();
+        createTestContent();
+        assertQuery("select [jcr:path] from [nt:base] where [age] in (25, 45)", "sql",
+                List.of("/content/page1", "/content/page3"));
+        assertQuery("select [jcr:path] from [nt:base] where [price] in (15.99, 75.0)", "sql",
+                List.of("/content/page1", "/content/page3"));
+        assertQuery("select [jcr:path] from [nt:base] where [created] in "
+                + "(cast('2026-01-01T00:00:00.000Z' as date), cast('2026-03-01T00:00:00.000Z' as date))",
+                "sql", List.of("/content/page1", "/content/page3"));
+    }
+
+    @Test
+    public void testTypedNotNullQueries() throws Exception {
+        createSearchIndex();
+        createTestContent();
+        Tree missing = root.getTree("/content").addChild("missing");
+        missing.setProperty("title", "No numeric properties");
+        root.commit();
+        for (String property : List.of("age", "price", "created")) {
+            assertQuery("select [jcr:path] from [nt:base] where [" + property + "] is not null",
+                    "sql", List.of("/content/page1", "/content/page2", "/content/page3"));
+        }
+        assertQuery("select [jcr:path] from [nt:base] where [optionalCount] is not null",
+                "sql", List.of("/content/page1"));
+    }
+
+    @Test
+    public void testDeclaredTypeConvertsStringLiteral() throws Exception {
+        createSearchIndex();
+        createTestContent();
+        assertQuery("select [jcr:path] from [nt:base] where [age] = '25'",
+                "sql", List.of("/content/page1"));
     }
 
     // ===== Range queries =====
