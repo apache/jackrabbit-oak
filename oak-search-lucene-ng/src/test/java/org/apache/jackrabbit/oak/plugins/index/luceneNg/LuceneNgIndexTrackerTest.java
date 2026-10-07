@@ -28,6 +28,19 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory;
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgIndexNodeManager;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.lucene.store.Directory;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.junit.Assert.*;
@@ -300,5 +313,84 @@ public class LuceneNgIndexTrackerTest {
         assertTrue("expected at least one file to have been copied from remote to local",
                 copier.getDownloadCount() > 0);
         copier.close();
+    }
+
+    @Test
+    public void missingStorageDoesNotOpenCache() throws Exception {
+        AtomicInteger opens = new AtomicInteger();
+        LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, temporaryFolder.newFolder(), false) {
+            @Override
+            public Directory wrapForRead(String path, IndexDefinition definition, OakDirectory remote, String dirName)
+                    throws IOException {
+                opens.incrementAndGet();
+                return super.wrapForRead(path, definition, remote, dirName);
+            }
+        };
+        LuceneNgIndexTracker tracker = new LuceneNgIndexTracker(copier);
+        tracker.update(builder.getNodeState());
+        assertNull(tracker.acquireIndexNode("/oak:index/testIndex"));
+        assertEquals(0, opens.get());
+        copier.close();
+    }
+
+    @Test
+    public void deactivationPreservesLocalCache() throws Exception {
+        assertRemovalPreservesCache(true);
+    }
+
+    @Test
+    public void indexRemovalPreservesCacheAndAcquiredReader() throws Exception {
+        assertRemovalPreservesCache(false);
+    }
+
+    private NodeState indexedRoot() throws Exception {
+        NodeBuilder rootBuilder = INITIAL_CONTENT.builder();
+        NodeBuilder definition = rootBuilder.child("oak:index").child("testIndex");
+        IndexDefinitionBuilder idb = new IndexDefinitionBuilder(definition);
+        idb.noAsync();
+        idb.indexRule("nt:unstructured").property("title").propertyIndex();
+        definition.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
+        rootBuilder.child("node1").setProperty("jcr:primaryType", "nt:unstructured");
+        rootBuilder.child("node1").setProperty("title", "hello");
+        return LuceneNgEditorCommitUtil.reindex(rootBuilder.getNodeState());
+    }
+
+    private void assertRemovalPreservesCache(boolean deactivate) throws Exception {
+        String path = "/oak:index/testIndex";
+        NodeState indexed = indexedRoot();
+        CountDownLatch removalOpened = new CountDownLatch(1);
+        LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, temporaryFolder.newFolder(), true);
+        LuceneNgIndexTracker tracker = new LuceneNgIndexTracker(copier) {
+            @Override
+            protected LuceneNgIndexNodeManager openIndex(String indexPath, NodeState root, NodeState state) {
+                LuceneNgIndexNodeManager result = super.openIndex(indexPath, root, state);
+                if (!state.exists()) {
+                    removalOpened.countDown();
+                }
+                return result;
+            }
+        };
+        tracker.update(indexed);
+        LuceneNgIndexNode node = tracker.acquireIndexNode(path);
+        assertNotNull(node);
+        File local = copier.getIndexDir(node.getDefinition(), path, LuceneNgIndexStorage.STORAGE_NODE_NAME);
+        assertTrue(local.list().length > 0);
+        NodeBuilder removed = indexed.builder();
+        removed.child("oak:index").getChildNode("testIndex").remove();
+        ExecutorService thread = Executors.newSingleThreadExecutor();
+        Future<?> update = thread.submit(() -> tracker.update(deactivate ? EmptyNodeState.EMPTY_NODE : removed.getNodeState()));
+        try {
+            assertTrue(removalOpened.await(10, TimeUnit.SECONDS));
+            assertTrue("cache must survive while a reader holds the previous generation", local.isDirectory());
+            assertEquals(1, node.getSearcher().getIndexReader().numDocs());
+        } finally {
+            node.release();
+            thread.shutdown();
+            assertTrue(thread.awaitTermination(10, TimeUnit.SECONDS));
+            copier.close();
+        }
+        update.get(10, TimeUnit.SECONDS);
+        assertTrue("cache must survive shutdown/removal", local.isDirectory());
+        assertTrue(local.list().length > 0);
     }
 }

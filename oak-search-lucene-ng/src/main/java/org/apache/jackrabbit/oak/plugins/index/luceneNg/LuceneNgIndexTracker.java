@@ -60,6 +60,9 @@ public class LuceneNgIndexTracker extends FulltextIndexTracker<LuceneNgIndexNode
 
     @Override
     protected LuceneNgIndexNodeManager openIndex(String path, NodeState root, NodeState node) {
+        if (!LuceneNgIndexStorage.storageState(node).exists()) {
+            return null;
+        }
         LuceneNgIndexNode indexNode = new LuceneNgIndexNode(path, root, node, copier);
         if (!indexNode.hasSearcher()) {
             return null;
