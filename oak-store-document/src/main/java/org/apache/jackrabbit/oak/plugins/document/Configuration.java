@@ -35,6 +35,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_UPDATE_LIMIT;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.FT_CAFFEINE_CACHE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_AVOID_EXCLUSIVE_MERGE_LOCK;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
@@ -194,7 +195,10 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
             name = "LIRS Cache Segment Count",
             description = "The number of segments in the LIRS cache " +
                     "(default 16, a higher count means higher concurrency " +
-                    "but slightly lower cache hit rate)")
+                    "but slightly lower cache hit rate). " +
+                    "Only used when the LIRS cache is enabled (feature toggle " +
+                    FT_CAFFEINE_CACHE + " disabled); ignored when Caffeine is enabled. " +
+                    "Toggling the feature takes effect only after the DocumentNodeStore is restarted.")
     int cacheSegmentCount() default DEFAULT_CACHE_SEGMENT_COUNT;
 
     @AttributeDefinition(
@@ -202,7 +206,10 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
             description = "The delay to move entries to the head of the queue " +
                     "in the LIRS cache " +
                     "(default 16, a higher value means higher concurrency " +
-                    "but slightly lower cache hit rate)")
+                    "but slightly lower cache hit rate). " +
+                    "Only used when the LIRS cache is enabled (feature toggle " +
+                    FT_CAFFEINE_CACHE + " disabled); ignored when Caffeine is enabled. " +
+                    "Toggling the feature takes effect only after the DocumentNodeStore is restarted.")
     int cacheStackMoveDistance() default DEFAULT_CACHE_STACK_MOVE_DISTANCE;
 
     @AttributeDefinition(
