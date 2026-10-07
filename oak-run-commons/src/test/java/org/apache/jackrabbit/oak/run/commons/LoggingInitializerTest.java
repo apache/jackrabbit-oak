@@ -29,6 +29,7 @@ import ch.qos.logback.classic.util.LogbackMDCAdapter;
 import ch.qos.logback.classic.util.ContextInitializer;
 import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.BasicStatusManager;
+import ch.qos.logback.core.status.Status;
 import ch.qos.logback.core.status.StatusManager;
 import ch.qos.logback.core.status.StatusUtil;
 import org.junit.After;
@@ -71,6 +72,9 @@ public class LoggingInitializerTest {
 
     @After
     public void restoreLoggingConfiguration() {
+        if (loggerFactory == null) {
+            return;
+        }
         try {
             // reset also cancels scanners if a failed initialization left the context stopped.
             context.reset();
@@ -82,6 +86,7 @@ public class LoggingInitializerTest {
             } finally {
                 if (loggerFactory != null) {
                     loggerFactory.closeOnDemand();
+                    loggerFactory = null;
                 }
             }
         }
@@ -156,6 +161,63 @@ public class LoggingInitializerTest {
         } finally {
             context.setStatusManager(originalStatusManager);
         }
+    }
+
+    /** Semantic errors preserve usable appenders and still allow shutdown to cancel scanners. */
+    @Test
+    public void semanticConfigurationErrorsAllowLoggingAndShutdown() throws Exception {
+        context.stop();
+        StatusManager originalStatusManager = context.getStatusManager();
+        context.setStatusManager(new BasicStatusManager());
+        try {
+            File workDir = temporaryFolder.newFolder();
+            new LoggingInitializer(workDir, "semantic-error").init();
+
+            StatusUtil status = new StatusUtil(context);
+            Assert.assertEquals("the missing appender must be reported", Status.ERROR, status.getHighestLevel(0));
+            Assert.assertFalse("the configuration is valid XML", status.hasXMLParsingErrors(0));
+            Assert.assertTrue("usable appenders need a started context for shutdown", context.isStarted());
+            Appender<ILoggingEvent> appender = context.getLogger(Logger.ROOT_LOGGER_NAME).getAppender("file");
+            Assert.assertNotNull(appender);
+            Assert.assertTrue(appender.isStarted());
+            Assert.assertNull(context.getLogger(Logger.ROOT_LOGGER_NAME).getAppender("missing"));
+            LoggerFactory.getLogger(LoggingInitializerTest.class).info("semantic error preserves file logging");
+            String output = Files.readString(new File(workDir, "semantic-error.log").toPath(), StandardCharsets.UTF_8);
+            Assert.assertTrue(output.contains("semantic error preserves file logging"));
+            List<ScheduledFuture<?>> scanners = new ArrayList<>(context.getCopyOfScheduledFutures());
+            Assert.assertFalse(scanners.isEmpty());
+
+            LoggingInitializer.shutdownLogging();
+
+            Assert.assertFalse(context.isStarted());
+            Assert.assertFalse("shutdown must close the usable appender", appender.isStarted());
+            for (ScheduledFuture<?> scanner : scanners) {
+                Assert.assertTrue("shutdown must cancel scanning even after a semantic error", scanner.isCancelled());
+            }
+        } finally {
+            context.setStatusManager(originalStatusManager);
+        }
+    }
+
+    /** A missing resource fails before changing the existing logging configuration. */
+    @Test
+    public void missingConfigurationResourcePreservesExistingLogging() throws Exception {
+        File workDir = temporaryFolder.newFolder();
+        new LoggingInitializer(workDir, "lifecycle").init();
+        Appender<ILoggingEvent> appender = context.getLogger(Logger.ROOT_LOGGER_NAME).getAppender("file");
+        List<ScheduledFuture<?>> scanners = new ArrayList<>(context.getCopyOfScheduledFutures());
+        String configuredWorkDir = System.getProperty("oak.workDir");
+        File otherWorkDir = temporaryFolder.newFolder();
+
+        Assert.assertThrows(NullPointerException.class,
+                () -> new LoggingInitializer(otherWorkDir, "nonexistent").init());
+
+        Assert.assertFalse(new File(otherWorkDir, "logback-nonexistent.xml").exists());
+        Assert.assertEquals(configuredWorkDir, System.getProperty("oak.workDir"));
+        Assert.assertSame(appender, context.getLogger(Logger.ROOT_LOGGER_NAME).getAppender("file"));
+        Assert.assertEquals(scanners, context.getCopyOfScheduledFutures());
+        Assert.assertTrue(context.isStarted());
+        assertLoggingWorks(workDir, "logging survives a missing resource");
     }
 
     /** An external configuration keeps ownership of its logging context. */
