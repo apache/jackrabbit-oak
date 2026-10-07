@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -426,6 +427,68 @@ public class PersistentCache implements Broadcaster.Listener {
         return base;
     }
     
+    /**
+     * Wraps entry values for a cache selected for ASYNC maintenance.
+     *
+     * @param docNodeStore node store used by persisted values
+     * @param docStore document store used by persisted values
+     * @param base memory cache whose entries own their metadata
+     * @param type cache type to persist
+     * @return the raw-value cache view
+     */
+    public synchronized <K extends CacheValue, V extends CacheValue> Cache<K, V> wrapAsyncMaintenance(
+            DocumentNodeStore docNodeStore,
+            DocumentStore docStore,
+            Cache<K, CacheEntry<V>> base, CacheType type) {
+       return wrapAsyncMaintenance(docNodeStore, docStore, base, type, StatisticsProvider.NOOP);
+    }
+
+    /**
+     * Wraps entry values and records persistence statistics for ASYNC maintenance.
+     *
+     * @param docNodeStore node store used by persisted values
+     * @param docStore document store used by persisted values
+     * @param base memory cache whose entries own their metadata
+     * @param type cache type to persist
+     * @param statisticsProvider persistence statistics provider
+     * @return the raw-value cache view
+     */
+    public synchronized <K extends CacheValue, V extends CacheValue> Cache<K, V> wrapAsyncMaintenance(
+            DocumentNodeStore docNodeStore,
+            DocumentStore docStore,
+            Cache<K, CacheEntry<V>> base, CacheType type,
+            StatisticsProvider statisticsProvider) {
+        Objects.requireNonNull(base);
+        Objects.requireNonNull(type);
+        Objects.requireNonNull(statisticsProvider);
+        boolean async = type == CacheType.DIFF || type == CacheType.LOCAL_DIFF ? asyncDiffCache : asyncCache;
+        if (isCacheEnabled(type)) {
+            AsyncNodeCache<K, V> c = new AsyncNodeCache<K, V>(this,
+                    base, docNodeStore, docStore,
+                    type, writeDispatcher, statisticsProvider, async);
+            initGenerationCache(c);
+            return c;
+        }
+        return new CacheEntries<>(base);
+    }
+
+    /**
+     * Checks whether this persistent cache wraps the specified cache type.
+     * @param type cache type to inspect
+     * @return whether persistent caching is enabled for this type
+     */
+    public boolean isCacheEnabled(CacheType type) {
+        Objects.requireNonNull(type);
+        switch (type) {
+            case NODE: return cacheNodes;
+            case CHILDREN: return cacheChildren;
+            case DIFF: return cacheDiff;
+            case LOCAL_DIFF: return cacheLocalDiff;
+            case PREV_DOCUMENT: return cachePrevDocs;
+            default: return false;
+        }
+    }
+
     private void initGenerationCache(GenerationCache c) {
         caches.put(c.getType(), c);
         if (readGeneration >= 0) {
@@ -538,6 +601,8 @@ public class PersistentCache implements Broadcaster.Listener {
     public static PersistentCacheStats getPersistentCacheStats(Cache<?, ?> cache) {
         if (cache instanceof NodeCache) {
             return ((NodeCache<?, ?>) cache).getPersistentCacheStats();
+        } else if (cache instanceof AsyncNodeCache) {
+            return ((AsyncNodeCache<?, ?>) cache).getPersistentCacheStats();
         }
         else {
             return null;

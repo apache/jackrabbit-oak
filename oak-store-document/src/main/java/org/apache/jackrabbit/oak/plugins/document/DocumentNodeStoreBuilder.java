@@ -54,6 +54,7 @@ import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.CacheType;
+import org.apache.jackrabbit.oak.plugins.document.persistentCache.CacheEntry;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.EvictionListener;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCacheStats;
@@ -111,6 +112,9 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private static final boolean LIRS_CACHE = !Boolean.getBoolean("oak.documentMK.guavaCache");
 
     static final String FT_CAFFEINE_CACHE = "FT_CAFFEINE_CACHE_OAK-12425";
+    static final String FT_DOCUMENT_CACHE_ASYNC_MAINTENANCE = "FT_OAK-12437";
+    static final AtomicBoolean FT_DOCUMENT_CACHE_ASYNC_MAINTENANCE_ENABLED = new AtomicBoolean(
+            Boolean.getBoolean("oak.documentMK.asyncCacheMaintenance"));
 
     // Changing the opt-in takes effect when a new builder constructs its caches.
     static final AtomicBoolean FT_CAFFEINE_CACHE_ENABLED = new AtomicBoolean(
@@ -139,6 +143,9 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Feature docStoreAvoidMergeLockFeature;
     private Feature prevNoPropCacheFeature;
     private final Supplier<Boolean> caffeineCacheEnabled = Suppliers.memoize(FT_CAFFEINE_CACHE_ENABLED::get);
+    private final Map<CacheType, Boolean> cacheAsyncMaintenance = new HashMap<>();
+    private final Supplier<Boolean> asyncCacheMaintenanceEnabled =
+            Suppliers.memoize(FT_DOCUMENT_CACHE_ASYNC_MAINTENANCE_ENABLED::get);
     private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
     private long memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
     private int nodeCachePercentage = DEFAULT_NODE_CACHE_PERCENTAGE;
@@ -603,6 +610,22 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return thisBuilder();
     }
 
+    /**
+     * Selects asynchronous maintenance for one cache. ASYNC requires both Caffeine and
+     * {@link #FT_DOCUMENT_CACHE_ASYNC_MAINTENANCE}; otherwise the cache uses SYNC.
+     * Standalone opt-ins are {@code oak.documentMK.caffeineCache=true} and
+     * {@code oak.documentMK.asyncCacheMaintenance=true}. Unconfigured caches use SYNC.
+     * Features are sampled once per builder; recreate the builder/store after changing them.
+     *
+     * @param cacheType the cache to configure
+     * @param asyncMaintenance whether to request asynchronous maintenance
+     * @return this builder
+     */
+    public T setCacheAsyncMaintenance(@NotNull CacheType cacheType, boolean asyncMaintenance) {
+        cacheAsyncMaintenance.put(requireNonNull(cacheType), asyncMaintenance);
+        return thisBuilder();
+    }
+
     public int getAsyncDelay() {
         return asyncDelay;
     }
@@ -990,7 +1013,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         if (!isPrevNoPropCacheEnabled() || getPrevNoPropCacheSize() == 0) {
             return null;
         }
-        // no persistent cache for now as this is only a tiny cache
+        // This small, non-persistent cache has no CacheType override and remains SYNC.
         return buildCache("PREV_NOPROP", getPrevNoPropCacheSize(), new CopyOnWriteArraySet<>());
     }
 
@@ -1026,6 +1049,12 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
             long maxWeight,
             DocumentNodeStore docNodeStore,
             DocumentStore docStore) {
+        if (isCacheAsyncMaintenance(cacheType)) {
+            return buildCacheWithAsyncMaintenance(cacheType, maxWeight, docNodeStore, docStore);
+        }
+        if (Boolean.TRUE.equals(cacheAsyncMaintenance.get(cacheType))) {
+            LOG.info("Using SYNC maintenance for {} cache: effective cache policy overrides the ASYNC request", cacheType);
+        }
         Set<EvictionListener<K, V>> listeners = new CopyOnWriteArraySet<EvictionListener<K,V>>();
         Cache<K, V> cache = buildCache(cacheType.name(), maxWeight, listeners);
         PersistentCache p = null;
@@ -1046,6 +1075,53 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
             if (stats != null) {
                 persistentCacheStats.put(cacheType.name(), stats);
             }
+        }
+        return cache;
+    }
+
+    /**
+     * Reports whether asynchronous maintenance is enabled and snapshots the toggle on the first call.
+     * Subsequent calls for this builder use the same feature state. Unconfigured caches use SYNC.
+     *
+     * @param cacheType the cache to inspect
+     * @return whether this builder will construct the cache with asynchronous maintenance
+     */
+    public boolean isCacheAsyncMaintenance(@NotNull CacheType cacheType) {
+        requireNonNull(cacheType);
+        if (!caffeineCacheEnabled.get() || !asyncCacheMaintenanceEnabled.get()) {
+            return false;
+        }
+        return cacheAsyncMaintenance.getOrDefault(cacheType, false);
+    }
+
+    private <K extends CacheValue, V extends CacheValue> Cache<K, V> buildCacheWithAsyncMaintenance(
+            CacheType cacheType, long maxWeight, DocumentNodeStore nodeStore, DocumentStore documentStore) {
+        PersistentCache persistence = cacheType == CacheType.DIFF || cacheType == CacheType.LOCAL_DIFF
+                ? getJournalCache() : null;
+        if (persistence == null) {
+            persistence = getPersistentCache();
+        }
+        if (persistence == null || !persistence.isCacheEnabled(cacheType)) {
+            return CacheBuilder.<K, V>newBuilder().maximumWeight(maxWeight)
+                    .asyncMaintenance(true)
+                    .weigher(weigher::weigh).recordStats().build();
+        }
+        Set<EvictionListener<K, CacheEntry<V>>> listeners = new CopyOnWriteArraySet<>();
+        Cache<K, CacheEntry<V>> entries = CacheBuilder.<K, CacheEntry<V>>newBuilder()
+                .maximumWeight(maxWeight).asyncMaintenance(true)
+                .weigher((key, entry) -> (int) Math.min(Integer.MAX_VALUE,
+                        (long) weigher.weigh(key, entry.getValue()) + CacheEntry.MEMORY_OVERHEAD))
+                .recordStats().evictionListener((key, entry, cause) -> {
+                    for (EvictionListener<K, CacheEntry<V>> listener : listeners) {
+                        listener.evicted(key, entry, cause);
+                    }
+                }).build();
+        Cache<K, V> cache = persistence.wrapAsyncMaintenance(nodeStore, documentStore, entries, cacheType,
+                statisticsProvider);
+        listeners.add((EvictionListener<K, CacheEntry<V>>) cache);
+        PersistentCacheStats stats = PersistentCache.getPersistentCacheStats(cache);
+        if (stats != null) {
+            persistentCacheStats.put(cacheType.name(), stats);
         }
         return cache;
     }
