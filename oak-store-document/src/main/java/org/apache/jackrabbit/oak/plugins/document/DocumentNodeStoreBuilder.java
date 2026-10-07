@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -104,9 +105,16 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
             "oak.documentMK.manyChildren", 50);
 
     /**
-     * Whether to use the CacheLIRS (default) or the Guava cache implementation.
+     * CacheLIRS is the default. The legacy guavaCache property selects the Caffeine
+     * SYNC fallback independently of the Caffeine feature toggle.
      */
     private static final boolean LIRS_CACHE = !Boolean.getBoolean("oak.documentMK.guavaCache");
+
+    static final String FT_CAFFEINE_CACHE = "FT_CAFFEINE_CACHE_OAK-12425";
+
+    // Changing the opt-in takes effect when a new builder constructs its caches.
+    static final AtomicBoolean FT_CAFFEINE_CACHE_ENABLED = new AtomicBoolean(
+            Boolean.getBoolean("oak.documentMK.caffeineCache"));
 
     /**
      * Number of content updates that need to happen before the updates
@@ -130,6 +138,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Feature cancelInvalidationFeature;
     private Feature docStoreAvoidMergeLockFeature;
     private Feature prevNoPropCacheFeature;
+    private final Supplier<Boolean> caffeineCacheEnabled = Suppliers.memoize(FT_CAFFEINE_CACHE_ENABLED::get);
     private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
     private long memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
     private int nodeCachePercentage = DEFAULT_NODE_CACHE_PERCENTAGE;
@@ -1076,7 +1085,8 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
             long maxWeight,
             final Set<EvictionListener<K, V>> listeners) {
         // do not use LIRS cache when maxWeight is zero (OAK-6953)
-        if (LIRS_CACHE && maxWeight > 0) {
+        boolean caffeine = caffeineCacheEnabled.get();
+        if (maxWeight > 0 && !caffeine && LIRS_CACHE) {
             return CacheLIRS.<K, V>newBuilder()
                     .module(module)
                     .weigher((key, value) -> weigher.weigh(key, value))
@@ -1094,15 +1104,15 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         }
         CacheBuilder<K, V> builder = CacheBuilder.<K, V>newBuilder()
                 .maximumWeight(maxWeight)
+                .maintenanceMode(CacheBuilder.MaintenanceMode.SYNC)
                 .weigher(weigher::weigh)
                 .recordStats();
-        if (!listeners.isEmpty()) {
-            builder = builder.evictionListener((k, v, cause) -> {
-                for (EvictionListener<K, V> l : listeners) {
-                    l.evicted(k, v, cause);
-                }
-            });
-        }
+        // PersistentCache registers its listener after the memory cache is built.
+        builder.evictionListener((k, v, cause) -> {
+            for (EvictionListener<K, V> l : listeners) {
+                l.evicted(k, v, cause);
+            }
+        });
         return builder.build();
     }
 
