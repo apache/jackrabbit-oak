@@ -343,6 +343,52 @@ public class LuceneNgIndexTrackerTest {
         assertRemovalPreservesCache(false);
     }
 
+    @Test
+    public void cacheOpenFailureFallsBackToRemote() throws Exception {
+        LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, temporaryFolder.newFolder(), false) {
+            @Override
+            public Directory wrapForRead(String path, IndexDefinition definition, OakDirectory remote, String dirName)
+                    throws IOException {
+                throw new IOException("local disk unavailable");
+            }
+        };
+        LuceneNgIndexTracker tracker = new LuceneNgIndexTracker(copier);
+        tracker.update(indexedRoot());
+        LuceneNgIndexNode node = tracker.acquireIndexNode("/oak:index/testIndex");
+        assertNotNull(node);
+        try {
+            assertEquals(1, node.getSearcher().getIndexReader().numDocs());
+        } finally {
+            node.release();
+            tracker.update(EmptyNodeState.EMPTY_NODE);
+            copier.close();
+        }
+    }
+
+    @Test
+    public void corruptIndexBacksOffBetweenQueries() throws Exception {
+        NodeBuilder corrupted = indexedRoot().builder();
+        NodeBuilder storage = corrupted.child("oak:index").child("testIndex")
+                .getChildNode(LuceneNgIndexStorage.STORAGE_NODE_NAME);
+        for (String name : storage.getChildNodeNames()) {
+            if (name.startsWith("segments_")) {
+                storage.getChildNode(name).remove();
+            }
+        }
+        AtomicInteger opens = new AtomicInteger();
+        LuceneNgIndexTracker tracker = new LuceneNgIndexTracker() {
+            @Override
+            protected LuceneNgIndexNodeManager openIndex(String path, NodeState root, NodeState state) {
+                opens.incrementAndGet();
+                return super.openIndex(path, root, state);
+            }
+        };
+        tracker.update(corrupted.getNodeState());
+        assertNull(tracker.acquireIndexNode("/oak:index/testIndex"));
+        assertNull(tracker.acquireIndexNode("/oak:index/testIndex"));
+        assertEquals("BadIndexTracker must suppress the second open", 1, opens.get());
+    }
+
     private NodeState indexedRoot() throws Exception {
         NodeBuilder rootBuilder = INITIAL_CONTENT.builder();
         NodeBuilder definition = rootBuilder.child("oak:index").child("testIndex");

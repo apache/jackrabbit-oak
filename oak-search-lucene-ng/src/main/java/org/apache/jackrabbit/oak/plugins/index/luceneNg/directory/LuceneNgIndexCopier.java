@@ -106,11 +106,20 @@ public class LuceneNgIndexCopier implements Closeable {
     }
 
     public Directory wrapForRead(String indexPath, IndexDefinition definition,
-                                 OakDirectory remote, String dirName) throws IOException {
+                                  OakDirectory remote, String dirName) throws IOException {
         File localDir = getIndexDir(definition, indexPath, dirName);
         Directory local = createLocalDirForIndexReader(indexPath, definition, dirName, localDir);
-        checkIntegrity(indexPath, local, localDir, remote);
-        return new CopyOnReadDirectory(this, remote, local, localDir, prefetchEnabled, indexPath, executor);
+        try {
+            checkIntegrity(indexPath, local, localDir, remote);
+            return new CopyOnReadDirectory(this, remote, local, localDir, prefetchEnabled, indexPath, executor);
+        } catch (IOException | RuntimeException e) {
+            try {
+                local.close();
+            } catch (IOException closeError) {
+                e.addSuppressed(closeError);
+            }
+            throw e;
+        }
     }
 
     @Override
