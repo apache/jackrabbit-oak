@@ -46,7 +46,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * OSGi service that provides Lucene 9 index providers.
  * This service registers both the QueryIndexProvider and IndexEditorProvider
- * for handling indexes with type "lucene9".
+ * for handling indexes with type "luceneNg".
  */
 @Component
 @Designate(ocd = LuceneNgIndexProviderService.Config.class)
@@ -112,10 +112,10 @@ public class LuceneNgIndexProviderService {
         if (config.enableCopyOnReadSupport()) {
             try {
                 copier = createIndexCopier(bundleContext, config);
-                LOG.info("Enabling CopyOnRead support for lucene9 indexes. Index files copied under {}",
+                LOG.info("Enabling CopyOnRead support for luceneNg indexes. Index files copied under {}",
                         copier.getIndexRootDir());
             } catch (IOException e) {
-                LOG.warn("Could not initialize CopyOnRead support for lucene9 indexes; " +
+                LOG.warn("Could not initialize CopyOnRead support for luceneNg indexes; " +
                         "falling back to reading directly from the remote NodeStore", e);
             }
         }
@@ -127,16 +127,16 @@ public class LuceneNgIndexProviderService {
         // Register QueryIndexProvider
         LuceneNgQueryIndexProvider queryProvider = new LuceneNgQueryIndexProvider(indexTracker);
         Dictionary<String, Object> props = new Hashtable<>();
-        props.put("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        props.put("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
         regs.add(bundleContext.registerService(QueryIndexProvider.class.getName(), queryProvider, props));
-        LOG.info("Registered QueryIndexProvider for type: {}", LuceneNgIndexConstants.TYPE_LUCENE9);
+        LOG.info("Registered QueryIndexProvider for type: {}", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         // Register IndexEditorProvider
         editorProvider = new LuceneNgIndexEditorProvider(indexTracker);
         props = new Hashtable<>();
-        props.put("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        props.put("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
         regs.add(bundleContext.registerService(IndexEditorProvider.class.getName(), editorProvider, props));
-        LOG.info("Registered IndexEditorProvider for type: {}", LuceneNgIndexConstants.TYPE_LUCENE9);
+        LOG.info("Registered IndexEditorProvider for type: {}", LuceneNgIndexConstants.TYPE_LUCENE_NG);
     }
 
     private LuceneNgIndexCopier createIndexCopier(BundleContext bundleContext, Config config) throws IOException {
@@ -151,7 +151,7 @@ public class LuceneNgIndexProviderService {
         }
         boolean prefetchEnabled = config.prefetchIndexFiles();
         if (prefetchEnabled) {
-            LOG.info("Prefetching of lucene9 index files enabled");
+            LOG.info("Prefetching of luceneNg index files enabled");
         }
         return new LuceneNgIndexCopier(getExecutorService(), new File(indexDirPath), prefetchEnabled);
     }
@@ -159,8 +159,8 @@ public class LuceneNgIndexProviderService {
     private ExecutorService getExecutorService() {
         if (executorService == null) {
             executorService = ExecutorHelper.linkedQueueExecutor(
-                    INDEX_COPIER_POOL_SIZE, "oak-lucene9-%d",
-                    (t, e) -> LOG.warn("Error occurred in asynchronous lucene9 index copy processing", e));
+                    INDEX_COPIER_POOL_SIZE, "oak-luceneNg-%d",
+                    (t, e) -> LOG.warn("Error occurred in asynchronous luceneNg index copy processing", e));
         }
         return executorService;
     }
@@ -197,7 +197,7 @@ public class LuceneNgIndexProviderService {
             try {
                 indexCopier.close();
             } catch (IOException e) {
-                LOG.warn("Error closing lucene9 IndexCopier", e);
+                LOG.warn("Error closing luceneNg IndexCopier", e);
             }
             indexCopier = null;
         }

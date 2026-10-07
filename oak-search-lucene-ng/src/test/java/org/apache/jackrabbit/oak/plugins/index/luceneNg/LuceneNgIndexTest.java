@@ -87,7 +87,7 @@ public class LuceneNgIndexTest {
         // Setup: Create index with documents
         NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
         NodeBuilder indexDef = builder.child("oak:index").child("test");
-        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         // Index some documents
         OakDirectory directory = new OakDirectory(
@@ -161,7 +161,7 @@ public class LuceneNgIndexTest {
         NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
         NodeBuilder oakIndex = builder.child("oak:index");
         NodeBuilder indexDef = oakIndex.child("test");
-        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         // Index documents with age property
         OakDirectory directory = new OakDirectory(
@@ -236,7 +236,7 @@ public class LuceneNgIndexTest {
         NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
         NodeBuilder oakIndex = builder.child("oak:index");
         NodeBuilder indexDef = oakIndex.child("test");
-        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         OakDirectory directory = new OakDirectory(
                 builder.child("oak:index").child("test").child(LuceneNgIndexStorage.STORAGE_NODE_NAME),
@@ -298,7 +298,7 @@ public class LuceneNgIndexTest {
         NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
         NodeBuilder oakIndex = builder.child("oak:index");
         NodeBuilder indexDef = oakIndex.child("test");
-        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         OakDirectory directory = new OakDirectory(
                 builder.child("oak:index").child("test").child(LuceneNgIndexStorage.STORAGE_NODE_NAME),
@@ -370,7 +370,7 @@ public class LuceneNgIndexTest {
         NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
         NodeBuilder oakIndex = builder.child("oak:index");
         NodeBuilder indexDef = oakIndex.child("test");
-        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         OakDirectory directory = new OakDirectory(
                 builder.child("oak:index").child("test").child(LuceneNgIndexStorage.STORAGE_NODE_NAME),
@@ -433,7 +433,7 @@ public class LuceneNgIndexTest {
         NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
         NodeBuilder oakIndex = builder.child("oak:index");
         NodeBuilder indexDef = oakIndex.child("test");
-        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         OakDirectory directory = new OakDirectory(
                 builder.child("oak:index").child("test").child(LuceneNgIndexStorage.STORAGE_NODE_NAME),
@@ -493,11 +493,11 @@ public class LuceneNgIndexTest {
     public void testDirectChildrenPathRestriction() throws Exception {
         NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
         NodeBuilder oakIndex = builder.child("oak:index").child("testIdx");
-        oakIndex.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        oakIndex.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
         oakIndex.setProperty("reindex", true);
         oakIndex.setProperty("jcr:primaryType", "oak:QueryIndexDefinition",
                 org.apache.jackrabbit.oak.api.Type.NAME);
-        // Add index rule so the editor actually indexes these nodes (sync lucene9 index: no "async").
+        // Add index rule so the editor actually indexes these nodes (sync luceneNg index: no "async").
         oakIndex.child("indexRules").child("nt:unstructured").child("properties")
                 .child("title").setProperty("name", "title").setProperty("propertyIndex", true);
 
@@ -580,7 +580,7 @@ public class LuceneNgIndexTest {
     public void testPrefixFulltextQuery() throws Exception {
         NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
         NodeBuilder oakIndex = builder.child("oak:index").child("testIdx");
-        oakIndex.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        oakIndex.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         OakDirectory dir = new OakDirectory(
                 builder.child("oak:index").child("testIdx").child(LuceneNgIndexStorage.STORAGE_NODE_NAME),
@@ -615,7 +615,7 @@ public class LuceneNgIndexTest {
     public void testWildcardFulltextQuery() throws Exception {
         NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
         NodeBuilder oakIndex = builder.child("oak:index").child("testIdx");
-        oakIndex.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        oakIndex.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         OakDirectory dir = new OakDirectory(
                 builder.child("oak:index").child("testIdx").child(LuceneNgIndexStorage.STORAGE_NODE_NAME),
@@ -651,7 +651,7 @@ public class LuceneNgIndexTest {
         NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
         NodeBuilder oakIndex = builder.child("oak:index");
         NodeBuilder indexDef = oakIndex.child("test");
-        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         OakDirectory directory = new OakDirectory(
                 builder.child("oak:index").child("test").child(LuceneNgIndexStorage.STORAGE_NODE_NAME),
@@ -693,7 +693,7 @@ public class LuceneNgIndexTest {
         NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
         NodeBuilder oakIndex = builder.child("oak:index");
         NodeBuilder indexDef = oakIndex.child("test");
-        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         OakDirectory directory = new OakDirectory(
                 builder.child("oak:index").child("test").child(LuceneNgIndexStorage.STORAGE_NODE_NAME),
@@ -731,13 +731,13 @@ public class LuceneNgIndexTest {
     }
 
     /**
-     * Builds an index at /oak:index/testIdx/lucene9 with nodes at the given paths.
-     * The index definition is at /oak:index/testIdx with type=lucene9.
+     * Builds an index at /oak:index/testIdx/luceneNg with nodes at the given paths.
+     * The index definition is at /oak:index/testIdx with type=luceneNg.
      * After writing, {@code builder.getNodeState()} will contain both.
      */
     private void buildIndexWithPaths(NodeBuilder builder, String... paths) throws Exception {
         NodeBuilder oakIndex = builder.child("oak:index").child("testIdx");
-        oakIndex.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        oakIndex.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         NodeBuilder storageNode = builder.child("oak:index").child("testIdx").child(LuceneNgIndexStorage.STORAGE_NODE_NAME);
         OakDirectory dir = new OakDirectory(storageNode, "testIdx", false);
@@ -764,7 +764,7 @@ public class LuceneNgIndexTest {
         NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
         NodeBuilder oakIndex = builder.child("oak:index");
         NodeBuilder indexDef = oakIndex.child("test");
-        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         OakDirectory directory = new OakDirectory(
                 builder.child("oak:index").child("test").child(LuceneNgIndexStorage.STORAGE_NODE_NAME),
@@ -927,7 +927,7 @@ public class LuceneNgIndexTest {
         NodeBuilder defnBuilder = builder.child("oak:index").child("testIdx");
         IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
         idb.indexRule("nt:unstructured").property("tags").ordered();
-        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         // Write a document with "tags" indexed as SortedSetDocValuesField (multi-valued
         // doc-values) -- this is what the write side produces for an array-valued string

@@ -47,11 +47,11 @@ public class TypeSafeIndexingTest {
 
     private static final String IDX = "/oak:index/test";
 
-    private static IndexDefinitionBuilder lucene9(NodeBuilder rootBuilder) {
+    private static IndexDefinitionBuilder luceneNg(NodeBuilder rootBuilder) {
         NodeBuilder defnBuilder = rootBuilder.child("oak:index").child("test");
         IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
         idb.noAsync();
-        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
         return idb;
     }
 
@@ -64,7 +64,7 @@ public class TypeSafeIndexingTest {
     @Test
     public void stringValueWithDeclaredLongTypeIsConvertedToLongPoint() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("size").propertyIndex().type("Long");
+        luceneNg(root).indexRule("nt:unstructured").property("size").propertyIndex().type("Long");
         node(root, "asset").setProperty("size", "1234"); // stored as String, declared Long
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
@@ -82,7 +82,7 @@ public class TypeSafeIndexingTest {
     @Test
     public void unconvertibleStringWithDeclaredLongTypeIsSkipped() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("size").propertyIndex().type("Long");
+        luceneNg(root).indexRule("nt:unstructured").property("size").propertyIndex().type("Long");
         node(root, "asset").setProperty("size", "not-a-number");
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
@@ -100,7 +100,7 @@ public class TypeSafeIndexingTest {
     @Test
     public void stringValueWithDeclaredDoubleTypeIsConvertedToDoublePoint() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("score").propertyIndex().type("Double");
+        luceneNg(root).indexRule("nt:unstructured").property("score").propertyIndex().type("Double");
         node(root, "asset").setProperty("score", "3.14");
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
@@ -119,7 +119,7 @@ public class TypeSafeIndexingTest {
     public void longValueWithDefaultStringTypeProducesStringField() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
         // No .type() call -> PropertyDefinition.isTypeDefined() == false -> defaults to STRING
-        lucene9(root).indexRule("nt:unstructured").property("count").propertyIndex();
+        luceneNg(root).indexRule("nt:unstructured").property("count").propertyIndex();
         node(root, "node").setProperty("count", 42L);
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
@@ -141,7 +141,7 @@ public class TypeSafeIndexingTest {
     @Test
     public void fullTraversalWithMixedValueTypesForDeclaredLongDoesNotThrow() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("dam:size").propertyIndex().type("Long");
+        luceneNg(root).indexRule("nt:unstructured").property("dam:size").propertyIndex().type("Long");
 
         for (int i = 0; i < 10; i++) {
             NodeBuilder n = node(root, "asset" + i);
@@ -167,7 +167,7 @@ public class TypeSafeIndexingTest {
     @Test
     public void booleanValueWithNoExplicitTypeProducesStringField() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("active").propertyIndex();
+        luceneNg(root).indexRule("nt:unstructured").property("active").propertyIndex();
         node(root, "node").setProperty("active", true);
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
@@ -188,7 +188,7 @@ public class TypeSafeIndexingTest {
     @Test
     public void indexingCompletesWithoutUncheckedException() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("title").propertyIndex();
+        luceneNg(root).indexRule("nt:unstructured").property("title").propertyIndex();
         node(root, "node").setProperty("title", "hello");
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());

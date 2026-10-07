@@ -52,18 +52,18 @@ public class LuceneNgIndexEditorTest {
 
     private static final String IDX = "/oak:index/test";
 
-    private static IndexDefinitionBuilder lucene9(NodeBuilder rootBuilder) {
+    private static IndexDefinitionBuilder luceneNg(NodeBuilder rootBuilder) {
         NodeBuilder defnBuilder = rootBuilder.child("oak:index").child("test");
         IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
         idb.noAsync();
-        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
         return idb;
     }
 
     @Test
     public void multiValuedLongPropertyWithExplicitTypeIsIndexed() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("score").propertyIndex().type("Long");
+        luceneNg(root).indexRule("nt:unstructured").property("score").propertyIndex().type("Long");
         NodeBuilder node = root.child("node");
         node.setProperty("jcr:primaryType", "nt:unstructured");
         node.setProperty("score", List.of(1L, 2L, 3L), Type.LONGS);
@@ -80,7 +80,7 @@ public class LuceneNgIndexEditorTest {
     @Test
     public void multiValuedDoublePropertyWithExplicitTypeIsIndexed() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("price").propertyIndex().type("Double");
+        luceneNg(root).indexRule("nt:unstructured").property("price").propertyIndex().type("Double");
         NodeBuilder node = root.child("node");
         node.setProperty("jcr:primaryType", "nt:unstructured");
         node.setProperty("price", List.of(1.5, 2.5, 3.5), Type.DOUBLES);
@@ -97,7 +97,7 @@ public class LuceneNgIndexEditorTest {
     @Test
     public void multiValuedDatePropertyWithExplicitTypeIsIndexed() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("eventDate").propertyIndex().type("Date");
+        luceneNg(root).indexRule("nt:unstructured").property("eventDate").propertyIndex().type("Date");
 
         // Two well-formed ISO 8601 dates plus one malformed value in between: the malformed value
         // must be silently skipped, the well-formed ones still indexed as LongPoint (epoch millis).
@@ -127,7 +127,7 @@ public class LuceneNgIndexEditorTest {
     @Test
     public void nodeLosingItsMatchingRuleGetsItsDocumentDeleted() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        lucene9(root).indexRule("nt:unstructured").property("title").propertyIndex();
+        luceneNg(root).indexRule("nt:unstructured").property("title").propertyIndex();
         NodeBuilder node = root.child("node");
         node.setProperty("jcr:primaryType", "nt:unstructured");
         node.setProperty("title", "hello");

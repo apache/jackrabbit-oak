@@ -47,7 +47,7 @@ public class PathFilterTest {
         idb.noAsync();
         idb.includedPaths("/content/dam");
         idb.indexRule("nt:unstructured").property("title").propertyIndex();
-        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         // Node under the included path.
         NodeBuilder asset = root.child("content").child("dam").child("asset");

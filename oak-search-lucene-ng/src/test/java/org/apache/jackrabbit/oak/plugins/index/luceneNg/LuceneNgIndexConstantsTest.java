@@ -25,9 +25,9 @@ public class LuceneNgIndexConstantsTest {
 
     @Test
     public void testTypeConstant() {
-        assertNotNull(LuceneNgIndexConstants.TYPE_LUCENE9);
+        assertNotNull(LuceneNgIndexConstants.TYPE_LUCENE_NG);
         // Type constant remains version-specific for index format compatibility
-        assertEquals("lucene9", LuceneNgIndexConstants.TYPE_LUCENE9);
+        assertEquals("luceneNg", LuceneNgIndexConstants.TYPE_LUCENE_NG);
     }
 
     @Test

@@ -42,7 +42,7 @@ public class IndexSearcherHolderTest {
     @Test
     public void testGetSearcher() throws Exception {
         NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
-        // Simulate canonical storage under /oak:index/test/lucene9
+        // Simulate canonical storage under /oak:index/test/luceneNg
         NodeBuilder storageBuilder = builder.child("oak:index").child("test").child(LuceneNgIndexStorage.STORAGE_NODE_NAME);
 
         // Write an empty index at the storage path
@@ -71,7 +71,7 @@ public class IndexSearcherHolderTest {
         String indexPath = "/oak:index/test";
         NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
         NodeBuilder indexDef = builder.child("oak:index").child("test");
-        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        indexDef.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
         NodeBuilder storageBuilder = indexDef.child(LuceneNgIndexStorage.STORAGE_NODE_NAME);
 
         // Write a populated (non-empty) index at the storage path, so there is at least one

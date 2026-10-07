@@ -43,19 +43,19 @@ public class LuceneNgQueryIndexProvider implements QueryIndexProvider {
         // Update tracker with current state
         tracker.update(nodeState);
 
-        // Enumerate every currently defined lucene9 index directly off nodeState, rather than
+        // Enumerate every currently defined luceneNg index directly off nodeState, rather than
         // off tracker.getIndexNodePaths() -- the shared FulltextIndexTracker only *caches*
         // paths that have already been opened (via a prior acquireIndexNode() call or an
         // in-place update to an already-cached path, see FulltextIndexTracker#diffAndUpdate);
         // it does not itself perform full-repository discovery of newly defined indexes on
-        // update(). A brand new (never yet queried) lucene9 index must still be offered here
+        // update(). A brand new (never yet queried) luceneNg index must still be offered here
         // as a query index -- its LuceneNgIndex resolves/acquires the actual node lazily,
         // on demand, once the query engine calls getCost()/getPlans() on it.
         List<LuceneNgIndex> indexes = new ArrayList<>();
         NodeState oakIndex = nodeState.getChildNode("oak:index");
         for (String indexName : oakIndex.getChildNodeNames()) {
             NodeState indexState = oakIndex.getChildNode(indexName);
-            if (IndexHelper.isIndexNodeOfType(indexState, LuceneNgIndexConstants.TYPE_LUCENE9)) {
+            if (IndexHelper.isIndexNodeOfType(indexState, LuceneNgIndexConstants.TYPE_LUCENE_NG)) {
                 indexes.add(new LuceneNgIndex(tracker, "/oak:index/" + indexName));
             }
         }

@@ -41,7 +41,7 @@ public class LuceneNgIndexEditorProviderTest {
         root = INITIAL_CONTENT;
         rootBuilder = root.builder();
         definitionBuilder = rootBuilder.child("oak:index").child("test");
-        definitionBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        definitionBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
         provider = new LuceneNgIndexEditorProvider(tracker);
@@ -64,31 +64,28 @@ public class LuceneNgIndexEditorProviderTest {
 
     @Test
     public void testGetEditorForOtherType() throws Exception {
-        Editor editor = provider.getIndexEditor(
-            "lucene",  // different type
-            definitionBuilder,
-            root,
-            mock(IndexUpdateCallback.class));
-
-        assertNull("Editor should be null for non-lucene9 type", editor);
+        for (String type : new String[] {"lucene", "elasticsearch"}) {
+            Editor editor = provider.getIndexEditor(type, definitionBuilder, root, mock(IndexUpdateCallback.class));
+            assertNull("Editor should ignore type " + type, editor);
+        }
     }
 
     @Test
-    public void testGetEditorForLucene9Type() throws Exception {
+    public void testGetEditorForLuceneNgType() throws Exception {
         Editor editor = provider.getIndexEditor(
-            LuceneNgIndexConstants.TYPE_LUCENE9,
+            LuceneNgIndexConstants.TYPE_LUCENE_NG,
             definitionBuilder,
             root,
             contextCallback("/oak:index/test", false));
 
-        assertNotNull("Editor should be returned for lucene9 type", editor);
+        assertNotNull("Editor should be returned for luceneNg type", editor);
     }
 
     @Test(expected = IllegalStateException.class)
     public void testGetEditorWithoutContextAwareCallbackThrows() throws Exception {
         IndexUpdateCallback plainCallback = mock(IndexUpdateCallback.class);
         provider.getIndexEditor(
-            LuceneNgIndexConstants.TYPE_LUCENE9,
+            LuceneNgIndexConstants.TYPE_LUCENE_NG,
             definitionBuilder,
             root,
             plainCallback);

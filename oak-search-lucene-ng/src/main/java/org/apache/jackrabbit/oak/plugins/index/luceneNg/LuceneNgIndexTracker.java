@@ -25,7 +25,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Tracks Lucene 9 ({@code type=lucene9}) indexes for the query engine, via the shared
+ * Tracks Lucene 9 ({@code type=luceneNg}) indexes for the query engine, via the shared
  * {@link FulltextIndexTracker} (lazy per-path discovery + targeted subtree diffing — see
  * that class for the discovery/refresh contract this inherits). {@code isUpdateNeeded} is not
  * overridden: the inherited default (which checks only the {@code :status} and
@@ -69,6 +69,6 @@ public class LuceneNgIndexTracker extends FulltextIndexTracker<LuceneNgIndexNode
 
     @Nullable
     public LuceneNgIndexNode acquireIndexNode(@NotNull String indexPath) {
-        return super.acquireIndexNode(indexPath, LuceneNgIndexConstants.TYPE_LUCENE9);
+        return super.acquireIndexNode(indexPath, LuceneNgIndexConstants.TYPE_LUCENE_NG);
     }
 }

@@ -36,7 +36,7 @@ public class LuceneNgIndexDefinitionTest {
     public void setup() {
         root = INITIAL_CONTENT;
         builder = root.builder();
-        builder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        builder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
     }
 
     @Test

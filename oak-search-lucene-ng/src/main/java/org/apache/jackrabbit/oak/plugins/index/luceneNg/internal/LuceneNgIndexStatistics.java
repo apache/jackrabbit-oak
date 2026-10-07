@@ -22,7 +22,7 @@ import org.apache.lucene.index.IndexReader;
 import java.io.IOException;
 
 /**
- * {@link IndexStatistics} backed directly by the {@link IndexReader} of a {@code lucene9} index's
+ * {@link IndexStatistics} backed directly by the {@link IndexReader} of a {@code luceneNg} index's
  * cached searcher.
  *
  * <p>Unlike {@code LuceneIndexStatistics} (the {@code oak-lucene} equivalent, which pre-computes a

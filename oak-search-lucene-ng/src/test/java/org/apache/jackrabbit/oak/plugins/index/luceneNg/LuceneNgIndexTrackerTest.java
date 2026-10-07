@@ -48,7 +48,7 @@ public class LuceneNgIndexTrackerTest {
         // Create index definition
         NodeBuilder oakIndex = builder.child("oak:index");
         NodeBuilder testIndex = oakIndex.child("testIndex");
-        testIndex.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        testIndex.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
         testIndex.setProperty("async", "async");
     }
 
@@ -92,7 +92,7 @@ public class LuceneNgIndexTrackerTest {
     }
 
     /**
-     * Proves that {@link LuceneNgIndexTracker#acquireIndexNode(String)} resolves a {@code lucene9}
+     * Proves that {@link LuceneNgIndexTracker#acquireIndexNode(String)} resolves a {@code luceneNg}
      * index at any nesting depth, once given its exact path: the shared {@code
      * FulltextIndexTracker}'s {@code findIndexNode} walks the given path segment-by-segment with
      * no depth restriction.
@@ -113,8 +113,8 @@ public class LuceneNgIndexTrackerTest {
         idb.noAsync();
         idb.indexRule("nt:unstructured").property("title").propertyIndex();
         // IndexDefinitionBuilder defaults "type" to "fulltext"; the tracker only recognizes
-        // "lucene9", so it must be set explicitly (same as LuceneNgIndexEditorProviderTest).
-        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        // "luceneNg", so it must be set explicitly (same as LuceneNgIndexEditorProviderTest).
+        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         // Index one node (under /content/dam, the subtree the nested definition covers) so the
         // definition has real Lucene segment data (hasSearcher() == true); otherwise
@@ -132,7 +132,7 @@ public class LuceneNgIndexTrackerTest {
 
         LuceneNgIndexNode indexNode = tracker.acquireIndexNode("/content/dam/oak:index/damAssets");
         assertNotNull(
-                "Tracker should resolve a lucene9 index at any nesting depth once given its exact path",
+                "Tracker should resolve a luceneNg index at any nesting depth once given its exact path",
                 indexNode);
     }
 
@@ -154,7 +154,7 @@ public class LuceneNgIndexTrackerTest {
         IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
         idb.noAsync();
         idb.indexRule("nt:unstructured").property("title").propertyIndex();
-        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         NodeBuilder node1 = rootBuilder.child("node1");
         node1.setProperty("jcr:primaryType", "nt:unstructured");
@@ -213,7 +213,7 @@ public class LuceneNgIndexTrackerTest {
         IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
         idb.noAsync();
         idb.indexRule("nt:unstructured").property("title").propertyIndex();
-        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         NodeBuilder node1 = rootBuilder.child("node1");
         node1.setProperty("jcr:primaryType", "nt:unstructured");
@@ -275,7 +275,7 @@ public class LuceneNgIndexTrackerTest {
         IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
         idb.noAsync();
         idb.indexRule("nt:unstructured").property("title").propertyIndex();
-        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE9);
+        defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
         NodeBuilder node1 = rootBuilder.child("node1");
         node1.setProperty("jcr:primaryType", "nt:unstructured");

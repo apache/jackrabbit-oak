@@ -24,10 +24,9 @@ import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 public interface LuceneNgIndexConstants extends FulltextIndexConstants {
 
     /**
-     * Index type for Lucene 9 indexes.
-     * Type identifier remains version-specific for index format compatibility.
+     * Index type for the Lucene NG provider, independent of the Lucene library version.
      */
-    String TYPE_LUCENE9 = "lucene9";
+    String TYPE_LUCENE_NG = "luceneNg";
 
     /**
      * Property for listing directory contents (file names).

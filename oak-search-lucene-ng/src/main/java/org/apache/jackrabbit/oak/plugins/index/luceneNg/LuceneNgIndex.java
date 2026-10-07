@@ -131,12 +131,12 @@ public class LuceneNgIndex extends FulltextIndex {
 
     @Override
     protected String getType() {
-        return LuceneNgIndexConstants.TYPE_LUCENE9;
+        return LuceneNgIndexConstants.TYPE_LUCENE_NG;
     }
 
     @Override
     public String getIndexName() {
-        return LuceneNgIndexConstants.TYPE_LUCENE9;
+        return LuceneNgIndexConstants.TYPE_LUCENE_NG;
     }
 
     @Override
@@ -174,7 +174,7 @@ public class LuceneNgIndex extends FulltextIndex {
 
     @Override
     protected Predicate<NodeState> getIndexDefinitionPredicate() {
-        return state -> LuceneNgIndexConstants.TYPE_LUCENE9.equals(
+        return state -> LuceneNgIndexConstants.TYPE_LUCENE_NG.equals(
                 state.getString(IndexConstants.TYPE_PROPERTY_NAME));
     }
 
@@ -708,9 +708,9 @@ public class LuceneNgIndex extends FulltextIndex {
         // output-format compatibility that LuceneNgIndexComparisonTest.testLuceneNgIndexIsUsed pins:
         //  - the first line must start with "lucene:" so tooling that only matches legacy
         //    FulltextIndex plans (e.g. AEM ExplainQueryServlet LUCENE_INDEX_PATTERN: "/\* lucene:…")
-        //    still detects an index; the "@v9" suffix marks Lucene 9 / Oak type lucene9;
-        //  - the "lucene9:" line keeps the engine explicit for logs/tests;
-        //  - the query label is "luceneQuery:" (not the base's "<type>Query:" = "lucene9Query:").
+        //    still detects an index; the "@v9" suffix marks the Lucene 9 engine;
+        //  - the "luceneNg:" line identifies the index type;
+        //  - the query label is "luceneQuery:" for compatibility with existing tooling.
         // The path is now taken from the plan's PlanResult (built by the inherited
         // FulltextIndexPlanner) rather than a per-instance field, so it is correct even if this
         // instance was allocated for a different index path.
@@ -718,7 +718,7 @@ public class LuceneNgIndex extends FulltextIndex {
         String shortName = PathUtils.getName(path);
         StringBuilder sb = new StringBuilder("lucene:");
         sb.append(shortName).append("@v9\n");
-        sb.append("lucene9:").append(shortName).append("\n");
+        sb.append(getType()).append(':').append(shortName).append("\n");
         sb.append("    indexDefinition: ").append(path).append("\n");
         sb.append("    estimatedEntries: ").append(plan.getEstimatedEntryCount()).append("\n");
 
