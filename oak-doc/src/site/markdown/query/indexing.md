@@ -456,41 +456,6 @@ The diff index consists of:
 An example diff.json file is an empty JSON object: `{}`.
 See below for more examples.
 
-Multiple files whose names end with `diff.json` may be stored directly under
-`diff.index`, for example `diff.json`, `asset-diff.json`, or `sites.diff.json`.
-They are processed in alphabetical filename order. If several files define
-the same index, the last file replaces that entire index entry, rather than
-deep-merging it with earlier files.
-
-To reference a binary file stored alongside the JSON files, use
-`":file:<filename>"` as a property value in the diff. For example,
-`"jcr:data": ":file:stopwords.txt"` copies the binary `jcr:content/jcr:data`
-from the sibling `stopwords.txt` file into the generated index definition.
-The stored JSON retains the reference. Only files ending in `diff.json` are
-treated as diff definitions. Other files, including other `.json` files,
-are auxiliary files and can be referenced using `:file:`.
-
-The optional `diff.index.optimizer` node is processed separately: its index entries are
-deep-merged with the customer entries, with optimizer values taking precedence.
-File references are resolved within their own diff index node.
-
-Change detection relies solely on each file's `jcr:content/jcr:lastModified`.
-Oak compares that timestamp with `jcr:content/:lastProcessed`, which it manages
-automatically. A file with a timestamp but no `:lastProcessed` value is processed
-on its first attempt. Writers must update `jcr:lastModified` when changing
-file content; content changes without a timestamp update do not trigger processing.
-
-If any file has an unprocessed timestamp, the complete current set of files
-from both `diff.index` and `diff.index.optimizer` is processed, including unchanged
-files. Otherwise, validation and merging are skipped. Files without
-`jcr:lastModified` are collected but do not trigger processing themselves.
-
-Removing a file, `diff.index`, or `diff.index.optimizer` alone does not trigger
-processing and does not remove the previously generated indexes. To apply
-removals, update a remaining file's timestamp. To clear the last diff entries,
-store an empty JSON diff (`{}`) with a new `jcr:lastModified` timestamp rather
-than simply deleting its file.
-
 To build a JSON index definition for a query, you may want to use the existing
 [online tooling](https://oak-indexing.github.io/oakTools/).
 
@@ -499,8 +464,6 @@ To build a JSON index definition for a query, you may want to use the existing
 If there are errors when trying to parse the JSON, or when merging,
 these errors are written to the `diff.index` node in the form of
 `warn.01`, `warn.02` etc. properties.
-Warnings are stored only in `diff.index`. If that node is absent, warnings
-are logged but are not stored on `diff.index.optimizer`.
 (After storing the new diff, you might need to refresh the node to see these warnings.)
 
 Merge warnings consist of ignored properties, unsupported paths, checksum mismatches, etc.
@@ -510,28 +473,6 @@ The warning properties are automatically removed if the warnings are resolved
 
 Example: if a `diff.json` with a typo is stored, a `warn.01` property
 is added to the `diff.index` node.
-
-If any file cannot be read or parsed, or a file reference cannot be resolved,
-none of the collected diffs is applied. Existing indexes and the warnings are
-preserved. Failed attempts are not retried until a file has a new, unprocessed
-timestamp, including after blob-store or I/O errors.
-The `:lastProcessed` timestamps are recorded even when processing fails;
-unchanged commits retain the existing warnings.
-
-### Legacy Behavior
-
-The new behavior is enabled by default. To restore the behavior from before
-OAK-12441, enable the OSGi feature toggle `FT_LEGACY_DIFF_INDEX_OAK-12441` or
-start Oak with `-Doak.diffIndex.legacy=true`. The system property is read once
-when the DiffIndex class is initialized; changing it later has no effect.
-The feature toggle is registered once during OSGi component activation and
-can be enabled or disabled at runtime. Either switch enables legacy mode.
-
-Legacy mode processes only changed `diff.json` files, ignores other JSON files,
-and does not resolve `:file:` references. The legacy methods are retained
-separately from the new implementation. Switching modes does not itself
-trigger processing; update `jcr:lastModified` on the relevant files if they
-need to be processed again.
 
 ### Customizing OOTB and Fully Custom Indexes
 
@@ -800,3 +741,5 @@ so that regular indexing operations can continue.
 [OAK-4939]: https://issues.apache.org/jira/browse/OAK-4939
 [OAK-5159]: https://issues.apache.org/jira/browse/OAK-5159
 [OAK-5557]: https://issues.apache.org/jira/browse/OAK-5557
+
+
