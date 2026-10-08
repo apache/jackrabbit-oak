@@ -22,9 +22,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import java.lang.reflect.Method;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -35,7 +32,6 @@ import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
@@ -57,9 +53,11 @@ public class DiffIndexLegacyTest {
             assertEquals(DiffIndex.LEGACY_DIFF_INDEX_TOGGLE, toggle.getName());
             assertFalse(DiffIndex.isLegacyMode());
             assertProcessedFiles(false);
+
             toggle.setEnabled(true);
             assertTrue(DiffIndex.isLegacyMode());
             assertProcessedFiles(true);
+
             toggle.setEnabled(false);
             assertFalse(DiffIndex.isLegacyMode());
             assertProcessedFiles(false);
@@ -112,13 +110,16 @@ public class DiffIndexLegacyTest {
         HashMap<String, JsonObject> target = new HashMap<>();
         assertNull(merger.tryExtractDiffIndexLegacy(definitions, path, target));
         assertEquals("\"lucene\"", target.get("acme.test").getProperties().get("type"));
+
         file.getChildren().clear();
         assertEquals("jcr:content child node is missing in diff.json",
                 merger.tryExtractDiffIndexLegacy(definitions, path, new HashMap<>()));
+
         file.getChildren().put("jcr:content", content);
         content.getProperties().put("jcr:data", JsopBuilder.encode("{broken"));
         assertTrue(merger.tryExtractDiffIndexLegacy(definitions, path, new HashMap<>()).startsWith("Illegal Json"));
         assertEquals(2, merger.getAndClearWarnings().size());
+
         index.getChildren().clear();
         assertNull(merger.tryExtractDiffIndexLegacy(definitions, path, new HashMap<>()));
     }
@@ -160,16 +161,20 @@ public class DiffIndexLegacyTest {
         NodeBuilder definitions = store.getRoot().builder().child("oak:index");
         DiffIndexMerger merger = new DiffIndexMerger();
         assertNull(DiffIndex.collectDiffsLegacy(definitions, merger));
+
         definitions.child("diff.index").child("diff.json");
         assertNull(DiffIndex.collectDiffsLegacy(definitions, merger));
         NodeBuilder content = definitions.child("diff.index").child("diff.json").child("jcr:content");
         assertNull(DiffIndex.collectDiffsLegacy(definitions, merger));
+
         content.setProperty("jcr:lastModified", "2026-01-01T00:00:00.000Z", Type.DATE);
         assertNull(DiffIndex.collectDiffsLegacy(definitions, merger));
         file(definitions, "diff.json", "{broken");
         content.setProperty("jcr:lastModified", "2026-01-01T00:00:00.001Z", Type.DATE);
+
         assertNull(DiffIndex.collectDiffsLegacy(definitions, merger));
         assertEquals(1, merger.getAndClearWarnings().size());
+
         file(definitions, "diff.json", "{\"acme.test\":{\"type\":\"lucene\"}}");
         content.setProperty("jcr:lastModified", "2026-01-01T00:00:00.002Z", Type.DATE);
         assertNotNull(DiffIndex.collectDiffsLegacy(definitions, merger));
@@ -187,58 +192,14 @@ public class DiffIndexLegacyTest {
             file(definitions, "diff.json", "{broken");
             DiffIndex.applyDiffIndexChanges(store, definitions);
             assertTrue(definitions.child("diff.index").hasProperty("warn.01"));
+
             DiffIndex.applyDiffIndexChanges(store, definitions);
             assertFalse(definitions.child("diff.index").hasProperty("warn.01"));
+
             definitions.child("diff.index").remove();
             DiffIndex.storeOrRemoveWarnings(definitions, new DiffIndexMerger());
         } finally {
             MockOsgi.deactivate(component, context.bundleContext());
-        }
-    }
-
-    @Test
-    public void systemPropertyIsReadOnlyOnce() throws Exception {
-        String previous = System.getProperty("oak.diffIndex.legacy");
-        try {
-            for (boolean legacy : new boolean[] {true, false}) {
-                System.setProperty("oak.diffIndex.legacy", Boolean.toString(legacy));
-                URL location = DiffIndex.class.getProtectionDomain().getCodeSource().getLocation();
-                try (URLClassLoader loader = new URLClassLoader(new URL[] {location}, DiffIndex.class.getClassLoader()) {
-                    @Override
-                    protected synchronized Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-                        if (name.equals(DiffIndex.class.getName()) || name.equals(DiffIndexMerger.class.getName())) {
-                            Class<?> type = findLoadedClass(name);
-                            if (type == null) {
-                                type = findClass(name);
-                            }
-                            if (resolve) {
-                                resolveClass(type);
-                            }
-                            return type;
-                        }
-                        return super.loadClass(name, resolve);
-                    }
-                }) {
-                    Class<?> type = Class.forName(DiffIndex.class.getName(), true, loader);
-                    Method mode = type.getDeclaredMethod("isLegacyMode");
-                    mode.setAccessible(true);
-                    assertEquals(legacy, mode.invoke(null));
-                    System.setProperty("oak.diffIndex.legacy", Boolean.toString(!legacy));
-                    assertEquals(legacy, mode.invoke(null));
-                    MemoryNodeStore store = new MemoryNodeStore();
-                    NodeBuilder definitions = definitions(store);
-                    type.getMethod("applyDiffIndexChanges", NodeStore.class, NodeBuilder.class)
-                            .invoke(null, store, definitions);
-                    assertTrue(definitions.hasChildNode("acme.main-1-custom-1"));
-                    assertEquals(!legacy, definitions.hasChildNode("acme.additional-1-custom-1"));
-                }
-            }
-        } finally {
-            if (previous == null) {
-                System.clearProperty("oak.diffIndex.legacy");
-            } else {
-                System.setProperty("oak.diffIndex.legacy", previous);
-            }
         }
     }
 

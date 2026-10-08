@@ -111,6 +111,7 @@ public class DiffIndex {
         JsonObject diffs = collectDiffs(indexDefinitions, MERGER);
         if (diffs != null) {
             processDiffs(store, indexDefinitions, diffs, MERGER);
+            // only store or remove warnings if there was a change
             storeOrRemoveWarnings(indexDefinitions, MERGER);
         }
     }

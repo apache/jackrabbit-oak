@@ -657,13 +657,13 @@ public class DiffIndexMerger {
                     key = prefix + indexName + "-" + productVersion + "-custom-";
                 }
                 if (latestCustomized != null) {
-                    int nextCustomer;
+                    int nextCustomerVersion;
                     if (!DiffIndex.isLegacyMode() && latestCustomized.getProductVersion() < productVersion) {
-                        nextCustomer = 1;
+                        nextCustomerVersion = 1;
                     } else {
-                        nextCustomer = latestCustomized.getCustomerVersion() + 1;
+                        nextCustomerVersion = latestCustomized.getCustomerVersion() + 1;
                     }
-                    key += nextCustomer;
+                    key += nextCustomerVersion;
                 } else {
                     key += "1";
                 }
