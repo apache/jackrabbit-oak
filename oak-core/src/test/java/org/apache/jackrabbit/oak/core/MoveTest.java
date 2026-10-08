@@ -46,8 +46,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * Test methods (mostly) copied from oak-it RootTest.
- * Run with {@code -Doak.classicMove=true} to exercise {@link MutableRoot.ClassicMove}
- * instead of the default {@link MutableRoot.NeoMove}.
+ * Maven also runs these tests in a separate JVM with {@code oak.classicMove=true}.
  */
 public class MoveTest {
 

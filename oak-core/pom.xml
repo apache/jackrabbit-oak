@@ -85,6 +85,26 @@
         </configuration>
       </plugin>
       <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>classic-move-tests</id>
+            <goals>
+              <goal>test</goal>
+            </goals>
+            <configuration>
+              <test>MoveTest</test>
+              <forkCount>1</forkCount>
+              <reportNameSuffix>classic-move</reportNameSuffix>
+              <promoteUserPropertiesToSystemProperties>false</promoteUserPropertiesToSystemProperties>
+              <systemPropertyVariables>
+                <oak.classicMove>true</oak.classicMove>
+              </systemPropertyVariables>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <artifactId>maven-failsafe-plugin</artifactId>
         <configuration>
           <systemPropertyVariables>
