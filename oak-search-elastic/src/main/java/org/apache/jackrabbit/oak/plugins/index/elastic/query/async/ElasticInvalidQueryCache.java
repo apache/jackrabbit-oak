@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public final class ElasticInvalidQueryCache {
 
-    public static final String FT_OAK_12403 = "FT_OAK-70592";
+    public static final String FT_OAK_12403 = "FT_OAK-12403";
     /**
      * When {@code true}, queries that recently failed with an Elastic parsing error are cached and
      * subsequent identical queries are short-circuited (no call to Elastic, no results) until the cache
