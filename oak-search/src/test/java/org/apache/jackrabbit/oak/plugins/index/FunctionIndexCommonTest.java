@@ -1042,12 +1042,13 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
                 "/oak:index/test1", List.of("/a")));
     }
 
+    // Uses a test-only counter so built-in index reindex counts cannot match.
     @Test
     public void opFunctionConditionalPathQuery() throws Exception {
         String old = System.getProperty(QueryEngineSettings.OAK_QUERY_OP_FUNCTION);
         System.setProperty(QueryEngineSettings.OAK_QUERY_OP_FUNCTION, "true");
         try {
-            String function = "if(op([reindexCount], '>', 'lon:0'), path(), null)";
+            String function = "if(op([testReindexCount], '>', 'lon:0'), path(), null)";
             IndexDefinitionBuilder idxb = indexOptions.createIndexDefinitionBuilder()
                     .noAsync()
                     .evaluatePathRestrictions()
@@ -1061,10 +1062,10 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
             Tree oakIndex = root.getTree("/oak:index");
             Tree a = oakIndex.addChild("a");
             a.setProperty("type", "disabled");
-            a.setProperty("reindexCount", 2L);
+            a.setProperty("testReindexCount", 2L);
             Tree b = oakIndex.addChild("b");
             b.setProperty("type", "disabled");
-            b.setProperty("reindexCount", 0L);
+            b.setProperty("testReindexCount", 0L);
             oakIndex.addChild("c").setProperty("type", "disabled");
             root.commit();
             String query = "select * from [nt:base] " +

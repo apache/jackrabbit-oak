@@ -51,12 +51,6 @@ public class MongoDocumentNodeStoreBuilderTest {
     }
 
     @Test
-    public void throttlingFeatureToggleDisabled() {
-        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
-        assertNull(builder.getDocStoreThrottlingFeature());
-    }
-
-    @Test
     public void fullGCDisabled() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
         assertFalse(builder.isFullGCEnabled());

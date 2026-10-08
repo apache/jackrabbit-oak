@@ -33,7 +33,9 @@ import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.segment.file.PriorityCache;
+import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -191,7 +193,7 @@ public abstract class WriterCacheManager {
         @NotNull
         @Override
         public Cache<String, RecordId> getNodeCache(int generation) {
-            return new Cache<String, RecordId>() {
+            return new Cache<>() {
                 @Override
                 public void put(@NotNull String stableId, @NotNull RecordId recordId, byte cost) { }
 
@@ -246,7 +248,7 @@ public abstract class WriterCacheManager {
                 @NotNull Supplier<PriorityCache<String, RecordId>> nodeCacheFactory) {
             this.stringCaches = new Generations<>(stringCacheFactory);
             this.templateCaches = new Generations<>(templateCacheFactory);
-            this.nodeCache = memoize(nodeCacheFactory::get);
+            this.nodeCache = memoize(nodeCacheFactory);
         }
 
         /**
@@ -256,9 +258,9 @@ public abstract class WriterCacheManager {
          * and {@link #DEFAULT_NODE_CACHE_SIZE}.
          */
         public Default() {
-            this(RecordCache.<String>factory(DEFAULT_STRING_CACHE_SIZE),
-                 RecordCache.<Template>factory(DEFAULT_TEMPLATE_CACHE_SIZE),
-                 PriorityCache.<String, RecordId>factory(DEFAULT_NODE_CACHE_SIZE));
+            this(RecordCache.factory(DEFAULT_STRING_CACHE_SIZE),
+                    RecordCache.factory(DEFAULT_TEMPLATE_CACHE_SIZE),
+                    PriorityCache.factory(DEFAULT_NODE_CACHE_SIZE));
         }
 
         private static class Generations<T> implements Iterable<T> {
@@ -272,7 +274,7 @@ public abstract class WriterCacheManager {
             T getGeneration(final int generation) {
                 // Preemptive check to limit the number of wasted (Memoizing)Supplier instances
                 if (!generations.containsKey(generation)) {
-                    generations.putIfAbsent(generation, memoize(cacheFactory::get));
+                    generations.putIfAbsent(generation, memoize(cacheFactory));
                 }
                 return generations.get(generation).get();
             }
@@ -281,7 +283,7 @@ public abstract class WriterCacheManager {
             @Override
             public Iterator<T> iterator() {
                 return IteratorUtils.transform(generations.values().iterator(),
-                        cacheFactory -> cacheFactory.get());
+                        Supplier::get);
             }
 
             void evictGenerations(@NotNull Predicate<Integer> evict) {
@@ -313,7 +315,7 @@ public abstract class WriterCacheManager {
         @Override
         @NotNull
         public Cache<String, RecordId> getNodeCache(final int generation) {
-            return new Cache<String, RecordId>() {
+            return new Cache<>() {
                 @Override
                 public void put(@NotNull String stableId, @NotNull RecordId recordId, byte cost) {
                     nodeCache().put(stableId, recordId, generation, cost);
@@ -353,45 +355,36 @@ public abstract class WriterCacheManager {
         @NotNull
         private static <T> Supplier<CacheStats> accumulateRecordCacheStats(
                 final Iterable<RecordCache<T>> caches) {
-            return new Supplier<CacheStats>() {
-                @Override
-                public CacheStats get() {
-                    CacheStats stats = new CacheStats(0, 0, 0, 0, 0, 0);
-                    for (RecordCache<?> cache : caches) {
-                        stats = stats.plus(cache.getStats());
-                    }
-                    return stats;
+            return () -> {
+                CacheStats stats = new CacheStats(0, 0, 0, 0, 0, 0);
+                for (RecordCache<?> cache : caches) {
+                    stats = stats.plus(cache.getStats());
                 }
+                return stats;
             };
         }
 
         @NotNull
         public static <T> Supplier<Long> accumulateRecordCacheSizes(
                 final Iterable<RecordCache<T>> caches) {
-            return new Supplier<Long>() {
-                @Override
-                public Long get() {
-                    long size = 0;
-                    for (RecordCache<?> cache : caches) {
-                        size += cache.size();
-                    }
-                    return size;
+            return () -> {
+                long size = 0;
+                for (RecordCache<?> cache : caches) {
+                    size += cache.size();
                 }
+                return size;
             };
         }
 
         @NotNull
         public static <T> Supplier<Long> accumulateRecordCacheWeights(
                 final Iterable<RecordCache<T>> caches) {
-            return new Supplier<Long>() {
-                @Override
-                public Long get() {
-                    long size = 0;
-                    for (RecordCache<?> cache : caches) {
-                        size += cache.estimateCurrentWeight();
-                    }
-                    return size;
+            return () -> {
+                long size = 0;
+                for (RecordCache<?> cache : caches) {
+                    size += cache.estimateCurrentWeight();
                 }
+                return size;
             };
         }
 
@@ -399,24 +392,9 @@ public abstract class WriterCacheManager {
         @Override
         public CacheStatsMBean getNodeCacheStats() {
             return new RecordCacheStats("Node deduplication cache stats",
-                    new Supplier<CacheStats>() {
-                        @Override
-                        public CacheStats get() {
-                            return nodeCache().getStats();
-                        }
-                    },
-                    new Supplier<Long>() {
-                        @Override
-                        public Long get() {
-                            return nodeCache().size();
-                        }
-                    },
-                    new Supplier<Long>() {
-                        @Override
-                        public Long get() {
-                            return nodeCache().estimateCurrentWeight();
-                        }
-                    });
+                    () -> nodeCache().getStats(),
+                    () -> nodeCache().size(),
+                    () -> nodeCache().estimateCurrentWeight());
         }
 
         /**
@@ -437,17 +415,29 @@ public abstract class WriterCacheManager {
      */
     private static class AccessTrackingCacheManager extends WriterCacheManager {
         @NotNull
-        private final String name;
-
-        @NotNull
-        private final StatisticsProvider statisticsProvider;
-
-        @NotNull
         private final WriterCacheManager delegate;
+
+        @NotNull
+        private final CounterStats stringAccessCount;
+        @NotNull
+        private final CounterStats stringMissCount;
+        @NotNull
+        private final CounterStats templateAccessCount;
+        @NotNull
+        private final CounterStats templateMissCount;
+        @NotNull
+        private final CounterStats nodeAccessCount;
+        @NotNull
+        private final CounterStats nodeMissCount;
 
         /**
          * Create a new instance. The {@code name} passed is used to prepend to the
-         * names used to expose the access statistics.
+         * names used to expose the access statistics. The statistics are registered once,
+         * here, rather than on every {@link #getStringCache(int) getStringCache}/
+         * {@link #getTemplateCache(int) getTemplateCache}/{@link #getNodeCache(int) getNodeCache}
+         * call - those run once per record written, and eagerly registering the statistics
+         * avoids repeating that (relatively expensive) work on every write.
+         *
          * @param name                 name under which to expose the access statistics
          * @param statisticsProvider   statistics provider where the access statistics is recorded to
          * @param delegate             the underlying, wrapped cache manager
@@ -460,51 +450,61 @@ public abstract class WriterCacheManager {
                 @NotNull String name,
                 @NotNull StatisticsProvider statisticsProvider,
                 @NotNull WriterCacheManager delegate) {
-            this.name = name;
-            this.statisticsProvider = statisticsProvider;
             this.delegate = delegate;
+            this.stringAccessCount = statisticsProvider.getCounterStats(
+                    "oak.segment.string-deduplication-cache-" + name + ".access-count", StatsOptions.DEFAULT);
+            this.stringMissCount = statisticsProvider.getCounterStats(
+                    "oak.segment.string-deduplication-cache-" + name + ".miss-count", StatsOptions.DEFAULT);
+            this.templateAccessCount = statisticsProvider.getCounterStats(
+                    "oak.segment.template-deduplication-cache-" + name + ".access-count", StatsOptions.DEFAULT);
+            this.templateMissCount = statisticsProvider.getCounterStats(
+                    "oak.segment.template-deduplication-cache-" + name + ".miss-count", StatsOptions.DEFAULT);
+            this.nodeAccessCount = statisticsProvider.getCounterStats(
+                    "oak.segment.node-deduplication-cache-" + name + ".access-count", StatsOptions.DEFAULT);
+            this.nodeMissCount = statisticsProvider.getCounterStats(
+                    "oak.segment.node-deduplication-cache-" + name + ".miss-count", StatsOptions.DEFAULT);
         }
 
         /**
-         * @return the wrapped cache returned by the delegate's method of
-         * the same name exposing access statistics under
-         * {@code "oak.segment.string-deduplication-cache-" + name}
+         * @return the delegate's cache for {@code generation}, wrapped to track access
+         * statistics under {@code "oak.segment.string-deduplication-cache-" + name}.
+         * Called afresh for every record written, so the delegate cache for
+         * {@code generation} is always looked up here rather than memoized, keeping it
+         * from ever going stale (e.g. after the delegate evicts and recreates it).
          */
         @NotNull
         @Override
         public Cache<String, RecordId> getStringCache(int generation) {
-            return new CacheAccessTracker<>(
-                    "oak.segment.string-deduplication-cache-" + name,
-                    statisticsProvider, delegate.getStringCache(generation)
-            );
+            return new CacheAccessTracker<>(delegate.getStringCache(generation),
+                    stringAccessCount, stringMissCount);
         }
 
         /**
-         * @return the wrapped cache returned by the delegate's method of
-         * the same name exposing access statistics under
-         * {@code "oak.segment.template-deduplication-cache-" + name}
+         * @return the delegate's cache for {@code generation}, wrapped to track access
+         * statistics under {@code "oak.segment.template-deduplication-cache-" + name}.
+         * Called afresh for every record written, so the delegate cache for
+         * {@code generation} is always looked up here rather than memoized, keeping it
+         * from ever going stale (e.g. after the delegate evicts and recreates it).
          */
         @NotNull
         @Override
         public Cache<Template, RecordId> getTemplateCache(int generation) {
-            return new CacheAccessTracker<>(
-                    "oak.segment.template-deduplication-cache-" + name,
-                    statisticsProvider, delegate.getTemplateCache(generation)
-            );
+            return new CacheAccessTracker<>(delegate.getTemplateCache(generation),
+                    templateAccessCount, templateMissCount);
         }
 
         /**
-         * @return the wrapped cache returned by the delegate's method of
-         * the same name exposing access statistics under
-         * {@code "oak.segment.node-deduplication-cache-" + name}
+         * @return the delegate's cache for {@code generation}, wrapped to track access
+         * statistics under {@code "oak.segment.node-deduplication-cache-" + name}.
+         * Called afresh for every record written, so the delegate cache for
+         * {@code generation} is always looked up here rather than memoized, keeping it
+         * from ever going stale (e.g. after the delegate evicts and recreates it).
          */
         @NotNull
         @Override
         public Cache<String, RecordId> getNodeCache(int generation) {
-            return new CacheAccessTracker<>(
-                    "oak.segment.node-deduplication-cache-" + name,
-                    statisticsProvider, delegate.getNodeCache(generation)
-            );
+            return new CacheAccessTracker<>(delegate.getNodeCache(generation),
+                    nodeAccessCount, nodeMissCount);
         }
     }
 }
