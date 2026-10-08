@@ -248,7 +248,10 @@ public class DiffIndexMerger {
 
         // collect the diff index(es)
         HashMap<String, JsonObject> toProcess = new HashMap<>();
-        if (tryExtractDiffIndex(combined, "/oak:index/" + DIFF_INDEX, toProcess) != null
+        if (DiffIndex.isLegacyMode()) {
+            tryExtractDiffIndexLegacy(combined, "/oak:index/" + DIFF_INDEX, toProcess);
+            tryExtractDiffIndexLegacy(combined, "/oak:index/" + DIFF_INDEX_OPTIMIZER, toProcess);
+        } else if (tryExtractDiffIndex(combined, "/oak:index/" + DIFF_INDEX, toProcess) != null
                 || tryExtractDiffIndex(combined, "/oak:index/" + DIFF_INDEX_OPTIMIZER, toProcess) != null) {
             return false;
         }
@@ -273,6 +276,44 @@ public class DiffIndexMerger {
         return hasChanges;
     }
 
+    public String tryExtractDiffIndexLegacy(JsonObject indexDefs, String name, HashMap<String, JsonObject> target) {
+        JsonObject diffIndex = indexDefs.getChildren().get(name);
+        if (diffIndex == null) {
+            return null;
+        }
+        // extract either the file, or the nested json
+        JsonObject file = diffIndex.getChildren().get("diff.json");
+        JsonObject diff;
+        if (file != null) {
+            // file
+            JsonObject jcrContent = file.getChildren().get("jcr:content");
+            if (jcrContent == null) {
+                String message = "jcr:content child node is missing in diff.json";
+                logAndCollectWarn(message);
+                return message;
+            }
+            String jcrData = JsonNodeUpdater.oakStringValue(jcrContent, "jcr:data");
+            try {
+                diff = JsonObject.fromJson(jcrData, true);
+            } catch (Exception e) {
+                String message = "Illegal Json, ignoring: " + e.getMessage();
+                logAndCollectWarn("Illegal Json, ignoring: {}", jcrData, e);
+                return message;
+            }
+        } else {
+            // nested json
+            diff = diffIndex.getChildren().get("diff");
+        }
+        // store, if not empty
+        if (diff != null) {
+            for (Entry<String, JsonObject> e : diff.getChildren().entrySet()) {
+                String key = e.getKey();
+                target.put(key, mergeDiffs(target.get(key), e.getValue()));
+            }
+        }
+        return null;
+    }
+
     /**
      * Extract a "diff.index" from the set of index definitions (if found), and if
      * found, store the nested entries in the target map, merging them with previous
@@ -290,6 +331,9 @@ public class DiffIndexMerger {
      * @return the error message trying to parse the JSON file, or null
      */
     public String tryExtractDiffIndex(JsonObject indexDefs, String name, HashMap<String, JsonObject> target) {
+        if (DiffIndex.isLegacyMode()) {
+            return tryExtractDiffIndexLegacy(indexDefs, name, target);
+        }
         JsonObject diffIndex = indexDefs.getChildren().get(name);
         if (diffIndex == null) {
             return null;
@@ -613,7 +657,7 @@ public class DiffIndexMerger {
                 }
                 if (latestCustomized != null) {
                     int nextCustomer;
-                    if (latestCustomized.getProductVersion() < productVersion) {
+                    if (!DiffIndex.isLegacyMode() && latestCustomized.getProductVersion() < productVersion) {
                         nextCustomer = 1;
                     } else {
                         nextCustomer = latestCustomized.getCustomerVersion() + 1;

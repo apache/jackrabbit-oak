@@ -143,7 +143,7 @@ public class DiffIndexTest {
     }
 
     @Test
-    public void deletingDiffFilesRemovesOnlyTheirIndexes() {
+    public void deletingDiffFilesDoesNotTriggerProcessing() {
         NodeStore store = new MemoryNodeStore();
         NodeBuilder definitions = store.getRoot().builder().child(INDEX_DEFINITIONS_NAME);
         diffFile(definitions, "diff.index", "a.json", "{\"acme.a\":{\"type\":\"lucene\"}}");
@@ -151,13 +151,22 @@ public class DiffIndexTest {
         DiffIndex.applyDiffIndexChanges(store, definitions);
         definitions.child("diff.index").child("a.json").remove();
         DiffIndex.applyDiffIndexChanges(store, definitions);
+        assertTrue(definitions.hasChildNode("acme.a-1-custom-1"));
+        assertTrue(definitions.hasChildNode("acme.b-1-custom-1"));
+        assertNull(DiffIndex.collectDiffs(definitions, new DiffIndexMerger()));
+
+        touchFile(definitions.child("diff.index").child("b.json").child("jcr:content"));
+        DiffIndex.applyDiffIndexChanges(store, definitions);
         assertFalse(definitions.hasChildNode("acme.a-1-custom-1"));
         assertTrue(definitions.hasChildNode("acme.b-1-custom-1"));
 
         definitions.child("diff.index").child("b.json").remove();
         DiffIndex.applyDiffIndexChanges(store, definitions);
-        assertFalse(definitions.hasChildNode("acme.b-1-custom-1"));
+        assertTrue(definitions.hasChildNode("acme.b-1-custom-1"));
         assertNull(DiffIndex.collectDiffs(definitions, new DiffIndexMerger()));
+        diffFile(definitions, "diff.index", "diff.json", "{}");
+        DiffIndex.applyDiffIndexChanges(store, definitions);
+        assertFalse(definitions.hasChildNode("acme.b-1-custom-1"));
     }
 
     @Test
@@ -203,7 +212,7 @@ public class DiffIndexTest {
     }
 
     @Test
-    public void removedOptimizerOverridesOldRepositorySnapshot() throws Exception {
+    public void removedOptimizerDoesNotTriggerProcessing() throws Exception {
         NodeStore store = new MemoryNodeStore();
         NodeBuilder root = store.getRoot().builder();
         NodeBuilder definitions = root.child(INDEX_DEFINITIONS_NAME);
@@ -216,8 +225,31 @@ public class DiffIndexTest {
         definitions = root.child(INDEX_DEFINITIONS_NAME);
         definitions.child("diff.index.optimizer").remove();
         DiffIndex.applyDiffIndexChanges(store, definitions);
+        assertTrue(definitions.hasChildNode("acme.a-1-custom-1"));
+        assertTrue(definitions.child("acme.a-1-custom-1").getBoolean("optimizer"));
+        assertFalse(definitions.hasChildNode("acme.a-1-custom-2"));
+        assertNull(DiffIndex.collectDiffs(definitions, new DiffIndexMerger()));
+
+        touchFile(definitions.child("diff.index").child("a.json").child("jcr:content"));
+        DiffIndex.applyDiffIndexChanges(store, definitions);
         assertTrue(definitions.hasChildNode("acme.a-1-custom-2"));
         assertFalse(definitions.child("acme.a-1-custom-2").hasProperty("optimizer"));
+    }
+
+    @Test
+    public void removedCustomerDoesNotTriggerProcessing() {
+        NodeStore store = new MemoryNodeStore();
+        NodeBuilder definitions = store.getRoot().builder().child(INDEX_DEFINITIONS_NAME);
+        diffFile(definitions, "diff.index", "a.json", "{\"acme.a\":{\"type\":\"lucene\"}}");
+        diffFile(definitions, "diff.index.optimizer", "b.json", "{\"acme.a\":{\"optimizer\":true}}");
+        DiffIndex.applyDiffIndexChanges(store, definitions);
+        definitions.child("diff.index").remove();
+        DiffIndex.applyDiffIndexChanges(store, definitions);
+        assertTrue(definitions.hasChildNode("acme.a-1-custom-1"));
+        assertEquals("lucene", definitions.child("acme.a-1-custom-1").getString("type"));
+        assertTrue(definitions.child("acme.a-1-custom-1").getBoolean("optimizer"));
+        assertFalse(definitions.hasChildNode("acme.a-1-custom-2"));
+        assertNull(DiffIndex.collectDiffs(definitions, new DiffIndexMerger()));
     }
 
     @Test
@@ -279,6 +311,7 @@ public class DiffIndexTest {
         assertTrue(definitions.hasChildNode("acme.a-1-custom-1"));
         assertTrue(definitions.child("diff.index").getString("warn.01").contains("Blob store unavailable"));
         content.remove();
+        diffFile(definitions, "diff.index", "b.json", "{\"acme.b\":{\"type\":\"lucene\"}}");
         DiffIndex.applyDiffIndexChanges(store, definitions);
         assertTrue(definitions.hasChildNode("acme.a-1-custom-1"));
         assertTrue(definitions.child("diff.index").getString("warn.01").contains("jcr:content is missing"));
@@ -365,7 +398,7 @@ public class DiffIndexTest {
     }
 
     @Test
-    public void optimizerOnlyAndFilesWithoutTimestampsAreSupported() {
+    public void filesWithoutTimestampsDoNotTriggerProcessing() {
         NodeStore store = new MemoryNodeStore();
         NodeBuilder definitions = store.getRoot().builder().child(INDEX_DEFINITIONS_NAME);
         assertNull(DiffIndex.collectDiffs(definitions, new DiffIndexMerger()));
@@ -374,6 +407,10 @@ public class DiffIndexTest {
         NodeBuilder content = definitions.child("diff.index.optimizer").child("a.json").child("jcr:content");
         content.removeProperty("jcr:lastModified");
         DiffIndex.applyDiffIndexChanges(store, definitions);
+        assertFalse(definitions.hasChildNode("acme.a-1-custom-1"));
+        assertNull(DiffIndex.collectDiffs(definitions, new DiffIndexMerger()));
+        diffFile(definitions, "diff.index.optimizer", "b.json", "{}");
+        DiffIndex.applyDiffIndexChanges(store, definitions);
         assertTrue(definitions.hasChildNode("acme.a-1-custom-1"));
         assertFalse(definitions.hasChildNode("diff.index"));
         assertNull(DiffIndex.collectDiffs(definitions, new DiffIndexMerger()));
@@ -381,28 +418,6 @@ public class DiffIndexTest {
         DiffIndex.applyDiffIndexChanges(store, definitions);
         assertTrue(definitions.hasChildNode("acme.a-1-custom-1"));
         assertTrue(definitions.child("diff.index.optimizer").hasProperty("warn.01"));
-    }
-
-    @Test
-    public void diffIndexCanBeDisabled() {
-        String previous = System.getProperty("oak.diffIndex.enabled");
-        try {
-            System.setProperty("oak.diffIndex.enabled", "false");
-            NodeStore store = new MemoryNodeStore();
-            NodeBuilder definitions = store.getRoot().builder().child(INDEX_DEFINITIONS_NAME);
-            diffFile(definitions, "diff.index", "a.json", "{\"acme.a\":{\"type\":\"lucene\"}}");
-            DiffIndex.applyDiffIndexChanges(store, definitions);
-            assertFalse(definitions.hasChildNode("acme.a-1-custom-1"));
-            System.setProperty("oak.diffIndex.enabled", "true");
-            DiffIndex.applyDiffIndexChanges(store, definitions);
-            assertTrue(definitions.hasChildNode("acme.a-1-custom-1"));
-        } finally {
-            if (previous == null) {
-                System.clearProperty("oak.diffIndex.enabled");
-            } else {
-                System.setProperty("oak.diffIndex.enabled", previous);
-            }
-        }
     }
 
     private static void diffFile(NodeBuilder definitions, String index, String name, String data) {
