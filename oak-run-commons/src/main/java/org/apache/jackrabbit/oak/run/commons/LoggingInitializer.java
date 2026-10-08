@@ -100,6 +100,9 @@ public class LoggingInitializer {
                 context.reset();
             }
             configurator.doConfigure(config);
+            if (!context.isStarted()) {
+                context.start();
+            }
         } catch (JoranException je) {
             // StatusPrinter will handle this
         }

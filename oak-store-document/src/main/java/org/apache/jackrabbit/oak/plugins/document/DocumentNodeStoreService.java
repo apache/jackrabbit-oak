@@ -198,11 +198,6 @@ public class DocumentNodeStoreService {
     static final long DEFAULT_BLOB_SNAPSHOT_INTERVAL = 0L;
 
     /**
-     * Feature toggle name to enable document store throttling for Mongo Document Store
-     */
-    private static final String FT_NAME_DOC_STORE_THROTTLING = "FT_THROTTLING_OAK-9909";
-
-    /**
      * Feature toggle name to enable invalidation on cancel (due to a merge collision)
      */
     private static final String FT_NAME_CANCEL_INVALIDATION = "FT_CANCELINVALIDATION_OAK-10595";
@@ -264,7 +259,6 @@ public class DocumentNodeStoreService {
     private DocumentNodeStore nodeStore;
     private ObserverTracker observerTracker;
     private JournalPropertyHandlerFactory journalPropertyHandlerFactory = new JournalPropertyHandlerFactory();
-    private Feature docStoreThrottlingFeature;
     private Feature cancelInvalidationFeature;
     private Feature docStoreAvoidMergeLockFeature;
     private Feature prevNoPropCacheFeature;
@@ -302,7 +296,6 @@ public class DocumentNodeStoreService {
         executor.start(whiteboard);
         customBlobStore = this.config.customBlobStore();
         documentStoreType = DocumentStoreType.fromString(this.config.documentStoreType());
-        docStoreThrottlingFeature = Feature.newFeature(FT_NAME_DOC_STORE_THROTTLING, whiteboard);
         cancelInvalidationFeature = Feature.newFeature(FT_NAME_CANCEL_INVALIDATION, whiteboard);
         docStoreAvoidMergeLockFeature = Feature.newFeature(FT_NAME_AVOID_MERGE_LOCK, whiteboard);
         prevNoPropCacheFeature = Feature.newFeature(FT_NAME_PREV_NO_PROP_CACHE, whiteboard);
@@ -540,7 +533,6 @@ public class DocumentNodeStoreService {
                 setBundlingDisabled(config.bundlingDisabled()).
                 setJournalPropertyHandlerFactory(journalPropertyHandlerFactory).
                 setLeaseCheckMode(ClusterNodeInfo.DEFAULT_LEASE_CHECK_DISABLED ? LeaseCheckMode.DISABLED : LeaseCheckMode.valueOf(config.leaseCheckMode())).
-                setDocStoreThrottlingFeature(docStoreThrottlingFeature).
                 setCancelInvalidationFeature(cancelInvalidationFeature).
                 setDocStoreAvoidMergeLockFeature(docStoreAvoidMergeLockFeature).
                 setPrevNoPropCacheFeature(prevNoPropCacheFeature).
@@ -702,7 +694,7 @@ public class DocumentNodeStoreService {
             journalPropertyHandlerFactory.stop();
         }
 
-        closeFeatures(docStoreThrottlingFeature, cancelInvalidationFeature, prevNoPropCacheFeature,
+        closeFeatures(cancelInvalidationFeature, prevNoPropCacheFeature,
                 docStoreAvoidMergeLockFeature);
 
         unregisterNodeStore();

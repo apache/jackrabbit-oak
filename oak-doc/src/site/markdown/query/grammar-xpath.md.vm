@@ -19,14 +19,14 @@
 #set($h3 = '###')
 #set($h4 = '####')
 
-#set($xpath-grammar = ${project.basedir} + '/src/site/resources/grammar/xpath.csv')
+#set($xpathGrammar = ${project.basedir} + '/src/site/resources/grammar/xpath.csv')
 
 #macro( railroad_link $topic )
-<!-- MACRO{railroad|file=$xpath-grammar|topic=$topic|renderLink=true} -->
+<!-- MACRO{railroad|file=$xpathGrammar|topic=$topic|renderLink=true} -->
 #end
 
 #macro( render $topic )
-<!-- MACRO{railroad|file=$xpath-grammar|topic=$topic} -->
+<!-- MACRO{railroad|file=$xpathGrammar|topic=$topic} -->
 #end
 
 $h2 Oak XPath Query Grammar - ${project.name}
@@ -304,6 +304,13 @@ and the second operand otherwise.
 
 "jcr:first", "fn:path": Supported `@since Oak 1.42`, see OAK-9625.
 
+"jcr:if", "jcr:exists": Supported `@since Oak 2.7`. `jcr:if(condition, trueValue,
+falseValue)` returns `falseValue` if `condition` is missing, `0`, or `false`, and
+`trueValue` otherwise. `jcr:exists(operand)` returns `true` if the operand (a property
+or another function) has a value, and `false` otherwise. Unlike SQL-2, XPath has no
+`null` literal, so `jcr:null()` is used instead wherever a dynamic operand is expected,
+for example as the third argument of `jcr:if(...)`.
+
 
 Examples:
 
@@ -318,6 +325,8 @@ Examples:
     jcr:score ()
     fn:lower-case(@lastName)
     fn:coalesce(@lastName, @name)
+    jcr:if(jcr:exists(@alias), fn:path(), jcr:null())
+    jcr:exists(@alias)
 
 
 ---

@@ -589,6 +589,13 @@ public class DataStoreCommandTest {
         Data data = prepareData(storeFixture, blobFixture, 10, 5, 0);
         storeFixture.close();
         additionalParams += " --check-consistency-gc true --sweep-only-refs-past-retention true";
+        // Complete a mark pass and age its references past the strict retention cutoff before sweeping.
+        testGc(dump, data, 1000, true, false);
+        try (DataStoreBlobStore blobStore = blobFixture.openDataStore(temporaryFolder.newFolder().getAbsolutePath())) {
+            long referenceTime = blobStore.getAllMetadataRecords(REFERENCES.getType()).stream()
+                    .mapToLong(record -> record.getLastModified()).max().orElseThrow();
+            Clock.SIMPLE.waitUntil(referenceTime + 1);
+        }
         testGc(dump, data, 0, false, false);
     }
 

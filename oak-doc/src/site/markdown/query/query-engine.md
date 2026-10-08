@@ -40,6 +40,10 @@ grep "^#.*$" src/site/markdown/query/query-engine.md | sed 's/#/    /g' | sed 's
     - [Equality for Path Constraints](#equality-for-path-constraints)
   - [Slow Queries and Read Limits](#slow-queries-and-read-limits)
   - [Keyset Pagination](#keyset-pagination)
+    - [Mutable Keys and Asynchronous Indexes](#mutable-keys-and-asynchronous-indexes)
+    - [Option 1: Keyset Pagination on an Immutable Key](#option-1-keyset-pagination-on-an-immutable-key)
+    - [Option 2: Keyset Pagination on the Last Modified Date, Descending](#option-2-keyset-pagination-on-the-last-modified-date-descending)
+    - [Option 3: Keyset Pagination on a Conditional Path](#option-3-keyset-pagination-on-a-conditional-path)
   - [Full-Text Queries](#full-text-queries)
   - [Excerpts and Highlighting](#excerpts-and-highlighting)
     - [SimpleExcerptProvider](#simpleexcerptprovider)
@@ -384,50 +388,80 @@ It is best to limit the result size to at most a few hundred entries.
 To read a large result, keyset pagination should be used.
 Note that "offset" with large values (more than a few hundred) should be avoided, as it can lead to performance and memory issues.
 Keyset pagination refers to ordering the result set by a key column, and then paginate using this column.
-It requires an ordered index on the key column. Example:
+It requires an ordered index on the key column.
+For the first query, the cursor (`$lastEntry`) is set to the lowest (or highest) possible value,
+and for subsequent queries, it is set to the key of the last entry of the previous page.
+The examples below use an [index tag](#query-option-index-tag),
+to ensure the intended index is used, and set the page size using `option(limit ...)`.
 
-    /jcr:root/content//element(*, nt:file)
-    [@jcr:lastModified >= $lastEntry]
-    order by @jcr:lastModified, @jcr:path
+#### Mutable Keys and Asynchronous Indexes
 
-For the first query, set `$lastEntry` to 0, and for subsequent queries,
-use the last modified time of the last result.
+Care is needed if the key is a property that can change, because indexes are usually updated asynchronously.
+If the key of an entry changes while paging through the result, and the index has not caught up yet,
+then entries can be skipped: even old, unchanged entries.
+Example: there are three nodes, with the key `a`, `b`, and `c`, and the page size is 2.
+The first page (`[key] >= '' order by [key]`) returns the nodes with key `a` and `b`.
+Before the second page is read, the key of the second node is changed to `z`, but the index still contains `b`.
+The cursor for the second page is taken from the current value of the last entry (`z`),
+so the second page (`[key] >= 'z'`) is empty, and the node with key `c` is skipped,
+even though it was never modified.
+The reason is that the cursor is derived from the current property value of the last entry,
+and not from the (possibly outdated) value in the index.
+A concurrent change can move the cursor arbitrarily far ahead, and so skip everything in between.
 
-An order index is needed for these queries to work efficiently, e.g.:
+To avoid this problem, one of the following options can be used.
+
+#### Option 1: Keyset Pagination on an Immutable Key
+
+The best option is to use a key that can not change, for example the path, using `path()`.
+Either the node exists or it does not, but its path does not change.
+A function-based index on `path()` is needed, so that the ordering is served by the index.
+Because the path is unique, `>` can be used instead of `>=`, so that no entry is returned twice.
+For the first query, set `$lastEntry` to an empty string,
+and for subsequent queries, use the path of the last result.
+For more details about function-based indexes, see [the function-based indexing documentation](lucene.html#function-based-indexing).
+
+    select [jcr:path], * from [nt:file] as a
+    where path(a) > $lastEntry
+    and isdescendantnode(a, '/content')
+    order by path(a)
+    option(index tag [keysetFiles], limit 1000)
 
     /oak:index/fileIndex
       - type = lucene
       - compatVersion = 2
       - async = async
+      - tags = [ "keysetFiles" ]
       - includedPaths = [ "/content" ]
       - queryPaths = [ "/content" ]
       + indexRules
         + nt:file
           + properties
-            + jcrLastModified
-              - name = "jcr:lastModified"
+            + path
+              - function = "path()"
               - propertyIndex = true
               - ordered = true
 
-Notice that multiple entries with the same modified date might exist.
-If your application requires that the same node is only processed once,
-then additional logic is required to skip over the entries already seen (for the same modified date).
+Such an index contains an entry for each node that matches the index rule (here: `nt:file`).
+If only a small subset of nodes is needed, for example only nodes that have a certain property,
+and the index rule is for `nt:base`, then such an index would be too large. See option 3 for this case.
 
-If there is no good property to use keyset pagination on, then the lowercase of the node name can be used.
+Similar to the path, the lowercase of the node name can be used.
 It is best to start with `$lastEntry` as an empty string, and then in each subsequent run use the lowercase version of the node name of the last entry.
 Notice that some nodes may appear in two query results, if there are multiple nodes with the same name.
 In this case, SQL-2 needs to be used, because with XPath, escaping is applied to names.
-For more details about function-based indexes, see [the function-based indexing documentation](lucene.html#function-based-indexing).
 
     select [jcr:path], * from [nt:file] as a
     where lower(name(a)) >= $lastEntry
     and isdescendantnode(a, '/content')
     order by lower(name(a)), [jcr:path]
+    option(index tag [keysetFiles], limit 1000)
 
     /oak:index/fileIndex
       - type = lucene
       - compatVersion = 2
       - async = async
+      - tags = [ "keysetFiles" ]
       - includedPaths = [ "/content" ]
       - queryPaths = [ "/content" ]
       + indexRules
@@ -438,6 +472,85 @@ For more details about function-based indexes, see [the function-based indexing 
               - propertyIndex = true
               - ordered = true
 
+#### Option 2: Keyset Pagination on the Last Modified Date, Descending
+
+A property whose value only ever increases, such as `jcr:lastModified`, can be used
+if the result is ordered in descending order.
+If the value of the last entry changes, it can only increase,
+so the cursor can only move back to entries that were already read, but never ahead.
+Entries may therefore be returned more than once, but no entry is skipped.
+(With ascending order, entries could be skipped, as described above.)
+
+    select [jcr:path], * from [nt:file] as a
+    where [jcr:lastModified] <= $lastEntry
+    and isdescendantnode(a, '/content')
+    order by [jcr:lastModified] desc, [jcr:path]
+    option(index tag [keysetFiles], limit 1000)
+
+For the first query, set `$lastEntry` to a date in the future,
+and for subsequent queries, use the last modified time of the last result.
+Nodes that are modified while paging get a newer last modified date,
+and so might not be returned in this run (they are returned in the next run).
+
+An order index is needed for these queries to work efficiently, e.g.:
+
+    /oak:index/fileIndex
+      - type = lucene
+      - compatVersion = 2
+      - async = async
+      - tags = [ "keysetFiles" ]
+      - includedPaths = [ "/content" ]
+      - queryPaths = [ "/content" ]
+      + indexRules
+        + nt:file
+          + properties
+            + jcrLastModified
+              - name = "jcr:lastModified"
+              - propertyIndex = true
+              - ordered = true
+
+Notice that multiple entries with the same modified date might exist,
+and entries can be returned multiple times, as described above.
+If the last entry of a page was modified in the meantime, the cursor moves back,
+and the next page can contain entries that were already returned, possibly the same page again.
+This is expected: no entry is skipped.
+If your application requires that the same node is only processed once,
+then additional logic is required to skip over the entries already seen.
+
+#### Option 3: Keyset Pagination on a Conditional Path
+
+`@since Oak 2.7`
+
+Sometimes only nodes that have a certain property are needed, for example all nodes with a `sling:alias` property.
+The index rule is then typically for `nt:base`, so an index on `path()` (option 1) would contain all nodes of the repository,
+and would be too large.
+Instead, the path can be indexed conditionally, using the functions `if` and `exists`:
+`if(exists([sling:alias]), path(), null)` is the path for nodes that have a `sling:alias` property, and null otherwise.
+Null values are not indexed, so that the index only contains the nodes that have this property.
+These functions are only available in newer versions of Oak (2.7 and newer).
+See also [the function-based indexing documentation](lucene.html#function-based-indexing).
+
+    select [jcr:path], * from [nt:base]
+    where if(exists([sling:alias]), path(), null) > $lastEntry
+    order by if(exists([sling:alias]), path(), null)
+    option(index tag [keysetAlias], limit 1000)
+
+    /oak:index/aliasPathIndex
+      - type = lucene
+      - compatVersion = 2
+      - async = async
+      - tags = [ "keysetAlias" ]
+      + indexRules
+        + nt:base
+          + properties
+            + aliasPath
+              - function = "if(exists([sling:alias]), path(), null)"
+              - propertyIndex = true
+              - ordered = true
+
+As with option 1, set `$lastEntry` to an empty string for the first query,
+and for subsequent queries, use the path of the last result.
+Use `explain` to verify that the index is used.
 
 ### Full-Text Queries
 

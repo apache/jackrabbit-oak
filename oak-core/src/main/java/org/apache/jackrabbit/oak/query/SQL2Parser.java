@@ -56,6 +56,7 @@ import org.apache.jackrabbit.oak.query.ast.SourceImpl;
 import org.apache.jackrabbit.oak.query.ast.StaticOperandImpl;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsData.QueryExecutionStats;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.FunctionIndexUtils;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,16 +110,16 @@ public class SQL2Parser {
     private boolean supportSQL1;
 
     private NamePathMapper namePathMapper;
-    
+
     private final QueryEngineSettings settings;
-    
+
     private boolean literalUsageLogged;
 
     private final QueryExecutionStats stats;
 
     /**
      * Create a new parser. A parser can be re-used, but it is not thread safe.
-     * 
+     *
      * @param namePathMapper the name-path mapper to use
      * @param nodeTypes the nodetypes
      * @param settings the query engine settings
@@ -233,10 +234,10 @@ public class SQL2Parser {
 
         return q;
     }
-    
+
     /**
      * as {@link #parse(String, boolean)} by providing {@code true} to the initialisation flag.
-     * 
+     *
      * @param query
      * @return the parsed query
      * @throws ParseException
@@ -244,7 +245,7 @@ public class SQL2Parser {
     public Query parse(final String query) throws ParseException {
         return parse(query, true);
     }
-    
+
     private QueryImpl parseSelect() throws ParseException {
         read("SELECT");
         boolean distinct = readIf("DISTINCT");
@@ -326,7 +327,7 @@ public class SQL2Parser {
             throw getSyntaxError("0-9");
         }
     }
-    
+
     private String readLabel() throws ParseException {
         String label = readName();
         if (!label.matches("[a-zA-Z0-9_]*") || label.isEmpty() || label.length() > 128) {
@@ -545,7 +546,7 @@ public class SQL2Parser {
     private PropertyExistenceImpl getPropertyExistence(PropertyValueImpl p) throws ParseException {
         return factory.propertyExistence(p.getSelectorName(), p.getPropertyName());
     }
-    
+
     private PropertyInexistenceImpl getPropertyInexistence(PropertyValueImpl p) throws ParseException {
         return factory.propertyInexistence(p.getSelectorName(), p.getPropertyName());
     }
@@ -658,7 +659,7 @@ public class SQL2Parser {
             } else {
                 selectorName = getOnlySelectorName();
             }
-            c = factory.spellcheck(selectorName, parseStaticOperand());            
+            c = factory.spellcheck(selectorName, parseStaticOperand());
         } else if ("SUGGEST".equalsIgnoreCase(functionName)) {
             String selectorName;
             if (currentTokenType == IDENTIFIER) {
@@ -688,10 +689,25 @@ public class SQL2Parser {
     }
 
     private DynamicOperandImpl parseDynamicOperand() throws ParseException {
+        if (currentTokenType == VALUE) {
+            if (currentValue.getType() != Type.STRING) {
+                throw getSyntaxError("string literal");
+            }
+            String text = currentValue.getValue(Type.STRING);
+            read();
+            try {
+                PropertyValue v = FunctionIndexUtils.parseLiteral(text);
+                return factory.literalOperand(v, escapeStringLiteral(text));
+            } catch (IllegalArgumentException e) {
+                throw getSyntaxError("valid literal of the given type");
+            }
+        }
         boolean identifier = currentTokenType == IDENTIFIER;
         String name = readName();
         if (identifier && readIf("(")) {
             return parseExpressionFunction(name);
+        } else if (identifier && "NULL".equalsIgnoreCase(name)) {
+            return factory.literalOperand(null, "null");
         } else {
             return parsePropertyValue(name);
         }
@@ -740,8 +756,27 @@ public class SQL2Parser {
             PropertyValueImpl pv = parsePropertyValue(readName());
             read(",");
             op = factory.propertyValue(pv.getSelectorName(), pv.getPropertyName(), readString().getValue(Type.STRING));
+        } else if ("IF".equalsIgnoreCase(functionName)) {
+            DynamicOperandImpl condition = parseDynamicOperand();
+            read(",");
+            DynamicOperandImpl trueValue = parseDynamicOperand();
+            read(",");
+            DynamicOperandImpl falseValue = parseDynamicOperand();
+            op = factory.ifOperand(condition, trueValue, falseValue);
+        } else if ("EXISTS".equalsIgnoreCase(functionName)) {
+            op = factory.existsOperand(parseDynamicOperand());
+        } else if ("OP".equalsIgnoreCase(functionName)) {
+            if (!settings.isOpFunctionEnabled()) {
+                throw getSyntaxError("The feature to support 'OP' is not enabled");
+            }
+            DynamicOperandImpl a = parseDynamicOperand();
+            read(",");
+            DynamicOperandImpl operator = parseDynamicOperand();
+            read(",");
+            DynamicOperandImpl b = parseDynamicOperand();
+            op = factory.op(a, operator, b);
         } else {
-            throw getSyntaxError("LENGTH, FIRST, NAME, LOCALNAME, PATH, SCORE, COALESCE, LOWER, UPPER, or PROPERTY");
+            throw getSyntaxError("LENGTH, FIRST, NAME, LOCALNAME, PATH, SCORE, COALESCE, LOWER, UPPER, PROPERTY, IF, or EXISTS");
         }
         read(")");
         return op;
@@ -983,7 +1018,7 @@ public class SQL2Parser {
         }
         return list;
     }
-    
+
     private boolean readOptionalAlias(ColumnOrWildcard column) throws ParseException {
         if (readIf("AS")) {
             column.columnName = readName();
@@ -1142,7 +1177,7 @@ public class SQL2Parser {
                     type = CHAR_SPECIAL_1;
                     break;
                 }
-                types[i] = type = CHAR_IGNORE;                
+                types[i] = type = CHAR_IGNORE;
                 startLoop = i;
                 i += 2;
                 checkRunOver(i, len, startLoop);
@@ -1150,7 +1185,7 @@ public class SQL2Parser {
                     i++;
                     checkRunOver(i, len, startLoop);
                 }
-                i++;          
+                i++;
                 break;
             case '[':
                 types[i] = type = CHAR_BRACKETED;
@@ -1498,7 +1533,7 @@ public class SQL2Parser {
 
     /**
      * Whether the given statement is an internal query.
-     *  
+     *
      * @param statement the statement
      * @return true for an internal query
      */

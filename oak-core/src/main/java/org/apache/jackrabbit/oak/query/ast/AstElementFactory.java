@@ -126,6 +126,22 @@ public class AstElementFactory {
         return new FirstImpl(operand);
     }
 
+    public IfImpl ifOperand(DynamicOperandImpl condition, DynamicOperandImpl trueValue, DynamicOperandImpl falseValue) {
+        return new IfImpl(condition, trueValue, falseValue);
+    }
+
+    public ExistsImpl existsOperand(DynamicOperandImpl operand) {
+        return new ExistsImpl(operand);
+    }
+
+    public OpImpl op(DynamicOperandImpl operand1, DynamicOperandImpl operator, DynamicOperandImpl operand2) {
+        return new OpImpl(operand1, operator, operand2);
+    }
+
+    public LiteralOperandImpl literalOperand(PropertyValue value, String functionToken) {
+        return new LiteralOperandImpl(value, functionToken);
+    }
+
     public NodeLocalNameImpl nodeLocalName(String selectorName) {
         return new NodeLocalNameImpl(selectorName);
     }
