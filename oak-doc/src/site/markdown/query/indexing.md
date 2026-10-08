@@ -456,7 +456,8 @@ The diff index consists of:
 An example diff.json file is an empty JSON object: `{}`.
 See below for more examples.
 
-Multiple `*.json` files may be stored directly under `diff.index`.
+Multiple files whose names end with `diff.json` may be stored directly under
+`diff.index`, for example `diff.json`, `asset-diff.json`, or `sites.diff.json`.
 They are processed in alphabetical filename order. If several files define
 the same index, the last file replaces that entire index entry, rather than
 deep-merging it with earlier files.
@@ -465,8 +466,9 @@ To reference a binary file stored alongside the JSON files, use
 `":file:<filename>"` as a property value in the diff. For example,
 `"jcr:data": ":file:stopwords.txt"` copies the binary `jcr:content/jcr:data`
 from the sibling `stopwords.txt` file into the generated index definition.
-The stored JSON retains the reference. Files ending in `.json` are treated
-as diff definitions, not auxiliary files.
+The stored JSON retains the reference. Only files ending in `diff.json` are
+treated as diff definitions. Other files, including other `.json` files,
+are auxiliary files and can be referenced using `:file:`.
 
 The optional `diff.index.optimizer` node is processed separately: its index entries are
 deep-merged with the customer entries, with optimizer values taking precedence.

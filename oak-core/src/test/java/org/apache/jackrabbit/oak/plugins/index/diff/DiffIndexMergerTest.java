@@ -275,7 +275,7 @@ public class DiffIndexMergerTest {
                 """;
     }
 
-    // multiple *.json files are read, sorted by name, and their top-level entries
+    // multiple *diff.json files are read, sorted by name, and their top-level entries
     // are merged; the alphabetically higher file overwrites the earlier entries
     @Test
     public void multipleDiffJsonFiles() {
@@ -284,9 +284,9 @@ public class DiffIndexMergerTest {
                     "/oak:index/diff.index": {
                         "jcr:primaryType": "nt:unstructured",
                         "type": "lucene", "includedPaths": "/same", "queryPaths": "/same",
-                        "c.json": """ + jsonFileNode("{\"a\": {\"y\": \"2\"}}") + """
-                        , "a.json": """ + jsonFileNode("{\"a\": {\"x\": \"1\"}}") + """
-                        , "b.json": """ + jsonFileNode("{\"b\": {\"z\": \"3\"}}") + """
+                        "sites.diff.json": """ + jsonFileNode("{\"a\": {\"y\": \"2\"}}") + """
+                        , "diff.json": """ + jsonFileNode("{\"a\": {\"x\": \"1\"}}") + """
+                        , "asset-diff.json": """ + jsonFileNode("{\"b\": {\"z\": \"3\"}}") + """
                         , "readme.txt": { "jcr:primaryType": "nam:nt:unstructured" }
                     }
                 }
@@ -295,9 +295,29 @@ public class DiffIndexMergerTest {
         HashMap<String, JsonObject> target = new HashMap<>();
         assertNull(getMerger().tryExtractDiffIndex(repositoryDefinitions, "/oak:index/diff.index", target));
         assertEquals("[a, b]", new TreeSet<>(target.keySet()).toString());
-        // "a" is not deep-merged: the entry of "c.json" replaces the one of "a.json"
+        // "a" is not deep-merged: sites.diff.json replaces the entry from diff.json
         assertEquals("{\n  \"y\": \"2\"\n}", target.get("a").toString());
         assertEquals("{\n  \"z\": \"3\"\n}", target.get("b").toString());
+    }
+
+    @Test
+    public void nonMatchingJsonFilenamesAreNotParsedAsDiffs() {
+        for (String index : new String[] {"/oak:index/diff.index", "/oak:index/diff.index.optimizer"}) {
+            JsonObject definitions = new JsonObject(true);
+            JsonObject files = new JsonObject(true);
+            definitions.getChildren().put(index, files);
+            files.getChildren().put("sites.diff.json",
+                    JsonObject.fromJson(jsonFileNode("{\"a\":{\"x\":1}}"), true));
+            for (String filename : new String[] {"settings.json", "diff.json.bak", "diff.JSON", "asset-diff.json.txt"}) {
+                files.getChildren().put(filename, JsonObject.fromJson(jsonFileNode("{broken"), true));
+            }
+            DiffIndexMerger merger = getMerger();
+            HashMap<String, JsonObject> target = new HashMap<>();
+            assertNull(merger.tryExtractDiffIndex(definitions, index, target));
+            assertEquals("[a]", target.keySet().toString());
+            assertEquals("1", target.get("a").getProperties().get("x"));
+            assertEquals(0, merger.getAndClearWarnings().size());
+        }
     }
 
     // a binary within the diff JSON may reference another file of the diff.index,
@@ -498,7 +518,7 @@ public class DiffIndexMergerTest {
         assertEquals(diffWithFileRef, storedDiff);
     }
 
-    // All *.json children are sorted alphabetically, and merged.
+    // All *diff.json children are sorted alphabetically, and merged.
     // For duplicate indexes, the (alphabetically) last one wins.
     @Test
     public void openListOfDiffs() {
@@ -508,8 +528,8 @@ public class DiffIndexMergerTest {
                         "jcr:primaryType": "nt:unstructured",
                         "type": "lucene", "includedPaths": "/same", "queryPaths": "/same",
                         "diff.json": """ + jsonFileNode(indexDiff("ntFileFolder", "a", "1")) + """
-                        , "diff.asset1.json": """ + jsonFileNode(indexDiff("damAssetLucene", "b", "2")) + """
-                        , "diff.asset2.json": """ + jsonFileNode(indexDiff("damAssetLucene", "b", "3")) + """
+                        , "asset1-diff.json": """ + jsonFileNode(indexDiff("damAssetLucene", "b", "2")) + """
+                        , "asset2-diff.json": """ + jsonFileNode(indexDiff("damAssetLucene", "b", "3")) + """
                     }
                 }
                 """, true);
@@ -546,7 +566,7 @@ public class DiffIndexMergerTest {
                         "jcr:data": ":blobId:ewogICJudEZpbGVGb2xkZXIiOiB7ICJpbmRleFJ1bGVzIjogewogICAgImRhbTpBc3NldCI6IHsKICAgICAgInByb3BlcnRpZXMiOiB7CiAgICAgICAgImEiOiB7CiAgICAgICAgICAgICJuYW1lIjogIjEiLAogICAgICAgICAgICAicHJvcGVydHlJbmRleCI6IHRydWUKICAgICAgICAgIH0KICAgICAgICB9CiAgICAgIH0KICAgIH0KICB9Cn0K"
                       }
                     },
-                    "diff.asset1.json": {
+                    "asset1-diff.json": {
                       "jcr:primaryType": "nam:nt:file",
                       "jcr:content": {
                         "jcr:primaryType": "nam:nt:resource",
@@ -554,7 +574,7 @@ public class DiffIndexMergerTest {
                         "jcr:data": ":blobId:ewogICJkYW1Bc3NldEx1Y2VuZSI6IHsgImluZGV4UnVsZXMiOiB7CiAgICAiZGFtOkFzc2V0IjogewogICAgICAicHJvcGVydGllcyI6IHsKICAgICAgICAiYiI6IHsKICAgICAgICAgICAgIm5hbWUiOiAiMiIsCiAgICAgICAgICAgICJwcm9wZXJ0eUluZGV4IjogdHJ1ZQogICAgICAgICAgfQogICAgICAgIH0KICAgICAgfQogICAgfQogIH0KfQo="
                       }
                     },
-                    "diff.asset2.json": {
+                    "asset2-diff.json": {
                       "jcr:primaryType": "nam:nt:file",
                       "jcr:content": {
                         "jcr:primaryType": "nam:nt:resource",

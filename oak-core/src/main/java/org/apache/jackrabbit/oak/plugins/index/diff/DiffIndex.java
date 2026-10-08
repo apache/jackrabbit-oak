@@ -215,7 +215,7 @@ public class DiffIndex {
                     }
                 }
                 if (!diffContent.exists()) {
-                    if (child.endsWith(".json")) {
+                    if (child.endsWith("diff.json")) {
                         readErrors.add("jcr:content is missing in " + filePath);
                     }
                     continue;
@@ -237,7 +237,7 @@ public class DiffIndex {
                 file.getChildren().put("jcr:content", content);
                 files.getChildren().put(child, file);
             }
-            if (files.getChildren().keySet().stream().noneMatch(name -> name.endsWith(".json"))) {
+            if (files.getChildren().keySet().stream().noneMatch(name -> name.endsWith("diff.json"))) {
                 files.getChildren().put("diff", new JsonObject(true));
             }
         }

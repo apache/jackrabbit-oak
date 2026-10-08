@@ -344,7 +344,7 @@ public class DiffIndexMerger {
         // a TreeMap is used to process them in alphabetical order
         TreeMap<String, JsonObject> files = new TreeMap<>();
         for (Entry<String, JsonObject> e : diffIndex.getChildren().entrySet()) {
-            if (e.getKey().endsWith(".json")) {
+            if (e.getKey().endsWith("diff.json")) {
                 files.put(e.getKey(), e.getValue());
             }
         }

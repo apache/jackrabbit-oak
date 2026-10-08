@@ -77,7 +77,7 @@ public class DiffIndexLegacyTest {
             JsonObject definitions = JsonObject.fromJson("""
                     {
                         "/oak:index/diff.index": {
-                            "additional.json": {},
+                            "additional-diff.json": {},
                             "diff": {
                                 "acme.test": { "jcr:data": ":file:missing.txt" }
                             }
@@ -214,14 +214,14 @@ public class DiffIndexLegacyTest {
         DiffIndex.applyDiffIndexChanges(store, definitions);
         assertTrue(definitions.hasChildNode("acme.main-1-custom-1"));
         assertEquals(!legacy, definitions.hasChildNode("acme.additional-1-custom-1"));
-        NodeBuilder additional = definitions.child("diff.index").child("additional.json").child("jcr:content");
+        NodeBuilder additional = definitions.child("diff.index").child("additional-diff.json").child("jcr:content");
         assertEquals(!legacy, additional.hasProperty(DiffIndexMerger.LAST_PROCESSED));
     }
 
     private static NodeBuilder definitions(MemoryNodeStore store) {
         NodeBuilder definitions = store.getRoot().builder().child("oak:index");
         file(definitions, "diff.json", "{\"acme.main\":{\"type\":\"lucene\"}}");
-        file(definitions, "additional.json", "{\"acme.additional\":{\"type\":\"lucene\"}}");
+        file(definitions, "additional-diff.json", "{\"acme.additional\":{\"type\":\"lucene\"}}");
         return definitions;
     }
 
