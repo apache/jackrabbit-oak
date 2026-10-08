@@ -100,7 +100,6 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.descriptors.GenericDescriptors;
 import org.apache.jackrabbit.oak.OakVersion;
-import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -117,7 +116,6 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
     private final QueryIndexProvider indexProvider;
     private final QueryEngineSettings queryEngineSettings;
     private final Descriptors baseDescriptors;
-    private final Feature classicMove;
 
     private GenericDescriptors descriptors;
     
@@ -131,8 +129,6 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
      * @param indexProvider        index provider
      * @param securityProvider     The configured security provider.
      * @param baseDescriptors      the base descriptors.
-     * @param classicMove          optional feature flag to use classic move
-     *                             implementation.
      */
     public ContentRepositoryImpl(@NotNull NodeStore nodeStore,
                                  @NotNull CommitHook commitHook,
@@ -140,8 +136,7 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
                                  QueryEngineSettings queryEngineSettings,
                                  @Nullable QueryIndexProvider indexProvider,
                                  @NotNull SecurityProvider securityProvider,
-                                 @Nullable Descriptors baseDescriptors,
-                                 @Nullable Feature classicMove) {
+                                 @Nullable Descriptors baseDescriptors) {
         this.nodeStore = requireNonNull(nodeStore);
         this.commitHook = requireNonNull(commitHook);
         this.defaultWorkspaceName = requireNonNull(defaultWorkspaceName);
@@ -149,7 +144,6 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
         this.queryEngineSettings = queryEngineSettings != null ? queryEngineSettings : new QueryEngineSettings();
         this.indexProvider = indexProvider != null ? indexProvider : new CompositeQueryIndexProvider();
         this.baseDescriptors = baseDescriptors;
-        this.classicMove = classicMove;
     }
 
     @NotNull
@@ -170,7 +164,7 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
         loginContext.login();
 
         return new ContentSessionImpl(loginContext, securityProvider, workspaceName, nodeStore,
-                commitHook, queryEngineSettings, indexProvider, classicMove);
+                commitHook, queryEngineSettings, indexProvider);
     }
 
     @NotNull

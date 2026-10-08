@@ -29,14 +29,9 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
-import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
-import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
@@ -50,39 +45,20 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Test methods (mostly) copied from oak-it RootTest and parameterized to run
- * with {@link MutableRoot.ClassicMove} and {@link MutableRoot.NeoMove}.
+ * Test methods (mostly) copied from oak-it RootTest.
+ * Run with {@code -Doak.classicMove=true} to exercise {@link MutableRoot.ClassicMove}
+ * instead of the default {@link MutableRoot.NeoMove}.
  */
-@RunWith(Parameterized.class)
 public class MoveTest {
 
-    private final boolean classicMove;
+    private final boolean classicMove = Boolean.getBoolean("oak.classicMove");
 
     private ContentSession session;
-
-    @Parameterized.Parameters(name="Classic Move: ({0})")
-    public static List<Boolean> classicMove() {
-        return Arrays.asList(true, false);
-    }
-
-    public MoveTest(boolean classicMove) {
-        this.classicMove = classicMove;
-    }
 
     @Before
     public void setUp() throws Exception {
         Oak oak = new Oak().with(new OpenSecurityProvider());
-        Whiteboard whiteboard = oak.getWhiteboard();
         session = oak.createContentSession();
-        if (classicMove) {
-            Tracker<FeatureToggle> toggleTracker = whiteboard.track(FeatureToggle.class);
-            for (FeatureToggle ft : toggleTracker.getServices()) {
-                // enable classic move implementation
-                if ("FT_CLASSIC_MOVE_OAK-10147".equals(ft.getName())) {
-                    ft.setEnabled(true);
-                }
-            }
-        }
         // Add test content
         Root root = session.getLatestRoot();
         Tree tree = root.getTree("/");
