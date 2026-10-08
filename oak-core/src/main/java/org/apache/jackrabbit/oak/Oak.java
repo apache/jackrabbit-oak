@@ -814,8 +814,7 @@ public class Oak {
                 queryEngineSettings.unwrap(),
                 indexProvider,
                 securityProvider,
-                new AggregatingDescriptors(t),
-                newFeature("FT_CLASSIC_MOVE_OAK-10147", whiteboard)) {
+                new AggregatingDescriptors(t)) {
             @Override
             public void close() throws IOException {
                 super.close();
