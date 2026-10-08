@@ -253,6 +253,7 @@ public class DiffIndexMerger {
             tryExtractDiffIndexLegacy(combined, "/oak:index/" + DIFF_INDEX_OPTIMIZER, toProcess);
         } else if (tryExtractDiffIndex(combined, "/oak:index/" + DIFF_INDEX, toProcess) != null
                 || tryExtractDiffIndex(combined, "/oak:index/" + DIFF_INDEX_OPTIMIZER, toProcess) != null) {
+            // Abort on extraction errors to avoid treating missing entries as removed customizations.
             return false;
         }
         // if the diff index exists, but doesn't contain some of the previous indexes
