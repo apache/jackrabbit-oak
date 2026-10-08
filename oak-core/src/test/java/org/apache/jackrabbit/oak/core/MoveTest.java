@@ -45,8 +45,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Test methods (mostly) copied from oak-it RootTest.
- * Maven also runs these tests in a separate JVM with {@code oak.classicMove=true}.
+ * Tests move operations; {@code -Doak.classicMove=true} selects ClassicMove.
  */
 public class MoveTest {
 
