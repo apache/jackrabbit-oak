@@ -124,6 +124,10 @@ over to the primary when the lag is estimated to be more than five seconds.
 
 ## <a name="configuration"></a> Configuration
 
+The `FT_THROTTLING_OAK-9909` feature toggle has been removed
+([OAK-12301](https://issues.apache.org/jira/browse/OAK-12301)). Write throttling is still
+available through the `throttlingEnabled` configuration setting, which defaults to `false`.
+
 Independent of whether the DocumentNodeStore is initialized via the OSGi service
 or the builder, the implementation will automatically take care of some
 appropriate default MongoDB client parameters. This includes the write concern,

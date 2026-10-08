@@ -127,7 +127,6 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private String loggingPrefix;
     private LeaseCheckMode leaseCheck = ClusterNodeInfo.DEFAULT_LEASE_CHECK_MODE; // OAK-2739 is enabled by default also for non-osgi
     private boolean isReadOnlyMode = false;
-    private Feature docStoreThrottlingFeature;
     private Feature cancelInvalidationFeature;
     private Feature docStoreAvoidMergeLockFeature;
     private Feature prevNoPropCacheFeature;
@@ -459,16 +458,6 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public boolean getReadOnlyMode() {
         return isReadOnlyMode;
-    }
-
-    public T setDocStoreThrottlingFeature(@Nullable Feature docStoreThrottling) {
-        this.docStoreThrottlingFeature = docStoreThrottling;
-        return thisBuilder();
-    }
-
-    @Nullable
-    public Feature getDocStoreThrottlingFeature() {
-        return docStoreThrottlingFeature;
     }
 
     public T setCancelInvalidationFeature(@Nullable Feature cancelInvalidation) {
