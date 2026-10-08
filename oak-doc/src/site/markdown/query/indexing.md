@@ -497,7 +497,8 @@ To build a JSON index definition for a query, you may want to use the existing
 If there are errors when trying to parse the JSON, or when merging,
 these errors are written to the `diff.index` node in the form of
 `warn.01`, `warn.02` etc. properties.
-If only `diff.index.optimizer` exists, warnings are stored there instead.
+Warnings are stored only in `diff.index`. If that node is absent, warnings
+are logged but are not stored on `diff.index.optimizer`.
 (After storing the new diff, you might need to refresh the node to see these warnings.)
 
 Merge warnings consist of ignored properties, unsupported paths, checksum mismatches, etc.

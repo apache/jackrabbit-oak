@@ -92,7 +92,7 @@ public class DiffIndex {
         if (diffs != null) {
             processDiffs(store, indexDefinitions, diffs, MERGER);
         }
-        storeOrRemoveWarningsLegacy(indexDefinitions, MERGER);
+        storeOrRemoveWarnings(indexDefinitions, MERGER);
     }
 
     /**
@@ -296,23 +296,6 @@ public class DiffIndex {
         }
     }
 
-    private static void storeOrRemoveWarningsLegacy(NodeBuilder indexDefinitions, DiffIndexMerger merger) {
-        if (!indexDefinitions.hasChildNode(DiffIndexMerger.DIFF_INDEX)) {
-            return;
-        }
-        NodeBuilder diffIndexDefinition = indexDefinitions.child(DiffIndexMerger.DIFF_INDEX);
-        for (PropertyState ps : diffIndexDefinition.getNodeState().getProperties()) {
-            if (ps.getName().startsWith("warn.")) {
-                diffIndexDefinition.removeProperty(ps.getName());
-            }
-        }
-        List<String> warnings = merger.getAndClearWarnings();
-        for (int i = 0; i < warnings.size(); i++) {
-            String name = String.format("warn.%02d", i + 1);
-            diffIndexDefinition.setProperty(name, warnings.get(i));
-        }
-    }
-
     /**
      * Try to read a text from the (binary) jcr:data property. Edge cases such as
      * "property does not exist" and IO exceptions (blob not found) do not throw an
@@ -334,7 +317,7 @@ public class DiffIndex {
     }
 
     /**
-     * Store warnings in diff.index, or diff.index.optimizer if diff.index is absent.
+     * Store warnings in diff.index, if that node exists.
      * Warnings are stored in separate properties named "warn.01", "warn.02", etc.
      * Any existing "warn." properties are removed first.
      *
@@ -342,16 +325,10 @@ public class DiffIndex {
      * @param merger the merger instance to retrieve warnings from
      */
     public static void storeOrRemoveWarnings(NodeBuilder indexDefinitions, DiffIndexMerger merger) {
-        if (isLegacyMode()) {
-            storeOrRemoveWarningsLegacy(indexDefinitions, merger);
+        if (!indexDefinitions.hasChildNode(DiffIndexMerger.DIFF_INDEX)) {
             return;
         }
-        String warningIndex = indexDefinitions.hasChildNode(DiffIndexMerger.DIFF_INDEX)
-                ? DiffIndexMerger.DIFF_INDEX : DiffIndexMerger.DIFF_INDEX_OPTIMIZER;
-        if (!indexDefinitions.hasChildNode(warningIndex)) {
-            return;
-        }
-        NodeBuilder diffIndexDefinition = indexDefinitions.getChildNode(warningIndex);
+        NodeBuilder diffIndexDefinition = indexDefinitions.getChildNode(DiffIndexMerger.DIFF_INDEX);
         // remove existing warn.* properties
         for (PropertyState ps : diffIndexDefinition.getNodeState().getProperties()) {
             if (ps.getName().startsWith("warn.")) {

@@ -415,9 +415,34 @@ public class DiffIndexTest {
         assertFalse(definitions.hasChildNode("diff.index"));
         assertNull(DiffIndex.collectDiffs(definitions, new DiffIndexMerger()));
         diffFile(definitions, "diff.index.optimizer", "a.json", "{broken");
-        DiffIndex.applyDiffIndexChanges(store, definitions);
+        DiffIndexMerger merger = new DiffIndexMerger();
+        assertNull(DiffIndex.collectDiffs(definitions, merger));
         assertTrue(definitions.hasChildNode("acme.a-1-custom-1"));
-        assertTrue(definitions.child("diff.index.optimizer").hasProperty("warn.01"));
+        assertFalse(definitions.child("diff.index.optimizer").hasProperty("warn.01"));
+        assertFalse(definitions.hasChildNode("diff.index"));
+        assertEquals(1, merger.getAndClearWarnings().size());
+    }
+
+    @Test
+    public void warningsAreStoredOnlyInCustomerDiffIndex() {
+        NodeBuilder definitions = new MemoryNodeStore().getRoot().builder().child(INDEX_DEFINITIONS_NAME);
+        NodeBuilder optimizer = definitions.child(DiffIndexMerger.DIFF_INDEX_OPTIMIZER);
+        DiffIndexMerger merger = new DiffIndexMerger();
+        merger.logAndCollectWarn("optimizer warning");
+        DiffIndex.storeOrRemoveWarnings(definitions, merger);
+        assertFalse(definitions.hasChildNode(DiffIndexMerger.DIFF_INDEX));
+        assertFalse(optimizer.hasProperty("warn.01"));
+        assertEquals(List.of("optimizer warning"), merger.getAndClearWarnings());
+
+        NodeBuilder customer = definitions.child(DiffIndexMerger.DIFF_INDEX);
+        customer.setProperty("warn.99", "old warning");
+        merger.logAndCollectWarn("new warning");
+        DiffIndex.storeOrRemoveWarnings(definitions, merger);
+        assertEquals("new warning", customer.getString("warn.01"));
+        assertFalse(customer.hasProperty("warn.99"));
+        assertFalse(optimizer.hasProperty("warn.01"));
+        DiffIndex.storeOrRemoveWarnings(definitions, merger);
+        assertFalse(customer.hasProperty("warn.01"));
     }
 
     private static void diffFile(NodeBuilder definitions, String index, String name, String data) {
