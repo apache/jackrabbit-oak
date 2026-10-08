@@ -119,6 +119,8 @@ public class SegmentPreloader extends DelegatingPersistentCache implements Close
             public void execute(@NotNull Runnable command) {
                 if (getQueue().size() < DISPATCH_QUEUE_MAX_SIZE) {
                     super.execute(command);
+                } else {
+                    clearInProgressTask(command);
                 }
             }
 
