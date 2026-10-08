@@ -249,7 +249,6 @@ shared with the wrapper. `ThrottlingStatsCollector` records per-operation thrott
 | `throttlingEnabled` | `false` | Enable throttling; system property `oak.documentstore.throttlingEnabled` |
 | `throttlingTimeMillis` | — | Base delay in milliseconds |
 | `throttlingJobSchedulePeriodSecs` | — | How often the factor is re-read from MongoDB |
-| `disableThrottling` | `false` | Emergency kill-switch to disable throttling at runtime |
 
 ### Key classes
 
@@ -367,7 +366,6 @@ Registered in `DocumentNodeStoreService`, wired into `DocumentNodeStoreBuilder`.
 
 | Toggle name | Builder method | Purpose |
 |---|---|---|
-| `FT_DISABLE_THROTTLING_OAK-12119` | `setDocStoreDisableThrottlingFeature` | Runtime kill-switch to disable throttling |
 | `FT_CANCELINVALIDATION_OAK-10595` | `setCancelInvalidationFeature` | Cancel in-flight cache invalidations |
 | `FT_AVOID_MERGE_LOCK_OAK-11720` | `setDocStoreAvoidMergeLockFeature` | Avoid acquiring merge lock where safe |
 | `FT_PREV_NO_PROP_OAK-11184` | `setPrevNoPropCacheFeature` | Skip caching previous documents with no properties |
