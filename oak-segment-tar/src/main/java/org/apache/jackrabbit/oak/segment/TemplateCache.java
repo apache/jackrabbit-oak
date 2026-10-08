@@ -30,7 +30,7 @@ public class TemplateCache extends ReaderCache<Template> {
      * @param maxSize the maximum memory in bytes.
      */
     TemplateCache(long maxSize) {
-        super(maxSize, 250, "Template Cache", new ReaderTemplateCacheWeigher());
+        super(maxSize, "Template Cache", new ReaderTemplateCacheWeigher());
     }
 
     @Override
