@@ -20,16 +20,19 @@ import java.io.IOException;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import co.elastic.clients.elasticsearch._types.CommonStatsFlag;
 import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 
 import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
 import org.apache.jackrabbit.oak.cache.api.CacheLoader;
 import org.apache.jackrabbit.oak.cache.api.LoadingCache;
+import org.apache.jackrabbit.oak.plugins.index.elastic.internal.ElasticFeatureToggles;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.jetbrains.annotations.NotNull;
@@ -41,6 +44,10 @@ import org.slf4j.LoggerFactory;
 import co.elastic.clients.elasticsearch._types.Bytes;
 import co.elastic.clients.elasticsearch.cat.indices.IndicesRecord;
 import co.elastic.clients.elasticsearch.core.CountRequest;
+import co.elastic.clients.elasticsearch.indices.IndexSettings;
+import co.elastic.clients.elasticsearch.indices.IndexState;
+import co.elastic.clients.elasticsearch.indices.stats.IndexStats;
+import co.elastic.clients.elasticsearch.indices.stats.IndicesStats;
 
 /**
  * Cache-based {@code IndexStatistics} implementation providing statistics for Elasticsearch reducing
@@ -79,6 +86,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
     private final ElasticIndexDefinition indexDefinition;
     private final LoadingCache<StatsRequestDescriptor, Integer> countCache;
     private final LoadingCache<StatsRequestDescriptor, StatsResponse> statsCache;
+
     ElasticIndexStatistics(@NotNull ElasticConnection elasticConnection,
                            @NotNull ElasticIndexDefinition indexDefinition) {
         this(elasticConnection, indexDefinition, null, null);
@@ -243,28 +251,62 @@ public class ElasticIndexStatistics implements IndexStatistics {
         }
 
         private StatsResponse stats(StatsRequestDescriptor crd) throws IOException {
-            List<IndicesRecord> records = crd.connection.getClient().cat().indices(i -> i
-                            .index(crd.index)
-                            .bytes(Bytes.Bytes))
-                    .indices();
-            if (records.isEmpty()) {
-                throw new IllegalStateException("Cannot retrieve stats for index " + crd.index + " as it does not exist");
-            }
-            // Assuming a single index matches crd.index
-            IndicesRecord record = records.get(0);
-            String storeSize = record.storeSize();
-            String primaryStoreSize = record.priStoreSize();
-            String creationDate = record.creationDateString();
-            String luceneDocsCount = record.docsCount();
-            String luceneDocsDeleted = record.docsDeleted();
+            if (ElasticFeatureToggles.FT_OAK_12381_DISABLE.get()) {
+                // Legacy behaviour
+                List<IndicesRecord> records = crd.connection.getClient().cat().indices(i -> i
+                                .index(crd.index)
+                                .bytes(Bytes.Bytes))
+                        .indices();
+                if (records.isEmpty()) {
+                    throw new IllegalStateException("Cannot retrieve stats for index " + crd.index + " as it does not exist");
+                }
+                // Assuming a single index matches crd.index
+                IndicesRecord record = records.get(0);
+                String storeSize = record.storeSize();
+                String primaryStoreSize = record.priStoreSize();
+                String creationDate = record.creationDateString();
+                String luceneDocsCount = record.docsCount();
+                String luceneDocsDeleted = record.docsDeleted();
 
-            return new StatsResponse(
-                    storeSize != null ? Long.parseLong(storeSize) : -1,
-                    primaryStoreSize != null ? Long.parseLong(primaryStoreSize) : -1,
-                    creationDate != null ? Long.parseLong(creationDate) : -1,
-                    luceneDocsCount != null ? Integer.parseInt(luceneDocsCount) : -1,
-                    luceneDocsDeleted != null ? Integer.parseInt(luceneDocsDeleted) : -1
-            );
+                return new StatsResponse(
+                        storeSize != null ? Long.parseLong(storeSize) : -1,
+                        primaryStoreSize != null ? Long.parseLong(primaryStoreSize) : -1,
+                        creationDate != null ? Long.parseLong(creationDate) : -1,
+                        luceneDocsCount != null ? Integer.parseInt(luceneDocsCount) : -1,
+                        luceneDocsDeleted != null ? Integer.parseInt(luceneDocsDeleted) : -1
+                );
+            } else {
+                Map<String, IndicesStats> indexStatsMap = crd.connection.getClient().indices().stats(s -> s
+                                .index(crd.index)
+                                .metric(CommonStatsFlag.Docs, CommonStatsFlag.Store))
+                        .indices();
+                Map<String, IndexState> indexSettingsMap = crd.connection.getClient().indices().getSettings(s -> s
+                                .index(crd.index)
+                                .name("index.creation_date"))
+                        .settings();
+
+                if (indexStatsMap.isEmpty() || indexSettingsMap.isEmpty()) {
+                    throw new IllegalStateException("Cannot retrieve stats for index " + crd.index + " as it does not exist");
+                }
+
+                // Assuming a single index matches crd.index
+                IndicesStats indexStats = indexStatsMap.values().iterator().next();
+                IndexSettings indexSettings = indexSettingsMap.values().iterator().next().settings();
+                IndexStats total = indexStats.total();
+                long storeSize = (total != null && total.store() != null) ? total.store().sizeInBytes() : -1;
+                long creationDate = (indexSettings != null && indexSettings.index() != null && indexSettings.index().creationDate() != null)
+                        ? indexSettings.index().creationDate() : -1;
+                IndexStats primaries = indexStats.primaries();
+                if (primaries == null) {
+                    return new StatsResponse(storeSize, -1, creationDate, -1, -1);
+                }
+                long primaryStoreSize = primaries.store() != null ? primaries.store().sizeInBytes() : -1;
+                int luceneDocsCount = primaries.docs() != null ? (int) primaries.docs().count() : -1;
+                int luceneDocsDeleted = (primaries.docs() != null && primaries.docs().deleted() != null)
+                        ? primaries.docs().deleted().intValue() : -1;
+
+                return new StatsResponse(storeSize, primaryStoreSize, creationDate, luceneDocsCount, luceneDocsDeleted);
+            }
         }
     }
 

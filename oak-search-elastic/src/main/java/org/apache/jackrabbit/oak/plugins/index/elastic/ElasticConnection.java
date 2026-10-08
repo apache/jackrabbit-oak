@@ -17,24 +17,23 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import co.elastic.clients.elasticsearch.ElasticsearchAsyncClient;
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.instrumentation.NoopInstrumentation;
 import co.elastic.clients.transport.rest5_client.Rest5ClientTransport;
 import co.elastic.clients.transport.rest5_client.low_level.Rest5Client;
 import co.elastic.clients.transport.rest5_client.low_level.Rest5ClientBuilder;
-import org.apache.jackrabbit.oak.plugins.index.elastic.internal.ElasticFeatureToggles;
 import org.apache.hc.client5.http.config.TlsConfig;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.http2.HttpVersionPolicy;
 import org.apache.hc.core5.util.Timeout;
+import org.apache.jackrabbit.oak.plugins.index.elastic.internal.ElasticFeatureToggles;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -245,7 +244,16 @@ public class ElasticConnection implements Closeable {
      */
     public boolean isAvailable() {
         try {
-            return this.getClient().ping().value();
+            // When removing this feature flag, we might want to keep an option to use the ping call instead of the
+            // authenticate call in order to support Elasticsearch clusters with xpack.security disabled.
+            if (ElasticFeatureToggles.FT_OAK_12381_DISABLE.get()) {
+                // Legacy behaviour
+                return this.getClient().ping().value();
+            } else {
+                // This validates connection and API key validity but does not require any special permissions
+                this.getClient().security().authenticate();
+                return true;
+            }
         } catch (Exception e) {
             LOG.warn("Error checking connection for {}, message: {}", this, e.getMessage());
             LOG.debug("", e);
