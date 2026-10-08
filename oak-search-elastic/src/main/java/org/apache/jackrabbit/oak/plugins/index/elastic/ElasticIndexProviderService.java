@@ -257,7 +257,7 @@ public class ElasticIndexProviderService {
                 new FeatureToggle(ElasticFeatureToggles.FT_OAK_12415, ElasticFeatureToggles.FT_OAK_12415_ENABLE),
                 emptyMap()));
         oakRegs.add(whiteboard.register(FeatureToggle.class,
-                new FeatureToggle(ElasticInvalidQueryCache.FT_OAK_70592, ElasticInvalidQueryCache.FT_OAK_70592_ENABLE),
+                new FeatureToggle(ElasticInvalidQueryCache.FT_OAK_12403, ElasticInvalidQueryCache.FT_OAK_70592_ENABLE),
                 emptyMap()));
         if (System.getProperty(QueryEngineSettings.OAK_INFERENCE_ENABLED) != null) {
             this.isInferenceEnabled = Boolean.parseBoolean(System.getProperty(QueryEngineSettings.OAK_INFERENCE_ENABLED));
