@@ -17,9 +17,12 @@
 package org.apache.jackrabbit.oak.plugins.index.luceneNg.internal;
 
 import org.apache.jackrabbit.oak.plugins.index.cursor.AbstractCursor;
+import org.apache.jackrabbit.oak.plugins.index.cursor.Cursors;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
+import org.apache.jackrabbit.oak.spi.query.QueryLimits;
+import org.apache.jackrabbit.oak.query.RuntimeNodeTraversalException;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.search.IndexSearcher;
@@ -39,6 +42,9 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Queue;
+import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Cursor over Lucene 9 search results, constructed with a {@link LuceneNgIndexTracker} and a
@@ -72,6 +78,8 @@ public class LuceneNgCursor extends AbstractCursor {
     private ScoreDoc lastScoreDoc = null;
     private boolean noMoreDocs = false;
     private long lazySize = 0;
+    private final QueryLimits queryLimits;
+    private long readCount;
 
     /**
      * @param tracker        the tracker to acquire the index node from, per batch
@@ -81,9 +89,11 @@ public class LuceneNgCursor extends AbstractCursor {
      * @param facetColumns   pre-computed {@code rep:facet(dim) -> JSON} columns (or empty)
      * @param needsExcerpts  whether excerpts should be generated per batch (fulltext queries)
      * @param excerptAnalyzer analyzer for excerpt highlighting; owned and closed by this cursor
+     * @param queryLimits    limits for candidate rows, including post-filtered rows
      */
     public LuceneNgCursor(LuceneNgIndexTracker tracker, String indexPath, Query query, Sort sort,
-                          Map<String, String> facetColumns, boolean needsExcerpts, Analyzer excerptAnalyzer) {
+                          Map<String, String> facetColumns, boolean needsExcerpts, Analyzer excerptAnalyzer,
+                          QueryLimits queryLimits) {
         this.tracker = tracker;
         this.indexPath = indexPath;
         this.lazyQuery = query;
@@ -93,6 +103,7 @@ public class LuceneNgCursor extends AbstractCursor {
         this.needsExcerpts = needsExcerpts;
         this.excerptAnalyzer = excerptAnalyzer;
         this.pendingRows = new LinkedList<>();
+        this.queryLimits = requireNonNull(queryLimits, "Query limits are required");
         // The analyzer (a Closeable) is held for the cursor's whole life; close it on
         // exhaustion / close() / GC. The runnable must not capture `this`.
         final Analyzer analyzerToClose = excerptAnalyzer;
@@ -121,8 +132,16 @@ public class LuceneNgCursor extends AbstractCursor {
 
     @Override
     public IndexRow next() {
-        if (pendingRows.isEmpty() && !loadNextBatch()) {
+        if (!hasNext()) {
             throw new NoSuchElementException();
+        }
+        try {
+            Cursors.checkReadLimit(++readCount, queryLimits);
+        } catch (RuntimeNodeTraversalException e) {
+            pendingRows.clear();
+            noMoreDocs = true;
+            cleanable.clean();
+            throw e;
         }
         return pendingRows.poll();
     }
@@ -164,7 +183,7 @@ public class LuceneNgCursor extends AbstractCursor {
             }
 
             for (ScoreDoc scoreDoc : batchDocs.scoreDocs) {
-                Document doc = batchSearcher.storedFields().document(scoreDoc.doc);
+                Document doc = batchSearcher.storedFields().document(scoreDoc.doc, Set.of(FieldNames.PATH));
                 String path = doc.get(FieldNames.PATH);
                 String excerpt = batchExcerpts.get(scoreDoc.doc);
                 pendingRows.add(new LuceneNgIndexRow(path, scoreDoc.score, facetColumns, excerpt));

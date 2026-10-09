@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.facet.sortedset.DefaultSortedSetDocValuesReaderState;
+import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.search.IndexSearcher;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -172,6 +173,10 @@ public class LuceneNgIndexNode implements IndexNode {
 
     public DefaultSortedSetDocValuesReaderState getFacetReaderState(String fieldName) throws IOException {
         return searcherHolder.getFacetReaderState(fieldName);
+    }
+
+    public FieldInfos getFieldInfos() {
+        return searcherHolder.getFieldInfos();
     }
 
     /**

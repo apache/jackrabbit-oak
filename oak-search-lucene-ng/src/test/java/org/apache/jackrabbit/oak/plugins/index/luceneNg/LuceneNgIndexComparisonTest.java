@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -27,7 +27,9 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.LuceneNgIndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.search.test.AbstractIndexComparisonTest;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,6 +42,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Runs the shared {@link AbstractIndexComparisonTest} scenarios against the LuceneNg (Lucene 9) backend.
@@ -48,6 +51,10 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    private final org.apache.jackrabbit.oak.query.QueryEngineSettings querySettings =
+            new org.apache.jackrabbit.oak.query.QueryEngineSettings();
+    private LuceneNgIndexTracker tracker;
 
     @Override
     protected ContentRepository createRepository() {
@@ -60,40 +67,136 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
      * instead of the default no-copier tracker every other test in this class uses.
      */
     private ContentRepository createRepository(@Nullable LuceneNgIndexCopier copier) {
-        LuceneNgIndexTracker tracker = new LuceneNgIndexTracker(copier);
+        tracker = new LuceneNgIndexTracker(copier);
         LuceneNgQueryIndexProvider provider = new LuceneNgQueryIndexProvider(tracker);
         LuceneNgIndexEditorProvider editor = new LuceneNgIndexEditorProvider(tracker, copier);
+        DefaultWhiteboard whiteboard = new DefaultWhiteboard();
+        whiteboard.register(org.apache.jackrabbit.oak.query.QueryEngineSettings.class,
+                querySettings, java.util.Collections.emptyMap());
 
-        return new Oak()
-            .with(new InitialContent())
+        return new Oak(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT))
             .with(new OpenSecurityProvider())
+            .with(whiteboard)
             .with((org.apache.jackrabbit.oak.spi.query.QueryIndexProvider) provider)
             .with(editor)
             .createContentRepository();
     }
 
     @Override
-    protected void createSearchIndex() throws Exception {
-        IndexDefinitionBuilder builder = new IndexDefinitionBuilder();
-        builder.noAsync();
-        builder.evaluatePathRestrictions();
+    protected String getIndexType() {
+        return "luceneNg";
+    }
 
-        builder.indexRule("nt:base")
-            .property("title").propertyIndex().ordered()
-            // analyzed() in addition to propertyIndex(): propertyIndex() backs the equality
-            // lookup in testDescriptionQuery, analyzed() backs the property-scoped fulltext
-            // lookup in the shared testContainsOnAnalyzedProperty (CONTAINS(description, ...)).
-            .property("description").propertyIndex().analyzed()
-            .property("age").propertyIndex().type("Long").ordered()
-            .property("price").propertyIndex().type("Double").ordered()
-            .property("created").propertyIndex().type("Date")
-            .property("optionalCount").propertyIndex().type("Long").notNullCheckEnabled()
-            .property("status").propertyIndex().ordered()
-            .property("category").propertyIndex();
-
-        Tree index = builder.build(root.getTree("/").getChild("oak:index").addChild("luceneNgTestIndex"));
-        index.setProperty("type", "luceneNg");
+    @Test
+    public void indexedNodeTypesExcludeOtherTypesBeforeCandidateReads() throws Exception {
+        IndexDefinitionBuilder builder = new IndexDefinitionBuilder().noAsync();
+        builder.indexRule("nt:base").property("title").propertyIndex()
+                .property("jcr:primaryType").propertyIndex()
+                .property("jcr:mixinTypes").propertyIndex();
+        builder.build(root.getTree("/oak:index").addChild("types")).setProperty("type", "luceneNg");
+        Tree content = root.getTree("/").addChild("content");
+        Tree folder = content.addChild("folder");
+        folder.setProperty("jcr:primaryType", "nt:folder", org.apache.jackrabbit.oak.api.Type.NAME);
+        folder.setProperty("title", "Common");
+        Tree file = content.addChild("file");
+        file.setProperty("jcr:primaryType", "nt:file", org.apache.jackrabbit.oak.api.Type.NAME);
+        file.setProperty("title", "Common");
         root.commit();
+        String query = "select [jcr:path] from [nt:file] where [title] = 'Common' "
+                + "option(index name types)";
+        assertThat(executeQuery("explain " + query, "sql").get(0),
+                containsString("jcr:primaryType:nt:file"));
+        org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgIndexNode node =
+                tracker.acquireIndexNode("/oak:index/types");
+        try {
+            assertEquals("Both selector types must be indexed", 2, node.getSearcher().count(
+                    new org.apache.lucene.search.TermQuery(new org.apache.lucene.index.Term("title", "Common"))));
+            assertEquals("The NAME-typed primary type must be searchable", 1, node.getSearcher().count(
+                    new org.apache.lucene.search.TermQuery(new org.apache.lucene.index.Term("jcr:primaryType", "nt:file"))));
+        } finally {
+            node.release();
+        }
+        querySettings.setLimitReads(1);
+        assertQuery(query, "sql", List.of("/content/file"));
+    }
+
+    @Test
+    public void multipleDefinitionsExecuteTheSelectedIndex() throws Exception {
+        IndexDefinitionBuilder decoy = new IndexDefinitionBuilder().noAsync();
+        decoy.indexRule("nt:base").property("decoy").propertyIndex();
+        decoy.build(root.getTree("/oak:index").addChild("decoy")).setProperty("type", "luceneNg");
+        IndexDefinitionBuilder selected = new IndexDefinitionBuilder().noAsync();
+        selected.indexRule("nt:base").property("title").propertyIndex().ordered().facets();
+        selected.build(root.getTree("/oak:index").addChild("selected")).setProperty("type", "luceneNg");
+        Tree content = root.getTree("/").addChild("content");
+        content.addChild("other").setProperty("decoy", "x");
+        content.addChild("first").setProperty("title", "a");
+        content.addChild("second").setProperty("title", "b");
+        root.commit();
+        String query = "select [jcr:path] from [nt:base] where [title] is not null "
+                + "order by [title] option(index name selected)";
+        assertQuery(query, "sql", List.of("/content/first", "/content/second"), false, true);
+        assertThat(executeQuery("explain " + query, "sql").get(0),
+                containsString("indexDefinition: /oak:index/selected"));
+        org.apache.jackrabbit.oak.api.Result result = qe.executeQuery(
+                "select [jcr:path], [rep:facet(title)] from [nt:base] where [title] is not null "
+                        + "option(index name selected)", javax.jcr.query.Query.JCR_SQL2, Long.MAX_VALUE, 0,
+                java.util.Collections.emptyMap(), java.util.Collections.emptyMap());
+        String facets = result.getRows().iterator().next().getValue("rep:facet(title)")
+                .getValue(org.apache.jackrabbit.oak.api.Type.STRING);
+        assertEquals("1", org.apache.jackrabbit.oak.commons.json.JsonObject.fromJson(facets, true)
+                .getProperties().get("a"));
+        assertEquals("1", org.apache.jackrabbit.oak.commons.json.JsonObject.fromJson(facets, true)
+                .getProperties().get("b"));
+    }
+
+    @Test
+    public void nestedDefinitionsDoNotProduceQueryPlans() throws Exception {
+        Tree content = root.getTree("/").addChild("content");
+        IndexDefinitionBuilder builder = new IndexDefinitionBuilder().noAsync();
+        builder.indexRule("nt:base").property("nested").propertyIndex();
+        builder.build(content.addChild("oak:index").addChild("nested"))
+                .setProperty("type", "luceneNg");
+        content.addChild("node").setProperty("nested", "x");
+        root.commit();
+        String query = "select [jcr:path] from [nt:base] where isdescendantnode('/content') "
+                + "and [nested] = 'x'";
+        assertThat(executeQuery("explain " + query, "sql").get(0), not(containsString("luceneNg:")));
+        createSearchIndex();
+        assertThat(executeQuery("explain " + query, "sql").get(0), not(containsString("luceneNg:")));
+    }
+
+    @Test
+    public void configuredNullChecksUseMarkers() throws Exception {
+        IndexDefinitionBuilder builder = new IndexDefinitionBuilder().noAsync();
+        builder.indexRule("nt:unstructured").property("optional").propertyIndex().nullCheckEnabled();
+        Tree definition = builder.build(root.getTree("/oak:index").addChild("nulls"));
+        definition.setProperty("type", "luceneNg");
+        Tree content = root.getTree("/").addChild("content");
+        Tree absent = content.addChild("absent");
+        absent.setProperty("jcr:primaryType", "nt:unstructured", org.apache.jackrabbit.oak.api.Type.NAME);
+        Tree present = content.addChild("present");
+        present.setProperty("jcr:primaryType", "nt:unstructured", org.apache.jackrabbit.oak.api.Type.NAME);
+        present.setProperty("optional", "x");
+        root.commit();
+        String query = "select [jcr:path] from [nt:unstructured] where [optional] is null "
+                + "and isdescendantnode('/content')";
+        assertQuery(query, "sql", List.of("/content/absent"));
+        assertThat(executeQuery("explain " + query, "sql").get(0), containsString(":nullProps:optional"));
+    }
+
+    @Test
+    public void postFilteredCandidatesStillCountTowardsTheReadLimit() throws Exception {
+        createSearchIndex();
+        Tree content = root.getTree("/").addChild("content");
+        for (int i = 0; i < 20; i++) {
+            content.addChild("node" + i).setProperty("title", "Report");
+        }
+        root.commit();
+        querySettings.setLimitReads(10);
+        org.junit.Assert.assertThrows(org.apache.jackrabbit.oak.query.RuntimeNodeTraversalException.class,
+                () -> executeQuery("select [jcr:path] from [nt:base] where [title] = 'Report' "
+                        + "and [undeclared] = 'approved'", "sql"));
     }
 
     @Test
@@ -102,13 +205,13 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
         createTestContent();
         String explain = executeQuery("explain //element(*, nt:base)[@title = 'Oak Testing']", "xpath").get(0);
         assertThat("Query plan should use lucene:...@v9 for Granite-style parsers",
-                explain, containsString("lucene:luceneNgTestIndex@v9"));
+                explain, containsString("lucene:searchTestIndex@v9"));
         assertThat("Query plan should expose luceneNg type",
-                explain, containsString("luceneNg:luceneNgTestIndex"));
+                explain, containsString("luceneNg:searchTestIndex"));
         assertThat("Query plan should use luceneQuery label like FulltextIndex.getPlanDescription",
                 explain, containsString("luceneQuery:"));
         assertThat("Query plan should carry index definition path for tooling",
-                explain, containsString("indexDefinition: /oak:index/luceneNgTestIndex"));
+                explain, containsString("indexDefinition: /oak:index/searchTestIndex"));
     }
 
     /**
@@ -243,8 +346,7 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
      * optimisation: a luceneNg index served through a tracker wired with a real copier must
      * return exactly the same results as the no-copier baseline every other test in this class
      * exercises, for the identical content/query fixture and query used by the shared
-     * {@code AbstractIndexComparisonTest#testContainsOnAnalyzedProperty} (see grep for
-     * "CONTAINS" in this file, referenced from {@link #createSearchIndex()}'s comment above).
+     * {@link AbstractIndexComparisonTest#testContainsOnAnalyzedProperty()}.
      *
      * <p>To rule out a false-positive (the wrap being silently skipped while the query still
      * happens to work off the remote directory), the final assertion does not merely check that

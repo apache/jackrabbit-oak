@@ -16,25 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.test.AbstractIndexComparisonTest;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
-
-import java.util.List;
-
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INCLUDE_PROPERTY_NAMES;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 /**
  * Runs the shared {@link AbstractIndexComparisonTest} scenarios against the legacy Lucene backend.
@@ -59,33 +47,7 @@ public class LuceneIndexComparisonTest extends AbstractIndexComparisonTest {
     }
 
     @Override
-    protected void createSearchIndex() throws Exception {
-        Tree def = root.getTree("/oak:index").addChild("luceneTestIndex");
-        def.setProperty(JcrConstants.JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
-        def.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
-        def.setProperty(REINDEX_PROPERTY_NAME, true);
-        def.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
-        def.setProperty(createProperty(INCLUDE_PROPERTY_NAMES,
-                List.of("title", "description", "age", "price", "status", "category", "created", "optionalCount"), Type.STRINGS));
-        // This is the old-style flat index definition format (fulltextEnabled=false +
-        // includePropertyNames): IndexDefinition#createIndexRules defaults every included
-        // property to propertyIndex=true, analyzed=false when fulltextEnabled is false. To keep
-        // that default (and every other scenario indexed the same way as before) while still
-        // supporting CONTAINS(description, ...), add an explicit per-property override under the
-        // old-format "properties" node -- IndexDefinition#createIndexRules copies any properties
-        // found there over the computed defaults for that single property (see
-        // getPropDefnNode/"Copy over the property configuration" in IndexDefinition.java), so
-        // only "description" gains analyzed=true; every other property (and description's own
-        // propertyIndex=true, needed by testDescriptionQuery) is unaffected.
-        Tree props = def.addChild(FulltextIndexConstants.PROP_NODE);
-        Tree descriptionProp = props.addChild("description");
-        descriptionProp.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
-        props.addChild("age").setProperty(FulltextIndexConstants.PROP_TYPE, "Long");
-        props.addChild("price").setProperty(FulltextIndexConstants.PROP_TYPE, "Double");
-        props.addChild("created").setProperty(FulltextIndexConstants.PROP_TYPE, "Date");
-        Tree optionalCount = props.addChild("optionalCount");
-        optionalCount.setProperty(FulltextIndexConstants.PROP_TYPE, "Long");
-        optionalCount.setProperty(FulltextIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, true);
-        root.commit();
+    protected String getIndexType() {
+        return "lucene";
     }
 }

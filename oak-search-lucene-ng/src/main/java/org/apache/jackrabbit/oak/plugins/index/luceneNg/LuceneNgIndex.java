@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -40,6 +41,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.util.QueryUtils;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
@@ -57,7 +59,6 @@ import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
-import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.facet.Facets;
 import org.apache.lucene.facet.FacetsCollector;
@@ -93,6 +94,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -109,6 +111,10 @@ public class LuceneNgIndex extends FulltextIndex {
     private final LuceneNgIndexTracker tracker;
     private final String indexPath;
 
+    public LuceneNgIndex(LuceneNgIndexTracker tracker) {
+        this(tracker, null);
+    }
+
     public LuceneNgIndex(LuceneNgIndexTracker tracker, String indexPath) {
         this.tracker = tracker;
         this.indexPath = indexPath;
@@ -122,7 +128,26 @@ public class LuceneNgIndex extends FulltextIndex {
 
     @Override
     protected LuceneNgIndexNode acquireIndexNode(String indexPath) {
+        if (!isRootIndex(indexPath)) {
+            return null;
+        }
         return tracker.acquireIndexNode(indexPath);
+    }
+
+    private static boolean isRootIndex(String path) {
+        return "/oak:index".equals(PathUtils.getParentPath(path));
+    }
+
+    private String getExecutionPath(IndexPlan plan) {
+        FulltextIndexPlanner.PlanResult result = getPlanResult(plan);
+        String path = result != null ? result.indexPath : indexPath;
+        if (path == null) {
+            throw new IllegalStateException("LuceneNg query plan has no index path");
+        }
+        if (!isRootIndex(path)) {
+            throw new IllegalArgumentException("LuceneNg queries require an index directly under /oak:index");
+        }
+        return path;
     }
 
     @Override
@@ -165,7 +190,7 @@ public class LuceneNgIndex extends FulltextIndex {
                 LOG.debug("Estimated size for query {} is {}", query, totalHits);
                 return (long) totalHits;
             } catch (IOException e) {
-                LOG.warn("Size-estimate query failed on index {}", indexPath, e);
+                LOG.warn("Size-estimate query failed on index {}", getExecutionPath(plan), e);
                 return -1L;
             } finally {
                 indexNode.release();
@@ -257,13 +282,40 @@ public class LuceneNgIndex extends FulltextIndex {
             contentQuery = bq.build();
         }
 
-        if (pathQuery == null) {
+        Query typeQuery = buildNodeTypeQuery(filter, planResult);
+        if (pathQuery == null && typeQuery == null) {
             return contentQuery;
         }
         BooleanQuery.Builder combined = new BooleanQuery.Builder();
         combined.add(contentQuery, Occur.MUST);
-        combined.add(pathQuery, Occur.FILTER);
+        if (pathQuery != null) {
+            combined.add(pathQuery, Occur.FILTER);
+        }
+        if (typeQuery != null) {
+            combined.add(typeQuery, Occur.FILTER);
+        }
         return combined.build();
+    }
+
+    private static Query buildNodeTypeQuery(Filter filter, FulltextIndexPlanner.PlanResult result) {
+        if (result == null || filter.matchesAllTypes()) {
+            return null;
+        }
+        BooleanQuery.Builder types = new BooleanQuery.Builder();
+        PropertyDefinition primary = result.indexingRule.getConfig(JcrConstants.JCR_PRIMARYTYPE);
+        if (primary != null && primary.index && primary.propertyIndex) {
+            for (String type : filter.getPrimaryTypes()) {
+                types.add(new TermQuery(new Term(JcrConstants.JCR_PRIMARYTYPE, type)), Occur.SHOULD);
+            }
+        }
+        PropertyDefinition mixin = result.indexingRule.getConfig(JcrConstants.JCR_MIXINTYPES);
+        if (mixin != null && mixin.index && mixin.propertyIndex) {
+            for (String type : filter.getMixinTypes()) {
+                types.add(new TermQuery(new Term(JcrConstants.JCR_MIXINTYPES, type)), Occur.SHOULD);
+            }
+        }
+        BooleanQuery query = types.build();
+        return query.clauses().isEmpty() ? null : query;
     }
 
     /**
@@ -401,9 +453,10 @@ public class LuceneNgIndex extends FulltextIndex {
             }
         }
 
-        // Handle IS NULL: currently not efficiently supportable; return MatchAllDocs
-        // (Oak will post-filter)
         if (pr.isNullRestriction()) {
+            if (definition != null && definition.nullCheckEnabled) {
+                return new TermQuery(new Term(FieldNames.NULL_PROPS, definition.name));
+            }
             return new MatchAllDocsQuery();
         }
 
@@ -520,12 +573,16 @@ public class LuceneNgIndex extends FulltextIndex {
     }
 
     private Long parseDateToMillis(org.apache.jackrabbit.oak.api.PropertyValue pv) {
-        String dateStr = pv.getValue(org.apache.jackrabbit.oak.api.Type.DATE);
         try {
-            return org.apache.jackrabbit.util.ISO8601.parse(dateStr).getTimeInMillis();
-        } catch (Exception e) {
-            LOG.error("Failed to parse date: " + dateStr, e);
-            return 0L;
+            java.util.Calendar date = ISO8601.parse(pv.getValue(Type.DATE));
+            if (date == null) {
+                throw new IllegalArgumentException("Invalid DATE query value");
+            }
+            return date.getTimeInMillis();
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            // Conversion exceptions can contain the input; do not retain them as causes.
+            LOG.error("Failed to parse DATE query value ({})", e.getClass().getSimpleName());
+            throw new IllegalArgumentException("Invalid DATE query value");
         }
     }
 
@@ -554,7 +611,9 @@ public class LuceneNgIndex extends FulltextIndex {
         String last = pr.last != null ? pr.last.getValue(org.apache.jackrabbit.oak.api.Type.STRING) : null;
         String not = pr.not != null ? pr.not.getValue(org.apache.jackrabbit.oak.api.Type.STRING) : null;
 
-        if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding && pr.lastIncluding) {
+        if (pr.isLike) {
+            return new WildcardQuery(new Term(propertyName, QueryUtils.sqlLikeToLuceneWildcardQuery(first)));
+        } else if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding && pr.lastIncluding) {
             // Equality: title = 'Oak'
             return new TermQuery(new Term(propertyName, first));
         } else if (pr.first != null && pr.last != null) {
@@ -724,7 +783,8 @@ public class LuceneNgIndex extends FulltextIndex {
             }
             stream.end();
         } catch (IOException e) {
-            LOG.error("Failed to tokenize text: " + text, e);
+            LOG.error("Failed to tokenize fulltext query ({})", e.getClass().getSimpleName());
+            throw new IllegalStateException("Failed to tokenize fulltext query");
         }
         return tokens;
     }
@@ -743,7 +803,7 @@ public class LuceneNgIndex extends FulltextIndex {
         // The path is now taken from the plan's PlanResult (built by the inherited
         // FulltextIndexPlanner) rather than a per-instance field, so it is correct even if this
         // instance was allocated for a different index path.
-        String path = getPlanResult(plan).indexPath;
+        String path = getExecutionPath(plan);
         String shortName = PathUtils.getName(path);
         StringBuilder sb = new StringBuilder("lucene:");
         sb.append(shortName).append("@v9\n");
@@ -773,6 +833,7 @@ public class LuceneNgIndex extends FulltextIndex {
 
     @Override
     public Cursor query(QueryIndex.IndexPlan plan, NodeState rootState) {
+        String selectedPath = getExecutionPath(plan);
         // Extract filter and sort order from plan
         Filter filter = plan.getFilter();
         List<OrderEntry> sortOrder = plan.getSortOrder();
@@ -791,9 +852,9 @@ public class LuceneNgIndex extends FulltextIndex {
         // acquire — this does NOT leak the index node into row iteration, which pages
         // independently inside the cursor. Sort-only queries acquire once just to build the Sort.
         if (facetFields != null && !facetFields.isEmpty()) {
-            LuceneNgIndexNode facetNode = tracker.acquireIndexNode(indexPath);
+            LuceneNgIndexNode facetNode = tracker.acquireIndexNode(selectedPath);
             if (facetNode == null) {
-                LOG.warn("Index node not found or not yet populated: {}", indexPath);
+                LOG.warn("Index node not found or not yet populated: {}", selectedPath);
                 return Cursors.newPathCursor(Collections.emptyList(), filter.getQueryLimits());
             }
             try {
@@ -801,7 +862,7 @@ public class LuceneNgIndex extends FulltextIndex {
                 LuceneNgIndexDefinition definition = facetNode.getDefinition();
                 SecureFacetConfiguration secureFacetConfiguration = definition.getSecureFacetConfiguration();
                 if (sortOrder != null && !sortOrder.isEmpty()) {
-                    sort = createSort(sortOrder, definition, facetSearcher.getIndexReader());
+                    sort = createSort(sortOrder, definition, facetNode::getFieldInfos);
                 }
                 FacetsCollector fc = new FacetsCollector();
                 // limit=1: we only need FacetsCollector's side effect (it aggregates over every
@@ -839,16 +900,16 @@ public class LuceneNgIndex extends FulltextIndex {
                 }
                 facetColumns = buildFacetColumnsEagerly(facetsMap, definition.getNumberOfTopFacets());
             } catch (IOException e) {
-                LOG.error("Error computing facets on index: " + indexPath, e);
+                LOG.error("Error computing facets on index: " + selectedPath, e);
             } finally {
                 facetNode.release();
             }
         } else if (sortOrder != null && !sortOrder.isEmpty()) {
-            LuceneNgIndexNode sortNode = tracker.acquireIndexNode(indexPath);
+            LuceneNgIndexNode sortNode = tracker.acquireIndexNode(selectedPath);
             if (sortNode != null) {
                 try {
                     sort = createSort(sortOrder, sortNode.getDefinition(),
-                            sortNode.getSearcher().getIndexReader());
+                            sortNode::getFieldInfos);
                 } finally {
                     sortNode.release();
                 }
@@ -858,7 +919,8 @@ public class LuceneNgIndex extends FulltextIndex {
         // Excerpts are generated per batch inside the cursor; the analyzer is owned and closed
         // by the cursor.
         Analyzer excerptAnalyzer = needsExcerpts ? new StandardAnalyzer() : null;
-        return new LuceneNgCursor(tracker, indexPath, query, sort, facetColumns, needsExcerpts, excerptAnalyzer);
+        return new LuceneNgCursor(tracker, selectedPath, query, sort, facetColumns, needsExcerpts,
+                excerptAnalyzer, filter.getQueryLimits());
     }
 
     /**
@@ -902,14 +964,15 @@ public class LuceneNgIndex extends FulltextIndex {
      * Creates Lucene Sort from Oak OrderEntry list.
      * Based on legacy LuceneIndex implementation.
      */
-    private Sort createSort(List<OrderEntry> sortOrder, LuceneNgIndexDefinition definition, IndexReader reader) {
+    private Sort createSort(List<OrderEntry> sortOrder, LuceneNgIndexDefinition definition,
+                            Supplier<FieldInfos> fieldInfos) {
         if (sortOrder == null || sortOrder.isEmpty()) {
             return null;
         }
 
         List<SortField> fields = new ArrayList<>();
         for (OrderEntry order : sortOrder) {
-            SortField sf = createSortField(order, definition, reader);
+            SortField sf = createSortField(order, definition, fieldInfos);
             if (sf != null) {
                 fields.add(sf);
             }
@@ -918,7 +981,8 @@ public class LuceneNgIndex extends FulltextIndex {
         return new Sort(fields.toArray(new SortField[0]));
     }
 
-    private SortField createSortField(OrderEntry order, LuceneNgIndexDefinition definition, IndexReader reader) {
+    private SortField createSortField(OrderEntry order, LuceneNgIndexDefinition definition,
+                                     Supplier<FieldInfos> fieldInfos) {
         String propertyName = order.getPropertyName();
 
         // Special case: sort by relevance score
@@ -942,7 +1006,7 @@ public class LuceneNgIndex extends FulltextIndex {
         // property is written (see LuceneNgIndexEditor) as a SortedSetDocValuesField, which
         // requires a SortedSetSortField to sort on (a plain SortField only works against
         // SORTED doc-values and throws IllegalStateException against SORTED_SET).
-        if (fieldType == SortField.Type.STRING && isMultiValuedDocValuesField(reader, propertyName)) {
+        if (fieldType == SortField.Type.STRING && isMultiValuedDocValuesField(fieldInfos, propertyName)) {
             return new SortedSetSortField(propertyName, reverse);
         }
 
@@ -955,11 +1019,8 @@ public class LuceneNgIndex extends FulltextIndex {
      * plain {@code SORTED} doc-values (single-valued). Returns {@code false} when the field has
      * no doc-values at all (e.g. not yet indexed, or not ordered).
      */
-    private boolean isMultiValuedDocValuesField(IndexReader reader, String propertyName) {
-        if (reader == null) {
-            return false;
-        }
-        FieldInfo fieldInfo = FieldInfos.getMergedFieldInfos(reader).fieldInfo(propertyName);
+    private boolean isMultiValuedDocValuesField(Supplier<FieldInfos> fieldInfos, String propertyName) {
+        FieldInfo fieldInfo = fieldInfos.get().fieldInfo(propertyName);
         return fieldInfo != null && fieldInfo.getDocValuesType() == DocValuesType.SORTED_SET;
     }
 

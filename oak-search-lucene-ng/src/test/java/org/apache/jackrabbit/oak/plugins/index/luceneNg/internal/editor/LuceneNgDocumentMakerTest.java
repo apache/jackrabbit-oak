@@ -58,6 +58,27 @@ public class LuceneNgDocumentMakerTest {
     }
 
     @Test
+    public void primaryAndMixinNamesAreIndexedAsExactTerms() throws Exception {
+        NodeBuilder defnBuilder = ROOT.builder().child("oak:index").child("test");
+        IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
+        idb.indexRule("nt:base").property("jcr:primaryType").propertyIndex()
+                .property("jcr:mixinTypes").propertyIndex();
+        LuceneNgIndexDefinition def = definitionWith(idb, defnBuilder);
+        NodeBuilder content = ROOT.builder().child("content");
+        content.setProperty("jcr:primaryType", "nt:file", org.apache.jackrabbit.oak.api.Type.NAME);
+        content.setProperty("jcr:mixinTypes", java.util.List.of("mix:referenceable", "mix:lockable"),
+                org.apache.jackrabbit.oak.api.Type.NAMES);
+        Document doc = new LuceneNgDocumentMaker(null, def,
+                def.getApplicableIndexingRule("nt:file"), "/content", new FacetsConfig())
+                .makeDocument(content.getNodeState());
+        assertNotNull(doc);
+        assertEquals("nt:file", doc.getField("jcr:primaryType").stringValue());
+        assertEquals(2, doc.getFields("jcr:mixinTypes").length);
+        assertEquals("mix:referenceable", doc.getFields("jcr:mixinTypes")[0].stringValue());
+        assertEquals("mix:lockable", doc.getFields("jcr:mixinTypes")[1].stringValue());
+    }
+
+    @Test
     public void facetPropertyIsWrittenAsSortedSetDocValuesFacetField() throws Exception {
         NodeBuilder defnBuilder = ROOT.builder().child("oak:index").child("test");
         IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);

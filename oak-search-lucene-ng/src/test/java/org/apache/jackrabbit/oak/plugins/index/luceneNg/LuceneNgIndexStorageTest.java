@@ -30,7 +30,7 @@ public class LuceneNgIndexStorageTest {
     @Test
     public void storagePathAppendsStorageNodeName() {
         assertEquals(
-                "/oak:index/myIndex/luceneNg",
+                "/oak:index/myIndex/:luceneNg",
                 LuceneNgIndexStorage.storagePath("/oak:index/myIndex"));
     }
 
@@ -48,7 +48,7 @@ public class LuceneNgIndexStorageTest {
         NodeBuilder def = EmptyNodeState.EMPTY_NODE.builder();
         NodeBuilder s1 = LuceneNgIndexStorage.getOrCreateStorageBuilder(def);
         assertTrue(s1.getNodeState().exists());
-        assertTrue(def.hasChildNode("luceneNg"));
+        assertTrue(def.hasChildNode(":luceneNg"));
         assertTrue(s1.hasProperty(JcrConstants.JCR_PRIMARYTYPE));
 
         NodeBuilder s2 = LuceneNgIndexStorage.getOrCreateStorageBuilder(def);

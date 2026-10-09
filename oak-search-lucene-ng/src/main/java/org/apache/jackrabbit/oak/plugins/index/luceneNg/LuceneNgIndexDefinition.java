@@ -65,6 +65,12 @@ public class LuceneNgIndexDefinition extends IndexDefinition {
         return LuceneNgIndexConstants.TYPE_LUCENE_NG;
     }
 
+    @Override
+    public boolean evaluatePathRestrictions() {
+        // PATH and parent fields are always indexed by LuceneNgDocumentMaker.
+        return true;
+    }
+
     /**
      * Gets the index name (last segment of index path).
      *
@@ -78,7 +84,7 @@ public class LuceneNgIndexDefinition extends IndexDefinition {
      * Repository path where Lucene segment files for this index are stored
      * ({@link LuceneNgIndexStorage} child under the definition).
      *
-     * @return e.g. {@code /oak:index/myIndex/luceneNg}
+     * @return e.g. {@code /oak:index/myIndex/:luceneNg}
      */
     public String getStoragePath() {
         return LuceneNgIndexStorage.storagePath(getIndexPath());

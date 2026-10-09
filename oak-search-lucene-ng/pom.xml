@@ -121,6 +121,11 @@
 
         <!-- Test Dependencies -->
         <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>
@@ -194,8 +199,9 @@
                         </Import-Package>
                         <Embed-Dependency>
                             oak-search;scope=compile|runtime;inline=true,
-                            lucene-*;inline=true
+                            lucene-*;scope=compile|runtime
                         </Embed-Dependency>
+                        <Embed-Transitive>true</Embed-Transitive>
                     </instructions>
                 </configuration>
                 <executions>

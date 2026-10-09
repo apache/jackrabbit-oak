@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.search.test;
 
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.junit.Test;
 
@@ -26,9 +27,9 @@ import java.util.List;
 /**
  * Abstract base class defining a shared suite of search index test scenarios.
  *
- * <p>Concrete subclasses supply the repository wiring and index creation for a specific
- * search backend (e.g. legacy Lucene, Lucene 9). Running the same scenarios against each
- * backend verifies behavioural parity across implementations.
+ * <p>Concrete subclasses supply the repository wiring and index type for a specific
+ * search backend. The index definition differs only by type, so running the same scenarios
+ * against each backend verifies behavioural parity across implementations.
  *
  * <p>Test data uses fully unique values for all sort-key fields so that ordering assertions
  * are deterministic regardless of the underlying Lucene version or document-id tiebreaking.
@@ -42,11 +43,27 @@ import java.util.List;
  */
 public abstract class AbstractIndexComparisonTest extends AbstractQueryTest {
 
-    /**
-     * Creates the search index in the repository.
-     * Implementations use their engine-specific index type and builder.
-     */
-    protected abstract void createSearchIndex() throws Exception;
+    protected abstract String getIndexType();
+
+    protected final void createSearchIndex() throws Exception {
+        IndexDefinitionBuilder builder = new IndexDefinitionBuilder();
+        builder.noAsync();
+        builder.evaluatePathRestrictions();
+
+        builder.indexRule("nt:base")
+            .property("title").propertyIndex().ordered()
+            .property("description").propertyIndex().analyzed()
+            .property("age").propertyIndex().type("Long").ordered()
+            .property("price").propertyIndex().type("Double").ordered()
+            .property("created").propertyIndex().type("Date")
+            .property("optionalCount").propertyIndex().type("Long").notNullCheckEnabled()
+            .property("status").propertyIndex().ordered()
+            .property("category").propertyIndex();
+
+        Tree index = builder.build(root.getTree("/oak:index").addChild("searchTestIndex"));
+        index.setProperty("type", getIndexType());
+        root.commit();
+    }
 
     /** Suppress the default "unknown"-type index created by AbstractQueryTest.before(). */
     @Override
@@ -124,6 +141,42 @@ public abstract class AbstractIndexComparisonTest extends AbstractQueryTest {
         createTestContent();
         assertQuery("//element(*, nt:base)[@category = 'tech' or @category = 'search']", "xpath",
                 List.of("/content/page1", "/content/page2", "/content/page3"));
+    }
+
+    @Test
+    public void testSqlLikePatterns() throws Exception {
+        createSearchIndex();
+        createTestContent();
+        root.getTree("/content").addChild("literal").setProperty("title", "Oak_100%");
+        root.commit();
+        assertQuery("select [jcr:path] from [nt:base] where [title] like 'Oak%'", "sql",
+                List.of("/content/literal", "/content/page1"));
+        assertQuery("select [jcr:path] from [nt:base] where [title] like '%Integration'", "sql",
+                List.of("/content/page2"));
+        assertQuery("select [jcr:path] from [nt:base] where [title] like 'Query DS_'", "sql",
+                List.of("/content/page3"));
+        assertQuery("select [jcr:path] from [nt:base] where [title] like 'Oak\\_100\\%'", "sql",
+                List.of("/content/literal"));
+    }
+
+    @Test
+    public void testDateRangeBoundaries() throws Exception {
+        createSearchIndex();
+        createTestContent();
+        assertQuery("select [jcr:path] from [nt:base] where [created] >= "
+                + "cast('2026-02-01T00:00:00.000Z' as date) and [created] < "
+                + "cast('2026-03-01T00:00:00.000Z' as date)", "sql", List.of("/content/page2"));
+        assertQuery("select [jcr:path] from [nt:base] where [created] > "
+                + "cast('2026-02-01T00:00:00.000Z' as date)", "sql", List.of("/content/page3"));
+        assertQuery("select [jcr:path] from [nt:base] where [created] <= "
+                + "cast('2026-02-01T01:00:00.000+01:00' as date)", "sql",
+                List.of("/content/page1", "/content/page2"));
+        root.getTree("/content").addChild("epoch")
+                .setProperty("created", "1970-01-01T00:00:00.000Z", Type.DATE);
+        root.commit();
+        assertQuery("select [jcr:path] from [nt:base] where [created] > "
+                + "cast('1969-12-31T23:59:59.999Z' as date) and [created] <= "
+                + "cast('1970-01-01T00:00:00.000Z' as date)", "sql", List.of("/content/epoch"));
     }
 
     @Test

@@ -178,6 +178,9 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
     private void indexByActualType(Document doc, PropertyState property, String pname,
                                    PropertyDefinition pd, int i) {
         switch (property.getType().tag()) {
+            case PropertyType.NAME:
+                doc.add(new StringField(pname, property.getValue(Type.NAME, i), Field.Store.NO));
+                break;
             case PropertyType.LONG:
                 if (!property.isArray()) {
                     doc.add(new StringField(pname, String.valueOf(property.getValue(Type.LONG, i)), Field.Store.NO));
@@ -445,7 +448,7 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
 
     @Override
     protected void indexNullProperty(Document doc, PropertyDefinition pd) {
-        // NULL restrictions are evaluated by Oak after retrieving candidate documents.
+        doc.add(new StringField(FieldNames.NULL_PROPS, pd.name, Field.Store.NO));
     }
 
     // -------------------------------------------------------------------------
@@ -530,7 +533,8 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
                     return null;
             }
         } catch (Exception e) {
-            LOG.error("Failed to convert property value to string for faceting", e);
+            LOG.error("Failed to convert property value to string for faceting ({})",
+                    e.getClass().getSimpleName());
             return null;
         }
     }
@@ -553,7 +557,7 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
                         try {
                             result.add(String.valueOf(ISO8601.parse(d).getTimeInMillis()));
                         } catch (Exception e) {
-                            LOG.error("Failed to parse date: {}", d, e);
+                            LOG.error("Failed to parse DATE facet value ({})", e.getClass().getSimpleName());
                         }
                     }
                     break;
@@ -564,7 +568,8 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
                     break;
             }
         } catch (Exception e) {
-            LOG.error("Failed to convert property values to strings for faceting", e);
+            LOG.error("Failed to convert property values to strings for faceting ({})",
+                    e.getClass().getSimpleName());
         }
         return result;
     }

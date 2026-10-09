@@ -26,15 +26,15 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Physical location of Lucene 9 index files under the Oak repository.
  * <p>
- * Segments and supporting files live in a single visible child of the index
- * definition node (e.g. {@code /oak:index/myIndex/luceneNg}).
+ * Segments and supporting files live in a single hidden child of the index
+ * definition node (e.g. {@code /oak:index/myIndex/:luceneNg}).
  */
 public final class LuceneNgIndexStorage {
 
     /**
      * Name of the JCR child node under the index definition that holds Lucene files.
      */
-    public static final String STORAGE_NODE_NAME = "luceneNg";
+    public static final String STORAGE_NODE_NAME = ":luceneNg";
 
     private LuceneNgIndexStorage() {
     }
@@ -43,7 +43,7 @@ public final class LuceneNgIndexStorage {
      * Absolute repository path to the storage node for the given index definition path.
      *
      * @param indexDefinitionPath path to the index definition (e.g. {@code /oak:index/myIndex})
-     * @return path to the Lucene storage root (e.g. {@code /oak:index/myIndex/luceneNg})
+     * @return path to the Lucene storage root (e.g. {@code /oak:index/myIndex/:luceneNg})
      */
     @NotNull
     public static String storagePath(@NotNull String indexDefinitionPath) {

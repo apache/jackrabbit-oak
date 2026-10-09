@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.BlobFactory;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgIndexNode;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction;
@@ -42,7 +43,6 @@ import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.Term;
@@ -63,6 +63,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -123,7 +124,7 @@ public class LuceneNgIndexTest {
         when(filter.getFullTextConstraint()).thenReturn(FullTextParser.parse("*", "Oak"));
         when(filter.getPathRestriction()).thenReturn(PathRestriction.NO_RESTRICTION);
         when(filter.getPropertyRestrictions()).thenReturn(Collections.emptyList());
-        when(filter.getQueryLimits()).thenReturn(null);
+        when(filter.getQueryLimits()).thenReturn(new QueryEngineSettings());
 
         // Execute query
         Cursor cursor = index.query(planFor(filter), root);
@@ -212,7 +213,7 @@ public class LuceneNgIndexTest {
         pr.first = pv30;
         pr.firstIncluding = false;  // exclusive: >
         when(filter.getPropertyRestrictions()).thenReturn(Collections.singletonList(pr));
-        when(filter.getQueryLimits()).thenReturn(null);
+        when(filter.getQueryLimits()).thenReturn(new QueryEngineSettings());
 
         // Execute query
         Cursor cursor = index.query(planFor(filter), root);
@@ -275,7 +276,7 @@ public class LuceneNgIndexTest {
         pr.first = pvM;
         pr.firstIncluding = true;  // inclusive: >=
         when(filter.getPropertyRestrictions()).thenReturn(Collections.singletonList(pr));
-        when(filter.getQueryLimits()).thenReturn(null);
+        when(filter.getQueryLimits()).thenReturn(new QueryEngineSettings());
 
         // Execute query
         Cursor cursor = index.query(planFor(filter), root);
@@ -348,7 +349,7 @@ public class LuceneNgIndexTest {
         pr.firstIncluding = true;
         pr.lastIncluding = true;
         when(filter.getPropertyRestrictions()).thenReturn(Collections.singletonList(pr));
-        when(filter.getQueryLimits()).thenReturn(null);
+        when(filter.getQueryLimits()).thenReturn(new QueryEngineSettings());
 
         // Execute query
         Cursor cursor = index.query(planFor(filter), root);
@@ -409,7 +410,7 @@ public class LuceneNgIndexTest {
         pr.not = pvDraft;
         pr.isNot = true;
         when(filter.getPropertyRestrictions()).thenReturn(Collections.singletonList(pr));
-        when(filter.getQueryLimits()).thenReturn(null);
+        when(filter.getQueryLimits()).thenReturn(new QueryEngineSettings());
 
         // Execute query
         Cursor cursor = index.query(planFor(filter), root);
@@ -472,7 +473,7 @@ public class LuceneNgIndexTest {
         pr.list.add(PropertyValues.newString("tech"));
         pr.list.add(PropertyValues.newString("science"));
         when(filter.getPropertyRestrictions()).thenReturn(Collections.singletonList(pr));
-        when(filter.getQueryLimits()).thenReturn(null);
+        when(filter.getQueryLimits()).thenReturn(new QueryEngineSettings());
 
         // Execute query
         Cursor cursor = index.query(planFor(filter), root);
@@ -538,7 +539,7 @@ public class LuceneNgIndexTest {
         when(filter.getPropertyRestrictions()).thenReturn(Collections.emptyList());
         when(filter.getPathRestriction()).thenReturn(Filter.PathRestriction.ALL_CHILDREN);
         when(filter.getPath()).thenReturn("/a");
-        when(filter.getQueryLimits()).thenReturn(null);
+        when(filter.getQueryLimits()).thenReturn(new QueryEngineSettings());
 
         Cursor cursor = index.query(planFor(filter), builder.getNodeState());
         List<String> paths = new ArrayList<>();
@@ -565,7 +566,7 @@ public class LuceneNgIndexTest {
         when(filter.getPropertyRestrictions()).thenReturn(Collections.emptyList());
         when(filter.getPathRestriction()).thenReturn(Filter.PathRestriction.EXACT);
         when(filter.getPath()).thenReturn("/a");
-        when(filter.getQueryLimits()).thenReturn(null);
+        when(filter.getQueryLimits()).thenReturn(new QueryEngineSettings());
 
         Cursor cursor = index.query(planFor(filter), builder.getNodeState());
         List<String> paths = new ArrayList<>();
@@ -604,7 +605,7 @@ public class LuceneNgIndexTest {
                 FullTextParser.parse("*", "jackrab*"));
         when(filter.getPathRestriction()).thenReturn(Filter.PathRestriction.NO_RESTRICTION);
         when(filter.getPropertyRestrictions()).thenReturn(Collections.emptyList());
-        when(filter.getQueryLimits()).thenReturn(null);
+        when(filter.getQueryLimits()).thenReturn(new QueryEngineSettings());
 
         Cursor cursor = index.query(planFor(filter), builder.getNodeState());
         assertTrue("Prefix query 'jackrab*' should match node", cursor.hasNext());
@@ -639,7 +640,7 @@ public class LuceneNgIndexTest {
                 FullTextParser.parse("*", "jack*bit"));
         when(filter.getPathRestriction()).thenReturn(Filter.PathRestriction.NO_RESTRICTION);
         when(filter.getPropertyRestrictions()).thenReturn(Collections.emptyList());
-        when(filter.getQueryLimits()).thenReturn(null);
+        when(filter.getQueryLimits()).thenReturn(new QueryEngineSettings());
 
         Cursor cursor = index.query(planFor(filter), builder.getNodeState());
         assertTrue("Wildcard query 'jack*bit' should match node", cursor.hasNext());
@@ -681,7 +682,7 @@ public class LuceneNgIndexTest {
         pr.last = pvMin;
         pr.lastIncluding = false; // exclusive upper bound at MIN_VALUE — triggers nextBelow(MIN_VALUE)
         when(filter.getPropertyRestrictions()).thenReturn(Collections.singletonList(pr));
-        when(filter.getQueryLimits()).thenReturn(null);
+        when(filter.getQueryLimits()).thenReturn(new QueryEngineSettings());
 
         // Should not throw ArithmeticException
         Cursor cursor = index.query(planFor(filter), root);
@@ -723,7 +724,7 @@ public class LuceneNgIndexTest {
         pr.first = pvMax;
         pr.firstIncluding = false; // exclusive lower bound at MAX_VALUE — triggers nextAbove(MAX_VALUE)
         when(filter.getPropertyRestrictions()).thenReturn(Collections.singletonList(pr));
-        when(filter.getQueryLimits()).thenReturn(null);
+        when(filter.getQueryLimits()).thenReturn(new QueryEngineSettings());
 
         // Should not throw ArithmeticException
         Cursor cursor = index.query(planFor(filter), root);
@@ -814,7 +815,7 @@ public class LuceneNgIndexTest {
         Filter ftFilter = mock(Filter.class);
         when(ftFilter.getFullTextConstraint()).thenReturn(FullTextParser.parse("*", "oak"));
         when(ftFilter.getPropertyRestrictions()).thenReturn(Collections.emptyList());
-        when(ftFilter.getQueryLimits()).thenReturn(null);
+        when(ftFilter.getQueryLimits()).thenReturn(new QueryEngineSettings());
 
         Cursor ftCursor = index.query(planFor(ftFilter), root);
         int ftCount = 0;
@@ -835,7 +836,7 @@ public class LuceneNgIndexTest {
         prStatusAlone.lastIncluding = true;
 
         when(statusOnlyFilter.getPropertyRestrictions()).thenReturn(Collections.singletonList(prStatusAlone));
-        when(statusOnlyFilter.getQueryLimits()).thenReturn(null);
+        when(statusOnlyFilter.getQueryLimits()).thenReturn(new QueryEngineSettings());
 
         Cursor statusOnlyCursor = index.query(planFor(statusOnlyFilter), root);
         int statusOnlyCount = 0;
@@ -856,7 +857,7 @@ public class LuceneNgIndexTest {
         prStatusOnly.lastIncluding = true;
 
         when(statusFilter.getPropertyRestrictions()).thenReturn(Collections.singletonList(prStatusOnly));
-        when(statusFilter.getQueryLimits()).thenReturn(null);
+        when(statusFilter.getQueryLimits()).thenReturn(new QueryEngineSettings());
 
         Cursor statusCursor = index.query(planFor(statusFilter), root);
         int statusCount = 0;
@@ -886,7 +887,7 @@ public class LuceneNgIndexTest {
         restrictions.add(prAge);
 
         when(filter.getPropertyRestrictions()).thenReturn(restrictions);
-        when(filter.getQueryLimits()).thenReturn(null);
+        when(filter.getQueryLimits()).thenReturn(new QueryEngineSettings());
 
         // Execute query
         Cursor cursor = index.query(planFor(filter), root);
@@ -954,16 +955,15 @@ public class LuceneNgIndexTest {
         LuceneNgIndexNode indexNode = tracker.acquireIndexNode("/oak:index/testIdx");
         assertNotNull("Index node must be resolvable", indexNode);
         try {
-            IndexSearcher searcher = indexNode.getSearcher();
             LuceneNgIndexDefinition definition = indexNode.getDefinition();
-            IndexReader reader = searcher.getIndexReader();
 
             OrderEntry order = new OrderEntry("tags", Type.STRING, OrderEntry.Order.ASCENDING);
 
             Method createSortField = LuceneNgIndex.class.getDeclaredMethod(
-                    "createSortField", OrderEntry.class, LuceneNgIndexDefinition.class, IndexReader.class);
+                    "createSortField", OrderEntry.class, LuceneNgIndexDefinition.class, Supplier.class);
             createSortField.setAccessible(true);
-            SortField sf = (SortField) createSortField.invoke(index, order, definition, reader);
+            Supplier<org.apache.lucene.index.FieldInfos> fieldInfos = indexNode::getFieldInfos;
+            SortField sf = (SortField) createSortField.invoke(index, order, definition, fieldInfos);
 
             assertTrue("Sorting a multi-valued (SORTED_SET doc-values) property must use "
                             + "SortedSetSortField, not a plain SortField; got: " + sf,

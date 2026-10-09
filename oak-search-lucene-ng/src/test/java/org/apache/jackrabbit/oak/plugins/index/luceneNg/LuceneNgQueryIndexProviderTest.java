@@ -56,7 +56,7 @@ public class LuceneNgQueryIndexProviderTest {
     }
 
     @Test
-    public void testNoIndexesWhenNoLuceneNg() {
+    public void backendIsAvailableWithoutDefinitions() {
         NodeState root = InitialContentHelper.INITIAL_CONTENT;
 
         LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
@@ -66,7 +66,15 @@ public class LuceneNgQueryIndexProviderTest {
         List<? extends QueryIndex> indexes = provider.getQueryIndexes(root);
 
         assertNotNull("Indexes should not be null", indexes);
-        assertTrue("Should return empty list when no LuceneNg indexes",
-                   indexes.isEmpty());
+        assertEquals("Definitions are discovered by the backend planner", 1, indexes.size());
+    }
+
+    @Test
+    public void definitionsShareOneBackend() {
+        NodeBuilder root = InitialContentHelper.INITIAL_CONTENT.builder();
+        root.child("oak:index").child("first").setProperty("type", "luceneNg");
+        root.child("oak:index").child("second").setProperty("type", "luceneNg");
+        LuceneNgQueryIndexProvider provider = new LuceneNgQueryIndexProvider(new LuceneNgIndexTracker());
+        assertEquals(1, provider.getQueryIndexes(root.getNodeState()).size());
     }
 }
