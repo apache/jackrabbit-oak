@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -33,6 +34,7 @@ import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
 import org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.toggle.Feature;
+import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
@@ -141,6 +143,21 @@ public class DocumentNodeStoreServiceTest {
 
         context.registerService(JournalPropertyService.class, mock(JournalPropertyService.class));
         assertEquals(1, store.getJournalPropertyHandlerFactory().getServiceCount());
+    }
+
+    // Service activation registers the disabled Caffeine opt-in.
+    @Test
+    public void caffeineCacheFeatureMatchesStartupOptIn() {
+        MockOsgi.setConfigForPid(context.bundleContext(), PID, newConfig(repoHome));
+        MockOsgi.activate(service, context.bundleContext());
+
+        FeatureToggle toggle = Arrays.stream(context.getServices(FeatureToggle.class, null))
+                .filter(candidate -> DocumentNodeStoreBuilder.FT_CAFFEINE_CACHE.equals(candidate.getName()))
+                .findFirst()
+                .orElse(null);
+
+        assertNotNull(toggle);
+        assertEquals(Boolean.getBoolean("oak.documentMK.caffeineCache"), toggle.isEnabled());
     }
 
     @Test
