@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.cache.impl.maintenance;
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.oak.cache.api.Cache;
@@ -37,6 +38,7 @@ import org.junit.Test;
 public class CacheBuilderMaintenanceTest {
 
     private static final long TIMEOUT_SECONDS = 10;
+    private boolean incomingMaintenance;
 
     /**
      * The toggle is process-wide static state, so reset it around every test - a test that leaked
@@ -45,12 +47,12 @@ public class CacheBuilderMaintenanceTest {
      */
     @Before
     public void enableOak12290Toggle() {
-        CacheBuilder.FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.set(true);
+        incomingMaintenance = CacheBuilder.FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.getAndSet(true);
     }
 
     @After
     public void resetOak12290Toggle() {
-        CacheBuilder.FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.set(true);
+        CacheBuilder.FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.set(incomingMaintenance);
     }
 
     /** Maintenance triggered by a write must not be executed by the writing thread. */
@@ -78,11 +80,7 @@ public class CacheBuilderMaintenanceTest {
                 Thread.currentThread(), evictionThread.get());
     }
 
-    /**
-     * A slow maintenance callback must not stall the writer. With inline maintenance the
-     * writer runs the callback itself while holding the eviction lock, so {@code put()}
-     * cannot return until the callback finishes.
-     */
+    /** Slow eviction callbacks must not block writes that exceed the cache budget. */
     @Test(timeout = TIMEOUT_SECONDS * 1000)
     public void slowMaintenanceDoesNotBlockCallerThread() throws InterruptedException {
         CountDownLatch release = new CountDownLatch(1);
@@ -133,11 +131,7 @@ public class CacheBuilderMaintenanceTest {
                 Thread.currentThread(), evictionThread.get());
     }
 
-    /**
-     * Maintenance must run on Oak's own named pool, not on {@code ForkJoinPool.commonPool()} -
-     * the common pool is shared with the hosting application and can be configured with zero
-     * workers, in which case submitted tasks are queued and never run.
-     */
+    /** Oak's pool keeps maintenance working when the application's common pool has no workers. */
     @Test
     public void maintenanceRunsOnOakOwnedThread() throws InterruptedException {
         AtomicReference<String> threadName = new AtomicReference<>();
@@ -162,11 +156,7 @@ public class CacheBuilderMaintenanceTest {
                 threadName.get().startsWith(CacheMaintenanceExecutor.THREAD_PREFIX));
     }
 
-    /**
-     * A synchronous reload would block every caller that triggers a refresh on the loader's work
-     * (e.g. a remote call), defeating the point of {@code refreshAfterWrite}. Refresh must therefore
-     * always run off the caller thread, regardless of the toggle (see {@link CacheBuilder}).
-     */
+    /** Refresh runs off the caller so slow reloads cannot block reads. */
     @Test
     public void refreshRunsOffCallerThreadRegardlessOfToggle() throws InterruptedException {
         AtomicReference<Thread> reloadThread = new AtomicReference<>();
@@ -232,10 +222,7 @@ public class CacheBuilderMaintenanceTest {
                 Thread.currentThread(), reloadThread.get());
     }
 
-    /**
-     * A refreshing cache's own eviction/removal notification must also run off the caller thread -
-     * it shares the same executor setting as refresh, and there is no separate knob for the two.
-     */
+    /** Refresh and eviction share the asynchronous executor. */
     @Test
     public void refreshingCacheEvictionRunsOffCallerThread() throws InterruptedException {
         AtomicReference<Thread> evictionThread = new AtomicReference<>();
@@ -261,12 +248,7 @@ public class CacheBuilderMaintenanceTest {
                 Thread.currentThread(), evictionThread.get());
     }
 
-    /**
-     * A zero-capacity cache (built with {@code maximumSize(0)}) is used elsewhere as a
-     * "disable caching" idiom: callers write a value and immediately expect a read to miss.
-     * With async maintenance that guarantee would depend on a background thread having already
-     * run, so eviction must stay inline regardless of the toggle.
-     */
+    /** Zero size disables caching, so put must not leave a readable entry. */
     @Test
     public void zeroMaximumSizeEvictsSynchronously() {
         Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
@@ -279,7 +261,7 @@ public class CacheBuilderMaintenanceTest {
                 cache.getIfPresent("k1"));
     }
 
-    /** Same guarantee for {@code maximumWeight(0)}, the weight-based equivalent of {@link #zeroMaximumSizeEvictsSynchronously()}. */
+    /** A zero weight budget also disables caching immediately. */
     @Test
     public void zeroMaximumWeightEvictsSynchronously() {
         Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
@@ -309,11 +291,7 @@ public class CacheBuilderMaintenanceTest {
                 Thread.currentThread(), evictionThread.get());
     }
 
-    /**
-     * Zero-capacity takes priority over {@code refreshAfterWrite} in the inline decision: even a
-     * refreshing cache must evict synchronously once its capacity is zero, for the same
-     * "disable caching" reason as {@link #zeroMaximumSizeEvictsSynchronously()}.
-     */
+    /** Zero capacity requires immediate eviction even when refresh is configured. */
     @Test
     public void zeroMaximumSizeEvictsSynchronouslyEvenWithRefreshAfterWrite() {
         LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
@@ -365,5 +343,282 @@ public class CacheBuilderMaintenanceTest {
         Assert.assertEquals(EvictionCause.REPLACED, notifiedCause.get());
         Assert.assertNotSame("replacement notification must not run on the calling thread",
                 Thread.currentThread(), notificationThread.get());
+    }
+
+
+    /** Reject null rather than silently choosing a mode. */
+    @Test(expected = NullPointerException.class)
+    public void nullMaintenanceModeIsRejected() {
+        CacheBuilder.newBuilder().maintenanceMode(null);
+    }
+
+    /** An explicit ASYNC request wins over the disabled legacy toggle. */
+    @Test
+    public void explicitAsyncModeOverridesLegacyToggle() throws InterruptedException {
+        boolean incoming = CacheBuilder.FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.get();
+        try {
+            CacheBuilder.FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.set(false);
+            AtomicReference<Thread> callbackThread = new AtomicReference<>();
+            CountDownLatch removed = new CountDownLatch(1);
+            Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                    .maximumSize(1)
+                    .maintenanceMode(CacheBuilder.MaintenanceMode.SYNC)
+                    .maintenanceMode(CacheBuilder.MaintenanceMode.ASYNC)
+                    .evictionListener((key, value, cause) -> {
+                        callbackThread.set(Thread.currentThread());
+                        removed.countDown();
+                    }).build();
+            cache.put("key", "value");
+            cache.invalidate("key");
+            Assert.assertTrue(removed.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+            Assert.assertNotSame(Thread.currentThread(), callbackThread.get());
+            Assert.assertTrue("explicit ASYNC must use Oak's maintenance pool",
+                    callbackThread.get().getName().startsWith(CacheMaintenanceExecutor.THREAD_PREFIX));
+        } finally {
+            CacheBuilder.FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.set(incoming);
+        }
+    }
+
+    /** Explicit SYNC keeps eviction callbacks on the caller. */
+    @Test
+    public void synchronousMaintenanceRunsInline() {
+        CacheBuilder.FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.set(true);
+        AtomicReference<Thread> evictionThread = new AtomicReference<>();
+
+        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumSize(1)
+                .maintenanceMode(CacheBuilder.MaintenanceMode.ASYNC)
+                .maintenanceMode(CacheBuilder.MaintenanceMode.SYNC)
+                .evictionListener((k, v, cause) -> {
+                    if (cause == EvictionCause.SIZE) {
+                        evictionThread.set(Thread.currentThread());
+                    }
+                })
+                .build();
+
+        cache.put("k1", "v1");
+        cache.put("k2", "v2");
+
+        Assert.assertSame("maintenance should run inline in synchronous mode",
+                Thread.currentThread(), evictionThread.get());
+    }
+
+    /** Refresh must not block callers even when SYNC is requested. */
+    @Test
+    public void refreshRunsOffCallerThreadWithSynchronousMaintenance() throws InterruptedException {
+        AtomicReference<Thread> reloadThread = new AtomicReference<>();
+        CountDownLatch reloaded = new CountDownLatch(1);
+        CountDownLatch firstLoadDone = new CountDownLatch(1);
+
+        LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumSize(10)
+                .maintenanceMode(CacheBuilder.MaintenanceMode.SYNC)
+                .refreshAfterWrite(Duration.ofMillis(1))
+                .build(key -> {
+                    if (firstLoadDone.getCount() == 0) {
+                        reloadThread.set(Thread.currentThread());
+                        reloaded.countDown();
+                    }
+                    return "v";
+                });
+
+        cache.get("k");
+        firstLoadDone.countDown();
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
+        while (reloaded.getCount() > 0 && System.nanoTime() < deadline) {
+            Thread.sleep(5);
+            cache.get("k");
+        }
+
+        Assert.assertTrue("refresh never ran", reloaded.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+        Assert.assertNotSame("refresh must not run on the thread that triggered it",
+                Thread.currentThread(), reloadThread.get());
+        Assert.assertTrue("refresh must use Oak's maintenance pool even when SYNC is requested",
+                reloadThread.get().getName().startsWith(CacheMaintenanceExecutor.THREAD_PREFIX));
+    }
+
+    /** A disabled cache cannot expose entries while eviction is pending. */
+    @Test
+    public void zeroMaximumSizeEvictsSynchronouslyWithAsyncMode() {
+        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumSize(0)
+                .maintenanceMode(CacheBuilder.MaintenanceMode.ASYNC)
+                .build();
+
+        cache.put("k1", "v1");
+
+        Assert.assertNull("a zero-capacity cache must not retain the entry past the put() call",
+                cache.getIfPresent("k1"));
+    }
+
+    /** Weighted caches honor explicit SYNC maintenance. */
+    @Test
+    public void synchronousMaintenanceRunsInlineWithMaximumWeight() {
+        AtomicReference<Thread> evictionThread = new AtomicReference<>();
+        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumWeight(1)
+                .weigher((key, value) -> 1)
+                .maintenanceMode(CacheBuilder.MaintenanceMode.SYNC)
+                .evictionListener((key, value, cause) -> {
+                    if (cause == EvictionCause.SIZE) {
+                        evictionThread.set(Thread.currentThread());
+                    }
+                })
+                .build();
+
+        cache.put("k1", "v1");
+        cache.put("k2", "v2");
+
+        Assert.assertSame("weighted eviction must finish on the writing thread",
+                Thread.currentThread(), evictionThread.get());
+        Assert.assertEquals(1L, cache.getUsedWeight());
+    }
+
+    /** Refresh uses the shared executor in ASYNC mode. */
+    @Test
+    public void refreshRunsOffCallerThreadWithAsyncMaintenance() throws InterruptedException {
+        AtomicLong ticker = new AtomicLong();
+        AtomicReference<Thread> reloadThread = new AtomicReference<>();
+        CountDownLatch reloaded = new CountDownLatch(1);
+        LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumSize(10)
+                .maintenanceMode(CacheBuilder.MaintenanceMode.ASYNC)
+                .refreshAfterWrite(Duration.ofMinutes(1))
+                .ticker(ticker::get)
+                .build(key -> {
+                    reloadThread.set(Thread.currentThread());
+                    reloaded.countDown();
+                    return "refreshed";
+                });
+
+        cache.put("k", "initial");
+        ticker.set(TimeUnit.MINUTES.toNanos(2));
+        cache.get("k");
+
+        Assert.assertTrue("refresh never ran", reloaded.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+        Assert.assertNotSame("refresh must not run on the thread that triggered it",
+                Thread.currentThread(), reloadThread.get());
+        Assert.assertTrue("explicit ASYNC refresh must use Oak's maintenance pool",
+                reloadThread.get().getName().startsWith(CacheMaintenanceExecutor.THREAD_PREFIX));
+    }
+
+    /** A zero weight budget requires immediate eviction. */
+    @Test
+    public void zeroMaximumWeightEvictsSynchronouslyWithAsyncMode() {
+        AtomicReference<Thread> evictionThread = new AtomicReference<>();
+        Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumWeight(0)
+                .weigher((key, value) -> 1)
+                .maintenanceMode(CacheBuilder.MaintenanceMode.ASYNC)
+                .evictionListener((key, value, cause) -> evictionThread.set(Thread.currentThread()))
+                .build();
+
+        cache.put("k", "v");
+
+        Assert.assertSame("zero weight must override asynchronous maintenance",
+                Thread.currentThread(), evictionThread.get());
+        Assert.assertNull("zero weight must evict before put returns", cache.getIfPresent("k"));
+    }
+
+    /** Zero capacity takes precedence over asynchronous refresh. */
+    @Test
+    public void zeroMaximumSizeEvictsSynchronouslyEvenWithRefreshAfterWriteAndSyncMode() {
+        AtomicReference<Thread> evictionThread = new AtomicReference<>();
+        LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumSize(0)
+                .refreshAfterWrite(Duration.ofHours(1))
+                .maintenanceMode(CacheBuilder.MaintenanceMode.SYNC)
+                .evictionListener((key, value, cause) -> evictionThread.set(Thread.currentThread()))
+                .build(key -> "v");
+
+        Assert.assertEquals("v", cache.get("k"));
+
+        Assert.assertSame("zero capacity must override the refresh executor",
+                Thread.currentThread(), evictionThread.get());
+        Assert.assertNull("zero capacity must evict before get returns", cache.getIfPresent("k"));
+    }
+
+    /** Zero capacity overrides both explicit ASYNC maintenance and asynchronous refresh. */
+    @Test
+    public void zeroMaximumSizeEvictsSynchronouslyEvenWithRefreshAfterWriteAndAsyncMode() {
+        AtomicReference<Thread> evictionThread = new AtomicReference<>();
+        LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumSize(0)
+                .refreshAfterWrite(Duration.ofHours(1))
+                .maintenanceMode(CacheBuilder.MaintenanceMode.ASYNC)
+                .evictionListener((key, value, cause) -> evictionThread.set(Thread.currentThread()))
+                .build(key -> "v");
+
+        Assert.assertEquals("v", cache.get("k"));
+
+        Assert.assertSame("zero capacity must override explicit ASYNC and the refresh executor",
+                Thread.currentThread(), evictionThread.get());
+        Assert.assertNull("zero capacity must evict before get returns", cache.getIfPresent("k"));
+    }
+
+    /** A zero weight budget overrides asynchronous refresh and maintenance. */
+    @Test
+    public void zeroMaximumWeightEvictsSynchronouslyEvenWithRefreshAfterWriteAndAsyncMode() {
+        AtomicReference<Thread> evictionThread = new AtomicReference<>();
+        LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumWeight(0)
+                .weigher((key, value) -> 1)
+                .refreshAfterWrite(Duration.ofHours(1))
+                .maintenanceMode(CacheBuilder.MaintenanceMode.ASYNC)
+                .evictionListener((key, value, cause) -> evictionThread.set(Thread.currentThread()))
+                .build(key -> "v");
+
+        Assert.assertEquals("v", cache.get("k"));
+
+        Assert.assertSame("zero weight must override explicit ASYNC and the refresh executor",
+                Thread.currentThread(), evictionThread.get());
+        Assert.assertNull("zero weight must evict before get returns", cache.getIfPresent("k"));
+    }
+
+    /** Zero weight disables caching even when refresh would otherwise override SYNC. */
+    @Test
+    public void zeroMaximumWeightEvictsSynchronouslyEvenWithRefreshAfterWriteAndSyncMode() {
+        AtomicReference<Thread> evictionThread = new AtomicReference<>();
+        LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumWeight(0)
+                .weigher((key, value) -> 1)
+                .refreshAfterWrite(Duration.ofHours(1))
+                .maintenanceMode(CacheBuilder.MaintenanceMode.SYNC)
+                .evictionListener((key, value, cause) -> evictionThread.set(Thread.currentThread()))
+                .build(key -> "v");
+
+        Assert.assertEquals("v", cache.get("k"));
+
+        Assert.assertSame("zero weight must override the refresh executor even when SYNC is selected",
+                Thread.currentThread(), evictionThread.get());
+        Assert.assertNull("zero weight must evict before get returns", cache.getIfPresent("k"));
+    }
+
+    /** Refresh forces size eviction onto Oak's pool even when SYNC is requested. */
+    @Test
+    public void refreshingCacheEvictionRunsOffCallerThreadWithSyncMode() throws InterruptedException {
+        AtomicReference<Thread> evictionThread = new AtomicReference<>();
+        CountDownLatch evicted = new CountDownLatch(1);
+        LoadingCache<String, String> cache = CacheBuilder.<String, String>newBuilder()
+                .maximumSize(1)
+                .maintenanceMode(CacheBuilder.MaintenanceMode.SYNC)
+                .refreshAfterWrite(Duration.ofHours(1))
+                .evictionListener((key, value, cause) -> {
+                    if (cause == EvictionCause.SIZE) {
+                        evictionThread.set(Thread.currentThread());
+                        evicted.countDown();
+                    }
+                })
+                .build(key -> "v");
+
+        cache.get("k1");
+        cache.get("k2");
+
+        Assert.assertTrue("size-based eviction was never notified",
+                evicted.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+        Assert.assertNotSame("refresh must override SYNC for eviction callbacks",
+                Thread.currentThread(), evictionThread.get());
+        Assert.assertTrue("refreshing cache eviction must use Oak's maintenance pool",
+                evictionThread.get().getName().startsWith(CacheMaintenanceExecutor.THREAD_PREFIX));
     }
 }

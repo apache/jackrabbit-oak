@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.cache.api;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
@@ -46,21 +47,23 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class CacheBuilder<K, V> {
 
-    /**
-     * Feature toggle name for {@link #FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED}.
-     */
+    /** Maintenance execution mode for a cache. */
+    public enum MaintenanceMode {
+        /** Perform maintenance on the thread that triggered it. */
+        SYNC,
+        /** Perform maintenance on Oak's shared maintenance executor. */
+        ASYNC
+    }
+
+    /** Feature toggle name retained for compatibility. */
+    @Deprecated
     public static final String FT_OAK_12290 = "FT_OAK-12290";
 
     /**
-     * Whether Caffeine runs cache maintenance on Oak's maintenance executor instead of the
-     * calling thread. Defaults to {@code true}. Read when a cache is built, so flipping it only
-     * affects caches built afterwards. Ignored by caches with {@link #refreshAfterWrite(Duration)},
-     * which always run their reload asynchronously on Oak's maintenance executor - regardless of
-     * this toggle - since a synchronous reload would block every caller on the loader's work (e.g.
-     * a remote call). Also ignored by zero-capacity caches (see {@link #maximumWeight(long)},
-     * {@link #maximumSize(long)}), which are a "disable caching" idiom that depends on eviction
-     * being immediate and therefore always run inline.
+     * @deprecated Maintenance mode is now configured per cache with {@link #maintenanceMode(MaintenanceMode)}.
+     * This legacy setting applies only when no per-cache mode is specified.
      */
+    @Deprecated
     public static final AtomicBoolean FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED = new AtomicBoolean(true);
 
     private long maximumWeight = -1;
@@ -73,6 +76,7 @@ public final class CacheBuilder<K, V> {
     private Duration expireAfterWrite;
     private Duration refreshAfterWrite;
     private Supplier<Long> ticker;
+    private MaintenanceMode maintenanceMode;
 
     private CacheBuilder() {
     }
@@ -94,8 +98,8 @@ public final class CacheBuilder<K, V> {
      * Must be used together with {@link #weigher(Weigher)} and may not be
      * combined with {@link #maximumSize(long)}.
      *
-     * <p>As with {@link #maximumSize(long)}, a positive bound is enforced asynchronously - a read
-     * that immediately follows the write which exceeded the weight may still see the entry. Call
+     * <p>As with {@link #maximumSize(long)}, a positive bound uses the configured maintenance mode. In asynchronous mode a read
+     * immediately after the write which exceeded the weight may still see the entry. Call
      * {@link Cache#cleanUp()} to force pending maintenance. A weight of {@code 0} is handled
      * synchronously, since it is used as a "disable caching" idiom that requires immediate
      * eviction.</p>
@@ -133,8 +137,8 @@ public final class CacheBuilder<K, V> {
      * Sets the maximum number of entries the cache may hold.
      * May not be combined with {@link #maximumWeight(long)}.
      *
-     * <p>A positive bound is enforced asynchronously - a read that immediately follows the write
-     * which exceeded it may still see the entry. Call {@link Cache#cleanUp()} to force pending
+     * <p>A positive bound uses the configured maintenance mode. In asynchronous mode a read
+     * immediately after the write which exceeded it may still see the entry. Call {@link Cache#cleanUp()} to force pending
      * maintenance. A size of {@code 0} is handled synchronously, since it is used as a
      * "disable caching" idiom that requires immediate eviction.</p>
      *
@@ -249,6 +253,25 @@ public final class CacheBuilder<K, V> {
     }
 
     /**
+     * Selects the maintenance executor, overriding the legacy shared toggle.
+     * Without a selection, the toggle is sampled at build time and defaults to {@link MaintenanceMode#ASYNC}.
+     * Zero-capacity caches always use the calling thread. Other caches configured with
+     * {@link #refreshAfterWrite(Duration)} use Oak's shared maintenance executor for both maintenance
+     * and refresh, regardless of the selected mode. Remaining caches use the selected mode.
+     * The shared executor normally runs tasks asynchronously, but runs them on the submitting
+     * thread when its pool and queue are saturated.
+     * Explicit selection overrides the deprecated process-wide maintenance setting.
+     *
+     * @param maintenanceMode the execution mode (must not be null)
+     * @return this builder
+     */
+    @NotNull
+    public CacheBuilder<K, V> maintenanceMode(@NotNull MaintenanceMode maintenanceMode) {
+        this.maintenanceMode = Objects.requireNonNull(maintenanceMode);
+        return this;
+    }
+
+    /**
      * Builds and returns a cache with no auto-loading behaviour.
      *
      * @return a new {@link Cache}
@@ -285,18 +308,14 @@ public final class CacheBuilder<K, V> {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private Caffeine<K, V> configureCaffeineBuilder() {
         Caffeine caffeineBuilder = Caffeine.newBuilder();
-        // Caffeine uses one executor for both maintenance and refresh. A refresh loader may make a
-        // remote call; running it inSameThread would block every caller thread that triggers a refresh on
-        // that call, which defeats the point of refreshAfterWrite (return the stale value, reload in
-        // the background). So refreshing caches always run on Oak's maintenance executor, regardless
-        // of the toggle - the tradeoff is that a slow reload can occupy one of the pool's threads for
-        // longer, which is preferable to blocking callers. Zero-capacity caches are a "disable
-        // caching" idiom relied upon elsewhere for immediate eviction, so they always run inSameThread -
-        // otherwise a read immediately following a write could still observe the entry before
-        // background maintenance evicts it.
+        // Refresh shares the maintenance executor and must not block callers.
+        // Zero capacity requires inline eviction so a write cannot leave a readable entry.
         boolean zeroCapacity = maximumWeight == 0 || maximumSize == 0;
+        MaintenanceMode selectedMode = maintenanceMode != null ? maintenanceMode
+                : (FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.get()
+                        ? MaintenanceMode.ASYNC : MaintenanceMode.SYNC);
         boolean inSameThread = zeroCapacity
-                || (refreshAfterWrite == null && !FT_OAK_12290_ASYNC_CACHE_MAINTENANCE_ENABLED.get());
+                || (refreshAfterWrite == null && selectedMode == MaintenanceMode.SYNC);
         caffeineBuilder = caffeineBuilder.executor(inSameThread ? Runnable::run : CacheMaintenanceExecutor.get());
         if (initialCapacity >= 0) {
             caffeineBuilder = caffeineBuilder.initialCapacity(initialCapacity);
