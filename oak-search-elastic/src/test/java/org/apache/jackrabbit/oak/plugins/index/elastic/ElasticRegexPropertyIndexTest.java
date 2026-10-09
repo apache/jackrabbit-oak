@@ -101,7 +101,7 @@ public class ElasticRegexPropertyIndexTest extends ElasticAbstractQueryTest {
             assertThat(explain, containsString("\"sort\":[{\"flat:" +
                     ElasticIndexUtils.fieldName("allProperties") + "." +
                     ElasticIndexUtils.fieldName("propd") +
-                    "\":{\"order\":\"asc\"}},{\":path\":{\"order\":\"asc\"}}]"));
+                    "\":{\"missing\":\"_first\",\"order\":\"asc\"}},{\":path\":{\"order\":\"asc\"}}]"));
             assertThat(explain, containsString("sortOrder: [{ propertyName : propd, propertyType : UNDEFINED, order : ASCENDING }]"));
             assertQuery(propaOrderQuery, List.of("/test/f", "/test/e"));
         });
