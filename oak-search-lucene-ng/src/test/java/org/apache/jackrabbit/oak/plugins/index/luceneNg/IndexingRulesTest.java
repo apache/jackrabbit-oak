@@ -47,7 +47,7 @@ import static org.junit.Assert.assertTrue;
  *
  * <p>These drive real commits through {@link LuceneNgIndexEditorProvider} (see
  * {@link LuceneNgEditorCommitUtil}) and inspect the committed Lucene index (documents, fields,
- * doc-values) via a {@link DirectoryReader} opened over the {@code /oak:index/test/luceneNg}
+ * doc-values) via a {@link DirectoryReader} opened over the {@code /oak:index/test/:luceneNg}
  * storage.</p>
  */
 public class IndexingRulesTest {

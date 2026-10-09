@@ -20,6 +20,7 @@ import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgIndexNode;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -355,10 +356,11 @@ public class IntegrationTest {
 
         // Create filter for "Oak" search
         Filter filter = mock(Filter.class);
+        when(filter.matchesAllTypes()).thenReturn(true);
         when(filter.getFullTextConstraint()).thenReturn(
             FullTextParser.parse("*", "Oak"));
         when(filter.getPathRestriction()).thenReturn(PathRestriction.NO_RESTRICTION);
-        when(filter.getQueryLimits()).thenReturn(null);
+        when(filter.getQueryLimits()).thenReturn(new QueryEngineSettings());
 
         // Execute query.
         // LuceneNgIndex extends FulltextIndex, whose query(Filter, NodeState) overload throws
@@ -367,6 +369,11 @@ public class IntegrationTest {
         // filter; null sort order; no facets).
         QueryIndex.IndexPlan plan = mock(QueryIndex.IndexPlan.class);
         when(plan.getFilter()).thenReturn(filter);
+        LuceneNgIndexDefinition definition = new LuceneNgIndexDefinition(
+                root, root.getChildNode("oak:index").getChildNode("testIndex"), "/oak:index/testIndex");
+        when(plan.getAttribute(org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.ATTR_PLAN_RESULT))
+                .thenReturn(new org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult(
+                        "/oak:index/testIndex", definition, null));
         Cursor cursor = index.query(plan, root);
 
         assertNotNull("Cursor should not be null", cursor);

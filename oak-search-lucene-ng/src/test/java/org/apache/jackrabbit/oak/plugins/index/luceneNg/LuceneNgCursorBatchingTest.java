@@ -17,10 +17,16 @@
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -32,8 +38,10 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory;
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
@@ -48,6 +56,12 @@ import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.StoredFields;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.TotalHits;
 import org.junit.Test;
 
 /**
@@ -158,13 +172,71 @@ public class LuceneNgCursorBatchingTest {
 
     // --- helpers ---
 
+    @Test
+    public void rowsLoadOnlyTheStoredPath() throws Exception {
+        StoredFields fields = mock(StoredFields.class);
+        Document document = new Document();
+        document.add(new StringField(FieldNames.PATH, "/content/one", Field.Store.YES));
+        when(fields.document(0, Set.of(FieldNames.PATH))).thenReturn(document);
+        IndexSearcher searcher = mock(IndexSearcher.class);
+        when(searcher.storedFields()).thenReturn(fields);
+        when(searcher.search(any(MatchAllDocsQuery.class), eq(50))).thenReturn(
+                new TopDocs(new TotalHits(1, TotalHits.Relation.EQUAL_TO),
+                        new ScoreDoc[] {new ScoreDoc(0, 1)}));
+        LuceneNgIndexNode node = mock(LuceneNgIndexNode.class);
+        when(node.getSearcher()).thenReturn(searcher);
+        LuceneNgIndexTracker tracker = mock(LuceneNgIndexTracker.class);
+        when(tracker.acquireIndexNode("/oak:index/testIdx")).thenReturn(node);
+        Cursor cursor = new LuceneNgIndex(tracker, "/oak:index/testIdx")
+                .query(plan(matchAllFilter()), EmptyNodeState.EMPTY_NODE);
+        assertEquals("/content/one", cursor.next().getPath());
+        assertFalse(cursor.hasNext());
+        verify(fields).document(0, Set.of(FieldNames.PATH));
+        verify(fields, never()).document(anyInt());
+        verify(node).release();
+    }
+
     private static Filter matchAllFilter() {
         Filter filter = mock(Filter.class);
         when(filter.getFullTextConstraint()).thenReturn(null);
         when(filter.getPropertyRestrictions()).thenReturn(Collections.emptyList());
         when(filter.getPathRestriction()).thenReturn(Filter.PathRestriction.NO_RESTRICTION);
-        when(filter.getQueryLimits()).thenReturn(null);
+        when(filter.getQueryLimits()).thenReturn(new QueryEngineSettings());
         return filter;
+    }
+
+    @Test
+    public void candidateReadLimitIsExactAndReleasesResources() throws Exception {
+        NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
+        NodeState root = buildIndexWithDocs(builder, 60);
+        LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
+        tracker.update(root);
+        org.apache.jackrabbit.oak.query.QueryEngineSettings limits =
+                new org.apache.jackrabbit.oak.query.QueryEngineSettings();
+        limits.setLimitReads(50);
+        Filter filter = fulltextFilter("brown");
+        when(filter.getQueryLimits()).thenReturn(limits);
+        Cursor cursor = new LuceneNgIndex(tracker, "/oak:index/testIdx").query(plan(filter), root);
+        for (int i = 0; i < 50; i++) {
+            assertTrue(cursor.hasNext());
+            cursor.next();
+        }
+        assertTrue(cursor.hasNext());
+        org.junit.Assert.assertThrows(
+                org.apache.jackrabbit.oak.query.RuntimeNodeTraversalException.class, cursor::next);
+        assertFalse(cursor.hasNext());
+        java.lang.reflect.Field analyzerField = cursor.getClass().getDeclaredField("excerptAnalyzer");
+        analyzerField.setAccessible(true);
+        org.apache.lucene.analysis.Analyzer analyzer =
+                (org.apache.lucene.analysis.Analyzer) analyzerField.get(cursor);
+        org.junit.Assert.assertThrows(org.apache.lucene.store.AlreadyClosedException.class,
+                () -> analyzer.tokenStream("test", "text"));
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            executor.submit(() -> tracker.update(EmptyNodeState.EMPTY_NODE)).get(2, TimeUnit.SECONDS);
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     private static Filter fulltextFilter(String term) throws java.text.ParseException {
@@ -172,7 +244,7 @@ public class LuceneNgCursorBatchingTest {
         when(filter.getFullTextConstraint()).thenReturn(FullTextParser.parse("*", term));
         when(filter.getPropertyRestrictions()).thenReturn(Collections.emptyList());
         when(filter.getPathRestriction()).thenReturn(Filter.PathRestriction.NO_RESTRICTION);
-        when(filter.getQueryLimits()).thenReturn(null);
+        when(filter.getQueryLimits()).thenReturn(new QueryEngineSettings());
         return filter;
     }
 

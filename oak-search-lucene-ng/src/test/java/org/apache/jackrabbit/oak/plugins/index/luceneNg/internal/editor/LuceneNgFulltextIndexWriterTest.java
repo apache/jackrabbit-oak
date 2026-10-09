@@ -116,6 +116,40 @@ public class LuceneNgFulltextIndexWriterTest {
     }
 
     @Test
+    public void failedPublicationPreservesTheCommittedIndex() throws Exception {
+        org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore store =
+                new org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore();
+        NodeBuilder initial = store.getRoot().builder();
+        NodeBuilder firstDefinition = initial.child("oak:index").child("test");
+        LuceneNgIndexDefinition definition = new LuceneNgIndexDefinition(
+                EMPTY_NODE, firstDefinition.getNodeState(), "/oak:index/test");
+        LuceneNgFulltextIndexWriterFactory factory = new LuceneNgFulltextIndexWriterFactory();
+        FulltextIndexWriter<Document> original = factory.newInstance(definition, firstDefinition, null, true);
+        original.updateDocument("/original", newDoc("/original"));
+        original.close(0);
+        store.merge(initial, org.apache.jackrabbit.oak.spi.commit.EmptyHook.INSTANCE,
+                org.apache.jackrabbit.oak.spi.commit.CommitInfo.EMPTY);
+        NodeState published = store.getRoot();
+        NodeBuilder staged = published.builder();
+        NodeBuilder stagedDefinition = staged.getChildNode("oak:index").getChildNode("test");
+        stagedDefinition.getChildNode(LuceneNgIndexStorage.STORAGE_NODE_NAME).remove();
+        FulltextIndexWriter<Document> rebuilt = factory.newInstance(definition, stagedDefinition, null, true);
+        rebuilt.updateDocument("/replacement", newDoc("/replacement"));
+        rebuilt.close(0);
+        assertDocCount(definition, stagedDefinition, "/replacement", 1);
+        assertDocCount(definition, stagedDefinition, "/original", 0);
+        org.junit.Assert.assertThrows(org.apache.jackrabbit.oak.api.CommitFailedException.class,
+                () -> store.merge(staged, (before, after, info) -> {
+                    throw new org.apache.jackrabbit.oak.api.CommitFailedException("Test", 1, "Rejected publication");
+                }, org.apache.jackrabbit.oak.spi.commit.CommitInfo.EMPTY));
+        assertEquals(published, store.getRoot());
+        NodeBuilder committedDefinition = store.getRoot().getChildNode("oak:index")
+                .getChildNode("test").builder();
+        assertDocCount(definition, committedDefinition, "/original", 1);
+        assertDocCount(definition, committedDefinition, "/replacement", 0);
+    }
+
+    @Test
     public void writesAndDeletesDocumentsThroughTheAdaptedInterface() throws Exception {
         NodeBuilder definitionBuilder = EMPTY_NODE.builder();
         LuceneNgIndexDefinition definition =

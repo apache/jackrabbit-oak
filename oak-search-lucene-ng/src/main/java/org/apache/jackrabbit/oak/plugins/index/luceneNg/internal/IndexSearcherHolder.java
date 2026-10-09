@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.facet.sortedset.DefaultSortedSetDocValuesReaderState;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.store.Directory;
 import org.jetbrains.annotations.Nullable;
@@ -47,6 +48,7 @@ public class IndexSearcherHolder implements Closeable {
     private DirectoryReader reader;
     private IndexSearcher searcher;
     private Directory directory;
+    private FieldInfos fieldInfos;
     private final ConcurrentMap<String, DefaultSortedSetDocValuesReaderState> facetStateCache =
             new ConcurrentHashMap<>();
 
@@ -94,6 +96,13 @@ public class IndexSearcherHolder implements Closeable {
 
     public IndexSearcher getSearcher() {
         return searcher;
+    }
+
+    public synchronized FieldInfos getFieldInfos() {
+        if (fieldInfos == null) {
+            fieldInfos = FieldInfos.getMergedFieldInfos(reader);
+        }
+        return fieldInfos;
     }
 
     /**

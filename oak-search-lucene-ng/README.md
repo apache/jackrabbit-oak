@@ -20,7 +20,14 @@
 Lucene NG index provider for Oak (`type="luceneNg"`), using Lucene 9.
 
 The index type is independent of the Lucene library version. Segment data is
-stored in the `luceneNg` child under the index definition.
+stored in the hidden `:luceneNg` child under the index definition. The OSGi
+service remains enabled by default; defining `type="luceneNg"` is the explicit
+opt-in to this experimental backend.
+
+The OSGi bundle inlines the shared `oak-search` code and embeds compile/runtime
+Lucene dependencies, including transitives, as nested jars on `Bundle-ClassPath`.
+Each Lucene jar retains its service-provider registrations and multi-release
+manifest, allowing the framework to load the appropriate Java-specific classes.
 
 ## Local segment caching
 
@@ -39,6 +46,7 @@ opening the actual index are reported through the shared bad-index tracker.
 |---|---|---|---|
 | Property restrictions, path/type filters | ✓ | ✓ | ✓ |
 | Fulltext search | ✓ | ✓ | ✓ |
+| Configurable analyzers | ✓ | ✓ | ✗ |
 | Index-time aggregation | ✓ | ✓ | ✓ |
 | Facets (insecure / statistical / secure) | ✓ | ✓ | ✓ |
 | Excerpts | ✓ | ✓ | ✓ |
@@ -65,11 +73,19 @@ These items were identified during code review of the initial MVP. They are cons
 
 ### Performance
 
-**No result batching (`searchAfter`).**
-`query()` fetches `Math.max(1, maxDoc())` results in a single Lucene call. On large indexes with broad queries this allocates O(N) `ScoreDoc` entries on the heap. The legacy module uses a 50→100K batch doubling strategy via `searchAfter`. Implementing that here requires the cursor to hold the `IndexSearcher` reference across batch boundaries; the cursor already does this via its Cleaner-based lifecycle.
+**Batched results and excerpts.**
+The cursor uses `searchAfter`, starting at 50 results and doubling up to 100K.
+Each batch acquires and releases its searcher independently; result rows load
+only stored PATH, while fulltext excerpts are generated separately for that
+batch. Candidate rows count towards Oak's configured query read limit even
+when Oak later rejects them during post-filtering. Exceeding the limit fails
+the query rather than silently truncating it. String/boolean sort metadata is
+loaded lazily and cached per immutable reader generation.
 
-**Excerpts generated for all matched documents.**
-`generateExcerpts()` passes the full `TopDocs` to `UnifiedHighlighter`, which loads stored fields and re-analyzes text for every matched document, not just the visible page. Combined with the batching gap above, a fulltext query matching 50 K docs blocks until all highlights are computed before the first result is returned.
+**Facet aggregation is eager.**
+Only facet queries aggregate facets, but they process the complete match set
+before returning rows so counts reflect the entire query. Lazy facet
+evaluation remains deferred.
 
 **`LuceneNgIndexTracker` does not override `isUpdateNeeded`.**
 It relies on the inherited `FulltextIndexTracker` default, which only compares the `:status` and `:index-definition` hidden child nodes between commits — not a full-subtree diff of the index definition (which would also walk the Lucene segment storage on every commit and is expensive on large indexes). This is safe for two independent reasons, covering the two ways content changes reach the index:
@@ -80,13 +96,45 @@ If a future LuceneNg-specific reindex path were ever added that bypasses `oak-co
 
 ### Index discovery
 
-**`LuceneNgQueryIndexProvider.getQueryIndexes()` only discovers `luceneNg` indexes one level under `/oak:index`.**
-`LuceneNgIndexTracker` itself can resolve and serve a `luceneNg` index at any nesting depth once given its exact path (`acquireIndexNode(path)` does a lazy, per-path lookup with no depth restriction). The remaining limitation is query-time *discovery*: `LuceneNgQueryIndexProvider.getQueryIndexes()` — the method that tells the Oak query engine which `luceneNg` indexes exist so it can hand the tracker an exact path — only enumerates direct children of `/oak:index`. An index defined deeper (e.g. `/content/dam/oak:index/damAssets`) is still maintained correctly by the editor, but a real query against it will never be offered that index as a query plan candidate and silently falls back to traversal. For this version, `type=luceneNg` index definitions must still be placed at `/oak:index/<name>` for queries to find them.
+**Query support is root-only.**
+Define query indexes at `/oak:index/<name>`. One backend uses the inherited
+planner to discover definitions and executes the index selected by each plan
+for results, sorting and facets. Nested definitions (for example,
+`/content/dam/oak:index/damAssets`) are excluded from query plans because
+subtree-relative query and result paths are not supported yet. The editor and
+standalone tracker can still maintain/open nested definitions; that does not
+make them query-supported.
+
+**Disable older versions explicitly during experimental migration.**
+Shared cross-type supersession does not recognize `luceneNg` as a replacement
+for legacy Lucene. Do not rely on automatic replacement filtering: explicitly
+disable older index versions when switching queries to this backend.
+
+### Query configuration
+
+**StandardAnalyzer only.**
+Indexing, fulltext queries and excerpts use StandardAnalyzer. Custom analyzer
+configuration is not honored; configurable analyzers remain a missing feature.
+
+**Path filtering is always supported.**
+PATH and parent fields are indexed regardless of `evaluatePathRestrictions`.
+The planner therefore advertises path support when that flag is omitted,
+false or true.
+
+**Configured null checks use markers.**
+`nullCheckEnabled` writes/query-matches `:nullProps` markers. Without that
+configuration the backend does not claim indexed null checks. Existing
+`notNullCheckEnabled` markers and typed existence queries remain supported.
 
 ### Error handling
 
 **`IllegalArgumentException` in query construction propagates uncaught.**
-`createNumericQuery`, `createBooleanQuery`, and `createStringQuery` throw `IllegalArgumentException` for unsupported or inconsistent restriction combinations. The caller catches only `IOException`, so an unusual restriction pattern can propagate to the query engine and fail the entire query instead of falling back to another index or traversal.
+Unsupported or inconsistent property restrictions fail the query rather than
+returning success-shaped fallback results. Malformed DATE bounds/sets are
+rejected explicitly, never replaced by epoch or open bounds. Fulltext
+tokenization failures also propagate instead of returning partial tokens.
+DATE/fulltext error diagnostics omit input values and conversion/analysis
+exception causes that may contain those values.
 
 ### Concurrency
 
@@ -96,7 +144,10 @@ Under high concurrency, N threads can simultaneously construct a `DefaultSortedS
 ### Observability
 
 **No JMX / metrics instrumentation.**
-Query errors return empty cursors with no counter incremented. Operations cannot distinguish an empty result set from a corrupted or unresponsive index without enabling `DEBUG` logging. The legacy module exposes query counts, error rates, and index sizes via JMX.
+Errors are logged and index-open failures use the shared bad-index tracker,
+but there are no module-specific query/error counters or index-size MBeans.
+Some existing I/O error paths return empty results after logging. The legacy
+module exposes richer query counts, error rates, and index sizes via JMX.
 
 **`IndexPrinter` does not recognise `luceneNg`.**
 `oak-core`'s `IndexPrinter` identifies known index types for inventory output. It does not include `luceneNg`, so luceneNg indexes appear with reduced diagnostic information in the Oak repository inventory.
@@ -108,6 +159,9 @@ When index files are deleted from `OakDirectory`, the blob store is not notified
 
 **`IndexWriter.commit()` and Oak `NodeStore` commit are not atomic.**
 A JVM crash between the two orphans blobs in the blob store. The blob GC will collect them eventually. This is the same accepted trade-off as `oak-lucene` (documented in OAK-7066 context).
+Lucene's commit writes to the staged NodeBuilder, not the published NodeStore
+root. A rejected Oak merge leaves the previously published index readable;
+no separate Lucene rollback mechanism is required.
 
 **Asynchronous CopyOnWrite is not ported.** Existing segments are prefetched and
 writer reads reuse the local cache, but new segment files are written directly to

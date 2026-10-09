@@ -23,6 +23,8 @@ import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.IndexSearcherHo
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.document.SortedDocValuesField;
+import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.IndexSearcher;
@@ -31,6 +33,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import org.apache.lucene.util.BytesRef;
 
 import static org.junit.Assert.*;
 
@@ -42,7 +45,7 @@ public class IndexSearcherHolderTest {
     @Test
     public void testGetSearcher() throws Exception {
         NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
-        // Simulate canonical storage under /oak:index/test/luceneNg
+        // Simulate canonical storage under /oak:index/test/:luceneNg
         NodeBuilder storageBuilder = builder.child("oak:index").child("test").child(LuceneNgIndexStorage.STORAGE_NODE_NAME);
 
         // Write an empty index at the storage path
@@ -64,6 +67,44 @@ public class IndexSearcherHolderTest {
         assertEquals("Empty index should have 0 docs", 0, searcher.getIndexReader().numDocs());
 
         holder.close();
+    }
+
+    @Test
+    public void sortMetadataIsLazyAndScopedToTheReaderGeneration() throws Exception {
+        NodeBuilder definition = InitialContentHelper.INITIAL_CONTENT.builder()
+                .child("oak:index").child("test");
+        NodeBuilder storage = LuceneNgIndexStorage.getOrCreateStorageBuilder(definition);
+        try (OakDirectory directory = new OakDirectory(storage, "test", false);
+             IndexWriter writer = new IndexWriter(directory, new IndexWriterConfig())) {
+            Document doc = new Document();
+            doc.add(new SortedDocValuesField("first", new BytesRef("a")));
+            writer.addDocument(doc);
+        }
+        try (IndexSearcherHolder first = new IndexSearcherHolder(
+                LuceneNgIndexStorage.storageState(definition.getNodeState()), "test")) {
+            java.lang.reflect.Field cache = IndexSearcherHolder.class.getDeclaredField("fieldInfos");
+            cache.setAccessible(true);
+            assertNull(cache.get(first));
+            FieldInfos oldInfos = first.getFieldInfos();
+            assertSame(oldInfos, first.getFieldInfos());
+            assertNotNull(oldInfos.fieldInfo("first"));
+            assertNull(oldInfos.fieldInfo("second"));
+            try (OakDirectory directory = new OakDirectory(storage, "test", false);
+                 IndexWriter writer = new IndexWriter(directory, new IndexWriterConfig())) {
+                Document doc = new Document();
+                doc.add(new SortedDocValuesField("second", new BytesRef("b")));
+                writer.addDocument(doc);
+            }
+            try (IndexSearcherHolder second = new IndexSearcherHolder(
+                    LuceneNgIndexStorage.storageState(definition.getNodeState()), "test")) {
+                assertNull(cache.get(second));
+                FieldInfos newInfos = second.getFieldInfos();
+                assertNotSame(oldInfos, newInfos);
+                assertSame(newInfos, second.getFieldInfos());
+                assertNotNull(newInfos.fieldInfo("second"));
+                assertNull(first.getFieldInfos().fieldInfo("second"));
+            }
+        }
     }
 
     @Test
