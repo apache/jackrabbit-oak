@@ -19,14 +19,14 @@
 #set($h3 = '###')
 #set($h4 = '####')
 
-#set($sql2-grammar = ${project.basedir} + '/src/site/resources/grammar/sql2.csv')
+#set($sql2Grammar = ${project.basedir} + '/src/site/resources/grammar/sql2.csv')
 
 #macro( railroad_link $topic )
-<!-- MACRO{railroad|file=$sql2-grammar|topic=$topic|renderLink=true} -->
+<!-- MACRO{railroad|file=$sql2Grammar|topic=$topic|renderLink=true} -->
 #end
 
 #macro( render $topic )
-<!-- MACRO{railroad|file=$sql2-grammar|topic=$topic} -->
+<!-- MACRO{railroad|file=$sql2Grammar|topic=$topic} -->
 #end
 
 $h2 Oak SQL-2 Query Grammar
@@ -259,6 +259,13 @@ Example: the condition `property(*, Reference) = $uuid` will search for any prop
 
 "first", "path": Supported `@since Oak 1.42`, see OAK-9625.
 
+"if", "exists": Supported `@since Oak 2.7`. `if(condition, trueValue, falseValue)`
+returns `falseValue` if `condition` is missing, `0`, or `false`, and `trueValue`
+otherwise. `exists(operand)` returns `true` if the operand (a property or another
+function) has a value, and `false` otherwise. The `null` literal can be used as an
+operand wherever a dynamic operand is expected, for example as the third argument of
+`if(...)`.
+
 Examples:
 
     lower([firstName])
@@ -268,6 +275,8 @@ Examples:
     name()
     path()
     [jcr:content/title]
+    if(exists([alias]), path(), null)
+    exists([alias])
 
 ---
 

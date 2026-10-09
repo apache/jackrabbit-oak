@@ -18,10 +18,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
+import co.elastic.clients.elasticsearch.indices.GetIndexResponse;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.elastic.internal.ElasticFeatureToggles;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.Nullable;
@@ -79,13 +82,23 @@ public class ElasticIndexCleaner implements Runnable {
     public void run() {
         try {
             NodeState root = nodeStore.getRoot();
+            String[] remoteIndices;
+            if (ElasticFeatureToggles.FT_OAK_12381_DISABLE.get()) {
+                // Legacy behaviour
+                IndicesResponse indicesRes = elasticConnection.getClient()
+                        .cat().indices(r -> r
+                                .index(elasticConnection.getIndexPrefix() + "*")
+                                .expandWildcards(ExpandWildcard.Open));
+                remoteIndices = indicesRes.indices()
+                        .stream().map(IndicesRecord::index).toArray(String[]::new);
+            } else {
+                GetIndexResponse indicesRes = elasticConnection.getClient()
+                        .indices().get(i -> i
+                                .index(elasticConnection.getIndexPrefix() + "*")
+                                .expandWildcards(ExpandWildcard.Open));
+                remoteIndices = indicesRes.indices().keySet().toArray(new String[0]);
+            }
 
-            IndicesResponse indicesRes = elasticConnection.getClient()
-                    .cat().indices(r -> r
-                            .index(elasticConnection.getIndexPrefix() + "*")
-                            .expandWildcards(ExpandWildcard.Open));
-            String[] remoteIndices = indicesRes.indices()
-                    .stream().map(IndicesRecord::index).toArray(String[]::new);
             if (remoteIndices.length == 0) {
                 LOG.debug("No remote index found with prefix {}", indexPrefix);
                 return;
@@ -148,7 +161,7 @@ public class ElasticIndexCleaner implements Runnable {
                     LOG.error("Could not delete remote indices {}", indicesToDelete);
                 }
             }
-        } catch (IOException e) {
+        } catch (IOException | ElasticsearchException e) {
             LOG.error("Could not delete remote indices", e);
         }
     }

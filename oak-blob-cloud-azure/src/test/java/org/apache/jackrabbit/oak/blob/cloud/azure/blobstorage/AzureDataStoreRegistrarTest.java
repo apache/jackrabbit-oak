@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v12.AzureDataStoreV12;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
@@ -490,6 +492,34 @@ public class AzureDataStoreRegistrarTest {
     public void setUploadThreadsForwardsToActiveImpl() {
         wrapper.new DelegatingDataStore().setUploadThreads(4);
         verify(mockImpl).setUploadThreads(4);
+    }
+
+    // OSGi configuration must reach the v8 datastore through the wrapper.
+    @Test
+    public void configurationReachesV8Store() {
+        AzureDataStore store = mock(AzureDataStore.class);
+        assertStagingConfigurationReachesStore(store);
+        verify(store).setMinRecordLength(99999);
+    }
+
+    // The same configuration must reach the v12 datastore after an SDK switch.
+    @Test
+    public void configurationReachesV12Store() {
+        AzureDataStoreV12 store = mock(AzureDataStoreV12.class);
+        assertStagingConfigurationReachesStore(store);
+        verify(store).setMinRecordLength(99999);
+    }
+
+    private void assertStagingConfigurationReachesStore(AbstractSharedCachingDataStore store) {
+        wrapper.activeImpl = store;
+        PropertiesUtil.populate(wrapper.new DelegatingDataStore(), Map.of(
+                "stagingSplitPercentage", "0",
+                "stagingPurgeInterval", "7",
+                "stagingRetryInterval", "11",
+                "minRecordLength", "99999"), false);
+        verify(store).setStagingSplitPercentage(0);
+        verify(store).setStagingPurgeInterval(7);
+        verify(store).setStagingRetryInterval(11);
     }
 
     @Test

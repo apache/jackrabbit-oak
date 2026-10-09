@@ -526,51 +526,66 @@ public class QueryTest extends AbstractRepositoryTest {
     // OAK-1085
     @Test
     public void relativeNotExistsProperty() throws Exception {
-        String oldCompatValue = System.getProperty("oak.useOldInexistenceCheck");
-        System.setProperty("oak.useOldInexistenceCheck", "true");
-        try {
-            Session session = getAdminSession();
-            Node content = session.getRootNode().addNode("test");
-            content.addNode("one").addNode("child").setProperty("prop", "hello");
-            content.addNode("two").addNode("child");
-            session.save();
-            String query = "//*[not(child/@prop)]";
-            QueryResult r = session.getWorkspace().getQueryManager().createQuery(
-                    query, "xpath").execute();
-            NodeIterator it = r.getNodes();
-            assertTrue(it.hasNext());
-            String path = it.nextNode().getPath();
-            assertEquals("/test/two", path);
-            assertFalse(it.hasNext());
-        } finally {
-            if (oldCompatValue == null) {
-                System.clearProperty("oak.useOldInexistenceCheck");
-            } else {
-                System.setProperty("oak.useOldInexistenceCheck", oldCompatValue);
+        // Fixture instances share this JVM property, so selection and restoration must be atomic.
+        synchronized (QueryTest.class) {
+            String oldCompatValue = System.getProperty("oak.useOldInexistenceCheck");
+            System.setProperty("oak.useOldInexistenceCheck", "true");
+            try {
+                Session session = getAdminSession();
+                Node content = session.getRootNode().addNode("test");
+                content.addNode("one").addNode("child").setProperty("prop", "hello");
+                content.addNode("two").addNode("child");
+                session.save();
+                String query = "//*[not(child/@prop)]";
+                QueryResult r = session.getWorkspace().getQueryManager().createQuery(
+                        query, "xpath").execute();
+                NodeIterator it = r.getNodes();
+                assertTrue(it.hasNext());
+                String path = it.nextNode().getPath();
+                assertEquals("/test/two", path);
+                assertFalse(it.hasNext());
+            } finally {
+                if (oldCompatValue == null) {
+                    System.clearProperty("oak.useOldInexistenceCheck");
+                } else {
+                    System.setProperty("oak.useOldInexistenceCheck", oldCompatValue);
+                }
             }
         }
     }
 
-    //OAK-6838
+    // OAK-6838
     @Test
     public void relativeNotExistsProperty_New() throws Exception {
-        Session session = getAdminSession();
-        Node content = session.getRootNode().addNode("test");
-        content.addNode("one").addNode("child").setProperty("prop", "hello");
-        content.addNode("two").addNode("child");
-        session.save();
-        String query = "/jcr:root/test//*[not(child/@prop)]";
-        QueryResult r = session.getWorkspace().getQueryManager().createQuery(
-                query, "xpath").execute();
-        NodeIterator it = r.getNodes();
+        synchronized (QueryTest.class) {
+            String oldCompatValue = System.getProperty("oak.useOldInexistenceCheck");
+            System.setProperty("oak.useOldInexistenceCheck", "false");
+            try {
+                Session session = getAdminSession();
+                Node content = session.getRootNode().addNode("test");
+                content.addNode("one").addNode("child").setProperty("prop", "hello");
+                content.addNode("two").addNode("child");
+                session.save();
+                String query = "/jcr:root/test//*[not(child/@prop)]";
+                QueryResult r = session.getWorkspace().getQueryManager().createQuery(
+                        query, "xpath").execute();
+                NodeIterator it = r.getNodes();
 
-        Set<String> expected = SetUtils.toSet("/test/two", "/test/two/child", "/test/one/child");
-        while (it.hasNext()) {
-            String path = it.nextNode().getPath();
-            assertTrue("Unexpected path " + path, expected.contains(path));
-            expected.remove(path);
+                Set<String> expected = SetUtils.toSet("/test/two", "/test/two/child", "/test/one/child");
+                while (it.hasNext()) {
+                    String path = it.nextNode().getPath();
+                    assertTrue("Unexpected path " + path, expected.contains(path));
+                    expected.remove(path);
+                }
+                assertTrue("These paths not part of result: " + expected, expected.isEmpty());
+            } finally {
+                if (oldCompatValue == null) {
+                    System.clearProperty("oak.useOldInexistenceCheck");
+                } else {
+                    System.setProperty("oak.useOldInexistenceCheck", oldCompatValue);
+                }
+            }
         }
-        assertTrue("These paths not part of result: " + expected, expected.isEmpty());
     }
 
     @Test

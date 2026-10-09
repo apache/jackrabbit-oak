@@ -20,6 +20,8 @@
 package org.apache.jackrabbit.oak.plugins.index.inventory;
 
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.felix.inventory.Format;
 import org.apache.felix.inventory.InventoryPrinter;
@@ -27,9 +29,11 @@ import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.json.Base64BlobSerializer;
 import org.apache.jackrabbit.oak.json.JsonSerializer;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
+import org.apache.jackrabbit.oak.plugins.index.diff.DiffIndexMerger;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
@@ -50,6 +54,8 @@ public class IndexDefinitionPrinter implements InventoryPrinter {
     
     private String filter = "{\"properties\":[\"*\", \"-:childOrder\"],\"nodes\":[\"*\", \"-:*\"]}";;
 
+    private boolean includeDiffIndexes;
+
     public IndexDefinitionPrinter() {
     }
 
@@ -58,13 +64,33 @@ public class IndexDefinitionPrinter implements InventoryPrinter {
         this.nodeStore = nodeStore;
     }
 
+    /**
+     * Only the status printer lists the diff indexes; programmatic users
+     * (e.g. DiffIndexMerger, oak-run) rely on the plain index definitions.
+     */
+    @Activate
+    void activate() {
+        includeDiffIndexes = true;
+    }
+
     @Override
     public void print(PrintWriter printWriter, Format format, boolean isZip) {
         if (format == Format.JSON) {
             NodeState root = nodeStore.getRoot();
+            List<String> indexPaths = new ArrayList<>();
+            indexPathService.getIndexPaths().forEach(indexPaths::add);
+            if (includeDiffIndexes) {
+                // diff indexes are not necessarily oak:QueryIndexDefinition nodes, so the IndexPathService may not return them
+                for (String name : new String[] {DiffIndexMerger.DIFF_INDEX, DiffIndexMerger.DIFF_INDEX_OPTIMIZER}) {
+                    String diffPath = "/oak:index/" + name;
+                    if (!indexPaths.contains(diffPath) && NodeStateUtils.getNode(root, diffPath).exists()) {
+                        indexPaths.add(diffPath);
+                    }
+                }
+            }
             JsopBuilder json = new JsopBuilder();
             json.object();
-            for (String indexPath : indexPathService.getIndexPaths()) {
+            for (String indexPath : indexPaths) {
                 json.key(indexPath);
                 NodeState idxState = NodeStateUtils.getNode(root, indexPath);
                 createSerializer(json).serialize(idxState);
