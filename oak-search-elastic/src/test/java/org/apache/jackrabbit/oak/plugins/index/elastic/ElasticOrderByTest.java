@@ -17,15 +17,16 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.OrderByCommonTest;
-import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
+import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import javax.jcr.PropertyType;
+import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
+
+import static org.junit.Assert.assertTrue;
 
 public class ElasticOrderByTest extends OrderByCommonTest {
 
@@ -47,39 +48,28 @@ public class ElasticOrderByTest extends OrderByCommonTest {
         setTraversalEnabled(false);
     }
 
+    @After
+    public void resetToggle() {
+        FulltextIndex.FT_OAK_12344_DISABLE.set(false);
+    }
+
+    @Test
+    public void ft_oak_12344_toggleShouldBeRemoved() {
+        assertTrue("Feature toggle " + FulltextIndex.FT_OAK_12344 + " is overdue for removal",
+                LocalDate.now().isBefore(LocalDate.of(2027, 10, 31)));
+    }
+
     /**
-     * OAK-12343: Elastic counterpart to the Lucene type=Date limitation. Elastic sorts missing
-     * (non-date) values last instead of as the epoch, so ORDER BY returns the valid dates in order
-     * with the non-date value last - it does not mis-order or drop rows the way Lucene does
-     * (LuceneOrderByTest#orderByNonDateValuesWithDateTypeIsIncorrect).
-     *
-     * TODO(OAK-12344): if Lucene is aligned with this, this becomes the shared expectation.
+     * Legacy behaviour, kept when FT_OAK-12344 is disabled: a value that is not a date sorts last also in
+     * ascending order (the Elasticsearch default for missing values).
      */
     @Test
-    public void orderByNonDateValuesWithDateTypeSortsMissingLast() throws Exception {
-        IndexDefinitionBuilder builder = createIndexDefinitionBuilder();
-        builder.evaluatePathRestrictions();
-        IndexDefinitionBuilder.IndexRule rule = builder.indexRule("nt:base");
-        rule.property("foo").propertyIndex();
-        rule.property("dt").propertyIndex().type(PropertyType.TYPENAME_DATE).ordered();
-        setIndex(UUID.randomUUID().toString(), createIndex(builder, false, "foo", "dt"));
-
-        Tree test = root.getTree("/").addChild("test");
-        Tree a = test.addChild("a");
-        a.setProperty("foo", "bar");
-        a.setProperty("dt", "2023-06-05T16:59:48.119Z");
-        Tree b = test.addChild("b");
-        b.setProperty("foo", "bar");
-        b.setProperty("dt", "2013-06-21T08:30:48.119Z");
-        Tree c = test.addChild("c");
-        c.setProperty("foo", "bar");
-        c.setProperty("dt", "not-a-date");
-        root.commit();
-
-        // valid dates order chronologically; the non-date value sorts last (missing=_last).
+    public void orderByNonDateValuesWithDateTypeSortLastLegacy() throws Exception {
+        FulltextIndex.FT_OAK_12344_DISABLE.set(true);
+        createMixedDateContent();
         assertEventually(() -> assertOrderedQuery(
                 "select [jcr:path] from [nt:base] where foo = 'bar' order by [dt]",
-                List.of("/test/b", "/test/a", "/test/c")));
+                List.of("/test/a", "/test/b", "/test/c")));
     }
 
 }

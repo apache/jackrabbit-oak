@@ -483,8 +483,18 @@ ordered
     jcr:content/@jcr:lastModified`
 
   Refer to [Lucene based Sorting][OAK-2196] for more details. Note that this is
-  only supported for single value property. Enabling this on multi value property
-  would cause indexing to fail.
+  only supported for single value property. For a multi value property, the value is
+  ignored for sorting (a warning is logged).
+
+  Nodes without a sortable value (the property is absent, or its value can't be converted to the
+  declared `type`) sort first in ascending and last in descending order. In union queries (e.g. XPath
+  queries with `or` conditions), values that can't be converted may be ordered differently, as the
+  query engine then compares the stored values.
+
+  Note: `ordered` alone only allows sorting, not selecting nodes. If the `order by` is the only condition
+  the index can evaluate (e.g. `select * from [nt:base] where isdescendantnode('/content') order by [date]`
+  on an index without `evaluatePathRestrictions`), the query returns no results. Set `propertyIndex=true`
+  (or `notNullCheckEnabled=true`) on the property, or add a condition the index can evaluate.
 
   Ordering is supported on properties, and on functions. To order on the name of the node,
   use the following query and index definition:
@@ -504,11 +514,11 @@ type
   type is not used consistently across various nodes then it would recommended
   to specify the type explicitly.
 
-  Note: with `type=Date`, values that are not valid ISO-8601 dates are not indexed as dates, so
-  `order by` on the property gives the wrong order, or no results if the query relies on that
-  property to select nodes. For inconsistent values, leave `type` unset or use `type=String`;
-  string values sort lexicographically, which matches date order only for uniformly formatted
-  timestamps (same precision and zone, e.g. UTC `Z`).
+  Note: with `type=Date`, values that are not valid ISO-8601 dates have no sortable value (see
+  [ordered](#ordered)). Also, unless `notNullCheckEnabled=true` is set, nodes whose value is not stored
+  as a date (e.g. as a string) are not returned if the `order by` is the only condition the index can
+  evaluate. To sort them, leave `type` unset or use `type=String`; strings sort lexicographically, which
+  matches date order only for uniformly formatted timestamps (same precision and zone, e.g. UTC `Z`).
 
   For binary properties, you do not need to index the property separately.
   Binary properties are automatically added to the fulltext index (but only there),

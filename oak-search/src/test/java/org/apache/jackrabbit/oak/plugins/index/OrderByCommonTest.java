@@ -516,23 +516,151 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
         return row.getValue("plan").getValue(Type.STRING);
     }
 
+    @Test
+    public void orderByNonDateValuesWithDateTypeSortAsMissing() throws Exception {
+        createMixedDateContent();
+        assertEventually(() -> assertOrderedQuery(
+                "select [jcr:path] from [nt:base] where foo = 'bar' order by [dt]",
+                List.of("/test/c", "/test/a", "/test/b")));
+        assertEventually(() -> assertOrderedQuery(
+                "select [jcr:path] from [nt:base] where foo = 'bar' order by [dt] desc",
+                List.of("/test/b", "/test/a", "/test/c")));
+    }
+
+    @Test
+    public void orderByDateSortsAbsentPropertyFirstAscending() throws Exception {
+        createMixedDateContent();
+        root.getTree("/test/c").removeProperty("dt");
+        root.commit();
+        assertEventually(() -> assertOrderedQuery(
+                "select [jcr:path] from [nt:base] where foo = 'bar' order by [dt]",
+                List.of("/test/c", "/test/a", "/test/b")));
+        assertEventually(() -> assertOrderedQuery(
+                "select [jcr:path] from [nt:base] where foo = 'bar' order by [dt] desc",
+                List.of("/test/b", "/test/a", "/test/c")));
+    }
+
+    @Test
+    public void orderByStringSortsAbsentPropertyFirstAscending() throws Exception {
+        IndexDefinitionBuilder builder = indexOptions.createIndexDefinitionBuilder();
+        builder.evaluatePathRestrictions();
+        IndexDefinitionBuilder.IndexRule rule = builder.indexRule("nt:base");
+        rule.property("foo").propertyIndex();
+        rule.property("s").propertyIndex().type(PropertyType.TYPENAME_STRING).ordered();
+        indexOptions.setIndex(root, UUID.randomUUID().toString(), indexOptions.createIndex(builder, false, "foo", "s"));
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = test.addChild("a");
+        a.setProperty("foo", "bar");
+        a.setProperty("s", "y");
+        Tree b = test.addChild("b");
+        b.setProperty("foo", "bar");
+        b.setProperty("s", "x");
+        test.addChild("c").setProperty("foo", "bar");
+        root.commit();
+
+        assertEventually(() -> assertOrderedQuery(
+                "select [jcr:path] from [nt:base] where foo = 'bar' order by [s]",
+                List.of("/test/c", "/test/b", "/test/a")));
+        assertEventually(() -> assertOrderedQuery(
+                "select [jcr:path] from [nt:base] where foo = 'bar' order by [s] desc",
+                List.of("/test/a", "/test/b", "/test/c")));
+    }
+
+    @Test
+    public void orderByMultiplePropertiesSortsMissingFirstAscending() throws Exception {
+        IndexDefinitionBuilder builder = indexOptions.createIndexDefinitionBuilder();
+        builder.evaluatePathRestrictions();
+        IndexDefinitionBuilder.IndexRule rule = builder.indexRule("nt:base");
+        rule.property("foo").propertyIndex();
+        rule.property("a").propertyIndex().type(PropertyType.TYPENAME_LONG).ordered();
+        rule.property("b").propertyIndex().type(PropertyType.TYPENAME_DATE).ordered();
+        indexOptions.setIndex(root, UUID.randomUUID().toString(), indexOptions.createIndex(builder, false, "foo", "a", "b"));
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree n1 = test.addChild("n1");
+        n1.setProperty("foo", "bar");
+        n1.setProperty("a", 1L);
+        n1.setProperty("b", "2023-06-05T16:59:48.119Z");
+        Tree n2 = test.addChild("n2");
+        n2.setProperty("foo", "bar");
+        n2.setProperty("a", 1L);
+        n2.setProperty("b", "not-a-date");
+        Tree n3 = test.addChild("n3");
+        n3.setProperty("foo", "bar");
+        n3.setProperty("a", 1L);
+        n3.setProperty("b", "2013-06-21T08:30:48.119Z");
+        Tree n4 = test.addChild("n4");
+        n4.setProperty("foo", "bar");
+        n4.setProperty("a", 2L);
+        root.commit();
+
+        assertEventually(() -> assertOrderedQuery(
+                "select [jcr:path] from [nt:base] where foo = 'bar' order by [a], [b]",
+                List.of("/test/n2", "/test/n3", "/test/n1", "/test/n4")));
+        assertEventually(() -> assertOrderedQuery(
+                "select [jcr:path] from [nt:base] where foo = 'bar' order by [a], [b] desc",
+                List.of("/test/n1", "/test/n3", "/test/n2", "/test/n4")));
+    }
+
+    @Test
+    public void orderByOnUnionSortsMissingLikeQueryEngine() throws Exception {
+        IndexDefinitionBuilder builder = indexOptions.createIndexDefinitionBuilder();
+        builder.evaluatePathRestrictions();
+        IndexDefinitionBuilder.IndexRule rule = builder.indexRule("nt:base");
+        rule.property("foo").propertyIndex();
+        rule.property("n").propertyIndex().type(PropertyType.TYPENAME_DOUBLE).ordered();
+        indexOptions.setIndex(root, UUID.randomUUID().toString(), indexOptions.createIndex(builder, false));
+
+        Tree test = root.getTree("/").addChild("test");
+        // negative values, so that missing values sorting as 0 (the legacy Lucene behaviour) would be detected
+        Object[][] nodes = {{"a", "bar", -2.0}, {"c", "bar", 1.0}, {"e", "bar", null}, {"b", "baz", -1.0}, {"d", "baz", 2.0}};
+        for (Object[] n : nodes) {
+            Tree t = test.addChild((String) n[0]);
+            t.setProperty("foo", (String) n[1]);
+            if (n[2] != null) {
+                t.setProperty("n", (Double) n[2]);
+            }
+        }
+        root.commit();
+
+        String union = "select [jcr:path] from [nt:base] where foo = 'bar' and isdescendantnode('/test') "
+                + "union select [jcr:path] from [nt:base] where foo = 'baz' and isdescendantnode('/test') order by [n]";
+        assertEventually(() -> assertOrderedQuery(union, List.of("/test/e", "/test/a", "/test/b", "/test/c", "/test/d")));
+        assertEventually(() -> assertOrderedQuery(union + " desc", List.of("/test/d", "/test/c", "/test/b", "/test/a", "/test/e")));
+
+        // the query engine sorts the same way when no index is used
+        setTraversalEnabled(true);
+        String engineSorted = "select [jcr:path] from [nt:base] where isdescendantnode('/test') order by [n]";
+        assertOrderedQuery(engineSorted + " option(index tag none)", List.of("/test/e", "/test/a", "/test/b", "/test/c", "/test/d"));
+        assertOrderedQuery(engineSorted + " desc option(index tag none)", List.of("/test/d", "/test/c", "/test/b", "/test/a", "/test/e"));
+    }
+
+    // a: before 1970, b: after 1970, c: not a date
+    protected void createMixedDateContent() throws Exception {
+        IndexDefinitionBuilder builder = indexOptions.createIndexDefinitionBuilder();
+        builder.evaluatePathRestrictions();
+        IndexDefinitionBuilder.IndexRule rule = builder.indexRule("nt:base");
+        rule.property("foo").propertyIndex();
+        rule.property("dt").propertyIndex().type(PropertyType.TYPENAME_DATE).ordered();
+        indexOptions.setIndex(root, UUID.randomUUID().toString(), indexOptions.createIndex(builder, false, "foo", "dt"));
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = test.addChild("a");
+        a.setProperty("foo", "bar");
+        a.setProperty("dt", "1960-06-05T16:59:48.119Z");
+        Tree b = test.addChild("b");
+        b.setProperty("foo", "bar");
+        b.setProperty("dt", "2020-06-21T08:30:48.119Z");
+        Tree c = test.addChild("c");
+        c.setProperty("foo", "bar");
+        c.setProperty("dt", "not-a-date");
+        root.commit();
+    }
+
     protected void assertOrderedQuery(String sql, List<String> paths) {
         List<String> result = executeQuery(sql, AbstractQueryTest.SQL2, true, true);
         assertEquals(paths, result);
-    }
-
-    // Passthroughs so subclasses in other packages can build indexes: the IndexOptions methods are
-    // protected and only reachable from this package.
-    protected IndexDefinitionBuilder createIndexDefinitionBuilder() {
-        return indexOptions.createIndexDefinitionBuilder();
-    }
-
-    protected IndexDefinitionBuilder createIndex(IndexDefinitionBuilder builder, boolean isAsync, String... propNames) {
-        return indexOptions.createIndex(builder, isAsync, propNames);
-    }
-
-    protected Tree setIndex(String name, IndexDefinitionBuilder builder) {
-        return indexOptions.setIndex(root, name, builder);
     }
 
 }

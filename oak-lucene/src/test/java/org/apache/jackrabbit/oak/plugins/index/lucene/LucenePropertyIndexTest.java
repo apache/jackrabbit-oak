@@ -1231,6 +1231,25 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
+    public void orderByOnlyWithNonDateStringValuesWithDateTypeReturnsNoResults() throws Exception {
+        // no evaluatePathRestrictions, so the existence query on the date property drives the query
+        IndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("dt").propertyIndex().type(PropertyType.TYPENAME_DATE).ordered();
+        idxb.build(root.getTree("/").getChild("oak:index").addChild("test1"));
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("dt", "Mon Feb 24 2025 10:22:32 GMT+0000");
+        test.addChild("b").setProperty("dt", "Wed Jan 15 2025 09:00:00 GMT+0000");
+        test.addChild("c").setProperty("dt", "Fri Mar 07 2025 18:30:00 GMT+0000");
+        root.commit();
+
+        // TODO OAK-12434 these nodes should be returned
+        assertOrderedQuery("select [jcr:path] from [nt:base] where isdescendantnode('/test') order by [dt] desc option(traversal fail)",
+                List.of(), SQL2, true);
+    }
+
+    @Test
     public void sortQueriesWithStringAndLong() throws Exception {
         Tree idx = createIndex("test1", Set.of("foo", "bar", "baz"));
         idx.setProperty(createProperty(ORDERED_PROP_NAMES, Set.of("foo", "baz"), STRINGS));

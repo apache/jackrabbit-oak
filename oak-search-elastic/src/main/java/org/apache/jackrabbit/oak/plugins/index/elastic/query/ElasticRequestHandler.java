@@ -387,10 +387,15 @@ public class ElasticRequestHandler {
                 LOG.warn("Unable to sort by {} for index {}", sortPropertyName, elasticIndexDefinition.getIndexName());
                 continue;
             }
+            boolean ascending = QueryIndex.OrderEntry.Order.ASCENDING.equals(o.getOrder());
+            // like the query engine, sort documents without a value first when ascending and last when descending
+            boolean setMissing = !JCR_PATH.equals(sortPropertyName) && !JCR_SCORE.equals(sortPropertyName)
+                    && !FulltextIndex.FT_OAK_12344_DISABLE.get();
             SortOptions order = SortOptions.of(so -> so
-                    .field(f -> f
-                            .field(fieldName)
-                            .order(QueryIndex.OrderEntry.Order.ASCENDING.equals(o.getOrder()) ? SortOrder.Asc : SortOrder.Desc)));
+                    .field(f -> {
+                        f.field(fieldName).order(ascending ? SortOrder.Asc : SortOrder.Desc);
+                        return setMissing ? f.missing(ascending ? "_first" : "_last") : f;
+                    }));
             list.add(order);
         }
 
