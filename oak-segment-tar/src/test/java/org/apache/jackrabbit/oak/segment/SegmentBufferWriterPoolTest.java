@@ -19,18 +19,25 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -210,6 +217,54 @@ public class SegmentBufferWriterPoolTest {
         assertEquals(rootId, res9.get());
         assertEquals(3, map3.size());
         assertTrue(SetUtils.intersection(new HashSet<>(map1.values()), new HashSet<>(map3.values())).isEmpty());
+    }
+
+    @Test
+    public void testConcurrentWriterIdsAreUnique() throws Exception {
+        final int threads = 100;
+        final GCGeneration gen = pool.getGCGeneration();
+        final CyclicBarrier barrier = new CyclicBarrier(threads);
+        final Queue<SegmentBufferWriter> created = new ConcurrentLinkedQueue<>();
+        ExecutorService executor = newFixedThreadPool(threads);
+        try {
+            List<Future<RecordId>> results = new ArrayList<>(threads);
+            for (int i = 0; i < threads; i++) {
+                results.add(executor.submit(new Callable<RecordId>() {
+                    @Override
+                    public RecordId call() throws Exception {
+                        // Release all threads at once so writer creation races.
+                        barrier.await();
+                        return pool.execute(gen, new WriteOperation() {
+                            @NotNull @Override
+                            public RecordId execute(@NotNull SegmentBufferWriter writer) {
+                                created.add(writer);
+                                return rootId;
+                            }
+                        });
+                    }
+                }));
+            }
+            for (Future<RecordId> result : results) {
+                assertEquals(rootId, result.get());
+            }
+        } finally {
+            executor.shutdownNow();
+        }
+
+        // Distinct writers must have distinct ids. A recycled writer legitimately
+        // reappears with the same id, so compare against the distinct writer count.
+        Set<String> writerIds = new HashSet<>();
+        for (SegmentBufferWriter writer : created) {
+            writerIds.add(writerId(writer));
+        }
+        assertEquals("concurrently created writers must get unique ids",
+                new HashSet<>(created).size(), writerIds.size());
+    }
+
+    private static String writerId(SegmentBufferWriter writer) throws ReflectiveOperationException {
+        Field field = SegmentBufferWriter.class.getDeclaredField("wid");
+        field.setAccessible(true);
+        return (String) field.get(writer);
     }
 
     @Test
