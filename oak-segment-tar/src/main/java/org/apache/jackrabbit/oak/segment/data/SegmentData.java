@@ -129,9 +129,13 @@ public interface SegmentData {
         int index = length >= MAX_SMALL_LENGTH_VALUE
                     ? recordReferenceOffset + Short.BYTES
                     : recordReferenceOffset + Byte.BYTES;
-        Buffer buffer = readBytes(index, (int) length);
-        String string = buffer.decode(StandardCharsets.UTF_8).toString();
-        return new StringData(string, (int)length);
+        return new StringData(decodeString(index, (int) length), (int) length);
+    }
+
+    default String decodeString(int recordReferenceOffset, int length) {
+        byte[] bytes = new byte[length];
+        readBytes(recordReferenceOffset, length).get(bytes);
+        return new String(bytes, StandardCharsets.UTF_8);
     }
 
     default RecordIdData readRecordId(int recordReferenceOffset) {

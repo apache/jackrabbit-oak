@@ -243,6 +243,40 @@ public class RecordTest {
     }
 
     @Test
+    public void testStringRoundTrip() throws IOException {
+        // Exercises SegmentData.decodeString across the small/medium inline length boundaries and
+        // the large (SegmentStream) path, with ASCII and multi-byte / surrogate-pair UTF-8, to
+        // ensure the byte[]-based decode matches the original CharsetDecoder path exactly.
+        List<String> values = new ArrayList<>();
+        values.add("");
+        values.add("foo");
+        for (int len : new int[] {127, 128, 129, 200, 16510, 16511, 16512, 16513, 40000}) {
+            StringBuilder sb = new StringBuilder(len);
+            for (int i = 0; i < len; i++) {
+                sb.append((char) ('a' + (i % 26)));
+            }
+            values.add(sb.toString());
+        }
+        // Multi-byte: U+00E4 (2-byte), U+20AC (3-byte), and a surrogate pair (4-byte).
+        values.add("a ä € 😀 z");
+        StringBuilder unicode = new StringBuilder();
+        for (int i = 0; i < 5000; i++) {
+            unicode.append("ä€");
+        }
+        values.add(unicode.toString());
+
+        for (String value : values) {
+            NodeBuilder builder = EMPTY_NODE.builder();
+            builder.setProperty("p", value, STRING);
+            NodeState state = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(),
+                    writer.writeNode(builder.getNodeState()));
+            PropertyState p = state.getProperty("p");
+            assertNotNull(p);
+            assertEquals("round-trip failed for length " + value.length(), value, p.getValue(STRING));
+        }
+    }
+
+    @Test
     public void testReadPropertyPerformance() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("jcr:mixinTypes", singletonList("foo"), STRINGS);
