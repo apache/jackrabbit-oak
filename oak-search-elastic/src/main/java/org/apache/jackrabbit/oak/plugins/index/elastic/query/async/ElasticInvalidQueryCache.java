@@ -16,10 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.async;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.time.Duration;
+import java.util.function.Supplier;
+
+import org.apache.jackrabbit.oak.cache.api.Cache;
+import org.apache.jackrabbit.oak.cache.api.CacheBuilder;
+import org.apache.jackrabbit.oak.plugins.index.elastic.internal.ElasticFeatureToggles;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.TestOnly;
 
 /**
  * Bounded, time-limited cache of Elastic queries that recently failed with a query-parsing error (e.g. a
@@ -30,30 +34,26 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * The cache key is expected to be a stable identifier for the "logical" query (e.g. index path + query DSL),
  * independent of pagination state such as {@code search_after}.
  * <p>
- * Disabled by default; enable via the {@link #FT_OAK_12403} feature toggle.
+ * Entries expire five minutes after being recorded, with a maximum cache size of 1000 entries.
+ * Disabled by default; enable via the {@link ElasticFeatureToggles#FT_OAK_12403} feature toggle.
  */
 public final class ElasticInvalidQueryCache {
 
-    public static final String FT_OAK_12403 = "FT_OAK-12403";
-    /**
-     * When {@code true}, queries that recently failed with an Elastic parsing error are cached and
-     * subsequent identical queries are short-circuited (no call to Elastic, no results) until the cache
-     * entry expires. Disabled by default.
-     */
-    public static final AtomicBoolean FT_OAK_12403_ENABLE = new AtomicBoolean(false);
-
     private static final int MAX_ENTRIES = 1000;
-    private static final long TTL_MS = TimeUnit.MINUTES.toMillis(5);
-
-    private static final Map<String, Long> INVALID_QUERIES = new LinkedHashMap<>(16, 0.75f, true) {
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<String, Long> eldest) {
-            return size() > MAX_ENTRIES;
-        }
-    };
+    private static final Cache<String, Boolean> INVALID_QUERIES = setupCache(null);
 
     private ElasticInvalidQueryCache() {
         // no instances
+    }
+
+    static Cache<String, Boolean> setupCache(@Nullable Supplier<Long> ticker) {
+        CacheBuilder<String, Boolean> builder = CacheBuilder.<String, Boolean>newBuilder()
+                .maximumSize(MAX_ENTRIES)
+                .expireAfterWrite(Duration.ofMinutes(5));
+        if (ticker != null) {
+            builder.ticker(ticker);
+        }
+        return builder.build();
     }
 
     /**
@@ -61,12 +61,10 @@ public final class ElasticInvalidQueryCache {
      * No-op when the feature toggle is disabled.
      */
     public static void markInvalid(String cacheKey) {
-        if (!FT_OAK_12403_ENABLE.get() || cacheKey == null) {
+        if (!ElasticFeatureToggles.FT_OAK_12403_ENABLE.get() || cacheKey == null) {
             return;
         }
-        synchronized (INVALID_QUERIES) {
-            INVALID_QUERIES.put(cacheKey, System.currentTimeMillis());
-        }
+        INVALID_QUERIES.put(cacheKey, Boolean.TRUE);
     }
 
     /**
@@ -75,28 +73,17 @@ public final class ElasticInvalidQueryCache {
      * toggle is disabled.
      */
     public static boolean isKnownInvalid(String cacheKey) {
-        if (!FT_OAK_12403_ENABLE.get() || cacheKey == null) {
+        if (!ElasticFeatureToggles.FT_OAK_12403_ENABLE.get() || cacheKey == null) {
             return false;
         }
-        synchronized (INVALID_QUERIES) {
-            Long recordedAt = INVALID_QUERIES.get(cacheKey);
-            if (recordedAt == null) {
-                return false;
-            }
-            if (System.currentTimeMillis() - recordedAt > TTL_MS) {
-                INVALID_QUERIES.remove(cacheKey);
-                return false;
-            }
-            return true;
-        }
+        return INVALID_QUERIES.getIfPresent(cacheKey) != null;
     }
 
     /**
      * Removes every entry from the cache. Intended for tests.
      */
+    @TestOnly
     static void clear() {
-        synchronized (INVALID_QUERIES) {
-            INVALID_QUERIES.clear();
-        }
+        INVALID_QUERIES.invalidateAll();
     }
 }
