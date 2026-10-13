@@ -22,6 +22,7 @@ The Oak Security Layer
 
  * [Introduction to Oak Security](introduction.html)
  * [Security Reports](reports.html)
+ * [Audit SPI](audit.html)
 
 ### Authentication
 
