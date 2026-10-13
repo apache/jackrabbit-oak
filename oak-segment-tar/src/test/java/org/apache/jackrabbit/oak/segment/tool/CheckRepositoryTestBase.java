@@ -127,6 +127,24 @@ public class CheckRepositoryTestBase {
         corruptRecord(aRecordId, "data00001a.tar");
     }
 
+    protected void addInvalidRevisionWithCorruptNewNodeOnly() throws InvalidFileStoreVersionException, IOException, CommitFailedException {
+        FileStore fileStore = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot()).withMaxFileSize(256)
+            .withSegmentCacheSize(64).build();
+
+        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+        NodeBuilder builder = nodeStore.getRoot().builder();
+
+        // add a new child "z" and corrupt only its NODE record
+        addChildWithBlobProperties(nodeStore, builder, "z", 5);
+
+        NodeState after = nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        RecordId zRecordId = ((SegmentNodeState) after.getChildNode("z")).getRecordId();
+
+        fileStore.close();
+
+        corruptRecord(zRecordId, "data00001a.tar");
+    }
+
     protected void corruptPathFromCheckpoint() throws InvalidFileStoreVersionException, IOException {
         FileStore fileStore = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot()).withMaxFileSize(256)
             .withSegmentCacheSize(64).build();

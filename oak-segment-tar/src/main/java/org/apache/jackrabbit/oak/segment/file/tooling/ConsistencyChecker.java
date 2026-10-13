@@ -188,8 +188,7 @@ public class ConsistencyChecker {
         NodeState node = getDescendantOrNull(root, path);
 
         if (node == null) {
-            onPathNotFound(path);
-            return true;
+            return false;
         }
 
         return checkNode(node, path, binaries) != null;
