@@ -29,7 +29,7 @@ import java.util.List;
  *
  * <p>Concrete subclasses supply the repository wiring and index type for a specific
  * search backend. The index definition differs only by type, so running the same scenarios
- * against each backend verifies behavioural parity across implementations.
+ * against each backend verifies shared behavior and explicit representation differences.
  *
  * <p>Test data uses fully unique values for all sort-key fields so that ordering assertions
  * are deterministic regardless of the underlying Lucene version or document-id tiebreaking.
@@ -45,6 +45,8 @@ public abstract class AbstractIndexComparisonTest extends AbstractQueryTest {
 
     protected abstract String getIndexType();
 
+    protected abstract boolean isTypeTolerant();
+
     protected final void createSearchIndex() throws Exception {
         IndexDefinitionBuilder builder = new IndexDefinitionBuilder();
         builder.noAsync();
@@ -58,7 +60,8 @@ public abstract class AbstractIndexComparisonTest extends AbstractQueryTest {
             .property("created").propertyIndex().type("Date")
             .property("optionalCount").propertyIndex().type("Long").notNullCheckEnabled()
             .property("status").propertyIndex().ordered()
-            .property("category").propertyIndex();
+            .property("category").propertyIndex()
+            .property("changing-type").propertyIndex();
 
         Tree index = builder.build(root.getTree("/oak:index").addChild("searchTestIndex"));
         index.setProperty("type", getIndexType());
@@ -91,6 +94,61 @@ public abstract class AbstractIndexComparisonTest extends AbstractQueryTest {
         page.setProperty("price", price);
         page.setProperty("status", status);
         page.setProperty("category", category);
+    }
+
+    @Test
+    public void testMixedPropertyTypesStringFirst() throws Exception {
+        assertMixedPropertyTypes(List.of("doc1", "doc2", "doc3", "doc4"));
+    }
+
+    @Test
+    public void testMixedPropertyTypesNumericFirst() throws Exception {
+        assertMixedPropertyTypes(List.of("doc4", "doc3", "doc2", "doc1"));
+    }
+
+    private void assertMixedPropertyTypes(List<String> creationOrder) throws Exception {
+        createSearchIndex();
+        setTraversalEnabled(false);
+        Tree content = root.getTree("/").addChild("content");
+        for (String name : creationOrder) {
+            Tree document = content.addChild(name);
+            switch (name) {
+                case "doc1":
+                    document.setProperty("changing-type", "hello");
+                    break;
+                case "doc2":
+                    document.setProperty("changing-type", List.of("hello", "world"), Type.STRINGS);
+                    break;
+                case "doc3":
+                    document.setProperty("changing-type", 2.5);
+                    break;
+                case "doc4":
+                    document.setProperty("changing-type", List.of(2.5, 3.5), Type.DOUBLES);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unknown test document: " + name);
+            }
+            root.commit();
+        }
+
+        String query = "select [jcr:path] from [nt:base] where ";
+        List<String> stringDocuments = List.of("/content/doc1", "/content/doc2");
+        List<String> numericDocuments = List.of("/content/doc3", "/content/doc4");
+        List<String> allDocuments = List.of("/content/doc1", "/content/doc2", "/content/doc3", "/content/doc4");
+
+        assertQuery(query + "[changing-type] is not null", allDocuments);
+        assertQuery(query + "[changing-type] = 'hello'", stringDocuments);
+        assertQuery(query + "[changing-type] = 'world'", List.of("/content/doc2"));
+        assertQuery(query + "[changing-type] = '2.5'", isTypeTolerant() ? List.of() : numericDocuments);
+        assertQuery(query + "[changing-type] = '3.5'", isTypeTolerant() ? List.of() : List.of("/content/doc4"));
+        assertQuery(query + "[changing-type] = cast('2.5' as double)", numericDocuments);
+        assertQuery(query + "[changing-type] = cast('3.5' as double)", List.of("/content/doc4"));
+        assertQuery(query + "[changing-type] in ('hello', '2.5')", isTypeTolerant() ? stringDocuments : allDocuments);
+        assertQuery(query + "[changing-type] in (cast('2.5' as double), cast('3.5' as double))", numericDocuments);
+        assertQuery(query + "[changing-type] > '1' and [changing-type] < '3'", numericDocuments);
+        assertQuery(query + "[changing-type] > cast('1' as double) and [changing-type] < cast('3' as double)",
+                numericDocuments);
+        assertQuery(query + "[changing-type] < cast('10' as double)", isTypeTolerant() ? numericDocuments : List.of());
     }
 
     // ===== Property equality queries =====

@@ -16,15 +16,21 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
+import java.util.List;
+
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.TermQuery;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
@@ -131,6 +137,56 @@ public class TypeSafeIndexingTest {
             assertNotNull("'count' field must be present", fi);
             assertEquals("undeclared type defaults to String field (DOCS index options)",
                     IndexOptions.DOCS, fi.getIndexOptions());
+        }
+    }
+
+    @Test
+    public void numericArraysWithDeclaredStringTypeProduceStringFields() throws Exception {
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        luceneNg(root).indexRule("nt:unstructured").property("numbers").propertyIndex().type("String");
+        assertNumericArraysProduceStringFields(root, DocValuesType.NONE);
+    }
+
+    @Test
+    public void numericArraysWithDefaultStringTypeProduceStringFields() throws Exception {
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        luceneNg(root).indexRule("nt:unstructured").property("numbers").propertyIndex();
+        assertNumericArraysProduceStringFields(root, DocValuesType.NONE);
+    }
+
+    @Test
+    public void mixedCardinalitiesWithDeclaredStringTypeHaveConsistentSortFields() throws Exception {
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        luceneNg(root).indexRule("nt:unstructured").property("numbers").propertyIndex().type("String").ordered();
+        assertNumericArraysProduceStringFields(root, DocValuesType.SORTED_SET);
+    }
+
+    @Test
+    public void mixedCardinalitiesWithDefaultStringTypeHaveConsistentSortFields() throws Exception {
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        luceneNg(root).indexRule("nt:unstructured").property("numbers").propertyIndex().ordered();
+        assertNumericArraysProduceStringFields(root, DocValuesType.SORTED_SET);
+    }
+
+    private void assertNumericArraysProduceStringFields(NodeBuilder root, DocValuesType expectedDocValuesType)
+            throws Exception {
+        node(root, "doubles").setProperty("numbers", List.of(2.5, 3.5), Type.DOUBLES);
+        node(root, "longs").setProperty("numbers", List.of(25L, 35L), Type.LONGS);
+        node(root, "scalar").setProperty("numbers", 4.5);
+        node(root, "string").setProperty("numbers", "hello");
+
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
+        try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
+            IndexSearcher searcher = new IndexSearcher(reader);
+            for (String value : List.of("2.5", "3.5", "25", "35", "4.5", "hello")) {
+                assertEquals("Every numeric array element must be indexed as a string: " + value,
+                        1, searcher.search(new TermQuery(new Term("numbers", value)), 10).totalHits.value);
+            }
+            FieldInfo field = reader.leaves().get(0).reader().getFieldInfos().fieldInfo("numbers");
+            assertNotNull(field);
+            assertEquals(IndexOptions.DOCS, field.getIndexOptions());
+            assertEquals(0, field.getPointDimensionCount());
+            assertEquals(expectedDocValuesType, field.getDocValuesType());
         }
     }
 

@@ -87,6 +87,11 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
         return "luceneNg";
     }
 
+    @Override
+    protected boolean isTypeTolerant() {
+        return false;
+    }
+
     @Test
     public void indexedNodeTypesExcludeOtherTypesBeforeCandidateReads() throws Exception {
         IndexDefinitionBuilder builder = new IndexDefinitionBuilder().noAsync();
@@ -204,8 +209,8 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
         createSearchIndex();
         createTestContent();
         String explain = executeQuery("explain //element(*, nt:base)[@title = 'Oak Testing']", "xpath").get(0);
-        assertThat("Query plan should use lucene:...@v9 for Granite-style parsers",
-                explain, containsString("lucene:searchTestIndex@v9"));
+        assertThat("Query plan should use lucene:...@ng for Granite-style parsers",
+                explain, containsString("lucene:searchTestIndex@ng"));
         assertThat("Query plan should expose luceneNg type",
                 explain, containsString("luceneNg:searchTestIndex"));
         assertThat("Query plan should use luceneQuery label like FulltextIndex.getPlanDescription",
