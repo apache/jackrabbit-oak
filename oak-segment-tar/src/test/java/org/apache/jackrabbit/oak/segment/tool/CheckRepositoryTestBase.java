@@ -130,38 +130,38 @@ public class CheckRepositoryTestBase {
     }
 
     protected void addInvalidRevisionWithCorruptNewNodeOnly() throws InvalidFileStoreVersionException, IOException, CommitFailedException {
-        FileStore fileStore = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot()).withMaxFileSize(256)
-            .withSegmentCacheSize(64).build();
+        RecordId zRecordId;
+        try (FileStore fileStore = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot()).withMaxFileSize(256)
+            .withSegmentCacheSize(64).build()) {
 
-        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
-        NodeBuilder builder = nodeStore.getRoot().builder();
+            SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+            NodeBuilder builder = nodeStore.getRoot().builder();
 
-        // add a new child "z" and corrupt only its NODE record
-        addChildWithBlobProperties(nodeStore, builder, "z", 5);
+            // add a new child "z" and corrupt only its NODE record
+            addChildWithBlobProperties(nodeStore, builder, "z", 5);
 
-        NodeState after = nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        RecordId zRecordId = ((SegmentNodeState) after.getChildNode("z")).getRecordId();
-
-        fileStore.close();
+            NodeState after = nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            zRecordId = ((SegmentNodeState) after.getChildNode("z")).getRecordId();
+        }
 
         corruptRecord(zRecordId, "data00001a.tar");
     }
 
     protected void addInvalidRevisionWithCorruptNewNodeProperty() throws InvalidFileStoreVersionException, IOException, CommitFailedException {
-        FileStore fileStore = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot()).withMaxFileSize(256)
-            .withSegmentCacheSize(64).build();
+        RecordId valueRecordId;
+        try (FileStore fileStore = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot()).withMaxFileSize(256)
+            .withSegmentCacheSize(64).build()) {
 
-        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
-        NodeBuilder builder = nodeStore.getRoot().builder();
+            SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+            NodeBuilder builder = nodeStore.getRoot().builder();
 
-        // add a new child "z" and corrupt only the value record of its property
-        builder.child("z").setProperty("z0", "value");
+            // add a new child "z" and corrupt only the value record of its property
+            builder.child("z").setProperty("z0", "value");
 
-        NodeState after = nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        PropertyState property = after.getChildNode("z").getProperty("z0");
-        RecordId valueRecordId = ((SegmentPropertyState) property).getRecordId();
-
-        fileStore.close();
+            NodeState after = nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            PropertyState property = after.getChildNode("z").getProperty("z0");
+            valueRecordId = ((SegmentPropertyState) property).getRecordId();
+        }
 
         corruptRecord(valueRecordId, "data00001a.tar", RecordType.VALUE);
     }
