@@ -65,6 +65,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * UserQueryManagerTest provides test cases for {@link UserQueryManager}.
@@ -334,6 +335,48 @@ public class UserQueryManagerTest extends AbstractUserTest {
 
         Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
         assertResultContainsAuthorizables(result, user, g);
+    }
+
+    @Test
+    public void testQueryWithIndexTag() throws Exception {
+        Group g = createGroup(null, EveryonePrincipal.getInstance());
+        g.setProperty(propertyName, v);
+        user.setProperty(propertyName, v);
+        root.commit();
+
+        Query q = new Query() {
+            @Override
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
+                builder.setCondition(builder.eq(propertyName, v));
+                builder.setIndexTag("myTag");
+            }
+        };
+
+        // no index is tagged with 'myTag' -> the option(index tag ...) clause is
+        // valid syntax and the query falls back to traversal (failTraversal=false)
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
+        assertResultContainsAuthorizables(result, user, g);
+    }
+
+    @Test
+    public void testQueryWithInvalidIndexTag() throws Exception {
+        user.setProperty(propertyName, v);
+        root.commit();
+
+        Query q = new Query() {
+            @Override
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
+                builder.setCondition(builder.eq(propertyName, v));
+                builder.setIndexTag("invalid tag)");
+            }
+        };
+
+        try {
+            queryMgr.findAuthorizables(q);
+            fail("Invalid index tag must be rejected.");
+        } catch (RepositoryException e) {
+            // success
+        }
     }
 
     @Test
