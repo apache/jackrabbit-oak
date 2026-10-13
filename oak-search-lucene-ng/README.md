@@ -116,9 +116,9 @@ Define query indexes at `/oak:index/<name>`. One backend uses the inherited
 planner to discover definitions and executes the index selected by each plan
 for results, sorting and facets. Nested definitions (for example,
 `/content/dam/oak:index/damAssets`) are excluded from query plans because
-subtree-relative query and result paths are not supported yet. The editor and
-standalone tracker can still maintain/open nested definitions; that does not
-make them query-supported.
+subtree-relative query and result paths are not supported yet. The editor
+skips them at indexing time with a WARN, so they are neither maintained nor
+queryable.
 
 **Disable older versions explicitly during experimental migration.**
 Shared cross-type supersession does not recognize `luceneNg` as a replacement

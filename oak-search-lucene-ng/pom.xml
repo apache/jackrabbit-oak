@@ -194,7 +194,6 @@
                         <Import-Package>
                             !org.apache.lucene.*,
                             com.sun.management;resolution:=optional,
-                            org.apache.jackrabbit.guava.*;resolution:=optional,
                             *
                         </Import-Package>
                         <Embed-Dependency>

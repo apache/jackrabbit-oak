@@ -81,6 +81,17 @@ public class LuceneNgIndexEditorProviderTest {
         assertNotNull("Editor should be returned for luceneNg type", editor);
     }
 
+    @Test
+    public void testGetEditorSkipsNestedIndexDefinitions() throws Exception {
+        Editor editor = provider.getIndexEditor(
+            LuceneNgIndexConstants.TYPE_LUCENE_NG,
+            definitionBuilder,
+            root,
+            contextCallback("/content/oak:index/test", false));
+
+        assertNull("Nested luceneNg definitions should be skipped", editor);
+    }
+
     @Test(expected = IllegalStateException.class)
     public void testGetEditorWithoutContextAwareCallbackThrows() throws Exception {
         IndexUpdateCallback plainCallback = mock(IndexUpdateCallback.class);

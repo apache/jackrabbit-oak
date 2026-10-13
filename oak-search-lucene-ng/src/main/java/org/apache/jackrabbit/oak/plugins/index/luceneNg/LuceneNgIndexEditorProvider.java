@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.editor.LuceneNgIndexEditorContext;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.LuceneNgIndexCopier;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -76,6 +77,14 @@ public class LuceneNgIndexEditorProvider implements IndexEditorProvider {
             throw new IllegalStateException("callback instance not of type ContextAwareCallback [" + callback + "]");
         }
         IndexingContext indexingContext = ((ContextAwareCallback) callback).getIndexingContext();
+
+        // Nested luceneNg definitions (below /oak:index) are not queryable by LuceneNgIndex, so
+        // skip indexing them rather than maintaining an index that can never be queried.
+        String indexPath = indexingContext.getIndexPath();
+        if (indexPath == null || !"/oak:index".equals(PathUtils.getParentPath(indexPath))) {
+            LOG.warn("luceneNg index at {} is not supported below /oak:index; skipping", indexPath);
+            return null;
+        }
 
         // Build the shared-framework context and hand it to the collapsed editor. Reindex mode is
         // NOT enabled here explicitly: FulltextIndexEditor.enter() enables it on the root editor
