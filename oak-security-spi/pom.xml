@@ -48,6 +48,7 @@
               <Export-Package>
                 org.apache.jackrabbit.oak.plugins.tree,
                 org.apache.jackrabbit.oak.spi.security,
+                org.apache.jackrabbit.oak.spi.security.audit,
                 org.apache.jackrabbit.oak.spi.security.authentication,
                 org.apache.jackrabbit.oak.spi.security.authentication.callback,
                 org.apache.jackrabbit.oak.spi.security.authentication.credentials,
