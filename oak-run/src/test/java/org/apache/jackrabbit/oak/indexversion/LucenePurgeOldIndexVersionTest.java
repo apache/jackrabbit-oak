@@ -53,8 +53,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Assert;
 import org.junit.Test;
-
-import ch.qos.logback.classic.Level;
+import org.slf4j.event.Level;
 
 public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTest {
     private final static String FOO1_INDEX_PATH = "/oak:index/fooIndex1";
@@ -112,7 +111,7 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
 
     @Test
     public void noDeleteIfActiveIndexTimeThresholdNotMeet() throws Exception {
-        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
+        LogCustomizer custom = LogCustomizer.forLogger(org.apache.jackrabbit.oak.indexversion.IndexVersionOperation.class)
                 .enable(Level.INFO)
                 .create();
         try {
@@ -146,7 +145,7 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
     }
     @Test
     public void noDeleteIfNoActiveIndex() throws Exception {
-        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
+        LogCustomizer custom = LogCustomizer.forLogger(org.apache.jackrabbit.oak.indexversion.IndexVersionOperation.class)
                 .enable(Level.INFO)
                 .create();
         try {
@@ -180,7 +179,7 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
     // Verify that the lower versioned index that is being used for queries should not get purged.
     @Test
     public void noDeleteIfLatestOOBIndexIsDisabled() throws Exception {
-        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
+        LogCustomizer custom = LogCustomizer.forLogger(org.apache.jackrabbit.oak.indexversion.IndexVersionOperation.class)
                 .enable(Level.INFO)
                 .create();
         try {
@@ -241,7 +240,7 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
     // but before which is fixed, the purging will not do deletion in that case
     @Test
     public void noDeleteIfActiveIndexTimeMissing() throws Exception {
-        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
+        LogCustomizer custom = LogCustomizer.forLogger(org.apache.jackrabbit.oak.indexversion.IndexVersionOperation.class)
                 .enable(Level.INFO)
                 .create();
         try {
@@ -285,7 +284,7 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
 
     @Test
     public void noDeleteIfInvalidIndexOperationVersion() throws Exception {
-        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
+        LogCustomizer custom = LogCustomizer.forLogger(org.apache.jackrabbit.oak.indexversion.IndexVersionOperation.class)
                 .enable(Level.INFO)
                 .create();
         try {
@@ -420,7 +419,7 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
 
     @Test
     public void noDeleteIfNonReadWriteMode() throws Exception {
-        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.run.PurgeOldIndexVersionCommand")
+        LogCustomizer custom = LogCustomizer.forLogger(org.apache.jackrabbit.oak.run.PurgeOldIndexVersionCommand.class)
                 .enable(Level.INFO)
                 .create();
         try {

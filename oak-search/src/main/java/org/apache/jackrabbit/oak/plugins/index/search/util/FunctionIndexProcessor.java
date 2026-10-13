@@ -23,10 +23,13 @@ import java.util.ArrayList;
 import java.util.Deque;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.FunctionIndexUtils;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -44,6 +47,7 @@ public class FunctionIndexProcessor {
     private String remaining;
 
     private static final PropertyState EMPTY_PROPERTY_STATE = EmptyPropertyState.emptyProperty("empty", Type.STRINGS);
+    private static final String VALUE = "value";
 
     protected FunctionIndexProcessor(String function) {
         this.remaining = function;
@@ -82,6 +86,12 @@ public class FunctionIndexProcessor {
             if (token.startsWith("@")) {
                 String propertyName = token.substring(1);
                 ps = getProperty(path, state, propertyName);
+            } else if (isQuotedLiteral(token)) {
+                PropertyValue v = FunctionIndexUtils.parseLiteral(unquote(token));
+                Type<?> type = v.getType();
+                ps = PropertyStates.createProperty(VALUE, v.getValue(type), type);
+            } else if ("null".equals(token)) {
+                ps = null;
             } else {
                 ps = calculateFunction(token, stack);
             }
@@ -95,8 +105,31 @@ public class FunctionIndexProcessor {
         return ret == EMPTY_PROPERTY_STATE ? null : ret;
     }
 
+    private static boolean isQuotedLiteral(String token) {
+        return token.length() >= 2 && token.startsWith("'") && token.endsWith("'");
+    }
+
+    /**
+     * Convert a value popped off the evaluation stack to a {@link PropertyValue},
+     * for use with {@link FunctionIndexUtils}. Unlike {@link PropertyValues#create(PropertyState)},
+     * this maps the internal {@link #EMPTY_PROPERTY_STATE} "missing value" sentinel to
+     * {@code null}, which is the "missing" signal {@link FunctionIndexUtils} expects.
+     */
+    private static PropertyValue toPropertyValue(PropertyState ps) {
+        return ps == EMPTY_PROPERTY_STATE ? null : PropertyValues.create(ps);
+    }
+
+    private static String unquote(String token) {
+        String inner = token.substring(1, token.length() - 1);
+        return inner.replace("''", "'");
+    }
+
     /**
      * Split the polish notation into a tokens that can more easily be processed.
+     * This is quote-aware: a token of the form 'text' (as used for the operator
+     * literal of op(...)) is kept as one token even if "text" itself contains a
+     * '*' character (e.g. the multiplication operator). Within such a literal, a
+     * single quote is escaped as two single quotes ('').
      *
      *  @param functionDescription in polish notation, for example "function*lower*{@literal @}name"
      *  @return tokens, for example ["function", "lower", "{@literal @}name"]
@@ -105,11 +138,64 @@ public class FunctionIndexProcessor {
         if (functionDescription == null) {
             return null;
         }
-        return functionDescription.split("\\*");
+        ArrayList<String> tokens = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        boolean inLiteral = false;
+        for (int i = 0; i < functionDescription.length(); i++) {
+            char c = functionDescription.charAt(i);
+            if (inLiteral) {
+                current.append(c);
+                if (c == '\'') {
+                    if (i + 1 < functionDescription.length()
+                            && functionDescription.charAt(i + 1) == '\'') {
+                        // an escaped quote within the literal
+                        current.append('\'');
+                        i++;
+                    } else {
+                        inLiteral = false;
+                    }
+                }
+            } else if (c == '\'') {
+                inLiteral = true;
+                current.append(c);
+            } else if (c == '*') {
+                tokens.add(current.toString());
+                current.setLength(0);
+            } else {
+                current.append(c);
+            }
+        }
+        tokens.add(current.toString());
+        return tokens.toArray(new String[0]);
     }
 
     private static PropertyState calculateFunction(String functionName,
                                                    Deque<PropertyState> stack) {
+        if ("if".equals(functionName)) {
+            PropertyState condition = stack.pop();
+            PropertyState trueValue = stack.pop();
+            PropertyState falseValue = stack.pop();
+            return FunctionIndexUtils.isTruthy(toPropertyValue(condition)) ?
+                    trueValue :
+                    falseValue;
+        } else if ("exists".equals(functionName)) {
+            PropertyState operand = stack.pop();
+            return PropertyStates.createProperty(VALUE,
+                    operand != EMPTY_PROPERTY_STATE, Type.BOOLEAN);
+        } else if ("op".equals(functionName)) {
+            PropertyState a = stack.pop();
+            PropertyState operator = stack.pop();
+            PropertyState b = stack.pop();
+            PropertyValue result = FunctionIndexUtils.processOp(
+                    toPropertyValue(a),
+                    toPropertyValue(operator),
+                    toPropertyValue(b));
+            if (result == null) {
+                return null;
+            }
+            Type<?> type = result.getType();
+            return PropertyStates.createProperty(VALUE, result.getValue(type), type);
+        }
         PropertyState ps = stack.pop();
         if ("coalesce".equals(functionName)) {
             // coalesce (a, b) => (a != null ? a : b)
@@ -155,10 +241,10 @@ public class FunctionIndexProcessor {
         }
         PropertyState result;
         if (values.size() == 1) {
-            result = PropertyStates.createProperty("value", values.get(0), type);
+            result = PropertyStates.createProperty(VALUE, values.get(0), type);
         } else {
             type = type.getArrayType();
-            result = PropertyStates.createProperty("value", values, type);
+            result = PropertyStates.createProperty(VALUE, values, type);
         }
         return result;
     }
@@ -176,13 +262,13 @@ public class FunctionIndexProcessor {
         }
         PropertyState ps;
         if (":localname".equals(propertyName)) {
-            ps = PropertyStates.createProperty("value",
+            ps = PropertyStates.createProperty(VALUE,
                     getLocalName(PathUtils.getName(path)), Type.STRING);
         } else if (":name".equals(propertyName)) {
-            ps = PropertyStates.createProperty("value",
+            ps = PropertyStates.createProperty(VALUE,
                     PathUtils.getName(path), Type.STRING);
         } else if (":path".equals(propertyName)) {
-            ps = PropertyStates.createProperty("value",
+            ps = PropertyStates.createProperty(VALUE,
                    path, Type.STRING);
         } else {
             ps = state.getProperty(propertyName);
@@ -238,6 +324,46 @@ public class FunctionIndexProcessor {
         if (match("fn:string-length(") || match("length(")) {
             return "length*" + parse() + read(")");
         }
+        if (match("jcr:if(") || match("if(")) {
+            return "if*" + parse() + readCommaAndWhitespace() + parse() +
+                    readCommaAndWhitespace() + parse() + read(")");
+        }
+        if (match("jcr:exists(") || match("exists(")) {
+            return "exists*" + parse() + read(")");
+        }
+        if (match("jcr:op(") || match("op(")) {
+            return "op*" + parse() + readCommaAndWhitespace() + parse() +
+                    readCommaAndWhitespace() + parse() + read(")");
+        }
+        if (matchNullLiteral() || match("jcr:null()")) {
+            return "null";
+        }
+        if (match("'")) {
+            // a quoted string literal, typically used for op()'s operator
+            // argument, but usable anywhere a property reference or nested
+            // function call is expected. A single quote is escaped as two
+            // single quotes ('').
+            StringBuilder literal = new StringBuilder();
+            while (true) {
+                int end = remaining.indexOf('\'');
+                if (end < 0) {
+                    throw new IllegalArgumentException("Unterminated string literal: " + remaining);
+                }
+                literal.append(remaining, 0, end);
+                remaining = remaining.substring(end + 1);
+                if (remaining.startsWith("'")) {
+                    // an escaped quote within the literal
+                    literal.append("''");
+                    remaining = remaining.substring(1);
+                } else {
+                    break;
+                }
+            }
+            // fail early (when parsing the index definition) if the value
+            // can not be converted to the type given by the prefix
+            FunctionIndexUtils.parseLiteral(literal.toString().replace("''", "'"));
+            return "'" + literal + "'";
+        }
 
         // property name
         if (match("[")) {
@@ -290,6 +416,21 @@ public class FunctionIndexProcessor {
         while (match(" ")) {
         }
         return "*";
+    }
+
+    /**
+     * Match the "null" literal, but only as a whole word (so it can never
+     * accidentally consume the start of a property or function name).
+     */
+    private boolean matchNullLiteral() {
+        if (remaining.startsWith("null")) {
+            String after = remaining.substring(4);
+            if (after.isEmpty() || after.startsWith(")") || after.startsWith(",") || after.startsWith(" ")) {
+                remaining = after;
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean match(String string) {

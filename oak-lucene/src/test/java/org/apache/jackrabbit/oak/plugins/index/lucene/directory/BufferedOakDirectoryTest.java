@@ -23,8 +23,6 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 
-import ch.qos.logback.classic.Level;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
@@ -38,6 +36,7 @@ import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
 import org.junit.Test;
+import org.slf4j.event.Level;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.BufferedOakDirectory.DELETE_THRESHOLD_UNTIL_REOPEN;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.BufferedOakDirectory.ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM;
@@ -332,7 +331,7 @@ public class BufferedOakDirectoryTest {
         String oldVal = System.getProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM);
 
         final LogCustomizer custom = LogCustomizer
-                .forLogger(BufferedOakDirectory.class.getName())
+                .forLogger(BufferedOakDirectory.class)
                 .contains("Ignoring configuration ")
                 .enable(Level.WARN).create();
 
@@ -362,7 +361,7 @@ public class BufferedOakDirectoryTest {
         String oldVal = System.getProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM);
 
         final LogCustomizer custom = LogCustomizer
-                .forLogger(BufferedOakDirectory.class.getName())
+                .forLogger(BufferedOakDirectory.class)
                 .contains("Ignoring configuration ")
                 .enable(Level.WARN).create();
 

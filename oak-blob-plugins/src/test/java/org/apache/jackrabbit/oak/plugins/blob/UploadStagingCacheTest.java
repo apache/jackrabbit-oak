@@ -40,8 +40,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import ch.qos.logback.classic.Level;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
@@ -60,6 +58,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
@@ -691,7 +690,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         File pendingUploadsFile = new File(home, DataStoreCacheUpgradeUtils.UPLOAD_MAP);
         createGibberishLoad(pendingUploadsFile);
 
-        LogCustomizer lc = LogCustomizer.forLogger(DataStoreCacheUpgradeUtils.class.getName())
+        LogCustomizer lc = LogCustomizer.forLogger(DataStoreCacheUpgradeUtils.class)
             .filter(Level.WARN)
             .enable(Level.WARN)
             .create();

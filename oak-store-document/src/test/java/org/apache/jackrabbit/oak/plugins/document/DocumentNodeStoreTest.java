@@ -125,7 +125,6 @@ import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.hamcrest.number.OrderingComparison;
 import org.jetbrains.annotations.NotNull;
@@ -361,7 +360,7 @@ public class DocumentNodeStoreTest {
                 doc.get(NodeDocument.DELETED_ONCE));
     }
 
-    // OAK-9909
+    // Throttling remains disabled by default.
     @Test
     public void noThrottlingWrapperCreatedByDefault() {
         DocumentStore documentStore = new MemoryDocumentStore();
@@ -371,49 +370,29 @@ public class DocumentNodeStoreTest {
         assertTrue("No Throttling wrapper has been created by default", store instanceof MemoryDocumentStore);
     }
 
+    // Explicitly disabling throttling keeps the supplied store unwrapped.
     @Test
     public void noThrottlingWrapperCreatedWhenThrottlingIsDisabled() {
         DocumentStore documentStore = new MemoryDocumentStore();
-        Feature docStoreThrottlingFeature = mock(Feature.class);
-        when(docStoreThrottlingFeature.isEnabled()).thenReturn(false);
         DocumentNodeStore documentNodeStore = builderProvider.newBuilder().setDocumentStore(documentStore)
-                .setLeaseCheckMode(DISABLED).setThrottlingEnabled(false)
-                .setDocStoreThrottlingFeature(docStoreThrottlingFeature).getNodeStore();
+                .setLeaseCheckMode(DISABLED).setThrottlingEnabled(false).getNodeStore();
         DocumentStore store = documentNodeStore.getDocumentStore();
         assertTrue("No Throttling wrapper has been created when throttling is disabled",
                 store instanceof MemoryDocumentStore);
     }
 
+    // Builder configuration still enables the throttling wrapper.
     @Test
     public void throttlingWrapperCreatedWhenThrottlingIsEnabled() {
         DocumentStore documentStore = new MemoryDocumentStore();
         ThrottlingStatsCollector throttlingStatsCollector = mock(ThrottlingStatsCollector.class);
-        Feature docStoreThrottlingFeature = mock(Feature.class);
-        when(docStoreThrottlingFeature.isEnabled()).thenReturn(false);
         DocumentNodeStore documentNodeStore = builderProvider.newBuilder().setDocumentStore(documentStore)
                 .setLeaseCheckMode(DISABLED).setThrottlingEnabled(true)
-                .setDocStoreThrottlingFeature(docStoreThrottlingFeature)
                 .setThrottlingStatsCollector(throttlingStatsCollector).getNodeStore();
         DocumentStore store = documentNodeStore.getDocumentStore();
         assertTrue("Throttling wrapper has been created when throttling is enabled via config",
                 store instanceof ThrottlingDocumentStoreWrapper);
     }
-
-    @Test
-    public void throttlingWrapperCreatedWhenThrottlingIsEnabled_2() {
-        DocumentStore documentStore = new MemoryDocumentStore();
-        ThrottlingStatsCollector throttlingStatsCollector = mock(ThrottlingStatsCollector.class);
-        Feature docStoreThrottlingFeature = mock(Feature.class);
-        when(docStoreThrottlingFeature.isEnabled()).thenReturn(true);
-        DocumentNodeStore documentNodeStore = builderProvider.newBuilder().setDocumentStore(documentStore)
-                .setLeaseCheckMode(DISABLED).setThrottlingEnabled(false)
-                .setDocStoreThrottlingFeature(docStoreThrottlingFeature)
-                .setThrottlingStatsCollector(throttlingStatsCollector).getNodeStore();
-        DocumentStore store = documentNodeStore.getDocumentStore();
-        assertTrue("Throttling wrapper has been created when throttling is enabled via feature toggle",
-                store instanceof ThrottlingDocumentStoreWrapper);
-    }
-    // END -- OAK-9909
 
     // OAK-9967
     @Test

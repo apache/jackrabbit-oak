@@ -30,7 +30,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 
-import ch.qos.logback.classic.Level;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
@@ -60,6 +59,7 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.event.Level;
 
 import static java.lang.String.valueOf;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
@@ -484,7 +484,7 @@ public class DataStoreTrackerGCTest {
 
         // Capture logs for the second round of gc
         LogCustomizer customLogs = LogCustomizer
-            .forLogger(MarkSweepGarbageCollector.class.getName())
+            .forLogger(MarkSweepGarbageCollector.class)
             .enable(Level.WARN)
             .filter(Level.WARN)
             .contains("Error occurred while deleting blob with id")

@@ -34,7 +34,6 @@ import java.util.Properties;
 import javax.net.ssl.HttpsURLConnection;
 
 import org.apache.commons.lang3.StringUtils;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.spi.blob.data.DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
@@ -179,9 +178,8 @@ public class AzureDataStoreUtils extends DataStoreUtils {
 
         try (AzureBlobContainerProvider azureBlobContainerProvider = AzureBlobContainerProvider.Builder.builder(containerName).initializeWithProperties(props)
                 .build()) {
-            CloudBlobContainer container = azureBlobContainerProvider.getBlobContainer();
-            boolean result = container.deleteIfExists();
-            log.info("Container deleted. containerName={} existed={}", containerName, result);
+            boolean existed = azureBlobContainerProvider.deleteContainerIfExists();
+            log.info("Container deleted. containerName={} existed={}", containerName, existed);
         }
     }
 

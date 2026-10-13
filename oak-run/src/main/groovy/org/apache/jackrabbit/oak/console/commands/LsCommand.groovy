@@ -21,8 +21,8 @@ package org.apache.jackrabbit.oak.console.commands
 import groovy.transform.CompileStatic
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils
 import org.apache.jackrabbit.oak.console.ConsoleSession
-import org.codehaus.groovy.tools.shell.CommandSupport
-import org.codehaus.groovy.tools.shell.Groovysh
+import org.apache.groovy.groovysh.CommandSupport
+import org.apache.groovy.groovysh.Groovysh
 
 @CompileStatic
 class LsCommand extends CommandSupport{

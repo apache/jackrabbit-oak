@@ -19,14 +19,20 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
 import org.apache.jackrabbit.oak.plugins.index.OrderByCommonTest;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
+import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import static org.junit.Assert.assertTrue;
 
 public class LuceneOrderByTest extends OrderByCommonTest {
 
@@ -53,6 +59,30 @@ public class LuceneOrderByTest extends OrderByCommonTest {
     @Override
     public void orderByMultiProperties() throws Exception {
         super.orderByMultiProperties();
+    }
+
+    @After
+    public void resetToggle() {
+        FulltextIndex.FT_OAK_12344_DISABLE.set(false);
+    }
+
+    @Test
+    public void ft_oak_12344_toggleShouldBeRemoved() {
+        assertTrue("Feature toggle " + FulltextIndex.FT_OAK_12344 + " is overdue for removal",
+                LocalDate.now().isBefore(LocalDate.of(2027, 10, 31)));
+    }
+
+    /**
+     * Legacy behaviour, kept when FT_OAK-12344 is disabled: a value that is not a date sorts as the epoch, so
+     * after dates before 1970.
+     */
+    @Test
+    public void orderByNonDateValuesWithDateTypeSortAsEpochLegacy() throws Exception {
+        FulltextIndex.FT_OAK_12344_DISABLE.set(true);
+        createMixedDateContent();
+        assertEventually(() -> assertOrderedQuery(
+                "select [jcr:path] from [nt:base] where foo = 'bar' order by [dt]",
+                List.of("/test/a", "/test/c", "/test/b")));
     }
 
 }

@@ -18,13 +18,13 @@
  */
 package org.apache.jackrabbit.oak.console.commands
 
-import org.codehaus.groovy.tools.shell.Command
-import org.codehaus.groovy.tools.shell.CommandSupport
-import org.codehaus.groovy.tools.shell.Groovysh
-import org.codehaus.groovy.tools.shell.completion.CommandNameCompleter
+import org.apache.groovy.groovysh.Command
+import org.apache.groovy.groovysh.CommandSupport
+import org.apache.groovy.groovysh.Groovysh
+import org.apache.groovy.groovysh.completion.CommandNameCompleter
 
 /**
- * Copy of org.codehaus.groovy.tools.shell.commands.HelpCommand to customize
+ * Copy of org.apache.groovy.tools.shell.commands.HelpCommand to customize
  * the banner
  */
 class OakHelpCommand extends CommandSupport{

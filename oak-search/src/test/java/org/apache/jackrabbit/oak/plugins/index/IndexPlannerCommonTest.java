@@ -225,6 +225,51 @@ public abstract class IndexPlannerCommonTest {
     }
 
     @Test
+    public void directChildrenCostCappedAtThousand() throws Exception {
+        // node-scope property so a path-only restriction yields a plan; numDocs/2 exceeds the cap
+        getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
+        builder = builder.getNodeState().builder();
+        NodeBuilder defn = IndexDefinition.updateDefinition(builder.getChildNode("oak:index").getChildNode(indexName));
+        defn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+        getNode(defn, "indexRules/nt:base/properties/foo").setProperty(FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+
+        long numOfDocs = 3000;
+        IndexNode node = createIndexNode(getIndexDefinition(root, defn.getNodeState(), "/oak:index/" + indexName), numOfDocs);
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictPath("/content", Filter.PathRestriction.DIRECT_CHILDREN);
+
+        // capped at 1000 under both estimation paths (legacy and the OAK-12221 selectivity model)
+        assertDirectChildrenEstimate(node, filter, 1000);
+        FulltextIndexPlanner.FT_OAK_12221_ENABLE.set(true);
+        try {
+            assertDirectChildrenEstimate(node, filter, 1000);
+        } finally {
+            FulltextIndexPlanner.FT_OAK_12221_ENABLE.set(false);
+        }
+
+        // kill-switch disabled the cap: estimate is the uncapped numDocs/2, above the cap.
+        // (exact numDocs differs per backend - Elastic also indexes the repo nodes - so assert '>')
+        FulltextIndexPlanner.FT_OAK_12401_DISABLE.set(true);
+        try {
+            TestUtil.assertEventually(() -> {
+                FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, filter,
+                        Collections.<QueryIndex.OrderEntry>emptyList());
+                assertTrue(planner.getPlan().getEstimatedEntryCount() > 1000);
+            }, 5000 * 5);
+        } finally {
+            FulltextIndexPlanner.FT_OAK_12401_DISABLE.set(false);
+        }
+    }
+
+    private void assertDirectChildrenEstimate(IndexNode node, FilterImpl filter, long expected) {
+        TestUtil.assertEventually(() -> {
+            FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, filter,
+                    Collections.<QueryIndex.OrderEntry>emptyList());
+            assertEquals(expected, planner.getPlan().getEstimatedEntryCount());
+        }, 5000 * 5);
+    }
+
+    @Test
     public void fulltextIndexAndNodeTypeRestriction() throws Exception {
         getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
         builder.getChildNode("oak:index").getChildNode(indexName).setProperty(IndexConstants.DECLARING_NODE_TYPES, Set.of("nt:file"), NAMES)

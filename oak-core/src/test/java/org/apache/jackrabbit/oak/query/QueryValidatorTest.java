@@ -63,7 +63,7 @@ public class QueryValidatorTest {
                 ",\"executedLast\":\"\"\n" +
                 ",\"executedCount\":0\n" +
                 "}]", v.getJson());
-        LogCustomizer customLogs = LogCustomizer.forLogger(QueryValidator.class.getName()).enable(Level.WARN).create();
+        LogCustomizer customLogs = LogCustomizer.forLogger(QueryValidator.class).enable(Level.WARN).create();
         try {
             customLogs.starting();
             v.checkStatement("x1");

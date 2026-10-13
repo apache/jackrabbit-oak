@@ -71,7 +71,7 @@ public class QuerySimilarCostTest extends AbstractQueryTest {
      */
     @Test
     public void testSimilarCostIndices() throws Exception {
-        LogCustomizer customLogs = LogCustomizer.forLogger(QueryImpl.class.getName()).enable(Level.DEBUG).create();
+        LogCustomizer customLogs = LogCustomizer.forLogger(QueryImpl.class).enable(Level.DEBUG).create();
 
         try {
             customLogs.starting();

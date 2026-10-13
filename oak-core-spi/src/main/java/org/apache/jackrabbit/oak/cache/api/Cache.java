@@ -144,9 +144,10 @@ public interface Cache<K, V> {
     /**
      * Performs any pending maintenance operations needed by the cache.
      *
-     * <p><em>Note: no Oak module currently calls this method; the CacheLIRS
-     * implementation is a no-op. It may be removed from the interface in a
-     * future release if it remains unused.</em></p>
+     * <p>Applies pending evictions to the cache's internal state before returning, but
+     * {@link EvictionListener} callbacks may run asynchronously. Thus there is no
+     * guarantee that {@link EvictionListener} callbacks have been called or have
+     * completed when this call returns.
      */
     void cleanUp();
 

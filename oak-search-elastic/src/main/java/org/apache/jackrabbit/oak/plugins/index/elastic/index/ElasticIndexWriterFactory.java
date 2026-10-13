@@ -44,7 +44,7 @@ public class ElasticIndexWriterFactory implements FulltextIndexWriterFactory<Ela
 
     @Override
     public ElasticIndexWriter newInstance(IndexDefinition definition, NodeBuilder definitionBuilder,
-                                          CommitInfo commitInfo, boolean reindex) {
+                                           CommitInfo commitInfo, boolean reindex) {
         if (!(definition instanceof ElasticIndexDefinition)) {
             throw new IllegalArgumentException("IndexDefinition must be of type ElasticsearchIndexDefinition " +
                     "instead of " + definition.getClass().getName());
@@ -52,6 +52,21 @@ public class ElasticIndexWriterFactory implements FulltextIndexWriterFactory<Ela
 
         ElasticIndexDefinition esDefinition = (ElasticIndexDefinition) definition;
 
-        return new ElasticIndexWriter(indexTracker, elasticConnection, esDefinition, definitionBuilder, reindex, commitInfo, bulkProcessorHandler, retryPolicy);
+        // requiresProvisioning=true for a standard reindex, or when a prior lazy reindex produced
+        // zero documents and set PROP_REQUIRES_PROVISIONING in the node store.
+        boolean requiresProvisioning = reindex || esDefinition.requiresProvisioning();
+
+        if (requiresProvisioning && ElasticIndexEditorProvider.isLazyProvisioningActive()) {
+            // OAK-12249: defer provisioning to the first write, whether this is a reindex or an
+            // incremental cycle after an empty lazy reindex. If no documents arrive the supplier is
+            // never called, PROP_REQUIRES_PROVISIONING is re-written, and the next cycle retries.
+            return new LazyElasticIndexWriter(
+                    () -> new EagerElasticIndexWriter(indexTracker, elasticConnection, esDefinition,
+                            definitionBuilder, true, commitInfo, bulkProcessorHandler, retryPolicy),
+                    definitionBuilder, elasticConnection, esDefinition);
+        }
+
+        return new EagerElasticIndexWriter(indexTracker, elasticConnection, esDefinition,
+                definitionBuilder, requiresProvisioning, commitInfo, bulkProcessorHandler, retryPolicy);
     }
 }

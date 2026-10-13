@@ -57,7 +57,7 @@ For such use-cases, it's required that indexes are synchronous and results provi
 ### <a name="drawbacks-of-current-property-indexes"></a>Drawbacks of current property indexes
 Oak has support for synchronous property indexes, which are used to meet above use-cases. However the current implementation has certain drawbacks:
 
-* Slow reads over remote storage - The property indexes are stores as normal NodeState and hence reading them over remote storage like Mongo performs poorly (with Prefetch, OAK-9780, this is improved).
+* Slow reads over remote storage - The property indexes are stores as normal NodeState and hence reading them over remote storage like Mongo performs poorly (with Prefetch, this is now improved).
 * Storage overhead - The final storage overhead is larger, specially for remote storage where each NodeState is mapped to 1 document. (On the other hand, temporary disk usage for Lucene indexes might be higher than for node stores, due to write amplification with Lucene.)
  ---
 ### <a name="proposal"></a>Proposal

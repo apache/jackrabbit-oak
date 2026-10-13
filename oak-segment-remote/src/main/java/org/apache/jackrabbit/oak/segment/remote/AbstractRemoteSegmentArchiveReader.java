@@ -30,11 +30,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -45,9 +42,14 @@ public abstract class AbstractRemoteSegmentArchiveReader implements SegmentArchi
     protected final IOMonitor ioMonitor;
 
     /**
-     * Unordered immutable map of segment UUIDs to their corresponding archive entries.
+     * Index of segment identifiers (msb/lsb) to their corresponding archive entries. When several
+     * blobs share the same identifier (e.g. a segment re-written at a later position after a retry),
+     * the entry with the greatest position wins, so reads resolve to the latest copy.
+     * <p>
+     * Keyed by the raw {@code (msb, lsb)} pair rather than {@link UUID} so that {@link #readSegment}
+     * and {@link #containsSegment} don't need to allocate a key object per lookup.
      */
-    private final Map<UUID, RemoteSegmentArchiveEntry> index;
+    private final SegmentIndex index;
 
     /**
      * The name of the archive.
@@ -81,7 +83,7 @@ public abstract class AbstractRemoteSegmentArchiveReader implements SegmentArchi
 
     @Override
     public Buffer readSegment(long msb, long lsb) throws IOException {
-        RemoteSegmentArchiveEntry indexEntry = index.get(new UUID(msb, lsb));
+        RemoteSegmentArchiveEntry indexEntry = index.get(msb, lsb);
         if (indexEntry == null) {
             return null;
         }
@@ -103,19 +105,23 @@ public abstract class AbstractRemoteSegmentArchiveReader implements SegmentArchi
 
     @Override
     public boolean containsSegment(long msb, long lsb) {
-        return index.containsKey(new UUID(msb, lsb));
+        return index.containsKey(msb, lsb);
     }
 
     @Override
     public Set<UUID> getSegmentUUIDs() {
-        return Collections.unmodifiableSet(index.keySet());
+        // Not on the hot path (unlike readSegment/containsSegment above), so it's fine to
+        // build the UUID set lazily here rather than keep it precomputed in the index.
+        return index.values().stream()
+                .map(RemoteSegmentArchiveEntry::getUuid)
+                .collect(Collectors.toUnmodifiableSet());
     }
 
     @Override
     public List<SegmentArchiveEntry> listSegments() {
-        return index.values().stream()
-                .sorted(Comparator.comparing(RemoteSegmentArchiveEntry::getPosition))
-                .collect(Collectors.toList());
+        List<RemoteSegmentArchiveEntry> sorted = index.values();
+        sorted.sort(Comparator.comparing(RemoteSegmentArchiveEntry::getPosition));
+        return List.copyOf(sorted);
     }
 
     @Override
@@ -194,21 +200,20 @@ public abstract class AbstractRemoteSegmentArchiveReader implements SegmentArchi
 
     private static final class IndexBuilder {
 
-        private final List<Map.Entry<UUID, RemoteSegmentArchiveEntry>> entries = new LinkedList<>();
+        private final SegmentIndex.Builder index = new SegmentIndex.Builder(16);
 
         private long length = 0;
 
         private void addEntry(ArchiveEntry entry) {
             RemoteSegmentArchiveEntry archiveEntry = entry.getRemoteSegmentArchiveEntry();
             if (archiveEntry != null) {
-                this.entries.add(Map.entry(archiveEntry.getUuid(), archiveEntry));
+                index.put(archiveEntry);
             }
             this.length += entry.getLength();
         }
 
-        @SuppressWarnings("unchecked")
-        private Map<UUID, RemoteSegmentArchiveEntry> createIndex() {
-            return Map.ofEntries(entries.toArray(Map.Entry[]::new));
+        private SegmentIndex createIndex() {
+            return index.build();
         }
 
         private long getLength() {

@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.indexversion;
 
-import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.composite.blueGreen.IndexUtils;
 import org.apache.jackrabbit.oak.composite.blueGreen.Persistence;
@@ -29,6 +28,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.event.Level;
 
 import java.io.File;
 import java.io.IOException;
@@ -49,7 +49,7 @@ public class PurgeOldIndexVersionIT {
 
     @Before
     public void setup() {
-        purgeOldIndexVersionLogger = LogCustomizer.forLogger(PurgeOldIndexVersion.class.getName())
+        purgeOldIndexVersionLogger = LogCustomizer.forLogger(PurgeOldIndexVersion.class)
                 .enable(Level.INFO).contains("Found some index need to be purged over base").create();
     }
 

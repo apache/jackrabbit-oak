@@ -362,34 +362,32 @@ public class Commit {
             NodeDocument.setCommitRoot(op, revision, commitRootDepth);
 
             // special case for :childOrder updates
-            if (nodeStore.isChildOrderCleanupEnabled()) {
-                final Branch localBranch = getBranch();
-                if (localBranch != null) {
-                    final NavigableSet<Revision> commits = new TreeSet<>(localBranch.getCommits());
-                    boolean removePreviousSetOperations = false;
-                    for (Map.Entry<Key, Operation> change : op.getChanges().entrySet()) {
-                        if (PROPERTY_NAME_CHILDORDER.equals(change.getKey().getName()) && Operation.Type.SET_MAP_ENTRY == change.getValue().type) {
-                            // we are setting child order, so we should remove previous set operations from the same branch
-                            removePreviousSetOperations = true;
-                            // branch.getCommits contains all revisions of the branch
-                            // including the new one we're about to make
-                            // so don't do a removeMapEntry for that
-                            commits.remove(change.getKey().getRevision().asBranchRevision());
-                        }
+            final Branch localBranch = getBranch();
+            if (localBranch != null) {
+                final NavigableSet<Revision> commits = new TreeSet<>(localBranch.getCommits());
+                boolean removePreviousSetOperations = false;
+                for (Map.Entry<Key, Operation> change : op.getChanges().entrySet()) {
+                    if (PROPERTY_NAME_CHILDORDER.equals(change.getKey().getName()) && Operation.Type.SET_MAP_ENTRY == change.getValue().type) {
+                        // we are setting child order, so we should remove previous set operations from the same branch
+                        removePreviousSetOperations = true;
+                        // branch.getCommits contains all revisions of the branch
+                        // including the new one we're about to make
+                        // so don't do a removeMapEntry for that
+                        commits.remove(change.getKey().getRevision().asBranchRevision());
                     }
-                    if (removePreviousSetOperations) {
-                        if (!commits.isEmpty()) {
-                            int countRemoves = 0;
-                            for (Revision rev : commits.descendingSet()) {
-                                op.removeMapEntry(PROPERTY_NAME_CHILDORDER, rev.asTrunkRevision());
-                                if (++countRemoves >= 256) {
-                                    LOG.debug("applyToDocumentStore : only cleaning up last {} branch commits.",
-                                            countRemoves);
-                                    break;
-                                }
+                }
+                if (removePreviousSetOperations) {
+                    if (!commits.isEmpty()) {
+                        int countRemoves = 0;
+                        for (Revision rev : commits.descendingSet()) {
+                            op.removeMapEntry(PROPERTY_NAME_CHILDORDER, rev.asTrunkRevision());
+                            if (++countRemoves >= 256) {
+                                LOG.debug("applyToDocumentStore : only cleaning up last {} branch commits.",
+                                        countRemoves);
+                                break;
                             }
-                            LOG.debug("applyToDocumentStore : childOrder-edited op is: {}", op);
                         }
+                        LOG.debug("applyToDocumentStore : childOrder-edited op is: {}", op);
                     }
                 }
             }

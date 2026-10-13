@@ -181,7 +181,8 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         if (aclTree == null) {
             if (tree.hasChild(Util.getAclName(oakPath))) {
                 // policy child node without tree being access controlled
-                log.warn("Colliding policy child without node being access controllable ({}).", absPath);
+                log.warn("Colliding policy child without node being access controllable ({}). "
+                        + "(Is there a {} child node with incorrect nodetype?)", absPath, NT_REP_POLICY);
             } else {
                 // create an empty acl unless the node is protected or cannot have
                 // mixin set (e.g. due to a lock)

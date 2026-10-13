@@ -18,10 +18,7 @@
  */
 package org.apache.jackrabbit.oak.indexversion;
 
-import ch.qos.logback.classic.Level;
 import co.elastic.clients.elasticsearch._types.ExpandWildcard;
-import co.elastic.clients.elasticsearch.cat.IndicesResponse;
-import co.elastic.clients.elasticsearch.cat.indices.IndicesRecord;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
@@ -39,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.event.Level;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -47,6 +45,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
@@ -85,9 +84,9 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
         createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
         createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
 
-        IndicesResponse indicesRes = getListOfRemoteIndexes();
+        Set<String> indicesRes = getListOfRemoteIndexes();
         // 8 indices in ES remote
-        Assert.assertEquals(8, indicesRes.valueBody().size());
+        Assert.assertEquals(8, indicesRes.size());
 
         runIndexPurgeCommand(true, 1, "");
 
@@ -101,10 +100,10 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
         expectedRemoteIndexNames.add(getRemoteIndexName("fooIndex-4-custom-2", indexRootNode));
         expectedRemoteIndexNames.add(getRemoteIndexName("fooIndex-4", indexRootNode));
 
-        Assert.assertEquals(expectedRemoteIndexNames.size(), indicesRes.valueBody().size());
+        Assert.assertEquals(expectedRemoteIndexNames.size(), indicesRes.size());
 
-        for (IndicesRecord i : indicesRes.valueBody()) {
-            Assert.assertTrue(expectedRemoteIndexNames.contains(i.index()));
+        for (String i : indicesRes) {
+            Assert.assertTrue(expectedRemoteIndexNames.contains(i));
         }
 
         Assert.assertFalse("Index:" + "fooIndex-2" + " deleted", indexRootNode.getChildNode("fooIndex-2").exists());
@@ -161,7 +160,7 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
 
     @Test
     public void noDeleteIfActiveIndexTimeThresholdNotMeet() throws Exception {
-        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
+        LogCustomizer custom = LogCustomizer.forLogger(org.apache.jackrabbit.oak.indexversion.IndexVersionOperation.class)
                 .enable(Level.INFO)
                 .create();
         try {
@@ -174,13 +173,13 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
             createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
             createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
 
-            IndicesResponse indicesRes = getListOfRemoteIndexes();
+            Set<String> indicesRes = getListOfRemoteIndexes();
             // 7 indices in ES remote
-            Assert.assertEquals(7, indicesRes.valueBody().size());
+            Assert.assertEquals(7, indicesRes.size());
             runIndexPurgeCommand(true, TimeUnit.DAYS.toMillis(1), "");
 
             indicesRes = getListOfRemoteIndexes();
-            Assert.assertEquals(7, indicesRes.valueBody().size());
+            Assert.assertEquals(7, indicesRes.size());
 
             List<String> logs = custom.getLogs();
             assertThat(logs.toString(),
@@ -202,7 +201,7 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
     // but before which is fixed, the purging will not do deletion in that case
     @Test
     public void noDeleteIfActiveIndexTimeMissing() throws Exception {
-        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
+        LogCustomizer custom = LogCustomizer.forLogger(org.apache.jackrabbit.oak.indexversion.IndexVersionOperation.class)
                 .enable(Level.INFO)
                 .create();
         try {
@@ -223,15 +222,15 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
                     .removeProperty(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP);
             store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-            IndicesResponse indicesRes = getListOfRemoteIndexes();
+            Set<String> indicesRes = getListOfRemoteIndexes();
             // 7 indices in ES remote
-            Assert.assertEquals(7, indicesRes.valueBody().size());
+            Assert.assertEquals(7, indicesRes.size());
             runIndexPurgeCommand(true, 1, "");
 
 
             indicesRes = getListOfRemoteIndexes();
             // 7 indices in ES remote
-            Assert.assertEquals(7, indicesRes.valueBody().size());
+            Assert.assertEquals(7, indicesRes.size());
 
             List<String> logs = custom.getLogs();
             assertThat(logs.toString(),
@@ -252,7 +251,7 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
 
     @Test
     public void noDeleteIfInvalidIndexOperationVersion() throws Exception {
-        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
+        LogCustomizer custom = LogCustomizer.forLogger(org.apache.jackrabbit.oak.indexversion.IndexVersionOperation.class)
                 .enable(Level.INFO)
                 .create();
         try {
@@ -265,15 +264,15 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
             createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
             createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
 
-            IndicesResponse indicesRes = getListOfRemoteIndexes();
+            Set<String> indicesRes = getListOfRemoteIndexes();
             // 7 indices in ES remote
-            Assert.assertEquals(7, indicesRes.valueBody().size());
+            Assert.assertEquals(7, indicesRes.size());
 
             runIndexPurgeCommand(true, 1, "");
 
             indicesRes = getListOfRemoteIndexes();
             // 1 indices in ES remote
-            Assert.assertEquals(1, indicesRes.valueBody().size());
+            Assert.assertEquals(1, indicesRes.size());
 
 
             List<String> logs = custom.getLogs();
@@ -300,15 +299,15 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
         createCustomIndex(FOO1_INDEX_PATH, 3, 1, false);
         createCustomIndex(FOO1_INDEX_PATH, 3, 2, false);
 
-        IndicesResponse indicesRes = getListOfRemoteIndexes();
+        Set<String> indicesRes = getListOfRemoteIndexes();
         // 13 indices in ES remote
-        Assert.assertEquals(13, indicesRes.valueBody().size());
+        Assert.assertEquals(13, indicesRes.size());
 
         runIndexPurgeCommand(true, 1, "/oak:index/fooIndex");
 
         indicesRes = getListOfRemoteIndexes();
         // 7 indices in ES remote
-        Assert.assertEquals(7, indicesRes.valueBody().size());
+        Assert.assertEquals(7, indicesRes.size());
 
         NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
 
@@ -325,10 +324,10 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
         expectedRemoteIndexNames.add(getRemoteIndexName("fooIndex1-3-custom-2", indexRootNode));
 
 
-        Assert.assertEquals(expectedRemoteIndexNames.size(), indicesRes.valueBody().size());
+        Assert.assertEquals(expectedRemoteIndexNames.size(), indicesRes.size());
 
-        for (IndicesRecord i : indicesRes.valueBody()) {
-            Assert.assertTrue(expectedRemoteIndexNames.contains(i.index()));
+        for (String i : indicesRes) {
+            Assert.assertTrue(expectedRemoteIndexNames.contains(i));
         }
 
         Assert.assertFalse("Index:" + "fooIndex-2" + " deleted", indexRootNode.getChildNode("fooIndex-2").exists());
@@ -347,7 +346,7 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
 
     @Test
     public void noDeleteIfNonReadWriteMode() throws Exception {
-        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.run.PurgeOldIndexVersionCommand")
+        LogCustomizer custom = LogCustomizer.forLogger(org.apache.jackrabbit.oak.run.PurgeOldIndexVersionCommand.class)
                 .enable(Level.INFO)
                 .create();
         try {
@@ -361,14 +360,14 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
             createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
             createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
 
-            IndicesResponse indicesRes = getListOfRemoteIndexes();
+            Set<String> indicesRes = getListOfRemoteIndexes();
             // 8 indices in ES remote
-            Assert.assertEquals(8, indicesRes.valueBody().size());
+            Assert.assertEquals(8, indicesRes.size());
             runIndexPurgeCommand(false, 1, "");
 
             indicesRes = getListOfRemoteIndexes();
             // 8 indices in ES remote
-            Assert.assertEquals(8, indicesRes.valueBody().size());
+            Assert.assertEquals(8, indicesRes.size());
 
             List<String> logs = custom.getLogs();
             assertThat("repository is opened in read only mode ", logs.toString(),
@@ -404,11 +403,13 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
         fixture.close();
     }
 
-    private IndicesResponse getListOfRemoteIndexes() throws IOException {
+    private Set<String> getListOfRemoteIndexes() throws IOException {
         return elasticRule.getElasticConnection().getClient()
-                .cat().indices(r -> r
+                .indices().get(r -> r
                         .index(esConnection.getIndexPrefix() + "*")
-                        .expandWildcards(ExpandWildcard.Open));
+                        .expandWildcards(ExpandWildcard.Open))
+                .indices()
+                .keySet();
     }
 
     private String getRemoteIndexName(String indexName, NodeState indexRootNode) {

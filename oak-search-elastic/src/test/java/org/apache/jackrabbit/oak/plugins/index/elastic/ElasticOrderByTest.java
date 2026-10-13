@@ -18,7 +18,15 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.index.OrderByCommonTest;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
+import org.junit.After;
 import org.junit.ClassRule;
+import org.junit.Test;
+
+import java.time.LocalDate;
+import java.util.List;
+
+import static org.junit.Assert.assertTrue;
 
 public class ElasticOrderByTest extends OrderByCommonTest {
 
@@ -38,6 +46,30 @@ public class ElasticOrderByTest extends OrderByCommonTest {
     @Override
     protected void createTestIndexNode() {
         setTraversalEnabled(false);
+    }
+
+    @After
+    public void resetToggle() {
+        FulltextIndex.FT_OAK_12344_DISABLE.set(false);
+    }
+
+    @Test
+    public void ft_oak_12344_toggleShouldBeRemoved() {
+        assertTrue("Feature toggle " + FulltextIndex.FT_OAK_12344 + " is overdue for removal",
+                LocalDate.now().isBefore(LocalDate.of(2027, 10, 31)));
+    }
+
+    /**
+     * Legacy behaviour, kept when FT_OAK-12344 is disabled: a value that is not a date sorts last also in
+     * ascending order (the Elasticsearch default for missing values).
+     */
+    @Test
+    public void orderByNonDateValuesWithDateTypeSortLastLegacy() throws Exception {
+        FulltextIndex.FT_OAK_12344_DISABLE.set(true);
+        createMixedDateContent();
+        assertEventually(() -> assertOrderedQuery(
+                "select [jcr:path] from [nt:base] where foo = 'bar' order by [dt]",
+                List.of("/test/a", "/test/b", "/test/c")));
     }
 
 }

@@ -118,7 +118,7 @@ public enum RDBBlobStoreDB {
     POSTGRES("PostgreSQL", RDBCommonVendorSpecificCode.POSTGRES) {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
-            return RDBJDBCTools.versionCheck(md, 9, 5, 9, 4, description);
+            return RDBJDBCTools.versionCheck(md, 14, 0, 9, 4, description);
         }
 
         @Override

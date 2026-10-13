@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.cache.impl;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.oak.cache.api.Cache;
@@ -67,19 +69,24 @@ public class CacheBuilderTest {
 
     /** Weigher and evictionListener are wired correctly. */
     @Test
-    public void weigherAndEvictionListenerWiring() {
+    public void weigherAndEvictionListenerWiring() throws InterruptedException {
         AtomicReference<EvictionCause> capturedCause = new AtomicReference<>();
+        CountDownLatch notified = new CountDownLatch(1);
 
         Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                 .maximumWeight(1000)
                 .weigher((k, v) -> k.length() + v.length())
-                .evictionListener((k, v, cause) -> capturedCause.set(cause))
+                .evictionListener((k, v, cause) -> {
+                    capturedCause.set(cause);
+                    notified.countDown();
+                })
                 .build();
 
         cache.put("key", "value");
         cache.invalidate("key");
         cache.cleanUp();
 
+        Assert.assertTrue("eviction listener was never notified", notified.await(10, TimeUnit.SECONDS));
         Assert.assertEquals(EvictionCause.EXPLICIT, capturedCause.get());
     }
 
@@ -178,28 +185,30 @@ public class CacheBuilderTest {
         Assert.assertEquals(1, stats.missCount());
     }
 
-    /** Zero-size caches evict written entries before they are visible to later reads. */
+    /** Zero-size caches hold nothing once pending maintenance has run. */
     @Test
-    public void zeroMaximumSizeEvictsImmediately() {
+    public void zeroMaximumSizeEvictsOnCleanUp() {
         Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                 .maximumSize(0)
                 .build();
 
         cache.put("key", "value");
+        cache.cleanUp();
 
         Assert.assertNull(cache.getIfPresent("key"));
         Assert.assertEquals(0, cache.estimatedSize());
     }
 
-    /** Zero-weight caches evict written entries before they are visible to later reads. */
+    /** Zero-weight caches hold nothing once pending maintenance has run. */
     @Test
-    public void zeroMaximumWeightEvictsImmediately() {
+    public void zeroMaximumWeightEvictsOnCleanUp() {
         Cache<String, String> cache = CacheBuilder.<String, String>newBuilder()
                 .maximumWeight(0)
                 .weigher((k, v) -> 1)
                 .build();
 
         cache.put("key", "value");
+        cache.cleanUp();
 
         Assert.assertNull(cache.getIfPresent("key"));
         Assert.assertEquals(0, cache.estimatedSize());

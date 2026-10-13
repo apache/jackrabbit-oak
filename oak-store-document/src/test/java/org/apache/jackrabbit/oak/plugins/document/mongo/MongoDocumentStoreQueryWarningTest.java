@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import ch.qos.logback.classic.Level;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoDatabase;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
@@ -31,6 +30,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
+import org.slf4j.event.Level;
 
 import java.util.concurrent.TimeUnit;
 

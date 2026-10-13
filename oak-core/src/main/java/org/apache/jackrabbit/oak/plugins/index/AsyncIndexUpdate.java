@@ -117,6 +117,11 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
     private static final long DEFAULT_LIFETIME = TimeUnit.DAYS.toMillis(100);
 
+    // Lifetime for the checkpoint created by forceIndexLaneCatchup. Shorter than
+    // DEFAULT_LIFETIME so the checkpoint is released on its own if it is not removed
+    // explicitly.
+    private static final long FORCE_MODIFIED_CHECKPOINT_LIFETIME = TimeUnit.DAYS.toMillis(4);
+
     private static final CommitFailedException INTERRUPTED = new CommitFailedException(
             "Async", 1, "Indexing stopped forcefully");
 
@@ -1257,7 +1262,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 // Release lease for the paused lane
                 this.releaseLeaseForPausedLane();
                 log.info("Released lease for paused lane [{}]", name);
-                String newReferenceCheckpoint = store.checkpoint(lifetime, Map.of(
+                String newReferenceCheckpoint = store.checkpoint(FORCE_MODIFIED_CHECKPOINT_LIFETIME, Map.of(
                         "creator", AsyncIndexUpdate.class.getSimpleName(),
                         "created", now(),
                         "thread", Thread.currentThread().getName(),
@@ -1366,6 +1371,13 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             private final MeterStats indexedNodeCountMeter;
             private final TimerStats indexerTimer;
             private final HistogramStats indexedNodePerCycleHisto;
+            /**
+             * Counter storing the last-indexed time as epoch millis. Initialised at
+             * construction from the durable ":async/&lt;lane&gt;-LastIndexedTo" repository
+             * property so that a correct non-zero value is visible immediately after a
+             * restart, even if the lane has not yet completed a successful cycle.
+             * Updated on every successful cycle via {@link #doneOneCycle}. See OAK-12394.
+             */
             private final CounterStats lastIndexedTime;
             private StatisticsProvider statisticsProvider;
 
@@ -1382,6 +1394,10 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 indexedNodePerCycleHisto = statsProvider.getHistogram(stats("INDEXER_NODE_COUNT_HISTO"), StatsOptions
                         .METRICS_ONLY);
                 lastIndexedTime = statsProvider.getCounterStats(stats("LAST_INDEXED_TIME"), StatsOptions.DEFAULT);
+                long initialMillis = readLastIndexedToMillis();
+                if (initialMillis > 0) {
+                    lastIndexedTime.inc(initialMillis);
+                }
                 try {
                     consolidatedType = new CompositeType("ConsolidatedStats",
                             "Consolidated stats", names,
@@ -1399,6 +1415,25 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 indexedNodePerCycleHisto.update(updates);
                 long previousLastIndexedTime = lastIndexedTime.getCount();
                 lastIndexedTime.inc(System.currentTimeMillis() - previousLastIndexedTime);
+            }
+
+            /**
+             * Reads the persisted ":async/&lt;lane&gt;-LastIndexedTo" property as epoch millis,
+             * or 0 when it is absent or cannot be parsed (e.g. before the initial index).
+             * Used to initialise the {@code lastIndexedTime} counter at construction.
+             */
+            private long readLastIndexedToMillis() {
+                try {
+                    PropertyState ps = store.getRoot().getChildNode(ASYNC).getProperty(lastIndexedTo);
+                    if (ps == null) {
+                        return 0;
+                    }
+                    Calendar cal = ISO8601.parse(ps.getValue(Type.STRING));
+                    return cal != null ? cal.getTimeInMillis() : 0;
+                } catch (Exception e) {
+                    log.warn("[{}] Unable to read {} for LAST_INDEXED_TIME metric", name, lastIndexedTo, e);
+                    return 0;
+                }
             }
 
             public Counting getExecutionCounter() {

@@ -35,8 +35,8 @@ import org.apache.lucene.index.DirectoryReader
 import org.apache.lucene.store.Directory
 import org.apache.lucene.store.FSDirectory
 import org.apache.lucene.store.IOContext
-import org.codehaus.groovy.tools.shell.ComplexCommandSupport
-import org.codehaus.groovy.tools.shell.Groovysh
+import org.apache.groovy.groovysh.ComplexCommandSupport
+import org.apache.groovy.groovysh.Groovysh
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder as OakNodeBuilder
 
 

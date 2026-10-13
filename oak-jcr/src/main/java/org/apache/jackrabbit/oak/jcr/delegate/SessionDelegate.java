@@ -141,6 +141,9 @@ public class SessionDelegate {
 
     private final SessionSaveDelayer sessionSaveDelayer;
 
+    // Indicate where this session was closed
+    private Throwable sessionClosedAt;
+
     /**
      * Create a new session delegate for a {@code ContentSession}. The refresh behaviour of the
      * session is governed by the value of the {@code refreshInterval} argument: if the session
@@ -375,7 +378,7 @@ public class SessionDelegate {
      */
     public void checkAlive() throws RepositoryException {
         if (!isAlive()) {
-            throw new RepositoryException("This session has been closed.");
+            throw new RepositoryException("This session has been closed.", sessionClosedAt);
         }
     }
 
@@ -453,6 +456,7 @@ public class SessionDelegate {
         // TODO
 
         sessionStats.close();
+        sessionClosedAt = new IOException("Session was closed here");
         try {
             contentSession.close();
         } catch (IOException e) {
