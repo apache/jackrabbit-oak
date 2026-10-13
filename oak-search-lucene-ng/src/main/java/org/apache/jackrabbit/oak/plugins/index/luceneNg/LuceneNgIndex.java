@@ -412,7 +412,7 @@ public class LuceneNgIndex extends FulltextIndex {
 
         int propertyType;
         if (definition != null) {
-            propertyType = determinePropertyType(definition, pr);
+            propertyType = definition.getType();
         } else {
             // Hand-built plans have no property definition; infer the type from the restriction.
             propertyType = pr.propertyType;
@@ -797,7 +797,7 @@ public class LuceneNgIndex extends FulltextIndex {
         // output-format compatibility that LuceneNgIndexComparisonTest.testLuceneNgIndexIsUsed pins:
         //  - the first line must start with "lucene:" so tooling that only matches legacy
         //    FulltextIndex plans (e.g. AEM ExplainQueryServlet LUCENE_INDEX_PATTERN: "/\* lucene:…")
-        //    still detects an index; the "@v9" suffix marks the Lucene 9 engine;
+        //    still detects an index; the "@ng" suffix marks the LuceneNg backend;
         //  - the "luceneNg:" line identifies the index type;
         //  - the query label is "luceneQuery:" for compatibility with existing tooling.
         // The path is now taken from the plan's PlanResult (built by the inherited
@@ -806,7 +806,7 @@ public class LuceneNgIndex extends FulltextIndex {
         String path = getExecutionPath(plan);
         String shortName = PathUtils.getName(path);
         StringBuilder sb = new StringBuilder("lucene:");
-        sb.append(shortName).append("@v9\n");
+        sb.append(shortName).append("@ng\n");
         sb.append(getType()).append(':').append(shortName).append("\n");
         sb.append("    indexDefinition: ").append(path).append("\n");
         sb.append("    estimatedEntries: ").append(plan.getEstimatedEntryCount()).append("\n");

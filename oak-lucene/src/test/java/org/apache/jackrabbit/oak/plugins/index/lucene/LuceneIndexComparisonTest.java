@@ -50,4 +50,9 @@ public class LuceneIndexComparisonTest extends AbstractIndexComparisonTest {
     protected String getIndexType() {
         return "lucene";
     }
+
+    @Override
+    protected boolean isTypeTolerant() {
+        return true;
+    }
 }

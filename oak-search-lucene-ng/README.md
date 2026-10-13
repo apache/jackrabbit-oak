@@ -67,6 +67,21 @@ opening the actual index are reported through the shared bad-index tracker.
 [^1]: Index augmentors are OSGi services (`IndexFieldProvider`, `FulltextQueryTermsProvider`) that let third-party code inject additional fields into indexed documents or expand fulltext queries, without modifying the index definition.
 [^2]: When the repository is backed by a composite node store (e.g. a read-only `/apps`+`/libs` mount combined with a writeable store), the Lucene index runs one query per mount and merges the results. This feature is not required for a single-store deployment.
 
+## Property types
+
+An undeclared property type defaults to `String`. String definitions index
+String, Name, Long, Double and Boolean values as string terms, including every
+array element. Query restrictions use the same definition type; a numeric
+literal does not turn a string-backed field into a point query.
+
+Equality and IN use string representations, and index range bounds are
+lexical. Declare `Long`, `Double` or `Date` when numeric/date ranges are required.
+Mixed String/String[]/Double/Double[] values do not make the index schema depend
+on insertion order. Ordered String fields use the same string doc-values
+representation for scalar and array values.
+Existing Ng indexes with numeric sort doc-values in String/default-String
+ordered fields require reindexing for this representation.
+
 ## Known limitations and deferred work
 
 These items were identified during code review of the initial MVP. They are consciously deferred — not overlooked. Each is noted here so future contributors have the full picture without re-reading the review history.

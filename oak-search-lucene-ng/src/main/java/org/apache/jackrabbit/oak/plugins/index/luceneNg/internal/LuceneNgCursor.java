@@ -22,7 +22,6 @@ import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;
-import org.apache.jackrabbit.oak.query.RuntimeNodeTraversalException;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.search.IndexSearcher;
@@ -135,13 +134,16 @@ public class LuceneNgCursor extends AbstractCursor {
         if (!hasNext()) {
             throw new NoSuchElementException();
         }
+        boolean readLimitChecked = false;
         try {
             Cursors.checkReadLimit(++readCount, queryLimits);
-        } catch (RuntimeNodeTraversalException e) {
-            pendingRows.clear();
-            noMoreDocs = true;
-            cleanable.clean();
-            throw e;
+            readLimitChecked = true;
+        } finally {
+            if (!readLimitChecked) {
+                pendingRows.clear();
+                noMoreDocs = true;
+                cleanable.clean();
+            }
         }
         return pendingRows.poll();
     }

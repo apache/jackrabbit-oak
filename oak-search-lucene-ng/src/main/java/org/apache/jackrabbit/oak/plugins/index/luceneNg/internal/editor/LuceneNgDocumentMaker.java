@@ -123,8 +123,8 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
      *
      * <p>When the index definition declares Long/Double/Date, the value is converted and a
      * numeric point field is written (guaranteeing a consistent Lucene field type across all
-     * documents); otherwise the field type is driven by the actual Oak value type (String
-     * exact-match).</p>
+     * documents). String/default-String definitions use string exact-match fields for
+     * supported scalar and array values.</p>
      */
     @Override
     protected void indexTypedProperty(Document doc, PropertyState property, String pname,
@@ -159,43 +159,26 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
                     return;
                 }
                 default:
-                    // Declared as String (or another non-numeric type): fall through to
-                    // actual-type dispatch so string/boolean handling is unchanged.
                     indexByActualType(doc, property, pname, pd, i);
                     return;
             }
         }
-        // No explicit type declaration: drive field type from the actual Oak value type.
         indexByActualType(doc, property, pname, pd, i);
     }
 
     /**
      * Indexes the value at position {@code i} using the property's actual Oak value type.
-     * Numeric/boolean values are indexed as string exact-match fields, and only when the
-     * property is single-valued. Binary values are ignored here (never call
+     * Numeric/boolean values are indexed as string exact-match fields.
+     * Binary values are ignored here (never call
      * {@code getValue(STRING)} on a binary).
      */
     private void indexByActualType(Document doc, PropertyState property, String pname,
                                    PropertyDefinition pd, int i) {
         switch (property.getType().tag()) {
             case PropertyType.NAME:
-                doc.add(new StringField(pname, property.getValue(Type.NAME, i), Field.Store.NO));
-                break;
             case PropertyType.LONG:
-                if (!property.isArray()) {
-                    doc.add(new StringField(pname, String.valueOf(property.getValue(Type.LONG, i)), Field.Store.NO));
-                }
-                break;
             case PropertyType.DOUBLE:
-                if (!property.isArray()) {
-                    doc.add(new StringField(pname, String.valueOf(property.getValue(Type.DOUBLE, i)), Field.Store.NO));
-                }
-                break;
             case PropertyType.BOOLEAN:
-                if (!property.isArray()) {
-                    doc.add(new StringField(pname, String.valueOf(property.getValue(Type.BOOLEAN, i)), Field.Store.NO));
-                }
-                break;
             case PropertyType.STRING: {
                 String sv = property.getValue(Type.STRING, i);
                 if (sv.length() < MAX_FIELD_LENGTH) {
@@ -246,7 +229,7 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
     @Override
     protected boolean indexTypeOrderedFields(Document doc, String pname, int tag, PropertyState property,
                                              PropertyDefinition pd) {
-        switch (tag) {
+        switch (pd.getType() == PropertyType.STRING ? PropertyType.STRING : tag) {
             case PropertyType.LONG: {
                 Long lv = readAsLong(property, 0);
                 if (lv == null) {
