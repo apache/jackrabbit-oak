@@ -105,18 +105,11 @@ public class LuceneNgIndexTrackerTest {
     }
 
     /**
-     * Proves that {@link LuceneNgIndexTracker#acquireIndexNode(String)} resolves a {@code luceneNg}
-     * index at any nesting depth, once given its exact path: the shared {@code
-     * FulltextIndexTracker}'s {@code findIndexNode} walks the given path segment-by-segment with
-     * no depth restriction.
-     *
-     * <p>This does NOT prove that a real query can use such an index: {@code
-     * LuceneNgQueryIndexProvider#getQueryIndexes()} still only enumerates direct children of
-     * {@code /oak:index} and so would never hand this deeper path to the tracker in the first
-     * place (see README, "Index discovery").</p>
+     * Nested {@code luceneNg} definitions are not supported, so indexing skips them: no storage is
+     * written and the tracker has no index node to open (see README, "Index discovery").
      */
     @Test
-    public void discoversIndexDefinitionsNestedDeeperThanOakIndex() throws Exception {
+    public void nestedIndexDefinitionsAreNotIndexed() throws Exception {
         // Index definition nested two levels deeper than the conventional
         // "/oak:index/<name>": it lives under "/content/dam/oak:index/damAssets".
         NodeBuilder nestedRootBuilder = INITIAL_CONTENT.builder();
@@ -129,24 +122,19 @@ public class LuceneNgIndexTrackerTest {
         // "luceneNg", so it must be set explicitly (same as LuceneNgIndexEditorProviderTest).
         defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
 
-        // Index one node (under /content/dam, the subtree the nested definition covers) so the
-        // definition has real Lucene segment data (hasSearcher() == true); otherwise
-        // acquireIndexNode() would legitimately return null regardless of nesting depth, and the
-        // test would prove nothing. Driven as a real commit so the nested index is populated the
-        // same way production does.
         NodeBuilder asset = nestedRootBuilder.child("content").child("dam").child("asset1");
         asset.setProperty("jcr:primaryType", "nt:unstructured");
         asset.setProperty("title", "hello");
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(nestedRootBuilder.getNodeState());
 
+        assertFalse(indexed.getChildNode("content").getChildNode("dam").getChildNode("oak:index")
+                .getChildNode("damAssets").hasChildNode(":luceneNg"));
+
         LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
         tracker.update(indexed);
 
-        LuceneNgIndexNode indexNode = tracker.acquireIndexNode("/content/dam/oak:index/damAssets");
-        assertNotNull(
-                "Tracker should resolve a luceneNg index at any nesting depth once given its exact path",
-                indexNode);
+        assertNull(tracker.acquireIndexNode("/content/dam/oak:index/damAssets"));
     }
 
     /**
