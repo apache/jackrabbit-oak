@@ -76,9 +76,10 @@ public class ConsistencyChecker {
      * found, so that every inconsistent node is reported through
      * {@link #onCheckNodeError(String, Exception)} and
      * {@link #onCheckTreeError(String, Exception)}. By default the traversal
-     * stops at the first inconsistency. When enabled, every tree is traversed
-     * in full, i.e. inconsistent paths found in newer revisions are not probed
-     * first, so that each revision reports all of its inconsistent nodes.
+     * stops at the first inconsistency. When enabled, inconsistent paths found
+     * in newer revisions are not probed first and every tree is traversed in
+     * full, so that each revision reports every inconsistent node that can be
+     * reached.
      *
      * @return {@code true} to continue after an inconsistency.
      */
@@ -340,7 +341,9 @@ public class ConsistencyChecker {
     /**
      * Check the consistency of a given subtree and returns the first
      * inconsistent path. If provided, this method probes a set of inconsistent
-     * paths before performing a full traversal of the subtree.
+     * paths before performing a full traversal of the subtree, unless
+     * {@link #continueOnError()} is enabled, in which case the probing is
+     * skipped.
      *
      * @param root           The root node of the subtree.
      * @param corruptedPaths A set of possibly inconsistent paths.
@@ -519,7 +522,9 @@ public class ConsistencyChecker {
      * @param checkBinaries if {@code true} full content of binary properties
      *                      will be scanned
      * @return {@code null}, if the node is consistent, or the path of the first
-     * inconsistency otherwise.
+     * inconsistency otherwise. If {@link #continueOnError()} is enabled, the
+     * traversal does not stop at the first inconsistency and the others are
+     * reported through the callbacks.
      */
     private String checkNodeAndDescendants(NodeState node, String path, boolean checkBinaries) {
         String firstError = checkNode(node, path, checkBinaries);
