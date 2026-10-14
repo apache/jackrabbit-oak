@@ -336,7 +336,43 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         );
 
         assertCheckFailed(checkResult);
+        assertExpectedOutput(log.errString(), List.of("Error while traversing /a", "Error while traversing /z"));
         assertEquals(4, countTraversalErrors());
+    }
+
+    @Test
+    public void testContinueOnErrorWithFailFast() throws Exception {
+        addInvalidRevisionWithOtherCorruptPaths();
+
+        int checkResult = check(b -> b
+            .withFilterPaths(Set.of("/"))
+            .withCheckpoints(new HashSet<>())
+            .withFailFast(true)
+            .withContinueOnError(true)
+        );
+
+        assertCheckFailed(checkResult);
+        assertExpectedOutput(log.outString(), List.of("Searched through 1 revisions", "No good revision found"));
+        assertExpectedOutput(log.errString(), List.of("Error while traversing /d", "Error while traversing /e"));
+        assertEquals(2, countTraversalErrors());
+    }
+
+    @Test
+    public void testContinueOnErrorWithCheckpoints() throws Exception {
+        corruptPathFromCheckpoint();
+
+        int checkResult = check(b -> b
+            .withFilterPaths(Set.of("/"))
+            .withCheckpoints(Set.of(checkpoints.iterator().next()))
+            .withRevisionsCount(1)
+            .withContinueOnError(true)
+        );
+
+        assertCheckFailed(checkResult);
+        assertExpectedOutput(log.outString(), List.of("Searched through 1 revisions and 1 checkpoints", "No good revision found"));
+        assertExpectedOutput(log.errString(), List.of(
+            "Error while traversing /a", "Error while traversing /z", "Error while traversing /b"));
+        assertEquals(3, countTraversalErrors());
     }
 
     private int countTraversalErrors() {
