@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.index.luceneNg.directory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
@@ -28,27 +29,26 @@ import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEditorContext;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class IndexRootDirectoryTest {
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
+    @TempDir(factory = TargetTempDirFactory.class)
+    public Path tempDir;
 
     private IndexRootDirectory dir;
 
     private NodeState root = INITIAL_CONTENT;
     private NodeBuilder builder = EMPTY_NODE.builder();
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
-        dir = new IndexRootDirectory(temporaryFolder.getRoot());
+        dir = new IndexRootDirectory(tempDir.toFile());
     }
 
     @Test
@@ -185,7 +185,7 @@ public class IndexRootDirectoryTest {
         assertEquals(2, dir.getLocalIndexes("/a").size());
 
         //Now reinitialize
-        dir = new IndexRootDirectory(temporaryFolder.getRoot());
+        dir = new IndexRootDirectory(tempDir.toFile());
 
         assertFalse(fa0.exists());
         assertFalse(fa1.exists());

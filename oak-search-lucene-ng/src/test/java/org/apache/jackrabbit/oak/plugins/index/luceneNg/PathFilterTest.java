@@ -24,10 +24,10 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.TermQuery;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests that the Lucene 9 index editor respects {@code includedPaths}: content under an included
@@ -66,8 +66,8 @@ public class PathFilterTest {
         NodeState indexed = indexWithIncludedDam();
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             IndexSearcher searcher = new IndexSearcher(reader);
-            assertEquals("node under includedPaths=/content/dam must be indexed", 1,
-                    searcher.search(new TermQuery(new Term(FieldNames.PATH, "/content/dam/asset")), 10).totalHits.value);
+            assertEquals(1, searcher.search(new TermQuery(new Term(FieldNames.PATH, "/content/dam/asset")), 10).totalHits.value,
+                    "node under includedPaths=/content/dam must be indexed");
         }
     }
 
@@ -76,8 +76,8 @@ public class PathFilterTest {
         NodeState indexed = indexWithIncludedDam();
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             IndexSearcher searcher = new IndexSearcher(reader);
-            assertEquals("node outside includedPaths=/content/dam must be skipped", 0,
-                    searcher.search(new TermQuery(new Term(FieldNames.PATH, "/libs/thing")), 10).totalHits.value);
+            assertEquals(0, searcher.search(new TermQuery(new Term(FieldNames.PATH, "/libs/thing")), 10).totalHits.value,
+                    "node outside includedPaths=/content/dam must be skipped");
         }
     }
 }

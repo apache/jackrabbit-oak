@@ -19,12 +19,12 @@
 package org.apache.jackrabbit.oak.plugins.index.luceneNg.directory;
 
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests for error handling in OakBufferedIndexFile and OakIndexInput.
@@ -91,8 +91,8 @@ public class ErrorHandlingTest {
             indexFile.seek(-1);
             fail("Expected IOException when seeking to negative position");
         } catch (IOException e) {
-            assertTrue("Error message should contain 'Invalid seek'",
-                e.getMessage().contains("Invalid seek"));
+            assertTrue(e.getMessage().contains("Invalid seek"),
+                "Error message should contain 'Invalid seek'");
         }
 
         // Test 2: Seek to 1001 (beyond file length) should throw IOException
@@ -100,8 +100,8 @@ public class ErrorHandlingTest {
             indexFile.seek(1001);
             fail("Expected IOException when seeking beyond file length");
         } catch (IOException e) {
-            assertTrue("Error message should contain 'Invalid seek'",
-                e.getMessage().contains("Invalid seek"));
+            assertTrue(e.getMessage().contains("Invalid seek"),
+                "Error message should contain 'Invalid seek'");
         }
 
         // Test 3: Seek to 1000 (position == length) should succeed (LUCENE-1196)
@@ -138,8 +138,8 @@ public class ErrorHandlingTest {
             fail("Expected IllegalArgumentException when reading into null array");
         } catch (IllegalArgumentException e) {
             // Expected
-            assertTrue("Exception should indicate null array",
-                e.getMessage().contains("null"));
+            assertTrue(e.getMessage().contains("null"),
+                "Exception should indicate null array");
         }
 
         // Test 2: readBytes(new byte[100], -1, 10) should throw IndexOutOfBoundsException
@@ -148,8 +148,8 @@ public class ErrorHandlingTest {
             fail("Expected IndexOutOfBoundsException for negative offset");
         } catch (IndexOutOfBoundsException e) {
             // Expected
-            assertTrue("Exception should indicate invalid offset/length",
-                e.getMessage().contains("Invalid offset/length"));
+            assertTrue(e.getMessage().contains("Invalid offset/length"),
+                "Exception should indicate invalid offset/length");
         }
 
         // Test 3: readBytes(new byte[100], 95, 10) should throw IndexOutOfBoundsException
@@ -159,8 +159,8 @@ public class ErrorHandlingTest {
             fail("Expected IndexOutOfBoundsException when offset + length > array length");
         } catch (IndexOutOfBoundsException e) {
             // Expected
-            assertTrue("Exception should indicate invalid offset/length",
-                e.getMessage().contains("Invalid offset/length"));
+            assertTrue(e.getMessage().contains("Invalid offset/length"),
+                "Exception should indicate invalid offset/length");
         }
 
         // Test 4: readBytes(new byte[2000], 0, 2000) should throw IOException
@@ -171,8 +171,8 @@ public class ErrorHandlingTest {
             fail("Expected IOException when reading beyond file length");
         } catch (IOException e) {
             // Expected
-            assertTrue("Error message should contain 'Invalid read'",
-                e.getMessage().contains("Invalid read"));
+            assertTrue(e.getMessage().contains("Invalid read"),
+                "Error message should contain 'Invalid read'");
         }
 
         indexFile.close();
@@ -210,8 +210,8 @@ public class ErrorHandlingTest {
             indexInput.readByte();
             fail("Expected IOException when calling readByte() on closed IndexInput");
         } catch (IOException e) {
-            assertTrue("Error message should contain 'closed'",
-                e.getMessage().toLowerCase().contains("closed"));
+            assertTrue(e.getMessage().toLowerCase().contains("closed"),
+                "Error message should contain 'closed'");
         }
 
         // Test 2: seek(0) should throw IOException with "closed"
@@ -219,8 +219,8 @@ public class ErrorHandlingTest {
             indexInput.seek(0);
             fail("Expected IOException when calling seek() on closed IndexInput");
         } catch (IOException e) {
-            assertTrue("Error message should contain 'closed'",
-                e.getMessage().toLowerCase().contains("closed"));
+            assertTrue(e.getMessage().toLowerCase().contains("closed"),
+                "Error message should contain 'closed'");
         }
 
         // Test 3: length() should throw IllegalStateException with "closed"
@@ -228,8 +228,8 @@ public class ErrorHandlingTest {
             indexInput.length();
             fail("Expected IllegalStateException when calling length() on closed IndexInput");
         } catch (IllegalStateException e) {
-            assertTrue("Error message should contain 'closed'",
-                e.getMessage().toLowerCase().contains("closed"));
+            assertTrue(e.getMessage().toLowerCase().contains("closed"),
+                "Error message should contain 'closed'");
         }
     }
 
@@ -263,8 +263,8 @@ public class ErrorHandlingTest {
             fail("Expected IllegalArgumentException for negative offset");
         } catch (IllegalArgumentException e) {
             // Expected
-            assertTrue("Exception message should indicate invalid slice parameters",
-                e.getMessage().contains("Invalid slice"));
+            assertTrue(e.getMessage().contains("Invalid slice"),
+                "Exception message should indicate invalid slice parameters");
         }
 
         // Test 2: slice("test", 0, -1) should throw IllegalArgumentException
@@ -273,8 +273,8 @@ public class ErrorHandlingTest {
             fail("Expected IllegalArgumentException for negative length");
         } catch (IllegalArgumentException e) {
             // Expected
-            assertTrue("Exception message should indicate invalid slice parameters",
-                e.getMessage().contains("Invalid slice"));
+            assertTrue(e.getMessage().contains("Invalid slice"),
+                "Exception message should indicate invalid slice parameters");
         }
 
         // Test 3: slice("test", 500, 600) should throw IllegalArgumentException
@@ -284,8 +284,8 @@ public class ErrorHandlingTest {
             fail("Expected IllegalArgumentException when offset + length > file length");
         } catch (IllegalArgumentException e) {
             // Expected
-            assertTrue("Exception message should indicate invalid slice parameters",
-                e.getMessage().contains("Invalid slice"));
+            assertTrue(e.getMessage().contains("Invalid slice"),
+                "Exception message should indicate invalid slice parameters");
         }
 
         indexInput.close();

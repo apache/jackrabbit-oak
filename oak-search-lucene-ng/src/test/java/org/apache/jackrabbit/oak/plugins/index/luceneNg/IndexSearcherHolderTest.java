@@ -28,19 +28,20 @@ import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.IndexSearcher;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.apache.lucene.util.BytesRef;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class IndexSearcherHolderTest {
 
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+    @TempDir
+    public Path tempDir;
 
     @Test
     public void testGetSearcher() throws Exception {
@@ -63,8 +64,8 @@ public class IndexSearcherHolderTest {
                 "test");
         IndexSearcher searcher = holder.getSearcher();
 
-        assertNotNull("Searcher should not be null", searcher);
-        assertEquals("Empty index should have 0 docs", 0, searcher.getIndexReader().numDocs());
+        assertNotNull(searcher, "Searcher should not be null");
+        assertEquals(0, searcher.getIndexReader().numDocs(), "Empty index should have 0 docs");
 
         holder.close();
     }
@@ -129,7 +130,7 @@ public class IndexSearcherHolderTest {
         NodeState storageState = indexState.getChildNode(LuceneNgIndexStorage.STORAGE_NODE_NAME);
         LuceneNgIndexDefinition definition = new LuceneNgIndexDefinition(root, indexState, indexPath);
 
-        File localRoot = temporaryFolder.newFolder();
+        File localRoot = Files.createTempDirectory(tempDir, "folder").toFile();
         LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, localRoot, false);
 
         try (IndexSearcherHolder holder = new IndexSearcherHolder(storageState, "test", copier, definition)) {
@@ -138,8 +139,8 @@ public class IndexSearcherHolderTest {
             // (LuceneNgIndexCopier's constructor itself only creates the generic indexWriterDir
             // work folder, which is not proof that a wrap+copy actually happened - see
             // LuceneNgIndexCopier#doneCopy, only reached via CopyOnReadDirectory#openInput).
-            assertTrue("expected at least one file to have been copied from remote to local",
-                    copier.getDownloadCount() > 0);
+            assertTrue(copier.getDownloadCount() > 0,
+                    "expected at least one file to have been copied from remote to local");
         } finally {
             copier.close();
         }

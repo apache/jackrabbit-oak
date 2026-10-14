@@ -53,7 +53,7 @@ import org.apache.lucene.search.SortedSetSortField;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.util.BytesRef;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 
@@ -65,7 +65,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 public class LuceneNgIndexTest {
@@ -129,13 +129,13 @@ public class LuceneNgIndexTest {
         // Execute query
         Cursor cursor = index.query(planFor(filter), root);
 
-        assertNotNull("Cursor should not be null", cursor);
-        assertTrue("Should find article1", cursor.hasNext());
+        assertNotNull(cursor, "Cursor should not be null");
+        assertTrue(cursor.hasNext(), "Should find article1");
 
         String path = cursor.next().getPath();
-        assertEquals("Should find /content/article1", "/content/article1", path);
+        assertEquals("/content/article1", path, "Should find /content/article1");
 
-        assertFalse("Should only find one document", cursor.hasNext());
+        assertFalse(cursor.hasNext(), "Should only find one document");
     }
 
     /**
@@ -219,16 +219,16 @@ public class LuceneNgIndexTest {
         Cursor cursor = index.query(planFor(filter), root);
 
         // Should return person2 (35) and person3 (45), not person1 (25)
-        assertTrue("Should find results", cursor.hasNext());
+        assertTrue(cursor.hasNext(), "Should find results");
         List<String> paths = new ArrayList<>();
         while (cursor.hasNext()) {
             paths.add(cursor.next().getPath());
         }
 
-        assertEquals("Should find 2 results", 2, paths.size());
-        assertTrue("Should contain /person2", paths.contains("/person2"));
-        assertTrue("Should contain /person3", paths.contains("/person3"));
-        assertFalse("Should not contain /person1", paths.contains("/person1"));
+        assertEquals(2, paths.size(), "Should find 2 results");
+        assertTrue(paths.contains("/person2"), "Should contain /person2");
+        assertTrue(paths.contains("/person3"), "Should contain /person3");
+        assertFalse(paths.contains("/person1"), "Should not contain /person1");
     }
 
     @Test
@@ -282,15 +282,15 @@ public class LuceneNgIndexTest {
         Cursor cursor = index.query(planFor(filter), root);
 
         // Should return Orange and Zebra (>= 'M'), not Apple or Banana
-        assertTrue("Should find results", cursor.hasNext());
+        assertTrue(cursor.hasNext(), "Should find results");
         List<String> resultPaths = new ArrayList<>();
         while (cursor.hasNext()) {
             resultPaths.add(cursor.next().getPath());
         }
 
-        assertEquals("Should find 2 results", 2, resultPaths.size());
-        assertTrue("Should contain /fruit3 (Orange)", resultPaths.contains("/fruit3"));
-        assertTrue("Should contain /fruit4 (Zebra)", resultPaths.contains("/fruit4"));
+        assertEquals(2, resultPaths.size(), "Should find 2 results");
+        assertTrue(resultPaths.contains("/fruit3"), "Should contain /fruit3 (Orange)");
+        assertTrue(resultPaths.contains("/fruit4"), "Should contain /fruit4 (Zebra)");
     }
 
     @Test
@@ -355,14 +355,14 @@ public class LuceneNgIndexTest {
         Cursor cursor = index.query(planFor(filter), root);
 
         // Should return only product2 (25.50)
-        assertTrue("Should find results", cursor.hasNext());
+        assertTrue(cursor.hasNext(), "Should find results");
         List<String> resultPaths = new ArrayList<>();
         while (cursor.hasNext()) {
             resultPaths.add(cursor.next().getPath());
         }
 
-        assertEquals("Should find 1 result", 1, resultPaths.size());
-        assertTrue("Should contain /product2", resultPaths.contains("/product2"));
+        assertEquals(1, resultPaths.size(), "Should find 1 result");
+        assertTrue(resultPaths.contains("/product2"), "Should contain /product2");
     }
 
     @Test
@@ -416,16 +416,16 @@ public class LuceneNgIndexTest {
         Cursor cursor = index.query(planFor(filter), root);
 
         // Should return published and archived, not draft
-        assertTrue("Should find results", cursor.hasNext());
+        assertTrue(cursor.hasNext(), "Should find results");
         List<String> resultPaths = new ArrayList<>();
         while (cursor.hasNext()) {
             resultPaths.add(cursor.next().getPath());
         }
 
-        assertEquals("Should find 2 results", 2, resultPaths.size());
-        assertTrue("Should contain /doc2 (published)", resultPaths.contains("/doc2"));
-        assertTrue("Should contain /doc3 (archived)", resultPaths.contains("/doc3"));
-        assertFalse("Should not contain /doc1 (draft)", resultPaths.contains("/doc1"));
+        assertEquals(2, resultPaths.size(), "Should find 2 results");
+        assertTrue(resultPaths.contains("/doc2"), "Should contain /doc2 (published)");
+        assertTrue(resultPaths.contains("/doc3"), "Should contain /doc3 (archived)");
+        assertFalse(resultPaths.contains("/doc1"), "Should not contain /doc1 (draft)");
     }
 
     @Test
@@ -479,15 +479,15 @@ public class LuceneNgIndexTest {
         Cursor cursor = index.query(planFor(filter), root);
 
         // Should return tech and science
-        assertTrue("Should find results", cursor.hasNext());
+        assertTrue(cursor.hasNext(), "Should find results");
         List<String> resultPaths = new ArrayList<>();
         while (cursor.hasNext()) {
             resultPaths.add(cursor.next().getPath());
         }
 
-        assertEquals("Should find 2 results", 2, resultPaths.size());
-        assertTrue("Should contain /article1 (tech)", resultPaths.contains("/article1"));
-        assertTrue("Should contain /article3 (science)", resultPaths.contains("/article3"));
+        assertEquals(2, resultPaths.size(), "Should find 2 results");
+        assertTrue(resultPaths.contains("/article1"), "Should contain /article1 (tech)");
+        assertTrue(resultPaths.contains("/article3"), "Should contain /article3 (science)");
     }
 
     @Test
@@ -520,7 +520,7 @@ public class LuceneNgIndexTest {
             // The editor writes the parent path under LuceneNgIndexConstants.FIELD_PARENT_PATH (":parent")
             TopDocs hits = searcher.search(
                     new TermQuery(new Term(LuceneNgIndexConstants.FIELD_PARENT_PATH, "/a")), 10);
-            assertEquals("Direct children of /a", 1, hits.totalHits.value);
+            assertEquals(1, hits.totalHits.value, "Direct children of /a");
             assertEquals("/a/b", searcher.storedFields().document(hits.scoreDocs[0].doc).get(FieldNames.PATH));
         }
     }
@@ -546,10 +546,10 @@ public class LuceneNgIndexTest {
         while (cursor.hasNext()) {
             paths.add(cursor.next().getPath());
         }
-        assertTrue("Should contain /a/b",   paths.contains("/a/b"));
-        assertTrue("Should contain /a/b/c", paths.contains("/a/b/c"));
-        assertFalse("Should not contain /a", paths.contains("/a"));
-        assertFalse("Should not contain /x", paths.contains("/x"));
+        assertTrue(paths.contains("/a/b"),   "Should contain /a/b");
+        assertTrue(paths.contains("/a/b/c"), "Should contain /a/b/c");
+        assertFalse(paths.contains("/a"), "Should not contain /a");
+        assertFalse(paths.contains("/x"), "Should not contain /x");
     }
 
     @Test
@@ -573,7 +573,7 @@ public class LuceneNgIndexTest {
         while (cursor.hasNext()) {
             paths.add(cursor.next().getPath());
         }
-        assertEquals("Exact restriction should return exactly one result", 1, paths.size());
+        assertEquals(1, paths.size(), "Exact restriction should return exactly one result");
         assertEquals("/a", paths.get(0));
     }
 
@@ -608,7 +608,7 @@ public class LuceneNgIndexTest {
         when(filter.getQueryLimits()).thenReturn(new QueryEngineSettings());
 
         Cursor cursor = index.query(planFor(filter), builder.getNodeState());
-        assertTrue("Prefix query 'jackrab*' should match node", cursor.hasNext());
+        assertTrue(cursor.hasNext(), "Prefix query 'jackrab*' should match node");
         assertEquals("/content/page1", cursor.next().getPath());
     }
 
@@ -643,7 +643,7 @@ public class LuceneNgIndexTest {
         when(filter.getQueryLimits()).thenReturn(new QueryEngineSettings());
 
         Cursor cursor = index.query(planFor(filter), builder.getNodeState());
-        assertTrue("Wildcard query 'jack*bit' should match node", cursor.hasNext());
+        assertTrue(cursor.hasNext(), "Wildcard query 'jack*bit' should match node");
         assertEquals("/content/page1", cursor.next().getPath());
     }
 
@@ -686,7 +686,7 @@ public class LuceneNgIndexTest {
 
         // Should not throw ArithmeticException
         Cursor cursor = index.query(planFor(filter), root);
-        assertNotNull("Cursor should not be null", cursor);
+        assertNotNull(cursor, "Cursor should not be null");
     }
 
     @Test
@@ -728,7 +728,7 @@ public class LuceneNgIndexTest {
 
         // Should not throw ArithmeticException
         Cursor cursor = index.query(planFor(filter), root);
-        assertNotNull("Cursor should not be null", cursor);
+        assertNotNull(cursor, "Cursor should not be null");
     }
 
     /**
@@ -893,14 +893,14 @@ public class LuceneNgIndexTest {
         Cursor cursor = index.query(planFor(filter), root);
 
         // Should return only /match
-        assertTrue("Should find results", cursor.hasNext());
+        assertTrue(cursor.hasNext(), "Should find results");
         List<String> resultPaths = new ArrayList<>();
         while (cursor.hasNext()) {
             resultPaths.add(cursor.next().getPath());
         }
 
-        assertEquals("Should find 1 result", 1, resultPaths.size());
-        assertTrue("Should contain /match", resultPaths.contains("/match"));
+        assertEquals(1, resultPaths.size(), "Should find 1 result");
+        assertTrue(resultPaths.contains("/match"), "Should contain /match");
     }
 
     /**
@@ -953,7 +953,7 @@ public class LuceneNgIndexTest {
         LuceneNgIndex index = new LuceneNgIndex(tracker, "/oak:index/testIdx");
 
         LuceneNgIndexNode indexNode = tracker.acquireIndexNode("/oak:index/testIdx");
-        assertNotNull("Index node must be resolvable", indexNode);
+        assertNotNull(indexNode, "Index node must be resolvable");
         try {
             LuceneNgIndexDefinition definition = indexNode.getDefinition();
 
@@ -965,9 +965,9 @@ public class LuceneNgIndexTest {
             Supplier<org.apache.lucene.index.FieldInfos> fieldInfos = indexNode::getFieldInfos;
             SortField sf = (SortField) createSortField.invoke(index, order, definition, fieldInfos);
 
-            assertTrue("Sorting a multi-valued (SORTED_SET doc-values) property must use "
-                            + "SortedSetSortField, not a plain SortField; got: " + sf,
-                    sf instanceof SortedSetSortField);
+            assertTrue(sf instanceof SortedSetSortField,
+                    "Sorting a multi-valued (SORTED_SET doc-values) property must use "
+                            + "SortedSetSortField, not a plain SortField; got: " + sf);
         } finally {
             indexNode.release();
         }

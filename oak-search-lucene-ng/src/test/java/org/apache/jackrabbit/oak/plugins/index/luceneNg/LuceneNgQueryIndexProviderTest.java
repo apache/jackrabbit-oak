@@ -20,11 +20,11 @@ import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class LuceneNgQueryIndexProviderTest {
 
@@ -49,10 +49,10 @@ public class LuceneNgQueryIndexProviderTest {
         LuceneNgQueryIndexProvider provider = new LuceneNgQueryIndexProvider(tracker);
         List<? extends QueryIndex> indexes = provider.getQueryIndexes(root);
 
-        assertNotNull("Indexes should not be null", indexes);
-        assertEquals("Should return one LuceneNgIndex", 1, indexes.size());
-        assertTrue("Should be LuceneNgIndex instance",
-                   indexes.get(0) instanceof LuceneNgIndex);
+        assertNotNull(indexes, "Indexes should not be null");
+        assertEquals(1, indexes.size(), "Should return one LuceneNgIndex");
+        assertTrue(indexes.get(0) instanceof LuceneNgIndex,
+                   "Should be LuceneNgIndex instance");
     }
 
     @Test
@@ -65,8 +65,8 @@ public class LuceneNgQueryIndexProviderTest {
         LuceneNgQueryIndexProvider provider = new LuceneNgQueryIndexProvider(tracker);
         List<? extends QueryIndex> indexes = provider.getQueryIndexes(root);
 
-        assertNotNull("Indexes should not be null", indexes);
-        assertEquals("Definitions are discovered by the backend planner", 1, indexes.size());
+        assertNotNull(indexes, "Indexes should not be null");
+        assertEquals(1, indexes.size(), "Definitions are discovered by the backend planner");
     }
 
     @Test

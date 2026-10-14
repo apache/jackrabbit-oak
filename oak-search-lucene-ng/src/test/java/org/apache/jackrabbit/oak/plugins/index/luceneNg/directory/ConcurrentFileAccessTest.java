@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.plugins.index.luceneNg.directory;
 
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.IndexInput;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests for concurrent file access in OakIndexFile.
@@ -135,10 +135,10 @@ public class ConcurrentFileAccessTest {
         startLatch.countDown();
 
         // Wait for all threads to complete
-        assertTrue("Threads should complete within 5 seconds", doneLatch.await(5, TimeUnit.SECONDS));
+        assertTrue(doneLatch.await(5, TimeUnit.SECONDS), "Threads should complete within 5 seconds");
 
         // Check for errors
-        assertTrue("No errors should occur: " + errors, errors.isEmpty());
+        assertTrue(errors.isEmpty(), "No errors should occur: " + errors);
 
         // Verify each thread read correct data
         byte[] expected0 = new byte[1024];
@@ -151,9 +151,9 @@ public class ConcurrentFileAccessTest {
             expected48KB[i] = (byte) ((pos48KB + i) % 256);
         }
 
-        assertArrayEquals("Data at position 0 should be correct", expected0, result0.get());
-        assertArrayEquals("Data at position 32KB should be correct", expected32KB, result32KB.get());
-        assertArrayEquals("Data at position 48KB should be correct", expected48KB, result48KB.get());
+        assertArrayEquals(expected0, result0.get(), "Data at position 0 should be correct");
+        assertArrayEquals(expected32KB, result32KB.get(), "Data at position 32KB should be correct");
+        assertArrayEquals(expected48KB, result48KB.get(), "Data at position 48KB should be correct");
 
         // Cleanup
         original.close();
@@ -188,19 +188,19 @@ public class ConcurrentFileAccessTest {
         OakIndexFile original = new OakBufferedIndexFile(
             "test.bin", file, "/test", blobFactory);
         original.seek(5000);
-        assertEquals("Original should be at position 5000", 5000, original.position());
+        assertEquals(5000, original.position(), "Original should be at position 5000");
 
         // Clone it - clone should start at 5000
         OakIndexFile clone = original.clone();
-        assertEquals("Clone should start at position 5000", 5000, clone.position());
+        assertEquals(5000, clone.position(), "Clone should start at position 5000");
 
         // Move original to 1000 and clone to 8000
         original.seek(1000);
         clone.seek(8000);
 
         // Verify they are independent
-        assertEquals("Original should be at position 1000", 1000, original.position());
-        assertEquals("Clone should be at position 8000", 8000, clone.position());
+        assertEquals(1000, original.position(), "Original should be at position 1000");
+        assertEquals(8000, clone.position(), "Clone should be at position 8000");
 
         // Read from both and verify independence
         byte[] originalData = new byte[100];
@@ -211,15 +211,15 @@ public class ConcurrentFileAccessTest {
 
         // Verify data is from correct positions
         for (int i = 0; i < 100; i++) {
-            assertEquals("Original data should be from position 1000+i",
-                (byte) ((1000 + i) % 256), originalData[i]);
-            assertEquals("Clone data should be from position 8000+i",
-                (byte) ((8000 + i) % 256), cloneData[i]);
+            assertEquals((byte) ((1000 + i) % 256),
+                originalData[i], "Original data should be from position 1000+i");
+            assertEquals((byte) ((8000 + i) % 256),
+                cloneData[i], "Clone data should be from position 8000+i");
         }
 
         // Verify positions after read
-        assertEquals("Original should be at position 1100", 1100, original.position());
-        assertEquals("Clone should be at position 8100", 8100, clone.position());
+        assertEquals(1100, original.position(), "Original should be at position 1100");
+        assertEquals(8100, clone.position(), "Clone should be at position 8100");
 
         // Cleanup
         original.close();
@@ -261,10 +261,10 @@ public class ConcurrentFileAccessTest {
         IndexInput slice = indexInput.slice("test-slice", sliceOffset, sliceLength);
 
         // Verify slice length is 20KB
-        assertEquals("Slice length should be 20KB", sliceLength, slice.length());
+        assertEquals(sliceLength, slice.length(), "Slice length should be 20KB");
 
         // Verify slice pointer is at 0 (relative to slice, not original file)
-        assertEquals("Slice pointer should be at 0", 0, slice.getFilePointer());
+        assertEquals(0, slice.getFilePointer(), "Slice pointer should be at 0");
 
         // Read 1KB from slice
         byte[] sliceData = new byte[1024];
@@ -275,11 +275,11 @@ public class ConcurrentFileAccessTest {
         for (int i = 0; i < 1024; i++) {
             expectedData[i] = (byte) ((sliceOffset + i) % 256);
         }
-        assertArrayEquals("Slice data should be from offset 10KB of original",
-            expectedData, sliceData);
+        assertArrayEquals(expectedData,
+            sliceData, "Slice data should be from offset 10KB of original");
 
         // Verify slice pointer advanced by 1KB (relative to slice)
-        assertEquals("Slice pointer should have advanced by 1KB", 1024, slice.getFilePointer());
+        assertEquals(1024, slice.getFilePointer(), "Slice pointer should have advanced by 1KB");
 
         // Cleanup
         slice.close();

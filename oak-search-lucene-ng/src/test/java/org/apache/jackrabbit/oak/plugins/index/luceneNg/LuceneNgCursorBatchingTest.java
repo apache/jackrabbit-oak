@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.any;
@@ -62,7 +62,7 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.TotalHits;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Verifies that {@link LuceneNgCursor}, when driven by {@link LuceneNgIndex#query(IndexPlan, NodeState)},
@@ -114,9 +114,9 @@ public class LuceneNgCursorBatchingTest {
         Set<String> paths = new HashSet<>();
         while (fullCursor.hasNext()) {
             IndexRow row = fullCursor.next();
-            assertTrue("Duplicate path across batch boundary: " + row.getPath(), paths.add(row.getPath()));
+            assertTrue(paths.add(row.getPath()), "Duplicate path across batch boundary: " + row.getPath());
         }
-        assertEquals("All 60 documents must be returned across the two batches", 60, paths.size());
+        assertEquals(60, paths.size(), "All 60 documents must be returned across the two batches");
 
         // --- Node must be released between batches: drain only the first batch (50 rows), then
         // assert closing the tracker's node completes without blocking. Before the per-batch fix
@@ -134,7 +134,7 @@ public class LuceneNgCursorBatchingTest {
             partialCursor.next();
             drained++;
         }
-        assertEquals("Should have drained exactly the first batch", 50, drained);
+        assertEquals(50, drained, "Should have drained exactly the first batch");
 
         ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
@@ -161,13 +161,13 @@ public class LuceneNgCursorBatchingTest {
         while (cursor.hasNext()) {
             IndexRow row = cursor.next();
             org.apache.jackrabbit.oak.api.PropertyValue excerpt = row.getValue("rep:excerpt");
-            assertNotNull("Excerpt must be present for " + row.getPath() + " (row " + rows + ")", excerpt);
+            assertNotNull(excerpt, "Excerpt must be present for " + row.getPath() + " (row " + rows + ")");
             String text = excerpt.getValue(org.apache.jackrabbit.oak.api.Type.STRING);
-            assertNotNull("Excerpt text must not be null for " + row.getPath(), text);
-            assertTrue("Excerpt text must not be empty for " + row.getPath(), !text.isEmpty());
+            assertNotNull(text, "Excerpt text must not be null for " + row.getPath());
+            assertTrue(!text.isEmpty(), "Excerpt text must not be empty for " + row.getPath());
             rows++;
         }
-        assertEquals("All 55 matching documents must be returned across batches", 55, rows);
+        assertEquals(55, rows, "All 55 matching documents must be returned across batches");
     }
 
     // --- helpers ---
@@ -222,14 +222,14 @@ public class LuceneNgCursorBatchingTest {
             cursor.next();
         }
         assertTrue(cursor.hasNext());
-        org.junit.Assert.assertThrows(
+        org.junit.jupiter.api.Assertions.assertThrows(
                 org.apache.jackrabbit.oak.query.RuntimeNodeTraversalException.class, cursor::next);
         assertFalse(cursor.hasNext());
         java.lang.reflect.Field analyzerField = cursor.getClass().getDeclaredField("excerptAnalyzer");
         analyzerField.setAccessible(true);
         org.apache.lucene.analysis.Analyzer analyzer =
                 (org.apache.lucene.analysis.Analyzer) analyzerField.get(cursor);
-        org.junit.Assert.assertThrows(org.apache.lucene.store.AlreadyClosedException.class,
+        org.junit.jupiter.api.Assertions.assertThrows(org.apache.lucene.store.AlreadyClosedException.class,
                 () -> analyzer.tokenStream("test", "text"));
         ExecutorService executor = Executors.newSingleThreadExecutor();
         try {

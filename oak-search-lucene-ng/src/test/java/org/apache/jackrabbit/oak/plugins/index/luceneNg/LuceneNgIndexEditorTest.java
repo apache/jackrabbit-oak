@@ -34,10 +34,10 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests that the Lucene 9 index editor correctly indexes multi-valued properties that are declared
@@ -72,8 +72,8 @@ public class LuceneNgIndexEditorTest {
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             IndexSearcher searcher = new IndexSearcher(reader);
             Query rangeQuery = LongPoint.newRangeQuery("score", 1L, 3L);
-            assertEquals("Multi-valued Long property with explicit declared type must be indexed as LongPoint",
-                    1, searcher.search(rangeQuery, 10).totalHits.value);
+            assertEquals(1,
+                    searcher.search(rangeQuery, 10).totalHits.value, "Multi-valued Long property with explicit declared type must be indexed as LongPoint");
         }
     }
 
@@ -89,8 +89,8 @@ public class LuceneNgIndexEditorTest {
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             IndexSearcher searcher = new IndexSearcher(reader);
             Query rangeQuery = DoublePoint.newRangeQuery("price", 1.5, 3.5);
-            assertEquals("Multi-valued Double property with explicit declared type must be indexed as DoublePoint",
-                    1, searcher.search(rangeQuery, 10).totalHits.value);
+            assertEquals(1,
+                    searcher.search(rangeQuery, 10).totalHits.value, "Multi-valued Double property with explicit declared type must be indexed as DoublePoint");
         }
     }
 
@@ -113,9 +113,9 @@ public class LuceneNgIndexEditorTest {
             long minMillis = Math.min(cal1.getTimeInMillis(), cal2.getTimeInMillis());
             long maxMillis = Math.max(cal1.getTimeInMillis(), cal2.getTimeInMillis());
             Query rangeQuery = LongPoint.newRangeQuery("eventDate", minMillis, maxMillis);
-            assertEquals("Multi-valued Date property with explicit declared type must index its well-formed "
-                            + "values as LongPoint (epoch millis), silently skipping the malformed one",
-                    1, searcher.search(rangeQuery, 10).totalHits.value);
+            assertEquals(1,
+                    searcher.search(rangeQuery, 10).totalHits.value, "Multi-valued Date property with explicit declared type must index its well-formed "
+                            + "values as LongPoint (epoch millis), silently skipping the malformed one");
         }
     }
 
@@ -136,8 +136,8 @@ public class LuceneNgIndexEditorTest {
         NodeState afterFirst = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(afterFirst, IDX)) {
             IndexSearcher searcher = new IndexSearcher(reader);
-            assertEquals("Node matching the rule must be indexed", 1,
-                    searcher.search(new TermQuery(new Term(FieldNames.PATH, "/node")), 10).totalHits.value);
+            assertEquals(1, searcher.search(new TermQuery(new Term(FieldNames.PATH, "/node")), 10).totalHits.value,
+                    "Node matching the rule must be indexed");
         }
 
         // Commit 2: primaryType changes to "nt:folder", which no rule covers. Pure rule transition.
@@ -147,8 +147,8 @@ public class LuceneNgIndexEditorTest {
 
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(afterSecond, IDX)) {
             IndexSearcher searcher = new IndexSearcher(reader);
-            assertEquals("Stale document must be deleted once the node no longer matches any indexing rule",
-                    0, searcher.search(new TermQuery(new Term(FieldNames.PATH, "/node")), 10).totalHits.value);
+            assertEquals(0,
+                    searcher.search(new TermQuery(new Term(FieldNames.PATH, "/node")), 10).totalHits.value, "Stale document must be deleted once the node no longer matches any indexing rule");
         }
     }
 }

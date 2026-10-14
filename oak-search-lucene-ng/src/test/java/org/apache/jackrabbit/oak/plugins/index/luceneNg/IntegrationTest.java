@@ -30,13 +30,13 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextParser;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
@@ -93,7 +93,7 @@ public class IntegrationTest {
             contextCallback("/oak:index/testIndex")
         );
 
-        assertNotNull("Editor should be created", editor);
+        assertNotNull(editor, "Editor should be created");
 
         // Simulate indexing by traversing tree
         // Use try-finally to ensure IndexWriter is closed even if test fails
@@ -102,24 +102,24 @@ public class IntegrationTest {
 
             // Index content node
             Editor contentEditor = editor.childNodeAdded("content", content.getNodeState());
-            assertNotNull("Content editor should be created", contentEditor);
+            assertNotNull(contentEditor, "Content editor should be created");
             contentEditor.enter(EMPTY_NODE, content.getNodeState());
 
             // Index article1
             Editor article1Editor = contentEditor.childNodeAdded("article1", article1.getNodeState());
-            assertNotNull("Article1 editor should be created", article1Editor);
+            assertNotNull(article1Editor, "Article1 editor should be created");
             article1Editor.enter(EMPTY_NODE, article1.getNodeState());
             article1Editor.leave(EMPTY_NODE, article1.getNodeState());
 
             // Index article2
             Editor article2Editor = contentEditor.childNodeAdded("article2", article2.getNodeState());
-            assertNotNull("Article2 editor should be created", article2Editor);
+            assertNotNull(article2Editor, "Article2 editor should be created");
             article2Editor.enter(EMPTY_NODE, article2.getNodeState());
             article2Editor.leave(EMPTY_NODE, article2.getNodeState());
 
             // Index article3
             Editor article3Editor = contentEditor.childNodeAdded("article3", article3.getNodeState());
-            assertNotNull("Article3 editor should be created", article3Editor);
+            assertNotNull(article3Editor, "Article3 editor should be created");
             article3Editor.enter(EMPTY_NODE, article3.getNodeState());
             article3Editor.leave(EMPTY_NODE, article3.getNodeState());
 
@@ -134,8 +134,8 @@ public class IntegrationTest {
 
         // Verify index was created by checking tracker has the index
         LuceneNgIndexNode indexNode = tracker.acquireIndexNode("/oak:index/testIndex");
-        assertNotNull("Index should be tracked", indexNode);
-        assertEquals("Index path should match", "/oak:index/testIndex", indexNode.getDefinition().getIndexPath());
+        assertNotNull(indexNode, "Index should be tracked");
+        assertEquals("/oak:index/testIndex", indexNode.getDefinition().getIndexPath(), "Index path should match");
         indexNode.release();
     }
 
@@ -177,7 +177,7 @@ public class IntegrationTest {
             contextCallback("/oak:index/largeIndex")
         );
 
-        assertNotNull("Editor should be created", editor);
+        assertNotNull(editor, "Editor should be created");
 
         // Simulate indexing
         // Use try-finally to ensure IndexWriter is closed even if test fails
@@ -185,7 +185,7 @@ public class IntegrationTest {
             editor.enter(EMPTY_NODE, root);
 
             Editor contentEditor = editor.childNodeAdded("content", content.getNodeState());
-            assertNotNull("Content editor should be created", contentEditor);
+            assertNotNull(contentEditor, "Content editor should be created");
             contentEditor.enter(EMPTY_NODE, content.getNodeState());
 
             // Index all 100 nodes
@@ -193,7 +193,7 @@ public class IntegrationTest {
                 String nodeName = "node" + i;
                 NodeBuilder node = content.child(nodeName);
                 Editor nodeEditor = contentEditor.childNodeAdded(nodeName, node.getNodeState());
-                assertNotNull("Node editor should be created for " + nodeName, nodeEditor);
+                assertNotNull(nodeEditor, "Node editor should be created for " + nodeName);
                 nodeEditor.enter(EMPTY_NODE, node.getNodeState());
                 nodeEditor.leave(EMPTY_NODE, node.getNodeState());
             }
@@ -209,8 +209,8 @@ public class IntegrationTest {
 
         // Verify index was created by checking tracker has the index
         LuceneNgIndexNode indexNode = tracker.acquireIndexNode("/oak:index/largeIndex");
-        assertNotNull("Index should be tracked", indexNode);
-        assertEquals("Index path should match", "/oak:index/largeIndex", indexNode.getDefinition().getIndexPath());
+        assertNotNull(indexNode, "Index should be tracked");
+        assertEquals("/oak:index/largeIndex", indexNode.getDefinition().getIndexPath(), "Index path should match");
         indexNode.release();
     }
 
@@ -240,7 +240,7 @@ public class IntegrationTest {
             callback
         );
 
-        assertNull("Editor should be null for wrong type", editor);
+        assertNull(editor, "Editor should be null for wrong type");
     }
 
     @Test
@@ -263,11 +263,11 @@ public class IntegrationTest {
         // re-diffs already-known paths (see diffAndUpdate), it does not itself scan /oak:index
         // for newly defined indexes. Full-repository discovery on update() is a known limitation,
         // so index1 is correctly absent here.
-        assertFalse("Index1 is not tracked until acquired/opened at least once",
-                tracker.getIndexNodePaths().contains("/oak:index/index1"));
+        assertFalse(tracker.getIndexNodePaths().contains("/oak:index/index1"),
+                "Index1 is not tracked until acquired/opened at least once");
         // Resolving it explicitly still works (lazy, on-demand discovery) -- it returns null
         // only because there is no index data yet, not because the path is unknown.
-        assertNull("Index1 has no data yet", tracker.acquireIndexNode("/oak:index/index1"));
+        assertNull(tracker.acquireIndexNode("/oak:index/index1"), "Index1 has no data yet");
 
         // Add index2
         NodeBuilder index2 = oakIndex.child("index2");
@@ -280,12 +280,12 @@ public class IntegrationTest {
         tracker.update(root2);
 
         // Same reasoning as above, for both indexes.
-        assertNull("Index1 still has no data", tracker.acquireIndexNode("/oak:index/index1"));
-        assertNull("Index2 has no data yet", tracker.acquireIndexNode("/oak:index/index2"));
+        assertNull(tracker.acquireIndexNode("/oak:index/index1"), "Index1 still has no data");
+        assertNull(tracker.acquireIndexNode("/oak:index/index2"), "Index2 has no data yet");
 
         // Verify nonexistent index returns null
         LuceneNgIndexNode nonexistent = tracker.acquireIndexNode("/oak:index/nonexistent");
-        assertNull("Nonexistent index should return null", nonexistent);
+        assertNull(nonexistent, "Nonexistent index should return null");
     }
 
     @Test
@@ -350,7 +350,7 @@ public class IntegrationTest {
         LuceneNgQueryIndexProvider queryProvider = new LuceneNgQueryIndexProvider(tracker);
         List<? extends QueryIndex> indexes = queryProvider.getQueryIndexes(root);
 
-        assertEquals("Should have one index", 1, indexes.size());
+        assertEquals(1, indexes.size(), "Should have one index");
 
         LuceneNgIndex index = (LuceneNgIndex) indexes.get(0);
 
@@ -376,11 +376,11 @@ public class IntegrationTest {
                         "/oak:index/testIndex", definition, null));
         Cursor cursor = index.query(plan, root);
 
-        assertNotNull("Cursor should not be null", cursor);
-        assertTrue("Should find at least one result", cursor.hasNext());
+        assertNotNull(cursor, "Cursor should not be null");
+        assertTrue(cursor.hasNext(), "Should find at least one result");
 
         IndexRow row = cursor.next();
-        assertTrue("Result should be article1 or article2",
-                   row.getPath().contains("/content/article"));
+        assertTrue(row.getPath().contains("/content/article"),
+                   "Result should be article1 or article2");
     }
 }

@@ -31,15 +31,15 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests that the Lucene 9 index editor only indexes properties declared in the index definition,
@@ -80,8 +80,8 @@ public class IndexingRulesTest {
         content(root, "content", "nt:unstructured").setProperty("title", "hello");
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
-        assertEquals("node type not in rules — must not produce a document",
-                0, LuceneNgEditorCommitUtil.numDocs(indexed, IDX));
+        assertEquals(0,
+                LuceneNgEditorCommitUtil.numDocs(indexed, IDX), "node type not in rules — must not produce a document");
     }
 
     @Test
@@ -91,8 +91,8 @@ public class IndexingRulesTest {
         content(root, "content", "nt:unstructured").setProperty("title", "hello");
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
-        assertEquals("rule with no properties — must not produce a document",
-                0, LuceneNgEditorCommitUtil.numDocs(indexed, IDX));
+        assertEquals(0,
+                LuceneNgEditorCommitUtil.numDocs(indexed, IDX), "rule with no properties — must not produce a document");
     }
 
     // -------------------------------------------------------------------------
@@ -112,10 +112,10 @@ public class IndexingRulesTest {
             IndexSearcher searcher = new IndexSearcher(reader);
             assertEquals(1, searcher.search(new TermQuery(new Term(FieldNames.PATH, "/content")), 10).totalHits.value);
             LeafReader leaf = reader.leaves().get(0).reader();
-            assertNotNull("configured 'title' field must be present",
-                    leaf.getFieldInfos().fieldInfo("title"));
-            assertNull("unconfigured 'description' field must be absent",
-                    leaf.getFieldInfos().fieldInfo("description"));
+            assertNotNull(leaf.getFieldInfos().fieldInfo("title"),
+                    "configured 'title' field must be present");
+            assertNull(leaf.getFieldInfos().fieldInfo("description"),
+                    "unconfigured 'description' field must be absent");
         }
     }
 
@@ -137,8 +137,8 @@ public class IndexingRulesTest {
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
         // index=false means the property must not be indexed, so the node produces no document.
-        assertEquals("index=false property must not produce an indexed document",
-                0, LuceneNgEditorCommitUtil.numDocs(indexed, IDX));
+        assertEquals(0,
+                LuceneNgEditorCommitUtil.numDocs(indexed, IDX), "index=false property must not produce an indexed document");
     }
 
     // -------------------------------------------------------------------------
@@ -154,8 +154,8 @@ public class IndexingRulesTest {
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             LeafReader leaf = reader.leaves().get(0).reader();
-            assertNotNull("FULLTEXT field should exist in index schema for nodeScopeIndex",
-                    leaf.getFieldInfos().fieldInfo(FieldNames.FULLTEXT));
+            assertNotNull(leaf.getFieldInfos().fieldInfo(FieldNames.FULLTEXT),
+                    "FULLTEXT field should exist in index schema for nodeScopeIndex");
         }
     }
 
@@ -168,8 +168,8 @@ public class IndexingRulesTest {
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             LeafReader leaf = reader.leaves().get(0).reader();
-            assertNull("FULLTEXT field must be absent when nodeScopeIndex=false",
-                    leaf.getFieldInfos().fieldInfo(FieldNames.FULLTEXT));
+            assertNull(leaf.getFieldInfos().fieldInfo(FieldNames.FULLTEXT),
+                    "FULLTEXT field must be absent when nodeScopeIndex=false");
         }
     }
 
@@ -192,7 +192,7 @@ public class IndexingRulesTest {
                     break;
                 }
             }
-            assertTrue("FULLTEXT field must be stored when useInExcerpt=true", storedFulltext);
+            assertTrue(storedFulltext, "FULLTEXT field must be stored when useInExcerpt=true");
         }
     }
 
@@ -212,11 +212,11 @@ public class IndexingRulesTest {
             // A single-valued "ordered" String property is written as a SortedSetDocValuesField
             // (not a SortedDocValuesField), matching the multi-valued field's doc-values type.
             SortedSetDocValues ssdv = leaf.getSortedSetDocValues("title");
-            assertNotNull("ordered String property must have SortedSetDocValues", ssdv);
-            assertTrue("SortedSetDocValues must have a value for doc 0", ssdv.advanceExact(0));
+            assertNotNull(ssdv, "ordered String property must have SortedSetDocValues");
+            assertTrue(ssdv.advanceExact(0), "SortedSetDocValues must have a value for doc 0");
             assertEquals("hello", ssdv.lookupOrd(ssdv.nextOrd()).utf8ToString());
-            assertEquals("a single-valued property must have exactly one ord",
-                    SortedSetDocValues.NO_MORE_ORDS, ssdv.nextOrd());
+            assertEquals(SortedSetDocValues.NO_MORE_ORDS,
+                    ssdv.nextOrd(), "a single-valued property must have exactly one ord");
         }
     }
 
@@ -230,7 +230,7 @@ public class IndexingRulesTest {
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             LeafReader leaf = reader.leaves().get(0).reader();
             NumericDocValues ndv = leaf.getNumericDocValues("size");
-            assertNotNull("ordered Long property must have NumericDocValues", ndv);
+            assertNotNull(ndv, "ordered Long property must have NumericDocValues");
         }
     }
 
@@ -243,10 +243,10 @@ public class IndexingRulesTest {
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             LeafReader leaf = reader.leaves().get(0).reader();
-            assertNull("unordered property must not have SortedDocValues",
-                    leaf.getSortedDocValues("tag"));
-            assertNull("unordered property must not have NumericDocValues",
-                    leaf.getNumericDocValues("tag"));
+            assertNull(leaf.getSortedDocValues("tag"),
+                    "unordered property must not have SortedDocValues");
+            assertNull(leaf.getNumericDocValues("tag"),
+                    "unordered property must not have NumericDocValues");
         }
     }
 
@@ -288,8 +288,8 @@ public class IndexingRulesTest {
             IndexSearcher searcher = new IndexSearcher(reader);
             assertEquals(1, searcher.search(new TermQuery(new Term(FieldNames.PATH, "/content")), 10).totalHits.value);
             LeafReader leaf = reader.leaves().get(0).reader();
-            assertNotNull("FULLTEXT field must exist for nodeScopeIndex tags",
-                    leaf.getFieldInfos().fieldInfo(FieldNames.FULLTEXT));
+            assertNotNull(leaf.getFieldInfos().fieldInfo(FieldNames.FULLTEXT),
+                    "FULLTEXT field must exist for nodeScopeIndex tags");
         }
     }
 
@@ -310,10 +310,10 @@ public class IndexingRulesTest {
             IndexSearcher searcher = new IndexSearcher(reader);
             assertEquals(1, searcher.search(new TermQuery(new Term(FieldNames.PATH, "/content")), 10).totalHits.value);
             LeafReader leaf = reader.leaves().get(0).reader();
-            assertNotNull("prop_foo matched by regex — field must be in schema",
-                    leaf.getFieldInfos().fieldInfo("prop_foo"));
-            assertNull("other not matched by regex — field must be absent",
-                    leaf.getFieldInfos().fieldInfo("other"));
+            assertNotNull(leaf.getFieldInfos().fieldInfo("prop_foo"),
+                    "prop_foo matched by regex — field must be in schema");
+            assertNull(leaf.getFieldInfos().fieldInfo("other"),
+                    "other not matched by regex — field must be absent");
         }
     }
 
@@ -333,8 +333,8 @@ public class IndexingRulesTest {
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             IndexSearcher searcher = new IndexSearcher(reader);
             TopDocs hits = searcher.search(new TermQuery(new Term(FieldNames.PATH, "/page")), 10);
-            assertEquals("relative property must produce a document for the parent path", 1,
-                    hits.totalHits.value);
+            assertEquals(1, hits.totalHits.value,
+                    "relative property must produce a document for the parent path");
             Document doc = searcher.storedFields().document(hits.scoreDocs[0].doc);
             assertEquals("/page", doc.get(FieldNames.PATH));
         }
@@ -348,7 +348,7 @@ public class IndexingRulesTest {
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
         IndexSearcher searcher = new IndexSearcher(LuceneNgEditorCommitUtil.openReader(indexed, IDX));
-        assertEquals("no child node — must produce no document for /page", 0,
-                searcher.search(new TermQuery(new Term(FieldNames.PATH, "/page")), 10).totalHits.value);
+        assertEquals(0, searcher.search(new TermQuery(new Term(FieldNames.PATH, "/page")), 10).totalHits.value,
+                "no child node — must produce no document for /page");
     }
 }

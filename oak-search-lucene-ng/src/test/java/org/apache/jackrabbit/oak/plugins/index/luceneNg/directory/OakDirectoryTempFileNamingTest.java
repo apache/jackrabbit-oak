@@ -19,14 +19,14 @@
 package org.apache.jackrabbit.oak.plugins.index.luceneNg.directory;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import java.io.IOException;
 
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexOutput;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class OakDirectoryTempFileNamingTest {
 
@@ -58,9 +58,9 @@ public class OakDirectoryTempFileNamingTest {
             name2 = out2.getName();
         }
 
-        assertNotEquals("two temp files created while the naming seed is frozen "
-                + "must still get distinct names — uniqueness must not depend on the seed changing",
-                name1, name2);
+        assertNotEquals(name1,
+                name2, "two temp files created while the naming seed is frozen "
+                + "must still get distinct names — uniqueness must not depend on the seed changing");
         directory.close();
     }
 }

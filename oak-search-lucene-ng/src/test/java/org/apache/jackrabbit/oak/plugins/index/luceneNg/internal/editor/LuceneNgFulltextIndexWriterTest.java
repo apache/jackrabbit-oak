@@ -36,18 +36,19 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
-import org.junit.Test;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.apache.lucene.store.Directory;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Verifies that {@link LuceneNgFulltextIndexWriterFactory} opens a working writer over the
@@ -57,28 +58,28 @@ import static org.junit.Assert.assertTrue;
  */
 public class LuceneNgFulltextIndexWriterTest {
 
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+    @TempDir
+    public Path tempDir;
 
     @Test
     public void incrementalWriterReadsPrefetchedSegmentsAndReindexSkipsOldCache() throws Exception {
         NodeBuilder builder = EMPTY_NODE.builder();
         LuceneNgIndexDefinition definition = new LuceneNgIndexDefinition.Builder()
                 .root(EMPTY_NODE).defn(EMPTY_NODE).indexPath("/oak:index/test").uid("uid").build();
-        try (LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, temporaryFolder.newFolder(), false)) {
+        try (LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, Files.createTempDirectory(tempDir, "folder").toFile(), false)) {
             LuceneNgFulltextIndexWriterFactory factory = new LuceneNgFulltextIndexWriterFactory(copier);
             FulltextIndexWriter<Document> first = factory.newInstance(definition, builder, null, true);
             first.updateDocument("/a", newDoc("/a"));
             first.close(0);
-            assertEquals("reindex must not prefetch obsolete segments", 0, copier.getDownloadCount());
+            assertEquals(0, copier.getDownloadCount(), "reindex must not prefetch obsolete segments");
 
             FulltextIndexWriter<Document> second = factory.newInstance(definition, builder, null, false);
-            assertTrue("incremental writer must prefetch existing segments", copier.getDownloadCount() > 0);
+            assertTrue(copier.getDownloadCount() > 0, "incremental writer must prefetch existing segments");
             int downloads = copier.getDownloadCount();
             second.deleteDocument("/a");
             second.updateDocument("/b", newDoc("/b"));
             second.close(0);
-            assertTrue("writer must read existing segment data locally", copier.getReaderLocalReadCount() > 0);
+            assertTrue(copier.getReaderLocalReadCount() > 0, "writer must read existing segment data locally");
             assertDocCount(definition, builder, "/a", 0);
             assertDocCount(definition, builder, "/b", 1);
 
@@ -99,7 +100,7 @@ public class LuceneNgFulltextIndexWriterTest {
         FulltextIndexWriter<Document> first = plain.newInstance(definition, builder, null, true);
         first.updateDocument("/a", newDoc("/a"));
         first.close(0);
-        try (LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, temporaryFolder.newFolder(), false) {
+        try (LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, Files.createTempDirectory(tempDir, "folder").toFile(), false) {
             @Override
             public Directory wrapForWrite(IndexDefinition def, OakDirectory remote, OakDirectory snapshot, String dirName)
                     throws IOException {
@@ -138,7 +139,7 @@ public class LuceneNgFulltextIndexWriterTest {
         rebuilt.close(0);
         assertDocCount(definition, stagedDefinition, "/replacement", 1);
         assertDocCount(definition, stagedDefinition, "/original", 0);
-        org.junit.Assert.assertThrows(org.apache.jackrabbit.oak.api.CommitFailedException.class,
+        org.junit.jupiter.api.Assertions.assertThrows(org.apache.jackrabbit.oak.api.CommitFailedException.class,
                 () -> store.merge(staged, (before, after, info) -> {
                     throw new org.apache.jackrabbit.oak.api.CommitFailedException("Test", 1, "Rejected publication");
                 }, org.apache.jackrabbit.oak.spi.commit.CommitInfo.EMPTY));
@@ -163,7 +164,7 @@ public class LuceneNgFulltextIndexWriterTest {
         writer.updateDocument("/a/b", newDoc("/a/b"));
         writer.updateDocument("/c", newDoc("/c"));
         boolean updated = writer.close(System.currentTimeMillis());
-        assertTrue("close() must report that the index was updated", updated);
+        assertTrue(updated, "close() must report that the index was updated");
 
         assertDocCount(definition, definitionBuilder, "/a", 1);
         assertDocCount(definition, definitionBuilder, "/a/b", 1);
@@ -176,7 +177,7 @@ public class LuceneNgFulltextIndexWriterTest {
         writer2.deleteDocumentTree("/a");
         writer2.deleteDocument("/c");
         boolean updatedByDeletes = writer2.close(System.currentTimeMillis());
-        assertTrue("close() must report that the index was updated by the deletes", updatedByDeletes);
+        assertTrue(updatedByDeletes, "close() must report that the index was updated by the deletes");
 
         assertDocCount(definition, definitionBuilder, "/a", 0);
         assertDocCount(definition, definitionBuilder, "/a/b", 0);
@@ -205,7 +206,7 @@ public class LuceneNgFulltextIndexWriterTest {
 
         boolean updated = writer.close(System.currentTimeMillis());
 
-        assertFalse("close() must report false when no write/delete happened before it", updated);
+        assertFalse(updated, "close() must report false when no write/delete happened before it");
     }
 
     /**
@@ -232,10 +233,10 @@ public class LuceneNgFulltextIndexWriterTest {
         NodeState storageState = LuceneNgIndexStorage.storageState(definitionBuilder.getNodeState());
         PropertyState dirListing = storageState.getProperty(LuceneNgIndexConstants.PROP_DIR_LISTING);
 
-        assertNotNull("PROP_DIR_LISTING must be persisted once the writer's directory is closed",
-                dirListing);
-        assertTrue("PROP_DIR_LISTING must list at least the segment files just written",
-                dirListing.count() > 0);
+        assertNotNull(dirListing,
+                "PROP_DIR_LISTING must be persisted once the writer's directory is closed");
+        assertTrue(dirListing.count() > 0,
+                "PROP_DIR_LISTING must list at least the segment files just written");
         assertEquals(Type.STRINGS, dirListing.getType());
     }
 
@@ -258,7 +259,7 @@ public class LuceneNgFulltextIndexWriterTest {
                 new OakDirectory(storage, definition.getIndexName(), true))) {
             IndexSearcher searcher = new IndexSearcher(reader);
             TopDocs hits = searcher.search(new TermQuery(new Term(FieldNames.PATH, path)), 10);
-            assertEquals("Unexpected document count for path " + path, expectedCount, hits.totalHits.value);
+            assertEquals(expectedCount, hits.totalHits.value, "Unexpected document count for path " + path);
         }
     }
 }

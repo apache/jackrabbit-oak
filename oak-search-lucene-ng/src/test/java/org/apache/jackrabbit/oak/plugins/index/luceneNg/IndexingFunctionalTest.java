@@ -26,11 +26,11 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * Functional tests for the Lucene 9 index editor covering real-world indexing scenarios, driven
@@ -62,8 +62,8 @@ public class IndexingFunctionalTest {
         root.child("emptyNode").setProperty(":primaryType", "nt:base");
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
-        assertEquals("node with only hidden properties must not be indexed and must not error",
-                0, LuceneNgEditorCommitUtil.numDocs(indexed, IDX));
+        assertEquals(0,
+                LuceneNgEditorCommitUtil.numDocs(indexed, IDX), "node with only hidden properties must not be indexed and must not error");
     }
 
     @Test
@@ -79,8 +79,8 @@ public class IndexingFunctionalTest {
         }
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
-        assertEquals("every node in the 10-level hierarchy must be indexed",
-                10, LuceneNgEditorCommitUtil.numDocs(indexed, IDX));
+        assertEquals(10,
+                LuceneNgEditorCommitUtil.numDocs(indexed, IDX), "every node in the 10-level hierarchy must be indexed");
     }
 
     @Test
@@ -98,8 +98,8 @@ public class IndexingFunctionalTest {
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             IndexSearcher searcher = new IndexSearcher(reader);
-            assertEquals("large fulltext value must be indexed without OOM/errors", 1,
-                    searcher.search(new TermQuery(new Term(FieldNames.PATH, "/largeNode")), 10).totalHits.value);
+            assertEquals(1, searcher.search(new TermQuery(new Term(FieldNames.PATH, "/largeNode")), 10).totalHits.value,
+                    "large fulltext value must be indexed without OOM/errors");
         }
     }
 
@@ -119,8 +119,8 @@ public class IndexingFunctionalTest {
         n.setProperty("symbols", "!@#$%^&*()_+-={}[]|\\:;<>?,./");
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
-        assertEquals("special characters must be indexed without errors",
-                1, LuceneNgEditorCommitUtil.numDocs(indexed, IDX));
+        assertEquals(1,
+                LuceneNgEditorCommitUtil.numDocs(indexed, IDX), "special characters must be indexed without errors");
     }
 
     @Test
@@ -139,8 +139,8 @@ public class IndexingFunctionalTest {
         n.setProperty("doubleProp", 3.14159);
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
-        assertEquals("mixed property types must be indexed without errors",
-                1, LuceneNgEditorCommitUtil.numDocs(indexed, IDX));
+        assertEquals(1,
+                LuceneNgEditorCommitUtil.numDocs(indexed, IDX), "mixed property types must be indexed without errors");
     }
 
     @Test
@@ -156,8 +156,8 @@ public class IndexingFunctionalTest {
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             IndexSearcher searcher = new IndexSearcher(reader);
             assertEquals(1, searcher.search(new TermQuery(new Term(FieldNames.PATH, "/hiddenPropsNode")), 10).totalHits.value);
-            assertNull("hidden ':hiddenProp' must never become a Lucene field",
-                    reader.leaves().get(0).reader().getFieldInfos().fieldInfo(":hiddenProp"));
+            assertNull(reader.leaves().get(0).reader().getFieldInfos().fieldInfo(":hiddenProp"),
+                    "hidden ':hiddenProp' must never become a Lucene field");
         }
     }
 
@@ -176,7 +176,7 @@ public class IndexingFunctionalTest {
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             IndexSearcher searcher = new IndexSearcher(reader);
             TopDocs hits = searcher.search(new TermQuery(new Term(FieldNames.PATH, "/content/page1")), 10);
-            assertEquals("Should have exactly one document, not a duplicate", 1, hits.totalHits.value);
+            assertEquals(1, hits.totalHits.value, "Should have exactly one document, not a duplicate");
         }
     }
 
@@ -198,8 +198,8 @@ public class IndexingFunctionalTest {
             IndexSearcher searcher = new IndexSearcher(reader);
             TopDocs keepHits = searcher.search(new TermQuery(new Term(FieldNames.PATH, "/content/keep")), 10);
             TopDocs removeHits = searcher.search(new TermQuery(new Term(FieldNames.PATH, "/content/remove")), 10);
-            assertEquals("keep should still be indexed", 1, keepHits.totalHits.value);
-            assertEquals("remove should be deleted", 0, removeHits.totalHits.value);
+            assertEquals(1, keepHits.totalHits.value, "keep should still be indexed");
+            assertEquals(0, removeHits.totalHits.value, "remove should be deleted");
         }
     }
 
@@ -216,8 +216,8 @@ public class IndexingFunctionalTest {
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             IndexSearcher searcher = new IndexSearcher(reader);
-            assertEquals("a node with 100 indexed properties must be indexed without errors", 1,
-                    searcher.search(new TermQuery(new Term(FieldNames.PATH, "/manyPropsNode")), 10).totalHits.value);
+            assertEquals(1, searcher.search(new TermQuery(new Term(FieldNames.PATH, "/manyPropsNode")), 10).totalHits.value,
+                    "a node with 100 indexed properties must be indexed without errors");
         }
     }
 }
