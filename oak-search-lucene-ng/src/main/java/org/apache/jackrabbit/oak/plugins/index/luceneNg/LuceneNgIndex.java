@@ -72,6 +72,7 @@ import org.apache.lucene.search.PhraseQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
+import org.apache.lucene.search.SortedNumericSortField;
 import org.apache.lucene.search.SortedSetSortField;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.PrefixQuery;
@@ -1001,29 +1002,23 @@ public class LuceneNgIndex extends FulltextIndex {
         // Create sort field (reverse = descending order)
         boolean reverse = (order.getOrder() == OrderEntry.Order.DESCENDING);
 
-        // Whether a property is single- or multi-valued is a per-document, data-level fact
-        // (PropertyState.isArray() on the write side), not something declared statically in
-        // the index config's PropertyDefinition -- that class has no multi-valuedness flag.
-        // So instead of asking the config, ask the index itself: a multi-valued string/boolean
-        // property is written (see LuceneNgIndexEditor) as a SortedSetDocValuesField, which
-        // requires a SortedSetSortField to sort on (a plain SortField only works against
-        // SORTED doc-values and throws IllegalStateException against SORTED_SET).
-        if (fieldType == SortField.Type.STRING && isMultiValuedDocValuesField(fieldInfos, propertyName)) {
+        // Ordered values are written as SORTED_SET (strings) or SORTED_NUMERIC (numbers) doc-values
+        // for single- and multi-valued properties alike (see LuceneNgDocumentMaker), which need the
+        // matching multi-valued sort fields; these sort each document by its smallest value.
+        DocValuesType docValuesType = docValuesType(fieldInfos, propertyName);
+        if (docValuesType == DocValuesType.SORTED_SET) {
             return new SortedSetSortField(propertyName, reverse);
+        }
+        if (docValuesType == DocValuesType.SORTED_NUMERIC) {
+            return new SortedNumericSortField(propertyName, fieldType, reverse);
         }
 
         return new SortField(propertyName, fieldType, reverse);
     }
 
-    /**
-     * Determines whether {@code propertyName} was indexed with {@code SORTED_SET} doc-values
-     * (i.e. as a {@code SortedSetDocValuesField}, used for multi-valued properties) rather than
-     * plain {@code SORTED} doc-values (single-valued). Returns {@code false} when the field has
-     * no doc-values at all (e.g. not yet indexed, or not ordered).
-     */
-    private boolean isMultiValuedDocValuesField(Supplier<FieldInfos> fieldInfos, String propertyName) {
+    private DocValuesType docValuesType(Supplier<FieldInfos> fieldInfos, String propertyName) {
         FieldInfo fieldInfo = fieldInfos.get().fieldInfo(propertyName);
-        return fieldInfo != null && fieldInfo.getDocValuesType() == DocValuesType.SORTED_SET;
+        return fieldInfo == null ? DocValuesType.NONE : fieldInfo.getDocValuesType();
     }
 
     /**
@@ -1048,6 +1043,7 @@ public class LuceneNgIndex extends FulltextIndex {
             case PropertyType.DATE:
                 return SortField.Type.LONG;
             case PropertyType.DOUBLE:
+            case PropertyType.DECIMAL:
                 return SortField.Type.DOUBLE;
             case PropertyType.BOOLEAN:
             case PropertyType.STRING:
