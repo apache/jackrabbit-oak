@@ -25,7 +25,8 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.DocValuesType;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.IndexSearcher;
@@ -221,7 +222,7 @@ public class IndexingRulesTest {
     }
 
     @Test
-    public void orderedLongPropertyHasNumericDocValues() throws Exception {
+    public void orderedLongPropertyHasSortedNumericDocValues() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
         luceneNg(root).indexRule("nt:unstructured").property("size").ordered("Long");
         content(root, "content", "nt:unstructured").setProperty("size", 42L);
@@ -229,8 +230,8 @@ public class IndexingRulesTest {
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             LeafReader leaf = reader.leaves().get(0).reader();
-            NumericDocValues ndv = leaf.getNumericDocValues("size");
-            assertNotNull(ndv, "ordered Long property must have NumericDocValues");
+            SortedNumericDocValues values = leaf.getSortedNumericDocValues("size");
+            assertNotNull(values, "ordered Long property must have SortedNumericDocValues");
         }
     }
 
@@ -243,10 +244,8 @@ public class IndexingRulesTest {
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             LeafReader leaf = reader.leaves().get(0).reader();
-            assertNull(leaf.getSortedDocValues("tag"),
-                    "unordered property must not have SortedDocValues");
-            assertNull(leaf.getNumericDocValues("tag"),
-                    "unordered property must not have NumericDocValues");
+            assertEquals(DocValuesType.NONE, leaf.getFieldInfos().fieldInfo("tag").getDocValuesType(),
+                    "unordered property must not have doc-values");
         }
     }
 

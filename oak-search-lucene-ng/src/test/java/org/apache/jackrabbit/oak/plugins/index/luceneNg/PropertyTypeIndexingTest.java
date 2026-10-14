@@ -16,14 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
-import java.math.BigDecimal;
 import java.util.stream.Stream;
 
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.DoublePoint;
@@ -39,6 +37,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.index.luceneNg.JcrValue.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -221,7 +220,7 @@ public class PropertyTypeIndexingTest {
         defnBuilder.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
         NodeBuilder node = root.child("node");
         node.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
-        node.setProperty(PropertyStates.createProperty("value", source.value(), source.type()));
+        node.setProperty(source.property("value"));
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
@@ -245,56 +244,5 @@ public class PropertyTypeIndexingTest {
 
     private static Arguments conversion(Type<?> targetType, JcrValue source, Object expected) {
         return Arguments.of(targetType, source, expected);
-    }
-
-    record JcrValue(Object value, Type<?> type) {
-        @Override
-        public String toString() {
-            return type + " " + value;
-        }
-    }
-
-    private static JcrValue jcrString(String value) {
-        return new JcrValue(value, Type.STRING);
-    }
-
-    private static JcrValue jcrLong(long value) {
-        return new JcrValue(value, Type.LONG);
-    }
-
-    private static JcrValue jcrDouble(double value) {
-        return new JcrValue(value, Type.DOUBLE);
-    }
-
-    private static JcrValue jcrDate(String value) {
-        return new JcrValue(value, Type.DATE);
-    }
-
-    private static JcrValue jcrBoolean(boolean value) {
-        return new JcrValue(value, Type.BOOLEAN);
-    }
-
-    private static JcrValue jcrName(String value) {
-        return new JcrValue(value, Type.NAME);
-    }
-
-    private static JcrValue jcrPath(String value) {
-        return new JcrValue(value, Type.PATH);
-    }
-
-    private static JcrValue jcrReference(String value) {
-        return new JcrValue(value, Type.REFERENCE);
-    }
-
-    private static JcrValue jcrWeakReference(String value) {
-        return new JcrValue(value, Type.WEAKREFERENCE);
-    }
-
-    private static JcrValue jcrUri(String value) {
-        return new JcrValue(value, Type.URI);
-    }
-
-    private static JcrValue jcrDecimal(String value) {
-        return new JcrValue(new BigDecimal(value), Type.DECIMAL);
     }
 }

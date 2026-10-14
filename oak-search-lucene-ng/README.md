@@ -79,10 +79,15 @@ Equality and IN use string representations, and index range bounds are
 lexical. Declare `Long`, `Double`, `Decimal` or `Date` when numeric/date ranges
 are required.
 Mixed String/String[]/Double/Double[] values do not make the index schema depend
-on insertion order. Ordered String fields use the same string doc-values
-representation for scalar and array values.
-Existing Ng indexes with numeric sort doc-values in String/default-String
-ordered fields require reindexing for this representation.
+on insertion order.
+
+Ordered properties sort by the value the property index uses: Long, Date, Double
+and Decimal declarations sort numerically, every other declaration (including an
+undeclared type) by the string form, so undeclared numbers sort lexically ("10"
+before "2"). Single- and multi-valued properties use the same doc-values type
+(SORTED_NUMERIC for numbers, SORTED_SET for strings); a multi-valued property
+sorts by its smallest value. Existing Ng indexes with ordered properties require
+reindexing for this representation.
 
 Other declared types accept only some value types; other values are skipped:
 
