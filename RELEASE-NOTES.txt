@@ -31,6 +31,7 @@ Changes in Oak 2.8.0
     * [OAK-12398] - Move CacheMaintenanceExecutor to an internal package to avoid split package issue
     * [OAK-12400] - Online revision cleanup can delete referenced segments on a store not written in compaction order (e.g. a promoted cold standby)
     * [OAK-12401] - ISCHILDNODE cost estimation for Lucene/Elastic property indexes is too high
+    * [OAK-12404] - CompactionWriter.flush() persists partial writer before target writer
     * [OAK-12408] - Standalone cleanup() never journals gc.log leading to SNFE on cold standby / backup
     * [OAK-12415] - oak-search-elastic: retry per-item bulk update version conflicts instead of dropping them
     * [OAK-12421] - ForkJoinUtilsTest can be flaky
@@ -39,6 +40,7 @@ Changes in Oak 2.8.0
     * [OAK-12444] - Fix reference-retention timing in DataStoreCommandTest
     * [OAK-12445] - AzureDataStoreRegistrar ignores staging and minimum record length settings
     * [OAK-12450] - Concurrency and memory-retention issues in ThreadSpecificSegmentBufferWriterPool
+    * [OAK-12457] - Oak-run check wrongly reports "No good revision found" when the corrupt path doesn't exist in older revisions
 
 ** Epic
     * [OAK-12346] - Oak should compile & test on Java 26
