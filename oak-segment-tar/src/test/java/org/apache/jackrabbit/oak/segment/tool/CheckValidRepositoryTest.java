@@ -404,24 +404,22 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         StringWriter strOut = new StringWriter();
         StringWriter strErr = new StringWriter();
 
-        PrintWriter outWriter = new PrintWriter(strOut, true);
-        PrintWriter errWriter = new PrintWriter(strErr, true);
-
-        int result = Check.builder()
-            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withDebugInterval(Long.MAX_VALUE)
-            .withCheckBinaries(true)
-            .withCheckHead(true)
-            .withCheckpoints(new HashSet<String>())
-            .withFilterPaths(Set.of("/"))
-            .withContinueOnError(true)
-            .withOutWriter(outWriter)
-            .withErrWriter(errWriter)
-            .build()
-            .run();
-
-        outWriter.close();
-        errWriter.close();
+        int result;
+        try (PrintWriter outWriter = new PrintWriter(strOut, true);
+             PrintWriter errWriter = new PrintWriter(strErr, true)) {
+            result = Check.builder()
+                .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+                .withDebugInterval(Long.MAX_VALUE)
+                .withCheckBinaries(true)
+                .withCheckHead(true)
+                .withCheckpoints(new HashSet<String>())
+                .withFilterPaths(Set.of("/"))
+                .withContinueOnError(true)
+                .withOutWriter(outWriter)
+                .withErrWriter(errWriter)
+                .build()
+                .run();
+        }
 
         assertEquals(0, result);
         assertExpectedOutput(strOut.toString(), List.of("Checked 7 nodes and 21 properties", "Path / is consistent"));

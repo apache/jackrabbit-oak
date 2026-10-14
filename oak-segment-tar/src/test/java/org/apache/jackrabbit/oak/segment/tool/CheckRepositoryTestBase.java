@@ -168,28 +168,29 @@ public class CheckRepositoryTestBase {
     }
 
     protected void addInvalidRevisionWithOtherCorruptPaths() throws InvalidFileStoreVersionException, IOException, CommitFailedException {
-        FileStore fileStore = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot()).withMaxFileSize(256)
-            .withSegmentCacheSize(64).build();
+        RecordId dRecordId;
+        RecordId eRecordId;
+        try (FileStore fileStore = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot()).withMaxFileSize(256)
+            .withSegmentCacheSize(64).build()) {
 
-        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
-        NodeBuilder builder = nodeStore.getRoot().builder();
+            SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+            NodeBuilder builder = nodeStore.getRoot().builder();
 
-        // replace the nodes corrupted by addInvalidRevision with new ones
-        for (String name : List.of("a", "z")) {
-            NodeBuilder replacement = EmptyNodeState.EMPTY_NODE.builder();
-            replacement.setProperty(name + "0", name + "0");
-            builder.setChildNode(name, replacement.getNodeState());
+            // replace the nodes corrupted by addInvalidRevision with new ones
+            for (String name : List.of("a", "z")) {
+                NodeBuilder replacement = EmptyNodeState.EMPTY_NODE.builder();
+                replacement.setProperty(name + "0", name + "0");
+                builder.setChildNode(name, replacement.getNodeState());
+            }
+
+            addChildWithProperties(nodeStore, builder, "d", 5);
+            addChildWithProperties(nodeStore, builder, "e", 6);
+
+            NodeState after = nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+            dRecordId = ((SegmentNodeState) after.getChildNode("d")).getRecordId();
+            eRecordId = ((SegmentNodeState) after.getChildNode("e")).getRecordId();
         }
-
-        addChildWithProperties(nodeStore, builder, "d", 5);
-        addChildWithProperties(nodeStore, builder, "e", 6);
-
-        NodeState after = nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        RecordId dRecordId = ((SegmentNodeState) after.getChildNode("d")).getRecordId();
-        RecordId eRecordId = ((SegmentNodeState) after.getChildNode("e")).getRecordId();
-
-        fileStore.close();
 
         corruptRecord(dRecordId, "data00002a.tar");
         corruptRecord(eRecordId, "data00002a.tar");
