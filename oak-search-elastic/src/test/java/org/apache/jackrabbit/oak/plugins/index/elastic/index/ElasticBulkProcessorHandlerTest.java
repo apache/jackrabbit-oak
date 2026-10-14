@@ -17,6 +17,9 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
 import co.elastic.clients.elasticsearch.ElasticsearchAsyncClient;
+import co.elastic.clients.elasticsearch._helpers.bulk.BulkIngester;
+import co.elastic.clients.elasticsearch._helpers.bulk.BulkListener;
+import co.elastic.clients.elasticsearch.core.BulkRequest;
 import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
@@ -29,21 +32,39 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Answers;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class ElasticBulkProcessorHandlerTest {
@@ -65,6 +86,17 @@ public class ElasticBulkProcessorHandlerTest {
 
     @Mock
     private CommitInfo commitInfo;
+
+    @Mock
+    private BulkIngester<ElasticBulkProcessorHandler.OperationContext> bulkIngesterMock;
+
+    @Mock(answer = Answers.RETURNS_SELF)
+    private BulkIngester.Builder<ElasticBulkProcessorHandler.OperationContext> bulkIngesterBuilderMock;
+
+    @Captor
+    private ArgumentCaptor<BulkListener<ElasticBulkProcessorHandler.OperationContext>> bulkListenerCaptor;
+
+    private final BulkRequest bulkRequest = BulkRequest.of(b -> b.operations(List.of()));
 
     private AutoCloseable closeable;
     private String originalRetryOnConflict;
@@ -197,6 +229,94 @@ public class ElasticBulkProcessorHandlerTest {
         assertFalse(bulkProcessorHandler.flushIndex("index1"));
         assertFalse(bulkProcessorHandler.flushIndex("index2"));
         bulkProcessorHandler.close();
+    }
+
+    @Test
+    public void failureBeforeNextWriteAllowsRetryWithoutReplayingFailedBulk() throws IOException {
+        ElasticBulkProcessorHandler handler = newHandlerWithControlledBulks(true);
+        try (Closeable closeHandler = handler::close) {
+            handler.index("index", "failed", new ElasticDocument("/failed"));
+            BulkListener<ElasticBulkProcessorHandler.OperationContext> listener = bulkListenerCaptor.getValue();
+            listener.beforeBulk(1, bulkRequest, List.of());
+            listener.afterBulk(1, bulkRequest, List.of(), new IOException("Connection closed"));
+
+            AtomicInteger attempts = new AtomicInteger();
+            new ElasticRetryPolicy(2, 1000, 0, 0).withRetries(() -> {
+                attempts.incrementAndGet();
+                handler.index("index", "recovered", new ElasticDocument("/recovered"));
+            });
+
+            assertEquals(2, attempts.get());
+            ArgumentCaptor<BulkOperation> operations = ArgumentCaptor.forClass(BulkOperation.class);
+            verify(bulkIngesterMock, times(2)).add(operations.capture(),
+                    any(ElasticBulkProcessorHandler.OperationContext.class));
+            assertEquals("failed", operations.getAllValues().get(0).index().id());
+            assertEquals("recovered", operations.getAllValues().get(1).index().id());
+            assertFalse(handler.flushIndex("index"));
+        }
+    }
+
+    @Test
+    public void acknowledgedFlushReportsFailureDeliveredDuringFlush() throws Exception {
+        ElasticBulkProcessorHandler handler = newHandlerWithControlledBulks(true);
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try (Closeable closeHandler = handler::close) {
+            BulkListener<ElasticBulkProcessorHandler.OperationContext> listener = bulkListenerCaptor.getValue();
+            listener.beforeBulk(1, bulkRequest, List.of());
+            IOException failure = new IOException("Connection closed");
+            CountDownLatch flushStarted = new CountDownLatch(1);
+            when(bulkIngesterMock.requestCount()).thenAnswer(invocation -> {
+                flushStarted.countDown();
+                return 1L;
+            });
+
+            Future<IOException> result = executor.submit(
+                    () -> assertThrows(IOException.class, () -> handler.flushIndex("index")));
+            try {
+                assertTrue("Flush did not start", flushStarted.await(30, TimeUnit.SECONDS));
+                assertFalse("Flush returned before acknowledgement", result.isDone());
+            } finally {
+                listener.afterBulk(1, bulkRequest, List.of(), failure);
+            }
+            assertSame(failure, result.get(30, TimeUnit.SECONDS).getCause());
+            assertThrows(IllegalArgumentException.class, () -> handler.flushIndex("index"));
+        } finally {
+            executor.shutdownNow();
+            assertTrue("Flush executor did not terminate", executor.awaitTermination(30, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test
+    public void handlerCloseReportsFailureDeliveredAfterNonWaitingFlush() throws IOException {
+        ElasticBulkProcessorHandler handler = newHandlerWithControlledBulks(false);
+        try (Closeable closeHandler = handler::close) {
+            BulkListener<ElasticBulkProcessorHandler.OperationContext> listener = bulkListenerCaptor.getValue();
+            listener.beforeBulk(1, bulkRequest, List.of());
+            assertFalse(handler.flushIndex("index"));
+
+            IOException failure = new IOException("Connection closed");
+            listener.afterBulk(1, bulkRequest, List.of(), failure);
+            assertSame(failure, assertThrows(IOException.class, handler::close).getCause());
+        }
+    }
+
+    private ElasticBulkProcessorHandler newHandlerWithControlledBulks(boolean waitForAcknowledgement) {
+        ElasticBulkProcessorHandler handler;
+        try (MockedStatic<BulkIngester> factory = mockStatic(BulkIngester.class)) {
+            factory.when(() -> BulkIngester.<ElasticBulkProcessorHandler.OperationContext>of(any()))
+                    .thenAnswer(invocation -> {
+                        Function<BulkIngester.Builder<ElasticBulkProcessorHandler.OperationContext>,
+                                BulkIngester.Builder<ElasticBulkProcessorHandler.OperationContext>> configure =
+                                invocation.getArgument(0);
+                        configure.apply(bulkIngesterBuilderMock);
+                        return bulkIngesterMock;
+                    });
+            handler = new ElasticBulkProcessorHandler(elasticConnectionMock);
+        }
+        verify(bulkIngesterBuilderMock).listener(bulkListenerCaptor.capture());
+        when(bulkIngesterMock.requestCount()).thenReturn(1L);
+        handler.registerIndex("index", indexDefinitionMock, definitionBuilder, commitInfo, waitForAcknowledgement);
+        return handler;
     }
 
     @Test

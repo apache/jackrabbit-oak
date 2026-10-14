@@ -53,6 +53,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.number.OrderingComparison.lessThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -176,6 +178,17 @@ public class ElasticIndexWriterTest {
         // Closes the index but not the bulk processor
         verify(bulkProcessorHandlerMock).flushIndex(eq(indexAlias));
         verify(bulkProcessorHandlerMock, never()).close();
+    }
+
+    @Test
+    public void closeFailureIsNotRetried() throws IOException {
+        IOException failure = new IOException("Service error while indexing.");
+        when(bulkProcessorHandlerMock.flushIndex(indexAlias)).thenThrow(failure);
+        ElasticIndexWriter writer = new EagerElasticIndexWriter(indexTrackerMock, elasticConnectionMock,
+                indexDefinitionMock, bulkProcessorHandlerMock, new ElasticRetryPolicy(2, 1000, 0, 0), false);
+
+        assertSame(failure, assertThrows(IOException.class, () -> writer.close(System.currentTimeMillis())));
+        verify(bulkProcessorHandlerMock).flushIndex(indexAlias);
     }
 
     @Test
