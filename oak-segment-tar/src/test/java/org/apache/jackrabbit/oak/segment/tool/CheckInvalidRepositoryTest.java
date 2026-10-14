@@ -306,6 +306,38 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
             .anyMatch(Objects::nonNull);
     }
 
+    @Test
+    public void testMultipleBrokenRevisionsWithoutContinueOnError() throws Exception {
+        addInvalidRevisionWithOtherCorruptPaths();
+
+        int checkResult = check(b -> b
+            .withFilterPaths(Set.of("/"))
+            .withCheckpoints(new HashSet<>())
+        );
+
+        assertCheckSucceeded(checkResult);
+        assertExpectedOutput(log.outString(), List.of("Searched through 3 revisions"));
+        assertEquals(2, countTraversalErrors());
+    }
+
+    @Test
+    public void testMultipleBrokenRevisionsWithContinueOnError() throws Exception {
+        addInvalidRevisionWithOtherCorruptPaths();
+
+        int checkResult = check(b -> b
+            .withFilterPaths(Set.of("/"))
+            .withCheckpoints(new HashSet<>())
+            .withContinueOnError(true)
+        );
+
+        assertCheckSucceeded(checkResult);
+        assertExpectedOutput(log.outString(), List.of("Searched through 3 revisions"));
+        assertExpectedOutput(log.errString(), List.of(
+            "Error while traversing /d", "Error while traversing /e",
+            "Error while traversing /a", "Error while traversing /z"));
+        assertEquals(4, countTraversalErrors());
+    }
+
     private int countTraversalErrors() {
         return log.errString().split("Error while traversing", -1).length - 1;
     }

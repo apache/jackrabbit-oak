@@ -36,6 +36,7 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.RecordType;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
@@ -164,6 +165,34 @@ public class CheckRepositoryTestBase {
         }
 
         corruptRecord(valueRecordId, "data00001a.tar", RecordType.VALUE);
+    }
+
+    protected void addInvalidRevisionWithOtherCorruptPaths() throws InvalidFileStoreVersionException, IOException, CommitFailedException {
+        FileStore fileStore = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot()).withMaxFileSize(256)
+            .withSegmentCacheSize(64).build();
+
+        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+        NodeBuilder builder = nodeStore.getRoot().builder();
+
+        // replace the nodes corrupted by addInvalidRevision with new ones
+        for (String name : List.of("a", "z")) {
+            NodeBuilder replacement = EmptyNodeState.EMPTY_NODE.builder();
+            replacement.setProperty(name + "0", name + "0");
+            builder.setChildNode(name, replacement.getNodeState());
+        }
+
+        addChildWithProperties(nodeStore, builder, "d", 5);
+        addChildWithProperties(nodeStore, builder, "e", 6);
+
+        NodeState after = nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        RecordId dRecordId = ((SegmentNodeState) after.getChildNode("d")).getRecordId();
+        RecordId eRecordId = ((SegmentNodeState) after.getChildNode("e")).getRecordId();
+
+        fileStore.close();
+
+        corruptRecord(dRecordId, "data00002a.tar");
+        corruptRecord(eRecordId, "data00002a.tar");
     }
 
     protected void corruptPathFromCheckpoint() throws InvalidFileStoreVersionException, IOException {
