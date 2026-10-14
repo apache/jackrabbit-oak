@@ -111,6 +111,47 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
     }
 
     @Test
+    public void testStopsAtFirstCorruptPathByDefault() {
+        int checkResult = check(b -> b
+            .withFilterPaths(Set.of("/"))
+            .withCheckpoints(new HashSet<>())
+            .withRevisionsCount(1)
+        );
+
+        assertCheckFailed(checkResult);
+        assertEquals(1, countTraversalErrors());
+    }
+
+    @Test
+    public void testContinueOnErrorReportsAllCorruptPaths() {
+        int checkResult = check(b -> b
+            .withFilterPaths(Set.of("/"))
+            .withCheckpoints(new HashSet<>())
+            .withRevisionsCount(1)
+            .withContinueOnError(true)
+        );
+
+        assertCheckFailed(checkResult);
+        assertExpectedOutput(log.errString(), List.of("Error while traversing /a", "Error while traversing /z"));
+        assertExpectedOutput(log.outString(), List.of("No good revision found"));
+        assertEquals(2, countTraversalErrors());
+    }
+
+    @Test
+    public void testContinueOnErrorWithConsistentPath() {
+        int checkResult = check(b -> b
+            .withFilterPaths(Set.of("/b"))
+            .withCheckpoints(new HashSet<>())
+            .withRevisionsCount(1)
+            .withContinueOnError(true)
+        );
+
+        assertCheckSucceeded(checkResult);
+        assertExpectedOutput(log.outString(), List.of("Path /b is consistent"));
+        assertEquals(0, countTraversalErrors());
+    }
+
+    @Test
     public void testCorruptHeadWithValidCheckpoints() {
         int checkResult = check(b -> b
             .withFilterPaths(Set.of("/"))
@@ -263,6 +304,10 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
             .stream()
             .flatMap(m -> m.values().stream())
             .anyMatch(Objects::nonNull);
+    }
+
+    private int countTraversalErrors() {
+        return log.errString().split("Error while traversing", -1).length - 1;
     }
 
     private int check(Consumer<Check.Builder> builderConsumer) {

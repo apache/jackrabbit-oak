@@ -83,6 +83,8 @@ public class Check {
 
         private boolean failFast;
 
+        private boolean continueOnError;
+
         private Builder() {
             // Prevent external instantiation.
         }
@@ -263,6 +265,23 @@ public class Check {
         }
 
         /**
+         * Instruct the command to keep traversing a revision after an
+         * inconsistent node is found, so that all inconsistent nodes are
+         * reported instead of only the first one. Unlike fail-fast, this does
+         * not affect whether further revisions are checked. This parameter is
+         * not required and defaults to {@code false}.
+         *
+         * @param continueOnError {@code true} to report all inconsistent
+         *                        nodes of a revision, {@code false} to stop at
+         *                        the first one.
+         * @return this builder.
+         */
+        public Builder withContinueOnError(boolean continueOnError) {
+            this.continueOnError = continueOnError;
+            return this;
+        }
+
+        /**
          * Create an executable version of the {@link Check} command.
          *
          * @return an instance of {@link Runnable}.
@@ -340,6 +359,8 @@ public class Check {
 
     private final boolean failFast;
 
+    private final boolean continueOnError;
+
     private Check(Builder builder) {
         this.path = builder.path;
         this.mmap = builder.mmap;
@@ -355,6 +376,7 @@ public class Check {
         this.journal = journalPath(builder.path, builder.journal);
         this.revisionsCount = revisionsToCheckCount(builder.revisionsCount);
         this.failFast = builder.failFast;
+        this.continueOnError = builder.continueOnError;
     }
 
     private static File journalPath(File segmentStore, File journal) {
@@ -385,6 +407,7 @@ public class Check {
                 .withCheckHead(checkHead)
                 .withDebugInterval(debugInterval)
                 .withFailFast(failFast)
+                .withContinueOnError(continueOnError)
                 .withFilterPaths(filterPaths)
                 .withRevisionsCount(revisionsCount)
                 .withErrWriter(err)

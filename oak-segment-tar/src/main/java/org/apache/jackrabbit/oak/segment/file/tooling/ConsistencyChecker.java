@@ -71,6 +71,19 @@ public class ConsistencyChecker {
 
     }
 
+    /**
+     * Whether the traversal of a tree should go on after an inconsistency is
+     * found, so that every inconsistent node is reported through
+     * {@link #onCheckNodeError(String, Exception)} and
+     * {@link #onCheckTreeError(String, Exception)}. By default the traversal
+     * stops at the first inconsistency.
+     *
+     * @return {@code true} to continue after an inconsistency.
+     */
+    protected boolean continueOnError() {
+        return false;
+    }
+
     protected void onCheckRevision(String revision) {
         // Do nothing.
     }
@@ -507,25 +520,32 @@ public class ConsistencyChecker {
      * inconsistency otherwise.
      */
     private String checkNodeAndDescendants(NodeState node, String path, boolean checkBinaries) {
-        String result = checkNode(node, path, checkBinaries);
-        if (result != null) {
-            return result;
+        String firstError = checkNode(node, path, checkBinaries);
+        if (firstError != null && !continueOnError()) {
+            return firstError;
         }
 
         try {
             for (ChildNodeEntry cne : node.getChildNodeEntries()) {
                 String childName = cne.getName();
                 NodeState child = cne.getNodeState();
-                result = checkNodeAndDescendants(child, concat(path, childName), checkBinaries);
+                String result = checkNodeAndDescendants(child, concat(path, childName), checkBinaries);
                 if (result != null) {
-                    return result;
+                    if (!continueOnError()) {
+                        return result;
+                    }
+                    if (firstError == null) {
+                        firstError = result;
+                    }
                 }
             }
 
-            return null;
+            return firstError;
         } catch (RuntimeException e) {
-            onCheckTreeError(path, e);
-            return path;
+            if (!path.equals(firstError)) {
+                onCheckTreeError(path, e);
+            }
+            return firstError != null ? firstError : path;
         }
     }
 
