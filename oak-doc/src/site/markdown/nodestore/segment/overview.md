@@ -805,7 +805,8 @@ The optional `--last [Integer]` argument can be used to control the maximum numb
 
 The optional `--fail-fast` argument can be used to stop the check as soon as an inconsistency is found. If not specified, the tool will continue to check the entire journal.
 
-The optional `--continue-on-error` argument can be used to report all the inconsistent nodes of a revision. If specified, the tool keeps traversing a revision after finding an inconsistent node and prints one error message for every inconsistent node it can reach. If not specified, the traversal of a revision stops at the first inconsistent node and the tool moves on to the next revision.
+The optional `--continue-on-error` argument can be used to report all the inconsistent nodes of a revision. If specified, the tool keeps traversing a revision after finding an inconsistent node and prints one `Error while traversing` message for every inconsistent node it can reach, in every revision it checks. If not specified, the traversal of a revision stops at the first inconsistent node, and for older revisions the paths found inconsistent in newer revisions are checked first and may end the traversal early.
+This option is independent of `--fail-fast`, which controls whether further revisions are checked. Nodes below an unreadable node cannot be reached and are not checked. Since every checked revision is traversed in full, the check can take considerably longer; to list all the inconsistent nodes of the most recent revision only, use it together with `--head` and `--last 1`.
 
 If the `--head` option is specified, the tool will scan **only** the head state, ignoring any available checkpoints.
 

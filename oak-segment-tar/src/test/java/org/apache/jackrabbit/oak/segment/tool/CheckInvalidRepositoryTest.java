@@ -138,20 +138,6 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
     }
 
     @Test
-    public void testContinueOnErrorWithConsistentPath() {
-        int checkResult = check(b -> b
-            .withFilterPaths(Set.of("/b"))
-            .withCheckpoints(new HashSet<>())
-            .withRevisionsCount(1)
-            .withContinueOnError(true)
-        );
-
-        assertCheckSucceeded(checkResult);
-        assertExpectedOutput(log.outString(), List.of("Path /b is consistent"));
-        assertEquals(0, countTraversalErrors());
-    }
-
-    @Test
     public void testCorruptHeadWithValidCheckpoints() {
         int checkResult = check(b -> b
             .withFilterPaths(Set.of("/"))
@@ -335,6 +321,21 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         assertExpectedOutput(log.errString(), List.of(
             "Error while traversing /d", "Error while traversing /e",
             "Error while traversing /a", "Error while traversing /z"));
+        assertEquals(4, countTraversalErrors());
+    }
+
+    @Test
+    public void testContinueOnErrorWithSharedCorruptionAcrossRevisions() throws Exception {
+        addMoreSegments();
+
+        int checkResult = check(b -> b
+            .withFilterPaths(Set.of("/"))
+            .withCheckpoints(new HashSet<>())
+            .withRevisionsCount(2)
+            .withContinueOnError(true)
+        );
+
+        assertCheckFailed(checkResult);
         assertEquals(4, countTraversalErrors());
     }
 

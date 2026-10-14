@@ -76,7 +76,9 @@ public class ConsistencyChecker {
      * found, so that every inconsistent node is reported through
      * {@link #onCheckNodeError(String, Exception)} and
      * {@link #onCheckTreeError(String, Exception)}. By default the traversal
-     * stops at the first inconsistency.
+     * stops at the first inconsistency. When enabled, every tree is traversed
+     * in full, i.e. inconsistent paths found in newer revisions are not probed
+     * first, so that each revision reports all of its inconsistent nodes.
      *
      * @return {@code true} to continue after an inconsistency.
      */
@@ -228,7 +230,7 @@ public class ConsistencyChecker {
     }
 
     private String checkTreeConsistency(NodeState root, String path, Set<String> corruptedPaths, boolean binaries, boolean head) {
-        String corruptedPath = findFirstCorruptedPathInSet(root, corruptedPaths, binaries);
+        String corruptedPath = continueOnError() ? null : findFirstCorruptedPathInSet(root, corruptedPaths, binaries);
 
         if (corruptedPath != null) {
             return corruptedPath;
@@ -542,6 +544,7 @@ public class ConsistencyChecker {
 
             return firstError;
         } catch (RuntimeException e) {
+            // checkNode already reported this path when its own record is unreadable
             if (!path.equals(firstError)) {
                 onCheckTreeError(path, e);
             }
