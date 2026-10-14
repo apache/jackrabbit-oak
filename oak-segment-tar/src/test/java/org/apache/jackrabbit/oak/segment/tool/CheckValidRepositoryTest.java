@@ -336,4 +336,64 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
             "No good revision found"));
         assertExpectedOutput(strErr.toString(), List.of("Checkpoint bogus-checkpoint not found in this revision!"));
     }
+
+    @Test
+    public void testInvalidRevisionFallbackOnValidWhenOnlyNewNodeIsCorrupt() throws Exception {
+        addInvalidRevisionWithCorruptNewNodeOnly();
+
+        StringWriter strOut = new StringWriter();
+        StringWriter strErr = new StringWriter();
+
+        PrintWriter outWriter = new PrintWriter(strOut, true);
+        PrintWriter errWriter = new PrintWriter(strErr, true);
+
+        Check.builder()
+            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+            .withDebugInterval(Long.MAX_VALUE)
+            .withCheckBinaries(true)
+            .withCheckHead(true)
+            .withCheckpoints(checkpoints)
+            .withFilterPaths(Set.of("/"))
+            .withOutWriter(outWriter)
+            .withErrWriter(errWriter)
+            .build()
+            .run();
+
+        outWriter.close();
+        errWriter.close();
+
+        assertExpectedOutput(strOut.toString(), List.of("Checked 7 nodes and 21 properties", "Path / is consistent",
+            "Searched through 2 revisions"));
+        assertExpectedOutput(strErr.toString(),
+            List.of("Error while traversing /z: java.lang.IllegalArgumentException: Segment reference out of bounds"));
+    }
+
+    @Test
+    public void testNewNodeFilterWithoutValidRevision() throws Exception {
+        addInvalidRevisionWithCorruptNewNodeOnly();
+
+        StringWriter strOut = new StringWriter();
+        StringWriter strErr = new StringWriter();
+
+        PrintWriter outWriter = new PrintWriter(strOut, true);
+        PrintWriter errWriter = new PrintWriter(strErr, true);
+
+        Check.builder()
+            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+            .withDebugInterval(Long.MAX_VALUE)
+            .withCheckBinaries(true)
+            .withCheckHead(true)
+            .withCheckpoints(new HashSet<String>())
+            .withFilterPaths(Set.of("/z"))
+            .withOutWriter(outWriter)
+            .withErrWriter(errWriter)
+            .build()
+            .run();
+
+        outWriter.close();
+        errWriter.close();
+
+        assertExpectedOutput(strOut.toString(), List.of("Searched through 2 revisions", "No good revision found"));
+        assertExpectedOutput(strErr.toString(), List.of("Error while traversing /z", "Path /z not found"));
+    }
 }
