@@ -93,6 +93,28 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
     }
 
     @Test
+    public void declaredDecimalSupportsNumericQueries() throws Exception {
+        IndexDefinitionBuilder builder = new IndexDefinitionBuilder().noAsync();
+        builder.indexRule("nt:base").property("price").propertyIndex().type("Decimal");
+        builder.build(root.getTree("/oak:index").addChild("decimals")).setProperty("type", "luceneNg");
+        Tree content = root.getTree("/").addChild("content");
+        content.addChild("cheap").setProperty("price", new java.math.BigDecimal("1.5"),
+                org.apache.jackrabbit.oak.api.Type.DECIMAL);
+        content.addChild("expensive").setProperty("price", new java.math.BigDecimal("10.25"),
+                org.apache.jackrabbit.oak.api.Type.DECIMAL);
+        root.commit();
+
+        assertThat(executeQuery("explain select [jcr:path] from [nt:base] where [price] = 1.5 "
+                + "option(index name decimals)", "sql").get(0), containsString("/oak:index/decimals"));
+        assertQuery("select [jcr:path] from [nt:base] where [price] = 1.5 option(index name decimals)",
+                "sql", List.of("/content/cheap"));
+        assertQuery("select [jcr:path] from [nt:base] where [price] > 2 option(index name decimals)",
+                "sql", List.of("/content/expensive"));
+        assertQuery("select [jcr:path] from [nt:base] where [price] is not null option(index name decimals)",
+                "sql", List.of("/content/cheap", "/content/expensive"));
+    }
+
+    @Test
     public void indexedNodeTypesExcludeOtherTypesBeforeCandidateReads() throws Exception {
         IndexDefinitionBuilder builder = new IndexDefinitionBuilder().noAsync();
         builder.indexRule("nt:base").property("title").propertyIndex()
