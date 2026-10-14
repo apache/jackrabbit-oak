@@ -121,89 +121,123 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
      * The framework's {@code addTypedFields} iterates array values and calls this once per value,
      * so this method handles a single value only.
      *
-     * <p>When the index definition declares Long/Double/Date, the value is converted and a
-     * numeric point field is written (guaranteeing a consistent Lucene field type across all
-     * documents). String/default-String definitions use string exact-match fields for
-     * supported scalar and array values.</p>
+     * <p>The declared type decides the field and which value types are accepted; other values are
+     * skipped. Long/Double/Date/Decimal write numeric point fields, so a field keeps one Lucene
+     * field type across all documents. Undeclared and String definitions index every non-binary
+     * value as a string term. Boolean, Name, Path, Reference/WeakReference and URI definitions index
+     * matching values (and strings) as string terms. A declared Binary type produces no field.</p>
      */
     @Override
     protected void indexTypedProperty(Document doc, PropertyState property, String pname,
                                       PropertyDefinition pd, int i) {
-        if (pd.isTypeDefined()) {
-            switch (pd.getType()) {
-                case PropertyType.LONG: {
-                    Long lv = readAsLong(property, i);
-                    if (lv != null) {
-                        doc.add(new LongPoint(pname, lv));
-                    } else {
-                        LOG.debug("Skipping property '{}': declared Long but value cannot be converted", pname);
-                    }
-                    return;
+        int valueType = property.getType().tag();
+        switch (pd.getType()) {
+            case PropertyType.LONG: {
+                Long lv = readAsLong(property, i);
+                if (lv != null) {
+                    doc.add(new LongPoint(pname, lv));
+                } else {
+                    LOG.debug("Skipping property '{}': declared Long but value cannot be converted", pname);
                 }
-                case PropertyType.DOUBLE: {
-                    Double dv = readAsDouble(property, i);
-                    if (dv != null) {
-                        doc.add(new DoublePoint(pname, dv));
-                    } else {
-                        LOG.debug("Skipping property '{}': declared Double but value cannot be converted", pname);
-                    }
-                    return;
+                return;
+            }
+            case PropertyType.DOUBLE: {
+                Double dv = readAsDouble(property, i);
+                if (dv != null) {
+                    doc.add(new DoublePoint(pname, dv));
+                } else {
+                    LOG.debug("Skipping property '{}': declared Double but value cannot be converted", pname);
                 }
-                case PropertyType.DATE: {
-                    Long millis = readAsDateMillis(property, i);
-                    if (millis != null) {
-                        doc.add(new LongPoint(pname, millis));
-                    } else {
-                        LOG.debug("Skipping property '{}': declared Date but value cannot be converted", pname);
-                    }
-                    return;
+                return;
+            }
+            case PropertyType.DECIMAL: {
+                Double dv;
+                if (valueType == PropertyType.DECIMAL) {
+                    dv = property.getValue(Type.DECIMAL, i).doubleValue();
+                } else {
+                    dv = readAsDouble(property, i);
                 }
-                default:
-                    indexByActualType(doc, property, pname, pd, i);
-                    return;
+                if (dv != null) {
+                    doc.add(new DoublePoint(pname, dv));
+                } else {
+                    LOG.debug("Skipping property '{}': declared Decimal but value cannot be converted", pname);
+                }
+                return;
+            }
+            case PropertyType.DATE: {
+                Long millis = readAsDateMillis(property, i);
+                if (millis != null) {
+                    doc.add(new LongPoint(pname, millis));
+                } else {
+                    LOG.debug("Skipping property '{}': declared Date but value cannot be converted", pname);
+                }
+                return;
+            }
+            case PropertyType.BINARY:
+                return;
+            case PropertyType.BOOLEAN:
+                indexAsStringIfOneOf(doc, property, pname, pd, i, PropertyType.STRING, PropertyType.LONG,
+                        PropertyType.DOUBLE, PropertyType.BOOLEAN, PropertyType.NAME);
+                return;
+            case PropertyType.NAME:
+                indexAsStringIfOneOf(doc, property, pname, pd, i, PropertyType.STRING, PropertyType.NAME);
+                return;
+            case PropertyType.PATH:
+                indexAsStringIfOneOf(doc, property, pname, pd, i, PropertyType.STRING, PropertyType.PATH);
+                return;
+            case PropertyType.REFERENCE:
+            case PropertyType.WEAKREFERENCE:
+                indexAsStringIfOneOf(doc, property, pname, pd, i, PropertyType.STRING, PropertyType.REFERENCE,
+                        PropertyType.WEAKREFERENCE);
+                return;
+            case PropertyType.URI:
+                indexAsStringIfOneOf(doc, property, pname, pd, i, PropertyType.STRING, PropertyType.URI);
+                return;
+            default:
+                if (valueType != PropertyType.BINARY) {
+                    indexAsString(doc, property, pname, pd, i);
+                }
+        }
+    }
+
+    private void indexAsStringIfOneOf(Document doc, PropertyState property, String pname,
+                                      PropertyDefinition pd, int i, int... acceptedValueTypes) {
+        int valueType = property.getType().tag();
+        for (int accepted : acceptedValueTypes) {
+            if (valueType == accepted) {
+                indexAsString(doc, property, pname, pd, i);
+                return;
             }
         }
-        indexByActualType(doc, property, pname, pd, i);
+        LOG.debug("Skipping property '{}': declared {} does not accept {} values", pname,
+                PropertyType.nameFromValue(pd.getType()), PropertyType.nameFromValue(valueType));
     }
 
     /**
-     * Indexes the value at position {@code i} using the property's actual Oak value type.
-     * Numeric/boolean values are indexed as string exact-match fields.
-     * Binary values are ignored here (never call
-     * {@code getValue(STRING)} on a binary).
+     * Indexes the value at position {@code i} as a string exact-match field. Never call this for a
+     * binary value ({@code getValue(STRING)} would read the whole blob).
      */
-    private void indexByActualType(Document doc, PropertyState property, String pname,
-                                   PropertyDefinition pd, int i) {
-        switch (property.getType().tag()) {
-            case PropertyType.NAME:
-            case PropertyType.LONG:
-            case PropertyType.DOUBLE:
-            case PropertyType.BOOLEAN:
-            case PropertyType.STRING: {
-                String sv = property.getValue(Type.STRING, i);
-                if (sv.length() < MAX_FIELD_LENGTH) {
-                    doc.add(new StringField(pname, sv, Field.Store.NO));
-                }
-                // Multi-valued ordered String: write the SORTED_SET sort doc-value here, per value.
-                // The framework's addTypedOrderedFields rejects arrays before indexTypeOrderedFields
-                // ever runs, so without this a multi-valued ordered String would contribute the
-                // "pname" StringField (doc-values type NONE) with NO doc-value, while a single-valued
-                // sibling writes SORTED_SET for the same field name -> Lucene rejects the whole
-                // document ("Inconsistency of field data structures ... expected SORTED_SET, but it
-                // has NONE"), silently dropping it. Writing SORTED_SET for every value (matching the
-                // single-valued branch in indexTypeOrderedFields) keeps the field's doc-values type
-                // consistent across cardinalities AND enables multi-valued sort (the query side
-                // already uses a SortedSetSortField for SORTED_SET fields, selecting the minimum
-                // value). Single-valued values are handled by indexTypeOrderedFields, so only the
-                // array case is written here to avoid duplication.
-                if (pd.ordered && property.isArray()) {
-                    doc.add(new SortedSetDocValuesField(pname, new BytesRef(
-                            sv.length() <= MAX_FIELD_LENGTH ? sv : sv.substring(0, MAX_FIELD_LENGTH))));
-                }
-                break;
-            }
-            default:
-                break;
+    private void indexAsString(Document doc, PropertyState property, String pname,
+                               PropertyDefinition pd, int i) {
+        String sv = property.getValue(Type.STRING, i);
+        if (sv.length() < MAX_FIELD_LENGTH) {
+            doc.add(new StringField(pname, sv, Field.Store.NO));
+        }
+        // Multi-valued ordered String: write the SORTED_SET sort doc-value here, per value.
+        // The framework's addTypedOrderedFields rejects arrays before indexTypeOrderedFields
+        // ever runs, so without this a multi-valued ordered String would contribute the
+        // "pname" StringField (doc-values type NONE) with NO doc-value, while a single-valued
+        // sibling writes SORTED_SET for the same field name -> Lucene rejects the whole
+        // document ("Inconsistency of field data structures ... expected SORTED_SET, but it
+        // has NONE"), silently dropping it. Writing SORTED_SET for every value (matching the
+        // single-valued branch in indexTypeOrderedFields) keeps the field's doc-values type
+        // consistent across cardinalities AND enables multi-valued sort (the query side
+        // already uses a SortedSetSortField for SORTED_SET fields, selecting the minimum
+        // value). Single-valued values are handled by indexTypeOrderedFields, so only the
+        // array case is written here to avoid duplication.
+        if (pd.ordered && property.isArray()) {
+            doc.add(new SortedSetDocValuesField(pname, new BytesRef(
+                    sv.length() <= MAX_FIELD_LENGTH ? sv : sv.substring(0, MAX_FIELD_LENGTH))));
         }
     }
 
@@ -211,7 +245,7 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
      * Adds the ordered doc-values (sort) field for a <em>single-valued</em> property. The framework's
      * {@code FulltextDocumentMaker.addTypedOrderedFields} rejects <em>all</em> array-valued properties
      * (with a warning) before this hook is ever called, so only single values reach here. Multi-valued
-     * ordered <em>String</em> properties are handled elsewhere: {@link #indexByActualType} writes their
+     * ordered <em>String</em> properties are handled elsewhere: {@link #indexAsString} writes their
      * sort doc-values per value (that method runs in the {@code propertyIndex} path, which the framework
      * <em>does</em> call for each array element). Both paths write a {@link SortedSetDocValuesField}
      * under the plain property name, so a field indexed as ordered String has a consistent SORTED_SET
@@ -223,7 +257,7 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
      * <p>The doc-values field name is the plain property name, not {@code createDocValFieldName}. The
      * ordered <em>String</em> case uses a {@link SortedSetDocValuesField} (rather than
      * {@link SortedDocValuesField}) so its type matches the multi-valued values written by
-     * {@link #indexByActualType} for the same field name; a single-element sorted set sorts identically
+     * {@link #indexAsString} for the same field name; a single-element sorted set sorts identically
      * to a single sorted value.</p>
      */
     @Override

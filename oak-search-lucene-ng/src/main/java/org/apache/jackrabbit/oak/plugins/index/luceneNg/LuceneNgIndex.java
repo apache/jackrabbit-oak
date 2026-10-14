@@ -439,6 +439,7 @@ public class LuceneNgIndex extends FulltextIndex {
                 case javax.jcr.PropertyType.DATE:
                     return org.apache.lucene.document.LongPoint.newRangeQuery(propertyName, Long.MIN_VALUE, Long.MAX_VALUE);
                 case javax.jcr.PropertyType.DOUBLE:
+                case javax.jcr.PropertyType.DECIMAL:
                     return org.apache.lucene.document.DoublePoint.newRangeQuery(propertyName, Double.NEGATIVE_INFINITY, Double.NaN);
                 case javax.jcr.PropertyType.UNDEFINED:
                     BooleanQuery.Builder existence = new BooleanQuery.Builder();
@@ -464,6 +465,7 @@ public class LuceneNgIndex extends FulltextIndex {
             case javax.jcr.PropertyType.LONG:
                 return createLongQuery(propertyName, pr);
             case javax.jcr.PropertyType.DOUBLE:
+            case javax.jcr.PropertyType.DECIMAL:
                 return createDoubleQuery(propertyName, pr);
             case javax.jcr.PropertyType.DATE:
                 return createDateQuery(propertyName, pr);

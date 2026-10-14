@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
+import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.index.LeafReader;
@@ -36,6 +37,7 @@ import org.junit.jupiter.api.Test;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * Verifies type-safe field creation in the Lucene 9 index editor.
@@ -217,6 +219,20 @@ public class TypeSafeIndexingTest {
             assertNotNull(fi, "dam:size field must exist");
             assertEquals(IndexOptions.NONE,
                     fi.getIndexOptions(), "All dam:size documents must use point fields (NONE)");
+        }
+    }
+
+    @Test
+    public void declaredBinaryTypeProducesNoPropertyField() throws Exception {
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        luceneNg(root).indexRule("nt:unstructured").property("payload").propertyIndex().type("Binary").ordered();
+        node(root, "string").setProperty("payload", "hello");
+        node(root, "long").setProperty("payload", 42L);
+
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
+        try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
+            assertNull(FieldInfos.getMergedFieldInfos(reader).fieldInfo("payload"),
+                    "declared Binary must not produce a property or sort field");
         }
     }
 

@@ -69,18 +69,38 @@ opening the actual index are reported through the shared bad-index tracker.
 
 ## Property types
 
-An undeclared property type defaults to `String`. String definitions index
-String, Name, Long, Double and Boolean values as string terms, including every
+An undeclared property type defaults to `String`. String definitions index every
+non-binary value (String, Long, Double, Date, Boolean, Name, Path, Reference,
+WeakReference, URI, Decimal) as a string term of its string form, including every
 array element. Query restrictions use the same definition type; a numeric
 literal does not turn a string-backed field into a point query.
 
 Equality and IN use string representations, and index range bounds are
-lexical. Declare `Long`, `Double` or `Date` when numeric/date ranges are required.
+lexical. Declare `Long`, `Double`, `Decimal` or `Date` when numeric/date ranges
+are required.
 Mixed String/String[]/Double/Double[] values do not make the index schema depend
 on insertion order. Ordered String fields use the same string doc-values
 representation for scalar and array values.
 Existing Ng indexes with numeric sort doc-values in String/default-String
 ordered fields require reindexing for this representation.
+
+Other declared types accept only some value types; other values are skipped:
+
+| Declared type | Indexed values | Field |
+|---|---|---|
+| `Long` | Long, Double (truncated), numeric String | Long point |
+| `Double` | Double, Long, numeric String | Double point |
+| `Decimal` | Decimal, Double, Long, numeric String | Double point |
+| `Date` | Date, ISO 8601 String | Long point (milliseconds since epoch) |
+| `Boolean` | Boolean, String, Long, Double, Name | string term |
+| `Name` | Name, String | string term |
+| `Path` | Path, String | string term |
+| `Reference`, `WeakReference` | Reference, WeakReference, String | string term |
+| `URI` | URI, String | string term |
+
+A declared `Binary` type is intentionally not supported as a property type: such
+a property gets no property-index or sort field, whatever its values. Binary
+content is indexed only through fulltext text extraction.
 
 ## Known limitations and deferred work
 
