@@ -22,13 +22,14 @@ import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgIndexNo
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -43,17 +44,17 @@ import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.lucene.store.Directory;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class LuceneNgIndexTrackerTest {
 
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+    @TempDir
+    public Path tempDir;
 
     private NodeState root;
     private NodeBuilder builder;
 
-    @Before
+    @BeforeEach
     public void setup() {
         root = INITIAL_CONTENT;
         builder = root.builder();
@@ -167,7 +168,7 @@ public class LuceneNgIndexTrackerTest {
         LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
         tracker.update(afterFirst);
         LuceneNgIndexNode firstNode = tracker.acquireIndexNode(indexPath);
-        assertNotNull("Index node must be resolvable after the first commit", firstNode);
+        assertNotNull(firstNode, "Index node must be resolvable after the first commit");
         int firstIndexNodeId = firstNode.getIndexNodeId();
         firstNode.release();
 
@@ -180,14 +181,14 @@ public class LuceneNgIndexTrackerTest {
 
         tracker.update(afterSecond);
         LuceneNgIndexNode secondNode = tracker.acquireIndexNode(indexPath);
-        assertNotNull("Index node must be resolvable after the second commit", secondNode);
+        assertNotNull(secondNode, "Index node must be resolvable after the second commit");
         int secondIndexNodeId = secondNode.getIndexNodeId();
         secondNode.release();
 
         assertNotEquals(
-                "A real content change must cause tracker.update() to reopen the index node "
-                        + "(new getIndexNodeId()), proving the tracker detected the change",
-                firstIndexNodeId, secondIndexNodeId);
+                firstIndexNodeId,
+                secondIndexNodeId, "A real content change must cause tracker.update() to reopen the index node "
+                        + "(new getIndexNodeId()), proving the tracker detected the change");
     }
 
     /**
@@ -222,13 +223,13 @@ public class LuceneNgIndexTrackerTest {
 
         // Commit 1: reindex, indexing node1 -- real Lucene segment data exists for the index.
         NodeState afterFirst = LuceneNgEditorCommitUtil.reindex(rootBuilder.getNodeState());
-        assertEquals("Sanity check: commit 1 must actually index something",
-                1, LuceneNgEditorCommitUtil.numDocs(afterFirst, indexPath));
+        assertEquals(1,
+                LuceneNgEditorCommitUtil.numDocs(afterFirst, indexPath), "Sanity check: commit 1 must actually index something");
 
         LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
         tracker.update(afterFirst);
         LuceneNgIndexNode firstNode = tracker.acquireIndexNode(indexPath);
-        assertNotNull("Index node must be resolvable after the first commit", firstNode);
+        assertNotNull(firstNode, "Index node must be resolvable after the first commit");
         int firstIndexNodeId = firstNode.getIndexNodeId();
         firstNode.release();
 
@@ -239,21 +240,21 @@ public class LuceneNgIndexTrackerTest {
         b2.child("node1").remove();
         b2.child("oak:index").child("testIndex").setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
         NodeState afterSecond = LuceneNgEditorCommitUtil.commit(afterFirst, b2.getNodeState());
-        assertEquals("Sanity check: commit 2 must be a reindex that matches nothing, or this "
-                        + "test doesn't exercise the edge case it's meant to",
-                0, LuceneNgEditorCommitUtil.numDocs(afterSecond, indexPath));
+        assertEquals(0,
+                LuceneNgEditorCommitUtil.numDocs(afterSecond, indexPath), "Sanity check: commit 2 must be a reindex that matches nothing, or this "
+                        + "test doesn't exercise the edge case it's meant to");
 
         tracker.update(afterSecond);
         LuceneNgIndexNode secondNode = tracker.acquireIndexNode(indexPath);
         try {
-            assertNotNull("Index node must still be resolvable after a reindex-to-empty "
-                    + "(the definition and its storage still exist, just with no documents)", secondNode);
+            assertNotNull(secondNode, "Index node must still be resolvable after a reindex-to-empty "
+                    + "(the definition and its storage still exist, just with no documents)");
             assertNotEquals(
-                    "A reindex matching zero documents must still cause tracker.update() to reopen "
+                    firstIndexNodeId,
+                    secondNode.getIndexNodeId(), "A reindex matching zero documents must still cause tracker.update() to reopen "
                             + "the index node (new getIndexNodeId()): the old segments are stale and must "
                             + "not keep being served, even though LuceneNgFulltextIndexWriter's own "
-                            + "indexUpdated flag never got set to true for this commit",
-                    firstIndexNodeId, secondNode.getIndexNodeId());
+                            + "indexUpdated flag never got set to true for this commit");
         } finally {
             if (secondNode != null) {
                 secondNode.release();
@@ -285,7 +286,7 @@ public class LuceneNgIndexTrackerTest {
         // Real editor/context commit path -> real Lucene segments to cache.
         NodeState afterFirst = LuceneNgEditorCommitUtil.reindex(rootBuilder.getNodeState());
 
-        File localRoot = temporaryFolder.newFolder();
+        File localRoot = Files.createTempDirectory(tempDir, "folder").toFile();
         LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, localRoot, false);
         LuceneNgIndexTracker tracker = new LuceneNgIndexTracker(copier);
         tracker.update(afterFirst);
@@ -298,15 +299,15 @@ public class LuceneNgIndexTrackerTest {
         // LuceneNgIndexCopier's constructor alone (independent of any wrap) already creates an
         // indexWriterDir work folder under localRoot, so merely checking localRoot's contents
         // would pass even if the wrap were silently skipped somewhere along the chain.
-        assertTrue("expected at least one file to have been copied from remote to local",
-                copier.getDownloadCount() > 0);
+        assertTrue(copier.getDownloadCount() > 0,
+                "expected at least one file to have been copied from remote to local");
         copier.close();
     }
 
     @Test
     public void missingStorageDoesNotOpenCache() throws Exception {
         AtomicInteger opens = new AtomicInteger();
-        LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, temporaryFolder.newFolder(), false) {
+        LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, Files.createTempDirectory(tempDir, "folder").toFile(), false) {
             @Override
             public Directory wrapForRead(String path, IndexDefinition definition, OakDirectory remote, String dirName)
                     throws IOException {
@@ -333,7 +334,7 @@ public class LuceneNgIndexTrackerTest {
 
     @Test
     public void cacheOpenFailureFallsBackToRemote() throws Exception {
-        LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, temporaryFolder.newFolder(), false) {
+        LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, Files.createTempDirectory(tempDir, "folder").toFile(), false) {
             @Override
             public Directory wrapForRead(String path, IndexDefinition definition, OakDirectory remote, String dirName)
                     throws IOException {
@@ -374,7 +375,7 @@ public class LuceneNgIndexTrackerTest {
         tracker.update(corrupted.getNodeState());
         assertNull(tracker.acquireIndexNode("/oak:index/testIndex"));
         assertNull(tracker.acquireIndexNode("/oak:index/testIndex"));
-        assertEquals("BadIndexTracker must suppress the second open", 1, opens.get());
+        assertEquals(1, opens.get(), "BadIndexTracker must suppress the second open");
     }
 
     private NodeState indexedRoot() throws Exception {
@@ -393,7 +394,7 @@ public class LuceneNgIndexTrackerTest {
         String path = "/oak:index/testIndex";
         NodeState indexed = indexedRoot();
         CountDownLatch removalOpened = new CountDownLatch(1);
-        LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, temporaryFolder.newFolder(), true);
+        LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, Files.createTempDirectory(tempDir, "folder").toFile(), true);
         LuceneNgIndexTracker tracker = new LuceneNgIndexTracker(copier) {
             @Override
             protected LuceneNgIndexNodeManager openIndex(String indexPath, NodeState root, NodeState state) {
@@ -415,7 +416,7 @@ public class LuceneNgIndexTrackerTest {
         Future<?> update = thread.submit(() -> tracker.update(deactivate ? EmptyNodeState.EMPTY_NODE : removed.getNodeState()));
         try {
             assertTrue(removalOpened.await(10, TimeUnit.SECONDS));
-            assertTrue("cache must survive while a reader holds the previous generation", local.isDirectory());
+            assertTrue(local.isDirectory(), "cache must survive while a reader holds the previous generation");
             assertEquals(1, node.getSearcher().getIndexReader().numDocs());
         } finally {
             node.release();
@@ -424,7 +425,7 @@ public class LuceneNgIndexTrackerTest {
             copier.close();
         }
         update.get(10, TimeUnit.SECONDS);
-        assertTrue("cache must survive shutdown/removal", local.isDirectory());
+        assertTrue(local.isDirectory(), "cache must survive shutdown/removal");
         assertTrue(local.list().length > 0);
     }
 }

@@ -22,11 +22,11 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests for chunked I/O boundary edge cases in OakBufferedIndexFile.
@@ -119,17 +119,17 @@ public class ChunkedIOEdgeCasesTest {
 
         // Verify JCR_DATA has exactly 2 blobs
         PropertyState jcrData = file.getProperty(JCR_DATA);
-        assertNotNull("JCR_DATA property should exist", jcrData);
-        assertEquals("Should have 2 blobs", 2, jcrData.count());
+        assertNotNull(jcrData, "JCR_DATA property should exist");
+        assertEquals(2, jcrData.count(), "Should have 2 blobs");
 
         // Verify blob sizes: first should be 32KB, second should be 8KB
         Iterable<Blob> blobs = jcrData.getValue(Type.BINARIES);
         int blobIndex = 0;
         for (Blob blob : blobs) {
             if (blobIndex == 0) {
-                assertEquals("First blob should be 32KB", 32 * 1024, blob.length());
+                assertEquals(32 * 1024, blob.length(), "First blob should be 32KB");
             } else {
-                assertEquals("Second blob should be 8KB", 8 * 1024, blob.length());
+                assertEquals(8 * 1024, blob.length(), "Second blob should be 8KB");
             }
             blobIndex++;
         }
@@ -196,8 +196,8 @@ public class ChunkedIOEdgeCasesTest {
 
         // Verify read data matches original data
         for (int i = 0; i < readSize; i++) {
-            assertEquals("Data mismatch at position " + (readStart + i),
-                data[readStart + i], readData[i]);
+            assertEquals(data[readStart + i],
+                readData[i], "Data mismatch at position " + (readStart + i));
         }
 
         indexFile.close();

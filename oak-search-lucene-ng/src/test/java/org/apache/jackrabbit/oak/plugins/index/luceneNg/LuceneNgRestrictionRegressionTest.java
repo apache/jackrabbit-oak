@@ -46,13 +46,13 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.facet.FacetsConfig;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -129,8 +129,8 @@ public class LuceneNgRestrictionRegressionTest {
                 .property("jcr:mixinTypes").propertyIndex()
                 .property("title").propertyIndex();
         Query query = typeQuery(builder);
-        assertTrue(query.toString(), query.toString().contains("jcr:primaryType:nt:file"));
-        assertTrue(query.toString(), query.toString().contains("jcr:mixinTypes:mix:referenceable"));
+        assertTrue(query.toString().contains("jcr:primaryType:nt:file"), query.toString());
+        assertTrue(query.toString().contains("jcr:mixinTypes:mix:referenceable"), query.toString());
         IndexDefinitionBuilder withoutTypes = new IndexDefinitionBuilder().noAsync();
         withoutTypes.indexRule("nt:base").property("title").propertyIndex();
         assertEquals("*:*", typeQuery(withoutTypes).toString());
@@ -215,7 +215,7 @@ public class LuceneNgRestrictionRegressionTest {
             assertEquals(List.of(), arrayMethod.invoke(maker, multiple));
             when(multiple.getValue(Type.DATES)).thenThrow(new IllegalArgumentException(SECRET));
             assertEquals(List.of(), arrayMethod.invoke(maker, multiple));
-            assertEquals("Each conversion failure must be logged", 3, appender.list.size());
+            assertEquals(3, appender.list.size(), "Each conversion failure must be logged");
             assertSafeLogs(appender.list);
         } finally {
             logger.detachAppender(appender);
@@ -242,7 +242,7 @@ public class LuceneNgRestrictionRegressionTest {
         LuceneNgIndexDefinition definition = new LuceneNgIndexDefinition(
                 InitialContentHelper.INITIAL_CONTENT, state, "/oak:index/test");
         IndexDefinition.IndexingRule rule = definition.getApplicableIndexingRule("nt:base");
-        org.junit.Assert.assertNotNull(rule);
+        org.junit.jupiter.api.Assertions.assertNotNull(rule);
         PlanResult result = new PlanResult("/oak:index/test", definition, rule);
         Filter filter = mock(Filter.class);
         when(filter.getPropertyRestrictions()).thenReturn(List.of());
@@ -255,7 +255,7 @@ public class LuceneNgRestrictionRegressionTest {
                 filter, result);
     }
 
-    private static void assertSafeFailure(org.junit.function.ThrowingRunnable operation,
+    private static void assertSafeFailure(org.junit.jupiter.api.function.Executable operation,
                                          Class<? extends Throwable> expected) {
         Logger logger = (Logger) LoggerFactory.getLogger(LuceneNgIndex.class);
         ListAppender<ILoggingEvent> appender = new ListAppender<>();
@@ -263,13 +263,13 @@ public class LuceneNgRestrictionRegressionTest {
         logger.addAppender(appender);
         try {
             InvocationTargetException error = assertThrows(InvocationTargetException.class, operation);
-            assertTrue(error.getCause().toString(), expected.isInstance(error.getCause()));
+            assertTrue(expected.isInstance(error.getCause()), error.getCause().toString());
             Throwable cause = error.getCause();
             while (cause != null) {
                 assertFalse(String.valueOf(cause.getMessage()).contains(SECRET));
                 cause = cause.getCause();
             }
-            assertFalse("The error must remain visible", appender.list.isEmpty());
+            assertFalse(appender.list.isEmpty(), "The error must remain visible");
             assertSafeLogs(appender.list);
         } finally {
             logger.detachAppender(appender);

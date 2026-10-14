@@ -20,6 +20,8 @@
 package org.apache.jackrabbit.oak.plugins.index.luceneNg.directory;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.Collection;
@@ -38,28 +40,27 @@ import org.apache.lucene.store.FilterDirectory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 
 public class CopyOnReadDirectoryTest {
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
+    @TempDir(factory = TargetTempDirFactory.class)
+    public Path tempDir;
 
     @Test
     public void multipleCloseCalls() throws Exception {
         AtomicInteger executionCount = new AtomicInteger();
         Executor e = r -> {executionCount.incrementAndGet(); r.run();};
-        LuceneNgIndexCopier c = new LuceneNgIndexCopier(ExecutorUtils.directExecutor(), temporaryFolder.newFolder(), true);
+        LuceneNgIndexCopier c = new LuceneNgIndexCopier(ExecutorUtils.directExecutor(), Files.createTempDirectory(tempDir, "folder").toFile(), true);
 
         // remote must be a real OakDirectory (this module's only remote implementation,
         // see LuceneNgIndexCopierTest's construction pattern) rather than a generic
@@ -70,7 +71,7 @@ public class CopyOnReadDirectoryTest {
         // Not opened via try-with-resources: CopyOnReadDirectory.close() (below) already
         // closes `local` as part of its own close path, so a second close here would
         // double-close it.
-        File localDir = temporaryFolder.newFolder();
+        File localDir = Files.createTempDirectory(tempDir, "folder").toFile();
         Directory local = FSDirectory.open(localDir.toPath());
         Directory dir = new CopyOnReadDirectory(c, remote, local, localDir, false, "foo", e);
 
@@ -95,8 +96,8 @@ public class CopyOnReadDirectoryTest {
             }
             return invocation.callRealMethod();
         }).when(blocked).openInput(eq("file"), any(IOContext.class));
-        File localDir = temporaryFolder.newFolder();
-        LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, temporaryFolder.newFolder(), false) {
+        File localDir = Files.createTempDirectory(tempDir, "folder").toFile();
+        LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, Files.createTempDirectory(tempDir, "folder").toFile(), false) {
             @Override
             long startCopy(LocalIndexFile file) {
                 long start = super.startCopy(file);
@@ -133,9 +134,9 @@ public class CopyOnReadDirectoryTest {
 
     @Test
     public void failedSyncDoesNotPublishOrLeaveCopyInProgress() throws Exception {
-        File localDir = temporaryFolder.newFolder();
+        File localDir = Files.createTempDirectory(tempDir, "folder").toFile();
         OakDirectory remote = remoteWithFile();
-        LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, temporaryFolder.newFolder(), false);
+        LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, Files.createTempDirectory(tempDir, "folder").toFile(), false);
         Directory failing = new FilterDirectory(FSDirectory.open(localDir.toPath())) {
             @Override
             public void sync(Collection<String> names) throws IOException {
@@ -169,8 +170,8 @@ public class CopyOnReadDirectoryTest {
             }
             return invocation.callRealMethod();
         }).when(remote).openInput(eq("file"), any(IOContext.class));
-        File localDir = temporaryFolder.newFolder();
-        try (LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, temporaryFolder.newFolder(), false)) {
+        File localDir = Files.createTempDirectory(tempDir, "folder").toFile();
+        try (LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, Files.createTempDirectory(tempDir, "folder").toFile(), false)) {
             LocalIndexFile file;
             try (Directory local = FSDirectory.open(localDir.toPath())) {
                 file = new LocalIndexFile(local, "file", remote.fileLength("file"), true);

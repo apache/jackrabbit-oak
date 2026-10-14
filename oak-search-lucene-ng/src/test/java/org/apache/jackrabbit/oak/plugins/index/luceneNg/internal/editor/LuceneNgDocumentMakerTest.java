@@ -25,12 +25,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.facet.FacetsConfig;
 import org.apache.lucene.index.IndexableField;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Direct-hook unit tests for {@link LuceneNgDocumentMaker}: build a minimal index definition
@@ -96,11 +96,11 @@ public class LuceneNgDocumentMakerTest {
         LuceneNgDocumentMaker maker = new LuceneNgDocumentMaker(null, def, rule, "/content", facetsConfig);
         Document doc = maker.makeDocument(contentNode("tags", "red"));
 
-        assertNotNull("a facet-enabled property must produce a document", doc);
+        assertNotNull(doc, "a facet-enabled property must produce a document");
         // finalizeDoc runs FacetsConfig.build, materializing the SortedSetDocValuesFacetField into
         // the configured facet index field.
-        assertNotNull("facet field must be present after FacetsConfig.build",
-                doc.getField(FieldNames.createFacetFieldName("tags")));
+        assertNotNull(doc.getField(FieldNames.createFacetFieldName("tags")),
+                "facet field must be present after FacetsConfig.build");
     }
 
     @Test
@@ -116,7 +116,7 @@ public class LuceneNgDocumentMakerTest {
         LuceneNgDocumentMaker maker = new LuceneNgDocumentMaker(null, def, rule, "/content", new FacetsConfig());
         Document doc = maker.makeDocument(contentNode("body", "search me"));
 
-        assertNotNull("a nodeScopeIndex property must produce a document", doc);
+        assertNotNull(doc, "a nodeScopeIndex property must produce a document");
         boolean found = false;
         for (IndexableField f : doc.getFields(FieldNames.FULLTEXT)) {
             if ("search me".equals(f.stringValue())) {
@@ -124,7 +124,7 @@ public class LuceneNgDocumentMakerTest {
                 break;
             }
         }
-        assertTrue("nodeScopeIndex property value must be added to the :fulltext field", found);
+        assertTrue(found, "nodeScopeIndex property value must be added to the :fulltext field");
     }
 
     @Test
@@ -136,16 +136,16 @@ public class LuceneNgDocumentMakerTest {
         LuceneNgIndexDefinition def = definitionWith(idb, defnBuilder);
         IndexingRule rule = def.getApplicableIndexingRule("nt:unstructured");
         assertNotNull(rule);
-        assertTrue("rule must have node-name indexing enabled", rule.isNodeNameIndexed());
+        assertTrue(rule.isNodeNameIndexed(), "rule must have node-name indexing enabled");
 
         // Path leaf is "jcr:foo"; the framework strips the namespace prefix before indexNodeName.
         LuceneNgDocumentMaker maker = new LuceneNgDocumentMaker(null, def, rule, "/a/jcr:foo", new FacetsConfig());
         Document doc = maker.makeDocument(contentNode());
 
-        assertNotNull("node-name indexing must produce a document", doc);
+        assertNotNull(doc, "node-name indexing must produce a document");
         IndexableField nodeName = doc.getField(FieldNames.NODE_NAME);
-        assertNotNull("a :nodeName field must be present", nodeName);
-        assertEquals("local name must be indexed with the namespace prefix stripped",
-                "foo", nodeName.stringValue());
+        assertNotNull(nodeName, "a :nodeName field must be present");
+        assertEquals("foo",
+                nodeName.stringValue(), "local name must be indexed with the namespace prefix stripped");
     }
 }

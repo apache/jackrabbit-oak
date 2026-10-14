@@ -16,20 +16,21 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Dictionary;
 
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.mock;
@@ -37,14 +38,14 @@ import static org.mockito.Mockito.when;
 
 public class LuceneNgIndexProviderServiceTest {
 
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+    @TempDir
+    public Path tempDir;
 
     @Test
     public void copyOnReadEnabled_createsCopierAndPassesToTracker() throws Exception {
         LuceneNgIndexProviderService service = new LuceneNgIndexProviderService();
         BundleContext bundleContext = mock(BundleContext.class);
-        when(bundleContext.getProperty("repository.home")).thenReturn(temporaryFolder.getRoot().getAbsolutePath());
+        when(bundleContext.getProperty("repository.home")).thenReturn(tempDir.toFile().getAbsolutePath());
         when(bundleContext.registerService(anyString(), any(), any(Dictionary.class)))
                 .thenReturn(mock(ServiceRegistration.class));
 
@@ -56,8 +57,8 @@ public class LuceneNgIndexProviderServiceTest {
 
         activate(service, bundleContext, config); // reflection helper - see below
 
-        File expectedIndexDir = new File(temporaryFolder.getRoot(), "index");
-        assertTrue("expected index dir to be created under repository.home/index", expectedIndexDir.isDirectory());
+        File expectedIndexDir = new File(tempDir.toFile(), "index");
+        assertTrue(expectedIndexDir.isDirectory(), "expected index dir to be created under repository.home/index");
 
         deactivate(service); // reflection helper - see below
     }
@@ -87,7 +88,7 @@ public class LuceneNgIndexProviderServiceTest {
         for (boolean readerEnabled : new boolean[] {false, true}) {
             LuceneNgIndexProviderService service = new LuceneNgIndexProviderService();
             BundleContext context = mock(BundleContext.class);
-            when(context.getProperty("repository.home")).thenReturn(temporaryFolder.newFolder().getAbsolutePath());
+            when(context.getProperty("repository.home")).thenReturn(Files.createTempDirectory(tempDir, "folder").toFile().getAbsolutePath());
             when(context.registerService(anyString(), any(), any(Dictionary.class))).thenReturn(mock(ServiceRegistration.class));
             LuceneNgIndexProviderService.Config config = mock(LuceneNgIndexProviderService.Config.class);
             when(config.enableCopyOnReadSupport()).thenReturn(readerEnabled);

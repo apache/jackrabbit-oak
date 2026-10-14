@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.luceneNg.directory;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class OakIndexInputCloneTest {
 
@@ -53,9 +53,9 @@ public class OakIndexInputCloneTest {
         clone.seek(150); // inside the 'B' region — must not affect `original`
 
         byte fromOriginal = original.readByte();
-        assertEquals("cloning must give the clone its own read cursor; "
-                + "moving the clone's position must not move the original's",
-                (byte) 'A', fromOriginal);
+        assertEquals((byte) 'A',
+                fromOriginal, "cloning must give the clone its own read cursor; "
+                + "moving the clone's position must not move the original's");
 
         byte fromClone = clone.readByte();
         assertEquals((byte) 'B', fromClone);

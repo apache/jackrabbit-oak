@@ -24,10 +24,10 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.TermQuery;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Verifies that the Lucene 9 index editor emits exactly one index update per successfully indexed
@@ -67,8 +67,8 @@ public class IndexUpdateCallbackTest {
         node(root, "page3", "nt:folder");
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
-        assertEquals("exactly one indexed document per matching node (page3 excluded)",
-                2, LuceneNgEditorCommitUtil.numDocs(indexed, IDX));
+        assertEquals(2,
+                LuceneNgEditorCommitUtil.numDocs(indexed, IDX), "exactly one indexed document per matching node (page3 excluded)");
     }
 
     @Test
@@ -79,8 +79,8 @@ public class IndexUpdateCallbackTest {
         node(root, "page1", "nt:unstructured").setProperty("description", "no title here");
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
-        assertEquals("no indexed document when no configured property matched",
-                0, LuceneNgEditorCommitUtil.numDocs(indexed, IDX));
+        assertEquals(0,
+                LuceneNgEditorCommitUtil.numDocs(indexed, IDX), "no indexed document when no configured property matched");
     }
 
     @Test
@@ -97,8 +97,8 @@ public class IndexUpdateCallbackTest {
 
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             IndexSearcher searcher = new IndexSearcher(reader);
-            assertEquals("deleting the node must remove its indexed document", 0,
-                    searcher.search(new TermQuery(new Term(FieldNames.PATH, "/page1")), 10).totalHits.value);
+            assertEquals(0, searcher.search(new TermQuery(new Term(FieldNames.PATH, "/page1")), 10).totalHits.value,
+                    "deleting the node must remove its indexed document");
         }
     }
 }

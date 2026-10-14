@@ -29,13 +29,13 @@ import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetCounts;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * Verifies that the {@code FacetsConfig} built by {@link org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.editor.LuceneNgIndexEditorContext}
@@ -75,7 +75,7 @@ public class LuceneNgFacetsConfigTest {
         String luceneFacetField = FieldNames.createFacetFieldName("color");
 
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
-            assertEquals("Three documents must be indexed", 3, reader.numDocs());
+            assertEquals(3, reader.numDocs(), "Three documents must be indexed");
 
             IndexSearcher searcher = new IndexSearcher(reader);
             FacetsCollector fc = new FacetsCollector();
@@ -85,16 +85,16 @@ public class LuceneNgFacetsConfigTest {
                     new DefaultSortedSetDocValuesReaderState(reader, luceneFacetField);
             Facets facets = new SortedSetDocValuesFacetCounts(state, fc);
             FacetResult result = facets.getTopChildren(10, "color");
-            assertNotNull("Facet result for 'color' must not be null", result);
+            assertNotNull(result, "Facet result for 'color' must not be null");
 
             java.util.Map<String, Integer> counts = new java.util.HashMap<>();
             for (org.apache.lucene.facet.LabelAndValue lv : result.labelValues) {
                 counts.put(lv.label, lv.value.intValue());
             }
 
-            assertEquals("'red' appears in node1 and node2", 2, (int) counts.getOrDefault("red", 0));
-            assertEquals("'green' appears in node2 and node3", 2, (int) counts.getOrDefault("green", 0));
-            assertEquals("'blue' appears only in node1", 1, (int) counts.getOrDefault("blue", 0));
+            assertEquals(2, (int) counts.getOrDefault("red", 0), "'red' appears in node1 and node2");
+            assertEquals(2, (int) counts.getOrDefault("green", 0), "'green' appears in node2 and node3");
+            assertEquals(1, (int) counts.getOrDefault("blue", 0), "'blue' appears only in node1");
         }
     }
 }

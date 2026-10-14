@@ -26,26 +26,26 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexOutput;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executor;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class LuceneNgIndexCopierTest {
 
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+    @TempDir
+    public Path tempDir;
 
     private final Executor sameThreadExecutor = Runnable::run;
 
@@ -62,7 +62,7 @@ public class LuceneNgIndexCopierTest {
             out.writeString("hello-luceneNg");
         }
 
-        LuceneNgIndexCopier copier = new LuceneNgIndexCopier(sameThreadExecutor, temporaryFolder.newFolder(), false);
+        LuceneNgIndexCopier copier = new LuceneNgIndexCopier(sameThreadExecutor, Files.createTempDirectory(tempDir, "folder").toFile(), false);
         LuceneNgIndexDefinition definition = testDefinition("uid-1");
 
         try (Directory wrapped = copier.wrapForRead("/oak:index/test", definition, remote, "luceneNg")) {
@@ -79,13 +79,13 @@ public class LuceneNgIndexCopierTest {
             assertArrayEquals(expected, actual);
         }
 
-        assertTrue("expected at least one file copied locally", copier.getDownloadCount() >= 1);
+        assertTrue(copier.getDownloadCount() >= 1, "expected at least one file copied locally");
         copier.close();
     }
 
     @Test
     public void existsLocally_and_localFileLength_reflectFilePresenceAndAbsence() throws Exception {
-        File dir = temporaryFolder.newFolder();
+        File dir = Files.createTempDirectory(tempDir, "folder").toFile();
         File file = new File(dir, "segments_1");
         byte[] content = {1, 2, 3, 4, 5};
         Files.write(file.toPath(), content);
@@ -99,8 +99,8 @@ public class LuceneNgIndexCopierTest {
 
     @Test
     public void deleteFile_removesExistingLocalFile() throws Exception {
-        File dir = temporaryFolder.newFolder();
-        LuceneNgIndexCopier copier = new LuceneNgIndexCopier(sameThreadExecutor, temporaryFolder.newFolder(), false);
+        File dir = Files.createTempDirectory(tempDir, "folder").toFile();
+        LuceneNgIndexCopier copier = new LuceneNgIndexCopier(sameThreadExecutor, Files.createTempDirectory(tempDir, "folder").toFile(), false);
         try (Directory local = FSDirectory.open(dir.toPath())) {
             try (IndexOutput out = local.createOutput("segments_1", IOContext.DEFAULT)) {
                 out.writeString("content");
@@ -109,8 +109,8 @@ public class LuceneNgIndexCopierTest {
 
             boolean deleted = copier.deleteFile(local, dir, "segments_1", true);
 
-            assertTrue("deleteFile should report success", deleted);
-            assertFalse("file should be removed from disk", LuceneNgIndexCopier.existsLocally(dir, "segments_1"));
+            assertTrue(deleted, "deleteFile should report success");
+            assertFalse(LuceneNgIndexCopier.existsLocally(dir, "segments_1"), "file should be removed from disk");
         } finally {
             copier.close();
         }
@@ -118,11 +118,11 @@ public class LuceneNgIndexCopierTest {
 
     @Test
     public void deleteFile_whenFileAlreadyGone_stillReportsSuccessWithoutThrowing() throws Exception {
-        File dir = temporaryFolder.newFolder();
-        LuceneNgIndexCopier copier = new LuceneNgIndexCopier(sameThreadExecutor, temporaryFolder.newFolder(), false);
+        File dir = Files.createTempDirectory(tempDir, "folder").toFile();
+        LuceneNgIndexCopier copier = new LuceneNgIndexCopier(sameThreadExecutor, Files.createTempDirectory(tempDir, "folder").toFile(), false);
         try (Directory local = FSDirectory.open(dir.toPath())) {
             boolean deleted = copier.deleteFile(local, dir, "never-existed", true);
-            assertTrue("deleteFile has nothing to do but should still report success", deleted);
+            assertTrue(deleted, "deleteFile has nothing to do but should still report success");
         } finally {
             copier.close();
         }
@@ -130,7 +130,7 @@ public class LuceneNgIndexCopierTest {
 
     @Test
     public void indexSanityChecker_purgesLocalOnSizeMismatch() throws Exception {
-        File localDir = temporaryFolder.newFolder();
+        File localDir = Files.createTempDirectory(tempDir, "folder").toFile();
         NodeBuilder storageBuilder = INITIAL_CONTENT.builder();
         OakDirectory remote = new OakDirectory(storageBuilder, "sanityIndex", false);
         try (IndexOutput out = remote.createOutput("segments_1", IOContext.DEFAULT)) {
@@ -145,14 +145,14 @@ public class LuceneNgIndexCopierTest {
             IndexSanityChecker checker = new IndexSanityChecker("/oak:index/sanity", local, localDir, remote);
             boolean allFine = checker.check(new IndexSanityChecker.IndexSanityStatistics());
 
-            assertFalse("size mismatch between local and remote should be flagged", allFine);
-            assertEquals("local should be fully purged on mismatch", 0, local.listAll().length);
+            assertFalse(allFine, "size mismatch between local and remote should be flagged");
+            assertEquals(0, local.listAll().length, "local should be fully purged on mismatch");
         }
     }
 
     @Test
     public void indexSanityChecker_removesStaleLocalFileNotPresentOnRemote() throws Exception {
-        File localDir = temporaryFolder.newFolder();
+        File localDir = Files.createTempDirectory(tempDir, "folder").toFile();
         NodeBuilder storageBuilder = INITIAL_CONTENT.builder();
         OakDirectory remote = new OakDirectory(storageBuilder, "sanityIndex2", false);
         try (IndexOutput out = remote.createOutput("onBoth", IOContext.DEFAULT)) {
@@ -170,10 +170,10 @@ public class LuceneNgIndexCopierTest {
             IndexSanityChecker checker = new IndexSanityChecker("/oak:index/sanity2", local, localDir, remote);
             boolean allFine = checker.check(new IndexSanityChecker.IndexSanityStatistics());
 
-            assertTrue("matching sizes on the shared file should not trigger a purge", allFine);
+            assertTrue(allFine, "matching sizes on the shared file should not trigger a purge");
             List<String> remaining = Arrays.asList(local.listAll());
-            assertTrue("file present on both sides with matching size should survive", remaining.contains("onBoth"));
-            assertFalse("file only present locally should be removed", remaining.contains("onlyLocal"));
+            assertTrue(remaining.contains("onBoth"), "file present on both sides with matching size should survive");
+            assertFalse(remaining.contains("onlyLocal"), "file only present locally should be removed");
         }
     }
 

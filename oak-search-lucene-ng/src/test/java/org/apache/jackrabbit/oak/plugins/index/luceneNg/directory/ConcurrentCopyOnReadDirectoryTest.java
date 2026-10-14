@@ -30,16 +30,17 @@ import org.apache.lucene.store.FilterDirectory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -51,9 +52,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.CopyOnReadDirectory.WAIT_OTHER_COPY_SYSPROP_NAME;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.spy;
@@ -93,8 +94,8 @@ import static org.mockito.Mockito.when;
  * {@code WAIT_OTHER_COPY_SYSPROP_NAME} system property is saved/restored manually.
  */
 public class ConcurrentCopyOnReadDirectoryTest {
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
+    @TempDir(factory = TargetTempDirFactory.class)
+    public Path tempDir;
 
     private String previousWaitCopyMillis;
 
@@ -119,7 +120,7 @@ public class ConcurrentCopyOnReadDirectoryTest {
 
     private static final String REMOTE_INPUT_PREFIX = "Remote - ";
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         previousWaitCopyMillis = System.getProperty(WAIT_OTHER_COPY_SYSPROP_NAME);
         System.setProperty(WAIT_OTHER_COPY_SYSPROP_NAME, String.valueOf(TimeUnit.MILLISECONDS.toMillis(30)));
@@ -150,7 +151,7 @@ public class ConcurrentCopyOnReadDirectoryTest {
         // always firstCoR's, since firstCoR is always set up before the leeching CoRs) right
         // after that directory's createOutput call returns - see class javadoc for why this
         // replaces legacy's remote-side openInput interception.
-        copier = new LuceneNgIndexCopier(ExecutorUtils.directExecutor(), temporaryFolder.newFolder(), true) {
+        copier = new LuceneNgIndexCopier(ExecutorUtils.directExecutor(), Files.createTempDirectory(tempDir, "folder").toFile(), true) {
             @Override
             protected Directory createLocalDirForIndexReader(String indexPath, IndexDefinition definition,
                                                               String dirName, File localDir) throws IOException {
@@ -189,7 +190,7 @@ public class ConcurrentCopyOnReadDirectoryTest {
         defn = testDefinition("uid-1");
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (previousWaitCopyMillis == null) {
             System.clearProperty(WAIT_OTHER_COPY_SYSPROP_NAME);
@@ -212,14 +213,14 @@ public class ConcurrentCopyOnReadDirectoryTest {
         // let of go of CoR1 to finish its work
         firstCoRBlocker.countDown();
 
-        assertNull("First CoR must not throw exception", firstCoRFutre.get());
+        assertNull(firstCoRFutre.get(), "First CoR must not throw exception");
 
         waitForLeechingCoRsToFinish();
 
         for (Directory d : IterableUtils.chainedIterable(Collections.singleton(firstCoR), leechingCoRs)) {
             IndexInput input = d.openInput("file", IOContext.READ);
-            assertFalse(d + " must not be reading from remote",
-                    input.toString().startsWith(REMOTE_INPUT_PREFIX));
+            assertFalse(input.toString().startsWith(REMOTE_INPUT_PREFIX),
+                    d + " must not be reading from remote");
         }
     }
 
@@ -234,16 +235,16 @@ public class ConcurrentCopyOnReadDirectoryTest {
         // let it go now as leeching CoRs have finished
         firstCoRBlocker.countDown();
 
-        assertNull("First CoR must not throw exception", firstCoRFutre.get());
+        assertNull(firstCoRFutre.get(), "First CoR must not throw exception");
 
         IndexInput input = firstCoR.openInput("file", IOContext.READ);
-        assertFalse(firstCoR + " must not be reading from remote",
-                input.toString().startsWith(REMOTE_INPUT_PREFIX));
+        assertFalse(input.toString().startsWith(REMOTE_INPUT_PREFIX),
+                firstCoR + " must not be reading from remote");
 
         for (Directory d : leechingCoRs) {
             input = d.openInput("file", IOContext.READ);
-            assertTrue(d + " must be reading from remote",
-                    input.toString().startsWith(REMOTE_INPUT_PREFIX));
+            assertTrue(input.toString().startsWith(REMOTE_INPUT_PREFIX),
+                    d + " must be reading from remote");
         }
     }
 
@@ -309,7 +310,7 @@ public class ConcurrentCopyOnReadDirectoryTest {
 
     private void waitForLeechingCoRsToFinish() throws Exception {
         for (Future<String> corFuture : leechingCoRFutures) {
-            assertNull("Leeching CoR must not throw exception", corFuture.get());
+            assertNull(corFuture.get(), "Leeching CoR must not throw exception");
         }
     }
 

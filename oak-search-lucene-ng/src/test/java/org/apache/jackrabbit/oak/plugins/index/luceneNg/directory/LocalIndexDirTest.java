@@ -20,21 +20,22 @@ package org.apache.jackrabbit.oak.plugins.index.luceneNg.directory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class LocalIndexDirTest {
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
+    @TempDir(factory = TargetTempDirFactory.class)
+    public Path tempDir;
 
     @Test
     public void basicStuff() throws Exception{
@@ -47,9 +48,9 @@ public class LocalIndexDirTest {
         assertTrue(dir.isEmpty());
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void invalidDir() throws Exception{
-        new LocalIndexDir(temporaryFolder.getRoot());
+        assertThrows(IllegalStateException.class, () -> new LocalIndexDir(tempDir.toFile()));
     }
 
     @Test
@@ -80,7 +81,7 @@ public class LocalIndexDirTest {
     }
 
     private File createDirWithIndexMetaFile(IndexMeta m) throws IOException {
-        File baseDir = temporaryFolder.getRoot();
+        File baseDir = tempDir.toFile();
         File indexMeta = new File(baseDir, IndexRootDirectory.INDEX_METADATA_FILE_NAME);
         m.writeTo(indexMeta);
         return baseDir;

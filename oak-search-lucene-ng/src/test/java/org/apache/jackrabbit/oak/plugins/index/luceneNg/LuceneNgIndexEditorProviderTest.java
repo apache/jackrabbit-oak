@@ -22,11 +22,11 @@ import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 public class LuceneNgIndexEditorProviderTest {
@@ -36,7 +36,7 @@ public class LuceneNgIndexEditorProviderTest {
     private NodeBuilder rootBuilder;
     private LuceneNgIndexEditorProvider provider;
 
-    @Before
+    @BeforeEach
     public void setup() {
         root = INITIAL_CONTENT;
         rootBuilder = root.builder();
@@ -66,7 +66,7 @@ public class LuceneNgIndexEditorProviderTest {
     public void testGetEditorForOtherType() throws Exception {
         for (String type : new String[] {"lucene", "elasticsearch"}) {
             Editor editor = provider.getIndexEditor(type, definitionBuilder, root, mock(IndexUpdateCallback.class));
-            assertNull("Editor should ignore type " + type, editor);
+            assertNull(editor, "Editor should ignore type " + type);
         }
     }
 
@@ -78,7 +78,7 @@ public class LuceneNgIndexEditorProviderTest {
             root,
             contextCallback("/oak:index/test", false));
 
-        assertNotNull("Editor should be returned for luceneNg type", editor);
+        assertNotNull(editor, "Editor should be returned for luceneNg type");
     }
 
     @Test
@@ -89,16 +89,16 @@ public class LuceneNgIndexEditorProviderTest {
             root,
             contextCallback("/content/oak:index/test", false));
 
-        assertNull("Nested luceneNg definitions should be skipped", editor);
+        assertNull(editor, "Nested luceneNg definitions should be skipped");
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testGetEditorWithoutContextAwareCallbackThrows() throws Exception {
         IndexUpdateCallback plainCallback = mock(IndexUpdateCallback.class);
-        provider.getIndexEditor(
+        assertThrows(IllegalStateException.class, () -> provider.getIndexEditor(
             LuceneNgIndexConstants.TYPE_LUCENE_NG,
             definitionBuilder,
             root,
-            plainCallback);
+            plainCallback));
     }
 }

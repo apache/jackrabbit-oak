@@ -21,13 +21,13 @@ import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * The shared {@code oak-search} planner's {@code FulltextIndexPlanner#defaultPlan()} returns
@@ -66,14 +66,14 @@ public class LuceneNgIndexStatisticsTest {
         LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
         tracker.update(indexed);
         LuceneNgIndexNode node = tracker.acquireIndexNode(INDEX_PATH);
-        assertNotNull("Index node must be resolvable once data has been indexed", node);
+        assertNotNull(node, "Index node must be resolvable once data has been indexed");
         try {
             IndexStatistics stats = node.getIndexStatistics();
-            assertNotNull("getIndexStatistics() must return a real object once the index has a "
+            assertNotNull(stats, "getIndexStatistics() must return a real object once the index has a "
                     + "searcher -- a null result here makes FulltextIndexPlanner#defaultPlan() "
-                    + "refuse to produce a plan", stats);
-            assertEquals("numDocs() must reflect the actual number of indexed documents",
-                    n, stats.numDocs());
+                    + "refuse to produce a plan");
+            assertEquals(n,
+                    stats.numDocs(), "numDocs() must reflect the actual number of indexed documents");
         } finally {
             node.release();
         }
@@ -94,9 +94,9 @@ public class LuceneNgIndexStatisticsTest {
         NodeState indexState = root.getChildNode("oak:index").getChildNode("testIndex");
         LuceneNgIndexNode node = new LuceneNgIndexNode(INDEX_PATH, root, indexState);
 
-        assertFalse("Sanity check: this node must not have a searcher yet, or this test doesn't "
-                + "exercise the not-yet-populated case it's meant to", node.hasSearcher());
-        assertNull("getIndexStatistics() must still return null when the index has no data yet",
-                node.getIndexStatistics());
+        assertFalse(node.hasSearcher(), "Sanity check: this node must not have a searcher yet, or this test doesn't "
+                + "exercise the not-yet-populated case it's meant to");
+        assertNull(node.getIndexStatistics(),
+                "getIndexStatistics() must still return null when the index has no data yet");
     }
 }

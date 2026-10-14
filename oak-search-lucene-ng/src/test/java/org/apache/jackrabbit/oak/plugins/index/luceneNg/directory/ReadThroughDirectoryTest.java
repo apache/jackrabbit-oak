@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.index.luceneNg.directory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexDefinition;
@@ -26,18 +28,17 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ReadThroughDirectoryTest {
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+    @TempDir
+    public Path tempDir;
 
     @Test
     public void prefetchesDespiteReaderPrefetchBeingDisabled() throws Exception {
@@ -46,7 +47,7 @@ public class ReadThroughDirectoryTest {
         write(remote, "old", "original");
         remote.close();
         LuceneNgIndexDefinition definition = definition();
-        try (LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, temporaryFolder.newFolder(), false);
+        try (LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, Files.createTempDirectory(tempDir, "folder").toFile(), false);
              Directory writer = copier.wrapForWrite(definition, remote,
                      new OakDirectory(storage.getNodeState().builder(), "test", true), "luceneNg")) {
             assertEquals(1, copier.getDownloadCount());
@@ -69,7 +70,7 @@ public class ReadThroughDirectoryTest {
         write(remote, "old", "original");
         write(remote, "deleted", "remove");
         remote.close();
-        try (LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, temporaryFolder.newFolder(), false);
+        try (LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, Files.createTempDirectory(tempDir, "folder").toFile(), false);
              Directory writer = copier.wrapForWrite(definition(), remote,
                      new OakDirectory(storage.getNodeState().builder(), "test", true), "luceneNg")) {
             write(writer, "old", "replacement");

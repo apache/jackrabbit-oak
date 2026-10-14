@@ -26,21 +26,21 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class OakDirectoryTest {
 
     private NodeBuilder root;
 
-    @Before
+    @BeforeEach
     public void setup() {
         root = INITIAL_CONTENT.builder();
     }
@@ -95,16 +95,16 @@ public class OakDirectoryTest {
         }
 
         NodeBuilder fileNode = storageBuilder.getChildNode("test.bin");
-        assertTrue("file node must exist", fileNode.exists());
+        assertTrue(fileNode.exists(), "file node must exist");
 
         PropertyState keyProp = fileNode.getProperty(OakDirectory.PROP_UNIQUE_KEY);
-        assertNotNull("PROP_UNIQUE_KEY must be set on every new file", keyProp);
+        assertNotNull(keyProp, "PROP_UNIQUE_KEY must be set on every new file");
 
         String hexKey = keyProp.getValue(Type.STRING);
-        assertEquals("unique key must be " + OakDirectory.UNIQUE_KEY_SIZE + " bytes (= " +
-                        OakDirectory.UNIQUE_KEY_SIZE * 2 + " hex chars)",
-                OakDirectory.UNIQUE_KEY_SIZE * 2, hexKey.length());
-        assertTrue("unique key must contain only hex characters", hexKey.matches("[0-9a-f]+"));
+        assertEquals(OakDirectory.UNIQUE_KEY_SIZE * 2,
+                hexKey.length(), "unique key must be " + OakDirectory.UNIQUE_KEY_SIZE + " bytes (= " +
+                        OakDirectory.UNIQUE_KEY_SIZE * 2 + " hex chars)");
+        assertTrue(hexKey.matches("[0-9a-f]+"), "unique key must contain only hex characters");
     }
 
     @Test
@@ -120,8 +120,8 @@ public class OakDirectoryTest {
 
         // Reported file length must equal exactly the bytes written
         OakDirectory readDir = new OakDirectory(storageBuilder, "testIndex", true);
-        assertEquals("fileLength() must not include the uniqueKey suffix",
-                payload.length, readDir.fileLength("test.bin"));
+        assertEquals(payload.length,
+                readDir.fileLength("test.bin"), "fileLength() must not include the uniqueKey suffix");
         readDir.close();
 
         // The blob stored in the repository must be longer by UNIQUE_KEY_SIZE
@@ -129,8 +129,8 @@ public class OakDirectoryTest {
         PropertyState dataProp = fileNode.getProperty(JCR_DATA);
         assertNotNull(dataProp);
         Blob blob = dataProp.getValue(Type.BINARIES).iterator().next();
-        assertEquals("blob stored in JCR_DATA must include the uniqueKey suffix",
-                payload.length + OakDirectory.UNIQUE_KEY_SIZE, blob.length());
+        assertEquals(payload.length + OakDirectory.UNIQUE_KEY_SIZE,
+                blob.length(), "blob stored in JCR_DATA must include the uniqueKey suffix");
     }
 
     @Test
@@ -163,15 +163,15 @@ public class OakDirectoryTest {
         }
         writeDir.close();
 
-        assertTrue("callback must not fire before deleteFile()", deletedBlobIds.isEmpty());
+        assertTrue(deletedBlobIds.isEmpty(), "callback must not fire before deleteFile()");
 
         OakDirectory deleteDir = new OakDirectory(storageBuilder, "testIndex", false,
                 identifiableBlobFactory, callback);
         deleteDir.deleteFile("index.bin");
         deleteDir.close();
 
-        assertFalse("callback must fire when a file with identifiable blobs is deleted",
-                deletedBlobIds.isEmpty());
+        assertFalse(deletedBlobIds.isEmpty(),
+                "callback must fire when a file with identifiable blobs is deleted");
         for (String id : deletedBlobIds) {
             assertNotNull(id);
             assertTrue(id.startsWith("test-blob-"));
@@ -192,7 +192,7 @@ public class OakDirectoryTest {
         OakDirectory dir2 = new OakDirectory(storageBuilder, "testIndex", false);
         dir2.deleteFile("index.bin");
         dir2.close();
-        assertFalse("file must be removed from listing", List.of(dir2.listAll()).contains("index.bin"));
+        assertFalse(List.of(dir2.listAll()).contains("index.bin"), "file must be removed from listing");
     }
 
     @Test
@@ -227,6 +227,6 @@ public class OakDirectoryTest {
         String key2 = storageBuilder.getChildNode("file2.bin")
                 .getProperty(OakDirectory.PROP_UNIQUE_KEY).getValue(Type.STRING);
 
-        assertNotEquals("each file must get a distinct unique key", key1, key2);
+        assertNotEquals(key1, key2, "each file must get a distinct unique key");
     }
 }

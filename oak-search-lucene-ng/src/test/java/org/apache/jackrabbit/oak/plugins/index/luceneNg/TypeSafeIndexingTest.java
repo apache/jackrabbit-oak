@@ -31,11 +31,11 @@ import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.TermQuery;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * Verifies type-safe field creation in the Lucene 9 index editor.
@@ -74,14 +74,14 @@ public class TypeSafeIndexingTest {
         node(root, "asset").setProperty("size", "1234"); // stored as String, declared Long
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
-        assertEquals("Convertible string '1234' with Long declaration must produce a document",
-                1, LuceneNgEditorCommitUtil.numDocs(indexed, IDX));
+        assertEquals(1,
+                LuceneNgEditorCommitUtil.numDocs(indexed, IDX), "Convertible string '1234' with Long declaration must produce a document");
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             LeafReader leaf = reader.leaves().get(0).reader();
             FieldInfo fi = leaf.getFieldInfos().fieldInfo("size");
-            assertNotNull("'size' field must be present", fi);
-            assertEquals("declared Long must produce a point field (NONE index options)",
-                    IndexOptions.NONE, fi.getIndexOptions());
+            assertNotNull(fi, "'size' field must be present");
+            assertEquals(IndexOptions.NONE,
+                    fi.getIndexOptions(), "declared Long must produce a point field (NONE index options)");
         }
     }
 
@@ -98,8 +98,8 @@ public class TypeSafeIndexingTest {
         // nothing is indexed under "size", which the range query below asserts.)
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             IndexSearcher searcher = new IndexSearcher(reader);
-            assertEquals("Un-parseable string with declared Long type must not be queryable as a Long",
-                    0, searcher.search(LongPoint.newRangeQuery("size", Long.MIN_VALUE, Long.MAX_VALUE), 10).totalHits.value);
+            assertEquals(0,
+                    searcher.search(LongPoint.newRangeQuery("size", Long.MIN_VALUE, Long.MAX_VALUE), 10).totalHits.value, "Un-parseable string with declared Long type must not be queryable as a Long");
         }
     }
 
@@ -110,14 +110,14 @@ public class TypeSafeIndexingTest {
         node(root, "asset").setProperty("score", "3.14");
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
-        assertEquals("String '3.14' with declared Double type must produce a document",
-                1, LuceneNgEditorCommitUtil.numDocs(indexed, IDX));
+        assertEquals(1,
+                LuceneNgEditorCommitUtil.numDocs(indexed, IDX), "String '3.14' with declared Double type must produce a document");
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             LeafReader leaf = reader.leaves().get(0).reader();
             FieldInfo fi = leaf.getFieldInfos().fieldInfo("score");
-            assertNotNull("'score' field must be present", fi);
-            assertEquals("declared Double must produce a point field (NONE index options)",
-                    IndexOptions.NONE, fi.getIndexOptions());
+            assertNotNull(fi, "'score' field must be present");
+            assertEquals(IndexOptions.NONE,
+                    fi.getIndexOptions(), "declared Double must produce a point field (NONE index options)");
         }
     }
 
@@ -129,14 +129,14 @@ public class TypeSafeIndexingTest {
         node(root, "node").setProperty("count", 42L);
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
-        assertEquals("LONG value with no declared type must still produce a document",
-                1, LuceneNgEditorCommitUtil.numDocs(indexed, IDX));
+        assertEquals(1,
+                LuceneNgEditorCommitUtil.numDocs(indexed, IDX), "LONG value with no declared type must still produce a document");
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             LeafReader leaf = reader.leaves().get(0).reader();
             FieldInfo fi = leaf.getFieldInfos().fieldInfo("count");
-            assertNotNull("'count' field must be present", fi);
-            assertEquals("undeclared type defaults to String field (DOCS index options)",
-                    IndexOptions.DOCS, fi.getIndexOptions());
+            assertNotNull(fi, "'count' field must be present");
+            assertEquals(IndexOptions.DOCS,
+                    fi.getIndexOptions(), "undeclared type defaults to String field (DOCS index options)");
         }
     }
 
@@ -179,8 +179,8 @@ public class TypeSafeIndexingTest {
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             IndexSearcher searcher = new IndexSearcher(reader);
             for (String value : List.of("2.5", "3.5", "25", "35", "4.5", "hello")) {
-                assertEquals("Every numeric array element must be indexed as a string: " + value,
-                        1, searcher.search(new TermQuery(new Term("numbers", value)), 10).totalHits.value);
+                assertEquals(1,
+                        searcher.search(new TermQuery(new Term("numbers", value)), 10).totalHits.value, "Every numeric array element must be indexed as a string: " + value);
             }
             FieldInfo field = reader.leaves().get(0).reader().getFieldInfos().fieldInfo("numbers");
             assertNotNull(field);
@@ -209,14 +209,14 @@ public class TypeSafeIndexingTest {
         }
 
         NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
-        assertEquals("All 10 nodes must be indexed (all string values are parseable longs)",
-                10, LuceneNgEditorCommitUtil.numDocs(indexed, IDX));
+        assertEquals(10,
+                LuceneNgEditorCommitUtil.numDocs(indexed, IDX), "All 10 nodes must be indexed (all string values are parseable longs)");
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             LeafReader leaf = reader.leaves().get(0).reader();
             FieldInfo fi = leaf.getFieldInfos().fieldInfo("dam:size");
-            assertNotNull("dam:size field must exist", fi);
-            assertEquals("All dam:size documents must use point fields (NONE)",
-                    IndexOptions.NONE, fi.getIndexOptions());
+            assertNotNull(fi, "dam:size field must exist");
+            assertEquals(IndexOptions.NONE,
+                    fi.getIndexOptions(), "All dam:size documents must use point fields (NONE)");
         }
     }
 
@@ -231,9 +231,9 @@ public class TypeSafeIndexingTest {
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             LeafReader leaf = reader.leaves().get(0).reader();
             FieldInfo fi = leaf.getFieldInfos().fieldInfo("active");
-            assertNotNull("'active' boolean field must be present", fi);
-            assertEquals("boolean must produce a StringField (DOCS index options)",
-                    IndexOptions.DOCS, fi.getIndexOptions());
+            assertNotNull(fi, "'active' boolean field must be present");
+            assertEquals(IndexOptions.DOCS,
+                    fi.getIndexOptions(), "boolean must produce a StringField (DOCS index options)");
         }
     }
 
