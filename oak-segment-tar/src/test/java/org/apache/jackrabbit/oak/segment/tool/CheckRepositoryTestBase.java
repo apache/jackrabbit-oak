@@ -35,11 +35,13 @@ import java.util.Random;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.RecordType;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.SegmentPropertyState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
@@ -127,6 +129,43 @@ public class CheckRepositoryTestBase {
         corruptRecord(aRecordId, "data00001a.tar");
     }
 
+    protected void addInvalidRevisionWithCorruptNewNodeOnly() throws InvalidFileStoreVersionException, IOException, CommitFailedException {
+        RecordId zRecordId;
+        try (FileStore fileStore = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot()).withMaxFileSize(256)
+            .withSegmentCacheSize(64).build()) {
+
+            SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+            NodeBuilder builder = nodeStore.getRoot().builder();
+
+            // add a new child "z" and corrupt only its NODE record
+            addChildWithBlobProperties(nodeStore, builder, "z", 5);
+
+            NodeState after = nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            zRecordId = ((SegmentNodeState) after.getChildNode("z")).getRecordId();
+        }
+
+        corruptRecord(zRecordId, "data00001a.tar");
+    }
+
+    protected void addInvalidRevisionWithCorruptNewNodeProperty() throws InvalidFileStoreVersionException, IOException, CommitFailedException {
+        RecordId valueRecordId;
+        try (FileStore fileStore = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot()).withMaxFileSize(256)
+            .withSegmentCacheSize(64).build()) {
+
+            SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+            NodeBuilder builder = nodeStore.getRoot().builder();
+
+            // add a new child "z" and corrupt only the value record of its property
+            builder.child("z").setProperty("z0", "value");
+
+            NodeState after = nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            PropertyState property = after.getChildNode("z").getProperty("z0");
+            valueRecordId = ((SegmentPropertyState) property).getRecordId();
+        }
+
+        corruptRecord(valueRecordId, "data00001a.tar", RecordType.VALUE);
+    }
+
     protected void corruptPathFromCheckpoint() throws InvalidFileStoreVersionException, IOException {
         FileStore fileStore = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot()).withMaxFileSize(256)
             .withSegmentCacheSize(64).build();
@@ -140,6 +179,10 @@ public class CheckRepositoryTestBase {
     }
 
     private void corruptRecord(RecordId recordId, String tarFileName) throws FileNotFoundException, IOException {
+        corruptRecord(recordId, tarFileName, RecordType.NODE);
+    }
+
+    private void corruptRecord(RecordId recordId, String tarFileName, RecordType recordType) throws FileNotFoundException, IOException {
         RandomAccessFile file = new RandomAccessFile(new File(temporaryFolder.getRoot(), tarFileName), "rw");
 
         String segmentName = recordId.getSegmentId().toString();
@@ -183,7 +226,7 @@ public class CheckRepositoryTestBase {
         int offset = segmentBytes.getInt(skip + 4 + 1);
 
         Assert.assertEquals(recordId.getRecordNumber(), number);
-        Assert.assertEquals(RecordType.NODE.ordinal(), type);
+        Assert.assertEquals(recordType.ordinal(), type);
 
         // read the offset of previous record to derive length of our record
         int prevSkip = 32 + segmentRefs * 16 + (recordId.getRecordNumber() - 1) * 9;
