@@ -16,11 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import co.elastic.clients.elasticsearch.indices.GetIndexResponse;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -32,8 +34,6 @@ public class ElasticIndexStatisticsITTest extends ElasticAbstractQueryTest {
 
     @Test
     public void storeStatsReflectRealIndex() throws Exception {
-        long before = System.currentTimeMillis();
-
         Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("foo", "bar");
         test.addChild("b").setProperty("foo", "bar");
@@ -60,7 +60,13 @@ public class ElasticIndexStatisticsITTest extends ElasticAbstractQueryTest {
         assertTrue("expected a positive store size", statistics.storeSize() > 0);
         assertTrue("expected a positive primary store size not exceeding the total store size",
                 statistics.primaryStoreSize() > 0 && statistics.primaryStoreSize() <= statistics.storeSize());
-        assertTrue("expected a creation date between test start and now",
-                statistics.creationDate() >= before && statistics.creationDate() <= System.currentTimeMillis());
+        // The Elasticsearch clock need not be synchronized with the test JVM's clock.
+        GetIndexResponse metadata = esConnection.getClient().indices().get(g -> g.index(indexDefinition.getIndexAlias()));
+        assertEquals("expected a single backing index", 1, metadata.indices().size());
+        Long creationDate = metadata.indices().values().iterator().next().settings().index().creationDate();
+        assertNotNull("expected an index creation date", creationDate);
+        assertTrue("expected a positive creation date", creationDate > 0);
+        assertEquals("creation date must match Elasticsearch index metadata",
+                creationDate.longValue(), statistics.creationDate());
     }
 }
