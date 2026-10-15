@@ -184,11 +184,8 @@ public class Template {
      */
     PropertyTemplate getPropertyTemplate(String name) {
         int hash = name.hashCode();
-        int index = 0;
-        while (index < properties.length
-                && properties[index].getName().hashCode() < hash) {
-            index++;
-        }
+
+        int index = lowerBoundByHash(hash);
         while (index < properties.length
                 && properties[index].getName().hashCode() == hash) {
             if (name.equals(properties[index].getName())) {
@@ -197,6 +194,26 @@ public class Template {
             index++;
         }
         return null;
+    }
+
+    /**
+     * Returns the index of the first entry in {@link #properties} whose name
+     * hash is greater than or equal to {@code hash}, or {@code properties.length}
+     * if there is none. Relies on {@link #properties} being sorted by name hash
+     * (see the constructor).
+     */
+    private int lowerBoundByHash(int hash) {
+        int lo = 0;
+        int hi = properties.length;
+        while (lo < hi) {
+            int mid = (lo + hi) >>> 1;
+            if (properties[mid].getName().hashCode() < hash) {
+                lo = mid + 1;
+            } else {
+                hi = mid;
+            }
+        }
+        return lo;
     }
 
     @Nullable
