@@ -945,6 +945,25 @@ The legacy `-Doak.documentMK.guavaCache=true` also selects Caffeine SYNC,
 regardless of the new toggle; despite its name, it no longer selects Guava.
 Setting both properties to `true` selects the same Caffeine SYNC implementation.
 
+Caffeine ASYNC maintenance is a separate opt-in: enable `FT_OAK-12437` (or
+`-Doak.documentMK.asyncCacheMaintenance=true`) and select ASYNC per cache with
+`DocumentNodeStoreBuilder.setCacheMaintenanceMode`. Both Caffeine and ASYNC
+opt-ins are required. Unconfigured caches remain SYNC; changing a toggle
+requires recreating the builder/store or restarting the service.
+Persistent ASYNC caches charge an additional 96 bytes per entry for metadata.
+Small entries therefore occupy a larger share of the budget; use observed hit
+rates to decide whether to increase cache sizes. Non-persistent caches retain
+the original entry weights.
+
+ASYNC entry-owned caches use only in-memory children entries when checking
+whether a child is absent, avoiding cross-cache loader deadlocks. A children
+entry found only on disk can therefore require a document-store read.
+Asynchronous **persistent writes** are independent of maintenance mode: values
+received through broadcasts become eligible for disk persistence after a local
+read and eviction. Unread broadcast values stay in memory; synchronous
+persistent writes store them immediately. These rules also apply to the
+existing persistent cache with SYNC maintenance.
+
 In a default setup the [DocumentNodeStoreService][osgi-config]
 takes a single config for `cache` which is internally distributed among the 
 various caches above in following way
