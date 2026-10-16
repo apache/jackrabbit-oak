@@ -160,6 +160,7 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
         Default(final int size, @NotNull final Weigher<K, RecordId> weigher) {
             this.weigher = weigher;
             this.cache = CacheBuilder.<K, RecordId>newBuilder()
+                    .maintenanceMode(SegmentCacheMaintenance.mode())
                     .maximumSize(size * 4L / 3)
                     .initialCapacity(size)
                     .recordStats()
