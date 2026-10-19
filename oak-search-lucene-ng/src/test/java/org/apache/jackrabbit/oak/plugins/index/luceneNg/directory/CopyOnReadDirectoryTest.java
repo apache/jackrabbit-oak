@@ -22,7 +22,10 @@ package org.apache.jackrabbit.oak.plugins.index.luceneNg.directory;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
@@ -34,6 +37,7 @@ import java.io.IOException;
 
 import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.FilterDirectory;
@@ -47,6 +51,7 @@ import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.ArgumentMatchers.any;
@@ -188,6 +193,38 @@ public class CopyOnReadDirectoryTest {
                 assertEquals(1, copier.getDownloadCount());
             }
         }
+    }
+
+    @Test
+    public void rejectedBackgroundTasksStillReadRemotelyAndCloseTheLocalDirectory() throws Exception {
+        Executor stopped = task -> {
+            throw new RejectedExecutionException("stopped");
+        };
+        LuceneNgIndexCopier copier = new LuceneNgIndexCopier(stopped, Files.createTempDirectory(tempDir, "folder").toFile(), false);
+        File localDir = Files.createTempDirectory(tempDir, "folder").toFile();
+        Directory local = FSDirectory.open(localDir.toPath());
+        Directory dir = new CopyOnReadDirectory(copier, remoteWithFile(), local, localDir, false, "foo", stopped);
+
+        assertEquals("content", read(dir));
+        dir.close();
+
+        assertThrows(AlreadyClosedException.class, local::listAll);
+    }
+
+    @Test
+    public void closedCopierSchedulesNoBackgroundTasksAndClosesTheLocalDirectory() throws Exception {
+        List<Runnable> scheduled = new ArrayList<>();
+        LuceneNgIndexCopier copier = new LuceneNgIndexCopier(scheduled::add, Files.createTempDirectory(tempDir, "folder").toFile(), false);
+        File localDir = Files.createTempDirectory(tempDir, "folder").toFile();
+        Directory local = FSDirectory.open(localDir.toPath());
+        Directory dir = new CopyOnReadDirectory(copier, remoteWithFile(), local, localDir, false, "foo", scheduled::add);
+        copier.close();
+
+        assertEquals("content", read(dir));
+        dir.close();
+
+        assertEquals(List.of(), scheduled);
+        assertThrows(AlreadyClosedException.class, local::listAll);
     }
 
     private OakDirectory remoteWithFile() throws IOException {

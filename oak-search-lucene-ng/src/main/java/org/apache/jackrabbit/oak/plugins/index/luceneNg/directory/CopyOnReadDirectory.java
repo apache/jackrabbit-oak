@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -159,17 +160,29 @@ public class CopyOnReadDirectory extends FilterDirectory {
         return local;
     }
 
+    /**
+     * Copies the file to local disk in the background. Once the copier is closed, or when the
+     * executor no longer accepts tasks, the file is left remote.
+     */
     private void copy(final CORFileReference reference) {
+        if (indexCopier.isClosed()) {
+            return;
+        }
         indexCopier.scheduledForCopy();
-        executor.execute(() -> {
+        try {
+            executor.execute(() -> {
+                indexCopier.copyDone();
+                try {
+                    copyFilesToLocal(reference, true);
+                } catch (IOException e) {
+                    log.warn("[{}] Error copying file {} to local cache; reads will use remote storage",
+                            indexPath, reference.name, e);
+                }
+            });
+        } catch (RejectedExecutionException e) {
             indexCopier.copyDone();
-            try {
-                copyFilesToLocal(reference, true);
-            } catch (IOException e) {
-                log.warn("[{}] Error copying file {} to local cache; reads will use remote storage",
-                        indexPath, reference.name, e);
-            }
-        });
+            log.debug("[{}] Not copying {} to local cache: no copy task accepted", indexPath, reference.name);
+        }
     }
 
     private void prefetchIndexFiles() throws IOException {
@@ -280,34 +293,42 @@ public class CopyOnReadDirectory extends FilterDirectory {
         if (!closed.compareAndSet(false, true)){
             return;
         }
+        if (indexCopier.isClosed()) {
+            closeDirectories();
+            return;
+        }
         //Always remove old index file on close as it ensures that
         //no other IndexSearcher are opened with previous revision of Index due to
         //way IndexTracker closes LuceneIndexNode. At max there would be only two LuceneIndexNode
         //opened pinned to different revision of same Lucene index
-        executor.execute(new Runnable() {
-            @Override
-            public void run() {
-                try{
+        try {
+            executor.execute(() -> {
+                try {
                     removeDeletedFiles();
                 } catch (IOException e) {
                     log.warn(
                             "[{}] Error occurred while removing deleted files from Local {}, Remote {}",
                             indexPath, local, remote, e);
                 }
+                closeDirectories();
+            });
+        } catch (RejectedExecutionException e) {
+            closeDirectories();
+        }
+    }
 
-                try {
-                    //This would also remove old index files if current
-                    //directory was based on newerRevision as local would
-                    //be of type DeleteOldDirOnClose
-                    local.close();
-                    remote.close();
-                } catch (IOException e) {
-                    log.warn(
-                            "[{}] Error occurred while closing directory ",
-                            indexPath, e);
-                }
-            }
-        });
+    private void closeDirectories() {
+        try {
+            //This would also remove old index files if current
+            //directory was based on newerRevision as local would
+            //be of type DeleteOldDirOnClose
+            local.close();
+            remote.close();
+        } catch (IOException e) {
+            log.warn(
+                    "[{}] Error occurred while closing directory ",
+                    indexPath, e);
+        }
     }
 
     @Override
