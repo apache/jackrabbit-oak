@@ -16,10 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.cursor.Cursors;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.SecureFacetConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.SizeEstimator;
@@ -57,8 +59,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -236,7 +240,6 @@ public class LuceneNgIndex extends FulltextIndex {
 
         Sort sort = null;
         Map<String, List<Facet>> facets = Collections.emptyMap();
-        boolean needsExcerpts = filter.getFullTextConstraint() != null;
 
         // Facets (and the sort they may need) are computed once in a bounded, self-contained
         // acquire — this does NOT leak the index node into row iteration, which pages
@@ -308,12 +311,30 @@ public class LuceneNgIndex extends FulltextIndex {
         Map<String, List<Facet>> resultFacets = facets;
         FulltextIndexPlanner.PlanResult planResult = getPlanResult(plan);
         LuceneNgResultRowIterator rows = new LuceneNgResultRowIterator(tracker, selectedPath, query, sort,
-                needsExcerpts, resultFacets.isEmpty() ? null : (numberOfFacets, columnName) -> resultFacets.get(columnName),
+                nodeExcerptColumns(filter), resultFacets.isEmpty() ? null : (numberOfFacets, columnName) -> resultFacets.get(columnName),
                 documentPath -> {
                     String path = planResult.isPathTransformed() ? planResult.transformPath(documentPath) : documentPath;
                     return path != null && shouldInclude(path, plan) ? path : null;
                 });
         return new FulltextPathCursor(rows, rows, plan, filter.getQueryLimits(), getSizeEstimator(plan));
+    }
+
+    /**
+     * The requested {@code rep:excerpt} columns that refer to the whole node; property-scoped
+     * excerpts are not supported.
+     */
+    private static Set<String> nodeExcerptColumns(Filter filter) {
+        Set<String> columns = new HashSet<>();
+        for (Filter.PropertyRestriction pr : filter.getPropertyRestrictions()) {
+            if (QueryConstants.REP_EXCERPT.equals(pr.propertyName) && pr.first != null) {
+                String column = pr.first.getValue(Type.STRING);
+                if (QueryConstants.REP_EXCERPT.equals(column) || column.equals(
+                        QueryConstants.REP_EXCERPT + "(" + FulltextIndexConstants.EXCERPT_NODE_FIELD_NAME + ")")) {
+                    columns.add(column);
+                }
+            }
+        }
+        return columns;
     }
 
     /**

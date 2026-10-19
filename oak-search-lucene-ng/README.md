@@ -117,8 +117,8 @@ These items were identified during code review of the initial MVP. They are cons
 Rows are returned through the shared `FulltextIndex` cursor, as in `oak-lucene`.
 Results are read with `searchAfter`, starting at 50 results and doubling up to
 100K. Each batch acquires and releases its searcher independently; result rows
-load only stored PATH, while fulltext excerpts are generated separately for
-that batch. When the index is refreshed between two batches, the search
+load only stored PATH. When a `rep:excerpt` column is requested, excerpts are
+generated separately for each batch. When the index is refreshed between two batches, the search
 restarts on the new index version and rows already returned are skipped. As in
 `oak-lucene`, candidate rows are checked against Oak's read limit every
 `oak.traversing.warning` (default 10000) rows. String/boolean sort metadata is

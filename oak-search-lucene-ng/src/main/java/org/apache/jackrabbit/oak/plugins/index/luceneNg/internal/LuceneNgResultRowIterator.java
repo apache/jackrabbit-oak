@@ -21,7 +21,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.FacetProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.FulltextResultRow;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.IteratorRewoundStateProvider;
-import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.StoredFields;
@@ -37,8 +36,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayDeque;
-import java.util.Collections;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -61,7 +60,7 @@ public class LuceneNgResultRowIterator implements Iterator<FulltextResultRow>, I
     private final String indexPath;
     private final Query query;
     private final Sort sort;
-    private final boolean excerpts;
+    private final Set<String> excerptColumns;
     private final FacetProvider facetProvider;
     private final UnaryOperator<String> resultPath;
     private final Deque<FulltextResultRow> queue = new ArrayDeque<>();
@@ -73,18 +72,19 @@ public class LuceneNgResultRowIterator implements Iterator<FulltextResultRow>, I
 
     /**
      * @param sort          the sort order, or {@code null} for score order
-     * @param excerpts      whether rows carry a {@code rep:excerpt} for the fulltext condition
+     * @param excerptColumns the requested node-level {@code rep:excerpt} columns, each filled with
+     *                       the best fragment matching the fulltext condition
      * @param facetProvider the facets of the whole result, or {@code null}
      * @param resultPath    the result path of an indexed document path, or {@code null} to skip it
      */
     public LuceneNgResultRowIterator(LuceneNgIndexTracker tracker, String indexPath, Query query, @Nullable Sort sort,
-                                     boolean excerpts, @Nullable FacetProvider facetProvider,
+                                     Set<String> excerptColumns, @Nullable FacetProvider facetProvider,
                                      UnaryOperator<String> resultPath) {
         this.tracker = tracker;
         this.indexPath = indexPath;
         this.query = query;
         this.sort = sort;
-        this.excerpts = excerpts;
+        this.excerptColumns = excerptColumns;
         this.facetProvider = facetProvider;
         this.resultPath = resultPath;
     }
@@ -137,7 +137,9 @@ public class LuceneNgResultRowIterator implements Iterator<FulltextResultRow>, I
                         ? searcher.searchAfter(lastDoc, query, batchSize)
                         : searcher.searchAfter(lastDoc, query, batchSize, sort);
             }
-            String[] batchExcerpts = excerpts ? excerpts(searcher, docs) : new String[docs.scoreDocs.length];
+            String[] batchExcerpts = excerptColumns.isEmpty()
+                    ? new String[docs.scoreDocs.length]
+                    : excerpts(searcher, docs);
             StoredFields storedFields = searcher.storedFields();
             for (int i = 0; i < docs.scoreDocs.length; i++) {
                 ScoreDoc scoreDoc = docs.scoreDocs[i];
@@ -147,9 +149,12 @@ public class LuceneNgResultRowIterator implements Iterator<FulltextResultRow>, I
                 if (path == null) {
                     continue;
                 }
-                Map<String, String> rowExcerpts = batchExcerpts[i] == null
-                        ? Collections.emptyMap()
-                        : Map.of(QueryConstants.REP_EXCERPT, batchExcerpts[i]);
+                Map<String, String> rowExcerpts = new HashMap<>();
+                if (batchExcerpts[i] != null) {
+                    for (String column : excerptColumns) {
+                        rowExcerpts.put(column, batchExcerpts[i]);
+                    }
+                }
                 queue.add(new FulltextResultRow(path, scoreDoc.score, rowExcerpts, facetProvider, null));
             }
             if (docs.scoreDocs.length < batchSize) {

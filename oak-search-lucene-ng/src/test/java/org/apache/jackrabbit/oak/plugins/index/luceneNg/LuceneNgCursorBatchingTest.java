@@ -45,9 +45,11 @@ import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextParser;
@@ -206,7 +208,12 @@ public class LuceneNgCursorBatchingTest {
         tracker.update(root);
         LuceneNgIndex index = new LuceneNgIndex(tracker, "/oak:index/testIdx");
 
-        Cursor cursor = index.query(plan(fulltextFilter("brown"), root), root);
+        Filter brownWithExcerpt = fulltextFilter("brown");
+        PropertyRestriction excerptColumn = new PropertyRestriction();
+        excerptColumn.propertyName = "rep:excerpt";
+        excerptColumn.first = PropertyValues.newString("rep:excerpt");
+        when(brownWithExcerpt.getPropertyRestrictions()).thenReturn(List.of(excerptColumn));
+        Cursor cursor = index.query(plan(brownWithExcerpt, root), root);
         int rows = 0;
         while (cursor.hasNext()) {
             IndexRow row = cursor.next();
@@ -254,6 +261,18 @@ public class LuceneNgCursorBatchingTest {
         when(filter.getPathRestriction()).thenReturn(Filter.PathRestriction.NO_RESTRICTION);
         when(filter.getQueryLimits()).thenReturn(new QueryEngineSettings());
         return filter;
+    }
+
+    @Test
+    public void excerptsAreOnlyGeneratedWhenRequested() throws Exception {
+        NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
+        NodeState root = buildIndexWithDocs(builder, 3);
+        LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
+        tracker.update(root);
+
+        Cursor cursor = new LuceneNgIndex(tracker, "/oak:index/testIdx").query(plan(fulltextFilter("brown"), root), root);
+
+        assertEquals(null, cursor.next().getValue("rep:excerpt"));
     }
 
     private static Filter fulltextFilter(String term) throws java.text.ParseException {
