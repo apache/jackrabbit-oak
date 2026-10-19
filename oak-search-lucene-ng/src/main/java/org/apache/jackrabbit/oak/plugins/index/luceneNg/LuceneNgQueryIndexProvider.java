@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -25,9 +27,10 @@ import java.util.List;
 
 /**
  * QueryIndexProvider for Lucene 9 indexes.
- * Returns one backend whose planner discovers the supported index definitions.
+ * Returns one backend whose planner discovers the supported index definitions. The tracker
+ * follows repository changes as an {@link Observer}.
  */
-public class LuceneNgQueryIndexProvider implements QueryIndexProvider {
+public class LuceneNgQueryIndexProvider implements QueryIndexProvider, Observer {
 
     private final LuceneNgIndexTracker tracker;
 
@@ -38,9 +41,11 @@ public class LuceneNgQueryIndexProvider implements QueryIndexProvider {
     @Override
     @NotNull
     public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
-        // Update tracker with current state
-        tracker.update(nodeState);
-
         return List.of(new LuceneNgIndex(tracker));
+    }
+
+    @Override
+    public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
+        tracker.update(root);
     }
 }

@@ -74,7 +74,9 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
         whiteboard.register(org.apache.jackrabbit.oak.query.QueryEngineSettings.class,
                 querySettings, java.util.Collections.emptyMap());
 
-        return new Oak(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT))
+        MemoryNodeStore store = new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT);
+        store.addObserver(provider);
+        return new Oak(store)
             .with(new OpenSecurityProvider())
             .with(whiteboard)
             .with((org.apache.jackrabbit.oak.spi.query.QueryIndexProvider) provider)

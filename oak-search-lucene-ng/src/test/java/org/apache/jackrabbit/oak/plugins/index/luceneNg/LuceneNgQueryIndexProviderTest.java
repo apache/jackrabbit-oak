@@ -17,12 +17,14 @@
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
 import org.apache.jackrabbit.oak.InitialContentHelper;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -76,5 +78,26 @@ public class LuceneNgQueryIndexProviderTest {
         root.child("oak:index").child("second").setProperty("type", "luceneNg");
         LuceneNgQueryIndexProvider provider = new LuceneNgQueryIndexProvider(new LuceneNgIndexTracker());
         assertEquals(1, provider.getQueryIndexes(root.getNodeState()).size());
+    }
+
+    @Test
+    public void queriesDoNotUpdateTheTrackerButContentChangesDo() {
+        NodeState initial = InitialContentHelper.INITIAL_CONTENT;
+        NodeBuilder changed = initial.builder();
+        changed.child("oak:index").child("test").setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
+        AtomicReference<NodeState> updatedRoot = new AtomicReference<>();
+        LuceneNgIndexTracker tracker = new LuceneNgIndexTracker() {
+            @Override
+            public synchronized void update(NodeState root) {
+                updatedRoot.set(root);
+            }
+        };
+        LuceneNgQueryIndexProvider provider = new LuceneNgQueryIndexProvider(tracker);
+
+        provider.getQueryIndexes(changed.getNodeState());
+        assertNull(updatedRoot.get());
+
+        provider.contentChanged(changed.getNodeState(), CommitInfo.EMPTY);
+        assertEquals(changed.getNodeState(), updatedRoot.get());
     }
 }

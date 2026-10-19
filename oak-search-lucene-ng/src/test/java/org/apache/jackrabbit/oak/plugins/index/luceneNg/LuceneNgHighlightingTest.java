@@ -58,6 +58,7 @@ public class LuceneNgHighlightingTest extends AbstractQueryTest {
                 .with(new InitialContent())
                 .with(new OpenSecurityProvider())
                 .with((QueryIndexProvider) provider)
+                .with((Observer) provider)
                 .with(editorProvider)
                 .createContentRepository();
     }

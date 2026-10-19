@@ -126,10 +126,13 @@ public class PropertyTypeSortingTest {
         DefaultWhiteboard whiteboard = new DefaultWhiteboard();
         whiteboard.register(QueryEngineSettings.class, settings, Map.of());
         LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
-        return new Oak(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT))
+        LuceneNgQueryIndexProvider queryProvider = new LuceneNgQueryIndexProvider(tracker);
+        MemoryNodeStore store = new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT);
+        store.addObserver(queryProvider);
+        return new Oak(store)
                 .with(new OpenSecurityProvider())
                 .with(whiteboard)
-                .with((QueryIndexProvider) new LuceneNgQueryIndexProvider(tracker))
+                .with((QueryIndexProvider) queryProvider)
                 .with(new LuceneNgIndexEditorProvider(tracker))
                 .createContentRepository()
                 .login(null, null)

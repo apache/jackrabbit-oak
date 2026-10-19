@@ -20,6 +20,8 @@ import org.apache.jackrabbit.oak.commons.internal.concurrent.ExecutorHelper;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.LuceneNgIndexCopier;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
@@ -56,6 +58,7 @@ public class LuceneNgIndexProviderService {
 
     private static final String REPOSITORY_HOME = "repository.home";
     private static final int INDEX_COPIER_POOL_SIZE = 5;
+    private static final int OBSERVER_QUEUE_LENGTH = 5;
 
     @ObjectClassDefinition(
             name = "Apache Jackrabbit Oak LuceneNgIndexProvider",
@@ -104,6 +107,7 @@ public class LuceneNgIndexProviderService {
     private LuceneNgIndexTracker indexTracker;
     private LuceneNgIndexEditorProvider editorProvider;
     private LuceneNgIndexCopier indexCopier;
+    private BackgroundObserver backgroundObserver;
     private ExecutorService executorService;
 
     @Activate
@@ -137,6 +141,9 @@ public class LuceneNgIndexProviderService {
         props.put("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
         regs.add(bundleContext.registerService(QueryIndexProvider.class.getName(), queryProvider, props));
         LOG.info("Registered QueryIndexProvider for type: {}", LuceneNgIndexConstants.TYPE_LUCENE_NG);
+
+        backgroundObserver = new BackgroundObserver(queryProvider, getExecutorService(), OBSERVER_QUEUE_LENGTH);
+        regs.add(bundleContext.registerService(Observer.class.getName(), backgroundObserver, null));
 
         // Register IndexEditorProvider
         editorProvider = new LuceneNgIndexEditorProvider(indexTracker,
@@ -181,6 +188,11 @@ public class LuceneNgIndexProviderService {
             reg.unregister();
         }
         regs.clear();
+
+        if (backgroundObserver != null) {
+            backgroundObserver.close();
+            backgroundObserver = null;
+        }
 
         if (editorProvider != null) {
             editorProvider.close();

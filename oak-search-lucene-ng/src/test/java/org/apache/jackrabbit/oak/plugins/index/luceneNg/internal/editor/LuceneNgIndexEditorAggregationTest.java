@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgQueryIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
@@ -57,6 +58,7 @@ public class LuceneNgIndexEditorAggregationTest extends AbstractQueryTest {
                 .with(new InitialContent())
                 .with(new OpenSecurityProvider())
                 .with((QueryIndexProvider) provider)
+                .with((Observer) provider)
                 .with(editor)
                 .createContentRepository();
     }

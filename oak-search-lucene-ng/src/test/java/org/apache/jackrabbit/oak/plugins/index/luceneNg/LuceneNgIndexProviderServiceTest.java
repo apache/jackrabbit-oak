@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
+import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.osgi.framework.BundleContext;
@@ -26,14 +28,17 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Dictionary;
 
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.eq;
+import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class LuceneNgIndexProviderServiceTest {
@@ -46,7 +51,7 @@ public class LuceneNgIndexProviderServiceTest {
         LuceneNgIndexProviderService service = new LuceneNgIndexProviderService();
         BundleContext bundleContext = mock(BundleContext.class);
         when(bundleContext.getProperty("repository.home")).thenReturn(tempDir.toFile().getAbsolutePath());
-        when(bundleContext.registerService(anyString(), any(), any(Dictionary.class)))
+        when(bundleContext.registerService(anyString(), any(), any()))
                 .thenReturn(mock(ServiceRegistration.class));
 
         LuceneNgIndexProviderService.Config config = mock(LuceneNgIndexProviderService.Config.class);
@@ -67,7 +72,7 @@ public class LuceneNgIndexProviderServiceTest {
     public void copyOnReadDisabled_doesNotCreateCopier() throws Exception {
         LuceneNgIndexProviderService service = new LuceneNgIndexProviderService();
         BundleContext bundleContext = mock(BundleContext.class);
-        when(bundleContext.registerService(anyString(), any(), any(Dictionary.class)))
+        when(bundleContext.registerService(anyString(), any(), any()))
                 .thenReturn(mock(ServiceRegistration.class));
 
         LuceneNgIndexProviderService.Config config = mock(LuceneNgIndexProviderService.Config.class);
@@ -79,6 +84,7 @@ public class LuceneNgIndexProviderServiceTest {
         Field copierField = LuceneNgIndexProviderService.class.getDeclaredField("indexCopier");
         copierField.setAccessible(true);
         assertNull(copierField.get(service));
+        verify(bundleContext).registerService(eq(Observer.class.getName()), isA(BackgroundObserver.class), isNull());
 
         deactivate(service);
     }
@@ -89,7 +95,7 @@ public class LuceneNgIndexProviderServiceTest {
             LuceneNgIndexProviderService service = new LuceneNgIndexProviderService();
             BundleContext context = mock(BundleContext.class);
             when(context.getProperty("repository.home")).thenReturn(Files.createTempDirectory(tempDir, "folder").toFile().getAbsolutePath());
-            when(context.registerService(anyString(), any(), any(Dictionary.class))).thenReturn(mock(ServiceRegistration.class));
+            when(context.registerService(anyString(), any(), any())).thenReturn(mock(ServiceRegistration.class));
             LuceneNgIndexProviderService.Config config = mock(LuceneNgIndexProviderService.Config.class);
             when(config.enableCopyOnReadSupport()).thenReturn(readerEnabled);
             when(config.enableReadBeforeWriteSupport()).thenReturn(!readerEnabled);

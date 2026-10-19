@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.plugins.index.TestRepositoryBuilder;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
@@ -51,6 +52,7 @@ public class LuceneNgTestRepositoryBuilder extends TestRepositoryBuilder {
                 .with(securityProvider)
                 .with(editorProvider)
                 .with(indexProvider)
+                .with((Observer) indexProvider)
                 .with(indexEditorProvider)
                 .with(queryIndexProvider)
                 .with(queryEngineSettings);
