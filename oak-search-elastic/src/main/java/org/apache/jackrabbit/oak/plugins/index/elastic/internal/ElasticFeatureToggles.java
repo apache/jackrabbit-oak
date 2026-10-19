@@ -57,4 +57,11 @@ public final class ElasticFeatureToggles {
      */
     public static final String FT_OAK_12381 = "FT_OAK-12381";
     public static final AtomicBoolean FT_OAK_12381_DISABLE = new AtomicBoolean(false);
+
+    /**
+     * Feature toggle for OAK-12403: cache queries that fail with an Elasticsearch parsing error and
+     * short-circuit subsequent identical queries until the entry expires. Disabled by default.
+     */
+    public static final String FT_OAK_12403 = "FT_OAK-12403";
+    public static final AtomicBoolean FT_OAK_12403_ENABLE = new AtomicBoolean(false);
 }
