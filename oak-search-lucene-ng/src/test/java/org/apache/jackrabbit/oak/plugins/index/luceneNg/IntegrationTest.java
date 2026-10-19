@@ -49,6 +49,7 @@ public class IntegrationTest {
         IndexingContext ctx = mock(IndexingContext.class);
         when(ctx.getIndexPath()).thenReturn(indexPath);
         when(ctx.isReindexing()).thenReturn(false);
+        when(ctx.isAsync()).thenReturn(true);
 
         ContextAwareCallback callback = mock(ContextAwareCallback.class);
         when(callback.getIndexingContext()).thenReturn(ctx);

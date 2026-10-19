@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
@@ -24,6 +25,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.junit.jupiter.api.Assertions.*;
@@ -48,9 +51,14 @@ public class LuceneNgIndexEditorProviderTest {
     }
 
     private ContextAwareCallback contextCallback(String indexPath, boolean reindex) {
+        return contextCallback(indexPath, reindex, false);
+    }
+
+    private ContextAwareCallback contextCallback(String indexPath, boolean reindex, boolean async) {
         IndexingContext ctx = mock(IndexingContext.class);
         when(ctx.getIndexPath()).thenReturn(indexPath);
         when(ctx.isReindexing()).thenReturn(reindex);
+        when(ctx.isAsync()).thenReturn(async);
 
         ContextAwareCallback callback = mock(ContextAwareCallback.class);
         when(callback.getIndexingContext()).thenReturn(ctx);
@@ -79,6 +87,16 @@ public class LuceneNgIndexEditorProviderTest {
             contextCallback("/oak:index/test", false));
 
         assertNotNull(editor, "Editor should be returned for luceneNg type");
+    }
+
+    @Test
+    public void nrtDefinitionsAreIndexedOnlyByTheAsyncIndexer() throws Exception {
+        definitionBuilder.setProperty("async", List.of("async", "nrt"), Type.STRINGS);
+
+        assertNull(provider.getIndexEditor(LuceneNgIndexConstants.TYPE_LUCENE_NG, definitionBuilder, root,
+                contextCallback("/oak:index/test", false, false)), "user commit");
+        assertNotNull(provider.getIndexEditor(LuceneNgIndexConstants.TYPE_LUCENE_NG, definitionBuilder, root,
+                contextCallback("/oak:index/test", false, true)), "async indexing");
     }
 
     @Test

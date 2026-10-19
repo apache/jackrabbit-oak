@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
@@ -83,6 +84,12 @@ public class LuceneNgIndexEditorProvider implements IndexEditorProvider {
         String indexPath = indexingContext.getIndexPath();
         if (indexPath == null || !"/oak:index".equals(PathUtils.getParentPath(indexPath))) {
             LOG.warn("luceneNg index at {} is not supported below /oak:index; skipping", indexPath);
+            return null;
+        }
+
+        // Near-real-time and synchronous indexing are not supported: an index with an async lane
+        // is written only by the async indexer, never during user commits.
+        if (!indexingContext.isAsync() && definition.hasProperty(IndexConstants.ASYNC_PROPERTY_NAME)) {
             return null;
         }
 

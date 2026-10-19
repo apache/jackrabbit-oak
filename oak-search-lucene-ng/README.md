@@ -147,6 +147,11 @@ subtree-relative query and result paths are not supported yet. The editor
 skips them at indexing time with a WARN, so they are neither maintained nor
 queryable.
 
+**Indexed by the async indexer only.**
+Near-real-time and synchronous indexing are not supported. A definition whose
+`async` property also lists `nrt` or `sync` is updated only by its async lane;
+during user commits Oak logs "Missing provider for nrt/sync index".
+
 **Disable older versions explicitly during experimental migration.**
 Shared cross-type supersession does not recognize `luceneNg` as a replacement
 for legacy Lucene. Do not rely on automatic replacement filtering: explicitly
