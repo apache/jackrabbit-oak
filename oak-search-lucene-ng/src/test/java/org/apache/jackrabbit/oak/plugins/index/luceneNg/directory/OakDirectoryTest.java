@@ -91,6 +91,25 @@ public class OakDirectoryTest {
     }
 
     @Test
+    public void creatingAnExistingFileFails() throws Exception {
+        OakDirectory directory = new OakDirectory(root.child("storageRoot"), "testIndex", false);
+        directory.createOutput("file.bin", IOContext.DEFAULT).close();
+
+        assertThrows(java.nio.file.FileAlreadyExistsException.class,
+                () -> directory.createOutput("file.bin", IOContext.DEFAULT));
+    }
+
+    @Test
+    public void filesAreListedInSortedOrder() throws Exception {
+        OakDirectory directory = new OakDirectory(root.child("storageRoot"), "testIndex", false);
+        for (String name : List.of("segments_2", "_1.cfs", "_0.si", "_10.cfe")) {
+            directory.createOutput(name, IOContext.DEFAULT).close();
+        }
+
+        assertArrayEquals(new String[] {"_0.si", "_1.cfs", "_10.cfe", "segments_2"}, directory.listAll());
+    }
+
+    @Test
     public void testListAllEmpty() throws Exception {
         OakDirectory directory = new OakDirectory(root.child("storageRoot"), "testIndex", false);
         String[] files = directory.listAll();

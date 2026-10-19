@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.luceneNg.directory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -34,6 +35,7 @@ import org.junit.jupiter.api.io.TempDir;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ReadThroughDirectoryTest {
@@ -68,7 +70,7 @@ public class ReadThroughDirectoryTest {
     }
 
     @Test
-    public void overwritesDeletesAndRenamesInvalidateCachedNames() throws Exception {
+    public void overwritesFailAndDeletesAndRenamesInvalidateCachedNames() throws Exception {
         NodeBuilder storage = EMPTY_NODE.builder();
         OakDirectory remote = new OakDirectory(storage, "test", false);
         write(remote, "old", "original");
@@ -77,11 +79,12 @@ public class ReadThroughDirectoryTest {
         try (LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, Files.createTempDirectory(tempDir, "folder").toFile(), false);
              Directory writer = copier.wrapForWrite(definition(), remote,
                      new OakDirectory(storage.getNodeState().builder(), "test", true), "luceneNg")) {
-            write(writer, "old", "replacement");
-            assertEquals("replacement", read(writer, "old"));
+            assertThrows(FileAlreadyExistsException.class, () -> write(writer, "old", "replacement"));
+            assertEquals("original", read(writer, "old"));
             writer.deleteFile("deleted");
             assertFalse(Arrays.asList(writer.listAll()).contains("deleted"));
             write(writer, "temp", "renamed");
+            writer.deleteFile("old");
             writer.rename("temp", "old");
             assertEquals("renamed", read(writer, "old"));
             try (IndexOutput temp = writer.createTempOutput("temp", "suffix", IOContext.DEFAULT)) {

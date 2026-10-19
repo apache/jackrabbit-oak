@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.plugins.index.luceneNg.directory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
+import java.util.Arrays;
 import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.Set;
@@ -114,7 +116,9 @@ public class OakDirectory extends Directory {
 
     @Override
     public String[] listAll() throws IOException {
-        return fileNames.toArray(new String[0]);
+        String[] names = fileNames.toArray(new String[0]);
+        Arrays.sort(names);
+        return names;
     }
 
     /**
@@ -166,12 +170,8 @@ public class OakDirectory extends Directory {
     @Override
     public IndexOutput createOutput(String name, IOContext context) throws IOException {
         checkWritable();
-
-        // Remove existing file if present
-        synchronized (storageBuilder) {
-            if (storageBuilder.hasChildNode(name)) {
-                storageBuilder.getChildNode(name).remove();
-            }
+        if (fileNames.contains(name) || storageBuilder.hasChildNode(name)) {
+            throw new FileAlreadyExistsException(String.format("[%s] %s", indexName, name));
         }
 
         NodeBuilder file = storageBuilder.child(name);
@@ -224,7 +224,10 @@ public class OakDirectory extends Directory {
 
     @Override
     public IndexOutput createTempOutput(String prefix, String suffix, IOContext context) throws IOException {
-        String name = getTempFileName(prefix, suffix, 0);
+        String name;
+        do {
+            name = getTempFileName(prefix, suffix, tempFileCounter.getAndIncrement());
+        } while (fileNames.contains(name) || storageBuilder.hasChildNode(name));
         return createOutput(name, context);
     }
 
@@ -269,19 +272,5 @@ public class OakDirectory extends Directory {
         if (readOnly) {
             throw new IOException("Directory is read-only");
         }
-    }
-
-    /**
-     * Seed used when generating a temp file name. Package-private and overridable
-     * purely so tests can freeze it to prove name uniqueness doesn't depend on the
-     * real clock advancing between calls.
-     */
-    long nextTempFileId() {
-        return System.nanoTime();
-    }
-
-    private String getTempFileName(String prefix, String suffix, int attempt) {
-        return String.format("%s_%s_%d_%d%s", prefix, indexName, nextTempFileId(),
-                tempFileCounter.getAndIncrement(), suffix);
     }
 }
