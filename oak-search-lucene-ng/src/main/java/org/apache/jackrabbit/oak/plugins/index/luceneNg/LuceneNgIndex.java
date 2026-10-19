@@ -25,9 +25,9 @@ import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.SizeEstimator;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
-import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgCursor;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgQueryBuilder;
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgResultRowIterator;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgSecureSortedSetDocValuesFacetCounts;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgStatisticalSortedSetDocValuesFacetCounts;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
@@ -38,13 +38,13 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
+import org.apache.lucene.facet.FacetResult;
 import org.apache.lucene.facet.Facets;
 import org.apache.lucene.facet.FacetsCollector;
 import org.apache.lucene.facet.sortedset.DefaultSortedSetDocValuesReaderState;
+import org.apache.lucene.facet.LabelAndValue;
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetCounts;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -54,6 +54,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -234,7 +235,7 @@ public class LuceneNgIndex extends FulltextIndex {
         LOG.debug("Executing query: {}", query);
 
         Sort sort = null;
-        Map<String, String> facetColumns = Collections.emptyMap();
+        Map<String, List<Facet>> facets = Collections.emptyMap();
         boolean needsExcerpts = filter.getFullTextConstraint() != null;
 
         // Facets (and the sort they may need) are computed once in a bounded, self-contained
@@ -287,7 +288,7 @@ public class LuceneNgIndex extends FulltextIndex {
                         LOG.debug("Facet field not indexed: {}", facetField);
                     }
                 }
-                facetColumns = buildFacetColumnsEagerly(facetsMap, definition.getNumberOfTopFacets());
+                facets = topFacets(facetsMap, definition.getNumberOfTopFacets());
             } catch (IOException e) {
                 LOG.error("Error computing facets on index: " + selectedPath, e);
             } finally {
@@ -304,48 +305,38 @@ public class LuceneNgIndex extends FulltextIndex {
             }
         }
 
-        // Excerpts are generated per batch inside the cursor; the analyzer is owned and closed
-        // by the cursor.
-        Analyzer excerptAnalyzer = needsExcerpts ? new StandardAnalyzer() : null;
-        return new LuceneNgCursor(tracker, selectedPath, query, sort, facetColumns, needsExcerpts,
-                excerptAnalyzer, filter.getQueryLimits());
+        Map<String, List<Facet>> resultFacets = facets;
+        LuceneNgResultRowIterator rows = new LuceneNgResultRowIterator(tracker, selectedPath, query, sort,
+                needsExcerpts, resultFacets.isEmpty() ? null : (numberOfFacets, columnName) -> resultFacets.get(columnName));
+        return new FulltextPathCursor(rows, rows, plan, filter.getQueryLimits(), getSizeEstimator(plan));
     }
 
     /**
-     * Builds the {@code rep:facet(dim) -> JSON} column map from a computed {@link Facets} per
-     * dimension. Built here, before the cursor is constructed, because the underlying
-     * {@link Facets} reference a searcher that is released before row iteration begins.
+     * The top facets of each dimension, by {@code rep:facet(dim)} column. Computed before row
+     * iteration because the {@link Facets} reference a searcher that is released before then.
      */
-    private static Map<String, String> buildFacetColumnsEagerly(Map<String, Facets> facetsMap, int topChildren) {
-        if (facetsMap == null || facetsMap.isEmpty()) {
-            return Collections.emptyMap();
-        }
+    private static Map<String, List<Facet>> topFacets(Map<String, Facets> facetsMap, int topChildren) {
         int facetTopChildren = Math.max(1, topChildren);
-        Map<String, String> result = new HashMap<>();
+        Map<String, List<Facet>> result = new HashMap<>();
         for (Map.Entry<String, Facets> entry : facetsMap.entrySet()) {
             String dimension = entry.getKey();
             try {
-                String luceneFieldName = FieldNames.createFacetFieldName(dimension);
-                org.apache.lucene.facet.FacetResult fr = entry.getValue().getTopChildren(facetTopChildren, dimension);
+                FacetResult fr = entry.getValue().getTopChildren(facetTopChildren, dimension);
                 if (fr == null || fr.labelValues == null) {
-                    fr = entry.getValue().getTopChildren(facetTopChildren, luceneFieldName);
+                    fr = entry.getValue().getTopChildren(facetTopChildren, FieldNames.createFacetFieldName(dimension));
                 }
                 if (fr != null && fr.labelValues != null) {
-                    org.apache.jackrabbit.oak.commons.json.JsopBuilder json =
-                            new org.apache.jackrabbit.oak.commons.json.JsopBuilder();
-                    json.object();
-                    for (org.apache.lucene.facet.LabelAndValue lv : fr.labelValues) {
-                        json.key(lv.label);
-                        json.value(lv.value.intValue());
+                    List<Facet> facets = new ArrayList<>();
+                    for (LabelAndValue lv : fr.labelValues) {
+                        facets.add(new Facet(lv.label, lv.value.intValue()));
                     }
-                    json.endObject();
-                    result.put(QueryConstants.REP_FACET + "(" + dimension + ")", json.toString());
+                    result.put(QueryConstants.REP_FACET + "(" + dimension + ")", facets);
                 }
             } catch (IOException e) {
                 LOG.error("Failed to build facets for {}: {}", dimension, e.getMessage());
             }
         }
-        return Collections.unmodifiableMap(result);
+        return result;
     }
 
     private static Function<String, DocValuesType> docValuesTypes(LuceneNgIndexNode indexNode) {

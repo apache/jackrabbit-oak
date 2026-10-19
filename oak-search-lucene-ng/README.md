@@ -114,12 +114,14 @@ These items were identified during code review of the initial MVP. They are cons
 ### Performance
 
 **Batched results and excerpts.**
-The cursor uses `searchAfter`, starting at 50 results and doubling up to 100K.
-Each batch acquires and releases its searcher independently; result rows load
-only stored PATH, while fulltext excerpts are generated separately for that
-batch. Candidate rows count towards Oak's configured query read limit even
-when Oak later rejects them during post-filtering. Exceeding the limit fails
-the query rather than silently truncating it. String/boolean sort metadata is
+Rows are returned through the shared `FulltextIndex` cursor, as in `oak-lucene`.
+Results are read with `searchAfter`, starting at 50 results and doubling up to
+100K. Each batch acquires and releases its searcher independently; result rows
+load only stored PATH, while fulltext excerpts are generated separately for
+that batch. When the index is refreshed between two batches, the search
+restarts on the new index version and rows already returned are skipped. As in
+`oak-lucene`, candidate rows are checked against Oak's read limit every
+`oak.traversing.warning` (default 10000) rows. String/boolean sort metadata is
 loaded lazily and cached per immutable reader generation.
 
 **Facet aggregation is eager.**

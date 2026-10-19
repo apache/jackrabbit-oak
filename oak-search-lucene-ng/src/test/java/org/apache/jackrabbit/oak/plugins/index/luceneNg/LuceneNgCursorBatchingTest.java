@@ -28,8 +28,10 @@ import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -67,10 +69,9 @@ import org.apache.lucene.search.TotalHits;
 import org.junit.jupiter.api.Test;
 
 /**
- * Verifies that {@link LuceneNgCursor}, when driven by {@link LuceneNgIndex#query(IndexPlan, NodeState)},
- * fetches results in bounded per-batch {@code searchAfter} calls and releases the index node
- * between batches (rather than holding it open for the whole cursor lifetime), while still
- * producing correct results — including full-text excerpts — across the batch boundary.
+ * Verifies that {@link LuceneNgIndex#query(IndexPlan, NodeState)} fetches results in batches,
+ * releases the index node between batches, and returns every row exactly once across batch
+ * boundaries and index refreshes.
  */
 public class LuceneNgCursorBatchingTest {
 
@@ -98,6 +99,53 @@ public class LuceneNgCursorBatchingTest {
         writer.commit();
         writer.close();
         dir.close();
+        return builder.getNodeState();
+    }
+
+    @Test
+    public void indexRefreshBetweenBatchesNeitherDuplicatesNorSkipsRows() throws Exception {
+        NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
+        List<String> indexedPaths = new ArrayList<>();
+        for (int i = 0; i < 60; i++) {
+            indexedPaths.add("/content/doc" + i);
+        }
+        NodeState root = rewriteIndex(builder, indexedPaths);
+        LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
+        tracker.update(root);
+        Cursor cursor = new LuceneNgIndex(tracker, "/oak:index/testIdx").query(plan(matchAllFilter(), root), root);
+        List<String> returned = new ArrayList<>();
+        for (int i = 0; i < 50; i++) {
+            returned.add(cursor.next().getPath());
+        }
+
+        // A new index version stores the same documents, plus one, in a different order.
+        indexedPaths.add("/content/doc60");
+        Collections.reverse(indexedPaths);
+        tracker.update(rewriteIndex(builder, indexedPaths));
+        cursor.forEachRemaining(row -> returned.add(row.getPath()));
+
+        assertEquals(new HashSet<>(indexedPaths), new HashSet<>(returned));
+        assertEquals(61, returned.size());
+    }
+
+    /**
+     * Replaces the content of the luceneNg index at {@code /oak:index/testIdx} with one document
+     * per path, in the given order, and marks the index as updated.
+     */
+    private static NodeState rewriteIndex(NodeBuilder builder, List<String> paths) throws Exception {
+        NodeBuilder definition = builder.child("oak:index").child("testIdx");
+        definition.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
+        OakDirectory dir = new OakDirectory(definition.child(LuceneNgIndexStorage.STORAGE_NODE_NAME), "testIdx", false);
+        try (IndexWriter writer = new IndexWriter(dir, new IndexWriterConfig()
+                .setOpenMode(IndexWriterConfig.OpenMode.CREATE))) {
+            for (String path : paths) {
+                Document doc = new Document();
+                doc.add(new StringField(FieldNames.PATH, path, Field.Store.YES));
+                writer.addDocument(doc);
+            }
+        }
+        dir.close();
+        definition.child(":status").setProperty("lastUpdated", System.nanoTime());
         return builder.getNodeState();
     }
 
@@ -208,40 +256,6 @@ public class LuceneNgCursorBatchingTest {
         return filter;
     }
 
-    @Test
-    public void candidateReadLimitIsExactAndReleasesResources() throws Exception {
-        NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();
-        NodeState root = buildIndexWithDocs(builder, 60);
-        LuceneNgIndexTracker tracker = new LuceneNgIndexTracker();
-        tracker.update(root);
-        org.apache.jackrabbit.oak.query.QueryEngineSettings limits =
-                new org.apache.jackrabbit.oak.query.QueryEngineSettings();
-        limits.setLimitReads(50);
-        Filter filter = fulltextFilter("brown");
-        when(filter.getQueryLimits()).thenReturn(limits);
-        Cursor cursor = new LuceneNgIndex(tracker, "/oak:index/testIdx").query(plan(filter, root), root);
-        for (int i = 0; i < 50; i++) {
-            assertTrue(cursor.hasNext());
-            cursor.next();
-        }
-        assertTrue(cursor.hasNext());
-        org.junit.jupiter.api.Assertions.assertThrows(
-                org.apache.jackrabbit.oak.query.RuntimeNodeTraversalException.class, cursor::next);
-        assertFalse(cursor.hasNext());
-        java.lang.reflect.Field analyzerField = cursor.getClass().getDeclaredField("excerptAnalyzer");
-        analyzerField.setAccessible(true);
-        org.apache.lucene.analysis.Analyzer analyzer =
-                (org.apache.lucene.analysis.Analyzer) analyzerField.get(cursor);
-        org.junit.jupiter.api.Assertions.assertThrows(org.apache.lucene.store.AlreadyClosedException.class,
-                () -> analyzer.tokenStream("test", "text"));
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        try {
-            executor.submit(() -> tracker.update(EmptyNodeState.EMPTY_NODE)).get(2, TimeUnit.SECONDS);
-        } finally {
-            executor.shutdownNow();
-        }
-    }
-
     private static Filter fulltextFilter(String term) throws java.text.ParseException {
         Filter filter = mock(Filter.class);
         when(filter.matchesAllTypes()).thenReturn(true);
@@ -255,6 +269,7 @@ public class LuceneNgCursorBatchingTest {
     private static IndexPlan plan(Filter filter, NodeState root) {
         IndexPlan plan = mock(IndexPlan.class);
         when(plan.getFilter()).thenReturn(filter);
+        when(plan.getPathPrefix()).thenReturn("");
         String indexPath = "/oak:index/testIdx";
         LuceneNgIndexDefinition definition = new LuceneNgIndexDefinition(
                 root, root.getChildNode("oak:index").getChildNode("testIdx"), indexPath);

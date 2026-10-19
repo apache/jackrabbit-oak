@@ -215,20 +215,6 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
     }
 
     @Test
-    public void postFilteredCandidatesStillCountTowardsTheReadLimit() throws Exception {
-        createSearchIndex();
-        Tree content = root.getTree("/").addChild("content");
-        for (int i = 0; i < 20; i++) {
-            content.addChild("node" + i).setProperty("title", "Report");
-        }
-        root.commit();
-        querySettings.setLimitReads(10);
-        org.junit.Assert.assertThrows(org.apache.jackrabbit.oak.query.RuntimeNodeTraversalException.class,
-                () -> executeQuery("select [jcr:path] from [nt:base] where [title] = 'Report' "
-                        + "and [undeclared] = 'approved'", "sql"));
-    }
-
-    @Test
     public void testLuceneNgIndexIsUsed() throws Exception {
         createSearchIndex();
         createTestContent();

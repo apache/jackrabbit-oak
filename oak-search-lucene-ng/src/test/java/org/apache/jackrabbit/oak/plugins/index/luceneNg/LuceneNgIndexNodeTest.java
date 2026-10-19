@@ -97,8 +97,8 @@ public class LuceneNgIndexNodeTest {
     public void releaseTwiceThrowsIllegalMonitorState() throws Exception {
         // The shared IndexNodeManager read/write lock (inherited from oak-search) requires
         // exactly one release() per acquire() and does not guard against double-release.
-        // Production call sites -- LuceneNgCursor's java.lang.ref.Cleaner.Cleanable -- already
-        // guarantee single invocation, so a double-release surfacing as a loud
+        // Production call sites release in a finally block once per acquire, so a
+        // double-release surfacing as a loud
         // IllegalMonitorStateException (rather than a silent no-op) is the inherited contract,
         // not a bug.
         NodeState root = buildIndexWithData("/oak:index/testIndex");
