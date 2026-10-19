@@ -40,6 +40,8 @@ import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.LuceneNgIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
@@ -110,7 +112,7 @@ public class LuceneNgCursorBatchingTest {
         LuceneNgIndex index = new LuceneNgIndex(tracker, "/oak:index/testIdx");
 
         // --- Correctness across the batch boundary: drain a full cursor, expect 60 distinct paths.
-        Cursor fullCursor = index.query(plan(matchAllFilter()), root);
+        Cursor fullCursor = index.query(plan(matchAllFilter(), root), root);
         Set<String> paths = new HashSet<>();
         while (fullCursor.hasNext()) {
             IndexRow row = fullCursor.next();
@@ -128,7 +130,7 @@ public class LuceneNgCursorBatchingTest {
         // through the tracker's public API -- the tracked index is diffed against "removed",
         // which closes its LuceneNgIndexNodeManager (public, inherited IndexNodeManager.close())
         // and, in turn, blocks on exactly the same read/write lock this test is probing.
-        Cursor partialCursor = index.query(plan(matchAllFilter()), root);
+        Cursor partialCursor = index.query(plan(matchAllFilter(), root), root);
         int drained = 0;
         while (drained < 50 && partialCursor.hasNext()) {
             partialCursor.next();
@@ -156,7 +158,7 @@ public class LuceneNgCursorBatchingTest {
         tracker.update(root);
         LuceneNgIndex index = new LuceneNgIndex(tracker, "/oak:index/testIdx");
 
-        Cursor cursor = index.query(plan(fulltextFilter("brown")), root);
+        Cursor cursor = index.query(plan(fulltextFilter("brown"), root), root);
         int rows = 0;
         while (cursor.hasNext()) {
             IndexRow row = cursor.next();
@@ -188,7 +190,7 @@ public class LuceneNgCursorBatchingTest {
         LuceneNgIndexTracker tracker = mock(LuceneNgIndexTracker.class);
         when(tracker.acquireIndexNode("/oak:index/testIdx")).thenReturn(node);
         Cursor cursor = new LuceneNgIndex(tracker, "/oak:index/testIdx")
-                .query(plan(matchAllFilter()), EmptyNodeState.EMPTY_NODE);
+                .query(plan(matchAllFilter(), EmptyNodeState.EMPTY_NODE), EmptyNodeState.EMPTY_NODE);
         assertEquals("/content/one", cursor.next().getPath());
         assertFalse(cursor.hasNext());
         verify(fields).document(0, Set.of(FieldNames.PATH));
@@ -198,6 +200,7 @@ public class LuceneNgCursorBatchingTest {
 
     private static Filter matchAllFilter() {
         Filter filter = mock(Filter.class);
+        when(filter.matchesAllTypes()).thenReturn(true);
         when(filter.getFullTextConstraint()).thenReturn(null);
         when(filter.getPropertyRestrictions()).thenReturn(Collections.emptyList());
         when(filter.getPathRestriction()).thenReturn(Filter.PathRestriction.NO_RESTRICTION);
@@ -216,7 +219,7 @@ public class LuceneNgCursorBatchingTest {
         limits.setLimitReads(50);
         Filter filter = fulltextFilter("brown");
         when(filter.getQueryLimits()).thenReturn(limits);
-        Cursor cursor = new LuceneNgIndex(tracker, "/oak:index/testIdx").query(plan(filter), root);
+        Cursor cursor = new LuceneNgIndex(tracker, "/oak:index/testIdx").query(plan(filter, root), root);
         for (int i = 0; i < 50; i++) {
             assertTrue(cursor.hasNext());
             cursor.next();
@@ -241,6 +244,7 @@ public class LuceneNgCursorBatchingTest {
 
     private static Filter fulltextFilter(String term) throws java.text.ParseException {
         Filter filter = mock(Filter.class);
+        when(filter.matchesAllTypes()).thenReturn(true);
         when(filter.getFullTextConstraint()).thenReturn(FullTextParser.parse("*", term));
         when(filter.getPropertyRestrictions()).thenReturn(Collections.emptyList());
         when(filter.getPathRestriction()).thenReturn(Filter.PathRestriction.NO_RESTRICTION);
@@ -248,9 +252,13 @@ public class LuceneNgCursorBatchingTest {
         return filter;
     }
 
-    private static IndexPlan plan(Filter filter) {
+    private static IndexPlan plan(Filter filter, NodeState root) {
         IndexPlan plan = mock(IndexPlan.class);
         when(plan.getFilter()).thenReturn(filter);
+        String indexPath = "/oak:index/testIdx";
+        LuceneNgIndexDefinition definition = new LuceneNgIndexDefinition(
+                root, root.getChildNode("oak:index").getChildNode("testIdx"), indexPath);
+        when(plan.getAttribute(FulltextIndex.ATTR_PLAN_RESULT)).thenReturn(new PlanResult(indexPath, definition, null));
         when(plan.getSortOrder()).thenReturn(Collections.emptyList());
         when(plan.getAttribute("oak.facet.fields")).thenReturn(null);
         return plan;

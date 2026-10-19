@@ -151,4 +151,39 @@ public class LuceneNgIndexEditorTest {
                     searcher.search(new TermQuery(new Term(FieldNames.PATH, "/node")), 10).totalHits.value, "Stale document must be deleted once the node no longer matches any indexing rule");
         }
     }
+
+    @Test
+    public void parentPathIsIndexedForDirectChildQueries() throws Exception {
+        NodeBuilder builder = INITIAL_CONTENT.builder();
+        NodeBuilder oakIndex = builder.child("oak:index").child("testIdx");
+        oakIndex.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
+        oakIndex.setProperty("reindex", true);
+        oakIndex.setProperty("jcr:primaryType", "oak:QueryIndexDefinition",
+                org.apache.jackrabbit.oak.api.Type.NAME);
+        // Add index rule so the editor actually indexes these nodes (sync luceneNg index: no "async").
+        oakIndex.child("indexRules").child("nt:unstructured").child("properties")
+                .child("title").setProperty("name", "title").setProperty("propertyIndex", true);
+
+        // Build /a, /a/b, /a/b/c, /x into the tree, then index them via a real commit.
+        for (String path : new String[]{"/a", "/a/b", "/a/b/c", "/x"}) {
+            NodeBuilder nb = builder;
+            for (String seg : path.substring(1).split("/")) {
+                nb = nb.child(seg);
+            }
+            nb.setProperty("jcr:primaryType", "nt:unstructured");
+            nb.setProperty("title", "node-at-" + path);
+        }
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(builder.getNodeState());
+
+        // Read back from the committed index storage (Lucene directory name = index node name).
+        try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, "/oak:index/testIdx")) {
+            IndexSearcher searcher = new IndexSearcher(reader);
+            // Direct children of /a should be only /a/b
+            // The editor writes the parent path under LuceneNgIndexConstants.FIELD_PARENT_PATH (":parent")
+            TopDocs hits = searcher.search(
+                    new TermQuery(new Term(LuceneNgIndexConstants.FIELD_PARENT_PATH, "/a")), 10);
+            assertEquals(1, hits.totalHits.value, "Direct children of /a");
+            assertEquals("/a/b", searcher.storedFields().document(hits.scoreDocs[0].doc).get(FieldNames.PATH));
+        }
+    }
 }

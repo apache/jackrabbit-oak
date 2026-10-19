@@ -390,4 +390,48 @@ public abstract class AbstractIndexComparisonTest extends AbstractQueryTest {
         assertQuery("select [jcr:path] from [nt:base] where CONTAINS(description, 'functionality')", "sql",
                 List.of("/content/page1"));
     }
+
+    @Test
+    public void testPrefixAndWildcardFulltext() throws Exception {
+        createSearchIndex();
+        createTestContent();
+        assertQuery("select [jcr:path] from [nt:base] where CONTAINS(description, 'integ*')", "sql",
+                List.of("/content/page2"));
+        assertQuery("select [jcr:path] from [nt:base] where CONTAINS(description, 'func*ity')", "sql",
+                List.of("/content/page1"));
+    }
+
+    @Test
+    public void testFulltextWithPropertyConditions() throws Exception {
+        createSearchIndex();
+        createTestContent();
+        assertQuery("select [jcr:path] from [nt:base] where CONTAINS(description, 'oak')"
+                + " and [status] = 'published' and [age] > 30", "sql", List.of("/content/page3"));
+    }
+
+    // ===== Negation and path restrictions =====
+
+    @Test
+    public void testNotEqualQuery() throws Exception {
+        createSearchIndex();
+        createTestContent();
+        assertQuery("select [jcr:path] from [nt:base] where [status] <> 'published'", "sql",
+                List.of("/content/page2"));
+    }
+
+    @Test
+    public void testPathRestrictions() throws Exception {
+        createSearchIndex();
+        createTestContent();
+        root.getTree("/content/page1").addChild("archive").setProperty("status", "published");
+        root.commit();
+        String published = "select [jcr:path] from [nt:base] where [status] = 'published' and ";
+        assertQuery(published + "isdescendantnode('/content')", "sql",
+                List.of("/content/page1", "/content/page1/archive", "/content/page3"));
+        assertQuery(published + "ischildnode('/content')", "sql",
+                List.of("/content/page1", "/content/page3"));
+        assertQuery(published + "issamenode('/content/page1')", "sql", List.of("/content/page1"));
+        assertQuery(published + "isdescendantnode('/content/page1')", "sql",
+                List.of("/content/page1/archive"));
+    }
 }
