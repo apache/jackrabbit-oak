@@ -25,6 +25,8 @@ import org.apache.lucene.store.IndexInput;
  * IndexInput implementation that reads data from Oak repository using chunked storage.
  * Adapted from oak-lucene for Lucene 9.
  */
+// TODO build on Lucene's BufferedIndexInput: single bytes and small numbers are read through the
+//  chunked file one call at a time, and random access uses the default seek-then-read.
 class OakIndexInput extends IndexInput {
 
     private final OakIndexFile file;
