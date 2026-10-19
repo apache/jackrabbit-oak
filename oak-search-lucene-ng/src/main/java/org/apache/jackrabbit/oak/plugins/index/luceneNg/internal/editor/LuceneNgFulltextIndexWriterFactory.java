@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.store.Directory;
 import org.jetbrains.annotations.Nullable;
@@ -82,9 +83,8 @@ public class LuceneNgFulltextIndexWriterFactory implements FulltextIndexWriterFa
                                 luceneNgDefinition.getIndexPath(), e);
                     }
                 }
-                IndexWriterConfig config = new IndexWriterConfig();
+                IndexWriterConfig config = newIndexWriterConfig(reindex);
                 if (reindex) {
-                    config.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
                     LOG.debug("Reindexing: wiping existing index data for {}", luceneNgDefinition.getIndexPath());
                 }
                 return new LuceneNgFulltextIndexWriter(new IndexWriter(directory, config), directory);
@@ -99,5 +99,18 @@ public class LuceneNgFulltextIndexWriterFactory implements FulltextIndexWriterFa
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    /**
+     * Merges write segment files through the index definition's {@code NodeBuilder}, which is not
+     * thread-safe, so they run on the indexing thread.
+     */
+    static IndexWriterConfig newIndexWriterConfig(boolean reindex) {
+        IndexWriterConfig config = new IndexWriterConfig();
+        config.setMergeScheduler(new SerialMergeScheduler());
+        if (reindex) {
+            config.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
+        }
+        return config;
     }
 }

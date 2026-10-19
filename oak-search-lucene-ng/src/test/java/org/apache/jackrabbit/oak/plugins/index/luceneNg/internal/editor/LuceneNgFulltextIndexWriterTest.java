@@ -32,6 +32,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.TermQuery;
@@ -47,6 +48,7 @@ import java.nio.file.Path;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -238,6 +240,14 @@ public class LuceneNgFulltextIndexWriterTest {
         assertTrue(dirListing.count() > 0,
                 "PROP_DIR_LISTING must list at least the segment files just written");
         assertEquals(Type.STRINGS, dirListing.getType());
+    }
+
+    @Test
+    public void mergesRunOnTheIndexingThread() {
+        assertInstanceOf(SerialMergeScheduler.class,
+                LuceneNgFulltextIndexWriterFactory.newIndexWriterConfig(false).getMergeScheduler());
+        assertInstanceOf(SerialMergeScheduler.class,
+                LuceneNgFulltextIndexWriterFactory.newIndexWriterConfig(true).getMergeScheduler());
     }
 
     private static Document newDoc(String path) {
