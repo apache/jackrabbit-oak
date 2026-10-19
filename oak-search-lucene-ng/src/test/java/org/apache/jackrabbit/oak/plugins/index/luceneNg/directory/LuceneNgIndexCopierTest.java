@@ -84,6 +84,27 @@ public class LuceneNgIndexCopierTest {
     }
 
     @Test
+    public void openingTheWriterNeverSchedulesDeletionOfTheReadersFolder() throws Exception {
+        NodeBuilder storageBuilder = INITIAL_CONTENT.builder().child("storage");
+        OakDirectory remote = new OakDirectory(storageBuilder, "testIndex", false);
+        try (IndexOutput out = remote.createOutput("segments_1", IOContext.DEFAULT)) {
+            out.writeString("hello-luceneNg");
+        }
+        LuceneNgIndexDefinition readerVersion = testDefinition("uid-1");
+        LuceneNgIndexDefinition writerVersion = testDefinition("uid-2");
+        try (LuceneNgIndexCopier copier = new LuceneNgIndexCopier(sameThreadExecutor,
+                Files.createTempDirectory(tempDir, "folder").toFile(), false);
+             Directory reader = copier.wrapForRead("/oak:index/test", readerVersion, remote, "luceneNg")) {
+            File readerFolder = copier.getIndexDir(readerVersion, "/oak:index/test", "luceneNg");
+
+            copier.wrapForWrite(writerVersion, remote, new OakDirectory(storageBuilder, "testIndex", true), "luceneNg")
+                    .close();
+
+            assertTrue(readerFolder.isDirectory());
+        }
+    }
+
+    @Test
     public void existsLocally_and_localFileLength_reflectFilePresenceAndAbsence() throws Exception {
         File dir = Files.createTempDirectory(tempDir, "folder").toFile();
         File file = new File(dir, "segments_1");

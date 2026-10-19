@@ -103,12 +103,21 @@ public class LuceneNgIndexCopier implements Closeable {
 
     public Directory wrapForRead(String indexPath, IndexDefinition definition,
                                  OakDirectory remote, String dirName) throws IOException {
-        return wrapForRead(indexPath, definition, remote, dirName, prefetchEnabled);
+        File localDir = getIndexDir(definition, indexPath, dirName);
+        return wrapLocal(indexPath, createLocalDirForIndexReader(indexPath, definition, dirName, localDir),
+                localDir, remote, prefetchEnabled);
     }
 
+    /**
+     * Wraps the writer's directory so that reads of existing files go through the local cache.
+     * Unlike readers, the writer does not register its local folder as the current version of the
+     * index, so opening or closing it never causes another version's folder to be deleted.
+     */
     public Directory wrapForWrite(IndexDefinition definition, OakDirectory remote,
                                   OakDirectory snapshot, String dirName) throws IOException {
-        Directory cached = wrapForRead(definition.getIndexPath(), definition, snapshot, dirName, false);
+        String indexPath = definition.getIndexPath();
+        File localDir = getIndexDir(definition, indexPath, dirName);
+        Directory cached = wrapLocal(indexPath, FSDirectory.open(localDir.toPath()), localDir, snapshot, false);
         try {
             return new ReadThroughDirectory(remote, cached);
         } catch (IOException | RuntimeException e) {
@@ -121,10 +130,8 @@ public class LuceneNgIndexCopier implements Closeable {
         }
     }
 
-    private Directory wrapForRead(String indexPath, IndexDefinition definition,
-                                  OakDirectory remote, String dirName, boolean prefetch) throws IOException {
-        File localDir = getIndexDir(definition, indexPath, dirName);
-        Directory local = createLocalDirForIndexReader(indexPath, definition, dirName, localDir);
+    private Directory wrapLocal(String indexPath, Directory local, File localDir, OakDirectory remote,
+                                boolean prefetch) throws IOException {
         try {
             checkIntegrity(indexPath, local, localDir, remote);
             return new CopyOnReadDirectory(this, remote, local, localDir, prefetch, indexPath, executor);
