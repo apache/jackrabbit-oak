@@ -48,6 +48,7 @@ public class ConcurrentFileAccessTest {
         BlobFactory blobFactory = BlobFactory.getNodeBuilderBlobFactory(builder);
 
         // Write 64KB file with predictable pattern
+        file.setProperty(OakDirectory.PROP_BLOB_SIZE, 32 * 1024L);
         OakBufferedIndexFile writeFile = new OakBufferedIndexFile(
             "test.bin", file, "/test", blobFactory);
 
@@ -61,6 +62,7 @@ public class ConcurrentFileAccessTest {
         writeFile.close();
 
         // Create original reader and two clones
+        file.setProperty(OakDirectory.PROP_BLOB_SIZE, 32 * 1024L);
         OakIndexFile original = new OakBufferedIndexFile(
             "test.bin", file, "/test", blobFactory);
         OakIndexFile clone1 = original.clone();
@@ -173,6 +175,7 @@ public class ConcurrentFileAccessTest {
         BlobFactory blobFactory = BlobFactory.getNodeBuilderBlobFactory(builder);
 
         // Write 10000 bytes
+        file.setProperty(OakDirectory.PROP_BLOB_SIZE, 32 * 1024L);
         OakBufferedIndexFile writeFile = new OakBufferedIndexFile(
             "test.bin", file, "/test", blobFactory);
 
@@ -185,6 +188,7 @@ public class ConcurrentFileAccessTest {
         writeFile.close();
 
         // Create original file and seek to 5000
+        file.setProperty(OakDirectory.PROP_BLOB_SIZE, 32 * 1024L);
         OakIndexFile original = new OakBufferedIndexFile(
             "test.bin", file, "/test", blobFactory);
         original.seek(5000);
@@ -239,6 +243,7 @@ public class ConcurrentFileAccessTest {
         BlobFactory blobFactory = BlobFactory.getNodeBuilderBlobFactory(builder);
 
         // Write 64KB file
+        file.setProperty(OakDirectory.PROP_BLOB_SIZE, 32 * 1024L);
         OakBufferedIndexFile writeFile = new OakBufferedIndexFile(
             "test.bin", file, "/test", blobFactory);
 

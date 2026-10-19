@@ -191,7 +191,7 @@ public class CopyOnReadDirectoryTest {
     }
 
     private OakDirectory remoteWithFile() throws IOException {
-        OakDirectory remote = new OakDirectory(INITIAL_CONTENT.builder(), "testIndex", false);
+        OakDirectory remote = new OakDirectory(INITIAL_CONTENT.builder().child("storage"), "testIndex", false);
         try (IndexOutput output = remote.createOutput("file", IOContext.DEFAULT)) {
             output.writeString("content");
         }

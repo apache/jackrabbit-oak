@@ -31,7 +31,8 @@ class OakIndexOutput extends IndexOutput {
     private final OakIndexFile file;
     private final CRC32 crc;
 
-    public OakIndexOutput(String name, NodeBuilder fileNode, String dirDetails, BlobFactory blobFactory) {
+    public OakIndexOutput(String name, NodeBuilder fileNode, String dirDetails, BlobFactory blobFactory)
+            throws IOException {
         super("OakIndexOutput(" + name + ")", name);
         this.file = new OakBufferedIndexFile(name, fileNode, dirDetails, blobFactory);
         this.crc = new CRC32();

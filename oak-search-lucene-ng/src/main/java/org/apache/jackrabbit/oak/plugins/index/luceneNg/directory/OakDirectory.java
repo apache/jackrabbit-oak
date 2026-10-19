@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
@@ -63,6 +64,7 @@ public class OakDirectory extends Directory {
     private final boolean readOnly;
     private final BlobFactory blobFactory;
     private final BlobDeletionCallback blobDeletionCallback;
+    private final int blobSize;
     private final AtomicLong tempFileCounter = new AtomicLong();
 
     /**
@@ -75,22 +77,36 @@ public class OakDirectory extends Directory {
      * @param readOnly       whether this directory is read-only
      */
     public OakDirectory(NodeBuilder storageBuilder, String indexName, boolean readOnly) {
-        this(storageBuilder, indexName, readOnly, BlobDeletionCallback.NOOP);
+        this(storageBuilder, indexName, readOnly, IndexDefinition.DEFAULT_BLOB_SIZE);
+    }
+
+    /**
+     * @param blobSize size of the blob chunks of files created by this directory
+     */
+    public OakDirectory(NodeBuilder storageBuilder, String indexName, boolean readOnly, int blobSize) {
+        this(storageBuilder, indexName, readOnly, BlobFactory.getNodeBuilderBlobFactory(storageBuilder),
+                BlobDeletionCallback.NOOP, blobSize);
     }
 
     public OakDirectory(NodeBuilder storageBuilder, String indexName, boolean readOnly,
                         BlobDeletionCallback blobDeletionCallback) {
-        this(storageBuilder, indexName, readOnly,
-                BlobFactory.getNodeBuilderBlobFactory(storageBuilder), blobDeletionCallback);
+        this(storageBuilder, indexName, readOnly, BlobFactory.getNodeBuilderBlobFactory(storageBuilder),
+                blobDeletionCallback, IndexDefinition.DEFAULT_BLOB_SIZE);
     }
 
     OakDirectory(NodeBuilder storageBuilder, String indexName, boolean readOnly,
                  BlobFactory blobFactory, BlobDeletionCallback blobDeletionCallback) {
+        this(storageBuilder, indexName, readOnly, blobFactory, blobDeletionCallback, IndexDefinition.DEFAULT_BLOB_SIZE);
+    }
+
+    OakDirectory(NodeBuilder storageBuilder, String indexName, boolean readOnly,
+                 BlobFactory blobFactory, BlobDeletionCallback blobDeletionCallback, int blobSize) {
         this.storageBuilder = storageBuilder;
         this.indexName = indexName;
         this.readOnly = readOnly;
         this.blobFactory = blobFactory;
         this.blobDeletionCallback = blobDeletionCallback;
+        this.blobSize = blobSize;
 
         this.fileNames = SetUtils.newConcurrentHashSet();
         this.fileNames.addAll(getListing());
@@ -159,7 +175,7 @@ public class OakDirectory extends Directory {
         }
 
         NodeBuilder file = storageBuilder.child(name);
-        file.setProperty(PROP_BLOB_SIZE, (long) OakBufferedIndexFile.DEFAULT_BLOB_SIZE);
+        file.setProperty(PROP_BLOB_SIZE, (long) blobSize);
 
         byte[] uniqueKey = new byte[UNIQUE_KEY_SIZE];
         SECURE_RANDOM.nextBytes(uniqueKey);

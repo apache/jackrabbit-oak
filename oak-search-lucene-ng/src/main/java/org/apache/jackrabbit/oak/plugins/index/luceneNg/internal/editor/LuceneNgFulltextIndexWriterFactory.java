@@ -70,7 +70,7 @@ public class LuceneNgFulltextIndexWriterFactory implements FulltextIndexWriterFa
         NodeBuilder storage = LuceneNgIndexStorage.getOrCreateStorageBuilder(definitionBuilder);
 
         try {
-            OakDirectory remote = new OakDirectory(storage, indexName, false);
+            OakDirectory remote = new OakDirectory(storage, indexName, false, luceneNgDefinition.getBlobSize());
             Directory directory = remote;
             try {
                 if (copier != null && !reindex && DirectoryReader.indexExists(remote)) {

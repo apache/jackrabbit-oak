@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.luceneNg.directory;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.store.IOContext;
@@ -51,6 +52,42 @@ public class OakDirectoryTest {
         OakDirectory directory = new OakDirectory(storageBuilder, "testIndex", false);
         // In write mode the directory should accept files directly
         assertNotNull(directory.listAll());
+    }
+
+    @Test
+    public void filesAreChunkedWithTheConfiguredBlobSize() throws Exception {
+        NodeBuilder storageBuilder = root.child("storageRoot");
+        OakDirectory directory = new OakDirectory(storageBuilder, "testIndex", false, 4096);
+        try (IndexOutput out = directory.createOutput("file.bin", IOContext.DEFAULT)) {
+            out.writeBytes(new byte[10_000], 10_000);
+        }
+        directory.close();
+
+        NodeBuilder file = storageBuilder.getChildNode("file.bin");
+        assertEquals(4096L, file.getProperty(OakDirectory.PROP_BLOB_SIZE).getValue(Type.LONG));
+        assertEquals(3, file.getProperty(JCR_DATA).count());
+        try (IndexInput in = new OakDirectory(storageBuilder, "testIndex", true).openInput("file.bin", IOContext.DEFAULT)) {
+            assertEquals(10_000, in.length());
+        }
+    }
+
+    @Test
+    public void filesUseTheDefaultIndexBlobSizeUnlessConfigured() throws Exception {
+        NodeBuilder storageBuilder = root.child("storageRoot");
+        OakDirectory directory = new OakDirectory(storageBuilder, "testIndex", false);
+        directory.createOutput("file.bin", IOContext.DEFAULT).close();
+
+        assertEquals((long) IndexDefinition.DEFAULT_BLOB_SIZE,
+                storageBuilder.getChildNode("file.bin").getProperty(OakDirectory.PROP_BLOB_SIZE).getValue(Type.LONG));
+    }
+
+    @Test
+    public void fileWithoutRecordedBlobSizeCannotBeOpened() {
+        NodeBuilder storageBuilder = root.child("storageRoot");
+        storageBuilder.child("file.bin");
+        OakDirectory directory = new OakDirectory(storageBuilder, "testIndex", true);
+
+        assertThrows(java.io.IOException.class, () -> directory.openInput("file.bin", IOContext.DEFAULT));
     }
 
     @Test
@@ -157,7 +194,7 @@ public class OakDirectoryTest {
         OakDirectory writeDir = new OakDirectory(storageBuilder, "testIndex", false,
                 identifiableBlobFactory, callback);
 
-        byte[] payload = new byte[OakBufferedIndexFile.DEFAULT_BLOB_SIZE];
+        byte[] payload = new byte[IndexDefinition.DEFAULT_BLOB_SIZE];
         try (IndexOutput out = writeDir.createOutput("index.bin", IOContext.DEFAULT)) {
             out.writeBytes(payload, payload.length);
         }

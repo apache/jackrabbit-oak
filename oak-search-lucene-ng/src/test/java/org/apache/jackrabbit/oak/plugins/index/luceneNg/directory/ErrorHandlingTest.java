@@ -41,6 +41,8 @@ public class ErrorHandlingTest {
         NodeBuilder file = builder.child("testFile");
         BlobFactory blobFactory = BlobFactory.getNodeBuilderBlobFactory(builder);
 
+        file.setProperty(OakDirectory.PROP_BLOB_SIZE, 32 * 1024L);
+
         OakBufferedIndexFile indexFile = new OakBufferedIndexFile(
             "test.bin", file, "/test", blobFactory);
 
@@ -74,6 +76,8 @@ public class ErrorHandlingTest {
         NodeBuilder builder = INITIAL_CONTENT.builder();
         NodeBuilder file = builder.child("testFile");
         BlobFactory blobFactory = BlobFactory.getNodeBuilderBlobFactory(builder);
+
+        file.setProperty(OakDirectory.PROP_BLOB_SIZE, 32 * 1024L);
 
         OakBufferedIndexFile indexFile = new OakBufferedIndexFile(
             "test.bin", file, "/test", blobFactory);
@@ -119,6 +123,8 @@ public class ErrorHandlingTest {
         NodeBuilder builder = INITIAL_CONTENT.builder();
         NodeBuilder file = builder.child("testFile");
         BlobFactory blobFactory = BlobFactory.getNodeBuilderBlobFactory(builder);
+
+        file.setProperty(OakDirectory.PROP_BLOB_SIZE, 32 * 1024L);
 
         OakBufferedIndexFile indexFile = new OakBufferedIndexFile(
             "test.bin", file, "/test", blobFactory);
@@ -188,6 +194,7 @@ public class ErrorHandlingTest {
         BlobFactory blobFactory = BlobFactory.getNodeBuilderBlobFactory(builder);
 
         // Create and write data using OakBufferedIndexFile
+        file.setProperty(OakDirectory.PROP_BLOB_SIZE, 32 * 1024L);
         OakBufferedIndexFile indexFile = new OakBufferedIndexFile(
             "test.bin", file, "/test", blobFactory);
 
@@ -243,6 +250,7 @@ public class ErrorHandlingTest {
         BlobFactory blobFactory = BlobFactory.getNodeBuilderBlobFactory(builder);
 
         // Create and write data using OakBufferedIndexFile
+        file.setProperty(OakDirectory.PROP_BLOB_SIZE, 32 * 1024L);
         OakBufferedIndexFile indexFile = new OakBufferedIndexFile(
             "test.bin", file, "/test", blobFactory);
 

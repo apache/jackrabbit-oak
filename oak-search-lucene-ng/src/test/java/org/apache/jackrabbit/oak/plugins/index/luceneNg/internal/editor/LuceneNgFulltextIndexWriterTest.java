@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.OakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.LuceneNgIndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -240,6 +241,26 @@ public class LuceneNgFulltextIndexWriterTest {
         assertTrue(dirListing.count() > 0,
                 "PROP_DIR_LISTING must list at least the segment files just written");
         assertEquals(Type.STRINGS, dirListing.getType());
+    }
+
+    @Test
+    public void indexFilesUseTheDefinitionBlobSize() throws Exception {
+        NodeBuilder definitionBuilder = EMPTY_NODE.builder();
+        NodeState definitionState = EMPTY_NODE.builder()
+                .setProperty(FulltextIndexConstants.BLOB_SIZE, 4096L).getNodeState();
+        LuceneNgIndexDefinition definition =
+                new LuceneNgIndexDefinition(EMPTY_NODE, definitionState, "/oak:index/test");
+
+        FulltextIndexWriter<Document> writer =
+                new LuceneNgFulltextIndexWriterFactory().newInstance(definition, definitionBuilder, null, true);
+        writer.updateDocument("/a", newDoc("/a"));
+        writer.close(0);
+
+        NodeState storage = LuceneNgIndexStorage.storageState(definitionBuilder.getNodeState());
+        for (String fileName : storage.getChildNodeNames()) {
+            assertEquals(4096L, storage.getChildNode(fileName).getLong(LuceneNgIndexConstants.PROP_BLOB_SIZE), fileName);
+        }
+        assertDocCount(definition, definitionBuilder, "/a", 1);
     }
 
     @Test

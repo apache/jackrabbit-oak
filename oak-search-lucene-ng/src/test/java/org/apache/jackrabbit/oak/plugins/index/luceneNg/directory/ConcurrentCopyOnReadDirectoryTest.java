@@ -127,7 +127,7 @@ public class ConcurrentCopyOnReadDirectoryTest {
 
         // normal remote directory - openInput is tagged so a returned IndexInput's toString()
         // reveals whether a read actually went to remote or was served from the local copy.
-        NodeBuilder storageBuilder = InitialContentHelper.INITIAL_CONTENT.builder();
+        NodeBuilder storageBuilder = InitialContentHelper.INITIAL_CONTENT.builder().child("storage");
         remote = new OakDirectory(storageBuilder, "testIndex", false) {
             @Override
             public IndexInput openInput(String name, IOContext context) throws IOException {

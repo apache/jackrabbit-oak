@@ -31,7 +31,8 @@ class OakIndexInput extends IndexInput {
     private final long sliceOffset;
     private final long sliceLength;
 
-    public OakIndexInput(String name, NodeBuilder fileNode, String dirDetails, BlobFactory blobFactory) {
+    public OakIndexInput(String name, NodeBuilder fileNode, String dirDetails, BlobFactory blobFactory)
+            throws IOException {
         super("OakIndexInput(" + name + ")");
         this.file = new OakBufferedIndexFile(name, fileNode, dirDetails, blobFactory);
         this.sliceOffset = 0;

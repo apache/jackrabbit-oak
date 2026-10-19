@@ -43,6 +43,8 @@ public class ChunkedIOEdgeCasesTest {
         NodeBuilder file = builder.child("testFile");
         BlobFactory blobFactory = BlobFactory.getNodeBuilderBlobFactory(builder);
 
+        file.setProperty(OakDirectory.PROP_BLOB_SIZE, 32 * 1024L);
+
         OakBufferedIndexFile indexFile = new OakBufferedIndexFile(
             "test.bin", file, "/test", blobFactory);
 
@@ -74,6 +76,8 @@ public class ChunkedIOEdgeCasesTest {
         NodeBuilder file = builder.child("testFile");
         BlobFactory blobFactory = BlobFactory.getNodeBuilderBlobFactory(builder);
 
+        file.setProperty(OakDirectory.PROP_BLOB_SIZE, 32 * 1024L);
+
         OakBufferedIndexFile indexFile = new OakBufferedIndexFile(
             "test.bin", file, "/test", blobFactory);
 
@@ -102,6 +106,8 @@ public class ChunkedIOEdgeCasesTest {
         NodeBuilder builder = INITIAL_CONTENT.builder();
         NodeBuilder file = builder.child("testFile");
         BlobFactory blobFactory = BlobFactory.getNodeBuilderBlobFactory(builder);
+
+        file.setProperty(OakDirectory.PROP_BLOB_SIZE, 32 * 1024L);
 
         OakBufferedIndexFile indexFile = new OakBufferedIndexFile(
             "test.bin", file, "/test", blobFactory);
@@ -147,6 +153,8 @@ public class ChunkedIOEdgeCasesTest {
         NodeBuilder file = builder.child("testFile");
         BlobFactory blobFactory = BlobFactory.getNodeBuilderBlobFactory(builder);
 
+        file.setProperty(OakDirectory.PROP_BLOB_SIZE, 32 * 1024L);
+
         OakBufferedIndexFile indexFile = new OakBufferedIndexFile(
             "test.bin", file, "/test", blobFactory);
 
@@ -174,6 +182,8 @@ public class ChunkedIOEdgeCasesTest {
         NodeBuilder builder = INITIAL_CONTENT.builder();
         NodeBuilder file = builder.child("testFile");
         BlobFactory blobFactory = BlobFactory.getNodeBuilderBlobFactory(builder);
+
+        file.setProperty(OakDirectory.PROP_BLOB_SIZE, 32 * 1024L);
 
         OakBufferedIndexFile indexFile = new OakBufferedIndexFile(
             "test.bin", file, "/test", blobFactory);

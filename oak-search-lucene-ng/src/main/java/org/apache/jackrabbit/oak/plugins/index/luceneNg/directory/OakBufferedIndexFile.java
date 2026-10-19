@@ -42,12 +42,6 @@ import static org.apache.jackrabbit.oak.api.Type.BINARIES;
  */
 class OakBufferedIndexFile implements OakIndexFile {
 
-    /**
-     * Size of the blob chunks. Set to 32KB (same as oak-lucene).
-     * Higher than the 4KB inline limit for BlobStore.
-     */
-    static final int DEFAULT_BLOB_SIZE = 32 * 1024;
-
     private final String name;
     private final NodeBuilder file;
     private final int blobSize;
@@ -97,11 +91,11 @@ class OakBufferedIndexFile implements OakIndexFile {
     private final byte[] uniqueKey;
 
     public OakBufferedIndexFile(String name, NodeBuilder file, String dirDetails,
-                                @NotNull BlobFactory blobFactory) {
+                                @NotNull BlobFactory blobFactory) throws IOException {
         this.name = name;
         this.file = file;
         this.dirDetails = dirDetails;
-        this.blobSize = determineBlobSize(file);
+        this.blobSize = readBlobSize(name, file, dirDetails);
         this.uniqueKey = readUniqueKey(file);
         this.blob = new byte[blobSize];
         this.blobFactory = blobFactory;
@@ -291,11 +285,12 @@ class OakBufferedIndexFile implements OakIndexFile {
         return null;
     }
 
-    private static int determineBlobSize(NodeBuilder file) {
-        if (file.hasProperty(OakDirectory.PROP_BLOB_SIZE)) {
-            return Math.toIntExact(file.getProperty(OakDirectory.PROP_BLOB_SIZE).getValue(Type.LONG));
+    private static int readBlobSize(String name, NodeBuilder file, String dirDetails) throws IOException {
+        if (!file.hasProperty(OakDirectory.PROP_BLOB_SIZE)) {
+            throw new IOException(String.format("[%s][%s] has no %s property",
+                    dirDetails, name, OakDirectory.PROP_BLOB_SIZE));
         }
-        return DEFAULT_BLOB_SIZE;
+        return Math.toIntExact(file.getProperty(OakDirectory.PROP_BLOB_SIZE).getValue(Type.LONG));
     }
 
     @Override

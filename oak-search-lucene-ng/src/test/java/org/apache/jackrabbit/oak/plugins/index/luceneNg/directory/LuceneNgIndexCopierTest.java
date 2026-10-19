@@ -56,7 +56,7 @@ public class LuceneNgIndexCopierTest {
         // in this module remote is never anything else - there is no mount/multiplexing
         // support here unlike legacy, so the type can say what's actually true instead of
         // being checked at runtime.
-        NodeBuilder storageBuilder = INITIAL_CONTENT.builder();
+        NodeBuilder storageBuilder = INITIAL_CONTENT.builder().child("storage");
         OakDirectory remote = new OakDirectory(storageBuilder, "testIndex", false);
         try (IndexOutput out = remote.createOutput("segments_1", IOContext.DEFAULT)) {
             out.writeString("hello-luceneNg");
@@ -131,7 +131,7 @@ public class LuceneNgIndexCopierTest {
     @Test
     public void indexSanityChecker_purgesLocalOnSizeMismatch() throws Exception {
         File localDir = Files.createTempDirectory(tempDir, "folder").toFile();
-        NodeBuilder storageBuilder = INITIAL_CONTENT.builder();
+        NodeBuilder storageBuilder = INITIAL_CONTENT.builder().child("storage");
         OakDirectory remote = new OakDirectory(storageBuilder, "sanityIndex", false);
         try (IndexOutput out = remote.createOutput("segments_1", IOContext.DEFAULT)) {
             out.writeBytes(new byte[20], 20);
@@ -153,7 +153,7 @@ public class LuceneNgIndexCopierTest {
     @Test
     public void indexSanityChecker_removesStaleLocalFileNotPresentOnRemote() throws Exception {
         File localDir = Files.createTempDirectory(tempDir, "folder").toFile();
-        NodeBuilder storageBuilder = INITIAL_CONTENT.builder();
+        NodeBuilder storageBuilder = INITIAL_CONTENT.builder().child("storage");
         OakDirectory remote = new OakDirectory(storageBuilder, "sanityIndex2", false);
         try (IndexOutput out = remote.createOutput("onBoth", IOContext.DEFAULT)) {
             out.writeBytes(new byte[10], 10);
