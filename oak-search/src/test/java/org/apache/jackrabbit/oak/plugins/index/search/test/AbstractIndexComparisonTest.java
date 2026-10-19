@@ -434,4 +434,27 @@ public abstract class AbstractIndexComparisonTest extends AbstractQueryTest {
         assertQuery(published + "isdescendantnode('/content/page1')", "sql",
                 List.of("/content/page1/archive"));
     }
+
+    // ===== Relative properties =====
+
+    @Test
+    public void testRelativePropertyEvaluatedOnChildNodes() throws Exception {
+        IndexDefinitionBuilder builder = new IndexDefinitionBuilder();
+        builder.noAsync();
+        builder.indexRule("nt:base").property("keyword").propertyIndex().analyzed();
+        Tree index = builder.build(root.getTree("/oak:index").addChild("relativeTestIndex"));
+        index.setProperty("type", getIndexType());
+        root.commit();
+        setTraversalEnabled(false);
+        Tree content = root.getTree("/").addChild("content");
+        content.addChild("match").addChild("jcr:content").setProperty("keyword", "foo");
+        content.addChild("other").addChild("jcr:content").setProperty("keyword", "bar");
+        content.addChild("direct").setProperty("keyword", "foo");
+        root.commit();
+
+        assertQuery("select [jcr:path] from [nt:base] where [jcr:content/keyword] = 'foo'", "sql",
+                List.of("/content/match"));
+        assertQuery("select [jcr:path] from [nt:base] where CONTAINS([jcr:content/keyword], 'foo')", "sql",
+                List.of("/content/match"));
+    }
 }

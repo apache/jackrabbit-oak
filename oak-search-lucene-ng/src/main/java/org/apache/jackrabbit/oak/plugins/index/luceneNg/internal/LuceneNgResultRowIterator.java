@@ -43,6 +43,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 
 /**
  * Result rows of a LuceneNg query, loaded in growing batches. Each batch acquires the index node
@@ -62,6 +63,7 @@ public class LuceneNgResultRowIterator implements Iterator<FulltextResultRow>, I
     private final Sort sort;
     private final boolean excerpts;
     private final FacetProvider facetProvider;
+    private final UnaryOperator<String> resultPath;
     private final Deque<FulltextResultRow> queue = new ArrayDeque<>();
     private ScoreDoc lastDoc;
     private int nextBatchSize = INITIAL_BATCH_SIZE;
@@ -73,15 +75,18 @@ public class LuceneNgResultRowIterator implements Iterator<FulltextResultRow>, I
      * @param sort          the sort order, or {@code null} for score order
      * @param excerpts      whether rows carry a {@code rep:excerpt} for the fulltext condition
      * @param facetProvider the facets of the whole result, or {@code null}
+     * @param resultPath    the result path of an indexed document path, or {@code null} to skip it
      */
     public LuceneNgResultRowIterator(LuceneNgIndexTracker tracker, String indexPath, Query query, @Nullable Sort sort,
-                                     boolean excerpts, @Nullable FacetProvider facetProvider) {
+                                     boolean excerpts, @Nullable FacetProvider facetProvider,
+                                     UnaryOperator<String> resultPath) {
         this.tracker = tracker;
         this.indexPath = indexPath;
         this.query = query;
         this.sort = sort;
         this.excerpts = excerpts;
         this.facetProvider = facetProvider;
+        this.resultPath = resultPath;
     }
 
     @Override
@@ -136,12 +141,16 @@ public class LuceneNgResultRowIterator implements Iterator<FulltextResultRow>, I
             StoredFields storedFields = searcher.storedFields();
             for (int i = 0; i < docs.scoreDocs.length; i++) {
                 ScoreDoc scoreDoc = docs.scoreDocs[i];
-                String path = storedFields.document(scoreDoc.doc, Set.of(FieldNames.PATH)).get(FieldNames.PATH);
+                lastDoc = scoreDoc;
+                String path = resultPath.apply(
+                        storedFields.document(scoreDoc.doc, Set.of(FieldNames.PATH)).get(FieldNames.PATH));
+                if (path == null) {
+                    continue;
+                }
                 Map<String, String> rowExcerpts = batchExcerpts[i] == null
                         ? Collections.emptyMap()
                         : Map.of(QueryConstants.REP_EXCERPT, batchExcerpts[i]);
                 queue.add(new FulltextResultRow(path, scoreDoc.score, rowExcerpts, facetProvider, null));
-                lastDoc = scoreDoc;
             }
             if (docs.scoreDocs.length < batchSize) {
                 noMoreDocs = true;

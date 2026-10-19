@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.luceneNg.internal;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -108,7 +109,7 @@ public final class LuceneNgQueryBuilder {
         if (ft != null) {
             Query fullTextQuery;
             try (Analyzer analyzer = new StandardAnalyzer()) {
-                fullTextQuery = fullTextQuery(ft, analyzer);
+                fullTextQuery = fullTextQuery(ft, analyzer, planResult);
             }
             if (propertyQueries.isEmpty()) {
                 contentQuery = fullTextQuery;
@@ -128,7 +129,7 @@ public final class LuceneNgQueryBuilder {
             contentQuery = bq.build();
         }
 
-        Query pathQuery = pathQuery(filter);
+        Query pathQuery = pathQuery(filter, planResult);
         Query typeQuery = nodeTypeQuery(filter, planResult);
         if (pathQuery == null && typeQuery == null) {
             return contentQuery;
@@ -155,7 +156,7 @@ public final class LuceneNgQueryBuilder {
             return planResult.evaluateNodeNameRestriction() ? localNameQuery(pr) : null;
         }
         PropertyDefinition definition = planResult.getPropDefn(pr);
-        return definition != null ? propertyQuery(pr, definition) : null;
+        return definition != null ? propertyQuery(planResult.getPropertyName(pr), pr, definition) : null;
     }
 
     @Nullable
@@ -180,13 +181,24 @@ public final class LuceneNgQueryBuilder {
         return query.clauses().isEmpty() ? null : query;
     }
 
+    /**
+     * When the plan evaluates relative properties on descendants (a transformed path), documents
+     * are those descendants: {@code parentPathSegment} is appended to the restricted path, and
+     * direct children are narrowed to the subtree, the exact level being checked on the
+     * transformed result paths.
+     */
     @Nullable
-    private static Query pathQuery(Filter filter) {
+    private static Query pathQuery(Filter filter, PlanResult planResult) {
         Filter.PathRestriction restriction = filter.getPathRestriction();
         if (restriction == null) {
             return null;
         }
         String path = filter.getPath();
+        boolean transformed = planResult.isPathTransformed();
+        String segment = transformed ? planResult.getParentPathSegment() : "";
+        if (segment.contains("*")) {
+            return null;
+        }
         switch (restriction) {
             case ALL_CHILDREN:
                 if ("/".equals(path)) {
@@ -194,9 +206,12 @@ public final class LuceneNgQueryBuilder {
                 }
                 return new PrefixQuery(new Term(FieldNames.PATH, path + "/"));
             case DIRECT_CHILDREN:
+                if (transformed) {
+                    return "/".equals(path) ? null : new PrefixQuery(new Term(FieldNames.PATH, path + "/"));
+                }
                 return new TermQuery(new Term(LuceneNgIndexConstants.FIELD_PARENT_PATH, path));
             case EXACT:
-                return new TermQuery(new Term(FieldNames.PATH, path));
+                return new TermQuery(new Term(FieldNames.PATH, withSegment(path, segment)));
             case PARENT:
                 if ("/".equals(path)) {
                     // root has no parent: a path no document has
@@ -204,19 +219,24 @@ public final class LuceneNgQueryBuilder {
                 }
                 int lastSlash = path.lastIndexOf('/');
                 String parentPath = lastSlash == 0 ? "/" : path.substring(0, lastSlash);
-                return new TermQuery(new Term(FieldNames.PATH, parentPath));
+                return new TermQuery(new Term(FieldNames.PATH, withSegment(parentPath, segment)));
             case NO_RESTRICTION:
             default:
                 return null;
         }
     }
 
+    private static String withSegment(String path, String segment) {
+        return segment.isEmpty() ? path : "/".equals(path) ? segment : path + segment;
+    }
+
     /**
-     * The Lucene query for a restriction on a property, according to its declared type.
+     * The Lucene query for a restriction on the indexed field {@code propertyName}, according to
+     * the declared type of the property.
      */
     @NotNull
-    static Query propertyQuery(@NotNull PropertyRestriction pr, @NotNull PropertyDefinition definition) {
-        String propertyName = pr.propertyName;
+    static Query propertyQuery(@NotNull String propertyName, @NotNull PropertyRestriction pr,
+                               @NotNull PropertyDefinition definition) {
         int propertyType = definition.getType();
 
         if (pr.isNotNullRestriction()) {
@@ -409,7 +429,7 @@ public final class LuceneNgQueryBuilder {
         return null;
     }
 
-    private static Query fullTextQuery(FullTextExpression ft, Analyzer analyzer) {
+    private static Query fullTextQuery(FullTextExpression ft, Analyzer analyzer, PlanResult planResult) {
         AtomicReference<Query> result = new AtomicReference<>();
         ft.accept(new FullTextVisitor() {
 
@@ -422,7 +442,7 @@ public final class LuceneNgQueryBuilder {
             public boolean visit(FullTextOr or) {
                 BooleanQuery.Builder bq = new BooleanQuery.Builder();
                 for (FullTextExpression e : or.list) {
-                    bq.add(fullTextQuery(e, analyzer), Occur.SHOULD);
+                    bq.add(fullTextQuery(e, analyzer, planResult), Occur.SHOULD);
                 }
                 result.set(bq.build());
                 return true;
@@ -432,7 +452,7 @@ public final class LuceneNgQueryBuilder {
             public boolean visit(FullTextAnd and) {
                 BooleanQuery.Builder bq = new BooleanQuery.Builder();
                 for (FullTextExpression e : and.list) {
-                    bq.add(fullTextQuery(e, analyzer), Occur.MUST);
+                    bq.add(fullTextQuery(e, analyzer, planResult), Occur.MUST);
                 }
                 result.set(bq.build());
                 return true;
@@ -440,7 +460,7 @@ public final class LuceneNgQueryBuilder {
 
             @Override
             public boolean visit(FullTextTerm term) {
-                Query q = termQuery(term.getText(), term.getPropertyName(), analyzer);
+                Query q = termQuery(term.getText(), fullTextField(term.getPropertyName(), planResult), analyzer);
                 if (term.isNot()) {
                     BooleanQuery.Builder bq = new BooleanQuery.Builder();
                     bq.add(new MatchAllDocsQuery(), Occur.MUST);
@@ -462,10 +482,14 @@ public final class LuceneNgQueryBuilder {
         return result.get();
     }
 
-    private static Query termQuery(String text, String propertyName, Analyzer analyzer) {
-        String field = propertyName == null || "*".equals(propertyName)
-                ? FieldNames.FULLTEXT
-                : FieldNames.createAnalyzedFieldName(propertyName);
+    private static String fullTextField(@Nullable String propertyName, PlanResult planResult) {
+        String name = propertyName != null && planResult.isPathTransformed()
+                ? PathUtils.getName(propertyName)
+                : propertyName;
+        return name == null || "*".equals(name) ? FieldNames.FULLTEXT : FieldNames.createAnalyzedFieldName(name);
+    }
+
+    private static Query termQuery(String text, String field, Analyzer analyzer) {
 
         // Wildcard terms bypass tokenization to preserve the wildcard characters
         if (text.contains("*") || text.contains("?")) {

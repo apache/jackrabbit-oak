@@ -306,8 +306,13 @@ public class LuceneNgIndex extends FulltextIndex {
         }
 
         Map<String, List<Facet>> resultFacets = facets;
+        FulltextIndexPlanner.PlanResult planResult = getPlanResult(plan);
         LuceneNgResultRowIterator rows = new LuceneNgResultRowIterator(tracker, selectedPath, query, sort,
-                needsExcerpts, resultFacets.isEmpty() ? null : (numberOfFacets, columnName) -> resultFacets.get(columnName));
+                needsExcerpts, resultFacets.isEmpty() ? null : (numberOfFacets, columnName) -> resultFacets.get(columnName),
+                documentPath -> {
+                    String path = planResult.isPathTransformed() ? planResult.transformPath(documentPath) : documentPath;
+                    return path != null && shouldInclude(path, plan) ? path : null;
+                });
         return new FulltextPathCursor(rows, rows, plan, filter.getQueryLimits(), getSizeEstimator(plan));
     }
 

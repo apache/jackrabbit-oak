@@ -66,7 +66,7 @@ public class LuceneNgQueryBuilderTest {
         ageAbove30.firstIncluding = false;
 
         assertEquals(LongPoint.newRangeQuery("age", 31L, Long.MAX_VALUE),
-                LuceneNgQueryBuilder.propertyQuery(ageAbove30, declared("age", "Long")));
+                LuceneNgQueryBuilder.propertyQuery("age", ageAbove30, declared("age", "Long")));
     }
 
     @Test
@@ -76,7 +76,7 @@ public class LuceneNgQueryBuilderTest {
         aboveMax.first = PropertyValues.newLong(Long.MAX_VALUE);
         aboveMax.firstIncluding = false;
 
-        assertEquals(new MatchNoDocsQuery(), LuceneNgQueryBuilder.propertyQuery(aboveMax, declared("score", "Long")));
+        assertEquals(new MatchNoDocsQuery(), LuceneNgQueryBuilder.propertyQuery("score", aboveMax, declared("score", "Long")));
     }
 
     @Test
@@ -86,7 +86,7 @@ public class LuceneNgQueryBuilderTest {
         belowMin.last = PropertyValues.newLong(Long.MIN_VALUE);
         belowMin.lastIncluding = false;
 
-        assertEquals(new MatchNoDocsQuery(), LuceneNgQueryBuilder.propertyQuery(belowMin, declared("score", "Long")));
+        assertEquals(new MatchNoDocsQuery(), LuceneNgQueryBuilder.propertyQuery("score", belowMin, declared("score", "Long")));
     }
 
     @Test
@@ -97,7 +97,7 @@ public class LuceneNgQueryBuilderTest {
         epoch.firstIncluding = epoch.lastIncluding = true;
 
         assertEquals(LongPoint.newExactQuery("created", 0L),
-                LuceneNgQueryBuilder.propertyQuery(epoch, declared("created", "Date")));
+                LuceneNgQueryBuilder.propertyQuery("created", epoch, declared("created", "Date")));
     }
 
     @Test
@@ -123,7 +123,7 @@ public class LuceneNgQueryBuilderTest {
 
         for (PropertyRestriction restriction : List.of(equality, lowerBound, upperBound, in, not)) {
             assertFailsWithoutLeakingSecret(IllegalArgumentException.class,
-                    () -> LuceneNgQueryBuilder.propertyQuery(restriction, created));
+                    () -> LuceneNgQueryBuilder.propertyQuery("created", restriction, created));
         }
     }
 

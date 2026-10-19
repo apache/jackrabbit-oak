@@ -369,6 +369,7 @@ public class IntegrationTest {
         // filter; null sort order; no facets).
         QueryIndex.IndexPlan plan = mock(QueryIndex.IndexPlan.class);
         when(plan.getFilter()).thenReturn(filter);
+        when(plan.getPathPrefix()).thenReturn("");
         LuceneNgIndexDefinition definition = new LuceneNgIndexDefinition(
                 root, root.getChildNode("oak:index").getChildNode("testIndex"), "/oak:index/testIndex");
         when(plan.getAttribute(org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.ATTR_PLAN_RESULT))
