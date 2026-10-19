@@ -57,6 +57,8 @@ public class LuceneNgIndexProviderService {
     private static final Logger LOG = LoggerFactory.getLogger(LuceneNgIndexProviderService.class);
 
     private static final String REPOSITORY_HOME = "repository.home";
+    /** Separate from oak-lucene's {@code index} folder, whose startup cleanup scans every index folder. */
+    private static final String DEFAULT_LOCAL_INDEX_DIR = "indexNg";
     private static final int INDEX_COPIER_POOL_SIZE = 5;
     private static final int OBSERVER_QUEUE_LENGTH = 5;
 
@@ -90,7 +92,7 @@ public class LuceneNgIndexProviderService {
         @AttributeDefinition(
                 name = "Local index storage path",
                 description = "Local file system path for reader and writer segment caching. " +
-                        "If not specified, indexes are stored under an 'index' directory under " +
+                        "If not specified, indexes are stored under an 'indexNg' directory under " +
                         "repository home."
         )
         String localIndexDir();
@@ -162,7 +164,7 @@ public class LuceneNgIndexProviderService {
                 throw new IOException("Index directory cannot be determined as neither localIndexDir " +
                         "config nor repository.home is set");
             }
-            indexDirPath = Paths.get(repoHome, "index").toString();
+            indexDirPath = Paths.get(repoHome, DEFAULT_LOCAL_INDEX_DIR).toString();
         }
         boolean prefetchEnabled = config.prefetchIndexFiles();
         if (prefetchEnabled) {

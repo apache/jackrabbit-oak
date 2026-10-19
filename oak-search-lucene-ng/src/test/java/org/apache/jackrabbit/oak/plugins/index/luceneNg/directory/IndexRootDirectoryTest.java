@@ -110,6 +110,18 @@ public class IndexRootDirectoryTest {
     }
 
     @Test
+    public void startupCleanupKeepsNrtFoldersOfTheCurrentIndexVersion() throws Exception {
+        FulltextIndexEditorContext.configureUniqueId(builder);
+        File current = dir.getIndexDir(getDefn(), "/a", "default");
+        File nrt = new File(current.getParentFile(), "nrt-1");
+        assertTrue(nrt.mkdir());
+
+        new IndexRootDirectory(tempDir.toFile());
+
+        assertTrue(nrt.isDirectory());
+    }
+
+    @Test
     public void indexFolderName() throws Exception{
         assertEquals("abc", IndexRootDirectory.getIndexFolderBaseName("/abc"));
         assertEquals("abc12", IndexRootDirectory.getIndexFolderBaseName("/abc12"));

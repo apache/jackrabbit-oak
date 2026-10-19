@@ -33,7 +33,8 @@ manifest, allowing the framework to load the appropriate Java-specific classes.
 
 `enableCopyOnReadSupport` enables reader caching and `enableReadBeforeWriteSupport`
 enables writer read caching; both default to `true` and can be configured
-independently. Both use `localIndexDir` (or `repository.home/index` by default).
+independently. Both use `localIndexDir` (or `repository.home/indexNg` by default,
+separate from the folder `oak-lucene` uses).
 `prefetchIndexFiles` controls reader prefetch only. Incremental writers read
 existing segments locally when present, otherwise remotely while they are copied
 in the background, and write new files synchronously to Oak storage. Reindexing

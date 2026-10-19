@@ -29,6 +29,7 @@ import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -62,8 +63,9 @@ public class LuceneNgIndexProviderServiceTest {
 
         activate(service, bundleContext, config); // reflection helper - see below
 
-        File expectedIndexDir = new File(tempDir.toFile(), "index");
-        assertTrue(expectedIndexDir.isDirectory(), "expected index dir to be created under repository.home/index");
+        File expectedIndexDir = new File(tempDir.toFile(), "indexNg");
+        assertTrue(expectedIndexDir.isDirectory(), "expected index dir to be created under repository.home/indexNg");
+        assertFalse(new File(tempDir.toFile(), "index").exists(), "the oak-lucene local index folder must not be used");
 
         deactivate(service); // reflection helper - see below
     }

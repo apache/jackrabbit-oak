@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.index.luceneNg.directory;
 
 import java.io.File;
 import java.io.FileFilter;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -262,9 +261,6 @@ public class IndexRootDirectory {
                 }
             }
 
-            if (!dirs.isEmpty()) {
-                totalDeletedSize += gcNRTIndexDirs(dirs.get(0));
-            }
             totalDeletedSize += deleteOldFormatDir(dirs.get(0).getJcrPath());
         }
 
@@ -272,30 +268,6 @@ public class IndexRootDirectory {
             log.info("Reclaimed [{}] space by removing unused/old index directories",
                     IOUtils.humanReadableByteCount(totalDeletedSize));
         }
-    }
-
-    /**
-     * Removes all directory created by NRTIndex which have
-     * nrt prefix
-     */
-    private long gcNRTIndexDirs(LocalIndexDir idxDir) {
-        final String prefix = getFSSafeName("nrt-");
-        File[] nrtDirs = idxDir.dir.listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.startsWith(prefix);
-            }
-        });
-
-        long size = 0;
-        if (nrtDirs != null) {
-            for (File f : nrtDirs){
-                size += FileUtils.sizeOf(f);
-                FileUtils.deleteQuietly(f);
-            }
-        }
-
-        return size;
     }
 
     @Nullable
