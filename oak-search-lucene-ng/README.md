@@ -126,8 +126,9 @@ Rows are returned through the shared `FulltextIndex` cursor, as in `oak-lucene`.
 Results are read with `searchAfter`, starting at 50 results and doubling up to
 100K. Each batch acquires and releases its searcher independently; result rows
 load only stored PATH. When a `rep:excerpt` column is requested, excerpts are
-generated separately for each batch. When the index is refreshed between two batches, the search
-restarts on the new index version and rows already returned are skipped. As in
+generated separately for each batch. When the index is refreshed between two
+batches, the search restarts on the new index version and rows already returned
+are skipped. As in
 `oak-lucene`, candidate rows are checked against Oak's read limit every
 `oak.traversing.warning` (default 10000) rows. String/boolean sort metadata is
 loaded lazily and cached per immutable reader generation.
@@ -211,7 +212,7 @@ module exposes richer query counts, error rates, and index sizes via JMX.
 ### Storage and data consistency
 
 **`BlobDeletionCallback` is hardcoded to NOOP.**
-When index files are deleted from `OakDirectory`, the blob store is not notified. Unreferenced blobs accumulate until a full blob GC scan. The legacy module wires a real callback; this is a known incomplete feature (see TODO in `OakDirectory`).
+When index files are deleted from `OakDirectory`, the blob store is not notified. Unreferenced blobs accumulate until a full blob GC scan. The legacy module wires a real callback; this is a known incomplete feature.
 
 **`IndexWriter.commit()` and Oak `NodeStore` commit are not atomic.**
 A JVM crash between the two orphans blobs in the blob store. The blob GC will collect them eventually. This is the same accepted trade-off as `oak-lucene` (documented in OAK-7066 context).
@@ -234,7 +235,11 @@ excerpts directly from the index.
 
 **`OakDirectory.fileLength()` opens a full `OakIndexInput` on every call** to read blob metadata. Lucene calls this frequently during segment selection. Lengths should be cached on the file node to avoid repeated blob reads.
 
-**`buildQuery()` is called twice per query** — once in `getPlanDescription()` and once in `query()`. The cost is low in absolute terms but avoidable.
+**The Lucene query of a plan is built twice per query** — once for the plan description and once to run it. The cost is low in absolute terms but avoidable.
+
+**Remote index reads are not buffered.** `OakIndexInput` reads single bytes and small numbers through the chunked file one call at a time, and random access uses the default seek-then-read. This matters only for files not yet copied to local disk.
+
+**Secure and statistical facet access checks load every stored field** of each checked document to read its path, including stored excerpt text.
 
 **`OakBufferedIndexFile` computes wrong read length if `PROP_UNIQUE_KEY` is externally deleted.** Under normal operation this property is written atomically with file creation and is never absent. Same design as legacy (see OAK-7066).
 
