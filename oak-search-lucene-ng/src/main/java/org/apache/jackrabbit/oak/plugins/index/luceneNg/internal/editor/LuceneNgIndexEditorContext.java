@@ -94,7 +94,8 @@ public class LuceneNgIndexEditorContext extends FulltextIndexEditorContext<Docum
         // resolved (possibly reindex-swapped) definition. LuceneNgDocumentMaker's real constructor
         // takes decomposed pieces (textExtractor, definition, rule, path, facetsConfig) rather than a
         // context object.
-        return new LuceneNgDocumentMaker(getTextExtractor(), getDefinition(), rule, path, getFacetsConfig());
+        return new LuceneNgDocumentMaker(getTextExtractor(), (LuceneNgIndexDefinition) getDefinition(), rule, path,
+                getFacetsConfig());
     }
 
     /**

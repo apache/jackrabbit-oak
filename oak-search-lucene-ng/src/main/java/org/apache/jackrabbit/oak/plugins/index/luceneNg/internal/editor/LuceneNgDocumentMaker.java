@@ -21,6 +21,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -70,6 +71,7 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
     private static final int MAX_FIELD_LENGTH = IndexDefinition.DEFAULT_MAX_FIELD_LENGTH;
 
     private final FacetsConfig facetsConfig;
+    private final LuceneNgIndexDefinition ngDefinition;
 
     /**
      * @param textExtractor optional binary text extractor; this module has no binary
@@ -82,12 +84,13 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
      *                      editor context); used by {@link #finalizeDoc} to build facet fields
      */
     public LuceneNgDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
-                                 IndexDefinition definition,
+                                 LuceneNgIndexDefinition definition,
                                  IndexingRule indexingRule,
                                  String path,
                                  FacetsConfig facetsConfig) {
         super(textExtractor, definition, indexingRule, path);
         this.facetsConfig = facetsConfig;
+        this.ngDefinition = definition;
     }
 
     @Override
@@ -138,13 +141,14 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
     protected void indexTypedProperty(Document doc, PropertyState property, String pname,
                                       PropertyDefinition pd, int i) {
         boolean sortArrayValue = pd.ordered && property.isArray();
-        switch (pd.getType()) {
+        int type = ngDefinition.fieldType(pname, pd);
+        switch (type) {
             case PropertyType.LONG:
             case PropertyType.DATE: {
-                Long value = longValue(pd, property, i);
+                Long value = longValue(type, property, i);
                 if (value == null) {
                     LOG.debug("Skipping property '{}': declared {} but value cannot be converted",
-                            pname, PropertyType.nameFromValue(pd.getType()));
+                            pname, PropertyType.nameFromValue(type));
                     return;
                 }
                 doc.add(new LongPoint(pname, value));
@@ -155,10 +159,10 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
             }
             case PropertyType.DOUBLE:
             case PropertyType.DECIMAL: {
-                Double value = doubleValue(pd, property, i);
+                Double value = doubleValue(type, property, i);
                 if (value == null) {
                     LOG.debug("Skipping property '{}': declared {} but value cannot be converted",
-                            pname, PropertyType.nameFromValue(pd.getType()));
+                            pname, PropertyType.nameFromValue(type));
                     return;
                 }
                 doc.add(new DoublePoint(pname, value));
@@ -168,9 +172,9 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
                 return;
             }
             default:
-                if (!indexedAsString(pd.getType(), property.getType().tag())) {
+                if (!indexedAsString(type, property.getType().tag())) {
                     LOG.debug("Skipping property '{}': declared {} does not accept {} values", pname,
-                            PropertyType.nameFromValue(pd.getType()),
+                            PropertyType.nameFromValue(type),
                             PropertyType.nameFromValue(property.getType().tag()));
                     return;
                 }
@@ -191,10 +195,11 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
     @Override
     protected boolean indexTypeOrderedFields(Document doc, String pname, int tag, PropertyState property,
                                              PropertyDefinition pd) {
-        switch (pd.getType()) {
+        int type = ngDefinition.fieldType(pname, pd);
+        switch (type) {
             case PropertyType.LONG:
             case PropertyType.DATE: {
-                Long value = longValue(pd, property, 0);
+                Long value = longValue(type, property, 0);
                 if (value == null) {
                     return false;
                 }
@@ -203,7 +208,7 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
             }
             case PropertyType.DOUBLE:
             case PropertyType.DECIMAL: {
-                Double value = doubleValue(pd, property, 0);
+                Double value = doubleValue(type, property, 0);
                 if (value == null) {
                     return false;
                 }
@@ -211,7 +216,7 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
                 return true;
             }
             default:
-                if (!indexedAsString(pd.getType(), property.getType().tag())) {
+                if (!indexedAsString(type, property.getType().tag())) {
                     return false;
                 }
                 doc.add(new SortedSetDocValuesField(pname, new BytesRef(truncated(property.getValue(Type.STRING)))));
@@ -259,14 +264,14 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
 
     /** Value {@code i} as a long for a property declared Long or Date (milliseconds since epoch). */
     @Nullable
-    private Long longValue(PropertyDefinition pd, PropertyState property, int i) {
-        return pd.getType() == PropertyType.DATE ? readAsDateMillis(property, i) : readAsLong(property, i);
+    private Long longValue(int type, PropertyState property, int i) {
+        return type == PropertyType.DATE ? readAsDateMillis(property, i) : readAsLong(property, i);
     }
 
     /** Value {@code i} as a double for a property declared Double or Decimal. */
     @Nullable
-    private Double doubleValue(PropertyDefinition pd, PropertyState property, int i) {
-        if (pd.getType() == PropertyType.DECIMAL && property.getType().tag() == PropertyType.DECIMAL) {
+    private Double doubleValue(int type, PropertyState property, int i) {
+        if (type == PropertyType.DECIMAL && property.getType().tag() == PropertyType.DECIMAL) {
             return property.getValue(Type.DECIMAL, i).doubleValue();
         }
         return readAsDouble(property, i);

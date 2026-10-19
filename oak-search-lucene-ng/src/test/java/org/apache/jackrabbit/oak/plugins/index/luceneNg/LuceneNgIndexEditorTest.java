@@ -195,4 +195,38 @@ public class LuceneNgIndexEditorTest {
         }
         return paths;
     }
+
+    @Test
+    public void propertyDeclaredWithDifferentTypesInTwoRulesIsIndexedAsStringInBoth() throws Exception {
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        IndexDefinitionBuilder definition = luceneNg(root);
+        definition.indexRule("nt:unstructured").property("size").propertyIndex().type("Long");
+        definition.indexRule("nt:folder").property("size").propertyIndex();
+        root.child("number").setProperty("jcr:primaryType", "nt:unstructured", Type.NAME).setProperty("size", 5L);
+        root.child("text").setProperty("jcr:primaryType", "nt:folder", Type.NAME).setProperty("size", "large");
+
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
+        try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
+            IndexSearcher searcher = new IndexSearcher(reader);
+            assertEquals(Set.of("/number"), paths(searcher, new TermQuery(new Term("size", "5"))));
+            assertEquals(Set.of("/text"), paths(searcher, new TermQuery(new Term("size", "large"))));
+        }
+    }
+
+    @Test
+    public void explicitTypeConflictingWithARegexDefinitionIsIndexedAsString() throws Exception {
+        NodeBuilder root = INITIAL_CONTENT.builder();
+        IndexDefinitionBuilder definition = luceneNg(root);
+        definition.indexRule("nt:unstructured").property("size").propertyIndex().type("Long");
+        definition.indexRule("nt:folder").property("allProperties", ".*", true).propertyIndex();
+        root.child("number").setProperty("jcr:primaryType", "nt:unstructured", Type.NAME).setProperty("size", 5L);
+        root.child("text").setProperty("jcr:primaryType", "nt:folder", Type.NAME).setProperty("size", "large");
+
+        NodeState indexed = LuceneNgEditorCommitUtil.reindex(root.getNodeState());
+        try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
+            IndexSearcher searcher = new IndexSearcher(reader);
+            assertEquals(Set.of("/number"), paths(searcher, new TermQuery(new Term("size", "5"))));
+            assertEquals(Set.of("/text"), paths(searcher, new TermQuery(new Term("size", "large"))));
+        }
+    }
 }

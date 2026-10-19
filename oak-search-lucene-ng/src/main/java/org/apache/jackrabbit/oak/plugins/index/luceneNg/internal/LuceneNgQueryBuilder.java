@@ -21,8 +21,8 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
-import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult;
@@ -156,7 +156,12 @@ public final class LuceneNgQueryBuilder {
             return planResult.evaluateNodeNameRestriction() ? localNameQuery(pr) : null;
         }
         PropertyDefinition definition = planResult.getPropDefn(pr);
-        return definition != null ? propertyQuery(planResult.getPropertyName(pr), pr, definition) : null;
+        if (definition == null) {
+            return null;
+        }
+        String field = planResult.getPropertyName(pr);
+        return propertyQuery(field, pr, definition,
+                ((LuceneNgIndexDefinition) planResult.indexDefinition).fieldType(field, definition));
     }
 
     @Nullable
@@ -237,7 +242,15 @@ public final class LuceneNgQueryBuilder {
     @NotNull
     static Query propertyQuery(@NotNull String propertyName, @NotNull PropertyRestriction pr,
                                @NotNull PropertyDefinition definition) {
-        int propertyType = definition.getType();
+        return propertyQuery(propertyName, pr, definition, definition.getType());
+    }
+
+    /**
+     * @param propertyType the type that decides the Lucene field of the property
+     */
+    @NotNull
+    static Query propertyQuery(@NotNull String propertyName, @NotNull PropertyRestriction pr,
+                               @NotNull PropertyDefinition definition, int propertyType) {
 
         if (pr.isNotNullRestriction()) {
             if (definition.notNullCheckEnabled) {
@@ -537,7 +550,7 @@ public final class LuceneNgQueryBuilder {
      *                       for fields without doc values
      */
     @NotNull
-    public static Sort sort(@NotNull List<OrderEntry> sortOrder, @NotNull IndexDefinition definition,
+    public static Sort sort(@NotNull List<OrderEntry> sortOrder, @NotNull LuceneNgIndexDefinition definition,
                             @NotNull Function<String, DocValuesType> docValuesTypes) {
         List<SortField> fields = new ArrayList<>();
         for (OrderEntry order : sortOrder) {
@@ -550,7 +563,7 @@ public final class LuceneNgQueryBuilder {
      * Ordered values are written as SORTED_SET (strings) or SORTED_NUMERIC (numbers) doc values
      * for single- and multi-valued properties alike; these sort each document by its smallest value.
      */
-    static SortField sortField(OrderEntry order, IndexDefinition definition,
+    static SortField sortField(OrderEntry order, LuceneNgIndexDefinition definition,
                                Function<String, DocValuesType> docValuesTypes) {
         String propertyName = order.getPropertyName();
         if (QueryConstants.JCR_SCORE.equals(propertyName)) {
@@ -568,11 +581,11 @@ public final class LuceneNgQueryBuilder {
         return new SortField(propertyName, fieldType, reverse);
     }
 
-    private static int declaredType(IndexDefinition definition, String propertyName, int fallbackType) {
+    private static int declaredType(LuceneNgIndexDefinition definition, String propertyName, int fallbackType) {
         for (IndexingRule rule : definition.getDefinedRules()) {
             PropertyDefinition propDef = rule.getConfig(propertyName);
             if (propDef != null && propDef.index) {
-                return propDef.getType();
+                return definition.fieldType(propertyName, propDef);
             }
         }
         return fallbackType;

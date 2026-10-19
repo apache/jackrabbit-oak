@@ -117,6 +117,27 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
     }
 
     @Test
+    public void propertyWithConflictingTypesInTwoRulesIsQueriedAsString() throws Exception {
+        IndexDefinitionBuilder builder = new IndexDefinitionBuilder().noAsync();
+        builder.indexRule("nt:unstructured").property("size").propertyIndex().type("Long");
+        builder.indexRule("nt:folder").property("size").propertyIndex();
+        builder.build(root.getTree("/oak:index").addChild("sizes")).setProperty("type", "luceneNg");
+        Tree content = root.getTree("/").addChild("content");
+        Tree number = content.addChild("number");
+        number.setProperty("jcr:primaryType", "nt:unstructured", org.apache.jackrabbit.oak.api.Type.NAME);
+        number.setProperty("size", 5L);
+        Tree text = content.addChild("text");
+        text.setProperty("jcr:primaryType", "nt:folder", org.apache.jackrabbit.oak.api.Type.NAME);
+        text.setProperty("size", "large");
+        root.commit();
+
+        assertQuery("select [jcr:path] from [nt:unstructured] where [size] = 5 option(index name sizes)",
+                "sql", List.of("/content/number"));
+        assertQuery("select [jcr:path] from [nt:folder] where [size] = 'large' option(index name sizes)",
+                "sql", List.of("/content/text"));
+    }
+
+    @Test
     public void indexedNodeTypesExcludeOtherTypesBeforeCandidateReads() throws Exception {
         IndexDefinitionBuilder builder = new IndexDefinitionBuilder().noAsync();
         builder.indexRule("nt:base").property("title").propertyIndex()

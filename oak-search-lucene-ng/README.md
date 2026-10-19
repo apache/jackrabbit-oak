@@ -103,6 +103,12 @@ Other declared types accept only some value types; other values are skipped:
 | `Reference`, `WeakReference` | Reference, WeakReference, String | string term |
 | `URI` | URI, String | string term |
 
+A property declared with incompatible types in different indexing rules (for
+example `Long` in one rule and `String`, undeclared or matched by a regex
+definition in another) is indexed and queried as `String` in all rules, since
+Lucene requires one field shape across documents; a WARN names the property and
+rules.
+
 A declared `Binary` type is intentionally not supported as a property type: such
 a property gets no property-index or sort field, whatever its values. Binary
 content is indexed only through fulltext text extraction.

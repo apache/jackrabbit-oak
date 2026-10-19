@@ -19,15 +19,31 @@ package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
+import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.jcr.PropertyType;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Index definition for Lucene 9 indexes.
  * Extends the base IndexDefinition with Lucene 9 specific configuration.
  */
 public class LuceneNgIndexDefinition extends IndexDefinition {
+
+    private static final Logger LOG = LoggerFactory.getLogger(LuceneNgIndexDefinition.class);
+    private static final Set<String> REPORTED_CONFLICTS = ConcurrentHashMap.newKeySet();
+
+    /** Fields that rules declare with types of incompatible Lucene field shapes. */
+    private final Set<String> conflictingFields;
 
     /**
      * Creates a new Lucene 9 index definition.
@@ -40,6 +56,7 @@ public class LuceneNgIndexDefinition extends IndexDefinition {
                                   @NotNull NodeState defn,
                                   @NotNull String indexPath) {
         super(root, defn, indexPath);
+        this.conflictingFields = conflictingFields();
     }
 
     /**
@@ -58,6 +75,7 @@ public class LuceneNgIndexDefinition extends IndexDefinition {
                                   @Nullable String uid,
                                   @NotNull String indexPath) {
         super(root, defn, version, uid, indexPath);
+        this.conflictingFields = conflictingFields();
     }
 
     @Override
@@ -69,6 +87,61 @@ public class LuceneNgIndexDefinition extends IndexDefinition {
     public boolean evaluatePathRestrictions() {
         // PATH and parent fields are always indexed by LuceneNgDocumentMaker.
         return true;
+    }
+
+    /**
+     * The property type that decides the Lucene field of {@code fieldName}: the declared type, or
+     * String when the rules of this index declare the field with incompatible types (Lucene requires
+     * one field shape across all documents).
+     */
+    public int fieldType(String fieldName, PropertyDefinition definition) {
+        return conflictingFields.contains(fieldName) ? PropertyType.STRING : definition.getType();
+    }
+
+    private Set<String> conflictingFields() {
+        Set<String> declaredNames = new HashSet<>();
+        for (IndexingRule rule : getDefinedRules()) {
+            for (PropertyDefinition pd : rule.getProperties()) {
+                if (!pd.isRegexp) {
+                    declaredNames.add(pd.name);
+                }
+            }
+        }
+        Set<String> conflicting = new HashSet<>();
+        for (String name : declaredNames) {
+            Map<String, String> shapeByRule = new TreeMap<>();
+            for (IndexingRule rule : getDefinedRules()) {
+                PropertyDefinition pd = rule.getConfig(name);
+                String shape = pd != null && (pd.propertyIndex || pd.ordered) ? fieldShape(pd.getType()) : null;
+                if (shape != null) {
+                    shapeByRule.put(rule.getNodeTypeName(), shape);
+                }
+            }
+            if (new HashSet<>(shapeByRule.values()).size() > 1) {
+                conflicting.add(name);
+                if (REPORTED_CONFLICTS.add(getIndexPath() + "|" + name)) {
+                    LOG.warn("Index {} declares property {} with incompatible types {}; it is indexed and queried as String",
+                            getIndexPath(), name, shapeByRule);
+                }
+            }
+        }
+        return conflicting;
+    }
+
+    @Nullable
+    private static String fieldShape(int type) {
+        switch (type) {
+            case PropertyType.LONG:
+            case PropertyType.DATE:
+                return "Long";
+            case PropertyType.DOUBLE:
+            case PropertyType.DECIMAL:
+                return "Double";
+            case PropertyType.BINARY:
+                return null;
+            default:
+                return "String";
+        }
     }
 
     /**
