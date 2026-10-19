@@ -108,7 +108,7 @@ public class LuceneNgIndexCopier implements Closeable {
 
     public Directory wrapForWrite(IndexDefinition definition, OakDirectory remote,
                                   OakDirectory snapshot, String dirName) throws IOException {
-        Directory cached = wrapForRead(definition.getIndexPath(), definition, snapshot, dirName, true);
+        Directory cached = wrapForRead(definition.getIndexPath(), definition, snapshot, dirName, false);
         try {
             return new ReadThroughDirectory(remote, cached);
         } catch (IOException | RuntimeException e) {

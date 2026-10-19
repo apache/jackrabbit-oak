@@ -82,7 +82,7 @@ public class LuceneNgIndexProviderService {
 
         @AttributeDefinition(
                 name = "Enable read-before-write support",
-                description = "Prefetch existing segments and serve writer reads from local disk. " +
+                description = "Serve writer reads of existing segments from local disk, copying them on first read. " +
                         "New files are written synchronously to Oak storage. Independent of reader CopyOnRead."
         )
         boolean enableReadBeforeWriteSupport() default true;

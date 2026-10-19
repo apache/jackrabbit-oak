@@ -34,9 +34,10 @@ manifest, allowing the framework to load the appropriate Java-specific classes.
 `enableCopyOnReadSupport` enables reader caching and `enableReadBeforeWriteSupport`
 enables writer read caching; both default to `true` and can be configured
 independently. Both use `localIndexDir` (or `repository.home/index` by default).
-`prefetchIndexFiles` controls reader prefetch only. Incremental writers prefetch
-existing segments before opening, read unchanged files locally, and write new
-files synchronously to Oak storage. Reindexing does not prefetch obsolete segments.
+`prefetchIndexFiles` controls reader prefetch only. Incremental writers read
+existing segments locally when present, otherwise remotely while they are copied
+in the background, and write new files synchronously to Oak storage. Reindexing
+does not copy obsolete segments.
 Local cache setup failures are logged and fall back to remote reads; failures
 opening the actual index are reported through the shared bad-index tracker.
 
@@ -217,8 +218,8 @@ Lucene's commit writes to the staged NodeBuilder, not the published NodeStore
 root. A rejected Oak merge leaves the previously published index readable;
 no separate Lucene rollback mechanism is required.
 
-**Asynchronous CopyOnWrite is not ported.** Existing segments are prefetched and
-writer reads reuse the local cache, but new segment files are written directly to
+**Asynchronous CopyOnWrite is not ported.** Writer reads reuse the local cache,
+but new segment files are written directly to
 the remote-backed `OakDirectory`. Local buffering and background uploads remain
 deferred.
 

@@ -45,6 +45,8 @@ import org.apache.lucene.store.Directory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -77,7 +79,7 @@ public class LuceneNgFulltextIndexWriterTest {
             assertEquals(0, copier.getDownloadCount(), "reindex must not prefetch obsolete segments");
 
             FulltextIndexWriter<Document> second = factory.newInstance(definition, builder, null, false);
-            assertTrue(copier.getDownloadCount() > 0, "incremental writer must prefetch existing segments");
+            assertTrue(copier.getDownloadCount() > 0, "incremental writer must copy the segments it reads");
             int downloads = copier.getDownloadCount();
             second.deleteDocument("/a");
             second.updateDocument("/b", newDoc("/b"));
@@ -93,6 +95,29 @@ public class LuceneNgFulltextIndexWriterTest {
             assertDocCount(definition, builder, "/b", 0);
             assertDocCount(definition, builder, "/c", 1);
         }
+    }
+
+    @Test
+    public void incrementalWriterOpensWithoutDownloadingTheIndex() throws Exception {
+        NodeBuilder builder = EMPTY_NODE.builder();
+        LuceneNgIndexDefinition definition = new LuceneNgIndexDefinition.Builder()
+                .root(EMPTY_NODE).defn(EMPTY_NODE).indexPath("/oak:index/test").uid("uid").build();
+        FulltextIndexWriter<Document> initial =
+                new LuceneNgFulltextIndexWriterFactory().newInstance(definition, builder, null, true);
+        initial.updateDocument("/a", newDoc("/a"));
+        initial.close(0);
+        List<Runnable> pendingCopies = new ArrayList<>();
+        try (LuceneNgIndexCopier copier = new LuceneNgIndexCopier(pendingCopies::add,
+                Files.createTempDirectory(tempDir, "folder").toFile(), false)) {
+            FulltextIndexWriter<Document> writer =
+                    new LuceneNgFulltextIndexWriterFactory(copier).newInstance(definition, builder, null, false);
+
+            assertEquals(0, copier.getDownloadCount());
+            writer.updateDocument("/b", newDoc("/b"));
+            writer.close(0);
+        }
+        assertDocCount(definition, builder, "/a", 1);
+        assertDocCount(definition, builder, "/b", 1);
     }
 
     @Test

@@ -29,7 +29,8 @@ import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.util.IOUtils;
 
 /**
- * Serves unchanged segment reads from a prefetched snapshot and writes directly to Oak storage.
+ * Serves reads of unchanged segments through a local cache of a snapshot, copying files on first
+ * read, and writes directly to Oak storage.
  */
 public class ReadThroughDirectory extends FilterDirectory {
     private final Directory cached;

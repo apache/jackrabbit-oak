@@ -41,7 +41,7 @@ public class ReadThroughDirectoryTest {
     public Path tempDir;
 
     @Test
-    public void prefetchesDespiteReaderPrefetchBeingDisabled() throws Exception {
+    public void copiesExistingFilesOnFirstReadAndWritesNewFilesRemotely() throws Exception {
         NodeBuilder storage = EMPTY_NODE.builder();
         OakDirectory remote = new OakDirectory(storage, "test", false);
         write(remote, "old", "original");
@@ -50,8 +50,12 @@ public class ReadThroughDirectoryTest {
         try (LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, Files.createTempDirectory(tempDir, "folder").toFile(), false);
              Directory writer = copier.wrapForWrite(definition, remote,
                      new OakDirectory(storage.getNodeState().builder(), "test", true), "luceneNg")) {
-            assertEquals(1, copier.getDownloadCount());
             File local = copier.getIndexDir(definition, definition.getIndexPath(), "luceneNg");
+            assertEquals(0, copier.getDownloadCount());
+            assertFalse(new File(local, "old").exists());
+
+            assertEquals("original", read(writer, "old"));
+            assertEquals(1, copier.getDownloadCount());
             assertTrue(new File(local, "old").isFile());
             int before = copier.getReaderLocalReadCount();
             assertEquals("original", read(writer, "old"));

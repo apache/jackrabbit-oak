@@ -79,7 +79,7 @@ public class LuceneNgFulltextIndexWriterFactory implements FulltextIndexWriterFa
                         directory = copier.wrapForWrite(luceneNgDefinition, remote, snapshot, LuceneNgIndexStorage.STORAGE_NODE_NAME);
                     } catch (IOException e) {
                         snapshot.close();
-                        LOG.warn("Cannot prefetch local cache for {}; writer will read remote segments",
+                        LOG.warn("Cannot open local cache for {}; writer will read remote segments",
                                 luceneNgDefinition.getIndexPath(), e);
                     }
                 }
