@@ -96,6 +96,8 @@ public class LuceneNgSecureSortedSetDocValuesFacetCounts extends SortedSetDocVal
      */
     static boolean isDocAccessible(IndexReader reader, Filter filter, int docId, String dim)
             throws IOException {
+        // TODO load only the :path field and reuse one StoredFields per segment, instead of loading
+        //  every stored field (including stored excerpt text) for each matching document.
         Document document = reader.storedFields().document(docId);
         org.apache.lucene.index.IndexableField pathField = document.getField(FieldNames.PATH);
         if (pathField == null) {
