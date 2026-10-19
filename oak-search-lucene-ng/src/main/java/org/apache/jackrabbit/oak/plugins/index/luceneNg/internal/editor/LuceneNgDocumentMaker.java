@@ -339,17 +339,20 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
     protected boolean indexFacetProperty(Document doc, int tag, PropertyState property, String pname) {
         // Dimension -> index-field-name mapping and multi-valued flags are registered on the
         // shared FacetsConfig by the editor context.
+        // Lucene facet labels cannot be empty; empty values are skipped, as in oak-lucene.
         boolean added = false;
         if (!property.isArray()) {
             String value = convertToString(property);
-            if (value != null) {
+            if (value != null && !value.isEmpty()) {
                 doc.add(new SortedSetDocValuesFacetField(pname, value));
                 added = true;
             }
         } else {
             for (String value : convertAllToStrings(property)) {
-                doc.add(new SortedSetDocValuesFacetField(pname, value));
-                added = true;
+                if (!value.isEmpty()) {
+                    doc.add(new SortedSetDocValuesFacetField(pname, value));
+                    added = true;
+                }
             }
         }
         return added;

@@ -104,6 +104,37 @@ public class LuceneNgDocumentMakerTest {
     }
 
     @Test
+    public void emptyFacetValuesAreSkippedAndTheNodeIsIndexed() throws Exception {
+        NodeBuilder defnBuilder = ROOT.builder().child("oak:index").child("test");
+        IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
+        idb.indexRule("nt:unstructured")
+                .property("format").propertyIndex().facets()
+                .property("tags").propertyIndex().facets();
+        LuceneNgIndexDefinition def = definitionWith(idb, defnBuilder);
+        FacetsConfig facetsConfig = new FacetsConfig();
+        for (String dimension : java.util.List.of("format", "tags")) {
+            facetsConfig.setIndexFieldName(dimension, FieldNames.createFacetFieldName(dimension));
+            facetsConfig.setMultiValued(dimension, true);
+        }
+        LuceneNgDocumentMaker maker = new LuceneNgDocumentMaker(null, def,
+                def.getApplicableIndexingRule("nt:unstructured"), "/content", facetsConfig);
+        NodeBuilder withEmptyValues = ROOT.builder().child("content");
+        withEmptyValues.setProperty("jcr:primaryType", "nt:unstructured");
+        withEmptyValues.setProperty("format", "");
+        withEmptyValues.setProperty("tags", java.util.List.of("red", ""), org.apache.jackrabbit.oak.api.Type.STRINGS);
+        NodeBuilder redOnly = ROOT.builder().child("content");
+        redOnly.setProperty("jcr:primaryType", "nt:unstructured");
+        redOnly.setProperty("tags", java.util.List.of("red"), org.apache.jackrabbit.oak.api.Type.STRINGS);
+
+        Document doc = maker.makeDocument(withEmptyValues.getNodeState());
+
+        assertNotNull(doc);
+        assertEquals(null, doc.getField(FieldNames.createFacetFieldName("format")));
+        assertEquals(maker.makeDocument(redOnly.getNodeState()).getFields(FieldNames.createFacetFieldName("tags")).length,
+                doc.getFields(FieldNames.createFacetFieldName("tags")).length);
+    }
+
+    @Test
     public void nodeScopeIndexedStringIsAddedToFulltext() throws Exception {
         NodeBuilder defnBuilder = ROOT.builder().child("oak:index").child("test");
         IndexDefinitionBuilder idb = new IndexDefinitionBuilder(defnBuilder);
