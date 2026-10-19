@@ -22,6 +22,7 @@ import ch.qos.logback.classic.spi.ThrowableProxyUtil;
 import ch.qos.logback.core.read.ListAppender;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult;
@@ -36,9 +37,14 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.document.LongPoint;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.index.DocValuesType;
+import org.apache.lucene.search.BooleanClause.Occur;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.SortedSetSortField;
+import org.apache.lucene.search.TermQuery;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.slf4j.LoggerFactory;
@@ -176,6 +182,23 @@ public class LuceneNgQueryBuilderTest {
             }
         }
         assertEquals("*:*", typeRestrictedQuery(typesNotIndexed.getNodeState()));
+    }
+
+    @Test
+    public void descendantRestrictionIsOneAncestorTerm() {
+        Filter underContent = mock(Filter.class);
+        when(underContent.matchesAllTypes()).thenReturn(true);
+        when(underContent.getPropertyRestrictions()).thenReturn(List.of());
+        when(underContent.getPathRestriction()).thenReturn(Filter.PathRestriction.ALL_CHILDREN);
+        when(underContent.getPath()).thenReturn("/content");
+        LuceneNgIndexDefinition definition = new LuceneNgIndexDefinition(
+                INITIAL_CONTENT, new IndexDefinitionBuilder().build(), "/oak:index/test");
+
+        assertEquals(new BooleanQuery.Builder()
+                        .add(new MatchAllDocsQuery(), Occur.MUST)
+                        .add(new TermQuery(new Term(FieldNames.ANCESTORS, "/content")), Occur.FILTER)
+                        .build(),
+                LuceneNgQueryBuilder.query(underContent, new PlanResult("/oak:index/test", definition, null)));
     }
 
     @Test

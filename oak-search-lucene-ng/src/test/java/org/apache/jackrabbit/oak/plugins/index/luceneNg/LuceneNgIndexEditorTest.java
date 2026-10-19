@@ -18,7 +18,9 @@ package org.apache.jackrabbit.oak.plugins.index.luceneNg;
 
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
@@ -32,6 +34,7 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.junit.jupiter.api.Test;
@@ -153,7 +156,7 @@ public class LuceneNgIndexEditorTest {
     }
 
     @Test
-    public void parentPathIsIndexedForDirectChildQueries() throws Exception {
+    public void parentAndAncestorPathsAreIndexedForPathRestrictions() throws Exception {
         NodeBuilder builder = INITIAL_CONTENT.builder();
         NodeBuilder oakIndex = builder.child("oak:index").child("testIdx");
         oakIndex.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
@@ -178,12 +181,18 @@ public class LuceneNgIndexEditorTest {
         // Read back from the committed index storage (Lucene directory name = index node name).
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, "/oak:index/testIdx")) {
             IndexSearcher searcher = new IndexSearcher(reader);
-            // Direct children of /a should be only /a/b
-            // The editor writes the parent path under LuceneNgIndexConstants.FIELD_PARENT_PATH (":parent")
-            TopDocs hits = searcher.search(
-                    new TermQuery(new Term(LuceneNgIndexConstants.FIELD_PARENT_PATH, "/a")), 10);
-            assertEquals(1, hits.totalHits.value, "Direct children of /a");
-            assertEquals("/a/b", searcher.storedFields().document(hits.scoreDocs[0].doc).get(FieldNames.PATH));
+            assertEquals(Set.of("/a/b"),
+                    paths(searcher, new TermQuery(new Term(LuceneNgIndexConstants.FIELD_PARENT_PATH, "/a"))));
+            assertEquals(Set.of("/a/b", "/a/b/c"),
+                    paths(searcher, new TermQuery(new Term(FieldNames.ANCESTORS, "/a"))));
         }
+    }
+
+    private static Set<String> paths(IndexSearcher searcher, Query query) throws Exception {
+        Set<String> paths = new HashSet<>();
+        for (ScoreDoc hit : searcher.search(query, 10).scoreDocs) {
+            paths.add(searcher.storedFields().document(hit.doc).get(FieldNames.PATH));
+        }
+        return paths;
     }
 }

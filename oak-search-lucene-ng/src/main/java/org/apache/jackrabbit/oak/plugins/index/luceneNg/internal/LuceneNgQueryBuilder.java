@@ -204,10 +204,10 @@ public final class LuceneNgQueryBuilder {
                 if ("/".equals(path)) {
                     return null;
                 }
-                return new PrefixQuery(new Term(FieldNames.PATH, path + "/"));
+                return new TermQuery(new Term(FieldNames.ANCESTORS, path));
             case DIRECT_CHILDREN:
                 if (transformed) {
-                    return "/".equals(path) ? null : new PrefixQuery(new Term(FieldNames.PATH, path + "/"));
+                    return "/".equals(path) ? null : new TermQuery(new Term(FieldNames.ANCESTORS, path));
                 }
                 return new TermQuery(new Term(LuceneNgIndexConstants.FIELD_PARENT_PATH, path));
             case EXACT:

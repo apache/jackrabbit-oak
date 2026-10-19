@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.luceneNg.internal.editor;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.luceneNg.LuceneNgIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
@@ -369,14 +370,16 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
     // Ancestors / path restrictions
     // -------------------------------------------------------------------------
 
+    /**
+     * Adds one {@link FieldNames#ANCESTORS} term per ancestor below the root, so that a descendant
+     * path restriction is a single term query.
+     */
     @Override
     protected void indexAncestors(Document doc, String path) {
-        // No-op. The framework only calls this when definition.evaluatePathRestrictions() is true
-        // (default false). This module has never indexed ancestor path terms: its query side uses
-        // the ":parent" field (written in initDoc) for direct-child path queries and does not read
-        // FieldNames.ANCESTORS / :depth at all, so porting oak-lucene's ancestor/depth fields here
-        // would add fields nothing consumes. Ancestor-based path-restriction support would be a
-        // separate, future enhancement.
+        for (String ancestor = PathUtils.getParentPath(path); !PathUtils.denotesRoot(ancestor);
+             ancestor = PathUtils.getParentPath(ancestor)) {
+            doc.add(new StringField(FieldNames.ANCESTORS, ancestor, Field.Store.NO));
+        }
     }
 
     // -------------------------------------------------------------------------
