@@ -187,16 +187,9 @@ public class LuceneNgIndex extends FulltextIndex {
 
     @Override
     public String getPlanDescription(IndexPlan plan, NodeState root) {
-        // Kept as an override (rather than inheriting FulltextIndex.getPlanDescription) purely for
-        // output-format compatibility that LuceneNgIndexComparisonTest.testLuceneNgIndexIsUsed pins:
-        //  - the first line must start with "lucene:" so tooling that only matches legacy
-        //    FulltextIndex plans (e.g. AEM ExplainQueryServlet LUCENE_INDEX_PATTERN: "/\* lucene:…")
-        //    still detects an index; the "@ng" suffix marks the LuceneNg backend;
-        //  - the "luceneNg:" line identifies the index type;
-        //  - the query label is "luceneQuery:" for compatibility with existing tooling.
-        // The path is now taken from the plan's PlanResult (built by the inherited
-        // FulltextIndexPlanner) rather than a per-instance field, so it is correct even if this
-        // instance was allocated for a different index path.
+        // The first line starts with "lucene:" so that tooling recognising Lucene index plans by
+        // that prefix still detects the index; the "@ng" suffix marks the LuceneNg backend, the
+        // "luceneNg:" line names the index type and "luceneQuery:" keeps the existing query label.
         String path = getExecutionPath(plan);
         String shortName = PathUtils.getName(path);
         StringBuilder sb = new StringBuilder("lucene:");

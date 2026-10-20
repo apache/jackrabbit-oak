@@ -193,20 +193,20 @@ public class TypeSafeIndexingTest {
     }
 
     /**
-     * The exact AEM scenario: dam:size is declared Long but some nodes store it as a String. A full
+     * A size property declared Long that some nodes store as a String. A full
      * traversal (all nodes indexed in one commit) must not throw and must index all convertible values.
      */
     @Test
     public void fullTraversalWithMixedValueTypesForDeclaredLongDoesNotThrow() throws Exception {
         NodeBuilder root = INITIAL_CONTENT.builder();
-        luceneNg(root).indexRule("nt:unstructured").property("dam:size").propertyIndex().type("Long");
+        luceneNg(root).indexRule("nt:unstructured").property("size").propertyIndex().type("Long");
 
         for (int i = 0; i < 10; i++) {
             NodeBuilder n = node(root, "asset" + i);
             if (i % 2 == 0) {
-                n.setProperty("dam:size", (long) (i + 1) * 1000L);          // Long
+                n.setProperty("size", (long) (i + 1) * 1000L);          // Long
             } else {
-                n.setProperty("dam:size", String.valueOf((i + 1) * 1000L)); // String
+                n.setProperty("size", String.valueOf((i + 1) * 1000L)); // String
             }
         }
 
@@ -215,10 +215,10 @@ public class TypeSafeIndexingTest {
                 LuceneNgEditorCommitUtil.numDocs(indexed, IDX), "All 10 nodes must be indexed (all string values are parseable longs)");
         try (DirectoryReader reader = LuceneNgEditorCommitUtil.openReader(indexed, IDX)) {
             LeafReader leaf = reader.leaves().get(0).reader();
-            FieldInfo fi = leaf.getFieldInfos().fieldInfo("dam:size");
-            assertNotNull(fi, "dam:size field must exist");
+            FieldInfo fi = leaf.getFieldInfos().fieldInfo("size");
+            assertNotNull(fi, "size field must exist");
             assertEquals(IndexOptions.NONE,
-                    fi.getIndexOptions(), "All dam:size documents must use point fields (NONE)");
+                    fi.getIndexOptions(), "All size documents must use point fields (NONE)");
         }
     }
 

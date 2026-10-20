@@ -240,7 +240,7 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
         createSearchIndex();
         createTestContent();
         String explain = executeQuery("explain //element(*, nt:base)[@title = 'Oak Testing']", "xpath").get(0);
-        assertThat("Query plan should use lucene:...@ng for Granite-style parsers",
+        assertThat("Query plan should start with lucene:...@ng for tooling matching Lucene plans",
                 explain, containsString("lucene:searchTestIndex@ng"));
         assertThat("Query plan should expose luceneNg type",
                 explain, containsString("luceneNg:searchTestIndex"));

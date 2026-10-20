@@ -151,7 +151,7 @@ If a future LuceneNg-specific reindex path were ever added that bypasses `oak-co
 Define query indexes at `/oak:index/<name>`. One backend uses the inherited
 planner to discover definitions and executes the index selected by each plan
 for results, sorting and facets. Nested definitions (for example,
-`/content/dam/oak:index/damAssets`) are excluded from query plans because
+`/content/oak:index/contentIndex`) are excluded from query plans because
 subtree-relative query and result paths are not supported yet. The editor
 skips them at indexing time with a WARN, so they are neither maintained nor
 queryable.
