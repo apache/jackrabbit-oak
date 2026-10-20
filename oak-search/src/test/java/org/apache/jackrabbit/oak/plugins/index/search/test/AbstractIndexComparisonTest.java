@@ -456,5 +456,10 @@ public abstract class AbstractIndexComparisonTest extends AbstractQueryTest {
                 List.of("/content/match"));
         assertQuery("select [jcr:path] from [nt:base] where CONTAINS([jcr:content/keyword], 'foo')", "sql",
                 List.of("/content/match"));
+
+        content.getChild("match").addChild("deeper").addChild("jcr:content").setProperty("keyword", "foo");
+        root.commit();
+        assertQuery("select [jcr:path] from [nt:base] where [jcr:content/keyword] = 'foo'"
+                + " and ischildnode('/content')", "sql", List.of("/content/match"));
     }
 }

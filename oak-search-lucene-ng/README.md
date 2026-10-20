@@ -173,9 +173,10 @@ Indexing, fulltext queries and excerpts use StandardAnalyzer. Custom analyzer
 configuration is not honored; configurable analyzers remain a missing feature.
 
 **Path filtering is always supported.**
-PATH, parent and ancestor fields are indexed regardless of
+PATH, parent, ancestor and depth fields are indexed regardless of
 `evaluatePathRestrictions`; a descendant restriction is a single ancestor term
-lookup. The planner therefore advertises path support when that flag is
+lookup, and a direct-children restriction on a relative property also matches
+the depth. The planner therefore advertises path support when that flag is
 omitted, false or true.
 
 **Configured null checks use markers.**

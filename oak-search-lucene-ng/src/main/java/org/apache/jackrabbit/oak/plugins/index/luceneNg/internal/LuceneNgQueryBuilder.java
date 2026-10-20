@@ -44,6 +44,7 @@ import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.document.DoublePoint;
+import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.Term;
@@ -189,8 +190,8 @@ public final class LuceneNgQueryBuilder {
     /**
      * When the plan evaluates relative properties on descendants (a transformed path), documents
      * are those descendants: {@code parentPathSegment} is appended to the restricted path, and
-     * direct children are narrowed to the subtree, the exact level being checked on the
-     * transformed result paths.
+     * direct children are the documents of the subtree at the depth of a child plus the depth
+     * of the relative path.
      */
     @Nullable
     private static Query pathQuery(Filter filter, PlanResult planResult) {
@@ -212,7 +213,15 @@ public final class LuceneNgQueryBuilder {
                 return new TermQuery(new Term(FieldNames.ANCESTORS, path));
             case DIRECT_CHILDREN:
                 if (transformed) {
-                    return "/".equals(path) ? null : new TermQuery(new Term(FieldNames.ANCESTORS, path));
+                    Query depth = IntPoint.newExactQuery(FieldNames.PATH_DEPTH,
+                            PathUtils.getDepth(path) + planResult.getParentDepth() + 1);
+                    if ("/".equals(path)) {
+                        return depth;
+                    }
+                    return new BooleanQuery.Builder()
+                            .add(new TermQuery(new Term(FieldNames.ANCESTORS, path)), Occur.MUST)
+                            .add(depth, Occur.MUST)
+                            .build();
                 }
                 return new TermQuery(new Term(LuceneNgIndexConstants.FIELD_PARENT_PATH, path));
             case EXACT:

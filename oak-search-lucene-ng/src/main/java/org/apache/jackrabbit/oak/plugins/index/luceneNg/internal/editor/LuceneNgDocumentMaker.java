@@ -34,6 +34,7 @@ import org.apache.jackrabbit.util.ISO8601;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.SortedSetDocValuesField;
@@ -380,7 +381,7 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
 
     /**
      * Adds one {@link FieldNames#ANCESTORS} term per ancestor below the root, so that a descendant
-     * path restriction is a single term query.
+     * path restriction is a single term query, and the {@link FieldNames#PATH_DEPTH} of the node.
      */
     @Override
     protected void indexAncestors(Document doc, String path) {
@@ -388,6 +389,7 @@ public class LuceneNgDocumentMaker extends FulltextDocumentMaker<Document> {
              ancestor = PathUtils.getParentPath(ancestor)) {
             doc.add(new StringField(FieldNames.ANCESTORS, ancestor, Field.Store.NO));
         }
+        doc.add(new IntPoint(FieldNames.PATH_DEPTH, PathUtils.getDepth(path)));
     }
 
     // -------------------------------------------------------------------------

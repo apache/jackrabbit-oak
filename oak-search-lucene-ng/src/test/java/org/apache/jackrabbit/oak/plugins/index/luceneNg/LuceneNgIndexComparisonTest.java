@@ -138,6 +138,21 @@ public class LuceneNgIndexComparisonTest extends AbstractIndexComparisonTest {
     }
 
     @Test
+    public void directChildrenOfRelativePropertyQueriesAreFilteredByDepth() throws Exception {
+        IndexDefinitionBuilder builder = new IndexDefinitionBuilder().noAsync();
+        builder.indexRule("nt:base").property("keyword").propertyIndex();
+        builder.build(root.getTree("/oak:index").addChild("relative")).setProperty("type", "luceneNg");
+        root.getTree("/").addChild("content").addChild("match").addChild("jcr:content").setProperty("keyword", "foo");
+        root.commit();
+        setTraversalEnabled(false);
+
+        String plan = executeQuery("explain select [jcr:path] from [nt:base] where [jcr:content/keyword] = 'foo'"
+                + " and ischildnode('/content') option(index name relative)", "sql").get(0);
+
+        assertThat(plan, containsString("+:ancestors:/content +:depth:[3 TO 3]"));
+    }
+
+    @Test
     public void indexedNodeTypesExcludeOtherTypesBeforeCandidateReads() throws Exception {
         IndexDefinitionBuilder builder = new IndexDefinitionBuilder().noAsync();
         builder.indexRule("nt:base").property("title").propertyIndex()

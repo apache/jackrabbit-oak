@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.lucene.document.DoublePoint;
+import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.Term;
@@ -156,7 +157,7 @@ public class LuceneNgIndexEditorTest {
     }
 
     @Test
-    public void parentAndAncestorPathsAreIndexedForPathRestrictions() throws Exception {
+    public void parentAncestorAndDepthFieldsAreIndexedForPathRestrictions() throws Exception {
         NodeBuilder builder = INITIAL_CONTENT.builder();
         NodeBuilder oakIndex = builder.child("oak:index").child("testIdx");
         oakIndex.setProperty("type", LuceneNgIndexConstants.TYPE_LUCENE_NG);
@@ -185,6 +186,8 @@ public class LuceneNgIndexEditorTest {
                     paths(searcher, new TermQuery(new Term(LuceneNgIndexConstants.FIELD_PARENT_PATH, "/a"))));
             assertEquals(Set.of("/a/b", "/a/b/c"),
                     paths(searcher, new TermQuery(new Term(FieldNames.ANCESTORS, "/a"))));
+            assertEquals(Set.of("/a/b"),
+                    paths(searcher, IntPoint.newExactQuery(FieldNames.PATH_DEPTH, 2)));
         }
     }
 
