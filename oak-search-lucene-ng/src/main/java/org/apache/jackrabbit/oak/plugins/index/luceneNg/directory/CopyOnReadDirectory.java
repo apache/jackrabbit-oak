@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FilterDirectory;
 import org.apache.lucene.store.IOContext;
+import org.apache.lucene.util.IOUtils;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
 import org.slf4j.Logger;
@@ -322,8 +323,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
             //This would also remove old index files if current
             //directory was based on newerRevision as local would
             //be of type DeleteOldDirOnClose
-            local.close();
-            remote.close();
+            IOUtils.close(local, remote);
         } catch (IOException e) {
             log.warn(
                     "[{}] Error occurred while closing directory ",

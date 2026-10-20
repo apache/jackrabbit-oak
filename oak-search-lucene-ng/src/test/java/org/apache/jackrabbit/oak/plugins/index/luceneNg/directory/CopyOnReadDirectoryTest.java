@@ -53,6 +53,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -225,6 +226,25 @@ public class CopyOnReadDirectoryTest {
 
         assertEquals(List.of(), scheduled);
         assertThrows(AlreadyClosedException.class, local::listAll);
+    }
+
+    @Test
+    public void remoteIsClosedEvenWhenClosingTheLocalDirectoryFails() throws Exception {
+        LuceneNgIndexCopier copier = new LuceneNgIndexCopier(Runnable::run, Files.createTempDirectory(tempDir, "folder").toFile(), false);
+        File localDir = Files.createTempDirectory(tempDir, "folder").toFile();
+        Directory failingLocal = new FilterDirectory(FSDirectory.open(localDir.toPath())) {
+            @Override
+            public void close() throws IOException {
+                super.close();
+                throw new IOException("local close failed");
+            }
+        };
+        OakDirectory remote = spy(remoteWithFile());
+        Directory dir = new CopyOnReadDirectory(copier, remote, failingLocal, localDir, false, "foo", Runnable::run);
+
+        dir.close();
+
+        verify(remote).close();
     }
 
     private OakDirectory remoteWithFile() throws IOException {
