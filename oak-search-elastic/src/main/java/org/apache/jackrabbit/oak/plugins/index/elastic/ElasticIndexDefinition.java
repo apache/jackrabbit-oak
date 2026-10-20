@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.get
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -122,6 +123,12 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public static final String SPLIT_ON_CASE_CHANGE = "splitOnCaseChange";
     public static final String SPLIT_ON_NUMERICS = "splitOnNumerics";
 
+    /**
+     * @deprecated Retained for compatibility with the removed experimental inference API.
+     */
+    @Deprecated
+    public static final String INFERENCE = ":inference";
+
     private static final String SIMILARITY_TAGS_ENABLED = "similarityTagsEnabled";
     private static final boolean SIMILARITY_TAGS_ENABLED_DEFAULT = true;
 
@@ -141,6 +148,12 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
     private static final String SIMILARITY_TAGS_BOOST = "similarityTagsBoost";
     private static final float SIMILARITY_TAGS_BOOST_DEFAULT = 0.5f;
+
+    /**
+     * @deprecated Index-local inference configuration is no longer used.
+     */
+    @Deprecated
+    protected static final String INFERENCE_CONFIG = "inference";
 
     private static final Function<Integer, Boolean> isAnalyzable;
 
@@ -179,6 +192,11 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public final Integer trackTotalHits;
     public final String dynamicMapping;
     public final long indexNameSeed;
+    /**
+     * @deprecated Retained for compatibility; indexing and queries ignore this configuration.
+     */
+    @Deprecated
+    public final InferenceDefinition inferenceDefinition;
     public final long limitTotalFields;
     public final int secureFacetsDocsSize;
 
@@ -243,6 +261,12 @@ public class ElasticIndexDefinition extends IndexDefinition {
         this.similarityTagsProperties = propertiesByName.values().stream()
                 .flatMap(List::stream)
                 .filter(pd -> pd.similarityTags).collect(Collectors.toList());
+
+        if (defn.hasChildNode(INFERENCE_CONFIG)) {
+            this.inferenceDefinition = new InferenceDefinition(defn.getChildNode(INFERENCE_CONFIG));
+        } else {
+            this.inferenceDefinition = null;
+        }
     }
 
     @Nullable
@@ -383,6 +407,15 @@ public class ElasticIndexDefinition extends IndexDefinition {
     }
 
     /**
+     * @return whether the legacy index-local inference configuration is present
+     * @deprecated Retained for compatibility; document writes use the shared inference configuration instead.
+     */
+    @Deprecated
+    public boolean isExternallyModifiable() {
+        return this.inferenceDefinition != null;
+    }
+
+    /**
      * Class to help with {@link ElasticIndexDefinition} creation.
      * The built object represents the index definition only without the node structure.
      */
@@ -408,6 +441,252 @@ public class ElasticIndexDefinition extends IndexDefinition {
         @Override
         protected ElasticIndexDefinition createInstance(NodeState indexDefnStateToUse) {
             return new ElasticIndexDefinition(root, indexDefnStateToUse, indexPath, indexPrefix);
+        }
+    }
+
+    /**
+     * Represents the original index-local inference configuration.
+     *
+     * @deprecated Retained for compatibility; indexing and queries use the shared inference configuration instead.
+     */
+    @Deprecated
+    public static class InferenceDefinition {
+
+        /**
+         * List of properties used for inference.
+         */
+        public List<Property> properties;
+
+        /**
+         * List of queries used for inference.
+         */
+        public List<Query> queries;
+
+        public InferenceDefinition() { }
+
+        /**
+         * Constructs an InferenceDefinition from a given NodeState.
+         *
+         * @param inferenceNode the NodeState containing the inference configuration
+         */
+        public InferenceDefinition(NodeState inferenceNode) {
+            if (inferenceNode.hasChildNode("properties")) {
+                this.properties = StreamUtils.toStream(inferenceNode.getChildNode("properties").getChildNodeEntries())
+                        .map(cne -> new Property(cne.getName(), cne.getNodeState()))
+                        .collect(Collectors.toList());
+            }
+            if (inferenceNode.hasChildNode("queries")) {
+                this.queries = StreamUtils.toStream(inferenceNode.getChildNode("queries").getChildNodeEntries())
+                        .map(cne -> new Query(cne.getName(), cne.getNodeState()))
+                        .collect(Collectors.toList());
+            }
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            InferenceDefinition that = (InferenceDefinition) o;
+            return Objects.equals(properties, that.properties) && Objects.equals(queries, that.queries);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(properties, queries);
+        }
+
+        /**
+         * @deprecated Retained for compatibility with the original inference configuration.
+         */
+        @Deprecated
+        public static class Property {
+            /**
+             * The name of the property, prefixed with "{@link ElasticIndexDefinition#INFERENCE}.".
+             */
+            public String name;
+            /**
+             * The model used for inference. Default is "semantic".
+             */
+            public String model;
+            /**
+             * The fields used for inference.
+             */
+            public List<String> fields;
+            /**
+             * The number of dimensions for the vector generated for the inference.
+             */
+            public int dims;
+            /**
+             * The similarity function used for the inference. Default is "cosine".
+             */
+            public String similarity;
+
+            // Jackson requires a no-arg constructor for deserialization.
+            @SuppressWarnings("unused")
+            protected Property() {
+                // Default constructor for Jackson deserialization only.
+            }
+
+            /**
+             * Constructs a Property from a given NodeState.
+             *
+             * @param name the name of the property
+             * @param inferenceNode the NodeState containing the property configuration
+             */
+            public Property(String name, NodeState inferenceNode) {
+                this.name = ElasticIndexDefinition.INFERENCE + "." + name;
+                this.model = getOptionalValue(inferenceNode, "model", "semantic");
+                this.fields = Arrays.asList(getOptionalValues(inferenceNode, "fields", Type.STRINGS, String.class, new String[0]));
+                this.dims = getOptionalValue(inferenceNode, "dims", 1024);
+                this.similarity = getOptionalValue(inferenceNode, "similarity", "cosine");
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                if (this == o) return true;
+                if (o == null || getClass() != o.getClass()) return false;
+                Property property = (Property) o;
+                return dims == property.dims && Objects.equals(name, property.name) &&
+                        Objects.equals(model, property.model) &&
+                        Objects.equals(fields, property.fields) &&
+                        Objects.equals(similarity, property.similarity);
+            }
+
+            @Override
+            public int hashCode() {
+                return Objects.hash(name, model, fields, dims, similarity);
+            }
+        }
+
+        /**
+         * @deprecated Retained for compatibility with the original inference configuration.
+         */
+        @Deprecated
+        public static class Query {
+            /**
+             * The name of the query.
+             */
+            public String name;
+            /**
+             * The service URL used for the query.
+             */
+            public String serviceUrl;
+            /**
+             * The model used for the query. Default is "semantic".
+             */
+            public String model;
+            /**
+             * The prefix used for the query. Default is null (no prefix).
+             */
+            public String prefix;
+            /**
+             * The minimum number of terms required for the query to be executed. Default is 2.
+             */
+            public int minTerms;
+            /**
+             * The number of candidates to be returned by the query. Default is 100.
+             */
+            public int numCandidates;
+            /**
+             * The type of the query. Default is "hybrid". Currently not used.
+             */
+            public String type;
+            /**
+             * The similarity threshold used for the query. Default is 0.5.
+             */
+            public float similarityThreshold;
+            /**
+             * The timeout for the query in milliseconds. Default is 5000.
+             */
+            public long timeout;
+
+            // Jackson requires a no-arg constructor for deserialization.
+            @SuppressWarnings("unused")
+            protected Query() {
+                // Default constructor for Jackson deserialization only.
+            }
+
+            /**
+             * Constructs a Query from a given NodeState.
+             *
+             * @param name the name of the query
+             * @param queryNode the NodeState containing the query configuration
+             */
+            public Query(String name, NodeState queryNode) {
+                this.name = name;
+                this.serviceUrl = getOptionalValue(queryNode, "serviceUrl", null);
+                this.model = getOptionalValue(queryNode, "model", "semantic");
+                this.prefix = getOptionalValue(queryNode, "prefix", null);
+                this.minTerms = getOptionalValue(queryNode, "minTerms", 2);
+                this.numCandidates = getOptionalValue(queryNode, "numCandidates", 100);
+                this.type = getOptionalValue(queryNode, "type", "hybrid");
+                this.similarityThreshold = getOptionalValue(queryNode, "similarityThreshold", 0.5f);
+                this.timeout = getOptionalValue(queryNode, "timeout", 5000L);
+            }
+
+            /**
+             * Returns {@code true} if the input string is eligible for this query.
+             * @param input the input string
+             * @return {@code true} if the input string is eligible for this query
+             */
+            public boolean isEligibleForInput(String input) {
+                return prefix == null || input.startsWith(prefix);
+            }
+
+            /**
+             * Rewrites the input string by removing the prefix.
+             *
+             * @param input the input string
+             * @return the rewritten input string
+             */
+            public String rewrite(String input) {
+                return prefix == null ? input : input.substring(prefix.length());
+            }
+
+            /**
+             * Checks if the input string has the minimum number of terms required for this query.
+             *
+             * @param input the input string
+             * @return true if the input string has the minimum number of terms
+             */
+            public boolean hasMinTerms(String input) {
+                return minTerms <= input.split("\\s+").length;
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                if (this == o) return true;
+                if (o == null || getClass() != o.getClass()) return false;
+                Query query = (Query) o;
+                return minTerms == query.minTerms && numCandidates == query.numCandidates &&
+                        Objects.equals(name, query.name) &&
+                        Objects.equals(serviceUrl, query.serviceUrl) &&
+                        Objects.equals(model, query.model) &&
+                        Objects.equals(prefix, query.prefix) &&
+                        Objects.equals(type, query.type) &&
+                        similarityThreshold == query.similarityThreshold &&
+                        timeout == query.timeout;
+            }
+
+            @Override
+            public int hashCode() {
+                return Objects.hash(name, serviceUrl, model, prefix, minTerms, numCandidates, type, similarityThreshold, timeout);
+            }
+
+            @Override
+            public String toString() {
+                return "Query{" +
+                        "name='" + name + '\'' +
+                        ", serviceUrl='" + serviceUrl + '\'' +
+                        ", model='" + model + '\'' +
+                        ", prefix='" + prefix + '\'' +
+                        ", minTerms=" + minTerms +
+                        ", numCandidates=" + numCandidates +
+                        ", type='" + type + '\'' +
+                        ", similarityThreshold=" + similarityThreshold +
+                        ", timeout=" + timeout +
+                        '}';
+            }
         }
     }
 }

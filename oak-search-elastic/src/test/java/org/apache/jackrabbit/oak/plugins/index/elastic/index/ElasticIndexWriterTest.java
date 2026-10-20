@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConstants;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceIndexConfig;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -200,6 +201,23 @@ public class ElasticIndexWriterTest {
         indexWriter.updateDocument("/foo", new ElasticDocument("/foo"));
         verify(bulkProcessorHandlerMock).update(eq(indexAlias), anyString(), any(ElasticDocument.class));
         verify(bulkProcessorHandlerMock, never()).index(anyString(), anyString(), any(ElasticDocument.class));
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    public void legacyInferenceConfigurationDoesNotSelectPartialUpdates() throws IOException {
+        ElasticIndexDefinitionBuilder builder = new ElasticIndexDefinitionBuilder();
+        builder.getBuilderTree().addChild("inference");
+        ElasticIndexDefinition definition = new ElasticIndexDefinition(
+                EmptyNodeState.EMPTY_NODE, builder.build(), "/oak:index/legacy", "prefix");
+        assertTrue(definition.isExternallyModifiable());
+        ElasticIndexWriter writer = new EagerElasticIndexWriter(
+                indexTrackerMock, elasticConnectionMock, definition, bulkProcessorHandlerMock);
+
+        writer.updateDocument("/foo", new ElasticDocument("/foo"));
+
+        verify(bulkProcessorHandlerMock).index(eq(definition.getIndexAlias()), anyString(), any(ElasticDocument.class));
+        verify(bulkProcessorHandlerMock, never()).update(anyString(), anyString(), any(ElasticDocument.class));
     }
 
     @Test
