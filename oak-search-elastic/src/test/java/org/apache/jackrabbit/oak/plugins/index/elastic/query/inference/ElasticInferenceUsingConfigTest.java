@@ -172,6 +172,8 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        builder.getBuilderTree().addChild("inference")
+            .addChild("properties").addChild("embeddings").setProperty("dims", 1024L);
         Tree index = setIndex(indexName, builder);
         root.commit();
 
@@ -182,6 +184,10 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         JsonNode jsonNode1 = objectMapper.readTree(defaultEnricherConfig).get("enricher");
         JsonNode jsonNode2 = objectMapper.readTree(meta.get("enricher").toJson().toString());
         assertEquals(jsonNode1, jsonNode2);
+        assertFalse(meta.containsKey("inference"));
+        assertFalse(mapping.mappings().properties().containsKey(":inference.embeddings"));
+        assertTrue(mapping.mappings().properties().get(VECTOR_SPACES)
+            .object().properties().get("inferenceModel1").isNested());
     }
 
     /**

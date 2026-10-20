@@ -29,6 +29,8 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexStatistics;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConstants;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceIndexConfig;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -114,6 +116,7 @@ public class ElasticIndexWriterTest {
     @After
     public void tearDown() throws Exception {
         closeable.close();
+        InferenceConfig.reInitialize(new MemoryNodeStore(), InferenceConstants.DEFAULT_OAK_INDEX_INFERENCE_CONFIG_PATH, false);
         ElasticIndexStatistics.FT_OAK_12248_ENABLE.set(false);
         ElasticIndexEditorProvider.FT_OAK_12249_ENABLE.set(false);
     }
@@ -192,10 +195,41 @@ public class ElasticIndexWriterTest {
     }
 
     @Test
-    public void externallyModifiableIndexes() throws IOException {
-        when(indexDefinitionMock.isExternallyModifiable()).thenReturn(true);
+    public void inferenceEnabledIndexesUsePartialUpdates() throws IOException {
+        InferenceConfig.reInitialize(new MemoryNodeStore(), InferenceConstants.DEFAULT_OAK_INDEX_INFERENCE_CONFIG_PATH, true);
         indexWriter.updateDocument("/foo", new ElasticDocument("/foo"));
         verify(bulkProcessorHandlerMock).update(eq(indexAlias), anyString(), any(ElasticDocument.class));
+        verify(bulkProcessorHandlerMock, never()).index(anyString(), anyString(), any(ElasticDocument.class));
+    }
+
+    @Test
+    public void configuredInferenceIndexesUsePartialUpdatesWhenInferenceIsDisabled() throws IOException {
+        NodeBuilder root = EmptyNodeState.EMPTY_NODE.builder();
+        NodeBuilder config = root.child("oak:index").child(":inferenceConfig");
+        config.setProperty(InferenceConstants.ENABLED, true);
+        config.child("test-index-name")
+                .setProperty(InferenceConstants.TYPE, InferenceIndexConfig.TYPE)
+                .setProperty(InferenceConstants.ENABLED, true)
+                .setProperty(InferenceConstants.ENRICHER_CONFIG, "{}");
+        InferenceConfig.reInitialize(new MemoryNodeStore(root.getNodeState()),
+                InferenceConstants.DEFAULT_OAK_INDEX_INFERENCE_CONFIG_PATH, false);
+
+        indexWriter.updateDocument("/foo", new ElasticDocument("/foo"));
+
+        verify(bulkProcessorHandlerMock).update(eq(indexAlias), anyString(), any(ElasticDocument.class));
+        verify(bulkProcessorHandlerMock, never()).index(anyString(), anyString(), any(ElasticDocument.class));
+    }
+
+    @Test
+    public void provisioningInferenceIndexesUsesIndexOperations() throws IOException {
+        InferenceConfig.reInitialize(new MemoryNodeStore(), InferenceConstants.DEFAULT_OAK_INDEX_INFERENCE_CONFIG_PATH, true);
+        ElasticIndexWriter writer = new EagerElasticIndexWriter(indexTrackerMock, elasticConnectionMock,
+                indexDefinitionMock, bulkProcessorHandlerMock, ElasticRetryPolicy.NO_RETRY, true);
+
+        writer.updateDocument("/foo", new ElasticDocument("/foo"));
+
+        verify(bulkProcessorHandlerMock).index(eq(indexAlias), anyString(), any(ElasticDocument.class));
+        verify(bulkProcessorHandlerMock, never()).update(anyString(), anyString(), any(ElasticDocument.class));
     }
 
     @Test

@@ -659,10 +659,6 @@ public class ElasticRequestHandler {
                             && !InferenceModelConfig.NOOP.equals(InferenceConfig.getInstance().getInferenceModelConfig(indexName, inferenceModelConfig))) {
 
                         bqBuilder.must(m -> m.bool(b -> inferenceConfigQuery(b, propertyName, pr, includeDynamicBoostedValues, vectorQuery, vectorQueryConfig)));
-                    }
-                    // Experimental support for inference queries
-                    else if (elasticIndexDefinition.inferenceDefinition != null && elasticIndexDefinition.inferenceDefinition.queries != null) {
-                        bqBuilder.must(m -> m.bool(b -> inference(b, propertyName, text, pr, includeDynamicBoostedValues)));
                     } else {
                         QueryStringQuery.Builder qsqBuilder = fullTextQuery(queryText, getElasticFulltextFieldName(propertyName), pr, includeDynamicBoostedValues);
                         bqBuilder.must(m -> m.queryString(qsqBuilder.build()));
@@ -754,64 +750,6 @@ public class ElasticRequestHandler {
             }
         }
 
-        return b.must(mm -> mm.queryString(qsqBuilder.build()));
-    }
-
-    private ObjectBuilder<BoolQuery> inference(BoolQuery.Builder b, String propertyName, String text, PlanResult pr, boolean dbEnabled) {
-        ElasticIndexDefinition.InferenceDefinition.Query q = null;
-        // select first query eligible for the given text
-        // TODO: evaluate if/how to handle multiple queries
-        String queryText = text;
-        for (ElasticIndexDefinition.InferenceDefinition.Query query : elasticIndexDefinition.inferenceDefinition.queries) {
-            if (query.isEligibleForInput(queryText)) {
-                queryText = query.rewrite(queryText);
-                if (query.hasMinTerms(queryText)) {
-                    q = query;
-                    break;
-                }
-            }
-        }
-
-        QueryStringQuery.Builder qsqBuilder = fullTextQuery(queryText, getElasticFulltextFieldName(propertyName), pr, dbEnabled);
-
-        // the query can be null if no inference query is eligible for the given text or the min terms are not met
-        // in this case, we fall back to the default full-text query
-        if (q != null) {
-            LOG.info("Using inference query: {}", q);
-            try {
-                // let's retrieve the fields with the same model as the query
-                final ElasticIndexDefinition.InferenceDefinition.Query query = q;
-                List<ElasticIndexDefinition.InferenceDefinition.Property> properties = elasticIndexDefinition.inferenceDefinition.properties.stream()
-                        .filter(pd -> pd.model.equals(query.model))
-                        .toList();
-                if (!properties.isEmpty()) {
-                    InferenceService inferenceService = InferenceServiceManager.getInstance(q.serviceUrl, q.model);
-                    List<Float> embeddings = inferenceService.embeddings(queryText, (int) q.timeout);
-                    if (embeddings != null) {
-                        for (ElasticIndexDefinition.InferenceDefinition.Property p : properties) {
-                            // https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-knn-query.html
-                            KnnQuery.Builder knnQueryBuilder = new KnnQuery.Builder();
-                            knnQueryBuilder.field(p.name + ".value");
-                            knnQueryBuilder.numCandidates(q.numCandidates);
-                            knnQueryBuilder.queryVector(embeddings);
-                            knnQueryBuilder.similarity(q.similarityThreshold);
-                            b.should(s -> s.knn(knnQueryBuilder.build()));
-                        }
-                        int tokens = queryText.split("\\s+").length;
-                        // the more tokens, the less important the full-text query is
-                        // TODO: make it configurable
-                        double qsBoost = (tokens > 1) ? 1.0d / (5 * tokens) : 1.0d;
-                        return b.should(s -> s.queryString(qsqBuilder.boost((float) qsBoost).build()));
-                    } else {
-                        LOG.warn("No embeddings found for text {}", text);
-                    }
-                } else {
-                    LOG.warn("No properties with model {} found", query.model);
-                }
-            } catch (Exception e) {
-                LOG.warn("Error while calling inference service. Query won't use embeddings", e);
-            }
-        }
         return b.must(mm -> mm.queryString(qsqBuilder.build()));
     }
 

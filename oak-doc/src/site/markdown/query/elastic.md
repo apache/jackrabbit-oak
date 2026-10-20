@@ -77,6 +77,14 @@ To use these values exclusively for influencing relevance without affecting matc
   can be changed by `suggestUpdateFrequencyMinutes` property in suggestion node under the index definition node.
   In Elastic indexes, there is no such delay and thus no need for the above config property. This is an improvement in ES over lucene.
 
+### Inference
+
+Inference uses the shared configuration under `/oak:index/:inferenceConfig` (or the configured
+`inferenceConfigPath`) and stores embeddings in `:vectorSpaces`. The original experimental
+`inference` child node on individual index definitions and its `:inference` fields are no
+longer supported. Existing experimental configurations must be migrated to the shared
+configuration and their content enriched into `:vectorSpaces`.
+
 [lucene]: https://jackrabbit.apache.org/oak/docs/query/lucene.html
 [options]: https://www.elastic.co/guide/en/elasticsearch/reference/current/configure-text-analysis.html
 [flattened]: https://www.elastic.co/docs/reference/elasticsearch/mapping-reference/flattened#supported-operations
