@@ -125,6 +125,9 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
      */
     public static final String OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS = "oak.indexer.pipelined.retryOnConnectionErrors";
     public static final boolean DEFAULT_OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS = true;
+    /**
+     * Connection retry period and maximum wait for a cancelled parallel download to flush its pending documents.
+     */
     public static final String OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS = "oak.indexer.pipelined.mongoConnectionRetrySeconds";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS = 300;
 
@@ -497,15 +500,18 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         // If the task failed with an exception, the exception will be thrown by get()
                         completedTask.get();
                         // One of the download tasks has completed. Cancel the other one.
+                        Future<?> cancelledDownloadFuture;
                         if (completedTask == ascendingDownloadFuture) {
                             LOG.info("Ascending download task has completed. Cancelling descending download task.");
                             // This will set a flag indicating that the download should be cancelled and close the Mongo
                             // cursor, which will cause the download task to abort next time it performs an operation on
                             // the cursor or if it is blocked on the cursor.
                             descendingDownloadTask.cancelDownload();
+                            cancelledDownloadFuture = descendingDownloadFuture;
                         } else if (completedTask == descendingDownloadFuture) {
                             LOG.info("Descending download task has completed. Cancelling ascending download task.");
                             ascendingDownloadTask.cancelDownload();
+                            cancelledDownloadFuture = ascendingDownloadFuture;
                         } else {
                             throw new IllegalStateException("Unknown download task completed: " + completedTask);
                         }
@@ -530,6 +536,16 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                             Future<?> updateDocsDownloadFuture = submitDownloadTask(ecs, updatedDocsTask, mongoFilter, THREAD_NAME_PREFIX + "-updated-docs");
                             LOG.info("Waiting for download of updated documents to complete.");
                             updateDocsDownloadFuture.get();
+                        }
+                        // Crossing includes progress from documents still buffered by the cancelled task.
+                        LOG.info("Waiting for cancelled download task to finish flushing pending documents.");
+                        try {
+                            cancelledDownloadFuture.get(retryDuringSeconds, TimeUnit.SECONDS);
+                        } catch (TimeoutException e) {
+                            TimeoutException timeout = new TimeoutException("Cancelled MongoDB download did not finish " +
+                                    "flushing pending documents within " + retryDuringSeconds + " seconds");
+                            timeout.initCause(e);
+                            throw timeout;
                         }
                         return;
                     }
