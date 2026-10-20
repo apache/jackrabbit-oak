@@ -119,6 +119,29 @@ public class LuceneNgIndexProviderServiceTest {
         }
     }
 
+    @Test
+    public void deactivationReleasesEverythingWhenAStepFails() throws Exception {
+        LuceneNgIndexProviderService service = new LuceneNgIndexProviderService();
+        BundleContext bundleContext = mock(BundleContext.class);
+        when(bundleContext.getProperty("repository.home")).thenReturn(tempDir.toFile().getAbsolutePath());
+        ServiceRegistration<?> alreadyUnregistered = mock(ServiceRegistration.class);
+        org.mockito.Mockito.doThrow(new IllegalStateException("already unregistered")).when(alreadyUnregistered).unregister();
+        when(bundleContext.registerService(anyString(), any(), any())).thenAnswer(invocation -> alreadyUnregistered);
+        LuceneNgIndexProviderService.Config config = mock(LuceneNgIndexProviderService.Config.class);
+        when(config.enableCopyOnReadSupport()).thenReturn(true);
+        when(config.localIndexDir()).thenReturn("");
+        activate(service, bundleContext, config);
+        java.util.concurrent.ExecutorService executor =
+                (java.util.concurrent.ExecutorService) field(service, "executorService");
+        org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.LuceneNgIndexCopier copier =
+                (org.apache.jackrabbit.oak.plugins.index.luceneNg.directory.LuceneNgIndexCopier) field(service, "indexCopier");
+
+        deactivate(service);
+
+        assertTrue(copier.isClosed());
+        assertTrue(executor.isShutdown());
+    }
+
     private static Object field(Object object, String name) throws Exception {
         Field field = object.getClass().getDeclaredField(name);
         field.setAccessible(true);

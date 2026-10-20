@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Dictionary;
@@ -187,40 +188,37 @@ public class LuceneNgIndexProviderService {
         LOG.info("Deactivating LuceneNg Index Provider");
 
         for (ServiceRegistration<?> reg : regs) {
-            reg.unregister();
+            releaseQuietly("unregistering a service", reg::unregister);
         }
         regs.clear();
 
         if (backgroundObserver != null) {
-            backgroundObserver.close();
+            releaseQuietly("closing the background observer", backgroundObserver::close);
             backgroundObserver = null;
         }
 
         if (editorProvider != null) {
-            editorProvider.close();
+            releaseQuietly("closing the editor provider", editorProvider::close);
             editorProvider = null;
         }
 
         if (indexTracker != null) {
-            // FulltextIndexTracker.close() is package-private to oak-search's spi.query
-            // package and not reachable from here (unlike ElasticIndexTracker, this
-            // tracker holds real local resources — open Lucene readers/segment files —
-            // that must not be leaked on bundle deactivation). Driving update() with an
-            // empty root has the same effect through the tracker's public API: every
-            // currently tracked path is diffed against "removed" and, since isUpdateNeeded
-            // detects the change, openIndex() is invoked (and returns null, since there is
-            // no data under an empty root) so the *previous* generation's IndexNodeManager
-            // is close()d (public, inherited) and releaseResources() runs.
-            indexTracker.update(EmptyNodeState.EMPTY_NODE);
+            // FulltextIndexTracker.close() is not accessible from this package; updating the
+            // tracker with an empty root closes every open index node through the public API.
+            LuceneNgIndexTracker tracker = indexTracker;
+            releaseQuietly("closing the open indexes", () -> tracker.update(EmptyNodeState.EMPTY_NODE));
             indexTracker = null;
         }
 
         if (indexCopier != null) {
-            try {
-                indexCopier.close();
-            } catch (IOException e) {
-                LOG.warn("Error closing luceneNg IndexCopier", e);
-            }
+            LuceneNgIndexCopier copier = indexCopier;
+            releaseQuietly("closing the index copier", () -> {
+                try {
+                    copier.close();
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            });
             indexCopier = null;
         }
 
@@ -232,6 +230,18 @@ public class LuceneNgIndexProviderService {
                 Thread.currentThread().interrupt();
             }
             executorService = null;
+        }
+    }
+
+    /**
+     * Runs one deactivation step; a failure is logged so that the following steps still release
+     * their resources.
+     */
+    private static void releaseQuietly(String step, Runnable release) {
+        try {
+            release.run();
+        } catch (RuntimeException e) {
+            LOG.warn("Error {} while deactivating the LuceneNg index provider", step, e);
         }
     }
 }
