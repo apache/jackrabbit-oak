@@ -45,6 +45,7 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.SortedSetSortField;
 import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.WildcardQuery;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.slf4j.LoggerFactory;
@@ -199,6 +200,17 @@ public class LuceneNgQueryBuilderTest {
                         .add(new TermQuery(new Term(FieldNames.ANCESTORS, "/content")), Occur.FILTER)
                         .build(),
                 LuceneNgQueryBuilder.query(underContent, new PlanResult("/oak:index/test", definition, null)));
+    }
+
+    @Test
+    public void localNameLikeKeepsEscapedWildcardsLiteral() {
+        PropertyRestriction localNameLike = new PropertyRestriction();
+        localNameLike.propertyName = ":localname";
+        localNameLike.isLike = true;
+        localNameLike.first = PropertyValues.newString("a\\_b%");
+
+        assertEquals(new WildcardQuery(new Term(FieldNames.NODE_NAME, "a\\_b*")),
+                LuceneNgQueryBuilder.localNameQuery(localNameLike));
     }
 
     @Test

@@ -431,13 +431,13 @@ public final class LuceneNgQueryBuilder {
     }
 
     @Nullable
-    private static Query localNameQuery(PropertyRestriction pr) {
+    static Query localNameQuery(PropertyRestriction pr) {
         if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding && pr.lastIncluding) {
             return new TermQuery(new Term(FieldNames.NODE_NAME, pr.first.getValue(Type.STRING)));
         }
         if (pr.isLike && pr.first != null) {
-            String like = pr.first.getValue(Type.STRING);
-            return new WildcardQuery(new Term(FieldNames.NODE_NAME, like.replace("%", "*").replace("_", "?")));
+            return new WildcardQuery(new Term(FieldNames.NODE_NAME,
+                    QueryUtils.sqlLikeToLuceneWildcardQuery(pr.first.getValue(Type.STRING))));
         }
         return null;
     }
