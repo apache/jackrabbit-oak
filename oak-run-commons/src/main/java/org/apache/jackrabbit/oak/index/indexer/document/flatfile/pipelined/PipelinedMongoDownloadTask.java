@@ -446,7 +446,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             ancestorsDownloadTask.downloadAncestors(mongoFilterPaths.included);
         }
         if (parallelDump) {
-            LOG.info("Downloading in parallel with two connections, one in ascending the other in descending order");
+            LOG.info("Downloading in parallel with two connections, one in ascending the other in descending order. " +
+                    "Wait for cancelled downloads to flush.");
             // Shared object between the two download threads to store the last document download by either of them
             // and determine when the two downloads have crossed
             MongoParallelDownloadCoordinator parallelDownloadCoordinator = new MongoParallelDownloadCoordinator();
