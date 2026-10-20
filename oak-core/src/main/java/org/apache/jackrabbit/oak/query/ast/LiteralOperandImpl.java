@@ -20,11 +20,11 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
@@ -118,7 +118,7 @@ public class LiteralOperandImpl extends DynamicOperandImpl {
             return true;
         } else if (that instanceof LiteralOperandImpl) {
             LiteralOperandImpl t = (LiteralOperandImpl) that;
-            return Objects.equal(value, t.value) && Objects.equal(functionToken, t.functionToken);
+            return Objects.equals(value, t.value) && Objects.equals(functionToken, t.functionToken);
         } else {
             return false;
         }
@@ -126,7 +126,7 @@ public class LiteralOperandImpl extends DynamicOperandImpl {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(value, functionToken);
+        return Objects.hash(value, functionToken);
     }
 
 }
