@@ -188,7 +188,7 @@ Toggles are disabled by default and can be enabled without redeployment.
 
 ### Style
 - No wildcard imports (import each class individually)
-- Avoid new Guava imports, including static imports from `org.apache.jackrabbit.guava`.
+- No new Guava imports, including static imports from `org.apache.jackrabbit.guava`.
   The long-term goal is to remove all Guava dependencies; prefer JDK APIs or existing
   Oak utilities instead.
 - Follow existing code style in the module you are modifying
