@@ -21,6 +21,7 @@ import org.apache.jackrabbit.oak.segment.remote.queue.SegmentWriteAction;
 import org.apache.jackrabbit.oak.segment.remote.queue.SegmentWriteQueue;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 import org.jetbrains.annotations.NotNull;
 
@@ -30,6 +31,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+
+import static org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration.newGCGeneration;
 
 public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchiveWriter {
     protected final IOMonitor ioMonitor;
@@ -58,16 +61,16 @@ public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchi
     @Override
     public void writeSegment(long msb, long lsb, @NotNull byte[] data, int offset, int size, int generation,
             int fullGeneration, boolean compacted) throws IOException {
-        RemoteSegmentArchiveEntry entry = newEntry(msb, lsb, size, generation, fullGeneration, compacted);
+        RemoteSegmentArchiveEntry entry = newEntry(msb, lsb, size, newGCGeneration(generation, fullGeneration, compacted));
         writeArchiveEntry(entry, data, offset, size);
         addEntry(entry);
         monitor.written(size);
     }
 
     @Override
-    public void recoverSegment(long msb, long lsb, @NotNull byte[] data, int offset, int size, int generation,
-            int fullGeneration, boolean compacted) throws IOException {
-        RemoteSegmentArchiveEntry entry = newEntry(msb, lsb, size, generation, fullGeneration, compacted);
+    public void recoverSegment(long msb, long lsb, @NotNull byte[] data, int offset, int size, GCGeneration gcGeneration)
+            throws IOException {
+        RemoteSegmentArchiveEntry entry = newEntry(msb, lsb, size, gcGeneration);
         if (!doTryReuseArchiveEntry(entry)) {
             writeArchiveEntry(entry, data, offset, size);
             monitor.written(size);
@@ -75,10 +78,9 @@ public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchi
         addEntry(entry);
     }
 
-    private RemoteSegmentArchiveEntry newEntry(long msb, long lsb, int size, int generation, int fullGeneration,
-            boolean compacted) {
+    private RemoteSegmentArchiveEntry newEntry(long msb, long lsb, int size, GCGeneration generation) {
         created = true;
-        return new RemoteSegmentArchiveEntry(msb, lsb, entries++, size, generation, fullGeneration, compacted);
+        return new RemoteSegmentArchiveEntry(msb, lsb, entries++, size, generation);
     }
 
     private void addEntry(RemoteSegmentArchiveEntry entry) {

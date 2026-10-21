@@ -153,8 +153,7 @@ class TarWriter implements Closeable {
             Validate.checkState(!closed);
 
             if (recovery && TarReader.FT_OPTIMIZED_REMOTE_RECOVERY_OAK_12422_ENABLED.get()) {
-                archive.recoverSegment(msb, lsb, data, offset, size, generation.getGeneration(),
-                        generation.getFullGeneration(), generation.isCompacted());
+                archive.recoverSegment(msb, lsb, data, offset, size, generation);
             } else {
                 archive.writeSegment(msb, lsb, data, offset, size, generation.getGeneration(),
                         generation.getFullGeneration(), generation.isCompacted());

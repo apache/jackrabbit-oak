@@ -33,7 +33,7 @@ import org.jetbrains.annotations.Nullable;
  *     <li>phase 1:
  *         <ul>
  *             <li>{@link #writeSegment(long, long, byte[], int, int, int, int, boolean)} or
- *                 {@link #recoverSegment(long, long, byte[], int, int, int, int, boolean)}
+ *                 {@link #recoverSegment(long, long, byte[], int, int, GCGeneration)}
  *             <li>{@link #flush()}
  *         </ul>
  *         repeated in an unspecified order
@@ -77,14 +77,11 @@ public interface SegmentArchiveWriter {
      * @param data the data.
      * @param offset the start offset in the data.
      * @param size the number of bytes to write.
-     * @param generation the segment generation, see {@link SegmentArchiveEntry#getGeneration()}
-     * @param fullGeneration the segment full generation, see {@link SegmentArchiveEntry#getFullGeneration()}
-     * @param isCompacted the segment compaction property, see {@link SegmentArchiveEntry#isCompacted()}
+     * @param generation the segment's full GCGeneration generation
      * @throws IOException error recovering segment
      */
-    default void recoverSegment(long msb, long lsb, @NotNull byte[] data, int offset, int size, int generation,
-            int fullGeneration, boolean isCompacted) throws IOException {
-        writeSegment(msb, lsb, data, offset, size, generation, fullGeneration, isCompacted);
+    default void recoverSegment(long msb, long lsb, @NotNull byte[] data, int offset, int size, GCGeneration generation) throws IOException {
+        writeSegment(msb, lsb, data, offset, size, generation.getGeneration(), generation.getFullGeneration(), generation.isCompacted());
     }
 
     /**

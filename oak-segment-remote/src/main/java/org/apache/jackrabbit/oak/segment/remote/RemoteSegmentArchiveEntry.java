@@ -32,10 +32,14 @@ public class RemoteSegmentArchiveEntry implements SegmentArchiveEntry {
     private final GCGeneration gcGeneration;
 
     public RemoteSegmentArchiveEntry(long msb, long lsb, int position, int length, int generation, int fullGeneration, boolean compacted) {
+        this(msb, lsb, position, length, GCGeneration.newGCGeneration(generation, fullGeneration, compacted));
+    }
+
+    public RemoteSegmentArchiveEntry(long msb, long lsb, int position, int length, GCGeneration gcGeneration) {
         this.uuid = new UUID(msb, lsb);
         this.position = position;
         this.length = length;
-        this.gcGeneration = GCGeneration.newGCGeneration(generation, fullGeneration, compacted);
+        this.gcGeneration = gcGeneration;
     }
 
     @Override

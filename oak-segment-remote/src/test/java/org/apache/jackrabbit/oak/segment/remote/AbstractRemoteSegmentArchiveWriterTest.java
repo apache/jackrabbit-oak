@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.remote;
 
+import static org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration.newGCGeneration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -26,6 +27,7 @@ import java.util.List;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.junit.Test;
 
 public class AbstractRemoteSegmentArchiveWriterTest {
@@ -36,7 +38,7 @@ public class AbstractRemoteSegmentArchiveWriterTest {
     public void recoverSegmentReusesExistingEntry() throws Exception {
         TestWriter writer = new TestWriter(true);
 
-        writer.recoverSegment(1, 2, DATA, 0, DATA.length, 3, 4, true);
+        writer.recoverSegment(1, 2, DATA, 0, DATA.length, newGCGeneration(3, 4, true));
         writer.close();
 
         assertEquals(1, writer.recoveredEntries.size());
@@ -51,7 +53,7 @@ public class AbstractRemoteSegmentArchiveWriterTest {
     public void recoverSegmentWritesMissingEntry() throws Exception {
         TestWriter writer = new TestWriter(false);
 
-        writer.recoverSegment(1, 2, DATA, 0, DATA.length, 3, 4, true);
+        writer.recoverSegment(1, 2, DATA, 0, DATA.length, newGCGeneration(3, 4, true));
         writer.close();
 
         assertEquals(1, writer.recoveredEntries.size());
@@ -63,8 +65,8 @@ public class AbstractRemoteSegmentArchiveWriterTest {
     public void recoveredEntriesKeepArchiveOrder() throws Exception {
         TestWriter writer = new TestWriter(true);
 
-        writer.recoverSegment(1, 2, DATA, 0, DATA.length, 0, 0, false);
-        writer.recoverSegment(3, 4, DATA, 0, DATA.length, 0, 0, false);
+        writer.recoverSegment(1, 2, DATA, 0, DATA.length, newGCGeneration(0, 0, false));
+        writer.recoverSegment(3, 4, DATA, 0, DATA.length, newGCGeneration(0, 0, false));
         writer.close();
 
         assertEquals(0, writer.recoveredEntries.get(0).getPosition());
@@ -105,14 +107,17 @@ public class AbstractRemoteSegmentArchiveWriterTest {
 
         @Override
         protected void doWriteDataFile(byte[] data, String extension) {
+            throw new UnsupportedOperationException();
         }
 
         @Override
         protected void afterQueueClosed() throws IOException {
+            // nothing to do
         }
 
         @Override
         protected void afterQueueFlushed() throws IOException {
+            throw new UnsupportedOperationException();
         }
     }
 }

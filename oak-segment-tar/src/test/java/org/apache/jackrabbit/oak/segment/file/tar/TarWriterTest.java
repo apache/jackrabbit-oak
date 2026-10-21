@@ -35,6 +35,7 @@ import java.util.UUID;
 import org.apache.jackrabbit.oak.segment.file.UnrecoverableArchiveException;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCGeneration;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 import org.apache.jackrabbit.oak.stats.NoopStats;
@@ -139,9 +140,10 @@ public class TarWriterTest {
                 return new SegmentTarWriter(new File(segmentstoreDir, archiveName), monitor, ioMonitor) {
                     @Override
                     public void recoverSegment(long msb, long lsb, byte[] data, int offset, int size,
-                            int generation, int fullGeneration, boolean isCompacted) throws IOException {
+                            GCGeneration generation) throws IOException {
                         recovered[0] = true;
-                        writeSegment(msb, lsb, data, offset, size, generation, fullGeneration, isCompacted);
+                        writeSegment(msb, lsb, data, offset, size,
+                                generation.getGeneration(), generation.getFullGeneration(), generation.isCompacted());
                     }
                 };
             }
@@ -167,9 +169,9 @@ public class TarWriterTest {
                 return new SegmentTarWriter(new File(segmentstoreDir, archiveName), monitor, ioMonitor) {
                     @Override
                     public void recoverSegment(long msb, long lsb, byte[] data, int offset, int size,
-                            int generation, int fullGeneration, boolean isCompacted) throws IOException {
+                                               GCGeneration generation) throws IOException {
                         recovered[0] = true;
-                        super.recoverSegment(msb, lsb, data, offset, size, generation, fullGeneration, isCompacted);
+                        super.recoverSegment(msb, lsb, data, offset, size, generation);
                     }
 
                     @Override
