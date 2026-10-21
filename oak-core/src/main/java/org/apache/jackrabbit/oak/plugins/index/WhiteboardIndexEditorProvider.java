@@ -24,14 +24,19 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Dynamic {@link IndexEditorProvider} based on the available
  * whiteboard services.
+ *
+ * <p>This provider implements {@link CatchUpCapable} and forwards catch-up
+ * calls to the composed providers. This ensures that catch-up indexing works
+ * correctly even when providers are dynamically registered via OSGi.</p>
  */
 public class WhiteboardIndexEditorProvider
         extends AbstractServiceTracker<IndexEditorProvider>
-        implements IndexEditorProvider {
+        implements IndexEditorProvider, CatchUpCapable {
 
     public WhiteboardIndexEditorProvider() {
         super(IndexEditorProvider.class);

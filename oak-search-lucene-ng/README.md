@@ -1,0 +1,91 @@
+# oak-search-lucene-ng
+
+Lucene 9 index provider for Oak (`type="lucene9"`).
+
+## Feature parity
+
+| Feature | Legacy Lucene | Elastic | LuceneNg |
+|---|---|---|---|
+| Property restrictions, path/type filters | ✓ | ✓ | ✓ |
+| Fulltext search | ✓ | ✓ | ✓ |
+| Facets (insecure / statistical / secure) | ✓ | ✓ | ✓ |
+| Excerpts | ✓ | ✓ | ✓ |
+| Ordering / sorting | ✓ | ✓ | ✓ |
+| Suggestions | ✓ | ✓ | ✗ |
+| Spellcheck | ✓ | ✓ | ✗ |
+| Similarity / More Like This | ✓ | ✓ (+ KNN) | ✗ |
+| Native queries | ✓ | ✓ | ✗ |
+| Index statistics / JMX | ✓ | ✓ | ✗ |
+| Index augmentors [^1] | ✓ | ✗ | ✗ |
+| NRT / hybrid indexing | ✓ | ✗ | ✗ |
+| Index copier (CopyOnRead/Write) | ✓ | ✗ | ✗ |
+| Composite node store queries [^2] | ✓ | ✗ | ✗ |
+| Inference / vector search | ✗ | ✓ | ✗ |
+
+[^1]: Index augmentors are OSGi services (`IndexFieldProvider`, `FulltextQueryTermsProvider`) that let third-party code inject additional fields into indexed documents or expand fulltext queries, without modifying the index definition.
+[^2]: When the repository is backed by a composite node store (e.g. a read-only `/apps`+`/libs` mount combined with a writeable store), the Lucene index runs one query per mount and merges the results. This feature is not required for a single-store deployment.
+
+## Known limitations and deferred work
+
+These items were identified during code review of the initial MVP. They are consciously deferred — not overlooked. Each is noted here so future contributors have the full picture without re-reading the review history.
+
+### Performance
+
+**No result batching (`searchAfter`).**
+`query()` fetches `Math.max(1, maxDoc())` results in a single Lucene call. On large indexes with broad queries this allocates O(N) `ScoreDoc` entries on the heap. The legacy module uses a 50→100K batch doubling strategy via `searchAfter`. Implementing that here requires the cursor to hold the `IndexSearcher` reference across batch boundaries; the cursor already does this via its Cleaner-based lifecycle.
+
+**Excerpts generated for all matched documents.**
+`generateExcerpts()` passes the full `TopDocs` to `UnifiedHighlighter`, which loads stored fields and re-analyzes text for every matched document, not just the visible page. Combined with the batching gap above, a fulltext query matching 50 K docs blocks until all highlights are computed before the first result is returned.
+
+**Ancestor write amplification.**
+`LuceneNgIndexEditor.enter()` calls `indexNode()` for every node that passes the path filter during diff traversal. When a deep leaf property changes, every ancestor is visited and re-indexed even if its own properties are unchanged. This inflates callback counts and can trigger premature async indexing checkpoints on deep trees.
+
+**`refreshIndexes()` does a deep `NodeState.equals()` on every commit.**
+The tracker compares the full index `NodeState` (definition + storage) on each repository commit to detect changes. For indexes backed by many segment files this traverses the entire storage subtree even when nothing changed. Consider caching a content hash or using a generation counter instead.
+
+### Index discovery
+
+**Tracker only scans `/oak:index/*` (one level).**
+`LuceneNgIndexTracker.refreshIndexes()` only iterates direct children of `/oak:index`. Indexes at deeper paths (e.g. `/content/dam/oak:index/damAssets`) are maintained correctly by the editor provider but are never discovered for queries — queries silently fall back to traversal. For this version, `type=lucene9` index definitions must be placed at `/oak:index/<name>`.
+
+### Error handling
+
+**`IllegalArgumentException` in query construction propagates uncaught.**
+`createNumericQuery`, `createBooleanQuery`, and `createStringQuery` throw `IllegalArgumentException` for unsupported or inconsistent restriction combinations. The caller catches only `IOException`, so an unusual restriction pattern can propagate to the query engine and fail the entire query instead of falling back to another index or traversal.
+
+### Concurrency
+
+**`IndexSearcherHolder.getFacetReaderState()` race with `close()`.**
+`LuceneNgIndexNode.close()` releases its write lock before `searcherHolder.close()` runs. A concurrent reader still holding a read lock in `getFacetReaderState()` may encounter `AlreadyClosedException` during facet state construction. This surfaces as sporadic query failures on index refresh under load.
+
+**`getFacetReaderState()` uses `get`/check/`putIfAbsent` instead of `computeIfAbsent`.**
+Under high concurrency, N threads can simultaneously construct a `DefaultSortedSetDocValuesReaderState` (which reads all ordinals). Only one wins the race; the rest are discarded. Replace with `computeIfAbsent` to guarantee at-most-one construction.
+
+### Observability
+
+**No JMX / metrics instrumentation.**
+Query errors return empty cursors with no counter incremented. Operations cannot distinguish an empty result set from a corrupted or unresponsive index without enabling `DEBUG` logging. The legacy module exposes query counts, error rates, and index sizes via JMX.
+
+**`IndexPrinter` does not recognise `lucene9`.**
+`oak-core`'s `IndexPrinter` identifies known index types for inventory output. It does not include `lucene9`, so lucene9 indexes appear with reduced diagnostic information in the Oak repository inventory.
+
+### Storage and data consistency
+
+**`BlobDeletionCallback` is hardcoded to NOOP.**
+When index files are deleted from `OakDirectory`, the blob store is not notified. Unreferenced blobs accumulate until a full blob GC scan. The legacy module wires a real callback; this is a known incomplete feature (see TODO in `OakDirectory`).
+
+**`OakDirectory.close()` is the sole point where the in-memory file listing is persisted.**
+If a JVM crash occurs after files are created but before `close()` is called, the in-memory listing is lost. On next open, `getListing()` rebuilds it by scanning child node names — a documented recovery path, same as the legacy design.
+
+**`IndexWriter.commit()` and Oak `NodeStore` commit are not atomic.**
+A JVM crash between the two orphans blobs in the blob store. The blob GC will collect them eventually. This is the same accepted trade-off as `oak-lucene` (documented in OAK-7066 context).
+
+### Minor
+
+**`OakDirectory.fileLength()` opens a full `OakIndexInput` on every call** to read blob metadata. Lucene calls this frequently during segment selection. Lengths should be cached on the file node to avoid repeated blob reads.
+
+**`buildQuery()` is called twice per query** — once in `getPlanDescription()` and once in `query()`. The cost is low in absolute terms but avoidable.
+
+**`OakBufferedIndexFile` computes wrong read length if `PROP_UNIQUE_KEY` is externally deleted.** Under normal operation this property is written atomically with file creation and is never absent. Same design as legacy (see OAK-7066).
+
+**Statistical facet sampling seed is logged at `DEBUG` and is deterministic** (inherited from legacy). Requires `DEBUG` log access, statistical facet mode, and precise document placement control to exploit.

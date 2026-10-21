@@ -1,0 +1,79 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.jackrabbit.oak.plugins.index.luceneNg;
+
+import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.IndexRow;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.Collections;
+import java.util.Map;
+
+/**
+ * IndexRow implementation for Lucene 9 results.
+ */
+public class LuceneNgIndexRow implements IndexRow {
+
+    private final String path;
+    private final double score;
+    private final Map<String, String> facetColumns;
+    private final String excerpt;
+
+    public LuceneNgIndexRow(String path, double score) {
+        this(path, score, Collections.emptyMap(), null);
+    }
+
+    public LuceneNgIndexRow(String path, double score, Map<String, String> facetColumns) {
+        this(path, score, facetColumns, null);
+    }
+
+    public LuceneNgIndexRow(String path, double score, Map<String, String> facetColumns, String excerpt) {
+        this.path = path;
+        this.score = score;
+        this.facetColumns = facetColumns != null ? facetColumns : Collections.emptyMap();
+        this.excerpt = excerpt;
+    }
+
+    @Override
+    public boolean isVirtualRow() {
+        return false;
+    }
+
+    @Override
+    @NotNull
+    public String getPath() {
+        return path;
+    }
+
+    @Override
+    @Nullable
+    public PropertyValue getValue(String columnName) {
+        if (facetColumns.containsKey(columnName)) {
+            return PropertyValues.newString(facetColumns.get(columnName));
+        }
+        if ("jcr:score".equals(columnName)) {
+            return PropertyValues.newDouble(score);
+        }
+        if ("rep:excerpt".equals(columnName) && excerpt != null) {
+            return PropertyValues.newString(excerpt);
+        }
+        // Return null for all other properties - this tells Oak to load the actual node
+        return null;
+    }
+}
