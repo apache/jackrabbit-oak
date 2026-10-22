@@ -824,21 +824,6 @@
         <version>9.40</version>
       </dependency>
       <dependency>
-        <groupId>com.azure</groupId>
-        <artifactId>azure-core-http-netty</artifactId>
-        <version>1.14.1</version>
-      </dependency>
-      <dependency>
-        <groupId>io.projectreactor.netty</groupId>
-        <artifactId>reactor-netty-http</artifactId>
-        <version>1.0.40</version>
-      </dependency>
-      <dependency>
-        <groupId>io.projectreactor.netty</groupId>
-        <artifactId>reactor-netty-core</artifactId>
-        <version>1.0.40</version>
-      </dependency>
-      <dependency>
         <groupId>net.minidev</groupId>
         <artifactId>json-smart</artifactId>
         <version>2.4.10</version>
