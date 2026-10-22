@@ -22,7 +22,6 @@ import com.azure.core.http.ProxyOptions;
 import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
 import com.azure.core.util.Configuration;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -44,7 +43,6 @@ public class AzureHttpClientTest {
      * Exercises the Reactor Netty proxy builder that failed with NoSuchMethodError in OAK-12468.
      */
     @Test
-    @Ignore("OAK-12468")
     public void buildsWithProxy() {
         ProxyOptions proxy = new ProxyOptions(ProxyOptions.Type.HTTP,
                 InetSocketAddress.createUnresolved("proxy.example", 3128));
@@ -59,7 +57,6 @@ public class AzureHttpClientTest {
      * Exercises proxy discovery without changing the process environment or global configuration.
      */
     @Test
-    @Ignore("OAK-12468")
     public void buildsWithProxyFromConfiguration() {
         Configuration configuration = Configuration.getGlobalConfiguration().clone()
                 .put("java.net.useSystemProxies", "true")
@@ -75,7 +72,6 @@ public class AzureHttpClientTest {
      * Checks that bypass rules do not hide proxy construction failures before a request is sent.
      */
     @Test
-    @Ignore("OAK-12468")
     public void buildsWithProxyAndNonProxyHosts() {
         ProxyOptions proxy = new ProxyOptions(ProxyOptions.Type.HTTP,
                 InetSocketAddress.createUnresolved("proxy.example", 3128))
