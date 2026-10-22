@@ -809,11 +809,6 @@
         <version>1.14.0</version>
       </dependency>
       <dependency>
-        <groupId>io.projectreactor</groupId>
-        <artifactId>reactor-core</artifactId>
-        <version>3.4.34</version>
-      </dependency>
-      <dependency>
         <groupId>com.nimbusds</groupId>
         <artifactId>oauth2-oidc-sdk</artifactId>
         <version>10.7.1</version>
