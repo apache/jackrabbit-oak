@@ -366,10 +366,10 @@ public class MergeTest {
     }
 
     @Test
-    public void boost() {
+    public void overwriteBoostAndOtherProperties() {
         // - "analyzed" must not be overwritten
         // - "ordered" is added
-        // - "boost" is overwritten
+        // - "boost", "useIn*", "nodeScopeIndex", and "dynamicBoost" are overwritten
         String merged = new DiffIndexMerger().processMerge(null, JsonObject.fromJson("{\n"
                         + "    \"jcr:primaryType\": \"nam:oak:QueryIndexDefinition\",\n"
                         + "    \"type\": \"lucene\",\n"
@@ -382,7 +382,12 @@ public class MergeTest {
                         + "          \"abc\": {\n"
                         + "            \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
                         + "            \"analyzed\": true,\n"
-                        + "            \"boost\": 1.0\n"
+                        + "            \"boost\": 1.0,\n"
+                        + "            \"useInSuggest\": true,\n"
+                        + "            \"useInExcerpt\": false,\n"
+                        + "            \"useInSpellcheck\": true,\n"
+                        + "            \"nodeScopeIndex\": false,\n"
+                        + "            \"dynamicBoost\": true\n"
                         + "          }\n"
                         + "        }\n"
                         + "      }\n"
@@ -395,7 +400,12 @@ public class MergeTest {
                         + "          \"abc\": {\n"
                         + "            \"analyzed\": false,\n"
                         + "            \"ordered\": true,\n"
-                        + "            \"boost\": 1.2\n"
+                        + "            \"boost\": 1.2,\n"
+                        + "            \"useInSuggest\": false,\n"
+                        + "            \"useInExcerpt\": true,\n"
+                        + "            \"useInSpellcheck\": false,\n"
+                        + "            \"nodeScopeIndex\": true,\n"
+                        + "            \"dynamicBoost\": false\n"
                         + "          }\n"
                         + "        }\n"
                         + "      }\n"
@@ -414,6 +424,11 @@ public class MergeTest {
                 + "          \"jcr:primaryType\": \"nam:nt:unstructured\",\n"
                 + "          \"analyzed\": true,\n"
                 + "          \"boost\": 1.2,\n"
+                + "          \"useInSuggest\": false,\n"
+                + "          \"useInExcerpt\": true,\n"
+                + "          \"useInSpellcheck\": false,\n"
+                + "          \"nodeScopeIndex\": true,\n"
+                + "          \"dynamicBoost\": false,\n"
                 + "          \"ordered\": true\n"
                 + "        }\n"
                 + "      }\n"

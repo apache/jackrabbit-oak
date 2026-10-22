@@ -403,5 +403,25 @@ public class AzureDataStoreRegistrar extends AbstractDataStoreService {
         public void setUploadThreads(int uploadThreads) {
             activeImpl.setUploadThreads(uploadThreads);
         }
+
+        public void setStagingSplitPercentage(int stagingSplitPercentage) {
+            activeImpl.setStagingSplitPercentage(stagingSplitPercentage);
+        }
+
+        public void setStagingPurgeInterval(int stagingPurgeInterval) {
+            activeImpl.setStagingPurgeInterval(stagingPurgeInterval);
+        }
+
+        public void setStagingRetryInterval(int stagingRetryInterval) {
+            activeImpl.setStagingRetryInterval(stagingRetryInterval);
+        }
+
+        public void setMinRecordLength(int minRecordLength) {
+            if (activeImpl instanceof AzureDataStore) {
+                ((AzureDataStore) activeImpl).setMinRecordLength(minRecordLength);
+            } else if (activeImpl instanceof AzureDataStoreV12) {
+                ((AzureDataStoreV12) activeImpl).setMinRecordLength(minRecordLength);
+            }
+        }
     }
 }

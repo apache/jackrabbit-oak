@@ -37,6 +37,12 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-site-plugin</artifactId>
+        <!-- pinned to the last version still based on Doxia 1.x: newer versions
+             pull in Doxia 2.x, which is binary-incompatible with the Doxia 1.7
+             API that oak-doc-railroad-macro's RailroadMacro is compiled against
+             (AbstractMacro.required(String, String) was changed/removed),
+             causing a NoSuchMethodError when rendering this site -->
+        <version>3.12.1</version>
         <configuration>
           <generateReports>true</generateReports>
           <skip>false</skip>

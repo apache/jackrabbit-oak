@@ -80,7 +80,7 @@ public class MutableRootTest {
         when(cs.toString()).thenReturn("contentSession");
         when(cs.getAuthInfo()).thenReturn(AuthInfoImpl.EMPTY);
         when(cs.getWorkspaceName()).thenReturn("default");
-        root = new MutableRoot(store, new EmptyHook(), "default", new Subject(), sp, null, null, null, cs);
+        root = new MutableRoot(store, new EmptyHook(), "default", new Subject(), sp, null, null, cs);
     }
 
     /**

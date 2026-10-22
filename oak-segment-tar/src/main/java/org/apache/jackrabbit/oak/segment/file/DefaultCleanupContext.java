@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
@@ -35,14 +36,30 @@ import java.util.stream.Collectors;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 
 class DefaultCleanupContext implements CleanupContext {
+
+    /**
+     * When {@code true}, the positional "dangling future segment" reclamation is disabled entirely and
+     * cleanup relies only on generational and reference-based reclamation. The positional heuristic
+     * (see {@link #isDanglingFutureSegment}) assumes the physical TAR order matches the gc.log compacted
+     * root, which does not hold for a store assembled out of compaction order (e.g. a promoted cold
+     * standby), where it can reclaim live, head-referenced compacted segments (OAK-12400). Skipping it
+     * never reclaims a live segment; genuine aborted-compaction leftovers are instead collected by
+     * ordinary generational GC once the head advances past their generation. Default {@code false}.
+     */
+    private static final String SKIP_DANGLING_FUTURE_RECLAIM = "oak.segment.cleanup.skipDanglingFutureReclaim";
+
     private final @NotNull SegmentTracker segmentTracker;
     private final @NotNull Predicate<GCGeneration> old;
     private final @Nullable UUID rootSegmentUUID;
+    private final boolean skipDanglingFutureReclaim;
     private boolean aheadOfRoot;
 
     DefaultCleanupContext(@NotNull SegmentTracker tracker, @NotNull Predicate<GCGeneration> old, @NotNull String compactedRoot) {
         this.segmentTracker = tracker;
         this.old = old;
+        this.skipDanglingFutureReclaim = SystemPropertySupplier
+                .create(SKIP_DANGLING_FUTURE_RECLAIM, Boolean.FALSE)
+                .get();
 
         RecordId rootId =  RecordId.fromString(tracker, compactedRoot);
         if (rootId.equals(RecordId.NULL)) {
@@ -76,8 +93,15 @@ class DefaultCleanupContext implements CleanupContext {
      * they are persisted after the last compacted root. This context relies on the cleanup algorithm to mark
      * TAR entries in reverse order and will consider each compacted segment to be reclaimable until the root
      * has been encountered, i.e. as long as {@code aheadOfRoot} is true.
+     * <p>
+     * When {@link #SKIP_DANGLING_FUTURE_RECLAIM} is enabled this reclamation is skipped entirely, so live
+     * head-referenced compacted segments can never be wrongly reclaimed on a store assembled out of
+     * compaction order (OAK-12400); genuine leftovers are then reclaimed by generational GC instead.
      */
     private boolean isDanglingFutureSegment(UUID id, GCGeneration generation) {
+        if (skipDanglingFutureReclaim) {
+            return false;
+        }
         return (aheadOfRoot &= !id.equals(rootSegmentUUID)) && generation.isCompacted();
     }
 

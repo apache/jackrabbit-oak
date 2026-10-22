@@ -18,13 +18,14 @@
  */
 package org.apache.jackrabbit.oak.commons.collections;
 
-import org.apache.commons.collections4.iterators.IteratorChain;
+import org.apache.commons.collections4.iterators.LazyIteratorChain;
 import org.apache.commons.collections4.iterators.PeekingIterator;
 import org.apache.commons.collections4.iterators.UnmodifiableIterator;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -314,7 +315,7 @@ public class IteratorUtils {
      */
     public static <E> Iterator<E> chainedIterator(final Iterator<? extends E> iterator1,
                                                   final Iterator<? extends E> iterator2) {
-        return org.apache.commons.collections4.IteratorUtils.chainedIterator(iterator1, iterator2);
+        return lazyChainedIterator(List.of(iterator1, iterator2).iterator());
     }
 
     /**
@@ -334,7 +335,7 @@ public class IteratorUtils {
      */
     @SafeVarargs
     public static <E> Iterator<E> chainedIterator(final Iterator<? extends E>... iterators) {
-        return org.apache.commons.collections4.IteratorUtils.chainedIterator(iterators);
+        return lazyChainedIterator(Arrays.asList(iterators).iterator());
     }
 
     /**
@@ -353,7 +354,7 @@ public class IteratorUtils {
      * @throws NullPointerException if an iterators collection is null or contains a null iterator
      */
     public static <E> Iterator<E> chainedIterator(final Collection<Iterator<? extends E>> iterators) {
-        return org.apache.commons.collections4.IteratorUtils.chainedIterator(iterators);
+        return lazyChainedIterator(iterators.iterator());
     }
 
     /**
@@ -372,9 +373,21 @@ public class IteratorUtils {
      * @throws NullPointerException if an iterators collection is null or contains a null iterator
      */
     public static <E> Iterator<E> chainedIterator(final Iterator<? extends Iterator<? extends E>> iterators) {
-        final IteratorChain<E> eIteratorChain = new IteratorChain<>();
-        iterators.forEachRemaining(eIteratorChain::addIterator);
-        return eIteratorChain;
+        return lazyChainedIterator(iterators);
+    }
+
+    private static <E> Iterator<E> lazyChainedIterator(final Iterator<? extends Iterator<? extends E>> iterators) {
+        Objects.requireNonNull(iterators);
+        final List<Iterator<? extends E>> chainedIterators = new ArrayList<>();
+        iterators.forEachRemaining(iterator -> chainedIterators.add(Objects.requireNonNull(iterator)));
+        return new LazyIteratorChain<>() {
+            private final Iterator<? extends Iterator<? extends E>> chainedIterator = chainedIterators.iterator();
+
+            @Override
+            protected Iterator<? extends E> nextIterator(final int count) {
+                return chainedIterator.hasNext() ? chainedIterator.next() : null;
+            }
+        };
     }
 
     /**
@@ -559,4 +572,3 @@ public class IteratorUtils {
         return org.apache.commons.collections4.IteratorUtils.boundedIterator(iterator, limit);
     }
 }
-

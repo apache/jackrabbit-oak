@@ -105,6 +105,26 @@ public class GcJournalTest {
         assertEquals(newGCGeneration(1, 2, false), in.read().getGcGeneration());
     }
 
+    /**
+     * A freshly opened {@code GCJournal} (simulating a restart / a different JVM) reads its
+     * latest entry from disk, where the compacted flag is always deserialized as {@code false}
+     * (see {@link #testGCGenerationCompactedFlagCleared}). Persisting again for the same
+     * generation - but with {@code isCompacted=true}, as a live store head always reports -
+     * must still be treated as a no-op; otherwise every restart of a store whose head sits on
+     * an already-journaled compacted generation would write a duplicate gc.log entry.
+     */
+    @Test
+    public void testPersistIsNoopAcrossRestartForSameGeneration() throws Exception {
+        GCJournal out = new GCJournal(getPersistence().getGCJournalFile());
+        out.persist(1, 100, newGCGeneration(1, 1, true), 50, "foo");
+
+        GCJournal afterRestart = new GCJournal(getPersistence().getGCJournalFile());
+        afterRestart.persist(0, 100, newGCGeneration(1, 1, true), 0, "foo");
+
+        assertEquals("gc.log must not gain a duplicate entry for the same generation "
+                + "after a restart", 1, afterRestart.readAll().size());
+    }
+
     @Test
     public void testReadOak16GCLog() throws Exception {
         createOak16GCLog();

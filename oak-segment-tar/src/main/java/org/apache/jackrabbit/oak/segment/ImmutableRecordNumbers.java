@@ -31,6 +31,8 @@ import org.jetbrains.annotations.NotNull;
  */
 class ImmutableRecordNumbers implements RecordNumbers {
 
+    private static final RecordType @NotNull [] TYPES = RecordType.values();
+
     private final int @NotNull [] offsets;
 
     private final byte @NotNull [] type;
@@ -81,7 +83,7 @@ class ImmutableRecordNumbers implements RecordNumbers {
 
                         @Override
                         public RecordType getType() {
-                            return RecordType.values()[type[pos]];
+                            return TYPES[type[pos]];
                         }
                     };
                 } else {

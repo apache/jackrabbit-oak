@@ -30,6 +30,9 @@ import org.jetbrains.annotations.NotNull;
  * A thread-safe, mutable record table.
  */
 class MutableRecordNumbers implements RecordNumbers {
+
+    private static final RecordType[] TYPES = RecordType.values();
+
     private int[] recordEntries;
     private int size;
 
@@ -69,7 +72,7 @@ class MutableRecordNumbers implements RecordNumbers {
                     return new Entry() {
                         final int recordNumber = index/2;
                         final int offset = entries[index++];
-                        final RecordType type = RecordType.values()[entries[index++]];
+                        final RecordType type = TYPES[entries[index++]];
 
                         @Override
                         public int getRecordNumber() {

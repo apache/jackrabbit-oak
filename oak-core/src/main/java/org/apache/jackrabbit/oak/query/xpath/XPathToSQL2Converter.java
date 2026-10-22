@@ -28,11 +28,12 @@ import org.apache.jackrabbit.oak.query.QueryOptions;
 import org.apache.jackrabbit.oak.query.QueryOptions.Traversal;
 import org.apache.jackrabbit.oak.query.xpath.Statement.UnionStatement;
 import org.apache.jackrabbit.util.ISO9075;
+import org.apache.jackrabbit.util.XMLChar;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This class can can convert a XPATH query to a SQL2 query.
+ * This class can convert a XPATH query to a SQL2 query.
  */
 public class XPathToSQL2Converter {
 
@@ -769,6 +770,32 @@ public class XPathToSQL2Converter {
             f.params.add(parseExpression());
             read(")");
             return f;
+        } else if ("jcr:null".equals(functionName)) {
+            read(")");
+            return Expression.Literal.newNull();
+        } else if ("jcr:if".equals(functionName)) {
+            Expression.Function f = new Expression.Function("if");
+            f.params.add(parseExpression());
+            read(",");
+            f.params.add(parseExpression());
+            read(",");
+            f.params.add(parseExpression());
+            read(")");
+            return f;
+        } else if ("jcr:exists".equals(functionName)) {
+            Expression.Function f = new Expression.Function("exists");
+            f.params.add(parseExpression());
+            read(")");
+            return f;
+        } else if ("jcr:op".equals(functionName)) {
+            Expression.Function f = new Expression.Function("op");
+            f.params.add(parseExpression());
+            read(",");
+            f.params.add(parseExpression());
+            read(",");
+            f.params.add(parseExpression());
+            read(")");
+            return f;
         } else if ("fn:lower-case".equals(functionName)) {
             Expression.Function f = new Expression.Function("lower");
             f.params.add(parseExpression());
@@ -839,7 +866,8 @@ public class XPathToSQL2Converter {
             return new Expression.Suggest(term);
         } else {
             throw getSyntaxError("jcr:like | jcr:contains | jcr:score | xs:dateTime | " +
-                    "fn:lower-case | fn:upper-case | jcr:first | fn:name | fn:local-name | fn:path | rep:similar | rep:spellcheck | rep:suggest");
+                    "fn:lower-case | fn:upper-case | jcr:first | jcr:null | jcr:if | jcr:exists | " +
+                    "fn:name | fn:local-name | fn:path | rep:similar | rep:spellcheck | rep:suggest");
         }
     }
 
@@ -1005,6 +1033,9 @@ public class XPathToSQL2Converter {
                     type = CHAR_VALUE;
                 } else {
                     if (Character.isJavaIdentifierPart(c)) {
+                        type = CHAR_NAME;
+                    } else if ((settings == null || settings.isXmlNameCharsInPathEnabled()) && XMLChar.isName(c)) {
+                        // accept XML name characters that ISO9075 leaves unencoded, so they are not split off the name
                         type = CHAR_NAME;
                     }
                 }

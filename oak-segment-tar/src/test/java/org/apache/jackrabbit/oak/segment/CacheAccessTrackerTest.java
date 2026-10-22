@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
 
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -46,7 +47,9 @@ public class CacheAccessTrackerTest {
     public void setup() {
         ScheduledExecutorService scheduler = newScheduledThreadPool(1);
         StatisticsProvider statistics = new DefaultStatisticsProvider(scheduler);
-        cache = new CacheAccessTracker<String, RecordId>("foo", statistics, newRecordCache(100));
+        CounterStats accessCount = statistics.getCounterStats("foo.access-count", StatsOptions.DEFAULT);
+        CounterStats missCount = statistics.getCounterStats("foo.miss-count", StatsOptions.DEFAULT);
+        cache = new CacheAccessTracker<String, RecordId>(newRecordCache(100), accessCount, missCount);
         closer = new ExecutorCloser(scheduler);
 
         accessStats = statistics.getMeter("foo.access-count", StatsOptions.DEFAULT);

@@ -16,8 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import java.io.IOException;
-
+import co.elastic.clients.elasticsearch._types.CommonStatsFlag;
+import co.elastic.clients.elasticsearch._types.HealthStatus;
+import co.elastic.clients.elasticsearch._types.Level;
+import co.elastic.clients.elasticsearch._types.ShardStatistics;
+import co.elastic.clients.elasticsearch.cluster.HealthRequest;
+import co.elastic.clients.elasticsearch.cluster.HealthResponse;
+import co.elastic.clients.elasticsearch.indices.IndicesStatsResponse;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfo;
@@ -25,6 +30,7 @@ import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfoProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
+import org.apache.jackrabbit.oak.plugins.index.elastic.internal.ElasticFeatureToggles;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -32,13 +38,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.util.ISO8601;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import co.elastic.clients.elasticsearch._types.HealthStatus;
-import co.elastic.clients.elasticsearch._types.Level;
-import co.elastic.clients.elasticsearch.cluster.HealthRequest;
-import co.elastic.clients.elasticsearch.cluster.HealthResponse;
+import java.io.IOException;
 
 class ElasticIndexInfoProvider implements IndexInfoProvider {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ElasticIndexInfoProvider.class);
 
     private final NodeStore nodeStore;
 
@@ -94,11 +101,27 @@ class ElasticIndexInfoProvider implements IndexInfoProvider {
     public boolean isValid(String indexPath) throws IOException {
         ElasticIndexNode node = indexTracker.acquireIndexNode(indexPath);
         try {
-            HealthResponse response = node.getConnection().getClient().cluster()
-                    .health(HealthRequest.of(hrb -> hrb
-                            .index(node.getDefinition().getIndexAlias())
-                            .level(Level.Indices)));
-            return response.indices().values().stream().map(i -> i.status() == HealthStatus.Green).findFirst().orElse(false);
+            if (ElasticFeatureToggles.FT_OAK_12381_DISABLE.get()) {
+                // Legacy path
+                HealthResponse response = node.getConnection().getClient().cluster()
+                        .health(HealthRequest.of(hrb -> hrb
+                                .index(node.getDefinition().getIndexAlias())
+                                .level(Level.Indices)));
+                return response.indices().values().stream().map(i -> i.status() == HealthStatus.Green).findFirst().orElse(false);
+            }
+
+            // New default path
+            IndicesStatsResponse response = node.getConnection().getClient().indices()
+                    .stats(s -> s.index(node.getDefinition().getIndexAlias()).metric(CommonStatsFlag.Docs));
+            ShardStatistics shards = response.shards();
+            if (shards.total() == null || shards.successful() == null || shards.failed() == null) {
+                LOG.warn("Missing shard statistics in Elasticsearch response: {}", shards);
+                return false;
+            }
+            // Should approximate well the general health of the index
+            return shards.total().longValue() > 0
+                    && shards.successful().longValue() == shards.total().longValue()
+                    && shards.failed().longValue() == 0;
         } finally {
             node.release();
         }

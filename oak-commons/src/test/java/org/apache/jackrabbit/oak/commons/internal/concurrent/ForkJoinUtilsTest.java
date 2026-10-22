@@ -24,30 +24,53 @@ import org.junit.Test;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assume.assumeTrue;
 
 public class ForkJoinUtilsTest {
 
     @Test
     public void isInCommonPool() {
-        Map<Integer, Boolean> results = getParallelTestStream()
+        int parallelism = ForkJoinPool.commonPool().getParallelism();
+        assumeTrue(
+                "Expected ForkJoinPool.commonPool() to have parallelism greater than 2, was " + parallelism,
+                parallelism > 2);
+
+        Map<Integer, String> results = getParallelTestStream()
                 .boxed()
-                .map(i -> Map.entry(i, isInCommonPool(Thread.currentThread())))
+                .map(i -> {
+                    String threadLabel;
+                    if (isInCommonPool(Thread.currentThread())) {
+                        threadLabel = "common";
+                    } else {
+                        threadLabel = Thread.currentThread().getName();
+                        try {
+                            TimeUnit.MILLISECONDS.sleep(10);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+                    return Map.entry(i, threadLabel);
+                })
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         assertThat(results)
-                .hasSizeBetween(9, 10) // account for the main thread executing an item
+                .hasSize(10)
                 .allSatisfy((key, value) -> {
                     assertThat(key).isBetween(0, 9);
-                    assertThat(value).isTrue();
+                    assertThat(value).isIn("common", "main");
+                })
+                .anySatisfy((key, value) -> {
+                    assertThat(value)
+                            .as("expected at least one execution in the commonPool")
+                            .isEqualTo("common");
                 });
     }
 
@@ -135,9 +158,10 @@ public class ForkJoinUtilsTest {
                         "should start with 'inner-pool-'"));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void submitInCustomPoolWithInvalidParallelism() {
-        ForkJoinUtils.submitInCustomPool("custom-pool", 0, () -> {});
+        assertThatThrownBy(() -> ForkJoinUtils.submitInCustomPool("custom-pool", 0, () -> {}))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     private static boolean isInCommonPool(Thread thread) {
@@ -158,23 +182,6 @@ public class ForkJoinUtilsTest {
     }
 
     private static @NotNull IntStream getParallelTestStream() {
-        CountDownLatch latch = new CountDownLatch(9);
-        return IntStream.range(0, 10)
-                .parallel()
-                // the "main" thread is used in conjunction with the common pool, but is not itself in the common pool
-                .filter(i -> {
-                    Thread thread = Thread.currentThread();
-                    boolean isMainThread = Objects.equals(thread.getName(), "main");
-                    if (isMainThread) {
-                        try {
-                            // make sure "main" thread processes at most one item
-                            latch.await(100, TimeUnit.MILLISECONDS);
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                    latch.countDown();
-                    return !isMainThread;
-                });
+        return IntStream.range(0, 10).parallel();
     }
 }
