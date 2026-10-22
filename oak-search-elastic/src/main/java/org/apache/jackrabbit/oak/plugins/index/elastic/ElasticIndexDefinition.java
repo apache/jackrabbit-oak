@@ -127,7 +127,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
      * @deprecated Retained for compatibility with the removed experimental inference API.
      * Will be removed in package version 3.0.0.
      */
-    @Deprecated
+    @Deprecated(forRemoval = true)
     public static final String INFERENCE = ":inference";
 
     private static final String SIMILARITY_TAGS_ENABLED = "similarityTagsEnabled";
@@ -154,7 +154,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
      * @deprecated Index-local inference configuration is no longer used.
      * Will be removed in package version 3.0.0.
      */
-    @Deprecated
+    @Deprecated(forRemoval = true)
     protected static final String INFERENCE_CONFIG = "inference";
 
     private static final Function<Integer, Boolean> isAnalyzable;
@@ -198,7 +198,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
      * @deprecated Retained for compatibility; indexing and queries ignore this configuration.
      * Will be removed in package version 3.0.0.
      */
-    @Deprecated
+    @Deprecated(forRemoval = true)
     public final InferenceDefinition inferenceDefinition;
     public final long limitTotalFields;
     public final int secureFacetsDocsSize;
@@ -414,7 +414,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
      * @deprecated Retained for compatibility; document writes use the shared inference configuration instead.
      * Will be removed in package version 3.0.0.
      */
-    @Deprecated
+    @Deprecated(forRemoval = true)
     public boolean isExternallyModifiable() {
         return this.inferenceDefinition != null;
     }
@@ -454,7 +454,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
      * @deprecated Retained for compatibility; indexing and queries use the shared inference configuration instead.
      * Will be removed in package version 3.0.0.
      */
-    @Deprecated
+    @Deprecated(forRemoval = true)
     public static class InferenceDefinition {
 
         /**
@@ -504,7 +504,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
          * @deprecated Retained for compatibility with the original inference configuration.
          * Will be removed in package version 3.0.0.
          */
-        @Deprecated
+        @Deprecated(forRemoval = true)
         public static class Property {
             /**
              * The name of the property, prefixed with "{@link ElasticIndexDefinition#INFERENCE}.".
@@ -568,7 +568,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
          * @deprecated Retained for compatibility with the original inference configuration.
          * Will be removed in package version 3.0.0.
          */
-        @Deprecated
+        @Deprecated(forRemoval = true)
         public static class Query {
             /**
              * The name of the query.

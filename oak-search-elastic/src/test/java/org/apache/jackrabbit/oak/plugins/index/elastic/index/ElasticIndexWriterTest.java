@@ -204,7 +204,7 @@ public class ElasticIndexWriterTest {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings({"deprecation", "removal"})
     public void legacyInferenceConfigurationDoesNotSelectPartialUpdates() throws IOException {
         ElasticIndexDefinitionBuilder builder = new ElasticIndexDefinitionBuilder();
         builder.getBuilderTree().addChild("inference");
