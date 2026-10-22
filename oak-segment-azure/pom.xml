@@ -203,7 +203,7 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-xml</artifactId>
-            <version>1.0.0</version>
+            <version>1.2.1</version>
         </dependency>
 
         <!-- Azure Identity Client for Microsoft Entra ID dependency -->
@@ -216,10 +216,12 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-core</artifactId>
+            <version>1.58.0</version>
         </dependency>
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-json</artifactId>
+            <version>1.5.1</version>
         </dependency>
         <dependency>
             <groupId>org.reactivestreams</groupId>
@@ -232,7 +234,7 @@
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-core</artifactId>
-            <version>3.4.34</version>
+            <version>3.7.17</version>
         </dependency>
         <dependency>
             <groupId>com.nimbusds</groupId>
@@ -241,6 +243,7 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-core-http-netty</artifactId>
+            <version>1.16.8</version>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
@@ -300,10 +303,12 @@
         <dependency>
             <groupId>io.projectreactor.netty</groupId>
             <artifactId>reactor-netty-http</artifactId>
+            <version>1.2.16</version>
         </dependency>
         <dependency>
             <groupId>io.projectreactor.netty</groupId>
             <artifactId>reactor-netty-core</artifactId>
+            <version>1.2.16</version>
         </dependency>
         <dependency>
             <groupId>net.minidev</groupId>
@@ -391,7 +396,7 @@
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-test</artifactId>
-            <version>3.6.10</version>
+            <version>3.7.17</version>
             <scope>test</scope>
         </dependency>
         <dependency>
