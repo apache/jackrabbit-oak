@@ -148,13 +148,10 @@ class EagerElasticIndexWriter implements ElasticIndexWriter {
             we directly index the document if:
             content is being reindexed
             OR
-            (the index is not externally modifiable
-            AND InferenceIndexConfig is NOOP
-            )
+            inference is disabled AND InferenceIndexConfig is NOOP
          */
         if (requiresProvisioning
-            || (!indexDefinition.isExternallyModifiable()
-            && !InferenceConfig.getInstance().isInferenceEnabled()
+            || (!InferenceConfig.getInstance().isInferenceEnabled()
             && (InferenceIndexConfig.NOOP.equals(InferenceConfig.getInstance().getInferenceIndexConfig(jcrIndexName))))) {
             retryPolicy.withRetries(() -> bulkProcessorHandler.index(indexName, ElasticIndexUtils.idFromPath(path), doc));
         } else {
