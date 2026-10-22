@@ -231,7 +231,7 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-core-http-netty</artifactId>
-            <version>1.16.4</version>
+            <version>1.16.8</version>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
@@ -291,12 +291,12 @@
         <dependency>
             <groupId>io.projectreactor.netty</groupId>
             <artifactId>reactor-netty-http</artifactId>
-            <version>1.0.40</version>
+            <version>1.2.16</version>
         </dependency>
         <dependency>
             <groupId>io.projectreactor.netty</groupId>
             <artifactId>reactor-netty-core</artifactId>
-            <version>1.0.40</version>
+            <version>1.2.16</version>
         </dependency>
         <dependency>
             <groupId>net.minidev</groupId>
