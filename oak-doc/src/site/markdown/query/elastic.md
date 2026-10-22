@@ -85,7 +85,7 @@ Inference uses the shared configuration under `/oak:index/:inferenceConfig` (or 
 longer supported. Existing experimental configurations must be migrated to the shared
 configuration and their content enriched into `:vectorSpaces`.
 The legacy Java configuration model remains available as a deprecated compatibility API,
-but is not used for indexing or querying.
+but is not used for indexing or querying and will be removed in package version `3.0.0`.
 
 [lucene]: https://jackrabbit.apache.org/oak/docs/query/lucene.html
 [options]: https://www.elastic.co/guide/en/elasticsearch/reference/current/configure-text-analysis.html

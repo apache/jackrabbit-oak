@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import net.bytebuddy.description.annotation.AnnotationDescription;
+import net.bytebuddy.pool.TypePool;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.InferenceDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.InferenceDefinition.Property;
@@ -26,17 +28,32 @@ import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
+import org.osgi.annotation.versioning.Version;
 
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 @SuppressWarnings("deprecation")
 public class ElasticInferenceCompatibilityTest {
+
+    @Test
+    public void legacyInferenceApiMustBeRemovedInVersion3() {
+        // @Version has CLASS retention, so inspect the compiled package annotation.
+        AnnotationDescription version = TypePool.Default.of(ElasticIndexDefinition.class.getClassLoader())
+                .describe(ElasticIndexDefinition.class.getPackageName() + ".package-info")
+                .resolve().getDeclaredAnnotations().ofType(Version.class);
+        assertNotNull("The Elasticsearch package must declare its export version", version);
+        ElasticSemVer packageVersion = ElasticSemVer.fromString(version.getValue("value").resolve(String.class));
+        assertTrue("Remove the deprecated index-local inference API and its compatibility tests "
+                        + "at package version 3.0.0 or later (current: " + packageVersion + ")",
+                packageVersion.compareTo(new ElasticSemVer(3, 0, 0)) < 0);
+    }
 
     @Test
     public void legacyConfigurationRemainsReadable() {

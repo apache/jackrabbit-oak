@@ -125,6 +125,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
     /**
      * @deprecated Retained for compatibility with the removed experimental inference API.
+     * Will be removed in package version 3.0.0.
      */
     @Deprecated
     public static final String INFERENCE = ":inference";
@@ -151,6 +152,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
     /**
      * @deprecated Index-local inference configuration is no longer used.
+     * Will be removed in package version 3.0.0.
      */
     @Deprecated
     protected static final String INFERENCE_CONFIG = "inference";
@@ -194,6 +196,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public final long indexNameSeed;
     /**
      * @deprecated Retained for compatibility; indexing and queries ignore this configuration.
+     * Will be removed in package version 3.0.0.
      */
     @Deprecated
     public final InferenceDefinition inferenceDefinition;
@@ -409,6 +412,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     /**
      * @return whether the legacy index-local inference configuration is present
      * @deprecated Retained for compatibility; document writes use the shared inference configuration instead.
+     * Will be removed in package version 3.0.0.
      */
     @Deprecated
     public boolean isExternallyModifiable() {
@@ -448,6 +452,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
      * Represents the original index-local inference configuration.
      *
      * @deprecated Retained for compatibility; indexing and queries use the shared inference configuration instead.
+     * Will be removed in package version 3.0.0.
      */
     @Deprecated
     public static class InferenceDefinition {
@@ -497,6 +502,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
         /**
          * @deprecated Retained for compatibility with the original inference configuration.
+         * Will be removed in package version 3.0.0.
          */
         @Deprecated
         public static class Property {
@@ -560,6 +566,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
         /**
          * @deprecated Retained for compatibility with the original inference configuration.
+         * Will be removed in package version 3.0.0.
          */
         @Deprecated
         public static class Query {
