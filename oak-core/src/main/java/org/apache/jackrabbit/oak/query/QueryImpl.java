@@ -62,20 +62,24 @@ import org.apache.jackrabbit.oak.query.ast.DescendantNodeImpl;
 import org.apache.jackrabbit.oak.query.ast.DescendantNodeJoinConditionImpl;
 import org.apache.jackrabbit.oak.query.ast.DynamicOperandImpl;
 import org.apache.jackrabbit.oak.query.ast.EquiJoinConditionImpl;
+import org.apache.jackrabbit.oak.query.ast.ExistsImpl;
 import org.apache.jackrabbit.oak.query.ast.FirstImpl;
 import org.apache.jackrabbit.oak.query.ast.FullTextSearchImpl;
 import org.apache.jackrabbit.oak.query.ast.FullTextSearchScoreImpl;
+import org.apache.jackrabbit.oak.query.ast.IfImpl;
 import org.apache.jackrabbit.oak.query.ast.InImpl;
 import org.apache.jackrabbit.oak.query.ast.JoinConditionImpl;
 import org.apache.jackrabbit.oak.query.ast.JoinImpl;
 import org.apache.jackrabbit.oak.query.ast.JoinType;
 import org.apache.jackrabbit.oak.query.ast.LengthImpl;
 import org.apache.jackrabbit.oak.query.ast.LiteralImpl;
+import org.apache.jackrabbit.oak.query.ast.LiteralOperandImpl;
 import org.apache.jackrabbit.oak.query.ast.LowerCaseImpl;
 import org.apache.jackrabbit.oak.query.ast.NativeFunctionImpl;
 import org.apache.jackrabbit.oak.query.ast.NodeLocalNameImpl;
 import org.apache.jackrabbit.oak.query.ast.NodeNameImpl;
 import org.apache.jackrabbit.oak.query.ast.NotImpl;
+import org.apache.jackrabbit.oak.query.ast.OpImpl;
 import org.apache.jackrabbit.oak.query.ast.OrImpl;
 import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
 import org.apache.jackrabbit.oak.query.ast.PathImpl;
@@ -255,6 +259,30 @@ public class QueryImpl implements Query {
             public boolean visit(FirstImpl node) {
                 node.setQuery(query);
                 return super.visit(node);
+            }
+
+            @Override
+            public boolean visit(IfImpl node) {
+                node.setQuery(query);
+                return super.visit(node);
+            }
+
+            @Override
+            public boolean visit(ExistsImpl node) {
+                node.setQuery(query);
+                return super.visit(node);
+            }
+
+            @Override
+            public boolean visit(OpImpl node) {
+                node.setQuery(query);
+                return super.visit(node);
+            }
+
+            @Override
+            public boolean visit(LiteralOperandImpl node) {
+                node.setQuery(query);
+                return true;
             }
 
             @Override

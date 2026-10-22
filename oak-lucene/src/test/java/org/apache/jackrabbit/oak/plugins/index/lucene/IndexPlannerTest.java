@@ -41,6 +41,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.REP_FACET;
+import static org.apache.jackrabbit.oak.spi.query.QueryConstants.RESTRICTION_LOCAL_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -394,6 +395,158 @@ public class IndexPlannerTest {
         QueryIndex.IndexPlan plan = planner.getPlan();
 
         assertEquals(documentsPerValue(numofDocs), plan.getEstimatedEntryCount());
+    }
+
+    @Test
+    public void nodeNameRestrictionCost() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
+        defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
+        getNode(defn, "indexRules/nt:base").setProperty(FulltextIndexConstants.INDEX_NODE_NAME, true);
+
+        long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT - 100;
+        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"), numofDocs);
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictProperty(RESTRICTION_LOCAL_NAME, Operator.EQUAL, PropertyValues.newString("bar"));
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+
+        assertNotNull(plan);
+        // The :nodeName condition must be taken into account for cost estimation,
+        // just like a regular property equality restriction.
+        assertEquals(documentsPerValue(numofDocs), plan.getEstimatedEntryCount());
+    }
+
+    @Test
+    public void nodeNameRestrictionCostBySelectivity() throws Exception{
+        FulltextIndexPlanner.FT_OAK_12221_ENABLE.set(true);
+        try {
+            NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
+            defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
+            getNode(defn, "indexRules/nt:base").setProperty(FulltextIndexConstants.INDEX_NODE_NAME, true);
+
+            long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT - 100;
+            LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"), numofDocs);
+            FilterImpl filter = createFilter("nt:base");
+            filter.restrictProperty(RESTRICTION_LOCAL_NAME, Operator.EQUAL, PropertyValues.newString("bar"));
+            FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+            QueryIndex.IndexPlan plan = planner.getPlan();
+
+            assertNotNull(plan);
+            assertEquals(documentsPerValue(numofDocs), plan.getEstimatedEntryCount());
+        } finally {
+            FulltextIndexPlanner.FT_OAK_12221_ENABLE.set(false);
+        }
+    }
+
+    @Test
+    public void nodeNameRestrictionCostLike() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
+        defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
+        getNode(defn, "indexRules/nt:base").setProperty(FulltextIndexConstants.INDEX_NODE_NAME, true);
+
+        long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT - 100;
+        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"), numofDocs);
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictProperty(RESTRICTION_LOCAL_NAME, Operator.LIKE, PropertyValues.newString("ba%"));
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+
+        assertNotNull(plan);
+        // A non-equality (LIKE) nodeName restriction caps the weight at 3.
+        assertEquals((long) Math.ceil(numofDocs / 3.0), plan.getEstimatedEntryCount());
+    }
+
+    @Test
+    public void nodeNameRestrictionCostCombinedWithProperty() throws Exception{
+        FulltextIndexPlanner.FT_OAK_12221_ENABLE.set(true);
+        try {
+            NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
+            defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
+            getNode(defn, "indexRules/nt:base").setProperty(FulltextIndexConstants.INDEX_NODE_NAME, true);
+
+            long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT - 100;
+            LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"), numofDocs);
+            FilterImpl filter = createFilter("nt:base");
+            filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+            filter.restrictProperty(RESTRICTION_LOCAL_NAME, Operator.EQUAL, PropertyValues.newString("baz"));
+            FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+            QueryIndex.IndexPlan plan = planner.getPlan();
+
+            assertNotNull(plan);
+            // Selectivity model multiplies the per-condition selectivities: the foo
+            // equality (1/5) and the nodeName equality (1/5) against numDocs => numDocs/25.
+            assertEquals(Math.round(numofDocs / 25.0), plan.getEstimatedEntryCount());
+        } finally {
+            FulltextIndexPlanner.FT_OAK_12221_ENABLE.set(false);
+        }
+    }
+
+    @Test
+    public void nodeNameRestrictionCostLikeBySelectivity() throws Exception{
+        FulltextIndexPlanner.FT_OAK_12221_ENABLE.set(true);
+        try {
+            NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
+            defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
+            getNode(defn, "indexRules/nt:base").setProperty(FulltextIndexConstants.INDEX_NODE_NAME, true);
+
+            long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT - 100;
+            LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"), numofDocs);
+            FilterImpl filter = createFilter("nt:base");
+            filter.restrictProperty(RESTRICTION_LOCAL_NAME, Operator.LIKE, PropertyValues.newString("ba%"));
+            FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+            QueryIndex.IndexPlan plan = planner.getPlan();
+
+            assertNotNull(plan);
+            // Non-equality (LIKE) caps the nodeName weight at 3 in the selectivity model too.
+            assertEquals(Math.round(numofDocs / 3.0), plan.getEstimatedEntryCount());
+        } finally {
+            FulltextIndexPlanner.FT_OAK_12221_ENABLE.set(false);
+        }
+    }
+
+    @Test
+    public void nodeNameRestrictionCostCombinedWithPropertyLegacy() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
+        defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
+        getNode(defn, "indexRules/nt:base").setProperty(FulltextIndexConstants.INDEX_NODE_NAME, true);
+
+        long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT - 100;
+        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"), numofDocs);
+        FilterImpl filter = createFilter("nt:base");
+        // A less-selective (LIKE, weight capped at 3 => numDocs/3) property combined with a
+        // nodeName equality (weight 5 => numDocs/5): the legacy path takes the minimum, so
+        // the nodeName condition must tighten the estimate below the property-derived value.
+        filter.restrictProperty("foo", Operator.LIKE, PropertyValues.newString("ba%"));
+        filter.restrictProperty(RESTRICTION_LOCAL_NAME, Operator.EQUAL, PropertyValues.newString("baz"));
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+
+        assertNotNull(plan);
+        assertEquals(documentsPerValue(numofDocs), plan.getEstimatedEntryCount());
+    }
+
+    @Test
+    public void nodeNameRestrictionCostDisabledByFeatureToggle() throws Exception{
+        FulltextIndexPlanner.FT_OAK_12100_DISABLE.set(true);
+        try {
+            NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
+            defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
+            getNode(defn, "indexRules/nt:base").setProperty(FulltextIndexConstants.INDEX_NODE_NAME, true);
+
+            long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT - 100;
+            LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"), numofDocs);
+            FilterImpl filter = createFilter("nt:base");
+            filter.restrictProperty(RESTRICTION_LOCAL_NAME, Operator.EQUAL, PropertyValues.newString("bar"));
+            FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+            QueryIndex.IndexPlan plan = planner.getPlan();
+
+            assertNotNull(plan);
+            // Kill switch on: the nodeName condition is ignored for cost, so the estimate
+            // stays at numDocs (the legacy behavior).
+            assertEquals(numofDocs, plan.getEstimatedEntryCount());
+        } finally {
+            FulltextIndexPlanner.FT_OAK_12100_DISABLE.set(false);
+        }
     }
 
     @Test

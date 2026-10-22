@@ -166,16 +166,16 @@ class ElasticIndexHelper {
     private static void mapInternalProperties(@NotNull TypeMapping.Builder builder) {
         builder.properties(FieldNames.PATH,
                         // path cannot be used for searches, just for sorting
-                        p -> p.keyword(k -> k.docValues(true).index(false)))
+                        p -> p.keyword(k -> k.docValues(d -> d.enabled(true)).index(false)))
                 .properties(ElasticIndexDefinition.PATH_RANDOM_VALUE,
-                        b1 -> b1.integer(b2 -> b2.docValues(true).index(false)))
+                        b1 -> b1.integer(b2 -> b2.docValues(d -> d.enabled(true)).index(false)))
                 .properties(FieldNames.ANCESTORS,
                         b1 -> b1.text(
                                 b2 -> b2.analyzer("ancestor_analyzer")
                                         .searchAnalyzer("keyword")
                                         .searchQuoteAnalyzer("keyword")))
                 .properties(FieldNames.PATH_DEPTH,
-                        b1 -> b1.integer(b2 -> b2.docValues(false)))
+                        b1 -> b1.integer(b2 -> b2.docValues(d -> d.enabled(false))))
                 .properties(FieldNames.FULLTEXT,
                         b1 -> b1.text(b2 -> b2.analyzer("oak_analyzer")))
                 .properties(ElasticIndexDefinition.DYNAMIC_BOOST_FULLTEXT,
@@ -200,7 +200,7 @@ class ElasticIndexHelper {
                         )
                 )
                 .properties(ElasticIndexDefinition.LAST_UPDATED, b -> b.date(d -> d))
-                .properties(FieldNames.NULL_PROPS, p -> p.keyword(k -> k.docValues(false)));
+                .properties(FieldNames.NULL_PROPS, p -> p.keyword(k -> k.docValues(dv -> dv.enabled(false))));
     }
 
     private static void mapInferenceDefinition(@NotNull TypeMapping.Builder builder, @NotNull ElasticIndexDefinition.InferenceDefinition inferenceDefinition) {

@@ -80,9 +80,10 @@ public class ElasticConnectionRule extends ExternalResource {
     public Statement apply(Statement base, Description description) {
         Statement s = super.apply(base, description);
         if (!isValidUri(elasticConnectionString)) {
-            elastic = ElasticTestServer.getESTestServer();
+            ElasticTestServer server = ElasticTestServer.getESTestServer();
+            elastic = server.getContainer();
             setUseDocker(true);
-            initializeElasticConnectionModel(elastic);
+            initializeElasticConnectionModel(server);
         } else {
             initializeElasticConnectionModel(elasticConnectionString);
         }
@@ -131,13 +132,14 @@ public class ElasticConnectionRule extends ExternalResource {
         }
     }
 
-    private void initializeElasticConnectionModel(ElasticsearchContainer elastic) {
+    private void initializeElasticConnectionModel(ElasticTestServer server) {
+        ElasticsearchContainer elastic = server.getContainer();
         this.elasticConnectionModel = new ElasticConnectionModel();
         elasticConnectionModel.scheme = ElasticConnection.DEFAULT_SCHEME;
         elasticConnectionModel.elasticHost = elastic.getHost();
         elasticConnectionModel.elasticPort = elastic.getMappedPort(ElasticConnection.DEFAULT_PORT);
-        elasticConnectionModel.elasticApiKey = null;
-        elasticConnectionModel.elasticApiSecret = null;
+        elasticConnectionModel.elasticApiKey = server.getApiKeyId();
+        elasticConnectionModel.elasticApiSecret = server.getApiKeySecret();
         elasticConnectionModel.indexPrefix = indexPrefix;
         elasticConnectionModel.maxRetryTime = 0;
     }

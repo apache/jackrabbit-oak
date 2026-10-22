@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -58,7 +59,7 @@ public abstract class SegmentBufferWriterPool implements WriteOperationHandler {
     @NotNull
     private final String wid;
 
-    private short writerId = -1;
+    private final AtomicInteger nextWriterId = new AtomicInteger();
 
     private SegmentBufferWriterPool(
             @NotNull SegmentIdProvider idProvider,
@@ -138,8 +139,8 @@ public abstract class SegmentBufferWriterPool implements WriteOperationHandler {
                                 @NotNull WriteOperation writeOperation)
                 throws IOException {
             lock.readLock().lock();
-            SegmentBufferWriter writer = getWriter(currentThread(), gcGeneration);
             try {
+                SegmentBufferWriter writer = getWriter(currentThread().getId(), gcGeneration);
                 return writeOperation.execute(writer);
             } finally {
                 lock.readLock().unlock();
@@ -160,8 +161,8 @@ public abstract class SegmentBufferWriterPool implements WriteOperationHandler {
         }
 
         @NotNull
-        private SegmentBufferWriter getWriter(@NotNull Thread thread, @NotNull GCGeneration gcGeneration) {
-            SimpleImmutableEntry<?,?> key = new SimpleImmutableEntry<>(thread, gcGeneration);
+        private SegmentBufferWriter getWriter(long threadId, @NotNull GCGeneration gcGeneration) {
+            SimpleImmutableEntry<?,?> key = new SimpleImmutableEntry<>(threadId, gcGeneration);
             return writers.computeIfAbsent(key, f -> newWriter(gcGeneration));
         }
     }
@@ -317,9 +318,7 @@ public abstract class SegmentBufferWriterPool implements WriteOperationHandler {
 
     @NotNull
     protected String getWriterId() {
-        if (++writerId > 9999) {
-            writerId = 0;
-        }
+        int writerId = nextWriterId.getAndIncrement() % 10_000;
         // Manual padding seems to be fastest here
         if (writerId < 10) {
             return wid + ".000" + writerId;

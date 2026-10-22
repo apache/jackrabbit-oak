@@ -29,7 +29,7 @@ import javax.xml.parsers.DocumentBuilder;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.mime.MediaType;
-import org.apache.tika.parser.ParseContext;
+import org.apache.tika.utils.XMLReaderUtils;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -92,6 +92,6 @@ public class TikaParserConfig {
     }
 
     private static DocumentBuilder getBuilder() throws TikaException {
-        return new ParseContext().getDocumentBuilder();
+        return XMLReaderUtils.getDocumentBuilder();
     }
 }

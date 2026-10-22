@@ -95,6 +95,9 @@ dynamicOperand [ 'ascending' | 'descending' ]
     | 'jcr:score' ( )
     | { 'fn:lower-case' | 'fn:upper-case' | 'jcr:first' } ( dynamicOperand )
     | 'fn:coalesce' ( firstDynamicOperand, secondDynamicOperand )
+    | 'jcr:if' ( conditionDynamicOperand, trueDynamicOperand, falseDynamicOperand )
+    | 'jcr:exists' ( dynamicOperand )
+    | 'jcr:null' ( )
 ","
 "
 

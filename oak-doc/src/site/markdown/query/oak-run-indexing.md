@@ -116,6 +116,12 @@ Supported for only Lucene indexes.
 If the indexes being reindex have fulltext indexing enabled then refer to [Tika Setup](#tika-setup) for steps
 on how to adapt the command to include Tika support for text extraction
 
+When parallel MongoDB downloading is enabled with `oak.indexer.pipelined.mongoParallelDump=true`,
+both download streams must finish delivering their buffered documents before indexing proceeds.
+After cancelling a stream, the indexer waits up to `oak.indexer.pipelined.mongoConnectionRetrySeconds`
+(300 seconds by default) for it to finish. If it times out or fails, indexing fails rather than
+continuing with potentially missing entries.
+
 ### <a name="out-of-band-indexing"></a> A - out-of-band indexing
 
 Out of band indexing has following phases

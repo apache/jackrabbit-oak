@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
 import com.azure.storage.blob.specialized.BlockBlobClient;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.spi.blob.data.DataIdentifier;
 import org.apache.jackrabbit.oak.spi.blob.data.DataRecord;
@@ -70,17 +71,17 @@ public class AzureDataStoreRegistrarIT {
 
         AzureDataStore v8 = new AzureDataStore();
         v8.setProperties(props);
-        v8.setStagingSplitPercentage(0);
         AzureDataStoreRegistrar wrapperV8 = new AzureDataStoreRegistrar();
         wrapperV8.activeImpl = v8;
         dsV8 = wrapperV8.new DelegatingDataStore();
+        PropertiesUtil.populate(dsV8, Map.of("stagingSplitPercentage", 0), false);
         dsV8.init(folder.newFolder().getAbsolutePath());
 
         AbstractSharedCachingDataStore v12 = AzureDataStoreRegistrar.createV12Store(props);
-        v12.setStagingSplitPercentage(0);
         AzureDataStoreRegistrar wrapperV12 = new AzureDataStoreRegistrar();
         wrapperV12.activeImpl = v12;
         dsV12 = wrapperV12.new DelegatingDataStore();
+        PropertiesUtil.populate(dsV12, Map.of("stagingSplitPercentage", 0), false);
         dsV12.init(folder.newFolder().getAbsolutePath());
     }
 
@@ -88,6 +89,20 @@ public class AzureDataStoreRegistrarIT {
     public void tearDown() throws DataStoreException {
         if (dsV8 != null) dsV8.close();
         if (dsV12 != null) dsV12.close();
+    }
+
+    // With staging disabled through the wrapper, both SDKs upload before returning.
+    @Test
+    public void disablingStagingUploadsBeforeReturning() throws DataStoreException {
+        BlobContainerClient container = azuriteContainerClient();
+        AzureDataStoreRegistrar.DelegatingDataStore[] stores = {dsV8, dsV12};
+        for (AzureDataStoreRegistrar.DelegatingDataStore store : stores) {
+            byte[] payload = new byte[32 * 1024];
+            Arrays.fill(payload, store == dsV8 ? (byte) 8 : (byte) 12);
+            DataRecord record = store.addRecord(new ByteArrayInputStream(payload));
+            assertTrue("blob must be available when addRecord returns",
+                    container.getBlobClient(blobKeyFor(record.getIdentifier())).exists());
+        }
     }
 
     /**

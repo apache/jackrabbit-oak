@@ -20,10 +20,18 @@ package org.apache.jackrabbit.oak.plugins.index.inventory;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.felix.inventory.Format;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.json.JsonObject;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
+import org.apache.jackrabbit.oak.plugins.index.diff.DiffIndexMerger;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -35,6 +43,8 @@ import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -86,6 +96,57 @@ public class IndexDefinitionPrinterTest {
 
         IndexDefinitionUpdater updater = new IndexDefinitionUpdater(json);
         assertTrue(updater.getIndexPaths().contains("/a"));
+    }
+
+    @Test
+    public void diffIndexesListedByStatusPrinter() throws Exception {
+        NodeBuilder builder = store.getRoot().builder();
+        addDiffIndex(builder, DiffIndexMerger.DIFF_INDEX, "{\"damAssetLucene\":{}}");
+        addDiffIndex(builder, DiffIndexMerger.DIFF_INDEX_OPTIMIZER, "{\"acme.myIndex\":{}}");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        when(pathService.getIndexPaths()).thenReturn(List.of());
+
+        printer.activate();
+        JsonObject o = JsonObject.fromJson(getJSON(), true);
+
+        // the diff.json content can be read by the existing diff index tooling
+        HashMap<String, JsonObject> diffs = new HashMap<>();
+        DiffIndexMerger merger = new DiffIndexMerger();
+        assertNull(merger.tryExtractDiffIndex(o, "/oak:index/" + DiffIndexMerger.DIFF_INDEX, diffs));
+        assertNull(merger.tryExtractDiffIndex(o, "/oak:index/" + DiffIndexMerger.DIFF_INDEX_OPTIMIZER, diffs));
+        assertEquals(Set.of("damAssetLucene", "acme.myIndex"), diffs.keySet());
+    }
+
+    @Test
+    public void diffIndexListedOnce() throws Exception {
+        NodeBuilder builder = store.getRoot().builder();
+        addDiffIndex(builder, DiffIndexMerger.DIFF_INDEX, "{}")
+                .setProperty(JcrConstants.JCR_PRIMARYTYPE, IndexConstants.INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        when(pathService.getIndexPaths()).thenReturn(List.of("/oak:index/diff.index"));
+
+        printer.activate();
+        String json = getJSON();
+
+        assertEquals(json.indexOf("\"/oak:index/diff.index\""), json.lastIndexOf("\"/oak:index/diff.index\""));
+        assertFalse(json.contains(DiffIndexMerger.DIFF_INDEX_OPTIMIZER));
+    }
+
+    @Test
+    public void diffIndexesNotListedByDefault() throws Exception {
+        NodeBuilder builder = store.getRoot().builder();
+        addDiffIndex(builder, DiffIndexMerger.DIFF_INDEX, "{}");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        when(pathService.getIndexPaths()).thenReturn(List.of());
+
+        assertEquals(Set.of(), JsonObject.fromJson(getJSON(), true).getChildren().keySet());
+    }
+
+    private static NodeBuilder addDiffIndex(NodeBuilder builder, String name, String diff) {
+        NodeBuilder diffIndex = builder.child("oak:index").child(name);
+        diffIndex.child("diff.json").child(JcrConstants.JCR_CONTENT)
+                .setProperty(JcrConstants.JCR_DATA, new ArrayBasedBlob(diff.getBytes(StandardCharsets.UTF_8)));
+        return diffIndex;
     }
 
     private String getJSON() {

@@ -168,7 +168,7 @@ Toggles are disabled by default and can be enabled without redeployment.
   See: `oak-core-spi/src/main/java/org/apache/jackrabbit/oak/spi/toggle/FeatureToggle.java`
 
 **Naming convention:** toggle names follow the pattern `FT_OAK-<issue>` or
-`FT_<DESCRIPTION>_OAK-<issue>` (e.g., `FT_OAK-11949`, `FT_CLASSIC_MOVE_OAK-10147`).
+`FT_<DESCRIPTION>_OAK-<issue>` (e.g., `FT_OAK-11949`).
 
 **How it works:**
 1. A component creates a toggle: `Feature ft = Feature.newFeature("FT_OAK-XXXXX", whiteboard)`
@@ -188,6 +188,9 @@ Toggles are disabled by default and can be enabled without redeployment.
 
 ### Style
 - No wildcard imports (import each class individually)
+- No new Guava imports, including static imports from `org.apache.jackrabbit.guava`.
+  The long-term goal is to remove all Guava dependencies; prefer JDK APIs or existing
+  Oak utilities instead.
 - Follow existing code style in the module you are modifying
 - OSGi bundle compliance is required - modules produce OSGi bundles
 - Never use regular expression parsing and find / replace for JSON or XML data

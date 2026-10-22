@@ -69,6 +69,12 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     public static final String FT_DISABLE_WARN_SLASH_PROPERTY_NAME = "FT_OAK-12370";
 
+    public static final String FT_OP_FUNCTION = "FT_OAK-12406";
+
+    public static final String OAK_QUERY_OP_FUNCTION = "oak.query.opFunction";
+
+    public static final String FT_XML_NAME_CHARS_IN_PATH = "FT_OAK-12364";
+
     public static final int DEFAULT_PREFETCH_COUNT = Integer.getInteger(OAK_QUERY_PREFETCH_COUNT, -1);
 
     public static final String OAK_QUERY_FAIL_TRAVERSAL = "oak.queryFailTraversal";
@@ -128,6 +134,8 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     private Feature optimizeXPathUnion;
     private Feature ignoreLimitInIndexSelectionFeature;
     private Feature disableWarnSlashPropertyNameFeature;
+    private Feature opFunctionFeature;
+    private Feature xmlNameCharsInPathFeature;
 
     private String autoOptionsMappingJson = "{}";
     private QueryOptions.AutomaticQueryOptionsMapping autoOptionsMapping = new QueryOptions.AutomaticQueryOptionsMapping(autoOptionsMappingJson);
@@ -267,6 +275,26 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     public boolean isWarnOnSlashInPropertyNameEnabled() {
         // The warning is on by default; enabling this opt-out toggle suppresses it.
         return disableWarnSlashPropertyNameFeature == null || !disableWarnSlashPropertyNameFeature.isEnabled();
+    }
+
+    public void setOpFunctionFeature(@Nullable Feature feature) {
+        this.opFunctionFeature = feature;
+    }
+
+    public boolean isOpFunctionEnabled() {
+        // the op(a, operator, b) function is disabled by default;
+        // it is enabled by either the feature toggle or the system property
+        return Boolean.getBoolean(OAK_QUERY_OP_FUNCTION) ||
+                (opFunctionFeature != null && opFunctionFeature.isEnabled());
+    }
+
+    public void setXmlNameCharsInPathFeature(@Nullable Feature feature) {
+        this.xmlNameCharsInPathFeature = feature;
+    }
+
+    public boolean isXmlNameCharsInPathEnabled() {
+        // enabled if the feature toggle is not used
+        return xmlNameCharsInPathFeature == null || xmlNameCharsInPathFeature.isEnabled();
     }
 
     public String getStrictPathRestriction() {

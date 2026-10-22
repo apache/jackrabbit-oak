@@ -1102,8 +1102,7 @@ public class Utils {
      * @return true if throttling is enabled else false
      */
     public static boolean isThrottlingEnabled(final DocumentNodeStoreBuilder<?> builder) {
-        final Feature docStoreThrottlingFeature = builder.getDocStoreThrottlingFeature();
-        return builder.isThrottlingEnabled() || (docStoreThrottlingFeature != null && docStoreThrottlingFeature.isEnabled());
+        return builder.isThrottlingEnabled();
     }
 
     /**

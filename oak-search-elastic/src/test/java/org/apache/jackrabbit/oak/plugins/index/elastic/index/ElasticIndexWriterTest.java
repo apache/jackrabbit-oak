@@ -53,6 +53,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.number.OrderingComparison.lessThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -101,7 +103,7 @@ public class ElasticIndexWriterTest {
         // report "nothing provisioned" so that path no-ops in tests that don't exercise it directly.
         when(elasticsearchClientMock.indices()).thenReturn(indicesClientMock);
         when(indicesClientMock.getAlias(ArgumentMatchers.<Function<GetAliasRequest.Builder, ObjectBuilder<GetAliasRequest>>>any()))
-                .thenReturn(GetAliasResponse.of(r -> r.result(Collections.emptyMap())));
+                .thenReturn(GetAliasResponse.of(r -> r.aliases(Collections.emptyMap())));
         // In this test we are explicitly disabling inference as bulkprocessor
         // is called with update document if inference is enabled.
         InferenceConfig.reInitialize(new MemoryNodeStore(), "/oak:index/:inferenceConfig", false);
@@ -176,6 +178,17 @@ public class ElasticIndexWriterTest {
         // Closes the index but not the bulk processor
         verify(bulkProcessorHandlerMock).flushIndex(eq(indexAlias));
         verify(bulkProcessorHandlerMock, never()).close();
+    }
+
+    @Test
+    public void closeFailureIsNotRetried() throws IOException {
+        IOException failure = new IOException("Service error while indexing.");
+        when(bulkProcessorHandlerMock.flushIndex(indexAlias)).thenThrow(failure);
+        ElasticIndexWriter writer = new EagerElasticIndexWriter(indexTrackerMock, elasticConnectionMock,
+                indexDefinitionMock, bulkProcessorHandlerMock, new ElasticRetryPolicy(2, 1000, 0, 0), false);
+
+        assertSame(failure, assertThrows(IOException.class, () -> writer.close(System.currentTimeMillis())));
+        verify(bulkProcessorHandlerMock).flushIndex(indexAlias);
     }
 
     @Test

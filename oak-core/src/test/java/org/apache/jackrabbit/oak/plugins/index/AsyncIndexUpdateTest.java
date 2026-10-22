@@ -1379,6 +1379,47 @@ public class AsyncIndexUpdateTest {
         assertEquals(0, lastExecutionStats(async.getIndexStats().getExecutionCount()));
     }
 
+    /**
+     * The LAST_INDEXED_TIME counter must be initialised from the durable
+     * {@code :async/<lane>-LastIndexedTo} repository property at construction time (OAK-12394).
+     * A fresh indexer instance simulating a process restart must report the persisted timestamp
+     * immediately, without needing to complete a successful cycle first.
+     */
+    @Test
+    public void lastIndexedTimeCounterInitialisedFromDurableProperty() throws Exception {
+        MemoryNodeStore store = new MemoryNodeStore();
+        IndexEditorProvider provider = new PropertyIndexEditorProvider();
+
+        NodeBuilder builder = store.getRoot().builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, Set.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
+        builder.child("testRoot").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // Run one cycle to write the durable :async/async-LastIndexedTo property.
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider, statsProvider, false);
+        runOneCycle(async);
+
+        String persisted = async.getIndexStats().getLastIndexedTime();
+        assertNotNull("last indexed time property should be set after a cycle", persisted);
+        long expectedMillis = ISO8601.parse(persisted).getTimeInMillis();
+
+        // Fresh instance simulates a restart: constructs with a clean in-memory state.
+        // Counter must be initialised from the NodeStore, not start at 0.
+        MetricStatisticsProvider freshProvider = new MetricStatisticsProvider(
+                ManagementFactory.getPlatformMBeanServer(), executor);
+        try {
+            new AsyncIndexUpdate("async", store, provider, freshProvider, false);
+            long counterValue = freshProvider.getRegistry().getCounters()
+                    .get("async.LAST_INDEXED_TIME").getCount();
+            assertEquals("counter must reflect the durable property without running a cycle",
+                    expectedMillis, counterValue);
+        } finally {
+            freshProvider.close();
+        }
+    }
+
     @Test
     public void executionCountUpdatesOnRunWithoutAnyChangeInRepo() throws Exception {
         AsyncIndexUpdate async = new AsyncIndexUpdate("async",

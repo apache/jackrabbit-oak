@@ -68,9 +68,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.PrefetchNodeStore;
-import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 class MutableRoot implements Root, PermissionAware {
 
@@ -159,7 +157,6 @@ class MutableRoot implements Root, PermissionAware {
                  SecurityProvider securityProvider,
                  QueryEngineSettings queryEngineSettings,
                  QueryIndexProvider indexProvider,
-                 Feature classicMove,
                  ContentSessionImpl session) {
         this.store = requireNonNull(store);
         this.hook = requireNonNull(hook);
@@ -169,7 +166,7 @@ class MutableRoot implements Root, PermissionAware {
         this.queryEngineSettings = queryEngineSettings;
         this.indexProvider = indexProvider;
         this.session = requireNonNull(session);
-        this.lastMove = createMove(classicMove);
+        this.lastMove = createMove();
 
         builder = store.getRoot().builder();
         secureBuilder = new SecureNodeBuilder(builder, permissionProvider);
@@ -425,10 +422,10 @@ class MutableRoot implements Root, PermissionAware {
         Move apply(MutableTree tree);
     }
 
-    Move createMove(@Nullable Feature classicMove) {
+    Move createMove() {
         // default implementation is memory reduced move, unless classic
-        // implementation is enabled by system property or feature toggle
-        if (CLASSIC_MOVE || (classicMove != null && classicMove.isEnabled())) {
+        // implementation is enabled by system property
+        if (CLASSIC_MOVE) {
             return new ClassicMove();
         } else {
             return new NeoMove();
