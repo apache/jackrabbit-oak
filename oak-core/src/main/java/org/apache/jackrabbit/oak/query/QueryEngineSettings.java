@@ -67,6 +67,8 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     public static final String FT_IGNORE_LIMIT_IN_INDEX_SELECTION = "FT_OAK-12057";
 
+    public static final String FT_DISABLE_WARN_SLASH_PROPERTY_NAME = "FT_OAK-12370";
+
     public static final String FT_OP_FUNCTION = "FT_OAK-12406";
 
     public static final String OAK_QUERY_OP_FUNCTION = "oak.query.opFunction";
@@ -131,6 +133,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     private Feature sortUnionQueryLegacyModeFeature;
     private Feature optimizeXPathUnion;
     private Feature ignoreLimitInIndexSelectionFeature;
+    private Feature disableWarnSlashPropertyNameFeature;
     private Feature opFunctionFeature;
     private Feature xmlNameCharsInPathFeature;
 
@@ -263,6 +266,15 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     public boolean isIgnoreLimitInIndexSelection() {
         // enabled if the feature toggle is not used
         return ignoreLimitInIndexSelectionFeature == null || ignoreLimitInIndexSelectionFeature.isEnabled();
+    }
+
+    public void setDisableWarnSlashPropertyNameFeature(@Nullable Feature feature) {
+        this.disableWarnSlashPropertyNameFeature = feature;
+    }
+
+    public boolean isWarnOnSlashInPropertyNameEnabled() {
+        // The warning is on by default; enabling this opt-out toggle suppresses it.
+        return disableWarnSlashPropertyNameFeature == null || !disableWarnSlashPropertyNameFeature.isEnabled();
     }
 
     public void setOpFunctionFeature(@Nullable Feature feature) {
