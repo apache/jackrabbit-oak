@@ -88,13 +88,33 @@ class PropertyIndex implements QueryIndex {
 
     private final MountInfoProvider mountInfoProvider;
 
+    // OAK-12348: false (default) uses the configurable cost formula.
+    private final boolean disableConfigurableCosts;
+
+    // Lowest cost createPlan() could possibly compute for *some* candidate
+    // definition under the active formula -- used only to short-circuit the
+    // definition-scanning loop below once a plan hits it, since no later
+    // candidate could then be cheaper. Distinct from getMinimumCost(): that's
+    // a fixed floor (matching oak-search's FulltextIndex/LuceneIndex, which
+    // don't track their own costPerEntry/costPerExecution overrides either),
+    // but this loop compares actual computed costs across real candidates, so
+    // it must reflect the true achievable floor -- 0 whenever a candidate
+    // could have configured costPerExecution below COST_OVERHEAD.
+    private final double bestPossibleCost;
+
     /**
      * Cached property index plan
      */
     private PropertyIndexPlan cachedPlan;
 
     PropertyIndex(MountInfoProvider mountInfoProvider) {
+        this(mountInfoProvider, false);
+    }
+
+    PropertyIndex(MountInfoProvider mountInfoProvider, boolean disableConfigurableCosts) {
         this.mountInfoProvider = mountInfoProvider;
+        this.disableConfigurableCosts = disableConfigurableCosts;
+        this.bestPossibleCost = disableConfigurableCosts ? PropertyIndexPlan.COST_OVERHEAD : 0;
     }
 
     private PropertyIndexPlan getPlan(NodeState root, Filter filter) {
@@ -106,14 +126,13 @@ class PropertyIndex implements QueryIndex {
         if (plan != null && plan.getFilter().toString().equals(filter.toString())) {
             return plan;
         } else {
-            plan = createPlan(root, filter, mountInfoProvider);
+            plan = createPlan(root, filter);
             this.cachedPlan = plan;
             return plan;
         }
     }
 
-    private static PropertyIndexPlan createPlan(NodeState root, Filter filter,
-                                                MountInfoProvider mountInfoProvider) {
+    private PropertyIndexPlan createPlan(NodeState root, Filter filter) {
         PropertyIndexPlan bestPlan = null;
 
         // TODO support indexes on a path
@@ -127,14 +146,14 @@ class PropertyIndex implements QueryIndex {
             if (PROPERTY.equals(definition.getString(TYPE_PROPERTY_NAME))
                     && definition.hasChildNode(INDEX_CONTENT_NODE_NAME)) {
                 PropertyIndexPlan plan = new PropertyIndexPlan(
-                        entry.getName(), root, definition, filter, mountInfoProvider);
+                        entry.getName(), root, definition, filter, mountInfoProvider, disableConfigurableCosts);
                 if (plan.getCost() != Double.POSITIVE_INFINITY) {
                     LOG.debug("property cost for {} is {}",
                             plan.getName(), plan.getCost());
                     if (bestPlan == null || plan.getCost() < bestPlan.getCost()) {
                         bestPlan = plan;
-                        // Stop comparing if the costs are the minimum
-                        if (plan.getCost() == PropertyIndexPlan.COST_OVERHEAD) {
+                        // Stop comparing if the cost can't possibly be beaten
+                        if (plan.getCost() == bestPossibleCost) {
                             break;
                         }
                     }
