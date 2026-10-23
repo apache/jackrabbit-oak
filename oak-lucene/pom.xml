@@ -33,6 +33,9 @@
   <description>Oak Lucene integration subproject</description>
 
   <properties>
+    <skip.coverage>false</skip.coverage>
+    <minimum.line.coverage>0.44</minimum.line.coverage>
+    <minimum.branch.coverage>0.34</minimum.branch.coverage>
     <known.issues>
       <!-- Jackrabbit query tests -->
       org.apache.jackrabbit.core.query.ExcerptTest#testMoreTextDotsAtEnd                             <!-- OAK-318 -->
